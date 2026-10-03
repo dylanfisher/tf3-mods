@@ -1,0 +1,11 @@
+# Regenerable caches (make docs)
+.cache/
+docs/wiki.tmp/
+docs/wiki/_media/
+
+# Machine-specific
+.hub.env
+tlconfig.lua
+
+.DS_Store
+__pycache__/
