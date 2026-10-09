@@ -390,3 +390,53 @@ test("street outside the window: nothing credited", function()
 	bulldozeSeg(50, 0)
 	eq(#W.sent, 0)
 end)
+
+---------------------------------------------------------------------------
+-- Per-frame cost (perf review 2026-10-08): update reads the state only when an event left work.
+
+local function countGets()
+	local n = { get = 0 }
+	local orig = st.get
+	st.get = function(self) n.get = n.get + 1; return orig(self) end
+	return n
+end
+
+test("perf: idle frames don't read the state (only the load check + a once-per-second safety net)", function()
+	build({ 500 }, 1000)
+	local n = countGets()
+	for _ = 1, 200 do script.update({}, st, 0.0) end
+	ok(n.get <= 3, "state:get() on idle frames: " .. n.get)
+end)
+
+test("perf: a payout already in the saved state is booked on the first update after load", function()
+	st.value = { v = 1, ledger = {}, payout = 250 }
+	st.subs = { onPreBuildProposal = true, onPostBuildProposal = true }
+	script.update({}, st, 0.0)
+	eq(#W.sent, 1)
+	eq(W.sent[1].entry.amount, 250)
+	eq(st.value.payout, nil)
+end)
+
+test("perf: credits are still booked on the next frame after idle frames", function()
+	build({ 500 }, 1000)
+	for _ = 1, 50 do script.update({}, st, 0.0) end
+	local prop = proposal({ remove = { 500 } })
+	fire("onPreBuildProposal", prop, 0, {})
+	W.balance = W.balance + 750
+	W.inEvent = true
+	script.handleEvent({}, st, "", "apply_command", "onPostBuildProposal", { prop, { costs = 0 }, {}, true })
+	W.inEvent = false
+	eq(#W.sent, 0)
+	script.update({}, st, 0.0)
+	eq(#W.sent, 1)
+	eq(W.sent[1].entry.amount, 250)
+end)
+
+test("perf: in the map editor getModParams is not called on every frame", function()
+	local calls = 0
+	W.params = { [""] = { isMapEditor = true } }
+	api.engine.config.getModParams = function() calls = calls + 1; return W.params end
+	for _ = 1, 200 do script.update({}, st, 0.0) end
+	eq(next(st.subs), nil)
+	ok(calls <= 2, "getModParams calls: " .. calls)
+end)

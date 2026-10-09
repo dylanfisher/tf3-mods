@@ -36,6 +36,15 @@ local function probe(msg : string)
 	if PROBE then log.message(PREFIX .. msg) end
 end
 
+-- Per-frame cost control (this Lua state only, nothing saved).
+-- updateWork: an event may have left work for update (state.payout, or a pending.await re-measure).
+-- Starts true so a payout saved in the game is still booked after a load. update reads the state
+-- (state:get() converts the whole ledger, up to MAX_ENTRIES) only when set, or once per os.time()
+-- second as a safety net, instead of on every frame.
+local updateWork = true
+local nextStateCheck = 0      -- os.time() of the next safety-net state read
+local nextEditorCheck = 0     -- os.time() of the next isMapEditor() (getModParams copy) while unsubscribed
+
 local function getGameTime() : integer
 	-- src: mods/square_quota_run/content/quota/quota.script.tl:34-38; api/tealdef/api/engine.d.tl:424-438
 	local gt : Engine.Component.GameTime = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.GAME_TIME)
@@ -301,13 +310,14 @@ end
 --- geometry read while they still exist). Returns the entries and a probe description.
 local function takeRemoved(s : FullRefundState, proposal : api.type.Proposal, shape : Shape) : {FullRefundEntry}, string
 	local taken = logic.take(s, shape.removed)
-	local desc = idList(shape.removed)
+	-- The description is only for the probe trace: not built when PROBE is off.
+	local desc = PROBE and idList(shape.removed) or ""
 	if shape.removedSegs > 0 then
 		local sp = streetProposal(proposal)
 		local edges, srcs, bad = geoms(sp.removedSegments, sp.removedNodes, true)
 		local hits = logic.takeEdges(s, edges)
 		for _, en in ipairs(hits) do taken[#taken + 1] = en end
-		desc = desc .. string.format(" segs %s (%d edge hit(s), %d unreadable)", edgeList(edges, srcs), #hits, bad)
+		if PROBE then desc = desc .. string.format(" segs %s (%d edge hit(s), %d unreadable)", edgeList(edges, srcs), #hits, bad) end
 	end
 	return taken, desc
 end
@@ -368,6 +378,7 @@ local function settle(s : FullRefundState, balanceNow : integer, where : string)
 	probe(string.format("%s: balance %s -> %s, engine refunded %s of owed %s -> credit %s",
 		where, money(p.balance), money(balanceNow), money(actual), money(p.owed), money(credit)))
 	if credit > 0 then
+		updateWork = true
 		-- Booking here crashes: sendCommand inside a build event asserts '!m_betweenChanges'
 		-- (in game 2026-10-08). Queue it for the next update instead.
 		s.payout = (s.payout or 0) + credit
@@ -384,8 +395,8 @@ local function record(s : FullRefundState, proposal : api.type.Proposal, shape :
 	local ents = newConstructions(shape)
 	if cost > 0 and #ents > 0 then
 		logic.add(s, ents, cost, now)
-		probe(string.format("ledger +%d construction(s) %s, cost %s (%d segment(s) included), ledger size %d",
-			#ents, idList(ents), money(cost), shape.addedSegs, #s.ledger))
+		if PROBE then probe(string.format("ledger +%d construction(s) %s, cost %s (%d segment(s) included), ledger size %d",
+			#ents, idList(ents), money(cost), shape.addedSegs, #s.ledger)) end
 		return
 	end
 	if shape.addedSegs > 0 then
@@ -393,13 +404,15 @@ local function record(s : FullRefundState, proposal : api.type.Proposal, shape :
 		local edges, srcs, bad = geoms(sp.addedSegments, sp.addedNodes, false)
 		if cost > 0 and #edges > 0 then
 			local added = logic.addEdges(s, edges, cost, now)
-			local shares : {string} = {}
-			for i, en in ipairs(added) do
-				if i > 4 then break end
-				shares[#shares + 1] = money(en.c)
+			if PROBE then
+				local shares : {string} = {}
+				for i, en in ipairs(added) do
+					if i > 4 then break end
+					shares[#shares + 1] = money(en.c)
+				end
+				probe(string.format("ledger +%d segment(s) %s shares {%s}, cost %s, %d unreadable, ledger size %d",
+					#added, edgeList(edges, srcs), table.concat(shares, ","), money(cost), bad, #s.ledger))
 			end
-			probe(string.format("ledger +%d segment(s) %s shares {%s}, cost %s, %d unreadable, ledger size %d",
-				#added, edgeList(edges, srcs), table.concat(shares, ","), money(cost), bad, #s.ledger))
 			return
 		end
 		probe(string.format("ledger: nothing recorded (cost %s, %d segment(s) readable, %d unreadable)",
@@ -426,6 +439,7 @@ local function onPost(state : GameScriptState<FullRefundState>, proposal : api.t
 			if bal ~= nil and s.pending.balance ~= nil and bal - s.pending.balance <= 0 then
 				-- The engine's refund is not visible yet: measure again on the next update.
 				s.pending.await = true
+				updateWork = true
 				probe(string.format("post removal: balance %s -> %s, no refund visible yet, measuring next update",
 					money(s.pending.balance), money(bal)))
 			else
@@ -457,7 +471,13 @@ end
 local function doUpdate(state : GameScriptState<FullRefundState>) : any
 	if not state:hasEventSubscriptions() then
 		-- Never in the map editor: without subscriptions no event ever reaches us.
-		if isMapEditor() then return end
+		-- isMapEditor() copies every mod's params: in the editor, ask once per second, not every frame.
+		local t = os.time()
+		if t < nextEditorCheck then return end
+		if isMapEditor() then
+			nextEditorCheck = t + 1
+			return
+		end
 		-- Lazy subscription: no lifecycle event reaches a mod added to an existing save.
 		-- src: mods/square_problem_radar/content/radar/radar.script.tl:1258-1262; gamescript.d.tl:40-49
 		state:subscribeToNoEvents()
@@ -466,6 +486,12 @@ local function doUpdate(state : GameScriptState<FullRefundState>) : any
 		local wms, raw = windowMs()
 		probe(string.format("subscribed; refundWindow param raw=%s -> window %d s", tostring(raw), wms // 1000))
 	end
+	if not updateWork then
+		local t = os.time()
+		if t < nextStateCheck then return end
+		nextStateCheck = t + 1
+	end
+	updateWork = false
 	local s = state:get()
 	if s ~= nil and s.pending ~= nil and s.pending.await then
 		settle(s, getBalance(), "update")
