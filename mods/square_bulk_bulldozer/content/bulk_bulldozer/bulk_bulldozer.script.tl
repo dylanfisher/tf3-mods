@@ -16,6 +16,9 @@
 -- by side (one `group`, hideLabel) and a status chip under them with the live selection
 -- ("12 selected · $34,500" + counts per kind, results for 3 s). The cursor tooltip keeps only the
 -- radius, the right-click hint and skip reasons.
+-- User request 2026-10-08: a stroke painted with Shift held (IA_PRECISION_MODE, the game's
+-- "(Hold)" modifier, Shift by default) takes what it touches back out of the selection. Shift is
+-- read at the LMB press; the ring turns blue while Shift is held over a selection.
 --
 -- Wiring (research §1): bulk_bulldozer.res.lua → getDefinition below → ACTION_CUSTOM with the
 -- BulkBulldozerAction recipe. The construction menu mounts the recipe while the entry is selected
@@ -85,6 +88,9 @@ local RMB_CLICK_MAX_PX <const> = 16
 -- The world layer (actionFn) counts as closed once it stays unmounted this long (os.clock s). An
 -- unmount followed by a mount in the same frame (re-binding) is not a close.
 local LAYER_GONE_SECONDS <const> = 0.25
+-- Held at the LMB press: the stroke removes from the selection (base hold modifier, Shift by
+-- default; used the same way by move_it and the base track builder).
+local IA_ERASE <const> = "IA_PRECISION_MODE"
 
 -- Toolbar CheckBoxes, in sel.FILTER_KEYS order (PLAN "Filters"). Keys are stable: the menu
 -- remembers values by key.
@@ -188,6 +194,7 @@ local record Selection
 	previewAt : number      -- os.clock() of that preview
 	previewCount : integer  -- stroke size it was computed for
 	commitAt : number       -- os.clock() when the commit started
+	erasing : boolean       -- the stroke being painted removes instead of adds (Shift)
 end
 local record RmbPress
 	x : integer
@@ -387,6 +394,28 @@ local function takeSample(s : Selection, x : number, y : number, r : number, f :
 	return sel.count(s.stroke) ~= before or skippedAfter ~= skippedBefore
 end
 
+-- One Shift-stroke sample: every selected entity the brush touches leaves the selection, whatever
+-- the filters say. Returns true when the selection changed.
+local function eraseSample(s : Selection, x : number, y : number, r : number, f : BulkBulldozerFilters) : boolean
+	local ok, res = pcall(gather.sample, x, y, r, f, s.ctx, s.cache)
+	if not ok then
+		logMsg("erase sample failed: " .. tostring(res))
+		return false
+	end
+	s.samples = s.samples + 1
+	if res.seconds > s.worst then s.worst = res.seconds end
+	local hit : {integer} = {}
+	for _, c in ipairs(res.candidates) do hit[#hit + 1] = c.entity end
+	return sel.remove(s.stroke, hit) > 0
+end
+
+local function shiftHeld() : boolean
+	local ok, on = pcall(function() : boolean
+		return api.gui.inputAction.modifierOnlyActionIsActive(IA_ERASE)
+	end)
+	return ok and on == true
+end
+
 local EDGE_KINDS : {string : boolean} = { road = true, track = true }
 
 -- The stroke's kept entities split into edges and constructions (add order).
@@ -410,17 +439,44 @@ local record Overlay
 	truncated : boolean   -- MAX_SEGMENTS reached; some pieces / edges left out
 end
 
-local function buildOverlay(s : Selection, phase : string, key : string) : Overlay
+-- Overlay pieces per entity, reused across rebuilds (PERF_REVIEW.md): the overlay is rebuilt on
+-- every selection change (each brush sample that adds something, every hover change), and making
+-- up to MAX_SEGMENTS EdgeRenderable pieces from scratch each time is the costly part. An entity's
+-- pieces only depend on its descriptor (same gather cache), the phase colours and its piece count.
+local record PieceEntry
+	n : integer                                  -- piece count it was cut into (markers: 0)
+	edges : {Builtin.Type.EdgeRenderable.Edge}
+end
+local record PieceCache
+	owner : BulkBulldozerGatherCache             -- the descriptors these pieces were made from
+	byPhase : {string : {integer : PieceEntry}}
+end
+
+local function pieceTable(pc : PieceCache, phase : string) : {integer : PieceEntry}
+	local t = pc.byPhase[phase]
+	if t == nil then
+		t = {}
+		pc.byPhase[phase] = t
+	end
+	return t
+end
+
+local function buildOverlay(s : Selection, phase : string, key : string, pc : PieceCache) : Overlay
 	local c = hl.colors(phase)
 	local color = vec4(c.line)
+	local cached = pieceTable(pc, phase)
 	local curves : {BulkBulldozerCurve} = {}
+	local curveOf : {integer} = {}
 	local points : {BulkBulldozerDesc} = {}
 	for _, e in ipairs(s.stroke.order) do
 		local cand = s.stroke.keep[e]
 		local d = s.cache.descs[e]
 		if cand ~= nil and d ~= nil and not d.gone then
 			if EDGE_KINDS[cand.kind as string] then
-				if d.curve ~= nil then curves[#curves + 1] = d.curve end
+				if d.curve ~= nil then
+					curves[#curves + 1] = d.curve
+					curveOf[#curves] = e
+				end
 			elseif d.x ~= nil and d.y ~= nil then
 				points[#points + 1] = d
 			end
@@ -431,15 +487,28 @@ local function buildOverlay(s : Selection, phase : string, key : string) : Overl
 	if markerBudget < #points then out.truncated = true end
 	for i = 1, markerBudget do
 		local d = points[i]
-		local m = markerEdge(d.x, d.y, color, c.lineWidth)
-		out.edges[#out.edges + 1] = m
+		local pe = cached[d.entity]
+		if pe == nil or pe.n ~= 0 then
+			pe = { n = 0, edges = { markerEdge(d.x, d.y, color, c.lineWidth) } }
+			cached[d.entity] = pe
+		end
+		out.edges[#out.edges + 1] = pe.edges[1]
 		out.markers = out.markers + 1
 	end
-	local segs, trunc = hl.edgeSegments(curves, hl.MAX_SEGMENTS - out.markers, safeHeight)
+	local plan, fit, trunc = hl.piecePlan(curves, hl.MAX_SEGMENTS - out.markers)
 	if trunc then out.truncated = true end
-	for _, sg in ipairs(segs) do
-		local v = segmentEdge(sg, color, c.lineWidth)
-		if v ~= nil then
+	for i = 1, fit do
+		local e = curveOf[i]
+		local pe = cached[e]
+		if pe == nil or pe.n ~= plan[i] then
+			pe = { n = plan[i], edges = {} }
+			for _, sg in ipairs(hl.curveSegments(curves[i], plan[i], safeHeight)) do
+				local v = segmentEdge(sg, color, c.lineWidth)
+				if v ~= nil then pe.edges[#pe.edges + 1] = v end
+			end
+			cached[e] = pe
+		end
+		for _, v in ipairs(pe.edges) do
 			out.edges[#out.edges + 1] = v
 			out.pieces = out.pieces + 1
 		end
@@ -494,6 +563,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 	local cursorState = react.useState(nil) as ReactStateT<Vec3f>
 	local versionState = react.useState(0) as ReactStateT<integer>   -- bumped when the selection changes
 	local refLmbDown = react.useRef(false) as ReactRefT<boolean>
+	local refShift = react.useRef(false) as ReactRefT<boolean>      -- Shift held at the last step
 	local refRmbPress = react.useRef(nil) as ReactRefT<RmbPress>     -- last RMB press position
 	local refRenderActive = react.useRef(false) as ReactRefT<boolean> -- isActive at the last render
 	local refLayerDownAt = react.useRef(nil) as ReactRefT<number>     -- os.clock() the world layer unmounted
@@ -508,6 +578,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 	local refResult = react.useRef(nil) as ReactRefT<ResultLine>    -- status chip result (3 s)
 	local refStatusKey = react.useRef("") as ReactRefT<string>      -- last published status text
 	local refOverlay = react.useRef(nil) as ReactRefT<Overlay>      -- cached highlight lines
+	local refPieces = react.useRef(nil) as ReactRefT<PieceCache>    -- overlay pieces per entity
 	local refHlSet = react.useRef({}) as ReactRefT<{integer : boolean}>  -- highlighted, for the Selector filter
 	local refTruncLogged = react.useRef(nil) as ReactRefT<Selection> -- selection whose overlay cap was logged
 	-- The latest params for the step/event callbacks (they may outlive this render's closure).
@@ -557,6 +628,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 		refRmbPress:set(nil)
 		refResult:set(nil)
 		refOverlay:set(nil)
+		refPieces:set(nil)
 		refHlSet:set({})
 		refStatusKey:set("")
 		resetStatus()
@@ -614,15 +686,17 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 	-- LMB released: the selection stays (highlighted) and waits for "Bulldoze"; the
 	-- next stroke adds to it. Nothing is removed here (PLAN "Interaction").
 	local function finishStroke(s : Selection)
+		local what = s.erasing and "erase stroke" or "stroke"
+		s.erasing = false
 		if sel.count(s.stroke) == 0 then
-			logStroke("stroke (nothing selected)", s)
+			logStroke(what .. " (nothing selected)", s)
 			resetToIdle()
 			return
 		end
 		updatePreview(s)
 		s.phase = PHASE_SELECTED
 		refSel:set(s)
-		logStroke("stroke (waiting for Bulldoze)", s)
+		logStroke(what .. " (waiting for Bulldoze)", s)
 		local ov = refOverlay:get()
 		if hl.usesLines(hl.MODE) and ov ~= nil then
 			logMsg(string.format("highlight: %d entities, overlay %d line pieces + %d construction circles%s (last render)",
@@ -778,6 +852,13 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 			end
 		end
 
+		-- Shift changes the ring colour over a selection: re-render on the edge.
+		local shift = shiftHeld()
+		if shift ~= refShift:get() then
+			refShift:set(shift)
+			bump()
+		end
+
 		-- Brush samples, throttled by the sample policy (PLAN "Batching / rate limit").
 		local cur = cursorState:old()
 		local r = radiusState:old()
@@ -792,10 +873,12 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 					and (s.phase == PHASE_PAINTING or now - last.at < HOVER_CACHE_TTL) then
 				due = false
 			end
-			if due and s ~= nil and s.phase == PHASE_PAINTING and s.stroke.capped then due = false end
+			if due and s ~= nil and s.phase == PHASE_PAINTING and s.stroke.capped and not s.erasing then due = false end
 			if due then
 				refSample:set({ x = cur.x, y = cur.y, r = r, at = now })
-				if s ~= nil and s.phase == PHASE_PAINTING then
+				if s ~= nil and s.phase == PHASE_PAINTING and s.erasing then
+					if eraseSample(s, cur.x, cur.y, r, filtersState:old()) then bump() end
+				elseif s ~= nil and s.phase == PHASE_PAINTING then
 					if takeSample(s, cur.x, cur.y, r, filtersState:old()) then bump() end
 				else
 					-- Hover preview: a fresh single-sample stroke, cache reused for HOVER_CACHE_TTL.
@@ -880,13 +963,19 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 			else
 				refSkipRelease:set(false)
 				refLmbDown:set(true)
+				local erase = shiftHeld()
 				if s ~= nil and s.phase == PHASE_SELECTED then
-					-- Another stroke adds to the selection.
+					-- Another stroke adds to the selection (or, with Shift, removes from it).
 					s.phase = PHASE_PAINTING
+					s.erasing = erase
 				else
-					-- New selection (the hover preview is dropped).
-					refSel:set(newSelection(PHASE_PAINTING))
+					-- New selection (the hover preview is dropped). A Shift stroke with nothing
+					-- selected has nothing to remove and ends empty.
+					local ns = newSelection(PHASE_PAINTING)
+					ns.erasing = erase
+					refSel:set(ns)
 				end
+				if erase then logMsg("erase stroke (Shift held)") end
 				-- The next step takes the stroke's first sample at the cursor.
 				refSample:set(nil)
 				bump()
@@ -900,7 +989,9 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 			elseif s ~= nil and s.phase == PHASE_PAINTING then
 				-- A plain click (released before a step sampled) still adds what is under the circle.
 				local cur = cursorState:old()
-				if refSample:get() == nil and cur ~= nil and not s.stroke.capped then
+				if refSample:get() == nil and cur ~= nil and s.erasing then
+					eraseSample(s, cur.x, cur.y, radiusState:old(), filtersState:old())
+				elseif refSample:get() == nil and cur ~= nil and not s.stroke.capped then
 					takeSample(s, cur.x, cur.y, radiusState:old(), filtersState:old())
 				end
 				finishStroke(s)
@@ -942,7 +1033,10 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 	-- The cursor tooltip is minimal now: the selection lives in the toolbar status chip.
 	local function tooltipText(s : Selection, r : number) : string
 		local lines : {string} = { string.format("r = %d m", math.floor(r)) }
-		if s ~= nil and (s.phase == PHASE_PAINTING or s.phase == PHASE_SELECTED) then
+		if s ~= nil and s.phase == PHASE_PAINTING and s.erasing then
+			lines[#lines + 1] = "Removing from the selection"
+		elseif s ~= nil and (s.phase == PHASE_PAINTING or s.phase == PHASE_SELECTED) then
+			lines[#lines + 1] = "Shift + paint removes from the selection"
 			lines[#lines + 1] = "Right-click clears the selection"
 		end
 		if s ~= nil and s.phase ~= PHASE_COMMITTING then
@@ -1032,7 +1126,12 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 			local key = tostring(versionState:old()) .. "/" .. phase .. "/" .. tostring(#highlighted)
 			local ov = refOverlay:get()
 			if ov == nil or ov.key ~= key then
-				local ok, built = pcall(buildOverlay, s, phase, key)
+				local pc = refPieces:get()
+				if pc == nil or pc.owner ~= s.cache then
+					pc = { owner = s.cache, byPhase = {} }
+					refPieces:set(pc)
+				end
+				local ok, built = pcall(buildOverlay, s, phase, key, pc)
 				if ok then
 					ov = built
 				else
@@ -1052,9 +1151,13 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 		local bag : {Builtin.Type.EdgeRenderable.Edge} = {}
 		for _, v in ipairs(overlayEdges) do bag[#bag + 1] = v end
 		if cur ~= nil then
-			-- White hover, red while painting, amber while the selection waits / is removed.
+			-- White hover, red while painting, amber while the selection waits / is removed, blue
+			-- while a Shift stroke removes (or Shift is held over a waiting selection).
 			local color = api.type.Vec4f.new(1, 1, 1, 0.7)
-			if s ~= nil and s.phase == PHASE_PAINTING then
+			if s ~= nil and ((s.phase == PHASE_PAINTING and s.erasing)
+					or (s.phase == PHASE_SELECTED and refShift:get())) then
+				color = api.type.Vec4f.new(0.35, 0.7, 1, 0.85)
+			elseif s ~= nil and s.phase == PHASE_PAINTING then
 				color = api.type.Vec4f.new(1, 0.25, 0.2, 0.8)
 			elseif s ~= nil and (s.phase == PHASE_SELECTED or s.phase == PHASE_COMMITTING) then
 				color = api.type.Vec4f.new(1, 0.7, 0.1, 0.8)

@@ -97,45 +97,58 @@ function hl.curveZ(c : BulkBulldozerCurve, t : number) : number
 		+ (-2 * t3 + 3 * t2) * c.p1z + (t3 - t2) * (c.t1z or 0)
 end
 
-function hl.edgeSegments(curves : {BulkBulldozerCurve}, maxSegments : integer,
-		heightAt? : function(number, number) : number) : {BulkBulldozerSegment}, boolean
-	local out : {BulkBulldozerSegment} = {}
-	if curves == nil or maxSegments == nil or maxSegments < 1 then return out, curves ~= nil and #curves > 0 end
+-- Pieces per curve within the budget: over budget every edge gets fewer pieces first (at least
+-- one), then trailing edges are dropped. Returns the counts, how many curves fit, truncated.
+function hl.piecePlan(curves : {BulkBulldozerCurve}, maxSegments : integer) : {integer}, integer, boolean
+	if curves == nil or maxSegments == nil or maxSegments < 1 then return {}, 0, curves ~= nil and #curves > 0 end
 	local pieces : {integer} = {}
 	local total = 0
 	for i, c in ipairs(curves) do
 		pieces[i] = hl.piecesFor(hl.curveLength(c))
 		total = total + pieces[i]
 	end
-	-- Over budget: fewer pieces per edge first (every edge keeps at least one), then drop edges.
 	if total > maxSegments then
 		local f = maxSegments / total
 		for i = 1, #pieces do
 			pieces[i] = math.max(1, math.floor(pieces[i] * f))
 		end
 	end
-	local truncated = false
-	local function z(c : BulkBulldozerCurve, t : number, x : number, y : number) : number
+	local used = 0
+	for i = 1, #pieces do
+		if used + pieces[i] > maxSegments then return pieces, i - 1, true end
+		used = used + pieces[i]
+	end
+	return pieces, #pieces, false
+end
+
+-- One curve cut into n straight pieces. Heights from the curve's z, else heightAt(x, y), else 0.
+function hl.curveSegments(c : BulkBulldozerCurve, n : integer,
+		heightAt? : function(number, number) : number) : {BulkBulldozerSegment}
+	local out : {BulkBulldozerSegment} = {}
+	local function z(t : number, x : number, y : number) : number
 		local v = hl.curveZ(c, t)
 		if v ~= nil then return v end
 		if heightAt ~= nil then return heightAt(x, y) end
 		return 0
 	end
-	for i, c in ipairs(curves) do
-		local n = pieces[i]
-		if #out + n > maxSegments then
-			truncated = true
-			break
-		end
-		local lx, ly = c.p0x, c.p0y
-		local lz = z(c, 0, lx, ly)
-		for k = 1, n do
-			local t = k / n
-			local x, y = brush.hermite(c, t)
-			local zz = z(c, t, x, y)
-			out[#out + 1] = { x0 = lx, y0 = ly, z0 = lz, x1 = x, y1 = y, z1 = zz }
-			lx, ly, lz = x, y, zz
-		end
+	local lx, ly = c.p0x, c.p0y
+	local lz = z(0, lx, ly)
+	for k = 1, n do
+		local t = k / n
+		local x, y = brush.hermite(c, t)
+		local zz = z(t, x, y)
+		out[#out + 1] = { x0 = lx, y0 = ly, z0 = lz, x1 = x, y1 = y, z1 = zz }
+		lx, ly, lz = x, y, zz
+	end
+	return out
+end
+
+function hl.edgeSegments(curves : {BulkBulldozerCurve}, maxSegments : integer,
+		heightAt? : function(number, number) : number) : {BulkBulldozerSegment}, boolean
+	local out : {BulkBulldozerSegment} = {}
+	local pieces, fit, truncated = hl.piecePlan(curves, maxSegments)
+	for i = 1, fit do
+		for _, sg in ipairs(hl.curveSegments(curves[i], pieces[i], heightAt)) do out[#out + 1] = sg end
 	end
 	return out, truncated
 end

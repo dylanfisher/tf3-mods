@@ -7,6 +7,7 @@ local T = { Pressed = "Pressed", Released = "Released", Clicked = "Clicked", Mov
 	PressedOutside = "PressedOutside" }
 
 local fired
+local shiftDown   -- what api.gui.inputAction reports for IA_PRECISION_MODE
 
 local function fakeReact()
 	local h = { states = {}, refs = {}, events = {}, steps = {}, mounts = {}, unmounts = {}, inputs = {} }
@@ -44,6 +45,7 @@ local h, reg, script, sel
 before_each(function()
 	reset_modules()
 	fired = {}
+	shiftDown = false
 	h = fakeReact()
 	reg = {}
 	h.react.RegisterRecipe = function(name, fn)
@@ -70,6 +72,9 @@ before_each(function()
 		gui = {
 			fireReactEvent = function(name, payload) fired[#fired + 1] = { name = name, payload = payload } end,
 			mouse = { Event = { Type = T }, hasTerrainPosition = function() return false end },
+			inputAction = { modifierOnlyActionIsActive = function(ia)
+				return ia == "IA_PRECISION_MODE" and shiftDown
+			end },
 		},
 		engine = {
 			util = { getPlayer = function() return 1 end },
@@ -119,6 +124,47 @@ local function paintOne(onMouse)
 	s = selection()
 	ok(s ~= nil and s.phase == "selected", "selection waits for the button")
 end
+
+test("shift stroke: removes from a waiting selection and keeps the rest", function()
+	local p = render(newParam(true))
+	local onMouse = mouseHandler(p)
+	paintOne(onMouse)
+	local s = selection()
+	sel.add(s.stroke, { entity = 4343, kind = "track", objects = 0 })
+	shiftDown = true
+	onMouse({ type = T.Pressed, button = 0, x = 10, y = 10, handled = false })
+	s = selection()
+	eq(s.phase, "painting")
+	eq(s.erasing, true, "Shift at the press makes an erase stroke")
+	sel.remove(s.stroke, { 4242 })   -- what a brush sample over the road does
+	onMouse({ type = T.Released, button = 0, x = 10, y = 10, handled = false })
+	s = selection()
+	eq(s.phase, "selected", "the rest still waits for Bulldoze")
+	eq(s.erasing, false)
+	eq(sel.entities(s.stroke), { 4343 })
+	-- erasing everything ends the selection
+	onMouse({ type = T.Pressed, button = 0, x = 10, y = 10, handled = false })
+	sel.remove(selection().stroke, { 4343 })
+	onMouse({ type = T.Released, button = 0, x = 10, y = 10, handled = false })
+	eq(selection(), nil, "empty after erasing: back to the hover preview")
+end)
+
+test("shift stroke: with nothing selected it selects nothing", function()
+	local p = render(newParam(true))
+	local onMouse = mouseHandler(p)
+	shiftDown = true
+	onMouse({ type = T.Pressed, button = 0, x = 10, y = 10, handled = false })
+	eq(selection().erasing, true)
+	onMouse({ type = T.Released, button = 0, x = 10, y = 10, handled = false })
+	eq(selection(), nil)
+end)
+
+test("shift stroke: a plain stroke after it adds again", function()
+	local p = render(newParam(true))
+	local onMouse = mouseHandler(p)
+	paintOne(onMouse)
+	eq(selection().erasing, false, "no Shift: adds")
+end)
 
 test("right click: Clicked (the event that arrives in game) clears a waiting selection", function()
 	local p = render(newParam(true))
@@ -229,3 +275,40 @@ test("toolbar sync: an unticked Roads box survives a remount (never re-ticked by
 	eq(h.states[2]:old().roads, true)
 end)
 
+
+test("highlight overlay: a growing selection only builds pieces for the new entities (PERF_REVIEW)", function()
+	local made = 0
+	local function obj() return {} end
+	api.type.Vec2f = { new = function(x, y) return { x = x, y = y } end }
+	api.type.EdgeGeometry = { new = obj, Straight = { new = obj }, Arc = { new = obj } }
+	local builtin = ug_require "::/gui/main/builtin.lua"
+	builtin.type.EdgeRenderable = { Edge = { new = function(g) made = made + 1; return { g = g } end } }
+	local p = render(newParam(true))
+	local onMouse = mouseHandler(p)
+	local function straight(x0, y0, x1, y1)
+		return { p0x = x0, p0y = y0, p1x = x1, p1y = y1, t0x = x1 - x0, t0y = y1 - y0, t1x = x1 - x0, t1y = y1 - y0,
+			p0z = 0, p1z = 0, t0z = 0, t1z = 0 }
+	end
+	local function overlayCount(tree)
+		for _, c in ipairs(tree.param.children) do
+			if c.builtin == "EdgeRenderable" then return #c.param.edges end
+		end
+		return 0
+	end
+	-- Stroke 1: one 60 m road (4 pieces of 15 m).
+	onMouse({ type = T.Pressed, button = 0, x = 10, y = 10, handled = false })
+	local s = selection()
+	s.cache.descs[4242] = { entity = 4242, isEdge = true, gone = false, full = true, curve = straight(0, 0, 60, 0) }
+	sel.add(s.stroke, { entity = 4242, kind = "road", objects = 0 })
+	onMouse({ type = T.Released, button = 0, x = 10, y = 10, handled = false })
+	eq(overlayCount(p.actionFn()), 4)
+	eq(made, 4)
+	-- Stroke 2 adds a 30 m road (2 pieces): only those are made, the first road's pieces are reused.
+	onMouse({ type = T.Pressed, button = 0, x = 10, y = 10, handled = false })
+	s = selection()
+	s.cache.descs[4243] = { entity = 4243, isEdge = true, gone = false, full = true, curve = straight(0, 10, 30, 10) }
+	sel.add(s.stroke, { entity = 4243, kind = "road", objects = 0 })
+	onMouse({ type = T.Released, button = 0, x = 10, y = 10, handled = false })
+	eq(overlayCount(p.actionFn()), 6)
+	eq(made, 6, "only the new road's 2 pieces were made")
+end)

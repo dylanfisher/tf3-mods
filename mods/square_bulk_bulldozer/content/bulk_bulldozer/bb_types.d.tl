@@ -56,6 +56,8 @@ global record BulkBulldozerDesc
 	entity : integer
 	isEdge : boolean
 	gone : boolean               -- no longer exists, or its main component could not be read
+	full : boolean               -- every field read; false = only the light step (geometry / origin,
+	                             -- bb_gather: owner, street, parentConstruction, industryRoad not yet)
 	owner : integer              -- PLAYER_OWNED.player, -1 when the component is missing
 	parentConstruction : integer -- edge: getConstructionEntityForEdge; construction: the owner of a
 	                             -- subconstruction; -1 when none
@@ -65,6 +67,8 @@ global record BulkBulldozerDesc
 	industryRoad : boolean       -- a segment that goes with an industry (findSegmentsToDelete) or
 	                             -- ends on a node frozen in an industry construction
 	objects : {integer}          -- BaseEdge.objects entities (signals, stops, waypoints)
+	node0 : integer              -- BaseEdge.node0 / node1 (for the industry-node check)
+	node1 : integer
 	curve : BulkBulldozerCurve
 	-- construction
 	x : number                   -- transf translation (origin)
@@ -179,6 +183,8 @@ global record BulkBulldozerSelect
 	newStroke : function() : BulkBulldozerStroke
 	--- Merge one candidate; returns true when it became a new keep. Respects STROKE_CAP.
 	add : function(s : BulkBulldozerStroke, c : BulkBulldozerCandidate) : boolean
+	--- Take kept entities back out (Shift stroke); returns how many were removed.
+	remove : function(s : BulkBulldozerStroke, entities : {integer}) : integer
 	--- Number of kept entities.
 	count : function(s : BulkBulldozerStroke) : integer
 	--- Kept entities (for highlightedEntities), in add order.
@@ -389,6 +395,11 @@ global record BulkBulldozerHighlight
 	--- curve's z, else heightAt(x, y), else 0.
 	edgeSegments : function(curves : {BulkBulldozerCurve}, maxSegments : integer,
 		heightAt? : function(number, number) : number) : {BulkBulldozerSegment}, boolean
+	--- The budget split edgeSegments uses: pieces per curve, how many curves fit, truncated.
+	piecePlan : function(curves : {BulkBulldozerCurve}, maxSegments : integer) : {integer}, integer, boolean
+	--- One curve cut into n straight pieces (heights as in edgeSegments).
+	curveSegments : function(c : BulkBulldozerCurve, n : integer,
+		heightAt? : function(number, number) : number) : {BulkBulldozerSegment}
 	--- One log line naming the active path.
 	describeMode : function(mode : string) : string
 end

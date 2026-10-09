@@ -91,10 +91,15 @@ local function nodeConstruction(n : integer) : integer
 	return -1
 end
 
-function gather.describeEdge(e : integer, cache : BulkBulldozerGatherCache) : BulkBulldozerDesc
+-- Descriptors are read in two steps (PERF_REVIEW.md): the octree query is r + EDGE_MARGIN wide, so
+-- most entities it returns are not under the brush. The light step reads only what the touch /
+-- origin test needs (BASE_EDGE geometry; CONSTRUCTION origin and counts, which also mark
+-- industries); the full step (owner, street, connector lookups, station owner, subconstruction)
+-- runs once the entity is hit, so sel.classify only ever sees complete descriptors (d.full).
+local function edgeLight(e : integer, cache : BulkBulldozerGatherCache) : BulkBulldozerDesc
 	local d : BulkBulldozerDesc = cache.descs[e]
 	if d ~= nil then return d end
-	d = { entity = e, isEdge = true, gone = true, owner = -1, parentConstruction = -1, objects = {} }
+	d = { entity = e, isEdge = true, gone = true, full = true, owner = -1, parentConstruction = -1, objects = {} }
 	cache.descs[e] = d
 	if not exists(e) then return d end
 	local be = comp(e, api.type.ComponentType.BASE_EDGE) as Engine.Component.BaseEdge
@@ -102,10 +107,8 @@ function gather.describeEdge(e : integer, cache : BulkBulldozerGatherCache) : Bu
 		return d
 	end
 	d.gone = false
-	d.owner = ownerOf(e)
-	local okC, con = pcall(api.engine.system.streetConnectorSystem.getConstructionEntityForEdge, e)
-	d.parentConstruction = (okC and con ~= nil) and con or -1
-	d.isStreet = comp(e, api.type.ComponentType.BASE_EDGE_STREET) ~= nil
+	d.full = false
+	d.node0, d.node1 = be.node0, be.node1
 	d.isTunnel = be.type == api.type.enum.BaseEdgeType.TUNNEL
 	if be.objects ~= nil then
 		for _, o in ipairs(be.objects) do
@@ -121,13 +124,28 @@ function gather.describeEdge(e : integer, cache : BulkBulldozerGatherCache) : Bu
 		p0z = be.position0.z, t0z = be.tangent0.z,
 		p1z = be.position1.z, t1z = be.tangent1.z,
 	}
+	return d
+end
+
+local function edgeFull(d : BulkBulldozerDesc, cache : BulkBulldozerGatherCache) : BulkBulldozerDesc
+	if d.full then return d end
+	d.full = true
+	local e = d.entity
+	d.owner = ownerOf(e)
+	local okC, con = pcall(api.engine.system.streetConnectorSystem.getConstructionEntityForEdge, e)
+	d.parentConstruction = (okC and con ~= nil) and con or -1
+	d.isStreet = comp(e, api.type.ComponentType.BASE_EDGE_STREET) ~= nil
 	-- An unowned street that ends on a node frozen in an industry is an industry access road
 	-- even when findSegmentsToDelete of that industry was not run (industry origin far away).
 	if d.owner < 0 and d.parentConstruction < 0 then
-		d.industryRoad = conIsIndustry(nodeConstruction(be.node0), cache)
-			or conIsIndustry(nodeConstruction(be.node1), cache)
+		d.industryRoad = conIsIndustry(nodeConstruction(d.node0), cache)
+			or conIsIndustry(nodeConstruction(d.node1), cache)
 	end
 	return d
+end
+
+function gather.describeEdge(e : integer, cache : BulkBulldozerGatherCache) : BulkBulldozerDesc
+	return edgeFull(edgeLight(e, cache), cache)
 end
 
 -- Owner of a station/depot construction whose construction entity has no PLAYER_OWNED
@@ -158,10 +176,10 @@ local function stationOwner(c : Engine.Component.Construction) : integer
 	return found
 end
 
-function gather.describeConstruction(e : integer, cache : BulkBulldozerGatherCache) : BulkBulldozerDesc
+local function constructionLight(e : integer, cache : BulkBulldozerGatherCache) : BulkBulldozerDesc
 	local d : BulkBulldozerDesc = cache.descs[e]
 	if d ~= nil then return d end
-	d = { entity = e, isEdge = false, gone = true, owner = -1, parentConstruction = -1,
+	d = { entity = e, isEdge = false, gone = true, full = true, owner = -1, parentConstruction = -1,
 		stations = 0, depots = 0, industries = 0, townBuildings = 0, frozen = 0 }
 	cache.descs[e] = d
 	if not exists(e) then return d end
@@ -170,16 +188,26 @@ function gather.describeConstruction(e : integer, cache : BulkBulldozerGatherCac
 	local okT, t = pcall(function() : Vec3f return c.transf:getTransl() end)
 	if not okT or t == nil then return d end
 	d.gone = false
+	d.full = false
 	d.x, d.y = t.x, t.y
-	d.owner = ownerOf(e)
 	d.stations = c.stations ~= nil and #c.stations or 0
 	d.depots = c.depots ~= nil and #c.depots or 0
 	d.industries = c.industries ~= nil and #c.industries or 0
 	d.townBuildings = c.townBuildings ~= nil and #c.townBuildings or 0
 	d.frozen = (c.frozenEdges ~= nil and #c.frozenEdges or 0) + (c.frozenNodes ~= nil and #c.frozenNodes or 0)
 	cache.conIsIndustry[e] = d.industries > 0
+	return d
+end
+
+local function constructionFull(d : BulkBulldozerDesc) : BulkBulldozerDesc
+	if d.full then return d end
+	d.full = true
+	local e = d.entity
+	d.owner = ownerOf(e)
 	if d.owner < 0 and d.industries == 0 and (d.stations > 0 or d.depots > 0) then
-		d.owner = stationOwner(c)
+		-- Rare (a station without PLAYER_OWNED on its construction): read the lists again.
+		local c = comp(e, api.type.ComponentType.CONSTRUCTION) as Engine.Component.Construction
+		if c ~= nil then d.owner = stationOwner(c) end
 	end
 	-- A subconstruction goes with its parent construction (overpass_probe.script.tl:339-341).
 	if comp(e, api.type.ComponentType.SUBCONSTRUCTION) ~= nil then
@@ -187,6 +215,10 @@ function gather.describeConstruction(e : integer, cache : BulkBulldozerGatherCac
 		if okS and parent ~= nil and parent >= 0 and parent ~= e then d.parentConstruction = parent end
 	end
 	return d
+end
+
+function gather.describeConstruction(e : integer, cache : BulkBulldozerGatherCache) : BulkBulldozerDesc
+	return constructionFull(constructionLight(e, cache))
 end
 
 local function query(cx : number, cy : number, r : number, t : Engine.ComponentType) : {integer}, boolean
@@ -212,7 +244,7 @@ function gather.sample(cx : number, cy : number, r : number, f : BulkBulldozerFi
 	end
 	for i, e in ipairs(cons) do
 		if i > max then break end
-		local d = gather.describeConstruction(e, cache)
+		local d = constructionLight(e, cache)
 		if not d.gone and d.industries > 0 then protectIndustryRoads(e, cache) end
 		local hit : boolean
 		if direct ~= nil then
@@ -222,7 +254,7 @@ function gather.sample(cx : number, cy : number, r : number, f : BulkBulldozerFi
 		end
 		-- A gone construction has no position; it is simply not under the brush any more.
 		if hit and not d.gone then
-			out.candidates[#out.candidates + 1] = sel.classify(d, f, ctx)
+			out.candidates[#out.candidates + 1] = sel.classify(constructionFull(d), f, ctx)
 		end
 	end
 
@@ -230,8 +262,9 @@ function gather.sample(cx : number, cy : number, r : number, f : BulkBulldozerFi
 	out.edgeHits = #edges
 	for i, e in ipairs(edges) do
 		if i > max then break end
-		local d = gather.describeEdge(e, cache)
+		local d = edgeLight(e, cache)
 		if not d.gone and brush.curveTouchesCircle(d.curve, cx, cy, r) then
+			edgeFull(d, cache)
 			if cache.industryRoads[e] then d.industryRoad = true end
 			out.candidates[#out.candidates + 1] = sel.classify(d, f, ctx)
 		end
