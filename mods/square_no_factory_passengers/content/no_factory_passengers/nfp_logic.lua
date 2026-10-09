@@ -2,7 +2,9 @@
 -- tests/square_no_factory_passengers/. gui/nfp_patch.script.lua injects the engine lookups.
 --
 -- Runs on the GUI thread on every line edit, so every lookup is lazy and short-circuits: catchables
--- are fetched one station at a time, and passenger catchables only once an industry is in reach.
+-- are fetched one station at a time, and homes are tested first. A town stop (the common case)
+-- stops at its first town building, without scanning its cargo catchables (every town building in
+-- reach) for an industry; cargo catchables are fetched only for groups that reach no homes.
 
 local logic = {}
 
@@ -22,31 +24,33 @@ end
 --- Decision for one station group: clear passengers when an industry is among the cargo
 -- catchables AND no town building is among the passenger catchables. Passenger catchables include
 -- the industry's own workplaces (api/engine/system.d.tl:445-448), hence isHome rather than the base
--- "non-empty" test (line_util.tl:569-572). Returns clear, industry (booleans).
+-- "non-empty" test (line_util.tl:569-572). Homes are tested first: with a home in reach the stop
+-- keeps passengers whatever else it reaches, so the industry test is skipped (industry is then
+-- reported false). Returns clear, industry, home (booleans).
 function logic.decide(stations, catchables, isIndustry, isHome)
-	if not logic.anyCatchable(stations, catchables, true, isIndustry) then
-		return false, false
+	if logic.anyCatchable(stations, catchables, false, isHome) then
+		return false, false, true
 	end
-	return not logic.anyCatchable(stations, catchables, false, isHome), true
+	local industry = logic.anyCatchable(stations, catchables, true, isIndustry)
+	return industry, industry, false
 end
 
 --- Decision for a whole line. groups: the station list of each distinct station group among the
 -- line's passenger stops. A group is cleared when decide clears it (industry, no town buildings)
 -- or, once the line has such an industry-only stop, when it reaches no town buildings either (a
--- dock or other transfer point on a factory line). Passenger catchables of groups without an
--- industry are fetched only in that case. Returns clear, industry (arrays of booleans by index).
+-- dock or other transfer point on a factory line). Each group's catchables are fetched at most once
+-- per kind. Returns clear, industry (arrays of booleans by index; industry is true only for a group
+-- that reaches an industry and no homes).
 function logic.decideLine(groups, catchables, isIndustry, isHome)
-	local clear, industry = {}, {}
+	local clear, industry, home = {}, {}, {}
 	local industryOnly = false
 	for i, stations in ipairs(groups) do
-		clear[i], industry[i] = logic.decide(stations, catchables, isIndustry, isHome)
+		clear[i], industry[i], home[i] = logic.decide(stations, catchables, isIndustry, isHome)
 		industryOnly = industryOnly or clear[i]
 	end
 	if industryOnly then
-		for i, stations in ipairs(groups) do
-			if not industry[i] then
-				clear[i] = not logic.anyCatchable(stations, catchables, false, isHome)
-			end
+		for i in ipairs(groups) do
+			clear[i] = not home[i]
 		end
 	end
 	return clear, industry

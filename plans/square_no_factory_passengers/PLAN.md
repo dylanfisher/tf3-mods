@@ -31,8 +31,8 @@ kept passengers, and it could never act on the first stop, because the editor ke
   read is a copy; as keepCargo, `line_util.tl:501-512`). Works for a 1-stop line.
 - Line rule (rev 2, `logic.decideLine`): once the line has an industry-only stop, every other
   passenger stop whose group reaches no town buildings is cleared too (factory → dock: the dock
-  reaches no homes, only transfers). Groups without an industry fetch passenger catchables only in
-  that case; lines without an industry-only stop are unchanged from rev 1.
+  reaches no homes, only transfers). The line pass reuses each group's home result (no
+  extra fetch); lines without an industry-only stop are unchanged from rev 1.
 - Industry test per catchable from `getStationCatchables(station, true)`: the entity has an
   INDUSTRY component (industries hold their own STOCK_LIST, `industry_util.tl:634-635`, `719-720`).
 - Homes test: a catchable from `getStationCatchables(station, false)` has a TOWN_BUILDING
@@ -40,8 +40,9 @@ kept passengers, and it could never act on the first stop, because the editor ke
   industry workplaces apart the same way, `industry_workers.script.tl:38-39`). Not the base
   "non-empty" check (`line_util.tl:569-572`): the factory's own workplaces are passenger catchables.
 - Performance (runs on the GUI thread per edit): no `forEachEntityWithComponent` fallback scans
-  for separate stock list / person capacity entities; passenger catchables are fetched only when
-  the group reaches an industry; every lookup short-circuits; one decision per station group.
+  for separate stock list / person capacity entities; homes are tested first (rev 3), so a town
+  stop stops at its first town building and cargo catchables are fetched only for groups with no
+  homes; every lookup short-circuits; one decision per station group. See PERF_REVIEW.md.
 - Station loop as autoLoadConfig (`line_util.tl:551-552`, STATION_GROUP.stations).
 - Pure decision in `nfp_logic.lua` (unit-tested); one `log.message` line per cleared stop.
 
