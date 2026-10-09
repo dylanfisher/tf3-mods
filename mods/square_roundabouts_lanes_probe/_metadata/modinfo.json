@@ -1,0 +1,16 @@
+{
+    "name": "DEV Roundabouts Lane Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Logs lane connections at roundabout junctions.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Developer tool for square_roundabouts Phase 6: after you place a roundabout it logs the build event and every junction node's lane connections as [SQRB-LANES] lines to stdout.txt. Read-only unless the Write experiment setting is On. See plans/square_roundabouts/PHASE6.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

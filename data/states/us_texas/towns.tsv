@@ -1,0 +1,534 @@
+name	tags	population	lat	lon	note
+Houston	east,big	2314157	29.7857	-95.3888	city est2023
+San Antonio	east,big	1495295	29.4628	-98.5246	city est2023
+Dallas	east,big	1302868	32.7933	-96.7665	city est2023
+Austin	east,big	979882	30.2986	-97.7541	city est2023
+Fort Worth	east,big	978468	32.7820	-97.3486	city est2023
+El Paso	west,big	678958	31.8478	-106.4311	city est2023
+Arlington	east,big	398431	32.7007	-97.1247	city est2023
+Corpus Christi	gulf,big	316595	27.7543	-97.1734	city est2023
+Plano	east,big	290190	33.0508	-96.7479	city est2023
+Lubbock	panhandle,big	266878	33.5619	-101.8889	city est2023
+Laredo	west,big	257602	27.5604	-99.4892	city est2023
+Irving	east,big	254373	32.8577	-96.9700	city est2023
+Garland	east,big	243470	32.9098	-96.6303	city est2023
+Frisco	east,big	225007	33.1554	-96.8226	city est2023
+McKinney	east,big	213509	33.2011	-96.6642	city est2023
+Amarillo	panhandle	202408	35.1981	-101.8331	city est2023
+Grand Prairie	east	202134	32.6861	-97.0208	city est2023
+Brownsville	valley	190158	25.9957	-97.4508	city est2023
+Killeen	east	159643	31.0777	-97.7320	city est2023
+Denton	east	158349	33.2174	-97.1413	city est2023
+Mesquite	east	147317	32.7595	-96.5842	city est2023
+Pasadena	gulf	146716	29.6550	-95.1511	city est2023
+McAllen	valley	146593	26.2250	-98.2461	city est2023
+Waco	east	144816	31.5580	-97.1898	city est2023
+Midland	west	138397	32.0246	-102.1135	city est2023
+Lewisville	east	133553	33.0507	-96.9746	city est2023
+Carrollton	east	132918	32.9894	-96.8999	city est2023
+Round Rock	east	130406	30.5268	-97.6601	city est2023
+Abilene	west	129043	32.4545	-99.7381	city est2023
+Pearland	east	127736	29.5557	-95.3230	city est2023
+College Station	east	125192	30.5852	-96.2964	city est2023
+Richardson	east	117435	32.9723	-96.7081	city est2023
+League City	gulf	116320	29.4901	-95.1091	city est2023
+Odessa	west	115743	31.8805	-102.3453	city est2023
+Beaumont	gulf	112193	30.0849	-94.1453	city est2023
+Allen	east	111620	33.1097	-96.6730	city est2023
+New Braunfels	east	110958	29.6993	-98.1151	city est2023
+Tyler	east	110327	32.3173	-95.3059	city est2023
+Sugar Land	east	108515	29.5928	-95.6338	city est2023
+Conroe	east	108248	30.3287	-95.4846	city est2023
+Edinburg	valley	105799	26.3211	-98.1628	city est2023
+Wichita Falls	east	102691	33.9067	-98.5258	city est2023
+San Angelo	west	99262	31.4411	-100.4505	city est2023
+Georgetown	east	96312	30.6681	-97.6987	city est2023
+The Woodlands	east	93847	30.1726	-95.5098	CDP pop2010=93847
+Temple	east	93095	31.1034	-97.3911	city est2023
+Bryan	east	89615	30.6660	-96.3810	city est2023
+Mission	valley	87292	26.2041	-98.3252	city est2023
+Baytown	gulf	84067	29.7648	-94.9675	city est2023
+Longview	east	83236	32.5193	-94.7646	city est2023
+Pharr	valley	80410	26.1678	-98.1902	city est2023
+Leander	east	80067	30.5743	-97.8617	city est2023
+Flower Mound	east	79445	33.0379	-97.1134	town est2023
+Mansfield	east	78542	32.5692	-97.1205	city est2023
+Cedar Park	east	77516	30.5102	-97.8186	city est2023
+Missouri City	east	76773	29.5629	-95.5360	city est2023
+San Marcos	east	71569	29.8724	-97.9360	city est2023
+Harlingen	valley	71510	26.1912	-97.6974	city est2023
+North Richland Hills	east	70658	32.8606	-97.2191	city est2023
+Rowlett	east	66813	32.9159	-96.5486	city est2023
+Victoria	east	65800	28.8285	-96.9860	city est2023
+Pflugerville	east	65301	30.4478	-97.6021	city est2023
+Kyle	east	62548	29.9941	-97.8833	city est2023
+Wylie	east	61078	33.0358	-96.5202	city est2023
+Euless	east	59686	32.8494	-97.0786	city est2023
+Little Elm	east	58496	33.1925	-96.9200	city est2023
+Texas City	gulf	56609	29.4337	-94.8927	city est2023
+DeSoto	east	55740	32.5993	-96.8629	city est2023
+Port Arthur	gulf	55547	29.9000	-93.8944	city est2023
+Burleson	east	55220	32.5165	-97.3274	city est2023
+Spring	east	54298	30.0622	-95.3840	CDP pop2010=54298
+Galveston	gulf	53237	29.1863	-94.9658	city est2023
+Rockwall	east	52918	32.9181	-96.4381	city est2023
+Grapevine	east	50928	32.9350	-97.0759	city est2023
+Huntsville	east	48552	30.7005	-95.5549	city est2023
+Cedar Hill	east	48411	32.5843	-96.9589	city est2023
+Bedford	east	48370	32.8458	-97.1351	city est2023
+Sherman	east	47473	33.6286	-96.6267	city est2023
+Waxahachie	east	47201	32.4025	-96.8445	city est2023
+Keller	east	46316	32.9329	-97.2245	city est2023
+The Colony	east	45471	33.0896	-96.9034	city est2023
+Haltom City	east	45290	32.8177	-97.2712	city est2023
+Celina	east	43317	33.3262	-96.7949	city est2023
+Schertz	east	43239	29.5633	-98.2509	city est2023
+Weslaco	valley	43053	26.1605	-97.9877	city est2023
+Fulshear	east	42616	29.6924	-95.8866	city est2023
+Prosper	east	41660	33.2413	-96.8124	town est2023
+Coppell	east	41404	32.9633	-96.9906	city est2023
+Midlothian	east	41352	32.4694	-96.9907	city est2023
+Rosenberg	east	41104	29.5499	-95.8214	city est2023
+Friendswood	gulf	40826	29.5077	-95.2006	city est2023
+Lancaster	east	40215	32.5962	-96.7738	city est2023
+Hurst	east	39304	32.8366	-97.1806	city est2023
+Duncanville	east	38883	32.6459	-96.9139	city est2023
+Hutto	east	38765	30.5416	-97.5442	city est2023
+Copperas Cove	east	38696	31.1196	-97.9144	city est2023
+Socorro	west	38238	31.6385	-106.2574	city est2023
+Weatherford	east	38109	32.7532	-97.7719	city est2023
+La Porte	gulf	36991	29.6674	-95.0491	city est2023
+Farmers Branch	east	36917	32.9278	-96.8785	city est2023
+San Juan	valley	36448	26.1898	-98.1518	city est2023
+Cibolo	east	36374	29.5701	-98.2178	city est2023
+Cleburne	east	36209	32.3550	-97.4116	city est2023
+Seguin	east	36013	29.5902	-97.9686	city est2023
+Texarkana	east	35741	33.4511	-94.0901	city est2023
+Forney	east	35470	32.7426	-96.4529	city est2023
+Del Rio	west	34574	29.3730	-100.8819	city est2023
+Harker Heights	east	34447	31.0567	-97.6442	city est2023
+Lufkin	east	34181	31.3229	-94.7290	city est2023
+Deer Park	gulf	33176	29.6873	-95.1159	city est2023
+Greenville	east	32717	33.1119	-96.1103	city est2023
+Sachse	east	32294	32.9690	-96.5795	city est2023
+Nacogdoches	east	32156	31.6124	-94.6520	city est2023
+Southlake	east	31137	32.9545	-97.1489	city est2023
+Converse	east	30321	29.5125	-98.3046	city est2023
+Alvin	gulf	28633	29.4248	-95.2244	city est2023
+Eagle Pass	west	28282	28.7128	-100.4848	city est2023
+Princeton	east	28027	33.2015	-96.5180	city est2023
+Lake Jackson	gulf	27768	29.0509	-95.4512	city est2023
+Anna	east	27501	33.3482	-96.5535	city est2023
+Balch Springs	east	26711	32.7139	-96.6181	city est2023
+Katy	east	26360	29.7909	-95.8407	city est2023
+Denison	east	26343	33.7669	-96.5807	city est2023
+Colleyville	east	25736	32.8915	-97.1497	city est2023
+Corsicana	east	25671	32.0824	-96.4667	city est2023
+Belton	east	25171	31.0523	-97.4795	city est2023
+Saginaw	east	25139	32.8656	-97.3652	city est2023
+Paris	east	24969	33.6689	-95.5466	city est2023
+University Park	east	24954	32.8486	-96.7952	city est2023
+Kerrville	west	24930	30.0377	-99.1324	city est2023
+Fate	east	24626	32.9427	-96.3873	city est2023
+Kingsville	gulf	24586	27.5092	-97.8610	city est2023
+San Benito	valley	24493	26.1294	-97.6440	city est2023
+Benbrook	east	24336	32.6783	-97.4636	city est2023
+Horizon City	west	24168	31.6796	-106.1911	city est2023
+Royse City	east	24138	32.9797	-96.3164	city est2023
+Marshall	east	24118	32.5392	-94.3532	city est2023
+Corinth	east	23707	33.1447	-97.0708	city est2023
+Ennis	east	23686	32.3251	-96.6338	city est2023
+Melissa	east	23571	33.2885	-96.5576	city est2023
+Watauga	east	22934	32.8718	-97.2515	city est2023
+Big Spring	west	22373	32.2383	-101.4857	city est2023
+Stephenville	east	21946	32.2145	-98.2199	city est2023
+Dickinson	gulf	21834	29.4517	-95.0562	city est2023
+Boerne	west	21774	29.7849	-98.7279	city est2023
+Terrell	east	21480	32.7353	-96.2864	city est2023
+Canyon Lake	east	21262	29.8758	-98.2612	CDP pop2010=21262
+Alton	valley	21130	26.2878	-98.3090	city est2023
+Murphy	east	20920	33.0164	-96.6082	city est2023
+Portland	gulf	20481	27.8890	-97.3316	city est2023
+Alamo	valley	20460	26.1810	-98.1175	city est2023
+Manor	east	20209	30.3542	-97.5583	city est2023
+Angleton	gulf	20206	29.1718	-95.4293	city est2023
+Universal City	east	20028	29.5520	-98.3076	city est2023
+Crowley	east	19932	32.5774	-97.3578	city est2023
+Seagoville	east	19643	32.6534	-96.5451	city est2023
+La Marque	gulf	19605	29.3698	-94.9942	city est2023
+Plainview	panhandle	19420	34.1911	-101.7235	city est2023
+Palestine	east	19372	31.7545	-95.6470	city est2023
+Lakeway	east	19189	30.3550	-97.9863	city est2023
+Brenham	east	19142	30.1582	-96.3956	city est2023
+Orange	gulf	19108	30.1235	-93.7545	city est2023
+Glenn Heights	east	18793	32.5513	-96.8544	city est2023
+Brownwood	west	18790	31.7129	-98.9771	city est2023
+Red Oak	east	18624	32.5096	-96.7840	city est2023
+Nederland	gulf	18118	29.9693	-94.0017	city est2023
+Gainesville	east	18107	33.6386	-97.1484	city est2023
+White Settlement	east	18005	32.7551	-97.4607	city est2023
+Alice	east	17579	27.7556	-98.0658	city est2023
+Bay City	gulf	17561	28.9835	-95.9599	city est2023
+Stafford	east	17338	29.6257	-95.5657	city est2023
+Taylor	east	17337	30.5720	-97.4304	city est2023
+Manvel	gulf	17261	29.4854	-95.3623	city est2023
+Addison	east	17100	32.9637	-96.8338	town est2023
+Bellaire	east	17016	29.7040	-95.4609	city est2023
+Donna	valley	16782	26.1610	-98.0389	city est2023
+Groves	gulf	16764	29.9460	-93.9167	city est2023
+Mercedes	valley	16732	26.1538	-97.9129	city est2023
+Hewitt	east	16691	31.4512	-97.1933	city est2023
+Sulphur Springs	east	16564	33.1431	-95.6147	city est2023
+Pampa	panhandle	16543	35.5479	-100.9650	city est2023
+Humble	east	16237	29.9882	-95.2644	city est2023
+Canyon	panhandle	16171	34.9903	-101.9190	city est2023
+Gatesville	east	16148	31.4387	-97.7460	city est2023
+Highland Village	east	16100	33.0897	-97.0615	city est2023
+Mount Pleasant	east	16055	33.1579	-94.9732	city est2023
+Buda	east	16030	30.0804	-97.8557	city est2023
+Live Oak	east	15988	29.5554	-98.3400	city est2023
+Palmview	valley	15874	26.2319	-98.3816	city est2023
+South Houston	east	15808	29.6610	-95.2284	city est2023
+Mineral Wells	east	15454	32.8235	-98.0788	city est2023
+Uvalde	west	15436	29.2152	-99.7772	city est2023
+Lockhart	east	15318	29.8788	-97.6833	city est2023
+Rio Grande City	valley	15311	26.3810	-98.8215	city est2023
+Iowa Colony	gulf	14823	29.4411	-95.4238	village est2023
+West University Place	east	14791	29.7154	-95.4316	city est2023
+Hereford	panhandle	14752	34.8226	-102.4002	city est2023
+Hidalgo	valley	14678	26.1089	-98.2462	city est2023
+Azle	east	14562	32.8955	-97.5392	city est2023
+Jacksonville	east	14420	31.9595	-95.2657	city est2023
+Dumas	panhandle	14291	35.8620	-101.9650	city est2023
+Tomball	east	14201	30.0951	-95.6197	city est2023
+Forest Hill	east	14157	32.6619	-97.2662	city est2023
+Lumberton	east	14129	30.2550	-94.2080	city est2023
+Trophy Club	east	13666	32.9925	-97.1730	town est2023
+Seabrook	gulf	13662	29.5947	-94.9915	city est2023
+Port Neches	gulf	13591	29.9608	-93.9618	city est2023
+Kilgore	east	13523	32.3967	-94.8600	city est2023
+Athens	east	13503	32.2026	-95.8308	city est2023
+Andrews	west	13502	32.3213	-102.5518	city est2023
+Henderson	east	13464	32.1573	-94.7959	city est2023
+Beeville	east	13211	28.4052	-97.7489	city est2023
+Robinson	east	12987	31.4515	-97.1229	city est2023
+Santa Fe	gulf	12980	29.3876	-95.1015	city est2023
+Richmond	east	12816	29.5809	-95.7613	city est2023
+Granbury	east	12622	32.4328	-97.7751	city est2023
+Levelland	panhandle	12530	33.5815	-102.3641	city est2023
+Elgin	east	12304	30.3539	-97.3901	city est2023
+Webster	gulf	12182	29.5321	-95.1165	city est2023
+Borger	panhandle	12115	35.6594	-101.4024	city est2023
+El Campo	east	12062	29.2007	-96.2723	city est2023
+Selma	east	11748	29.5865	-98.3153	city est2023
+Bastrop	east	11679	30.1111	-97.3182	city est2023
+Roma	valley	11554	26.4147	-99.0039	city est2023
+Fredericksburg	west	11542	30.2657	-98.8757	city est2023
+Fair Oaks Ranch	east	11406	29.7461	-98.6381	city est2023
+Leon Valley	east	11337	29.4954	-98.6143	city est2023
+Heath	east	11238	32.8535	-96.4636	city est2023
+Port Lavaca	gulf	11212	28.6180	-96.6283	city est2023
+Pleasanton	east	11195	28.9642	-98.4957	city est2023
+Snyder	west	11187	32.7136	-100.9119	city est2023
+Burkburnett	east	11089	34.0746	-98.5675	city est2023
+Rockport	gulf	10929	28.0476	-97.0500	city est2023
+Bonham	east	10879	33.5880	-96.1901	city est2023
+Roanoke	east	10798	33.0147	-97.2290	city est2023
+Fairview	east	10790	33.1405	-96.6130	town est2023
+Clute	gulf	10704	29.0259	-95.3982	city est2023
+Bellmead	east	10620	31.6015	-97.0890	city est2023
+Freeport	gulf	10550	28.9433	-95.3561	city est2023
+Liberty Hill	east	10428	30.6634	-97.9055	city est2023
+Robstown	gulf	10335	27.7940	-97.6692	city est2023
+Sweetwater	west	10285	32.4694	-100.4087	city est2023
+Galena Park	east	10271	29.7452	-95.2346	city est2023
+San Elizario	west	10164	31.5784	-106.2620	city est2023
+Ingleside	gulf	10147	27.8706	-97.2079	city est2023
+Raymondville	valley	10135	26.4757	-97.7777	city est2023
+Kennedale	east	10052	32.6440	-97.2172	city est2023
+Lago Vista	east	10009	30.4526	-97.9910	city est2023
+Pecos	west	9965	31.3917	-103.5272	city est2023
+Helotes	east	9952	29.5780	-98.6805	city est2023
+Sanger	east	9831	33.3821	-97.1654	city est2023
+Vernon	east	9788	34.1477	-99.3004	city est2023
+Vidor	gulf	9738	30.1281	-93.9917	city est2023
+Dayton	east	9693	30.0132	-94.9360	city est2023
+Woodway	east	9680	31.4983	-97.2308	city est2023
+Bridge City	gulf	9666	30.0309	-93.8381	city est2023
+Mont Belvieu	gulf	9608	29.8519	-94.8683	city est2023
+Whitehouse	east	9571	32.2217	-95.2207	city est2023
+Commerce	east	9467	33.2410	-95.8989	city est2023
+Northlake	east	9453	33.0738	-97.2562	town est2023
+Jacinto City	east	9257	29.7664	-95.2412	city est2023
+Kaufman	east	9201	32.5836	-96.3167	city est2023
+Providence Village	east	9154	33.2378	-96.9568	town est2023
+Cleveland	east	9113	30.3382	-95.0903	city est2023
+Navasota	east	8969	30.3864	-96.0907	city est2023
+Pearsall	west	8946	28.8929	-99.0972	city est2023
+Aransas Pass	gulf	8923	27.9150	-97.1032	city est2023
+Joshua	east	8901	32.4591	-97.3838	city est2023
+Graham	east	8819	33.1009	-98.5778	city est2023
+Hondo	west	8786	29.3542	-99.1618	city est2023
+Liberty	east	8774	30.0388	-94.7888	city est2023
+Wharton	east	8742	29.3176	-96.1023	city est2023
+Hillsboro	east	8703	32.0090	-97.1145	city est2023
+Dripping Springs	east	8689	30.1959	-98.0937	city est2023
+Brownfield	west	8652	33.1755	-102.2734	city est2023
+Highland Park	east	8642	32.8311	-96.8012	town est2023
+Lucas	east	8642	33.1010	-96.5812	city est2023
+Bee Cave	east	8621	30.3077	-97.9626	city est2023
+Sunnyvale	east	8486	32.7998	-96.5585	town est2023
+Prairie View	east	8479	30.0829	-95.9771	city est2023
+Los Fresnos	valley	8362	26.0741	-97.4880	city est2023
+Dalhart	panhandle	8353	36.0574	-102.5122	city est2023
+Richland Hills	east	8323	32.8102	-97.2265	city est2023
+Floresville	east	8306	29.1467	-98.1652	city est2023
+Aubrey	east	8267	33.3085	-96.9791	city est2023
+Lamesa	west	8266	32.7333	-101.9538	city est2023
+Perryton	panhandle	8219	36.3929	-100.7977	city est2023
+Cuero	east	8204	29.1027	-97.2871	city est2023
+Fort Stockton	west	8113	30.8926	-102.8842	city est2023
+Kirby	east	8039	29.4617	-98.3853	city est2023
+Decatur	east	8016	33.2259	-97.5870	city est2023
+Lake Dallas	east	7917	33.1278	-97.0228	city est2023
+Lampasas	east	7855	31.0640	-98.1828	city est2023
+Hitchcock	gulf	7710	29.2826	-95.0076	city est2023
+Jersey Village	east	7653	29.8929	-95.5772	city est2023
+Marble Falls	east	7573	30.5602	-98.2773	city est2023
+Venus	east	7528	32.4324	-97.1018	town est2023
+Lavon	east	7495	33.0234	-96.4370	city est2023
+Jasper	east	7470	30.9227	-93.9933	city est2023
+Alamo Heights	east	7466	29.4828	-98.4682	city est2023
+River Oaks	east	7370	32.7766	-97.3984	city est2023
+Monahans	west	7311	31.6557	-103.0837	city est2023
+Lacy-Lakeview	east	7309	31.6312	-97.1051	city est2023
+Wolfforth	panhandle	7258	33.5090	-102.0051	city est2023
+Sealy	east	7243	29.7641	-96.1622	city est2023
+Seminole	west	7231	32.7222	-102.6498	city est2023
+Gonzales	east	7221	29.5125	-97.4472	city est2023
+Josephine	east	7113	33.0631	-96.3166	city est2023
+Nolanville	east	7010	31.0725	-97.6051	city est2023
+Bulverde	east	6970	29.7745	-98.4350	city est2023
+Willis	east	6964	30.4342	-95.4842	city est2023
+Burnet	east	6940	30.7506	-98.2382	city est2023
+Lindale	east	6923	32.4941	-95.4073	city est2023
+Keene	east	6860	32.3961	-97.3235	city est2023
+Mexia	east	6859	31.6807	-96.4832	city est2023
+Gun Barrel City	east	6824	32.3282	-96.1318	city est2023
+Van Alstyne	east	6782	33.4217	-96.5832	city est2023
+Silsbee	east	6775	30.3455	-94.1768	city est2023
+La Feria	valley	6758	26.1538	-97.8250	city est2023
+Willow Park	east	6630	32.7539	-97.6502	city est2023
+Carthage	east	6601	32.1520	-94.3371	city est2023
+Iowa Park	east	6578	33.9628	-98.6809	city est2023
+Krum	east	6548	33.2650	-97.2249	city est2023
+Hempstead	east	6537	30.1006	-96.0777	city est2023
+Bridgeport	east	6514	33.2104	-97.7725	city est2023
+Penitas	valley	6331	26.2583	-98.4386	city est2023
+Crystal City	west	6099	28.6907	-99.8271	city est2023
+Alpine	west	6039	30.3639	-103.6645	city est2023
+Kermit	west	5952	31.8539	-103.0924	city est2023
+Childress	panhandle	5770	34.4355	-100.2824	city est2023
+Littlefield	panhandle	5768	33.9192	-102.3348	city est2023
+Elsa	valley	5693	26.2978	-97.9936	city est2023
+Slaton	west	5684	33.4455	-101.6509	city est2023
+Sinton	gulf	5551	28.0384	-97.5110	city est2023
+Primera	valley	5371	26.2232	-97.7517	town est2023
+Port Isabel	valley	5118	26.0630	-97.2467	city est2023
+Nassau Bay	gulf	5113	29.5448	-95.0874	city est2023
+Progreso	valley	5037	26.0961	-97.9566	city est2023
+Muleshoe	panhandle	4970	34.2292	-102.7284	city est2023
+Brady	west	4965	31.1154	-99.3459	city est2023
+La Joya	valley	4863	26.2579	-98.4764	city est2023
+Richwood	gulf	4789	29.0639	-95.4022	city est2023
+Carrizo Springs	west	4628	28.5258	-99.8593	city est2023
+Devine	west	4580	29.1458	-98.9050	city est2023
+La Grange	east	4541	29.9126	-96.8763	city est2023
+Falfurrias	west	4420	27.2244	-98.1452	city est2023
+Rio Bravo	west	4418	27.3647	-99.4845	city est2023
+Tulia	panhandle	4408	34.5379	-101.7744	city est2023
+Palacios	gulf	4374	28.7131	-96.2279	city est2023
+Denver City	west	4301	32.9679	-102.8322	town est2023
+Bellville	east	4217	29.9466	-96.2588	city est2023
+Smithville	east	4126	30.0080	-97.1523	city est2023
+Dimmitt	panhandle	4071	34.5479	-102.3068	city est2023
+Friona	panhandle	4057	34.6394	-102.7231	city est2023
+Colorado City	west	3987	32.3995	-100.8583	city est2023
+Clyde	west	3985	32.4056	-99.5039	city est2023
+Coleman	west	3966	31.8314	-99.4222	city est2023
+Sullivan City	valley	3899	26.2752	-98.5644	city est2023
+Columbus	east	3786	29.7045	-96.5589	city est2023
+Laguna Vista	valley	3736	26.1059	-97.2963	town est2023
+Taylor Lake Village	gulf	3713	29.5748	-95.0553	city est2023
+Anthony	west	3663	31.9867	-106.5986	town est2023
+West Columbia	gulf	3616	29.1419	-95.6495	city est2023
+Cotulla	west	3612	28.4364	-99.2367	city est2023
+San Diego	west	3605	27.7609	-98.2389	city est2023
+Ballinger	west	3581	31.7391	-99.9554	city est2023
+Sweeny	gulf	3570	29.0464	-95.6985	city est2023
+Llano	east	3511	30.7510	-98.6765	city est2023
+Post	west	3486	33.1909	-101.3815	city est2023
+Port Aransas	gulf	3446	27.8209	-97.0892	city est2023
+West Orange	gulf	3425	30.0791	-93.7598	city est2023
+Beach City	gulf	3366	29.7389	-94.8465	city est2023
+Crane	west	3362	31.3918	-102.3503	city est2023
+Dilley	west	3333	28.6675	-99.1765	city est2023
+Lytle	west	3178	29.2346	-98.7937	city est2023
+Combes	valley	3171	26.2465	-97.7268	town est2023
+Castroville	west	3141	29.3599	-98.8547	city est2023
+Presidio	west	3102	29.5603	-104.3653	city est2023
+Cactus	panhandle	3090	36.0444	-102.0080	city est2023
+Bishop	gulf	3082	27.5853	-97.7974	city est2023
+La Villa	valley	3075	26.2963	-97.9269	city est2023
+Haskell	west	3058	33.1598	-99.7320	city est2023
+Spearman	panhandle	3037	36.1982	-101.1943	city est2023
+El Lago	gulf	2945	29.5715	-95.0452	city est2023
+Stamford	west	2942	33.0462	-99.5970	city est2023
+Shallowater	panhandle	2932	33.6901	-101.9893	city est2023
+Taft	gulf	2914	27.9800	-97.3928	city est2023
+Glen Rose	east	2887	32.2468	-97.7481	city est2023
+Wimberley	east	2881	29.9848	-98.0906	city est2023
+Brazoria	gulf	2853	29.0447	-95.5647	city est2023
+Rancho Viejo	valley	2848	26.0358	-97.5554	town est2023
+Abernathy	panhandle	2814	33.8268	-101.8521	city est2023
+Vinton	west	2813	31.9595	-106.5935	village est2023
+Schulenburg	east	2783	29.6820	-96.9075	city est2023
+Refugio	gulf	2757	28.3074	-97.2750	town est2023
+Big Lake	west	2753	31.1941	-101.4534	city est2023
+Edcouch	valley	2677	26.2937	-97.9631	city est2023
+Stanton	west	2654	32.1317	-101.7925	city est2023
+Palmhurst	valley	2591	26.2583	-98.2953	city est2023
+Escobares	valley	2563	26.4126	-98.9600	city est2023
+Kemah	gulf	2562	29.5286	-95.0200	city est2023
+Junction	west	2531	30.4908	-99.7732	city est2023
+Floydada	panhandle	2519	33.9835	-101.3368	city est2023
+Merkel	west	2433	32.4697	-100.0111	town est2023
+El Cenizo	west	2432	27.3317	-99.5013	city est2023
+Tahoka	west	2427	33.1638	-101.7951	city est2023
+Bolivar Peninsula	gulf	2417	29.4898	-94.5685	CDP pop2010=2417
+Premont	west	2401	27.3585	-98.1244	city est2023
+Salado	east	2394	30.9484	-97.5283	village est2023
+Sonora	west	2391	30.5707	-100.6418	city est2023
+Santa Rosa	valley	2372	26.2561	-97.8253	town est2023
+Comfort	west	2363	29.9723	-98.9047	CDP pop2010=2363
+Freer	west	2363	27.8822	-98.6174	city est2023
+Panhandle	panhandle	2358	35.3463	-101.3805	town est2023
+Winters	west	2319	31.9491	-99.9593	city est2023
+Anson	west	2302	32.7545	-99.8962	city est2023
+Odem	gulf	2302	27.9462	-97.5875	city est2023
+Rio Hondo	valley	2295	26.2346	-97.5815	city est2023
+Seagraves	west	2227	32.9420	-102.5657	city est2023
+Pinehurst	gulf	2226	30.1074	-93.7723	city est2023
+Quanah	west	2226	34.2954	-99.7429	city est2023
+Canadian	panhandle	2210	35.9097	-100.3839	city est2023
+Lyford	valley	2207	26.4146	-97.7893	city est2023
+Shiner	east	2163	29.4337	-97.1736	city est2023
+Mason	west	2116	30.7477	-99.2286	city est2023
+Idalou	panhandle	2106	33.6624	-101.6837	city est2023
+South Padre Island	valley	2041	26.1205	-97.1707	town est2023
+Johnson City	east	2037	30.2721	-98.4071	city est2023
+Memphis	panhandle	2035	34.7267	-100.5417	city est2023
+Blanco	east	2005	30.0986	-98.4171	city est2023
+Anahuac	gulf	1997	29.7652	-94.6785	city est2023
+Hale Center	panhandle	1997	34.0661	-101.8463	city est2023
+Van Horn	west	1961	31.0407	-104.8342	town est2023
+Jones Creek	gulf	1958	28.9750	-95.4685	village est2023
+Olton	panhandle	1926	34.1802	-102.1370	city est2023
+Albany	west	1923	32.7273	-99.2957	city est2023
+Stratford	panhandle	1886	36.3376	-102.0760	city est2023
+San Augustine	east	1867	31.5299	-94.1109	city est2023
+Clarendon	panhandle	1859	34.9369	-100.8921	city est2023
+Hamlin	west	1851	32.8900	-100.1325	city est2023
+Jefferson	east	1851	32.7635	-94.3508	city est2023
+Sour Lake	gulf	1851	30.1377	-94.4043	city est2023
+Ingram	west	1849	30.0771	-99.2375	city est2023
+Eden	west	1834	31.2162	-99.8440	city est2023
+Wellington	panhandle	1821	34.8538	-100.2140	city est2023
+Fritch	panhandle	1794	35.6431	-101.5964	city est2023
+Bayou Vista	gulf	1765	29.3256	-94.9392	city est2023
+Gregory	gulf	1724	27.9232	-97.2909	city est2023
+McCamey	west	1717	31.1325	-102.2200	city est2023
+Shamrock	panhandle	1709	35.2154	-100.2461	city est2023
+Sunray	panhandle	1709	36.0184	-101.8245	city est2023
+Morton	panhandle	1677	33.7248	-102.7592	city est2023
+Danbury	gulf	1675	29.2274	-95.3462	city est2023
+Marfa	west	1674	30.3107	-104.0255	city est2023
+Bovina	panhandle	1649	34.5157	-102.8847	city est2023
+Stinnett	panhandle	1613	35.8231	-101.4436	city est2023
+Charlotte	west	1596	28.8593	-98.7006	city est2023
+Fulton	gulf	1592	28.0724	-97.0389	town est2023
+Ralls	panhandle	1578	33.6788	-101.3846	city est2023
+Eldorado	west	1548	30.8617	-100.5979	city est2023
+Bangs	west	1543	31.7161	-99.1303	city est2023
+Baird	west	1526	32.3961	-99.3960	city est2023
+Shoreacres	gulf	1513	29.6210	-95.0190	city est2023
+Hico	east	1460	31.9851	-98.0284	city est2023
+Wheeler	panhandle	1446	35.4411	-100.2752	city est2023
+Crosbyton	panhandle	1434	33.6413	-101.2377	city est2023
+Lockney	panhandle	1414	34.1231	-101.4425	town est2023
+Farwell	panhandle	1380	34.3856	-103.0373	city est2023
+Sabinal	west	1377	29.3213	-99.4695	city est2023
+Booker	panhandle	1362	36.4561	-100.5402	town est2023
+Menard	west	1343	30.9184	-99.7837	city est2023
+Natalia	west	1336	29.1855	-98.8521	city est2023
+Brackettville	west	1334	29.3182	-100.4105	city est2023
+Plains	west	1328	33.1883	-102.8215	town est2023
+Rotan	west	1309	32.8540	-100.4655	city est2023
+Sundown	panhandle	1292	33.4575	-102.4908	city est2023
+Port O'Connor	gulf	1253	28.4460	-96.4201	CDP pop2010=1253
+Munday	west	1222	33.4471	-99.6239	city est2023
+Roscoe	west	1220	32.4419	-100.5322	city est2023
+Tye	west	1220	32.4522	-99.8665	city est2023
+LaCoste	west	1206	29.3100	-98.8111	city est2023
+Fort Davis	west	1201	30.5789	-103.8947	CDP pop2010=1201
+Claude	panhandle	1186	35.1074	-101.3629	city est2023
+Ransom Canyon	panhandle	1159	33.5303	-101.6853	town est2023
+Benavides	west	1144	27.5969	-98.4138	city est2023
+Sterling City	west	1138	31.8392	-100.9859	city est2023
+Gruver	panhandle	1083	36.2605	-101.4071	city est2023
+Knox City	west	1046	33.4176	-99.8157	town est2023
+Robert Lee	west	1037	31.8957	-100.4850	city est2023
+Santa Anna	west	1030	31.7369	-99.3254	town est2023
+Clint	west	1014	31.5902	-106.2287	town est2023
+Iraan	west	995	30.9129	-101.9001	city est2023
+White Deer	panhandle	995	35.4334	-101.1758	town est2023
+Paducah	panhandle	990	34.0140	-100.3037	town est2023
+Petersburg	panhandle	973	33.8710	-101.5973	city est2023
+Bronte	west	959	31.8861	-100.2951	town est2023
+Cross Plains	west	935	32.1271	-99.1658	town est2023
+Sudan	panhandle	933	34.0664	-102.5242	city est2023
+Lorenzo	panhandle	924	33.6703	-101.5361	city est2023
+Miles	west	923	31.6006	-100.1853	city est2023
+Anton	panhandle	916	33.8107	-102.1622	city est2023
+Coahoma	west	902	32.2956	-101.3089	town est2023
+Earth	panhandle	897	34.2338	-102.4092	city est2023
+Vega	panhandle	884	35.2453	-102.4292	city est2023
+Bandera	west	879	29.7251	-99.0743	city est2023
+Wink	west	876	31.7545	-103.1541	city est2023
+Hart	panhandle	855	34.3858	-102.1150	city est2023
+Rocksprings	west	848	30.0171	-100.2133	town est2023
+Tuscola	west	839	32.2115	-99.7983	city est2023
+Sanderson	west	837	30.1508	-102.4079	CDP pop2010=837
+Spur	panhandle	830	33.4766	-100.8502	city est2023
+New Deal	panhandle	735	33.7323	-101.8445	town est2023
+Lake Tanglewood	panhandle	728	35.0560	-101.7819	village est2023
+Surfside Beach	gulf	692	28.9531	-95.2838	city est2023
+Amherst	panhandle	655	34.0120	-102.4148	city est2023
+McLean	panhandle	648	35.2323	-100.6001	town est2023
+Silverton	panhandle	629	34.4714	-101.3040	city est2023
+Happy	panhandle	608	34.7416	-101.8571	town est2023
+Kress	panhandle	596	34.3658	-101.7484	city est2023
+Groom	panhandle	549	35.2077	-101.1055	town est2023
+Miami	panhandle	549	35.6923	-100.6416	city est2023
+Matador	panhandle	546	34.0151	-100.8211	town est2023
+Matagorda	gulf	503	28.6965	-95.9666	CDP pop2010=503
+Timbercreek Canyon	panhandle	471	35.0534	-101.8184	village est2023
+Texline	panhandle	464	36.3765	-103.0189	town est2023
+Buffalo Springs	panhandle	448	33.5337	-101.6976	village est2023
+Smyer	panhandle	445	33.5874	-102.1635	town est2023
+Lefors	panhandle	420	35.4396	-100.8039	town est2023
+Study Butte	west	233	29.3356	-103.5426	CDP pop2010=233
+Utopia	west	227	29.6241	-99.5127	CDP pop2010=227
+Port Mansfield	valley	226	26.5694	-97.4424	CDP pop2010=226
+Round Top	east	93	30.0640	-96.6959	town est2023
+Terlingua	west	58	29.2871	-103.5834	CDP pop2010=58

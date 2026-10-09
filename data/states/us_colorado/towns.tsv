@@ -1,0 +1,335 @@
+name	tags	population	lat	lon	note
+Denver	front,big	716577	39.7619	-104.8811	city est2023
+Colorado Springs	front,big	488664	38.8673	-104.7607	city est2023
+Aurora	front,big	395052	39.7036	-104.7201	city est2023
+Fort Collins	front,big	170376	40.5482	-105.0648	city est2023
+Lakewood	front,big	155961	39.6989	-105.1176	city est2023
+Thornton	front,big	144922	39.9204	-104.9414	city est2023
+Arvada	front,big	121414	39.8337	-105.1503	city est2023
+Westminster	front,big	114875	39.8801	-105.0615	city est2023
+Greeley	front,big	112609	40.4140	-104.7710	city est2023
+Pueblo	front,big	111077	38.2692	-104.6108	city est2023
+Centennial	front,big	106883	39.5909	-104.8638	city est2023
+Boulder	front,big	105898	40.0244	-105.2513	city est2023
+Longmont	front,big	98630	40.1699	-105.1018	city est2023
+Highlands Ranch	front	96713	39.5408	-104.9711	CDP pop2010=96713
+Castle Rock	front,big	81415	39.3762	-104.8529	town est2023
+Loveland	front,big	79352	40.4169	-105.0631	city est2023
+Broomfield	front	76860	39.9536	-105.0508	city est2023
+Grand Junction	slope	69412	39.0891	-108.5675	city est2023
+Commerce City	front	68245	39.8828	-104.7949	city est2023
+Parker	front	62743	39.5059	-104.7758	town est2023
+Littleton	front	44451	39.5904	-105.0201	city est2023
+Brighton	front	42477	39.9657	-104.7942	city est2023
+Windsor	front	40349	40.4783	-104.9151	town est2023
+Northglenn	front	38164	39.9116	-104.9821	city est2023
+Erie	front	35269	40.0403	-105.0383	town est2023
+Englewood	front	34275	39.6470	-104.9945	city est2023
+Security-Widefield	front	32882	38.7511	-104.7160	CDP pop2010=32882
+Ken Caryl	front	32438	39.5767	-105.1137	CDP pop2010=32438
+Dakota Ridge	front	32005	39.6192	-105.1351	CDP pop2010=32005
+Wheat Ridge	front	31804	39.7727	-105.1048	city est2023
+Lafayette	front	30439	39.9948	-105.0997	city est2023
+Pueblo West	front	29637	38.3158	-104.7850	CDP pop2010=29637
+Fountain	front	28489	38.6890	-104.6806	city est2023
+Columbine	front	24280	39.5886	-105.0692	CDP pop2010=24280
+Evans	front	22326	40.3502	-104.7484	city est2023
+Montrose	slope	21333	38.4688	-107.8589	city est2023
+Louisville	front	20390	39.9696	-105.1433	city est2023
+Golden	front	20242	39.7425	-105.2106	city est2023
+Clifton	slope	19889	39.0767	-108.4605	CDP pop2010=19889
+Durango	slope	19534	37.2654	-107.8782	city est2023
+Johnstown	front	19511	40.3072	-104.9112	town est2023
+Firestone	front	18589	40.1557	-104.9486	town est2023
+Frederick	front	17676	40.1059	-104.9745	town est2023
+Cañon City	front	17241	38.4419	-105.2209	city est2023
+Cimarron Hills	front	16161	38.8593	-104.7002	CDP pop2010=16161
+Greenwood Village	front	15205	39.6159	-104.9117	city est2023
+Welby	front	14846	39.8402	-104.9655	CDP pop2010=14846
+Castle Pines	front	14747	39.4625	-104.8706	city est2023
+Lone Tree	front	14063	39.5309	-104.8710	city est2023
+Federal Heights	front	13943	39.8650	-105.0153	city est2023
+Fruita	slope	13816	39.1556	-108.7296	city est2023
+Steamboat Springs	mountain	13508	40.4756	-106.8229	city est2023
+Superior	front	13361	39.9312	-105.1591	town est2023
+Berthoud	front	13238	40.2847	-104.9655	town est2023
+Black Forest	front	13116	39.0636	-104.6796	CDP pop2010=13116
+Sterling	plains	12954	40.6205	-103.1926	city est2023
+Monument	front	12088	39.0744	-104.8442	town est2023
+Wellington	front	12078	40.7007	-105.0057	town est2023
+Fort Morgan	plains	11564	40.2530	-103.7887	city est2023
+Berkley	front	11207	39.8066	-105.0288	CDP pop2010=11207
+Severance	front	10820	40.5051	-104.8421	town est2023
+Rifle	slope	10563	39.5376	-107.7703	city est2023
+Edwards	mountain	10266	39.6118	-106.6197	CDP pop2010=10266
+Glenwood Springs	mountain	10250	39.5471	-107.3426	city est2023
+Timnath	front	9991	40.5332	-104.9645	town est2023
+Alamosa	mountain	9883	37.4745	-105.8770	city est2023
+Delta	slope	9599	38.7574	-108.0880	city est2023
+Fort Lupton	front	9447	40.0828	-104.8055	city est2023
+Gunbarrel	front	9263	40.0632	-105.1717	CDP pop2010=9263
+Roxborough Park	front	9099	39.4506	-105.0741	CDP pop2010=9099
+Milliken	front	9084	40.3105	-104.8584	town est2023
+Craig	slope	9049	40.5171	-107.5554	city est2023
+Evergreen	mountain	9038	39.6356	-105.3381	CDP pop2010=9038
+Cortez	slope	9033	37.3498	-108.5767	city est2023
+Gypsum	mountain	8833	39.6202	-106.9564	town est2023
+Woodmoor	front	8741	39.1048	-104.8436	CDP pop2010=8741
+Redlands	slope	8685	39.0850	-108.6550	CDP pop2010=8685
+Lochbuie	front	8336	40.0091	-104.7265	town est2023
+Trinidad	plains	8216	37.1732	-104.4903	city est2023
+Woodland Park	mountain	7873	38.9982	-105.0590	city est2023
+Derby	front	7685	39.8408	-104.9163	CDP pop2010=7685
+Fruitvale	slope	7675	39.0933	-108.4788	CDP pop2010=7675
+Fairmount	front	7559	39.7926	-105.1712	CDP pop2010=7559
+Lamar	plains	7525	38.0760	-102.6147	city est2023
+Eagle	mountain	7391	39.6432	-106.8213	town est2023
+Applewood	front	7160	39.7475	-105.1730	CDP pop2010=7160
+La Junta	plains	7033	37.9794	-103.5473	city est2023
+Stratmoor	front	6900	38.7720	-104.7778	CDP pop2010=6900
+Orchard Mesa	slope	6836	39.0374	-108.5228	CDP pop2010=6836
+Gunnison	mountain	6815	38.5480	-106.9246	city est2023
+Carbondale	mountain	6708	39.3956	-107.2150	town est2023
+Aspen	mountain	6612	39.1952	-106.8368	city est2023
+Gleneagle	front	6611	39.0399	-104.8254	CDP pop2010=6611
+Dacono	front	6595	40.0635	-104.9468	city est2023
+Mead	front	6450	40.2270	-104.9883	town est2023
+Cherry Hills Village	front	6273	39.6374	-104.9475	city est2023
+Avon	mountain	5954	39.6419	-106.5158	town est2023
+Sheridan	front	5908	39.6478	-105.0175	city est2023
+Salida	mountain	5900	38.5299	-105.9979	city est2023
+Eaton	front	5832	40.5257	-104.7130	town est2023
+Estes Park	mountain	5824	40.3670	-105.5339	town est2023
+Brush	plains	5268	40.2593	-103.6363	city est2023
+Breckenridge	mountain	4940	39.4995	-106.0432	town est2023
+Silverthorne	mountain	4940	39.6599	-106.0891	town est2023
+Edgewater	front	4882	39.7508	-105.0626	city est2023
+New Castle	slope	4866	39.5776	-107.5265	town est2023
+Manitou Springs	front	4622	38.8575	-104.9129	city est2023
+Vail	mountain	4521	39.6378	-106.3625	town est2023
+Battlement Mesa	slope	4471	39.4528	-108.0039	CDP pop2010=4471
+Glendale	front	4447	39.7031	-104.9362	city est2023
+Monte Vista	mountain	4070	37.5785	-106.1499	city est2023
+Niwot	front	4006	40.0976	-105.1583	CDP pop2010=4006
+Basalt	mountain	4005	39.3686	-107.0488	town est2023
+Florence	front	3862	38.3796	-105.1002	city est2023
+Rocky Ford	plains	3819	38.0499	-103.7221	city est2023
+El Jebel	mountain	3801	39.4070	-107.0942	CDP pop2010=3801
+Silt	slope	3697	39.5480	-107.6527	town est2023
+Genesee	mountain	3609	39.6879	-105.2712	CDP pop2010=3609
+Penrose	front	3582	38.4213	-105.0004	CDP pop2010=3582
+Bennett	plains	3549	39.7417	-104.4287	town est2023
+Lincoln Park	front	3546	38.4252	-105.2131	CDP pop2010=3546
+Yuma	plains	3401	40.1225	-102.7156	city est2023
+Orchard City	slope	3251	38.8181	-107.9673	town est2023
+Ponderosa Park	front	3232	39.3987	-104.6352	CDP pop2010=3232
+Burlington	plains	3128	39.3042	-102.2715	city est2023
+Walsenburg	plains	3085	37.6306	-104.7817	city est2023
+Buena Vista	mountain	3080	38.8320	-106.1387	town est2023
+Snowmass Village	mountain	3011	39.2169	-106.9440	town est2023
+Platteville	front	2898	40.2228	-104.8336	town est2023
+Bayfield	mountain	2872	37.2341	-107.5952	town est2023
+Frisco	mountain	2763	39.5785	-106.0910	town est2023
+Ault	front	2666	40.5892	-104.7394	town est2023
+Leadville	mountain	2628	39.2473	-106.2935	city est2023
+Palisade	slope	2602	39.1079	-108.3573	town est2023
+Palmer Lake	front	2587	39.1158	-104.9092	town est2023
+Telluride	mountain	2525	37.9402	-107.8182	town est2023
+Elizabeth	front	2477	39.3653	-104.6039	town est2023
+Laporte	front	2450	40.6377	-105.1436	CDP pop2010=2450
+Strasburg	plains	2447	39.7207	-104.3182	CDP pop2010=2447
+Cedaredge	slope	2410	38.8941	-107.9255	town est2023
+Coal Creek	mountain	2400	39.9047	-105.3721	CDP pop2010=2400
+Las Animas	plains	2374	38.0697	-103.2232	city est2023
+Meeker	slope	2368	40.0500	-107.8946	town est2023
+Wray	plains	2315	40.0800	-102.2286	city est2023
+La Salle	front	2301	40.3486	-104.7061	town est2023
+Holyoke	plains	2295	40.5821	-102.2972	city est2023
+Rangely	slope	2286	40.0870	-108.7833	town est2023
+Granby	mountain	2256	40.0648	-105.9194	town est2023
+Colorado City	plains	2193	37.9394	-104.8431	CDP pop2010=2193
+Lyons	front	2151	40.2231	-105.2687	town est2023
+Keenesburg	front	2050	40.1552	-104.5634	town est2023
+Limon	plains	2002	39.2651	-103.6859	town est2023
+Olathe	slope	1962	38.6084	-107.9833	town est2023
+Center	mountain	1924	37.7512	-106.1106	town est2023
+Hayden	mountain	1919	40.4922	-107.2643	town est2023
+Wiggins	plains	1796	40.2284	-104.0721	town est2023
+Pagosa Springs	mountain	1773	37.2634	-107.0036	town est2023
+Akron	plains	1772	40.1635	-103.2203	town est2023
+Idaho Springs	mountain	1708	39.7493	-105.5038	city est2023
+Columbine Valley	front	1677	39.5996	-105.0309	town est2023
+Crested Butte	mountain	1658	38.8678	-106.9773	town est2023
+Cascade-Chipita Park	mountain	1655	38.9474	-104.9981	CDP pop2010=1655
+Perry Park	front	1646	39.2605	-104.9678	CDP pop2010=1646
+Hudson	front	1617	40.0917	-104.5937	town est2023
+Deer Trail	plains	1513	39.6170	-104.0439	town est2023
+Kersey	front	1491	40.3956	-104.5783	town est2023
+Nederland	mountain	1488	39.9638	-105.5059	town est2023
+Paonia	slope	1459	38.8698	-107.5921	town est2023
+Fraser	mountain	1456	39.9233	-105.8053	town est2023
+Kremmling	mountain	1445	40.0565	-106.3782	town est2023
+Del Norte	mountain	1413	37.6780	-106.3530	town est2023
+Parachute	slope	1365	39.4468	-108.0521	town est2023
+Kittredge	mountain	1304	39.6594	-105.3049	CDP pop2010=1304
+Loma	slope	1293	39.2075	-108.8050	CDP pop2010=1293
+Springfield	plains	1290	37.4049	-102.6189	town est2023
+Poncha Springs	mountain	1287	38.5211	-106.0726	town est2023
+Indian Hills	mountain	1280	39.6299	-105.2475	CDP pop2010=1280
+Georgetown	mountain	1257	39.7179	-105.6945	town est2023
+Mancos	slope	1248	37.3466	-108.2938	town est2023
+Ridgway	slope	1247	38.1572	-107.7546	town est2023
+Julesburg	plains	1238	40.9849	-102.2627	town est2023
+Mountain Village	mountain	1230	37.9324	-107.8577	town est2023
+Fowler	plains	1211	38.1306	-104.0261	town est2023
+Byers	plains	1160	39.7094	-104.2128	CDP pop2010=1160
+Winter Park	mountain	1149	39.8785	-105.7828	town est2023
+Ellicott	plains	1131	38.8256	-104.3829	CDP pop2010=1131
+Cripple Creek	mountain	1117	38.7466	-105.1850	city est2023
+Towaoc	slope	1087	37.2126	-108.7265	CDP pop2010=1087
+Pierce	front	1080	40.6476	-104.7801	town est2023
+Keystone	mountain	1079	39.5739	-105.9347	CDP pop2010=1079
+Ordway	plains	1074	38.2209	-103.7567	town est2023
+Gilcrest	front	1020	40.2842	-104.7820	town est2023
+Dillon	mountain	1016	39.6259	-106.0437	town est2023
+Floyd Hill	mountain	998	39.7197	-105.4349	CDP pop2010=998
+Pine Brook Hill	mountain	983	40.0384	-105.3075	CDP pop2010=983
+Haxtun	plains	969	40.6419	-102.6297	town est2023
+Minturn	mountain	967	39.5357	-106.3818	town est2023
+Manassa	mountain	961	37.1738	-105.9373	town est2023
+Mount Crested Butte	mountain	961	38.9083	-106.9606	town est2023
+Hotchkiss	slope	929	38.7990	-107.7134	town est2023
+Dolores	slope	923	37.4746	-108.4994	town est2023
+Ouray	mountain	920	38.0275	-107.6733	city est2023
+Log Lane Village	plains	902	40.2697	-103.8290	town est2023
+Sanford	mountain	892	37.2574	-105.9008	town est2023
+Aspen Park	mountain	882	39.5427	-105.2963	CDP pop2010=882
+Blende	front	878	38.2498	-104.5687	CDP pop2010=878
+La Veta	plains	878	37.5086	-105.0085	town est2023
+Oak Creek	mountain	858	40.2740	-106.9576	town est2023
+Blue River	mountain	852	39.4485	-106.0368	town est2023
+Ignacio	slope	845	37.1180	-107.6376	town est2023
+Bow Mar	front	823	39.6266	-105.0509	town est2023
+Holly	plains	822	38.0556	-102.1246	town est2023
+Central City	mountain	778	39.7928	-105.5143	city est2023
+Hugo	plains	774	39.1362	-103.4731	town est2023
+Williamsburg	front	765	38.3840	-105.1710	town est2023
+Kiowa	plains	740	39.3437	-104.4579	town est2023
+Fairplay	mountain	738	39.2243	-105.9984	town est2023
+Foxfield	front	735	39.5881	-104.7857	town est2023
+Calhan	plains	726	39.0344	-104.2993	town est2023
+Howard	mountain	723	38.4098	-105.8424	CDP pop2010=723
+Cheyenne Wells	plains	722	38.8192	-102.3520	town est2023
+La Jara	mountain	716	37.2735	-105.9597	town est2023
+Silverton	mountain	713	37.8109	-107.6647	town est2023
+Silver Cliff	mountain	707	38.1292	-105.3992	town est2023
+Dotsero	mountain	705	39.6476	-107.0499	CDP pop2010=705
+Dove Creek	slope	684	37.7668	-108.9072	town est2023
+Avondale	plains	674	38.2352	-104.3482	CDP pop2010=674
+Hot Sulphur Springs	mountain	662	40.0749	-106.1032	town est2023
+Stratton	plains	646	39.3029	-102.6035	town est2023
+Cattle Creek	mountain	641	39.4666	-107.2599	CDP pop2010=641
+Eads	plains	636	38.4816	-102.7798	town est2023
+Antonito	mountain	622	37.0762	-106.0103	town est2023
+San Luis	mountain	622	37.2024	-105.4225	town est2023
+Simla	plains	620	39.1407	-104.0824	town est2023
+Green Mountain Falls	mountain	609	38.9350	-105.0197	town est2023
+Swink	plains	589	38.0141	-103.6282	town est2023
+Salt Creek	front	587	38.2407	-104.5866	CDP pop2010=587
+Eldorado Springs	front	585	39.9393	-105.2491	CDP pop2010=585
+Nucla	slope	583	38.2667	-108.5487	town est2023
+Flagler	plains	573	39.2966	-103.0646	town est2023
+Walden	mountain	572	40.7316	-106.2813	town est2023
+Beulah Valley	plains	556	38.0727	-104.9817	CDP pop2010=556
+Rockvale	front	533	38.3644	-105.1645	town est2023
+Saguache	mountain	533	38.0863	-106.1411	town est2023
+Nunn	front	531	40.7137	-104.7888	town est2023
+Norwood	slope	529	38.1284	-108.2922	town est2023
+Allenspark	mountain	528	40.2313	-105.5180	CDP pop2010=528
+Otis	plains	521	40.1501	-102.9621	town est2023
+Mountain View	front	519	39.7748	-105.0567	town est2023
+Walsh	plains	512	37.3861	-102.2799	town est2023
+South Fork	mountain	507	37.6692	-106.6429	town est2023
+Altona	mountain	501	40.1219	-105.2962	CDP pop2010=501
+Westcliffe	mountain	495	38.1342	-105.4653	town est2023
+De Beque	slope	477	39.3100	-108.2050	town est2023
+Naturita	slope	474	38.2183	-108.5666	town est2023
+Aguilar	plains	449	37.4036	-104.6550	town est2023
+Granada	plains	438	38.0630	-102.3116	town est2023
+Fort Garland	mountain	433	37.4279	-105.4350	CDP pop2010=433
+Wiley	plains	432	38.1548	-102.7189	town est2023
+Lake City	mountain	425	38.0216	-107.3107	town est2023
+Fleming	plains	422	40.6821	-102.8396	town est2023
+Tabernash	mountain	417	39.9788	-105.8440	CDP pop2010=417
+Crawford	slope	407	38.7050	-107.6096	town est2023
+Grand Lake	mountain	405	40.2559	-105.8289	town est2023
+Franktown	front	395	39.3900	-104.7424	CDP pop2010=395
+Yampa	mountain	394	40.1530	-106.9085	town est2023
+Morrison	mountain	388	39.6364	-105.2060	town est2023
+Copper Mountain	mountain	385	39.4769	-106.2011	CDP pop2010=385
+Collbran	slope	366	39.2400	-107.9635	town est2023
+Victor	mountain	364	38.7087	-105.1419	city est2023
+Red Feather Lakes	mountain	343	40.8095	-105.5790	CDP pop2010=343
+Blanca	mountain	336	37.4393	-105.5135	town est2023
+Rico	slope	332	37.6891	-108.0317	town est2023
+Manzanola	plains	330	38.1088	-103.8668	town est2023
+Chacra	slope	329	39.5784	-107.4549	CDP pop2010=329
+Empire	mountain	327	39.7594	-105.6817	town est2023
+Alma	mountain	312	39.2861	-106.0689	town est2023
+Boone	plains	309	38.2506	-104.2610	town est2023
+Hillrose	plains	309	40.3245	-103.5222	town est2023
+Romeo	mountain	307	37.1718	-105.9854	town est2023
+Lewis	slope	302	37.5017	-108.6601	CDP pop2010=302
+Olney Springs	plains	294	38.1663	-103.9445	town est2023
+Merino	plains	282	40.4837	-103.3537	town est2023
+Creede	mountain	278	37.8486	-106.9251	town est2023
+Ovid	plains	265	40.9608	-102.3883	town est2023
+Garden City	front	250	40.3946	-104.6895	town est2023
+Kit Carson	plains	250	38.7628	-102.7955	town est2023
+Dinosaur	slope	246	40.2399	-109.0068	town est2023
+Jamestown	mountain	245	40.1230	-105.3931	town est2023
+Sugar City	plains	245	38.2328	-103.6633	town est2023
+Brookside	front	243	38.4135	-105.1909	town est2023
+Red Cliff	mountain	243	39.5093	-106.3699	town est2023
+Iliff	plains	241	40.7592	-103.0661	town est2023
+Cheraw	plains	233	38.1077	-103.5110	town est2023
+Eckley	plains	230	40.1124	-102.4883	town est2023
+Larkspur	front	219	39.2296	-104.8857	town est2023
+Peetz	plains	205	40.9618	-103.1138	town est2023
+Rye	plains	203	37.9213	-104.9319	town est2023
+Arriba	plains	201	39.2843	-103.2740	town est2023
+Silver Plume	mountain	194	39.6954	-105.7270	town est2023
+Ophir	mountain	190	37.8568	-107.8312	town est2023
+Bethune	plains	181	39.3038	-102.4234	town est2023
+Seibert	plains	176	39.2980	-102.8695	town est2023
+Sedgwick	plains	167	40.9355	-102.5256	town est2023
+Crowley	plains	159	38.1935	-103.8597	town est2023
+Genoa	plains	153	39.2782	-103.4987	town est2023
+Grover	plains	153	40.8691	-104.2259	town est2023
+Crestone	mountain	139	37.9945	-105.6962	town est2023
+Marble	mountain	132	39.0717	-107.1907	town est2023
+Black Hawk	mountain	128	39.8017	-105.4933	city est2023
+Cokedale	plains	127	37.1442	-104.6216	town est2023
+Ward	mountain	126	40.0730	-105.5148	town est2023
+Crook	plains	125	40.8588	-102.8014	town est2023
+Raymer	plains	111	40.6080	-103.8436	town est2023
+Pritchett	plains	108	37.3700	-102.8587	town est2023
+Moffat	mountain	107	38.0057	-105.9101	town est2023
+Ramah	plains	106	39.1214	-104.1673	town est2023
+Campo	plains	97	37.1047	-102.5788	town est2023
+Vilas	plains	94	37.3737	-102.4474	town est2023
+Vona	plains	90	39.3021	-102.7434	town est2023
+Hooper	mountain	79	37.7460	-105.8777	town est2023
+Pitkin	mountain	75	38.6087	-106.5149	town est2023
+Montezuma	mountain	72	39.5815	-105.8676	town est2023
+Haswell	plains	70	38.4525	-103.1650	town est2023
+Starkville	plains	65	37.1168	-104.5233	town est2023
+Kim	plains	63	37.2471	-103.3534	town est2023
+Branson	plains	57	37.0155	-103.8838	town est2023
+Hartman	plains	54	38.1211	-102.2216	town est2023
+Sheridan Lake	plains	54	38.4667	-102.2944	town est2023
+Paoli	plains	48	40.6128	-102.4718	town est2023
+Sawpit	slope	35	37.9947	-108.0021	town est2023
+Two Buttes	plains	32	37.5607	-102.3966	town est2023
+Lakeside	front	16	39.7791	-105.0578	town est2023
+Bonanza	mountain	0	38.2966	-106.1419	town est2023

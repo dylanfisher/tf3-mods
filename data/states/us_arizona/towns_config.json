@@ -1,0 +1,112 @@
+{
+  "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+  "fips": "04",
+  "postal": "AZ",
+  "gazetteerYear": 2023,
+  "popestYear": 2023,
+  "bigCount": 15,
+  "cdpMinPop": 300,
+  "_regions": "First match wins. 'sky' = southeast high grassland (Sierra Vista, Bisbee, Willcox, Patagonia); 'high' = Colorado Plateau + central highlands, i.e. the Mogollon Rim and everything north/east of it (Flagstaff, Prescott, Payson, Show Low). Everything else is the low desert.",
+  "regions": [
+    {
+      "tag": "sky",
+      "polygon": [
+        [31.33, -110.85],
+        [31.8, -110.85],
+        [32.45, -110.2],
+        [32.45, -109.04],
+        [31.33, -109.04]
+      ]
+    },
+    {
+      "tag": "high",
+      "polygon": [
+        [37.01, -113.9],
+        [37.01, -109.04],
+        [33.6, -109.04],
+        [33.7, -109.9],
+        [33.75, -110.15],
+        [34.05, -111.2],
+        [34.2, -111.7],
+        [34.55, -112.9],
+        [35.2, -113.6],
+        [35.6, -113.9],
+        [36.2, -113.9]
+      ]
+    }
+  ],
+  "defaultTag": "desert",
+  "rules": [],
+  "setSide": {},
+  "_tagLists": "river = towns on the Colorado River (Lake Havasu to Yuma, plus Page at Lake Powell).",
+  "tagLists": {
+    "river": [
+      "Lake Havasu City",
+      "Bullhead City",
+      "Fort Mohave",
+      "Mohave Valley",
+      "Golden Shores",
+      "Parker",
+      "Ehrenberg",
+      "Yuma",
+      "Somerton",
+      "San Luis",
+      "Gadsden",
+      "Page",
+      "Desert Hills",
+      "Parker Strip"
+    ]
+  },
+  "removeTags": {},
+  "rename": {
+    "Village of Oak Creek (Big Park)": "Village of Oak Creek"
+  },
+  "exclude": [],
+  "_cdp": "CDPs are kept when pop2010 >= cdpMinPop, not excluded, without a hyphen and without a drop word; keepCdp overrides all of that.",
+  "dropCdpWords": [
+    "North",
+    "South",
+    "East",
+    "West",
+    "Northwest",
+    "Southeast",
+    "Upper",
+    "Lower",
+    "Heights"
+  ],
+  "excludeCdp": [
+    "Avenue B and C",
+    "Orange Grove Mobile Manor",
+    "Wall Lane",
+    "Lazy Y U",
+    "Donovan Estates",
+    "Cactus Flats",
+    "Goodyear Village",
+    "Maricopa Colony",
+    "Sacaton Flats Village",
+    "Stotonic Village",
+    "Rancho Mesa Verde",
+    "El Prado Estates",
+    "Summit",
+    "Central",
+    "Scenic",
+    "Arizona Village",
+    "Rainbow City",
+    "San Jose",
+    "Mesquite Creek",
+    "Citrus Park",
+    "Swift Trail Junction",
+    "Pinetop Country Club",
+    "Lake of the Woods",
+    "Cienega Springs",
+    "Wagon Wheel"
+  ],
+  "keepCdp": [
+    "Sun City West",
+    "Drexel Heights",
+    "Heber-Overgaard"
+  ],
+  "_rename": "Census 'Village of Oak Creek (Big Park)' is signed and known as Village of Oak Creek.",
+  "_excludeCdp": "Subdivision/trailer-park style CDP names, generic words, and CDPs named after a bigger city (Goodyear Village, Maricopa Colony).",
+  "_keepCdp": "Well-known places the drop-word/hyphen filter would remove."
+}

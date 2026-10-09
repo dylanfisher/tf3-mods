@@ -1,0 +1,276 @@
+name	tags	population	lat	lon	note
+Phoenix	desert,big	1650070	33.5722	-112.0901	city est2023
+Tucson	desert,big	547239	32.1530	-110.8708	city est2023
+Mesa	desert,big	511648	33.4006	-111.7165	city est2023
+Chandler	desert,big	280167	33.2828	-111.8518	city est2023
+Gilbert	desert,big	275411	33.3103	-111.7431	town est2023
+Glendale	desert,big	253855	33.5331	-112.1899	city est2023
+Scottsdale	desert,big	244394	33.6843	-111.8614	city est2023
+Peoria	desert,big	198750	33.7862	-112.3080	city est2023
+Tempe	desert,big	189834	33.3884	-111.9318	city est2023
+Surprise	desert,big	158285	33.6708	-112.4525	city est2023
+Goodyear	desert,big	111805	33.2540	-112.3665	city est2023
+Buckeye	desert,big	108909	33.4316	-112.6416	city est2023
+Yuma	desert,river,big	100858	32.5163	-114.5218	city est2023
+Avondale	desert,big	93545	33.3132	-112.3289	city est2023
+San Tan Valley	desert	81321	33.1786	-111.5628	CDP pop2010=81321
+Flagstaff	high,big	76586	35.1852	-111.6207	city est2023
+Queen Creek	desert	76570	33.2394	-111.6133	town est2023
+Maricopa	desert	71022	33.0419	-111.9993	city est2023
+Casas Adobes	desert	66795	32.3418	-111.0116	CDP pop2010=66795
+Casa Grande	desert	63743	32.9069	-111.7635	city est2023
+Lake Havasu City	desert,river	59257	34.4998	-114.3109	city est2023
+Marana	desert	58430	32.4659	-111.1354	town est2023
+Catalina Foothills	desert	50796	32.3019	-110.8848	CDP pop2010=50796
+Prescott Valley	high	50045	34.5979	-112.3185	town est2023
+Oro Valley	desert	48311	32.4207	-110.9770	town est2023
+Prescott	high	47757	34.5922	-112.4467	city est2023
+Sierra Vista	sky	44431	31.5654	-110.3145	city est2023
+Bullhead City	desert,river	43302	35.1274	-114.5560	city est2023
+Apache Junction	desert	41153	33.3828	-111.5405	city est2023
+San Luis	desert,river	37966	32.4857	-114.7219	city est2023
+Sun City	desert	37499	33.6155	-112.2831	CDP pop2010=37499
+Sahuarita	desert	36356	31.9322	-110.9654	town est2023
+El Mirage	desert	35850	33.5902	-112.3271	city est2023
+Kingman	desert	35334	35.2170	-114.0105	city est2023
+Drexel Heights	desert	27749	32.1453	-111.0481	CDP pop2010=27749
+Fortuna Foothills	desert	26265	32.6616	-114.3974	CDP pop2010=26265
+Sun City West	desert	24535	33.6714	-112.3572	CDP pop2010=24535
+Florence	desert	24291	33.0694	-111.4140	town est2023
+Fountain Hills	desert	23611	33.6078	-111.7384	town est2023
+Anthem	desert	21700	33.8468	-112.1270	CDP pop2010=21700
+Green Valley	desert	21391	31.8408	-111.0045	CDP pop2010=21391
+Nogales	desert	19702	31.3619	-110.9348	city est2023
+Rio Rico	desert	18962	31.4982	-110.9878	CDP pop2010=18962
+Eloy	desert	18528	32.7413	-111.5940	city est2023
+Coolidge	desert	18293	32.9336	-111.5236	city est2023
+Tanque Verde	desert	16901	32.2688	-110.7437	CDP pop2010=16901
+Payson	high	16731	34.2438	-111.3190	town est2023
+Flowing Wells	desert	16419	32.2938	-111.0111	CDP pop2010=16419
+Douglas	sky	15638	31.3993	-109.5413	city est2023
+New River	desert	14952	33.8826	-112.0861	CDP pop2010=14952
+Somerton	desert,river	14594	32.6018	-114.6963	city est2023
+Fort Mohave	desert,river	14364	35.0004	-114.5749	CDP pop2010=14364
+Sun Lakes	desert	13975	33.2150	-111.8700	CDP pop2010=13975
+Chino Valley	high	13815	34.7399	-112.4061	town est2023
+Cottonwood	high	13124	34.7508	-111.9840	city est2023
+Paradise Valley	desert	12502	33.5522	-111.9613	town est2023
+Camp Verde	high	12489	34.5694	-111.8570	town est2023
+Show Low	high	12192	34.2651	-110.0383	city est2023
+Tucson Estates	desert	12192	32.1792	-111.1266	CDP pop2010=12192
+Verde Village	high	11605	34.7119	-111.9941	CDP pop2010=11605
+Arizona City	desert	10475	32.7509	-111.6705	CDP pop2010=10475
+Safford	desert	10270	32.8333	-109.6974	city est2023
+Vail	desert	10208	32.0217	-110.6937	CDP pop2010=10208
+Sedona	high	9819	34.8585	-111.7931	city est2023
+Saddlebrooke	desert	9614	32.5564	-110.8747	CDP pop2010=9614
+Picture Rocks	desert	9563	32.3247	-111.2599	CDP pop2010=9563
+Tuba City	high	8611	36.1251	-111.2467	CDP pop2010=8611
+Winslow	high	8517	35.0242	-110.7093	city est2023
+Golden Valley	desert	8370	35.2061	-114.2328	CDP pop2010=8370
+Wickenburg	desert	8123	33.9948	-112.7589	town est2023
+Catalina	desert	7569	32.4848	-110.8997	CDP pop2010=7569
+Page	high,river	7320	36.9418	-111.5133	city est2023
+Globe	desert	7179	33.3936	-110.7411	city est2023
+Tolleson	desert	7173	33.4484	-112.2560	city est2023
+Youngtown	desert	6919	33.5850	-112.3049	town est2023
+Litchfield Park	desert	6884	33.5018	-112.3595	city est2023
+Snowflake	high	6670	34.5215	-110.0912	town est2023
+Village of Oak Creek	high	6147	34.7813	-111.7606	CDP pop2010=6147
+Avra Valley	desert	6050	32.4191	-111.3394	CDP pop2010=6050
+Corona de Tucson	desert	5675	31.9486	-110.7819	CDP pop2010=5675
+Three Points	desert	5581	32.0593	-111.2866	CDP pop2010=5581
+Thatcher	desert	5486	32.8127	-109.7665	town est2023
+Williamson	high	5438	34.7083	-112.5337	CDP pop2010=5438
+Doney Park	high	5395	35.2656	-111.5190	CDP pop2010=5395
+Benson	sky	5337	31.9145	-110.3286	city est2023
+Paulden	high	5231	34.8897	-112.4937	CDP pop2010=5231
+Guadalupe	desert	5217	33.3665	-111.9632	town est2023
+Kayenta	high	5189	36.7172	-110.2605	CDP pop2010=5189
+Cave Creek	desert	5152	33.8362	-111.9821	town est2023
+Rincon Valley	desert	5139	32.1100	-110.6890	CDP pop2010=5139
+Bisbee	sky	4994	31.3980	-109.9318	city est2023
+Clarkdale	high	4904	34.7480	-112.0587	town est2023
+Holbrook	high	4833	34.9046	-110.1672	city est2023
+Lake Montezuma	high	4706	34.6369	-111.8009	CDP pop2010=4706
+Dewey-Humboldt	high	4540	34.5174	-112.2497	town est2023
+South Tucson	desert	4521	32.1955	-110.9692	city est2023
+Chinle	high	4518	36.1511	-109.5787	CDP pop2010=4518
+Eagar	high	4437	34.1068	-109.3012	town est2023
+Taylor	high	4272	34.4427	-110.0985	town est2023
+Pinetop-Lakeside	high	4191	34.1484	-109.9660	town est2023
+Whiteriver	high	4104	33.8398	-109.9608	CDP pop2010=4104
+San Carlos	desert	4038	33.3446	-110.4777	CDP pop2010=4038
+Clifton	desert	3780	33.0296	-109.2840	town est2023
+Oracle	desert	3686	32.6084	-110.7823	CDP pop2010=3686
+Carefree	desert	3642	33.8232	-111.9133	town est2023
+Fort Defiance	high	3624	35.7475	-109.0680	CDP pop2010=3624
+San Manuel	desert	3551	32.6091	-110.6415	CDP pop2010=3551
+Williams	high	3463	35.2466	-112.1833	city est2023
+Parker	desert,river	3400	34.0340	-114.2281	town est2023
+St. Johns	high	3362	34.5004	-109.3769	city est2023
+Ajo	desert	3304	32.3923	-112.8839	CDP pop2010=3304
+Cornville	high	3280	34.7392	-111.9068	CDP pop2010=3280
+Willcox	sky	3202	32.2518	-109.8357	city est2023
+Pima	desert	3036	32.8919	-109.8443	town est2023
+Black Canyon City	desert	2837	34.0714	-112.1224	CDP pop2010=2837
+Heber-Overgaard	high	2822	34.4141	-110.5696	CDP pop2010=2822
+Colorado City	high	2734	36.9701	-112.9853	town est2023
+Window Rock	high	2712	35.6705	-109.0630	CDP pop2010=2712
+Sacaton	desert	2672	33.0775	-111.7629	CDP pop2010=2672
+Cordes Lakes	desert	2633	34.3103	-112.1073	CDP pop2010=2633
+Kachina Village	high	2622	35.0924	-111.6960	CDP pop2010=2622
+Mohave Valley	desert,river	2616	34.9024	-114.5714	CDP pop2010=2616
+Linden	high	2597	34.2696	-110.1364	CDP pop2010=2597
+Wellton	desert	2572	32.6401	-114.2152	town est2023
+Superior	desert	2571	33.2716	-111.1242	town est2023
+Star Valley	high	2545	34.2547	-111.2207	town est2023
+Sells	desert	2495	31.9209	-111.8709	CDP pop2010=2495
+Quartzsite	desert	2389	33.6675	-114.2170	town est2023
+Desert Hills	desert,river	2245	34.5465	-114.3780	CDP pop2010=2245
+White Mountain Lake	high	2205	34.3440	-109.9868	CDP pop2010=2205
+Golden Shores	desert,river	2047	34.7819	-114.4777	CDP pop2010=2047
+Dolan Springs	desert	2033	35.5905	-114.2852	CDP pop2010=2033
+Grand Canyon Village	high	2004	36.0595	-112.1579	CDP pop2010=2004
+Congress	desert	1975	34.1534	-112.8656	CDP pop2010=1975
+Pine	high	1963	34.3803	-111.4605	CDP pop2010=1963
+Beaver Dam	desert	1962	36.9070	-113.9362	CDP pop2010=1962
+Bylas	desert	1962	33.1277	-110.1149	CDP pop2010=1962
+Bagdad	desert	1876	34.5772	-113.1768	CDP pop2010=1876
+Gila Bend	desert	1854	32.9662	-112.7155	town est2023
+Kearny	desert	1817	33.0564	-110.9071	town est2023
+Mescal	sky	1812	31.9674	-110.4366	CDP pop2010=1812
+Rio Verde	desert	1811	33.7266	-111.6758	CDP pop2010=1811
+Pirtleville	sky	1744	31.3609	-109.5661	CDP pop2010=1744
+Springerville	high	1727	34.1719	-109.3069	town est2023
+Cibecue	high	1713	34.0304	-110.4920	CDP pop2010=1713
+Lukachukai	high	1701	36.4112	-109.2255	CDP pop2010=1701
+St. David	sky	1699	31.8860	-110.2215	CDP pop2010=1699
+Valle Vista	desert	1659	35.4109	-113.8627	CDP pop2010=1659
+Huachuca City	sky	1600	31.6308	-110.3422	town est2023
+First Mesa	high	1555	35.8317	-110.3689	CDP pop2010=1555
+Claypool	desert	1538	33.4061	-110.8419	CDP pop2010=1538
+Miami	desert	1532	33.3951	-110.8724	town est2023
+Salome	desert	1530	33.7778	-113.6060	CDP pop2010=1530
+Kaibito	high	1522	36.5920	-111.1071	CDP pop2010=1522
+Mayer	high	1497	34.4233	-112.2407	CDP pop2010=1497
+Morenci	desert	1489	33.0584	-109.3332	CDP pop2010=1489
+Ehrenberg	desert,river	1470	33.6142	-114.4830	CDP pop2010=1470
+LeChee	high	1443	36.8609	-111.4244	CDP pop2010=1443
+St. Michaels	high	1443	35.6606	-109.0962	CDP pop2010=1443
+Tonto Basin	desert	1424	33.8433	-111.3016	CDP pop2010=1424
+Casa Blanca	desert	1388	33.1155	-111.9081	CDP pop2010=1388
+Joseph City	high	1386	34.9637	-110.3290	CDP pop2010=1386
+Peridot	desert	1350	33.3033	-110.4590	CDP pop2010=1350
+Many Farms	high	1348	36.3429	-109.6376	CDP pop2010=1348
+Tombstone	sky	1312	31.7208	-110.0767	city est2023
+Fredonia	high	1302	36.9616	-112.5164	town est2023
+Centennial Park	high	1264	36.9538	-112.9813	CDP pop2010=1264
+Meadview	desert	1224	35.9532	-114.0789	CDP pop2010=1224
+Ganado	high	1210	35.6919	-109.5557	CDP pop2010=1210
+Canyon Day	high	1209	33.7789	-110.0382	CDP pop2010=1209
+Tsaile	high	1205	36.3024	-109.2187	CDP pop2010=1205
+Tubac	desert	1191	31.6107	-111.0570	CDP pop2010=1191
+Parks	high	1188	35.2852	-111.9672	CDP pop2010=1188
+Dilkon	high	1184	35.3529	-110.3072	CDP pop2010=1184
+Spring Valley	high	1148	34.3452	-112.1592	CDP pop2010=1148
+Mammoth	desert	1133	32.6852	-110.7293	town est2023
+Mountainaire	high	1119	35.0938	-111.6452	CDP pop2010=1119
+Arivaca Junction	desert	1090	31.7389	-111.0736	CDP pop2010=1090
+Peach Springs	high	1090	35.5314	-113.4320	CDP pop2010=1090
+Blackwater	desert	1062	33.0396	-111.5799	CDP pop2010=1062
+Willow Valley	desert	1062	34.9277	-114.6266	CDP pop2010=1062
+Naco	sky	1046	31.3460	-109.9271	CDP pop2010=1046
+Houck	high	1024	35.2693	-109.2234	CDP pop2010=1024
+Six Shooter Canyon	desert	1019	33.3668	-110.7746	CDP pop2010=1019
+Bouse	desert	996	33.8985	-113.9964	CDP pop2010=996
+Moenkopi	high	964	36.1125	-111.2212	CDP pop2010=964
+Second Mesa	high	962	35.8514	-110.4980	CDP pop2010=962
+Strawberry	high	961	34.3909	-111.5027	CDP pop2010=961
+Dudleyville	desert	959	32.8600	-110.7165	CDP pop2010=959
+Leupp	high	951	35.2966	-111.0036	CDP pop2010=951
+Pinon	high	904	36.0989	-110.2191	CDP pop2010=904
+Cameron	high	885	35.8532	-111.4286	CDP pop2010=885
+Wilhoit	desert	868	34.4082	-112.6156	CDP pop2010=868
+Valle	high	832	35.6752	-112.1529	CDP pop2010=832
+Shongopovi	high	831	35.8097	-110.5334	CDP pop2010=831
+Komatke	desert	821	33.2968	-112.1625	CDP pop2010=821
+Sonoita	sky	818	31.6656	-110.6391	CDP pop2010=818
+Whitecone	high	817	35.6047	-110.0800	CDP pop2010=817
+Hondah	high	812	34.0943	-109.9344	CDP pop2010=812
+Aguila	desert	798	33.9374	-113.1673	CDP pop2010=798
+Martinez Lake	desert	798	32.9755	-114.4682	CDP pop2010=798
+Patagonia	sky	789	31.5447	-110.7455	town est2023
+Round Rock	high	789	36.5043	-109.4632	CDP pop2010=789
+Queen Valley	desert	788	33.2830	-111.3050	CDP pop2010=788
+Wheatfields	desert	785	33.4709	-110.8161	CDP pop2010=785
+Fort Valley	high	779	35.3227	-111.7398	CDP pop2010=779
+Mesa del Caballo	high	765	34.2859	-111.2952	CDP pop2010=765
+Wittmann	desert	763	33.7750	-112.5251	CDP pop2010=763
+Low Mountain	high	757	35.9481	-110.1005	CDP pop2010=757
+Sawmill	high	748	35.8862	-109.1580	CDP pop2010=748
+Dennehotso	high	746	36.8290	-109.8757	CDP pop2010=746
+Kykotsmovi Village	high	746	35.8102	-110.6568	CDP pop2010=746
+Stanfield	desert	740	32.8794	-111.9628	CDP pop2010=740
+Teec Nos Pos	high	730	36.9333	-109.0641	CDP pop2010=730
+Wenden	desert	728	33.8325	-113.5432	CDP pop2010=728
+Bluewater	desert	725	34.1704	-114.2629	CDP pop2010=725
+Seven Mile	high	707	33.7882	-109.9586	CDP pop2010=707
+La Paz Valley	desert	699	33.5582	-114.2435	CDP pop2010=699
+Arivaca	desert	695	31.5749	-111.2926	CDP pop2010=695
+Gadsden	desert,river	678	32.5564	-114.7810	CDP pop2010=678
+Icehouse Canyon	desert	677	33.3461	-110.8012	CDP pop2010=677
+Brenda	desert	676	33.6721	-113.9379	CDP pop2010=676
+Duncan	desert	670	32.7500	-109.0884	town est2023
+Young	high	666	34.1241	-110.9383	CDP pop2010=666
+Parker Strip	desert,river	662	34.2707	-114.1297	CDP pop2010=662
+Yarnell	desert	649	34.2282	-112.7629	CDP pop2010=649
+Miracle Valley	sky	644	31.3829	-110.1485	CDP pop2010=644
+Rock Point	high	642	36.6968	-109.6195	CDP pop2010=642
+Munds Park	high	631	34.9380	-111.6282	CDP pop2010=631
+Sanders	high	630	35.2092	-109.3191	CDP pop2010=630
+Santa Rosa	desert	628	32.3325	-112.0463	CDP pop2010=628
+Gila Crossing	desert	621	33.2730	-112.1627	CDP pop2010=621
+Elephant Head	desert	612	31.7668	-110.9913	CDP pop2010=612
+Tacna	desert	602	32.7004	-113.9618	CDP pop2010=602
+Vicksburg	desert	597	33.7293	-113.8254	CDP pop2010=597
+Cactus Forest	desert	594	32.9578	-111.3169	CDP pop2010=594
+Shonto	high	591	36.5870	-110.6625	CDP pop2010=591
+Tusayan	high	583	35.9550	-112.1202	town est2023
+Gisela	high	570	34.1018	-111.2880	CDP pop2010=570
+Walnut Creek	desert	562	35.1312	-114.1266	CDP pop2010=562
+York	desert	557	32.9163	-109.1954	CDP pop2010=557
+Tonalea	high	549	36.3217	-110.9667	CDP pop2010=549
+Greasewood	high	547	35.5286	-109.8609	CDP pop2010=547
+Burnside	high	537	35.7534	-109.6248	CDP pop2010=537
+McNary	high	528	34.0922	-109.8514	CDP pop2010=528
+Hayden	desert	516	32.9950	-110.7799	town est2023
+Chilchinbito	high	506	36.4920	-110.0492	CDP pop2010=506
+Nazlini	high	489	35.9112	-109.4747	CDP pop2010=489
+Pinedale	high	487	34.3207	-110.2599	CDP pop2010=487
+Round Valley	high	487	34.1878	-111.3018	CDP pop2010=487
+Red Mesa	high	480	36.9711	-109.3698	CDP pop2010=480
+Picacho	desert	471	32.7102	-111.4943	CDP pop2010=471
+Jerome	high	460	34.7471	-112.1075	town est2023
+Elfrida	sky	459	31.6792	-109.6869	CDP pop2010=459
+Bitter Springs	high	452	36.6117	-111.6475	CDP pop2010=452
+Bowie	sky	449	32.3249	-109.4845	CDP pop2010=449
+Cane Beds	high	448	36.9342	-112.9118	CDP pop2010=448
+Tees Toh	high	448	35.4860	-110.4056	CDP pop2010=448
+Seligman	high	445	35.3256	-112.8572	CDP pop2010=445
+Pinal	desert	439	33.3801	-110.7572	CDP pop2010=439
+Peeples Valley	desert	428	34.2772	-112.7653	CDP pop2010=428
+Solomon	desert	426	32.8138	-109.6289	CDP pop2010=426
+Dateland	desert	416	32.8209	-113.5422	CDP pop2010=416
+Rough Rock	high	414	36.4095	-109.8684	CDP pop2010=414
+Clay Springs	high	401	34.3593	-110.3043	CDP pop2010=401
+Ash Fork	high	396	35.2172	-112.4913	CDP pop2010=396
+Fort Thomas	desert	374	33.0304	-109.9613	CDP pop2010=374
+Del Muerto	high	329	36.1874	-109.4359	CDP pop2010=329
+White Hills	desert	323	35.7242	-114.4004	CDP pop2010=323
+Pisinemo	desert	321	32.0349	-112.3192	CDP pop2010=321
+Cedar Creek	high	318	33.8914	-110.1957	CDP pop2010=318
+Sun Valley	high	316	34.9829	-110.0320	CDP pop2010=316
+Littlefield	desert	308	36.8659	-113.9360	CDP pop2010=308
+Keams Canyon	high	304	35.8208	-110.2037	CDP pop2010=304
+Winkelman	desert	294	32.9817	-110.7617	town est2023

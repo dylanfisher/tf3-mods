@@ -1,0 +1,1 @@
+require "production_label.production_label_types"

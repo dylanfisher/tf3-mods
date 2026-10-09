@@ -1,0 +1,97 @@
+function data()
+return { 
+		availability = { 
+			yearFrom = 1940,
+			yearTo = 0,
+			notificationGroup = "countryNew",
+			notifyWhenAvailable = false,
+		},
+		cost = 240,
+		country = true,
+		defaultWithCrosswalk = false,
+		description = { 
+			description = _("SQUARE_OWR_ONE_WAY_COUNTRY_NEW_MEDIUM_DESC"),
+			icon = "one_way_country_new_medium.tga",
+			name = _("SQUARE_OWR_ONE_WAY_COUNTRY_NEW_MEDIUM_NAME"),
+			previewIcon = "::/infrastructure/street/country/country_new_medium_preview.tga",
+		},
+		emissions = { 
+			noise = 0,
+			pollution = 0,
+			pollutionRadius = 0,
+			radius = 0,
+		},
+		fillGroundTex = "::/infrastructure/street/shared/street_fill.gtex",
+		laneConfigs = {
+			{ 
+				forward = false,
+				height = 0,
+				offset = -1,
+				speed = 22.22,
+				transportModes = { "PERSON", "CARGO", },
+				width = 2,
+			},
+			{ 
+				forward = true,
+				height = 0,
+				offset = -0.5,
+				speed = 22.22,
+				transportModes = { "CAR", "BUS", "TRUCK", },
+				width = 5,
+			},
+			{ 
+				forward = true,
+				height = 0,
+				offset = 0,
+				speed = 22.22,
+				transportModes = { "CAR", "BUS", "TRUCK", },
+				width = 4,
+			},
+			{ 
+				forward = true,
+				height = 0,
+				offset = 0,
+				speed = 22.22,
+				transportModes = { "CAR", "BUS", "TRUCK", },
+				width = 4,
+			},
+			{ 
+				forward = true,
+				height = 0,
+				offset = 0.5,
+				speed = 22.22,
+				transportModes = { "CAR", "BUS", "TRUCK", },
+				width = 5,
+			},
+			{ 
+				forward = true,
+				height = 0,
+				offset = 1,
+				speed = 22.22,
+				transportModes = { "PERSON", "CARGO", },
+				width = 2,
+			},
+		},
+		maintenanceCost = 40,
+		menuCategory = { 
+			categories = {
+				{ 
+					category = "roads_country",
+					filterCategories = { },
+					order = 485,
+				},
+			},
+		},
+		modifiers = { 
+			maxSpeedModifier = 0,
+			noiseModifier = 0,
+			pollutionModifier = 0,
+		},
+		pedestrianWalkPenalty = true,
+		priority = 225,
+		roadType = "STREET",
+		sidewalkFillGroundTex = "::/infrastructure/shared/none.gtex",
+		streetStyle = "::/infrastructure/street/country/country_new_large.street",
+		builderAudioRes = "::/gui/construction/sound/buildoze_street.builder_audio",
+	}
+end

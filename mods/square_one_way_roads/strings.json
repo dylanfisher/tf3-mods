@@ -1,0 +1,26 @@
+{
+    "en": {
+        "SQUARE_OWR_ONE_WAY_TOWN_OLD_XSMALL_NAME": "Narrow One-Way Street",
+        "SQUARE_OWR_ONE_WAY_TOWN_OLD_XSMALL_DESC": "Narrow two-lane, one-way cobblestone road that features a sidewalk, making it well-suited for use in towns.",
+        "SQUARE_OWR_ONE_WAY_TOWN_OLD_SMALL_NAME": "Small One-Way Street",
+        "SQUARE_OWR_ONE_WAY_TOWN_OLD_SMALL_DESC": "Two-lane, one-way cobblestone road that features a sidewalk, making it well-suited for use in towns.",
+        "SQUARE_OWR_ONE_WAY_TOWN_OLD_MEDIUM_NAME": "Medium One-Way Street",
+        "SQUARE_OWR_ONE_WAY_TOWN_OLD_MEDIUM_DESC": "Four-lane, one-way cobblestone road that features a sidewalk, making it well-suited for use in towns.",
+        "SQUARE_OWR_ONE_WAY_TOWN_OLD_LARGE_NAME": "Large One-Way Street",
+        "SQUARE_OWR_ONE_WAY_TOWN_OLD_LARGE_DESC": "Six-lane, one-way cobblestone road that features a sidewalk, making it well-suited for use in towns.",
+        "SQUARE_OWR_ONE_WAY_TOWN_NEW_LARGE_NAME": "Large One-Way Street",
+        "SQUARE_OWR_ONE_WAY_TOWN_NEW_LARGE_DESC": "Six-lane, one-way asphalt road that features a sidewalk, making it well-suited for use in towns.",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_OLD_SMALL_NAME": "Small One-Way Country Road",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_OLD_SMALL_DESC": "Two-lane, one-way gravel road, well-suited for connecting distant locations. Use by pedestrians reduces their happiness.",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_OLD_MEDIUM_NAME": "Medium One-Way Country Road",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_OLD_MEDIUM_DESC": "Four-lane, one-way gravel road, well-suited for connecting distant locations. Use by pedestrians reduces their happiness.",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_OLD_LARGE_NAME": "Large One-Way Country Road",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_OLD_LARGE_DESC": "Six-lane, one-way gravel road, well-suited for connecting distant locations. Use by pedestrians reduces their happiness.",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_NEW_SMALL_NAME": "Small One-Way Country Road",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_NEW_SMALL_DESC": "Two-lane, one-way asphalt road, well-suited for connecting distant locations. Use by pedestrians reduces their happiness.",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_NEW_MEDIUM_NAME": "Medium One-Way Country Road",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_NEW_MEDIUM_DESC": "Four-lane, one-way asphalt road, well-suited for connecting distant locations. Use by pedestrians reduces their happiness.",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_NEW_LARGE_NAME": "Large One-Way Country Road",
+        "SQUARE_OWR_ONE_WAY_COUNTRY_NEW_LARGE_DESC": "Six-lane, one-way asphalt road, well-suited for connecting distant locations. Use by pedestrians reduces their happiness."
+    }
+}

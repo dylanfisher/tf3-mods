@@ -1,0 +1,248 @@
+<title>Towns &amp; Streets Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=Overpass+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: state rail on the left (chips on top at phone width), one state at a time on the right;
+   city streets drawn as small green street-name signs, the way they'd hang on a pole. */
+:root {
+  --bg: #f3f6f2;
+  --surface: #ffffff;
+  --fg: #17201b;
+  --muted: #5b6a61;
+  --line: #d8e0d9;
+  --sign: #1b6a44;
+  --sign-fg: #ffffff;
+  --mark: #f5d547;
+  --mark-fg: #17201b;
+  --display: "Overpass", "Highway Gothic", "Helvetica Neue", Arial, sans-serif;
+  --body: "Overpass", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Overpass Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1411; --surface: #151d19; --fg: #e3eae5; --muted: #92a299; --line: #26322c;
+    --sign: #23784f; --sign-fg: #f3fff8; --mark: #c9a91c; --mark-fg: #0e1411; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1411; --surface: #151d19; --fg: #e3eae5; --muted: #92a299; --line: #26322c;
+  --sign: #23784f; --sign-fg: #f3fff8; --mark: #c9a91c; --mark-fg: #0e1411; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; }
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px;
+  padding-bottom: 16px; border-bottom: 2px solid var(--fg); }
+h1 { font: 800 clamp(26px, 4vw, 38px)/1.05 var(--display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+.search { flex: 1 1 280px; max-width: 420px; display: flex; flex-direction: column; gap: 4px; }
+.search label { font: 600 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.search input { width: 100%; font: 16px var(--body); padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--surface); color: var(--fg); }
+.search input:focus-visible, button:focus-visible { outline: 2px solid var(--sign); outline-offset: 2px; }
+.layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 28px; margin-top: 20px; }
+nav.states { display: flex; flex-direction: column; gap: 2px; position: sticky; top: env(safe-area-inset-top, 0px);
+  align-self: start; max-height: 100vh; overflow-y: auto; padding-top: 4px; }
+nav.states button { all: unset; cursor: pointer; display: grid; grid-template-columns: 34px 1fr auto; align-items: baseline;
+  gap: 8px; padding: 7px 10px; border-radius: 6px; }
+nav.states button:hover { background: var(--surface); }
+nav.states button[aria-current="true"] { background: var(--sign); color: var(--sign-fg); }
+nav.states button[aria-current="true"] .n { color: var(--sign-fg); opacity: 0.8; }
+.postal { font: 600 12px var(--mono); letter-spacing: 0.04em; }
+.n { font: 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+main { min-width: 0; }
+.statehead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.statehead h2 { font: 800 30px/1.1 var(--display); margin: 0; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; transform: translateY(1px); }
+.meta { color: var(--muted); font: 13px var(--mono); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 10px 0 4px; font-size: 14px; color: var(--muted); }
+.stats b { color: var(--fg); font-variant-numeric: tabular-nums; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 14px; border-bottom: 1px solid var(--line); }
+.tabs button { all: unset; cursor: pointer; padding: 8px 12px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent;
+  margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--sign); }
+.city { padding: 16px 0 18px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.city h3 { font: 800 20px/1.2 var(--display); margin: 0; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.city h3 .n { font-weight: 400; }
+.aka { color: var(--muted); font-size: 13px; font-weight: 400; }
+.group { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 12px; align-items: start; }
+.glabel { font: 600 11px/2.2 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.sign { background: var(--sign); color: var(--sign-fg); font: 600 13px/1 var(--display); padding: 6px 8px 4px; border-radius: 4px;
+  box-shadow: inset 0 0 0 1.5px var(--sign), inset 0 0 0 2.5px var(--sign-fg); letter-spacing: 0.01em; }
+.tag { border: 1px solid var(--line); background: var(--surface); font-size: 13px; line-height: 1; padding: 6px 8px 4px; border-radius: 4px; }
+.tag.rail::before { content: "\25A0 "; color: var(--sign); font-size: 10px; }
+mark { background: var(--mark); color: var(--mark-fg); border-radius: 2px; padding: 0 1px; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.filters button { all: unset; cursor: pointer; font: 13px var(--body); padding: 5px 10px 3px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); }
+.filters button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.filters .hint { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.towns { columns: 230px; column-gap: 28px; }
+.town { break-inside: avoid; display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px dotted var(--line); font-size: 14px; }
+.town .tt { color: var(--muted); font-size: 11px; font-family: var(--mono); }
+.town .big { font-weight: 800; }
+.generic { columns: 200px; column-gap: 28px; font-size: 14px; }
+.generic div { padding: 2px 0; break-inside: avoid; }
+.results h3 { font: 800 18px var(--display); margin: 22px 0 8px; display: flex; gap: 8px; align-items: baseline; }
+.hit { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.hit .k { font: 11px/1.8 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.hit .where { color: var(--muted); }
+.empty { color: var(--muted); padding: 24px 0; }
+.note { color: var(--muted); font-size: 13px; margin-top: 28px; max-width: 70ch; }
+@media (max-width: 760px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  nav.states { position: static; flex-direction: row; overflow-x: auto; max-height: none; padding-bottom: 6px; }
+  nav.states button { grid-template-columns: auto; padding: 6px 10px; }
+  nav.states button .nm, nav.states button .n { display: none; }
+  .group, .hit { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .glabel { line-height: 1.6; }
+}
+@media (prefers-reduced-motion: no-preference) { nav.states button, .tabs button { transition: background 0.12s, color 0.12s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Towns &amp; Streets Atlas</h1>
+      <p class="sub" id="summary"></p>
+    </div>
+    <div class="search">
+      <label for="q">Search every state</label>
+      <input id="q" type="search" placeholder="Pike Street, Union Station, Taos…" autocomplete="off">
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="states" id="states" aria-label="States"></nav>
+    <main id="main"></main>
+  </div>
+</div>
+
+<script>
+const STATES = /*DATA*/[];
+const KIND_LABEL = { streets: "Streets", neighborhoods: "Neighbourhoods", rail: "Rail", airport: "Airports", harbor: "Harbours" };
+const fmt = n => n ? n.toLocaleString("en-US") : "";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const el = id => document.getElementById(id);
+let cur = STATES[0] ? STATES[0].key : null, tab = "cities", tagFilter = null;
+
+function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+function highlight(name, q) {
+  if (!q) return esc(name);
+  const i = norm(name).indexOf(q);
+  if (i < 0) return esc(name);
+  return esc(name.slice(0, i)) + "<mark>" + esc(name.slice(i, i + q.length)) + "</mark>" + esc(name.slice(i + q.length));
+}
+function streetCount(s) { return s.cities.reduce((a, c) => a + (c.streets ? c.streets.length : 0), 0); }
+
+function renderNav() {
+  el("states").innerHTML = STATES.map(s =>
+    `<button type="button" data-key="${s.key}" aria-current="${s.key === cur && !el("q").value}">` +
+    `<span class="postal">${esc(s.postal)}</span><span class="nm">${esc(s.name)}</span><span class="n">${s.towns.length}</span></button>`).join("");
+}
+
+function renderState() {
+  const s = STATES.find(x => x.key === cur);
+  if (!s) return;
+  const kinds = k => s.cities.reduce((a, c) => a + (c[k] ? c[k].length : 0), 0);
+  let html = `<div class="statehead"><h2>${esc(s.name)}</h2>` +
+    `<span class="meta"><span class="swatch" style="background:${esc(s.accent)}"></span> ${esc(s.modId)}</span></div>` +
+    `<div class="stats"><span><b>${s.towns.length}</b> towns</span><span><b>${s.cities.length}</b> cities with real names</span>` +
+    `<span><b>${streetCount(s)}</b> city streets</span><span><b>${kinds("neighborhoods")}</b> neighbourhoods</span>` +
+    `<span><b>${kinds("rail") + kinds("airport") + kinds("harbor")}</b> stations</span><span><b>${s.streets.length}</b> generic streets</span></div>` +
+    `<div class="tabs" role="tablist">` +
+    [["cities", "Cities"], ["towns", "Towns"], ["generic", "Generic streets"]].map(([id, label]) =>
+      `<button type="button" role="tab" data-tab="${id}" aria-selected="${tab === id}">${label}</button>`).join("") + `</div>`;
+  if (tab === "cities") {
+    html += s.cities.map(c => {
+      let h = `<section class="city"><h3>${esc(c.n)} <span class="n">${fmt(c.p)}</span>` +
+        (c.aliases ? `<span class="aka">also ${c.aliases.map(esc).join(", ")}</span>` : "") + `</h3>`;
+      for (const k of Object.keys(KIND_LABEL)) {
+        if (!c[k]) continue;
+        const cls = k === "streets" ? "sign" : "tag" + (k === "rail" ? " rail" : "");
+        h += `<div class="group"><div class="glabel">${KIND_LABEL[k]} · ${c[k].length}</div><div class="chips">` +
+          c[k].map(v => `<span class="${cls}">${esc(v)}</span>`).join("") + `</div></div>`;
+      }
+      return h + `</section>`;
+    }).join("");
+  } else if (tab === "towns") {
+    const counts = {};
+    s.towns.forEach(t => t.t.forEach(g => counts[g] = (counts[g] || 0) + 1));
+    const tags = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    if (tagFilter && !counts[tagFilter]) tagFilter = null;
+    html += `<div class="filters"><button type="button" data-tag="" aria-pressed="${!tagFilter}">All ${s.towns.length}</button>` +
+      tags.map(g => `<button type="button" data-tag="${esc(g)}" aria-pressed="${tagFilter === g}" title="${esc(s.labels[g] || g)}">` +
+        `${esc(g)} ${counts[g]}</button>`).join("") +
+      (tagFilter && s.labels[tagFilter] ? `<span class="hint">${esc(s.labels[tagFilter])}</span>` : "") + `</div>`;
+    const list = s.towns.filter(t => !tagFilter || t.t.includes(tagFilter));
+    html += `<div class="towns">` + list.map(t =>
+      `<div class="town"><span class="${t.t.includes("big") ? "big" : ""}">${esc(t.n)}</span>` +
+      `<span class="tt">${fmt(t.p)}</span></div>`).join("") + `</div>`;
+  } else {
+    html += `<p class="sub" style="margin-bottom:12px">Used for stops in towns without their own street list.</p>` +
+      `<div class="generic">` + s.streets.map(v => `<div>${esc(v)}</div>`).join("") + `</div>`;
+  }
+  html += `<p class="note">Names as the mod ships them (accents folded to ASCII). Town populations are Census figures; ` +
+    `bold towns are the state's biggest. Source data: data/states/${esc(s.key)}/.</p>`;
+  el("main").innerHTML = html;
+}
+
+function renderSearch(raw) {
+  const q = norm(raw.trim());
+  const groups = [];
+  let total = 0;
+  for (const s of STATES) {
+    const hits = [];
+    for (const c of s.cities) {
+      if (norm(c.n).includes(q)) hits.push({ k: "City", n: c.n, w: "" });
+      for (const k of Object.keys(KIND_LABEL)) (c[k] || []).forEach(v => { if (norm(v).includes(q)) hits.push({ k: KIND_LABEL[k], n: v, w: c.n }); });
+    }
+    s.towns.forEach(t => { if (norm(t.n).includes(q) && !s.cities.some(c => c.n === t.n)) hits.push({ k: "Town", n: t.n, w: t.t.filter(g => g !== "big").join(", ") }); });
+    s.streets.forEach(v => { if (norm(v).includes(q)) hits.push({ k: "Generic street", n: v, w: "any town" }); });
+    if (hits.length) { groups.push([s, hits]); total += hits.length; }
+  }
+  let html = `<div class="results"><p class="meta">${total} match${total === 1 ? "" : "es"} for “${esc(raw.trim())}”</p>`;
+  if (!total) html += `<p class="empty">Nothing in any state matches. Try part of a name, like “union” or “harbor”.</p>`;
+  for (const [s, hits] of groups) {
+    html += `<h3>${esc(s.name)} <span class="n">${hits.length}</span></h3>` + hits.slice(0, 200).map(h =>
+      `<div class="hit"><span class="k">${h.k}</span><span>${highlight(h.n, q)}` +
+      (h.w ? ` <span class="where">· ${esc(h.w)}</span>` : "") + `</span></div>`).join("") +
+      (hits.length > 200 ? `<p class="meta">…and ${hits.length - 200} more</p>` : "");
+  }
+  el("main").innerHTML = html + `</div>`;
+}
+
+function render() {
+  renderNav();
+  const q = el("q").value;
+  if (q.trim().length >= 2) renderSearch(q); else renderState();
+}
+
+el("states").addEventListener("click", e => {
+  const b = e.target.closest("button[data-key]");
+  if (!b) return;
+  cur = b.dataset.key; tagFilter = null; el("q").value = "";
+  store("tsa-state", cur);
+  history.replaceState(null, "", "#" + cur);
+  render();
+  window.scrollTo({ top: 0 });
+});
+el("main").addEventListener("click", e => {
+  const t = e.target.closest("button[data-tab]");
+  if (t) { tab = t.dataset.tab; store("tsa-tab", tab); render(); return; }
+  const f = e.target.closest("button[data-tag]");
+  if (f) { tagFilter = f.dataset.tag || null; render(); }
+});
+el("q").addEventListener("input", render);
+
+const fromHash = location.hash.slice(1), saved = load("tsa-state"), savedTab = load("tsa-tab");
+if (STATES.some(s => s.key === fromHash)) cur = fromHash; else if (STATES.some(s => s.key === saved)) cur = saved;
+if (["cities", "towns", "generic"].includes(savedTab)) tab = savedTab;
+const all = STATES.reduce((a, s) => [a[0] + s.towns.length, a[1] + streetCount(s)], [0, 0]);
+el("summary").textContent = `${STATES.length} states · ${all[0].toLocaleString("en-US")} towns · ${all[1].toLocaleString("en-US")} real city streets, from the square US State Names mods`;
+render();
+</script>

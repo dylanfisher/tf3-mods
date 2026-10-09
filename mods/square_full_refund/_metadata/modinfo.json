@@ -1,0 +1,16 @@
+{
+    "name": "Full Refund Window",
+    "summary": "Bulldoze within the refund window and get every cent back.",
+    "description": "Bulldoze within the refund window and get every cent back. Roads, tracks, stations and depots built in the last 60 s (or up to 10 min) are refunded in full instead of 75 %.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

@@ -1,0 +1,16 @@
+{
+    "name": "Industry Flows",
+    "summary": "Show the cargo-flow arrows of every industry of one type at once.",
+    "description": "Shows the cargo-flow arrows of every industry of the types you pick, all at once. Open it with the Flows button in the top-left button ridge.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

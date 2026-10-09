@@ -1,0 +1,18 @@
+{
+    "modId": "square_roundabouts_lanes_probe",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "params": [
+        {
+            "key": "sqrb_lanes_write",
+            "name": "Write experiment",
+            "tooltip": "DEV ONLY. Off: read and log only.\nOn: after placing a roundabout, remove the ring->arm\nconnections of one ring lane at one ring node and\nlog whether the change sticks (max 4 per session).",
+            "uiType": "Button",
+            "values": ["Off", "On"],
+            "defaultIndex": 0
+        }
+    ]
+}

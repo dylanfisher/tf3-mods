@@ -1,0 +1,10 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_line_revert_probe is a developer tool for the planned square_line_revert mod. Never publish it
+to mod.io (Mod Hub > My Mods would offer it because `make link` puts it in the staging area).
+
+It mounts read-only test buttons in the line manager and the line window and logs [LRPROBE] lines to
+stdout.txt. It never changes a line. How to run it: plans/square_line_revert/PROBE.md.
+
+When done testing: disable it in the game's mod list, or `rm` its symlink from staging_area
+(make unlink removes every mod's link).

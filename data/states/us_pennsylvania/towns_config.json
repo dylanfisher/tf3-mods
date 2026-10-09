@@ -1,0 +1,244 @@
+{
+ "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+ "fips": "42",
+ "postal": "PA",
+ "gazetteerYear": 2023,
+ "popestYear": 2023,
+ "bigCount": 15,
+ "incMinPop": {
+  "southeast": 4000,
+  "southwest": 3500,
+  "central": 2000,
+  "northeast": 1500,
+  "north": 300,
+  "northwest": 300
+ },
+ "cdpMinPop": {
+  "southeast": 8000,
+  "southwest": 4000,
+  "central": 3000,
+  "northeast": 2000,
+  "north": 500,
+  "northwest": 500
+ },
+ "regions": [
+  {
+   "tag": "northwest",
+   "polygon": [
+    [
+     42.3,
+     -80.53
+    ],
+    [
+     42.3,
+     -79.75
+    ],
+    [
+     41.1,
+     -79.75
+    ],
+    [
+     41.1,
+     -80.53
+    ]
+   ]
+  },
+  {
+   "tag": "north",
+   "polygon": [
+    [
+     42.01,
+     -79.75
+    ],
+    [
+     42.01,
+     -76.05
+    ],
+    [
+     41.3,
+     -76.05
+    ],
+    [
+     41.3,
+     -77.6
+    ],
+    [
+     41.0,
+     -78.3
+    ],
+    [
+     41.0,
+     -79.75
+    ]
+   ]
+  },
+  {
+   "tag": "northeast",
+   "polygon": [
+    [
+     42.01,
+     -76.05
+    ],
+    [
+     42.01,
+     -74.6
+    ],
+    [
+     40.85,
+     -74.6
+    ],
+    [
+     40.85,
+     -75.6
+    ],
+    [
+     40.55,
+     -75.9
+    ],
+    [
+     40.55,
+     -76.5
+    ],
+    [
+     41.3,
+     -76.5
+    ],
+    [
+     41.3,
+     -76.05
+    ]
+   ]
+  },
+  {
+   "tag": "southwest",
+   "polygon": [
+    [
+     41.1,
+     -80.53
+    ],
+    [
+     41.1,
+     -79.75
+    ],
+    [
+     41.0,
+     -79.75
+    ],
+    [
+     40.9,
+     -79.5
+    ],
+    [
+     40.9,
+     -78.75
+    ],
+    [
+     39.7,
+     -78.75
+    ],
+    [
+     39.7,
+     -80.53
+    ]
+   ]
+  },
+  {
+   "tag": "southeast",
+   "polygon": [
+    [
+     39.7,
+     -76.6
+    ],
+    [
+     40.55,
+     -76.6
+    ],
+    [
+     40.55,
+     -75.9
+    ],
+    [
+     40.85,
+     -75.6
+    ],
+    [
+     40.85,
+     -74.6
+    ],
+    [
+     39.7,
+     -74.6
+    ]
+   ]
+  }
+ ],
+ "defaultTag": "central",
+ "keepTown": [
+  "Strasburg",
+  "New Hope",
+  "Milford",
+  "Delaware Water Gap",
+  "Hawley",
+  "Ligonier",
+  "Ohiopyle",
+  "Confluence",
+  "Eagles Mere"
+ ],
+ "keepCdp": [
+  "Bird-in-Hand",
+  "Intercourse",
+  "Pocono Pines",
+  "Chadds Ford",
+  "Paradise"
+ ],
+ "excludeCdp": [
+  "Arlington Heights",
+  "Avonia",
+  "Beech Mountain Lakes",
+  "Conneaut Lakeshore",
+  "East Berwick",
+  "East York",
+  "Emerald Lakes",
+  "Foster Brook",
+  "Grantley",
+  "Greens Landing",
+  "Hasson Heights",
+  "Hemlock Farms",
+  "Indian Mountain Lake",
+  "Kenmar",
+  "Lake Latonka",
+  "Lake Wynonah",
+  "Lawnton",
+  "Lower Allen",
+  "Marianne",
+  "North Warren",
+  "Northwest Harborcreek",
+  "Oklahoma",
+  "Park Forest Village",
+  "Parkville",
+  "Penn Estates",
+  "Penn State Erie (Behrend)",
+  "Pine Ridge",
+  "Plymptonville",
+  "Pocono Woodland Lakes",
+  "Progress",
+  "Pymatuning Central",
+  "Reynolds Heights",
+  "Rutherford",
+  "Sandy",
+  "Saw Creek",
+  "Schlusser",
+  "Shiloh",
+  "Sierra View",
+  "Skyline View",
+  "Spry",
+  "Starbrick",
+  "Sun Valley",
+  "The Hideout",
+  "Towamensing Trails",
+  "Treasure Lake",
+  "Valley Green",
+  "Woodland Heights"
+ ],
+ "rename": {}
+}

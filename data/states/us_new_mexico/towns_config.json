@@ -1,0 +1,164 @@
+{
+  "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+  "fips": "35",
+  "postal": "NM",
+  "gazetteerYear": 2023,
+  "popestYear": 2023,
+  "bigCount": 15,
+  "cdpMinPop": 300,
+  "_regions": "First match wins. rio = the Rio Grande corridor (Espanola valley box, then Cochiti to San Antonio incl. the Albuquerque metro, East Mountains and Estancia valley); high = northern mountains (Sangre de Cristo, Jemez, Santa Fe, Taos, Chama, Raton) and a second box for the Sacramento Mountains (Ruidoso, Cloudcroft); west = Four Corners, Navajo/Zuni country, Grants/Gallup and Catron County; plains = the eastern plains (Clovis, Tucumcari, Clayton, Hobbs). Everything else (Chihuahuan desert: Las Cruces, Alamogordo, Roswell, Carlsbad, Deming, Silver City) is desert.",
+  "regions": [
+    {
+      "tag": "rio",
+      "polygon": [
+        [36.2, -106.2],
+        [36.2, -105.96],
+        [35.85, -105.96],
+        [35.85, -106.2]
+      ]
+    },
+    {
+      "tag": "rio",
+      "polygon": [
+        [33.85, -107.15],
+        [33.85, -106.7],
+        [34.4, -106.5],
+        [34.4, -105.95],
+        [35.25, -105.95],
+        [35.4, -106.25],
+        [35.75, -106.25],
+        [35.75, -106.85],
+        [35.1, -107.1],
+        [34.3, -107.1]
+      ]
+    },
+    {
+      "tag": "high",
+      "polygon": [
+        [37.0, -106.85],
+        [37.0, -104.3],
+        [36.75, -104.3],
+        [36.3, -104.85],
+        [35.45, -105.05],
+        [35.3, -105.4],
+        [35.35, -105.95],
+        [35.75, -106.25],
+        [35.75, -106.85]
+      ]
+    },
+    {
+      "tag": "high",
+      "polygon": [
+        [33.62, -105.85],
+        [33.62, -105.3],
+        [32.55, -105.3],
+        [32.55, -105.85]
+      ]
+    },
+    {
+      "tag": "west",
+      "polygon": [
+        [37.0, -109.05],
+        [37.0, -106.85],
+        [35.75, -106.85],
+        [35.1, -107.1],
+        [33.85, -107.15],
+        [33.2, -107.7],
+        [33.2, -109.05]
+      ]
+    },
+    {
+      "tag": "plains",
+      "polygon": [
+        [37.0, -105.7],
+        [37.0, -103.0],
+        [32.0, -103.0],
+        [32.0, -103.7],
+        [33.9, -104.0],
+        [34.2, -104.0],
+        [34.2, -105.7]
+      ]
+    }
+  ],
+  "defaultTag": "desert",
+  "rules": [],
+  "setSide": {
+    "Madrid": "high",
+    "Los Cerrillos": "high"
+  },
+  "tagLists": {},
+  "removeTags": {},
+  "_rename": "Use the form people actually say: 'Eldorado at Santa Fe' CDP is known as Eldorado; 'Pueblo of Sandia Village' as Sandia Pueblo.",
+  "rename": {
+    "Eldorado at Santa Fe": "Eldorado",
+    "Pueblo of Sandia Village": "Sandia Pueblo"
+  },
+  "exclude": [],
+  "_cdp": "CDPs are kept when pop2010 >= cdpMinPop, not excluded, without a hyphen and without a drop word; keepCdp overrides all of that.",
+  "dropCdpWords": [
+    "North",
+    "South",
+    "East",
+    "West",
+    "Northwest",
+    "Southeast",
+    "Upper",
+    "Lower",
+    "Heights"
+  ],
+  "_excludeCdp": "Military CDPs (AFB, White Sands Missile Range housing), an agribusiness HQ (Napi Headquarters), subdivision-style names (Acres, Knolls, Meadows, Farm, Park), generic words and names of bigger places elsewhere (San Jose, Monterey Park, University Park).",
+  "excludeCdp": [
+    "Holloman AFB",
+    "Cannon AFB",
+    "Kirtland AFB",
+    "White Sands",
+    "Napi Headquarters",
+    "Livingston Wheeler",
+    "Keeler Farm",
+    "Boles Acres",
+    "Lee Acres",
+    "Las Maravillas",
+    "Monterey Park",
+    "Highland Meadows",
+    "Sandia Knolls",
+    "Ponderosa Pine",
+    "Indian Hills",
+    "Pajarito Mesa",
+    "Happy Valley",
+    "Sunshine",
+    "San Jose",
+    "Midway",
+    "Morningside",
+    "University Park",
+    "Isleta Village Proper",
+    "Peak Place"
+  ],
+  "_keepCdp": "Well-known places below the floor or hidden by the drop-word/hyphen filter (South Valley, North Valley, Yah-ta-hey, Upper Fruitland), Amtrak's Lamy, Turquoise Trail and high-road villages, and 2020 CDPs with no 2010 count (Ojo Caliente, Isleta, Fruitland, Gamerco, Tortugas).",
+  "keepCdp": [
+    "South Valley",
+    "North Valley",
+    "Yah-ta-hey",
+    "Upper Fruitland",
+    "Lamy",
+    "Madrid",
+    "Galisteo",
+    "Abiquiu",
+    "Alcalde",
+    "Costilla",
+    "Gallina",
+    "Navajo Dam",
+    "Quemado",
+    "Pie Town",
+    "Pinos Altos",
+    "Hillsboro",
+    "Glenwood",
+    "Cliff",
+    "Animas",
+    "Ojo Caliente",
+    "Isleta",
+    "Fruitland",
+    "Gamerco",
+    "Tortugas"
+  ],
+  "_setSide": "Turquoise Trail villages (Santa Fe County) fall in the gap between the rio and high polygons."
+}

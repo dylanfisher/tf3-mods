@@ -1,0 +1,40 @@
+<p>See how much every industry produces, how much your lines pick up, and how much cargo flows in and out of every warehouse, at a glance, straight from the map. No more clicking into each industry, warehouse and line window to check the numbers, so you can size and set up your lines much faster.</p>
+<p>The mod adds two pills under the output stock of every industry's in-world label, and the incoming and outgoing cargo per year under every warehouse's stock.</p>
+<h4>Features</h4>
+<ul>
+<li><strong>Production</strong> (industry icon): the industry window's headline number, "Current Production" where the window shows it, otherwise the production capacity (raw producers such as mines and fishing grounds). The same game function as the industry window computes it, so it always matches, boosts included. The pill is green while the output is producing and dark while it is idle.</li>
+<li><strong>Line pickup rate</strong> (Line Manager icon): the summed "Rate" (from the line window) of all your lines that load this industry's output at a station in reach. Compare it with the production number to see whether your lines can carry everything away. It only appears where such a line exists.</li>
+<li>One pill per output cargo, with the cargo icon when an industry has several outputs.</li>
+<li><strong>Warehouse rates</strong>: under each warehouse's stock, one row of incoming pills (box with a down arrow, blue) and one row of outgoing pills (box with an up arrow, red), each with the cargo icon and the count per year. These are the same numbers as the warehouse window's Incoming and Outgoing statistics, split by cargo. Only cargos that moved in the last year are shown, busiest first, up to six.</li>
+</ul>
+<h4>Settings</h4>
+<ul>
+<li><strong>Show production</strong> (default On): the production pill.</li>
+<li><strong>Show line pickup rate</strong> (default On): the pickup pill. When it's off, the mod doesn't read your lines at all.</li>
+<li><strong>Show warehouse rates</strong> (default On): the incoming and outgoing pills on warehouses. When it's off, warehouse labels stay vanilla.</li>
+</ul>
+<p>Settings can be changed whenever you start or load a game.</p>
+<h4>Notes</h4>
+<ul>
+<li>Lines that carry several cargos count their full rate for each of them.</li>
+<li>Production and warehouse rates refresh every two seconds, the pickup rate about every 15 seconds while the game runs. All pills hide when zoomed far out, like the stock numbers.</li>
+<li>Reads the game state only: it changes nothing in the simulation, stores nothing in the savegame, and can be added to or removed from existing saves.</li>
+<li>Industries and warehouses from other mods that already set their own label script are left untouched.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 3 (2026-10-07)</h4>
+<ul>
+<li>New: warehouse labels show the incoming and outgoing cargo per year, one pill pair per cargo.</li>
+<li>New: setting "Show warehouse rates" (default On) to switch the warehouse pills off.</li>
+<li>Fixed: changing the settings now takes effect when the game is loaded.</li>
+</ul>
+<h4>Revision 2 (2026-10-07)</h4>
+<ul>
+<li>New: line pickup rate pill under the production number, showing the combined Rate of the lines that pick up the industry's output, including at fishing grounds and other industries with built-in stations.</li>
+<li>New: both pills can be switched off in the mod settings ("Show production", "Show line pickup rate").</li>
+</ul>
+<h4>Revision 1 (2026-10-07)</h4>
+<ul>
+<li>First release: production pill on every industry label, green while producing and dark while idle.</li>
+</ul>

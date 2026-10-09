@@ -1,0 +1,62 @@
+{
+  "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+  "fips": "53",
+  "postal": "WA",
+  "gazetteerYear": 2023,
+  "popestYear": 2023,
+  "bigCount": 15,
+  "cdpMinPop": 300,
+  "_crest": "Cascade crest as [lat, lon] points; west of it = wet side ('west'), east = dry side ('east').",
+  "crest": [
+    [49.0, -121.0],
+    [48.5, -121.05],
+    [48.0, -121.1],
+    [47.4, -121.42],
+    [46.9, -121.52],
+    [46.6, -121.4],
+    [46.2, -121.5],
+    [45.6, -121.55]
+  ],
+  "rules": [
+    { "tag": "coast", "lonLt": -123.35 },
+    { "tag": "north", "side": "east", "latGe": 48.1 }
+  ],
+  "setSide": {},
+  "tagLists": {
+    "islands": [
+      "Friday Harbor", "Roche Harbor", "Oak Harbor", "Coupeville", "Langley", "Freeland", "Clinton", "Camano",
+      "Vashon", "Bainbridge Island", "Anderson Island", "Fox Island", "Raft Island", "Herron Island", "Hat Island",
+      "Ketron Island", "Marrowstone", "Puget Island", "Anacortes"
+    ],
+    "coast": [
+      "Friday Harbor", "Roche Harbor", "Oak Harbor", "Coupeville", "Langley", "Freeland", "Clinton", "Camano",
+      "Anacortes", "Port Townsend", "Sequim", "Port Ludlow", "Quilcene", "Brinnon", "Carlsborg", "Blyn", "Jamestown",
+      "Point Roberts", "Birch Bay", "Blaine", "La Conner", "Bay View", "Edison", "Hoodsport", "Seabeck", "Marrowstone"
+    ],
+    "mountain": [
+      "Leavenworth", "Cle Elum", "South Cle Elum", "Roslyn", "Ronald", "Easton", "Snoqualmie Pass", "Skykomish",
+      "Index", "Gold Bar", "Baring", "North Bend", "Darrington", "Concrete", "Marblemount", "Rockport", "Glacier",
+      "Maple Falls", "Packwood", "Mineral", "Ashford", "Elbe", "Greenwater", "Carbonado", "Wilkeson", "Naches",
+      "Cliffdell", "Trout Lake", "Cougar", "Winthrop", "Twisp", "Chelan", "Manson", "Entiat", "Republic", "Northport",
+      "Ione", "Metaline", "Metaline Falls"
+    ]
+  },
+  "removeTags": {},
+  "rename": {},
+  "exclude": [],
+  "_cdp": "CDPs are kept when pop2010 >= cdpMinPop, not excluded, without a hyphen and without a drop word; keepCdp overrides all of that.",
+  "dropCdpWords": ["North", "South", "East", "West", "Northwest", "Upper", "Lower", "Heights"],
+  "excludeCdp": [
+    "Fort Lewis", "McChord AFB", "Fairchild AFB", "Bangor Base", "Whidbey Island Station",
+    "Nisqually Indian Community", "Port Gamble Tribal Community", "Nespelem Community", "Town and Country",
+    "Country Homes", "Wilderness Rim", "Summit", "Summit View", "Summitview", "Central Park", "Home", "Valley",
+    "River Road", "Larch Way", "Beacon Hill"
+  ],
+  "keepCdp": [
+    "Glacier", "Marblemount", "Ashford", "Elbe", "Greenwater", "Rockport", "Mineral", "Moclips", "Sekiu", "Vantage",
+    "Methow", "Curlew", "Orient", "Loomis", "Roche Harbor", "Camano", "Cougar", "Bow", "Browns Point", "Maryhill",
+    "Bickleton", "Cliffdell", "Conway", "Edison", "Kendall", "Ocean City", "Pacific Beach", "Tokeland", "Queets",
+    "Amanda Park", "Humptulips", "Acme", "Thorp", "Baring", "Porter", "Steptoe", "Wallula", "Oso", "La Grande",
+    "Blyn", "Hat Island", "Herron Island", "Ketron Island"
+  ]
+}

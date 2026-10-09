@@ -1,0 +1,4 @@
+/* Overpass (SIL OFL 1.1, see fonts/OFL.txt), latin subset, vendored so renders work offline. */
+@font-face { font-family: 'Overpass'; font-weight: 600; src: url(fonts/overpass-600.woff2) format('woff2'); }
+@font-face { font-family: 'Overpass'; font-weight: 800; src: url(fonts/overpass-800.woff2) format('woff2'); }
+@font-face { font-family: 'Overpass Mono'; font-weight: 700; src: url(fonts/overpass-mono-700.woff2) format('woff2'); }

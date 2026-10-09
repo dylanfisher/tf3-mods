@@ -1,0 +1,232 @@
+{
+ "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+ "fips": "48",
+ "postal": "TX",
+ "gazetteerYear": 2023,
+ "popestYear": 2023,
+ "bigCount": 15,
+ "cdpMinPop": 1000000000,
+ "incMinPop": {
+  "east": 6500,
+  "west": 800,
+  "gulf": 1500,
+  "panhandle": 400,
+  "valley": 2000
+ },
+ "regions": [
+  {
+   "tag": "valley",
+   "polygon": [
+    [
+     26.8,
+     -99.3
+    ],
+    [
+     26.8,
+     -96.8
+    ],
+    [
+     25.7,
+     -96.8
+    ],
+    [
+     25.7,
+     -99.3
+    ]
+   ]
+  },
+  {
+   "tag": "gulf",
+   "polygon": [
+    [
+     30.25,
+     -93.4
+    ],
+    [
+     30.25,
+     -94.3
+    ],
+    [
+     29.8,
+     -94.95
+    ],
+    [
+     29.6,
+     -95.25
+    ],
+    [
+     29.25,
+     -95.8
+    ],
+    [
+     28.95,
+     -96.35
+    ],
+    [
+     28.75,
+     -96.85
+    ],
+    [
+     28.2,
+     -97.55
+    ],
+    [
+     27.7,
+     -97.95
+    ],
+    [
+     27.0,
+     -97.95
+    ],
+    [
+     26.8,
+     -97.95
+    ],
+    [
+     26.8,
+     -96.8
+    ],
+    [
+     28.0,
+     -95.8
+    ],
+    [
+     29.0,
+     -94.0
+    ],
+    [
+     29.5,
+     -93.4
+    ]
+   ]
+  },
+  {
+   "tag": "panhandle",
+   "polygon": [
+    [
+     36.6,
+     -103.1
+    ],
+    [
+     36.6,
+     -99.95
+    ],
+    [
+     34.6,
+     -99.95
+    ],
+    [
+     33.45,
+     -100.4
+    ],
+    [
+     33.45,
+     -103.1
+    ]
+   ]
+  },
+  {
+   "tag": "west",
+   "polygon": [
+    [
+     34.6,
+     -99.95
+    ],
+    [
+     34.4,
+     -99.6
+    ],
+    [
+     33.0,
+     -99.2
+    ],
+    [
+     31.5,
+     -98.9
+    ],
+    [
+     30.3,
+     -98.6
+    ],
+    [
+     29.6,
+     -98.75
+    ],
+    [
+     28.8,
+     -98.6
+    ],
+    [
+     27.8,
+     -98.15
+    ],
+    [
+     26.8,
+     -98.0
+    ],
+    [
+     26.8,
+     -99.3
+    ],
+    [
+     25.7,
+     -99.3
+    ],
+    [
+     25.7,
+     -107.0
+    ],
+    [
+     33.45,
+     -107.0
+    ],
+    [
+     33.45,
+     -100.4
+    ]
+   ]
+  }
+ ],
+ "defaultTag": "east",
+ "rename": {
+  "Town of Pecos": "Pecos"
+ },
+ "keepTown": [
+  "Jefferson",
+  "Salado",
+  "Wimberley",
+  "Blanco",
+  "Johnson City",
+  "Llano",
+  "Shiner",
+  "Columbus",
+  "La Grange",
+  "Schulenburg",
+  "Round Top",
+  "Glen Rose",
+  "Hico",
+  "San Augustine",
+  "Smithville",
+  "Bellville",
+  "Surfside Beach"
+ ],
+ "keepCdp": [
+  "The Woodlands",
+  "Spring",
+  "Fort Davis",
+  "Terlingua",
+  "Study Butte",
+  "Sanderson",
+  "Comfort",
+  "Utopia",
+  "Canyon Lake",
+  "Port O'Connor",
+  "Matagorda",
+  "Bolivar Peninsula",
+  "Port Mansfield"
+ ],
+ "_regions": "First match wins. valley = the Lower Rio Grande Valley (Cameron, Hidalgo, Starr and Willacy counties: a box south of 26.8 and east of -99.3); gulf = a coastal band about 50-70 km deep from Orange and Beaumont-Port Arthur past the Houston Ship Channel and Galveston Bay suburbs to Corpus Christi and Kingsville (inner Houston, Victoria and Alice stay out); panhandle = the Panhandle and the South Plains north of 33.45 and west of the 100th meridian (Amarillo, Lubbock); west = west of a hand-drawn dry line (about -99.9 at the Red River, -98.9 near Brownwood, -98.6 at the Hill Country edge, west of San Antonio, -98.0 at the valley): Trans-Pecos, Permian Basin, Edwards Plateau, the Big Country and the border country (El Paso, Midland, Abilene, San Angelo, Laredo, Del Rio); east = the rest (default: DFW, Houston, Austin, San Antonio, Piney Woods, Central Texas).",
+ "_incMinPop": "Texas has 1,225 incorporated places, far more than the 400-550 target, so incorporated places get a population floor per region (2023 estimate): east 6500 (the dense metros), west 800, gulf 1500, panhandle 400, valley 2000, which keeps every climate pool large enough. keepTown keeps well-known small towns below the floor (Hill Country, Fayette County, East Texas historic towns, Surfside Beach).",
+ "_cdp": "CDPs only by hand (cdpMinPop is effectively off): The Woodlands and Spring (large, well-known Houston-area communities), Big Bend and Trans-Pecos places (Fort Davis, Terlingua, Study Butte, Sanderson), Hill Country (Comfort, Utopia, Canyon Lake) and coast (Port O'Connor, Matagorda, Bolivar Peninsula, Port Mansfield).",
+ "_rename": "The Census name of the Reeves County seat is 'Town of Pecos city'; the city is known and signed as Pecos."
+}

@@ -1,0 +1,194 @@
+-- Real names per city, used by the rename script for NEW player-built stops and stations in a town whose
+-- current name matches the key (or an alias). Only well-known, real names; anything less certain goes to
+-- plans/square_state_names/data_review.md ("## Florida") instead of here.
+--   streets        Road Stops (edge-object stops), in this order (first unused wins). Checked on OpenStreetMap
+--                  (Overpass, 2026-10-08): a highway way with that name (directional prefix/suffix dropped) inside
+--                  the city's admin boundary. Three ship on a near-miss where OSM spells out "Saint" or the
+--                  name equals a direction word (St. George Street, St. Johns Avenue, West Avenue).
+--   neighborhoods  bus/tram stations. Mostly OSM place/boundary hits inside the city (Miami, Tampa, Orlando,
+--                  Jacksonville); names that are also Florida town names are left out (Edgewater, Springfield,
+--                  Callahan).
+--   rail           passenger train stations, WITHOUT a trailing "Station". Series policy (D5): mainline and
+--                  commuter first, then light rail. Brightline, Amtrak and most Tri-Rail/SunRail stops are named
+--                  after their town (the engine default, no entry). Sources: SunRail station list (sunrail.com),
+--                  Miami-Dade Metrorail station list (miamidade.gov), Tri-Rail station list. Slash names
+--                  ("Orlando Health / Amtrak") and sponsor names ("UHealth | Jackson", "AdventHealth") stay out.
+--   airport        airports/airfields: FAA names in their short common form
+--   harbor         ports and ferry terminals by their own name
+-- Station names are unique map-wide; street names are unique per town.
+return {
+	["Miami"] = {
+		streets = {
+			"Flagler Street", "Biscayne Boulevard", "Brickell Avenue", "Miami Avenue", "Bayshore Drive", "Main Highway",
+			"Grand Avenue", "Douglas Road", "Dixie Highway", "Brickell Bay Drive", "Brickell Key Drive",
+			"Rickenbacker Causeway", "MacArthur Causeway", "Port Boulevard", "Tigertail Avenue", "Flagami Boulevard",
+			"8th Street", "36th Street", "62nd Street", "79th Street", "2nd Avenue", "12th Avenue", "17th Avenue",
+			"22nd Avenue", "27th Avenue",
+		},
+		neighborhoods = {
+			"Brickell", "Wynwood", "Little Havana", "Little Haiti", "Coconut Grove", "Overtown", "Allapattah",
+			"Liberty City", "Design District", "Midtown", "Shenandoah", "Buena Vista", "Little River", "Flagami",
+			"Upper Eastside", "Morningside", "Silver Bluff",
+		},
+		rail = {
+			"Government Center", "Vizcaya", "Culmer", "Santa Clara", "Earlington Heights", "Miami Airport",
+		},
+		airport = { "Miami International Airport" },
+		harbor = { "PortMiami" },
+	},
+	["Miami Beach"] = {
+		streets = {
+			"Collins Avenue", "Ocean Drive", "Washington Avenue", "Lincoln Road", "Alton Road", "Meridian Avenue",
+			"Espanola Way", "Dade Boulevard", "Indian Creek Drive", "Pennsylvania Avenue", "Euclid Avenue",
+			"Drexel Avenue", "Michigan Avenue", "Jefferson Avenue", "Sheridan Avenue", "Prairie Avenue", "Royal Palm Avenue",
+			"Pine Tree Drive", "La Gorce Drive", "Bay Road", "Purdy Avenue", "West Avenue", "Harding Avenue",
+			"Abbott Avenue", "Normandy Drive", "5th Street", "17th Street", "41st Street", "71st Street",
+		},
+	},
+	["Orlando"] = {
+		streets = {
+			"Orange Avenue", "Colonial Drive", "Central Boulevard", "Pine Street", "Robinson Street",
+			"Washington Street", "Amelia Street", "Rosalind Avenue", "Magnolia Avenue", "Garland Avenue",
+			"Livingston Street", "Anderson Street", "Gore Street", "Kaley Avenue", "Michigan Street", "Mills Avenue",
+			"Hughey Avenue", "Princeton Street", "Edgewater Drive", "Corrine Drive", "Bumby Avenue", "Primrose Drive",
+			"Summerlin Avenue", "Curry Ford Road", "Conway Road", "Lake Underhill Road", "Semoran Boulevard",
+			"Kirkman Road", "John Young Parkway", "Orange Blossom Trail", "Narcoossee Road",
+		},
+		neighborhoods = {
+			"Thornton Park", "Lake Eola Heights", "College Park", "Baldwin Park", "Delaney Park", "Audubon Park",
+			"Parramore", "Mills 50", "Lake Nona", "MetroWest", "Lake Cherokee", "Dover Shores", "Rosemont", "Lake Davis",
+			"Wadeview Park",
+		},
+		rail = { "Church Street", "Sand Lake Road" },
+		airport = { "Orlando International Airport", "Orlando Executive Airport" },
+	},
+	["Tampa"] = {
+		streets = {
+			"Franklin Street", "Florida Avenue", "Tampa Street", "Ashley Drive", "Kennedy Boulevard", "Bayshore Boulevard",
+			"Channelside Drive", "Zack Street", "Twiggs Street", "Cass Street", "7th Avenue", "22nd Street",
+			"Nebraska Avenue", "Columbus Drive", "Howard Avenue", "Armenia Avenue", "Swann Avenue", "Platt Street",
+			"Davis Boulevard", "Dale Mabry Highway", "Westshore Boulevard", "Gandy Boulevard", "Hillsborough Avenue",
+			"Sligh Avenue", "Waters Avenue", "Busch Boulevard", "Fowler Avenue", "Fletcher Avenue",
+			"Bruce B. Downs Boulevard",
+		},
+		neighborhoods = {
+			"Ybor City", "Hyde Park", "Seminole Heights", "Tampa Heights", "Davis Islands", "Harbour Island",
+			"Channel District", "Palma Ceia", "West Tampa", "Westshore", "Ballast Point", "Palmetto Beach",
+			"Sulphur Springs", "Riverside Heights", "New Tampa",
+		},
+		rail = { "Tampa Union" },
+		airport = { "Tampa International Airport", "Peter O. Knight Airport" },
+		harbor = { "Port Tampa Bay" },
+	},
+	["St. Petersburg"] = {
+		aliases = { "Saint Petersburg", "St Petersburg", "St. Pete" },
+		streets = {
+			"Central Avenue", "Beach Drive", "Bayshore Drive", "1st Avenue", "5th Avenue", "9th Avenue", "4th Street",
+			"16th Street", "34th Street", "49th Street", "66th Street", "22nd Avenue", "38th Avenue", "54th Avenue",
+			"62nd Avenue", "Mirror Lake Drive", "Roser Park Drive", "Burlington Avenue", "Snell Isle Boulevard",
+			"Coffee Pot Boulevard", "Park Street", "Pasadena Avenue", "Sunset Drive", "Tyrone Boulevard",
+			"Gandy Boulevard",
+		},
+		airport = { "Albert Whitted Airport" },
+	},
+	["Jacksonville"] = {
+		streets = {
+			"Bay Street", "Forsyth Street", "Adams Street", "Main Street", "Laura Street", "Hogan Street",
+			"Riverside Avenue", "Park Street", "Herschel Street", "King Street", "St. Johns Avenue", "Edgewood Avenue",
+			"Hendricks Avenue", "Kings Avenue", "Prudential Drive", "San Jose Boulevard", "Atlantic Boulevard",
+			"Beach Boulevard", "Philips Highway", "University Boulevard", "Baymeadows Road", "Southside Boulevard",
+			"Roosevelt Boulevard", "Blanding Boulevard", "Normandy Boulevard", "Beaver Street", "Union Street",
+			"Merrill Road", "Heckscher Drive", "Lem Turner Road",
+		},
+		neighborhoods = {
+			"Riverside", "Avondale", "San Marco", "Ortega", "LaVilla", "Brooklyn", "Murray Hill", "Arlington",
+			"Mandarin", "San Jose", "Lakewood", "Brentwood", "Panama Park", "Oceanway", "Venetia", "Baymeadows",
+		},
+		airport = { "Jacksonville International Airport", "Cecil Airport" },
+		harbor = { "Mayport" },
+	},
+	["Tallahassee"] = {
+		streets = {
+			"Monroe Street", "Adams Street", "Duval Street", "Calhoun Street", "Gadsden Street", "Jefferson Street",
+			"College Avenue", "Park Avenue", "Call Street", "Pensacola Street", "Lafayette Street", "Gaines Street",
+			"Tennessee Street", "Tharpe Street", "Ocala Road", "Lake Bradford Road", "Orange Avenue", "Paul Russell Road",
+			"Apalachee Parkway", "Blair Stone Road", "Capital Circle", "Magnolia Drive", "Meridian Road",
+			"Thomasville Road", "Centerville Road", "Miccosukee Road", "Mahan Drive", "Kerry Forest Parkway",
+		},
+		airport = { "Tallahassee International Airport" },
+	},
+	["Fort Lauderdale"] = {
+		aliases = { "Ft. Lauderdale", "Ft Lauderdale" },
+		streets = {
+			"Las Olas Boulevard", "Andrews Avenue", "Broward Boulevard", "Himmarshee Street", "3rd Avenue",
+			"Federal Highway", "Sunrise Boulevard", "Oakland Park Boulevard", "Commercial Boulevard", "Cypress Creek Road",
+			"17th Street", "Davie Boulevard", "Riverland Road", "Seabreeze Boulevard", "Fort Lauderdale Beach Boulevard",
+			"Birch Road", "Breakers Avenue", "Bayview Drive", "Flagler Drive", "Victoria Park Road", "Cordova Road",
+			"Middle River Drive", "Powerline Road",
+		},
+		rail = { "Cypress Creek" },
+		airport = { "Fort Lauderdale Executive Airport" },
+		harbor = { "Port Everglades" },
+	},
+	["West Palm Beach"] = {
+		streets = {
+			"Clematis Street", "Flagler Drive", "Olive Avenue", "Dixie Highway", "Datura Street", "Evernia Street",
+			"Banyan Boulevard", "Rosemary Avenue", "Quadrille Boulevard", "Fern Street", "Gardenia Street",
+			"Hibiscus Street", "Lakeview Avenue", "Okeechobee Boulevard", "Palm Beach Lakes Boulevard", "Tamarind Avenue",
+			"Australian Avenue", "Parker Avenue", "Georgia Avenue", "Belvedere Road", "Southern Boulevard",
+			"Forest Hill Boulevard", "Military Trail", "45th Street",
+		},
+		airport = { "Palm Beach International Airport" },
+	},
+	["Key West"] = {
+		streets = {
+			"Duval Street", "Whitehead Street", "Simonton Street", "Front Street", "Greene Street", "Caroline Street",
+			"Eaton Street", "Fleming Street", "Southard Street", "Angela Street", "Petronia Street", "Olivia Street",
+			"United Street", "Truman Avenue", "Elizabeth Street", "William Street", "Margaret Street", "Grinnell Street",
+			"Catherine Street", "Duncan Street", "Reynolds Street", "White Street", "Bertha Street", "Flagler Avenue",
+			"Atlantic Boulevard", "Roosevelt Boulevard",
+		},
+		airport = { "Key West International Airport" },
+	},
+	["Pensacola"] = {
+		streets = {
+			"Palafox Street", "Garden Street", "Government Street", "Main Street", "Intendencia Street", "Romana Street",
+			"Alcaniz Street", "Baylen Street", "Spring Street", "Tarragona Street", "Jefferson Street", "Wright Street",
+			"Chase Street", "Gregory Street", "Cervantes Street", "Bayfront Parkway", "9th Avenue", "12th Avenue",
+			"Scenic Highway", "Bayou Boulevard", "Davis Highway", "Fairfield Drive", "Pace Boulevard", "Mobile Highway",
+		},
+		airport = { "Pensacola International Airport" },
+	},
+	["St. Augustine"] = {
+		aliases = { "Saint Augustine", "St Augustine" },
+		streets = {
+			"St. George Street", "King Street", "Cathedral Place", "Avenida Menendez", "Charlotte Street", "Aviles Street",
+			"Hypolita Street", "Treasury Street", "Cordova Street", "Spanish Street", "Bridge Street", "Marine Street",
+			"Orange Street", "Granada Street", "Sevilla Street", "Malaga Street", "Valencia Street", "Riberia Street",
+			"May Street", "Magnolia Avenue", "San Marco Avenue", "Ponce de Leon Boulevard", "Anastasia Boulevard",
+		},
+	},
+	["Gainesville"] = {
+		streets = {
+			"University Avenue", "Main Street", "13th Street", "2nd Avenue", "8th Avenue", "16th Avenue", "Depot Avenue",
+			"Museum Road", "Stadium Road", "Archer Road", "Williston Road", "Hawthorne Road", "Waldo Road",
+			"Newberry Road", "34th Street", "43rd Street", "39th Avenue", "53rd Avenue", "Radio Road",
+		},
+		airport = { "Gainesville Regional Airport" },
+	},
+	["Coral Gables"] = {
+		rail = { "University" },
+	},
+	["Kendall"] = {
+		rail = { "Dadeland North", "Dadeland South" },
+	},
+	["Hialeah"] = {
+		rail = { "Hialeah Market" },
+	},
+	["Hollywood"] = {
+		rail = { "Sheridan Street" },
+	},
+	["Cape Canaveral"] = {
+		harbor = { "Port Canaveral" },
+	},
+}

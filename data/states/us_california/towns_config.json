@@ -1,0 +1,464 @@
+{
+ "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+ "fips": "06",
+ "postal": "CA",
+ "gazetteerYear": 2023,
+ "popestYear": 2023,
+ "bigCount": 15,
+ "cdpMinPop": 1000000000,
+ "regions": [
+  {
+   "tag": "mountain",
+   "polygon": [
+    [
+     40.35,
+     -121.7
+    ],
+    [
+     39.6,
+     -121.2
+    ],
+    [
+     39.25,
+     -121.12
+    ],
+    [
+     38.75,
+     -120.72
+    ],
+    [
+     38.1,
+     -120.32
+    ],
+    [
+     37.5,
+     -119.92
+    ],
+    [
+     37.1,
+     -119.45
+    ],
+    [
+     36.5,
+     -118.95
+    ],
+    [
+     35.8,
+     -118.65
+    ],
+    [
+     35.5,
+     -118.5
+    ],
+    [
+     35.6,
+     -118.05
+    ],
+    [
+     36.6,
+     -118.15
+    ],
+    [
+     37.5,
+     -118.75
+    ],
+    [
+     38.3,
+     -118.9
+    ],
+    [
+     39.0,
+     -119.5
+    ],
+    [
+     40.35,
+     -119.5
+    ]
+   ]
+  },
+  {
+   "tag": "desert",
+   "polygon": [
+    [
+     38.3,
+     -118.9
+    ],
+    [
+     37.5,
+     -118.75
+    ],
+    [
+     36.6,
+     -118.15
+    ],
+    [
+     35.6,
+     -118.05
+    ],
+    [
+     35.3,
+     -118.4
+    ],
+    [
+     35.0,
+     -118.65
+    ],
+    [
+     34.85,
+     -118.9
+    ],
+    [
+     34.55,
+     -118.4
+    ],
+    [
+     34.45,
+     -117.9
+    ],
+    [
+     34.35,
+     -117.5
+    ],
+    [
+     34.35,
+     -117.2
+    ],
+    [
+     34.3,
+     -116.85
+    ],
+    [
+     34.15,
+     -116.75
+    ],
+    [
+     33.9,
+     -116.65
+    ],
+    [
+     33.5,
+     -116.45
+    ],
+    [
+     33.3,
+     -116.5
+    ],
+    [
+     32.9,
+     -116.3
+    ],
+    [
+     32.5,
+     -116.1
+    ],
+    [
+     32.5,
+     -114.0
+    ],
+    [
+     38.3,
+     -114.0
+    ]
+   ]
+  },
+  {
+   "tag": "valley",
+   "polygon": [
+    [
+     40.8,
+     -122.6
+    ],
+    [
+     40.8,
+     -121.7
+    ],
+    [
+     39.6,
+     -121.2
+    ],
+    [
+     39.25,
+     -121.12
+    ],
+    [
+     38.75,
+     -120.72
+    ],
+    [
+     38.1,
+     -120.32
+    ],
+    [
+     37.5,
+     -119.92
+    ],
+    [
+     37.1,
+     -119.45
+    ],
+    [
+     36.5,
+     -118.95
+    ],
+    [
+     35.8,
+     -118.65
+    ],
+    [
+     35.5,
+     -118.5
+    ],
+    [
+     35.0,
+     -118.6
+    ],
+    [
+     34.95,
+     -119.0
+    ],
+    [
+     35.1,
+     -119.55
+    ],
+    [
+     35.3,
+     -119.75
+    ],
+    [
+     35.9,
+     -120.2
+    ],
+    [
+     36.3,
+     -120.6
+    ],
+    [
+     37.0,
+     -121.15
+    ],
+    [
+     37.5,
+     -121.5
+    ],
+    [
+     37.85,
+     -121.6
+    ],
+    [
+     38.3,
+     -122.0
+    ],
+    [
+     39.0,
+     -122.2
+    ],
+    [
+     39.8,
+     -122.4
+    ],
+    [
+     40.3,
+     -122.6
+    ]
+   ]
+  },
+  {
+   "tag": "north",
+   "polygon": [
+    [
+     42.1,
+     -124.7
+    ],
+    [
+     42.1,
+     -119.9
+    ],
+    [
+     40.35,
+     -119.9
+    ],
+    [
+     40.35,
+     -122.0
+    ],
+    [
+     39.5,
+     -122.6
+    ],
+    [
+     38.85,
+     -122.9
+    ],
+    [
+     38.75,
+     -123.6
+    ],
+    [
+     38.75,
+     -124.7
+    ]
+   ]
+  },
+  {
+   "tag": "socal",
+   "polygon": [
+    [
+     34.5,
+     -121.0
+    ],
+    [
+     34.5,
+     -114.0
+    ],
+    [
+     32.4,
+     -114.0
+    ],
+    [
+     32.4,
+     -121.0
+    ]
+   ]
+  },
+  {
+   "tag": "central",
+   "polygon": [
+    [
+     37.1,
+     -122.6
+    ],
+    [
+     37.1,
+     -120.0
+    ],
+    [
+     34.5,
+     -120.0
+    ],
+    [
+     34.5,
+     -121.2
+    ]
+   ]
+  }
+ ],
+ "defaultTag": "bay",
+ "rules": [],
+ "setSide": {
+  "Big Bear Lake": "mountain",
+  "Big Bear City": "mountain",
+  "Lake Arrowhead": "mountain",
+  "Crestline": "mountain",
+  "Running Springs": "mountain",
+  "Wrightwood": "mountain",
+  "Idyllwild": "mountain",
+  "Julian": "mountain",
+  "Frazier Park": "mountain",
+  "Maricopa": "valley",
+  "Clearlake": "north"
+ },
+ "tagLists": {},
+ "removeTags": {},
+ "rename": {
+  "San Buenaventura (Ventura)": "Ventura",
+  "El Paso de Robles (Paso Robles)": "Paso Robles",
+  "Sunnyside-Tahoe City": "Tahoe City",
+  "Idyllwild-Pine Cove": "Idyllwild"
+ },
+ "exclude": [
+  "Vernon",
+  "Industry"
+ ],
+ "dropCdpWords": [
+  "North",
+  "South",
+  "East",
+  "West",
+  "Northwest",
+  "Southeast",
+  "Southwest",
+  "Northeast",
+  "Upper",
+  "Lower",
+  "Heights"
+ ],
+ "excludeCdp": [],
+ "keepCdp": [
+  "Tahoe City",
+  "Kings Beach",
+  "Meyers",
+  "Arnold",
+  "Twain Harte",
+  "Oakhurst",
+  "Shaver Lake",
+  "Three Rivers",
+  "Kernville",
+  "Lake Isabella",
+  "June Lake",
+  "Lee Vining",
+  "Bridgeport",
+  "Quincy",
+  "Chester",
+  "Graeagle",
+  "Downieville",
+  "Big Bear City",
+  "Lake Arrowhead",
+  "Crestline",
+  "Running Springs",
+  "Wrightwood",
+  "Idyllwild",
+  "Julian",
+  "Frazier Park",
+  "McCloud",
+  "Burney",
+  "Weaverville",
+  "Hayfork",
+  "Happy Camp",
+  "Shelter Cove",
+  "Garberville",
+  "McKinleyville",
+  "Mendocino",
+  "Willow Creek",
+  "Fall River Mills",
+  "Joshua Tree",
+  "Lucerne Valley",
+  "Borrego Springs",
+  "Salton City",
+  "Niland",
+  "Baker",
+  "Trona",
+  "Mojave",
+  "Rosamond",
+  "Lone Pine",
+  "Independence",
+  "Bodega Bay",
+  "Guerneville",
+  "Stinson Beach",
+  "Bolinas",
+  "Point Reyes Station",
+  "Cambria",
+  "Cayucos",
+  "Avila Beach",
+  "Los Osos",
+  "Montecito",
+  "Isla Vista",
+  "Santa Ynez",
+  "Aptos",
+  "East Los Angeles",
+  "Altadena",
+  "Castro Valley",
+  "Carmichael",
+  "El Dorado Hills",
+  "Fallbrook",
+  "Walnut Grove",
+  "Kettleman City",
+  "Murphys",
+  "Mariposa"
+ ],
+ "_regions": "First match wins. mountain = the Sierra Nevada above the foothills (Tahoe, Truckee, Grass Valley/Nevada City, Yosemite gateways, Mammoth, Kern River valley) plus hand-set mountain towns elsewhere (setSide: Big Bear, Lake Arrowhead, Idyllwild, Julian, Mount Shasta area); desert = the Mojave and Colorado deserts and the Owens Valley (Antelope Valley, Victor Valley, Coachella and Imperial valleys, Inyo); valley = the Central Valley from Redding to Bakersfield, with its foothill towns; north = the far north and the north coast (Humboldt, Del Norte, Mendocino, Lake County west of Clear Lake, Siskiyou, Modoc, Lassen); socal = the rest south of 34.5 (LA, Orange, San Diego, Ventura, Santa Barbara coast, Inland Empire); central = the Central Coast between 34.5 and 37.1 (Santa Cruz to Santa Maria); everything else is bay (the Bay Area, Napa/Sonoma, Clear Lake east shore).",
+ "_exclude": "Vernon and Industry: industrial-only cities with almost no residents.",
+ "_cdp": "California has 482 incorporated cities, so CDPs are kept only by hand (cdpMinPop is effectively off): keepCdp lists well-known mountain, north, desert, coast and Gold Country communities that fill the smaller climate pools, plus a few big, well-known unincorporated places. Suburban-tract CDPs are left out.",
+ "_setSide": "Mountain towns outside the Sierra polygon: the San Bernardino, San Gabriel, San Jacinto and Cuyamaca mountains and Frazier Park (Mount Pinos). Maricopa (southwest Kern County) is a valley town just outside the polygon; Clearlake goes with the rest of Lake County (north).",
+ "_rename": "Census names with the official long form in front: the cities are signed and known as Ventura and Paso Robles. The CDPs Sunnyside-Tahoe City and Idyllwild-Pine Cove are known as Tahoe City and Idyllwild.",
+ "_keepCdp": "Names after rename (the tool renames first): Tahoe City and Idyllwild are the Census CDPs Sunnyside-Tahoe City and Idyllwild-Pine Cove."
+}

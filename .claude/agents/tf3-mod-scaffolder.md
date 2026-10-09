@@ -10,7 +10,7 @@ You scaffold new TF3 mods in this hub.
 ## Steps
 
 1. Settle the inputs. Ask the caller if any are missing:
-   - **modId**: `[a-z0-9_]` only, in the form `<author>_<modname>`, with no `_1` version suffix. The folder name equals the modId.
+   - **modId**: `[a-z0-9_]` only, in the form `square_<modname>` (house prefix; author is "square"), with no `_1` version suffix. The folder name equals the modId.
    - **Display name** (32 characters or fewer) and **summary** (100 characters or fewer).
    - **Mod type**, which decides the tags and content.
    - Read the official tag list from `docs/wiki/modding/general/modtags.md`. Use only those tags, exactly as written.
@@ -19,7 +19,7 @@ You scaffold new TF3 mods in this hub.
    Use `--script` for config changes and script mods. Use `--cosmetic` only if the mod has no simulation impact. Cosmetic mods get severity `None`; everything else defaults to `Critical`. Lower that to `Warning` or `None` if removing the mod is safe (see `docs/wiki/modding/general/moddefinition.md`).
 3. Add starter content modeled on a real example, never from memory:
    - Config change (preRunFn and baseConfig): `.cache/wiki-examples/wiki_example_config_change/`, plus `docs/wiki/modding/scripting/baseconfig.md` for the available fields.
-   - Parameters, filters and modifiers: `.cache/wiki-examples/wiki_example_mod_param_*`, plus `docs/wiki/modding/general/modscripts.md` and `docs/wiki/modding/scripting/modifiersfilters.md`.
+   - Parameters, filters and modifiers: `.cache/wiki-examples/wiki_example_mod_param_*`, plus `docs/wiki/modding/general/modscripts.md` and `docs/wiki/modding/scripting/modifiersfilters.md`. Read `docs/findings.md` first: the wiki's script function signatures miss `captureParams`, and params can't reach stylesheets (`.css.lua`).
    - Asset or construction: `.cache/wiki-examples/ug_tf3_example_asset/`, plus `docs/wiki/modding/constructions/`.
    - Vehicle repaint: `.cache/wiki-examples/wiki_example_repaint/`, plus `docs/wiki/modding/vehicles/repaints.md`.
    - For anything else, find the closest base-game file in `.cache/game/base/content/` using `docs/game/MANIFEST.txt`.

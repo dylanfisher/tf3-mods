@@ -1,0 +1,11 @@
+{
+    "modId": "square_industry_flows",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "runScript": {
+        "fileName": "square_industry_flows::mod.script@runFn"
+    }
+}

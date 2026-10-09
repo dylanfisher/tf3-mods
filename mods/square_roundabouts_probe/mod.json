@@ -1,0 +1,89 @@
+{
+    "modId": "square_roundabouts_probe",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "dependencies": [
+        {
+            "mod": {
+                "modId": "square_roundabouts",
+                "revisionMin": -1,
+                "revisionMax": -1
+            },
+            "modInfo": {
+                "displayName": "Better Roundabouts",
+                "url": ""
+            },
+            "loadBefore": true,
+            "optional": false
+        }
+    ],
+    "params": [
+        {
+            "key": "sqrb_probe_run",
+            "name": "Run the probe",
+            "tooltip": "DEV ONLY. Asks the engine about every combination of the chosen subset once per game load. Builds nothing.",
+            "uiType": "Button",
+            "values": ["Off", "On"],
+            "defaultIndex": 1
+        },
+        {
+            "key": "sqrb_probe_subset",
+            "name": "Subset",
+            "tooltip": "Sweeps: smoke 17, splitter6 432, magic 60, main_cw 216, main 10368, all 10644 combinations. Searches (jobs, about 40 engine calls/s): search_quick 178 (~1 min), search_magic 48, search_tram 318, search_splitter 76 (~4 min), search_radius 6624 (~5-7 min), search_radius_split 2880 (only arm roads with a baked splitter rule), search = all but radius_split (~10-12 min), search_magic2 12 (2-lane Magic satellites, ~3 s), search_magic_sizes 24 (every Magic size floor, 1 and 2 lanes, ~5 s). Phase 5e: p5_all = p5_channel + p5_hamburger + p5_interchange sweeps (1970 combos, ~1-2 min); p5_search = p5_channel_search + p5_hamburger_radius + p5_interchange_search (522 jobs, ~3-5 min). Phase 5f: p5f_all = verification sweep of the tuned channel, 4-lane two-bridge interchange, 2:1 splitter ovals and hamburger (1,416 combos, ~30-60 s); p5f_search = channel slip angle x template for the 81 combos nothing was accepted for, two-bridge alpha (87 jobs, 753 engine calls, ~1 min). Phase 5g: p5g_verify = verification sweep of the 5g channel slip lanes and 4-lane two-bridge rings (468 combos, ~10 s). plans/square_roundabouts/PROBE.md",
+            "uiType": "ComboBox",
+            "values": ["smoke", "splitter6", "magic", "main_cw", "main", "all", "search_quick", "search_magic", "search_tram", "search_splitter", "search_radius", "search_radius_split", "search", "search_magic2", "search_magic_sizes", "p5_all", "p5_channel", "p5_hamburger", "p5_interchange", "p5_search", "p5_channel_search", "p5_hamburger_radius", "p5_interchange_search", "p5f_all", "p5f_search", "p5g_verify"],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqrb_probe_delay",
+            "name": "Start delay",
+            "tooltip": "Seconds after the game has loaded before the probe starts",
+            "uiType": "Button",
+            "values": ["5 s", "15 s", "30 s", "60 s"],
+            "defaultIndex": 1
+        },
+        {
+            "key": "sqrb_probe_batch",
+            "name": "Combos per update",
+            "tooltip": "Combinations evaluated per GUI update. Higher is faster but stutters more.",
+            "uiType": "Button",
+            "values": ["1", "2", "4", "8", "16"],
+            "defaultIndex": 2
+        },
+        {
+            "key": "sqrb_probe_x",
+            "name": "Position X (m)",
+            "tooltip": "World x of the probe position (0 = map centre)",
+            "uiType": "Slider",
+            "values": ["-4000", "-2000", "-1000", "-500", "0", "500", "1000", "2000", "4000"],
+            "defaultIndex": 4
+        },
+        {
+            "key": "sqrb_probe_y",
+            "name": "Position Y (m)",
+            "tooltip": "World y of the probe position (0 = map centre)",
+            "uiType": "Slider",
+            "values": ["-4000", "-2000", "-1000", "-500", "0", "500", "1000", "2000", "4000"],
+            "defaultIndex": 4
+        },
+        {
+            "key": "sqrb_probe_context",
+            "name": "Proposal context",
+            "tooltip": "None: makeProposalData(proposal). Player: also pass a Context (player, terrain alignment check, street graph cleanup, gather buildings/fields).",
+            "uiType": "Button",
+            "values": ["None", "Player"],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqrb_probe_log_ok",
+            "name": "Log placeable combos",
+            "tooltip": "Off: only combinations that fail are logged (the parser then cannot compute failure rates)",
+            "uiType": "Button",
+            "values": ["On", "Off"],
+            "defaultIndex": 0
+        }
+    ]
+}

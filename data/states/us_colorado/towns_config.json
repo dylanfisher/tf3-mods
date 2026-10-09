@@ -1,0 +1,243 @@
+{
+  "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+  "fips": "08",
+  "postal": "CO",
+  "gazetteerYear": 2023,
+  "popestYear": 2023,
+  "bigCount": 15,
+  "cdpMinPop": 300,
+  "_regions": "First match wins. front = the Front Range urban corridor east of the foothills, Fort Collins/Greeley to Pueblo (plus the Canon City/Florence Arkansas valley); slope = the Western Slope valleys and plateaus (Grand Junction, Montrose, Delta, Craig, Rifle, Cortez, Durango); mountain = the Rockies, San Juans and San Luis Valley between the two. Everything else (the eastern plains, Trinidad, Walsenburg) is plains.",
+  "regions": [
+    {
+      "tag": "front",
+      "polygon": [
+        [
+          40.8,
+          -105.2
+        ],
+        [
+          40.0,
+          -105.3
+        ],
+        [
+          39.75,
+          -105.25
+        ],
+        [
+          39.55,
+          -105.15
+        ],
+        [
+          39.1,
+          -104.95
+        ],
+        [
+          38.8,
+          -104.95
+        ],
+        [
+          38.6,
+          -105.0
+        ],
+        [
+          38.35,
+          -105.4
+        ],
+        [
+          38.05,
+          -104.9
+        ],
+        [
+          38.05,
+          -104.4
+        ],
+        [
+          38.9,
+          -104.55
+        ],
+        [
+          39.6,
+          -104.6
+        ],
+        [
+          40.0,
+          -104.55
+        ],
+        [
+          40.45,
+          -104.55
+        ],
+        [
+          40.8,
+          -104.65
+        ]
+      ]
+    },
+    {
+      "tag": "slope",
+      "polygon": [
+        [
+          41.01,
+          -109.06
+        ],
+        [
+          41.01,
+          -107.4
+        ],
+        [
+          40.0,
+          -107.4
+        ],
+        [
+          39.6,
+          -107.45
+        ],
+        [
+          38.9,
+          -107.45
+        ],
+        [
+          38.35,
+          -107.6
+        ],
+        [
+          37.85,
+          -108.0
+        ],
+        [
+          37.35,
+          -107.7
+        ],
+        [
+          36.99,
+          -107.4
+        ],
+        [
+          36.99,
+          -109.06
+        ]
+      ]
+    },
+    {
+      "tag": "mountain",
+      "polygon": [
+        [
+          41.01,
+          -109.06
+        ],
+        [
+          41.01,
+          -105.25
+        ],
+        [
+          40.8,
+          -105.2
+        ],
+        [
+          40.0,
+          -105.3
+        ],
+        [
+          39.75,
+          -105.25
+        ],
+        [
+          39.55,
+          -105.15
+        ],
+        [
+          39.1,
+          -104.95
+        ],
+        [
+          38.8,
+          -104.95
+        ],
+        [
+          38.6,
+          -105.0
+        ],
+        [
+          38.35,
+          -105.4
+        ],
+        [
+          38.0,
+          -105.3
+        ],
+        [
+          37.8,
+          -105.05
+        ],
+        [
+          37.3,
+          -105.0
+        ],
+        [
+          36.99,
+          -105.0
+        ],
+        [
+          36.99,
+          -109.06
+        ]
+      ]
+    }
+  ],
+  "defaultTag": "plains",
+  "rules": [],
+  "setSide": {},
+  "tagLists": {},
+  "removeTags": {},
+  "rename": {
+    "Central": "Central City",
+    "City of Creede": "Creede",
+    "Raymer (New Raymer)": "Raymer"
+  },
+  "exclude": [
+    "Carbonate"
+  ],
+  "_cdp": "CDPs are kept when pop2010 >= cdpMinPop, not excluded, without a hyphen and without a drop word; keepCdp overrides all of that.",
+  "dropCdpWords": [
+    "North",
+    "South",
+    "East",
+    "West",
+    "Northwest",
+    "Southeast",
+    "Upper",
+    "Lower",
+    "Heights"
+  ],
+  "excludeCdp": [
+    "Fort Carson",
+    "Air Force Academy",
+    "Aristocrat Ranchettes",
+    "Paragon Estates",
+    "Aetna Estates",
+    "Grand View Estates",
+    "Acres Green",
+    "Stonegate",
+    "Meridian",
+    "Dove Valley",
+    "Holly Hills",
+    "Inverness",
+    "Comanche Creek",
+    "Twin Lakes",
+    "Sherrelwood",
+    "Lazy Acres",
+    "Cherry Creek",
+    "The Pinery",
+    "Todd Creek",
+    "Loghill Village"
+  ],
+  "keepCdp": [
+    "Pueblo West",
+    "Security-Widefield",
+    "Cascade-Chipita Park"
+  ],
+  "_excludeCdp": "Military installations, subdivision/office-park style CDP names, and Cherry Creek (a Denver neighbourhood entry; the CDP is a suburban tract in Arapahoe County).",
+  "_keepCdp": "Well-known places the drop-word/hyphen filter would remove.",
+  "_rename": "Census 'Central city' loses its 'City' to the LSAD strip; 'City of Creede' is signed and known as Creede; 'Raymer (New Raymer)' is the Town of Raymer.",
+  "_exclude": "Carbonate: a town on paper with no residents."
+}

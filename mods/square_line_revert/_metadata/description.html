@@ -1,0 +1,29 @@
+<p>Clicked or deleted a stop by accident and can't remember which one? Line Editor Undo adds Undo and Redo buttons to the line manager, so you can step back through your edits of a line's stops, put them all back the way they were when you opened the line, and redo what you undid.</p>
+<h4>Features</h4>
+<ul>
+<li><strong>Undo button</strong> (a curved-arrow icon) left of the Auto-Rename button of a single selected line: each click undoes one edit (adding, removing or moving a stop, a waypoint, a terminal, load mode, waiting times or cargo settings), most recent first.</li>
+<li><strong>Revert all</strong>: Shift+click Undo puts every stop back the way it was when you opened the line.</li>
+<li><strong>Redo button</strong> right of Undo: re-applies the edits you undid, one per click, also after a revert all. Making a new edit clears what can be redone.</li>
+<li><strong>Tooltips</strong> name the edit the next click undoes or redoes and how many changes you made since opening the line. Up to 50 steps are kept; Shift+click always reaches the start.</li>
+<li>Each button stays greyed out while there is nothing to undo or redo.</li>
+</ul>
+<h4>How to use</h4>
+<ul>
+<li>Open the line manager and select one line. The button row reads Undo, Redo, Auto-Rename, colour, Buy Vehicles.</li>
+<li><strong>Click Undo</strong> to take back your last stop edit. Click again to go further back.</li>
+<li><strong>Shift+click Undo</strong> to revert all changes since you opened the line.</li>
+<li><strong>Click Redo</strong> to bring back an edit you undid.</li>
+<li>The history starts each time you open a line, and is cleared when you switch to another line or close the line manager.</li>
+</ul>
+<h4>Notes</h4>
+<ul>
+<li>GUI only: the undo and redo history lives in memory and is never saved. Safe to add to or remove from existing saves.</li>
+<li>Only stops and the line's stop settings are reverted. Name, colour and vehicles are left alone.</li>
+<li>If a station from the state you go back to has been demolished, nothing is changed and a message explains why.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 1 (2026-10-08)</h4>
+<ul>
+<li>First release.</li>
+</ul>

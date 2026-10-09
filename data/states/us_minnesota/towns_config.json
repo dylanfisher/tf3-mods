@@ -1,0 +1,160 @@
+{
+ "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+ "fips": "27",
+ "postal": "MN",
+ "gazetteerYear": 2023,
+ "popestYear": 2023,
+ "bigCount": 15,
+ "incMinPop": {
+  "metro": 5000,
+  "south": 800,
+  "prairie": 300,
+  "lakes": 250,
+  "north": 150
+ },
+ "cdpMinPop": 1000,
+ "regions": [
+  {
+   "tag": "metro",
+   "polygon": [
+    [
+     45.42,
+     -93.95
+    ],
+    [
+     45.42,
+     -92.74
+    ],
+    [
+     44.55,
+     -92.74
+    ],
+    [
+     44.55,
+     -93.95
+    ]
+   ]
+  },
+  {
+   "tag": "lakes",
+   "polygon": [
+    [
+     47.35,
+     -96.05
+    ],
+    [
+     47.35,
+     -93.85
+    ],
+    [
+     46.2,
+     -93.6
+    ],
+    [
+     45.75,
+     -94.6
+    ],
+    [
+     45.7,
+     -95.6
+    ],
+    [
+     45.75,
+     -96.05
+    ]
+   ]
+  },
+  {
+   "tag": "prairie",
+   "polygon": [
+    [
+     49.4,
+     -97.5
+    ],
+    [
+     49.4,
+     -95.6
+    ],
+    [
+     47.4,
+     -95.95
+    ],
+    [
+     45.6,
+     -95.9
+    ],
+    [
+     45.0,
+     -95.3
+    ],
+    [
+     44.0,
+     -95.0
+    ],
+    [
+     43.45,
+     -95.0
+    ],
+    [
+     43.45,
+     -97.5
+    ]
+   ]
+  },
+  {
+   "tag": "north",
+   "polygon": [
+    [
+     49.5,
+     -97.5
+    ],
+    [
+     49.5,
+     -89.4
+    ],
+    [
+     46.4,
+     -89.4
+    ],
+    [
+     46.0,
+     -92.3
+    ],
+    [
+     46.2,
+     -93.6
+    ],
+    [
+     47.5,
+     -96.5
+    ]
+   ]
+  }
+ ],
+ "defaultTag": "south",
+ "keepCdp": [
+  "Soudan",
+  "Lutsen",
+  "Angle Inlet",
+  "Frontenac"
+ ],
+ "excludeCdp": [
+  "Red Lake",
+  "Redby",
+  "Ponemah",
+  "Little Rock",
+  "Vineland",
+  "White Earth",
+  "Naytahwaush",
+  "Pine Point",
+  "Ball Club"
+ ],
+ "keepTown": [
+  "Lanesboro",
+  "Wayzata",
+  "Excelsior"
+ ],
+ "_regions": "First match wins. metro = the Twin Cities (a box from about 44.55 to 45.42 N, -93.95 to -92.74: Minneapolis, St. Paul, the inner and outer suburbs, Stillwater, Hastings, Elk River); lakes = central lake country (Brainerd Lakes, Alexandria, Detroit Lakes, Park Rapids, Walker, Little Falls); prairie = the western prairie and the Red River Valley (west of about -95.6 in the north, -95.0 in the southwest: Moorhead, Crookston, Thief River Falls, Fergus Falls, Marshall, Worthington, Pipestone); north = the Arrowhead, the Iron Range and the north woods (Duluth, Cloquet, Hibbing, Virginia, Ely, Grand Marais, Bemidji, International Falls); south = the rest (default: the southern and central farm belt, St. Cloud, Rochester, Mankato, the Mississippi river towns).",
+ "_incMinPop": "Minnesota has ~850 incorporated cities (many tiny) and only ~45 CDPs, far more than the 400-500 target, so incorporated places get a 2023 floor per region: metro 5000 (the suburbs would otherwise crowd out the state), south 800, prairie 300, lakes 250, north 150 (thin pools). keepTown adds well-known small towns below the floor (Lanesboro, Wayzata, Excelsior).",
+ "_cdp": "cdpMinPop 1000 (2010). keepCdp: Soudan, Lutsen, Angle Inlet (the Northwest Angle), Frontenac. excludeCdp: tribal-community CDPs on the Red Lake, White Earth, Leech Lake and Mille Lacs reservations (Red Lake, Redby, Ponemah, Little Rock, White Earth, Naytahwaush, Pine Point, Ball Club, Vineland), per the series rule."
+}

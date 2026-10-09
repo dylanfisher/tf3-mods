@@ -1,0 +1,46 @@
+{
+    "modId": "square_industry_production_label",
+    "revision": 3,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "runScript": {
+        "fileName": "square_industry_production_label::/mod.script@runFn"
+    },
+    "params": [
+        {
+            "key": "showProduction",
+            "name": "Show production",
+            "tooltip": "Show each industry's production on its map label: the pill with the industry icon.",
+            "uiType": "Button",
+            "values": [
+                "On",
+                "Off"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "showPickup",
+            "name": "Show line pickup rate",
+            "tooltip": "Show the summed rate of your lines that pick up each industry's output: the pill with the Line Manager icon.",
+            "uiType": "Button",
+            "values": [
+                "On",
+                "Off"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "showWarehouse",
+            "name": "Show warehouse rates",
+            "tooltip": "Show each warehouse's incoming and outgoing cargo per year on its map label: one pill pair per cargo (box with down arrow = incoming, box with up arrow = outgoing).",
+            "uiType": "Button",
+            "values": [
+                "On",
+                "Off"
+            ],
+            "defaultIndex": 0
+        }
+    ]
+}

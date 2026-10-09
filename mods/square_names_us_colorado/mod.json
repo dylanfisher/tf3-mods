@@ -1,0 +1,43 @@
+{
+    "modId": "square_names_us_colorado",
+    "revision": 2,
+    "severityAdd": "None",
+    "severityRemove": "Warning",
+    "visible": true,
+    "cosmetic": true,
+    "runScript": {
+        "fileName": "square_names_us_colorado::/square_names_us_colorado/mod.script@runFn"
+    },
+    "params": [
+        {
+            "key": "streetNames",
+            "name": "Real street names",
+            "tooltip": "New Road Stops in known cities get real street names.",
+            "uiType": "ComboBox",
+            "values": [
+                "On",
+                "Off"
+            ],
+            "numbers": [
+                1.0,
+                0.0
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "stationNames",
+            "name": "Real station names",
+            "tooltip": "New train stations, bus/tram stations, airports and harbours in known cities get real names.",
+            "uiType": "ComboBox",
+            "values": [
+                "On",
+                "Off"
+            ],
+            "numbers": [
+                1.0,
+                0.0
+            ],
+            "defaultIndex": 0
+        }
+    ]
+}

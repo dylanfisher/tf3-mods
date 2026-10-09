@@ -9,3 +9,8 @@ tlconfig.lua
 
 .DS_Store
 __pycache__/
+
+# Probe/run output (large; contains local paths and Steam IDs)
+plans/**/*.log
+plans/**/probe_*.csv
+tmp/

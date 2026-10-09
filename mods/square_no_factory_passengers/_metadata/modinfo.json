@@ -1,0 +1,16 @@
+{
+    "name": "No Factory Passengers",
+    "summary": "The line editor no longer turns on passenger loading at stations that only serve an industry.",
+    "description": "The line editor no longer turns on passenger loading at stops whose station only serves an industry. On a factory line, docks and other stops without homes in reach are left off too. Stations that also reach homes keep passengers.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

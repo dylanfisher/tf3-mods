@@ -1,0 +1,16 @@
+{
+    "name": "Better Minimap",
+    "summary": "A pinnable overview map of your save: resource icons, a live camera box and click-to-jump.",
+    "description": "An overview map of your whole savegame with resource icons, a live camera box with a view direction arrow, and click-to-jump. Open it with the Map button in the top-left button ridge.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

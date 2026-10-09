@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Slide Render</title>
+<!-- One gallery slide at exactly 1920x1080, for headless screenshots (tools/render_shots.py).
+     Query: ?mod=<modId>&n=<1-based slide number> -->
+<link rel="stylesheet" href="fonts.css">
+<style>html, body { margin: 0; background: #18202a; overflow: hidden; }</style>
+<script src="cover.js"></script>
+<script src="mods.js"></script>
+<script src="slide.js"></script>
+<script src="shots.js"></script>
+</head>
+<body>
+<script>
+  const q = new URLSearchParams(location.search);
+  const mod = Square.MODS.find(m => m.id === q.get('mod'));
+  const slide = (Square.SLIDES[q.get('mod')] || [])[Number(q.get('n')) - 1];
+  document.head.insertAdjacentHTML('beforeend', `<style>${Square.slideCss}</style>`);
+  if (mod && slide) document.body.innerHTML = Square.renderSlide(mod, slide);
+  else document.body.textContent = 'unknown slide: ' + location.search;
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+    "name": "DEV Town Street Names Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Logs how street stops get their names and which town they belong to.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Logs [SQTSN_PROBE] lines to stdout.txt: towns, named entities, and every newly built street stop or station with its names, town and the hook that saw it. Read-only unless the Rename test param is on. Adds a logging name set 'DEV TSN Probe'. See plans/square_town_street_names/PROBE.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

@@ -1,0 +1,17 @@
+{
+    "name": "Texas Towns & Streets",
+    "summary": "Real Texas towns, streets for your stops, and real station names.",
+    "description": "Real Texas towns, streets for your stops, and real station names. Adds the name set \"Texas (Towns & Streets)\" and renames new stops and stations in known Texas cities.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod",
+        "Misc"
+    ],
+    "dependencies": [],
+    "url": ""
+}

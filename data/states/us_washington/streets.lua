@@ -1,0 +1,36 @@
+-- Generic Washington-style street pool (streetNamesScript): used by the game for new stops in every
+-- town, and left alone by the rename script in towns without a city list (cities.lua).
+-- Common US street patterns with a Pacific Northwest flavour (native trees, rivers, ranges, counties).
+-- Not tied to any one real town, so no per-street fact check is needed; keep each name <= 40 bytes.
+return {
+	-- core
+	"Main Street", "Front Street", "Market Street", "Commercial Avenue", "Division Street", "Railroad Avenue",
+	"Water Street", "Pioneer Avenue", "Center Street", "Broadway", "Park Avenue", "School Street",
+	"Mill Street", "Depot Street", "Church Street", "Court Street", "Union Avenue", "State Street",
+	-- numbered
+	"1st Street", "2nd Street", "3rd Street", "4th Street", "5th Street", "6th Street", "7th Street",
+	"8th Street", "9th Street", "10th Street", "1st Avenue", "2nd Avenue", "3rd Avenue", "4th Avenue",
+	"5th Avenue", "6th Avenue", "7th Avenue", "8th Avenue", "9th Avenue", "10th Avenue",
+	-- Puget Sound grid style
+	"NE 8th Street", "NE 45th Street", "NE 85th Street", "NW 65th Street", "SE 128th Street", "S 240th Street",
+	"SW 152nd Street", "NE 124th Street", "N 175th Street", "S 320th Street",
+	-- trees and plants
+	"Cedar Street", "Alder Street", "Hemlock Street", "Madrona Avenue", "Maple Street", "Spruce Street",
+	"Fir Street", "Pine Street", "Birch Avenue", "Cottonwood Drive", "Aspen Way", "Willow Street",
+	"Dogwood Lane", "Laurel Street", "Larch Way", "Tamarack Drive", "Huckleberry Lane", "Salal Way",
+	"Vine Maple Lane", "Juniper Street", "Sage Road", "Orchard Avenue", "Cherry Street", "Apple Way",
+	-- landscape
+	"Cascade Avenue", "Olympic Avenue", "Rainier Avenue", "Baker Street", "Columbia Street", "Lake Street",
+	"River Road", "Valley Avenue", "Canyon Road", "Ridge Road", "Summit Avenue", "Mountain View Road",
+	"Sound View Drive", "Bay Street", "Harbor Avenue", "Beach Drive", "Prairie Road", "Hillside Drive",
+	"Creek Road", "Falls Avenue", "Bluff Road", "Ferry Street", "Tideland Road", "Basin Road",
+	-- rivers, counties and regions
+	"Yakima Avenue", "Wenatchee Avenue", "Okanogan Street", "Skagit Street", "Kittitas Street",
+	"Klickitat Street", "Spokane Street", "Chelan Avenue", "Methow Street", "Snohomish Avenue",
+	"Puyallup Avenue", "Nisqually Road", "Chehalis Avenue", "Cowlitz Way", "Palouse Street", "Whidbey Avenue",
+	"San Juan Avenue", "Kitsap Way", "Skokomish Way", "Stillaguamish Road",
+	-- people and history
+	"Washington Street", "Jefferson Street", "Lincoln Avenue", "Grant Street", "Adams Street", "Madison Street",
+	"Monroe Street", "Jackson Street", "Franklin Avenue", "Hamilton Street", "Garfield Street", "McKinley Avenue",
+	"Stevens Street", "Vancouver Avenue", "Whitman Street", "Meeker Avenue",
+}

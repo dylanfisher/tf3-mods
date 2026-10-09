@@ -1,0 +1,60 @@
+-- State meta for the "Oregon Towns & Streets" mod (square_names_us_oregon).
+-- Read by tools/gen_state_mod.py (copied into the mod as data/state.lua) and by the mod's runtime.
+-- Climate keys are the last path segment of the config dict's climate ("::/climates/dry/dry.clima" -> "dry").
+-- Weights per tag; 0 = top-up only (used when the weighted pools run dry). Unknown climates use the whole state.
+return {
+	key = "us_oregon",
+	name = "Oregon",
+	postal = "OR",
+	fips = "41",
+	modName = "Oregon Towns & Streets",
+	setName = "Oregon (Towns & Streets)",
+	summary = "Real Oregon towns, streets for your stops, and real station names.",
+	examples = { stops = "Burnside Street or Willamette Street", stations = "Union Station, Pioneer Square North or Mahlon Sweet Field" },
+	flag = "us_oregon.svg",
+	-- Douglas fir green (the state tree): the flag's navy is close to Colorado's blue and its gold to Alaska's and
+	-- New York's. Darker and bluer than Washington's #00843D, far from the family teal.
+	accent = "#2C5E3F",
+	-- Regions (towns_config.json): the Cascade crest (Washington's line continued south over Mt Hood, Santiam
+	-- Pass, the Three Sisters, Crater Lake and Mt McLoughlin) splits west (Portland metro, Willamette Valley,
+	-- Umpqua and Rogue valleys) from east (high desert, Columbia Plateau, Klamath Basin, Treasure Valley).
+	-- coast = west of -123.7 (Astoria to Brookings), south = the warm southern valleys (west side, south of 43.4:
+	-- Roseburg, Grants Pass, Medford, Ashland), mountain = a hand list for the Cascades (Government Camp, Sisters,
+	-- Oakridge, Crescent, Chemult), the Wallowas (Joseph, Enterprise) and the Blue Mountains (Ukiah, Seneca,
+	-- Sumpter). Oregon has no tropics: the stand-in is the mild coast plus the hot, sunny southern valleys.
+	climates = {
+		temperate = { west = 70, coast = 15, east = 15 },
+		dry = { east = 85, mountain = 15 },
+		subarctic = { mountain = 60, east = 40, west = 0 },
+		tropical = { south = 50, coast = 50, west = 0 },
+	},
+	-- Description wording (tools/gen_state_mod.py).
+	regionLabels = {
+		west = "western Oregon", east = "eastern Oregon", coast = "the coast", south = "the southern valleys",
+		mountain = "the mountains",
+	},
+	harborWord = "harbours",
+	streetFlavour = "firs, filberts, quadrant avenues, Cascade peaks, rivers and counties",
+	townFlavour = "small farm, timber and coast towns",
+	asciiFallback = true,
+	-- Lint floors: Oregon has ~357 Census places worth keeping (all 240 incorporated places but one empty city,
+	-- plus CDPs with >= 500 people in 2010 and a hand list of small mountain/coast/high-desert ones), so the
+	-- 400-town default doesn't fit. 12 street cities (the user's target is 6-12). The smallest weighted pool
+	-- (tropical: south + coast) is ~96 towns.
+	minTowns = 300,
+	minPool = 90,
+	minStreetCities = 12,
+	-- Option C regional sets: off (see the Washington state.lua).
+	emitRegionalSets = false,
+	regionalSets = {},
+	stationSuffix = nil,
+	notes = {
+		"Not affiliated with the \"Oregon Names\" mod; all lists here are our own.",
+		"Streets cover 12 cities (Portland, Eugene, Salem, Gresham, Hillsboro, Beaverton, Bend, Medford, Corvallis, Albany, Astoria and Ashland); every other town uses the generic Oregon pool.",
+	},
+	revision = 2,
+	changelog = {
+		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
+		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },
+	},
+}
