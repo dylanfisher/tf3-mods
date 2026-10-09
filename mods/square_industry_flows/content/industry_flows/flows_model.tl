@@ -298,22 +298,39 @@ function model.buildView(world : IndustryFlowsWorld, selection : {string : boole
 		table.sort(towns, townByEntity)
 	end
 
+	-- Links get their position copies only after the sort, and only the ones kept under MAX_LINKS:
+	-- the rest are counted and dropped, so they never need them.
 	local links : {IndustryFlowsLink} = {}
-	local seen : {string : boolean} = {}
+	local isSelected : {integer : boolean} = {}
+	for __, s in ipairs(selected) do isSelected[s.entity] = true end
+	local seen : {integer : {integer : {integer : boolean}}} = {}   -- from -> to -> cargo
 	local function add(from : integer, to : integer, cargo : integer, input : boolean, toTown : boolean)
 		if from == to then return end
 		-- Two selected industries can see the same link (one as output, one as input): keep the first.
-		local key = tostring(from) .. ">" .. tostring(to) .. ":" .. tostring(cargo)
-		if seen[key] then return end
-		seen[key] = true
-		local pf, pt = positions[from], positions[to]
-		if not hasPos(pf) or not hasPos(pt) then return end
+		-- Only then: one selected industry yields each (from, to, cargo) once (cargo and counterpart
+		-- lists are unique), and a link with an unselected end is only seen from its selected end,
+		-- so only those links are recorded.
+		if not toTown and isSelected[from] and isSelected[to] then
+			local byTo = seen[from]
+			if byTo == nil then
+				byTo = {}
+				seen[from] = byTo
+			end
+			local cargos = byTo[to]
+			if cargos == nil then
+				cargos = {}
+				byTo[to] = cargos
+			elseif cargos[cargo] then
+				return
+			end
+			cargos[cargo] = true
+		end
+		if not hasPos(positions[from]) or not hasPos(positions[to]) then return end
 		local count = flowCount and flowCount(from, to, cargo, toTown) or 0
 		local active = count ~= nil and count > 0
 		if not active and not toggles.potential then return end
 		links[#links + 1] = {
 			fromEntity = from, toEntity = to,
-			from = { pf[1], pf[2], pf[3] }, to = { pt[1], pt[2], pt[3] },
 			cargo = cargo, input = input, toTown = toTown, active = active,
 		}
 	end
@@ -350,7 +367,12 @@ function model.buildView(world : IndustryFlowsWorld, selection : {string : boole
 	view.total = #links
 	for __, l in ipairs(links) do
 		if l.active then view.active = view.active + 1 end
-		if #view.links < model.MAX_LINKS then view.links[#view.links + 1] = l end
+		if #view.links < model.MAX_LINKS then
+			local pf, pt = positions[l.fromEntity], positions[l.toEntity]
+			l.from = { pf[1], pf[2], pf[3] }
+			l.to = { pt[1], pt[2], pt[3] }
+			view.links[#view.links + 1] = l
+		end
 	end
 	view.drawn = #view.links
 	return view
