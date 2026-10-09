@@ -9,6 +9,7 @@
 <li><strong>Badge</strong>: a small badge or a compact one-row panel in the top-left button ridge shows the number of problems, coloured by the worst severity.</li>
 <li><strong>Tabs</strong> for All, Vehicles, Lines, Stations, Fleet and Economy, each with its count. Click a row to move the camera there and open the vehicle, line or station window.</li>
 <li><strong>Notifications</strong>: each alert type can be set to Off, List (shown in the radar only) or Notify (also a game notification when the problem first appears). Notifications are rate-limited and can be paused.</li>
+<li><strong>Snooze</strong>: the Zz button on a row hides a problem you already know about (say, a line you accept losing money) for 1 month to 5 years of game time. It is not counted and sends no notifications while snoozed. The Snoozed tab lists it with its end date and can wake it early.</li>
 <li><strong>Smoothing</strong>: a problem is listed once it has lasted 30 game seconds and stays until it has been gone that long, so alerts don't flicker (adjustable, 0 = instant).</li>
 </ul>
 <h4>Settings</h4>
@@ -22,6 +23,13 @@
 </ul>
 <hr>
 <h2>Changelog</h2>
+<h4>Revision 3 (2026-10-08)</h4>
+<ul>
+<li>New: snooze an alert for 1 month, 6 months, 1 year or 5 years with the Zz button on its row. A snoozed alert is left out of the counts and notifications, then comes back if the problem is still there.</li>
+<li>New: Snoozed tab with each snooze's end date, and buttons to unsnooze one alert or all of them.</li>
+<li>Improved: the radar window refreshes twice as often and skips the work when nothing has changed.</li>
+<li>Improved: the radar button in the top-left ridge now also closes the window when it is open.</li>
+</ul>
 <h4>Revision 2 (2026-10-07)</h4>
 <ul>
 <li>New: Economy tab that lists lines losing money over the last year and lines running nearly empty, with bigger losses and emptier lines ranked higher.</li>

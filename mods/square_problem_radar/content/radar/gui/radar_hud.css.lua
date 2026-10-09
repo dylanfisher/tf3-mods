@@ -66,7 +66,7 @@ function data()
 
 	-- Window content: sensible initial size, dense rows.
 	a(WIN, {
-		size = { 980, 460 },
+		size = { 1020, 460 }, -- 980 + the snooze button column
 		padding = { 4, 6, 6, 6 },
 	})
 
@@ -101,6 +101,23 @@ function data()
 	a(WIN .. " Button!radar-row-alt", {
 		padding = { 2, 6, 2, 6 },
 		margin = { 0, 0, 0, 0 },
+	})
+
+	-- Snooze / unsnooze button leading each row.
+	a(WIN .. " Button!radar-row-snooze", {
+		padding = { 2, 6, 2, 6 },
+		margin = { 0, 0, 0, 0 },
+		minSize = { 30, -1 },
+	})
+
+	-- Under the lists: the snooze length picker / "Unsnooze all".
+	a(WIN .. " BoxLayout!radar-footer", {
+		margin = { 4, 0, 0, 0 },
+	})
+
+	a(WIN .. " TextView!radar-footer-label", {
+		color = colorDefault.NeutralLight,
+		gravity = { 0, 0.5 },
 	})
 
 	-- Columns: tier · kind · type · entity · context · detail · metric (fixed widths line them up).

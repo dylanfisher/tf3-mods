@@ -62,6 +62,9 @@ settings.NUMBERS = {
 	-- line_low_use: the yearly utilisation average below this %: Info; below half of it Warning, below
 	-- a quarter Critical (defaults 20 / 10 / 5 %).
 	econLowUsePct = { default = 20, min = 1, max = 90, unit = "%" },
+	-- Snooze: a row's snooze button mutes its alert for this many game months (calendar months at the
+	-- current calendar speed; radar.script.tl handleSnooze). The window offers radar_checks.SNOOZE_MONTHS.
+	snoozeMonths = { default = 6, min = 1, max = 120, unit = "months" },
 }
 
 -- Base hysteresis of the vehicle-condition notification: on at <= 0.2, kept while <= 0.3.
@@ -70,7 +73,7 @@ settings.WORN_HYSTERESIS_PCT = 10
 -- Flat keys (string, integer and boolean settings), in display order. "notify" is separate (NOTIFY_KINDS).
 settings.KEYS = { "hudMode", "notifyPaused", "smoothSec", "stuckMinRoad", "stuckMinTram", "stuckMinRail", "stuckMinWater", "stuckMinAir",
 	"idleDepotDays", "wornPct", "lineOverloadFactor", "lineUnderusedPct", "lineClumpPct", "lineGapPct", "lineSustainMin",
-	"econLossWarnPct", "econLossCritPct", "econLossSharePct", "econLowUsePct" }
+	"econLossWarnPct", "econLossCritPct", "econLossSharePct", "econLowUsePct", "snoozeMonths" }
 
 -- Carrier names as the engine script maps TRANSPORT_VEHICLE.carrier (api.type.enum.Carrier).
 -- OTHER has no threshold, so it never produces veh_stuck.

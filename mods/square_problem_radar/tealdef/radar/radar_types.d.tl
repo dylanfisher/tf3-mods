@@ -71,6 +71,8 @@ global record ProblemRadarSettings
 	econLossCritPct : integer    -- ... and Critical below this % (default 50)
 	econLossSharePct : integer   -- a "big" loss is at least this % of all lines' vehicle costs, 3x = very big (default 2)
 	econLowUsePct : integer      -- line_low_use: yearly average utilisation below this % (default 20; Warning below half, Critical below a quarter)
+	-- Snooze: game months a row's snooze button mutes its alert for (default 6)
+	snoozeMonths : integer
 end
 
 --- One integer setting's schema entry (radar_settings.NUMBERS), for validation and phase 5's Settings tab.
@@ -104,6 +106,17 @@ global record ProblemRadarMemory
 	useAvg : {integer : {integer}}
 end
 
+--- One snoozed alert (state.snoozed[id]): muted until untilMs, with enough of the alert to list it
+--- in the Snoozed tab while the problem is not detected.
+global record ProblemRadarSnooze
+	untilMs : integer      -- gameTime (ms) the snooze ends
+	kind : string
+	label : string
+	etype : string
+	context : string
+	entity : integer       -- nil if none
+end
+
 --- The whole game-script state, stored via GameScriptState:set.
 global record ProblemRadarState
 	version : integer                -- schema version, 6 (5 = Phase 5/6: no useAvg / tierCounts; 4 = Phase 4: lineCursor in memory, no notify maps; 3 = Phase 3: no line timers; 2 = Phase 2: no memory; 1 = Phase 1: no total/kindCounts, alerts always empty)
@@ -124,6 +137,14 @@ global record ProblemRadarState
 	-- tier, rows over the stored cap by their kind's tier), so the ridge HUD needs no alert rows even
 	-- though the economy kinds' tier varies per row. Kept by radar_checks.merge / upgradeState.
 	tierCounts : {integer}
+	-- Snooze (optional, still v6: nil in older saves and whenever nothing is snoozed): alert id ->
+	-- snooze. A snoozed alert is still detected and stored in `alerts`, but left out of total,
+	-- kindCounts and tierCounts, and never notified. Expired entries are dropped by radar_checks.merge
+	-- (for its group's kinds). At most radar_checks.MAX_SNOOZED.
+	snoozed : {string : ProblemRadarSnooze}
+	-- Change counter (optional, still v6): +1 on every state:set (radar.script.tl save), so the window's
+	-- poll reads one number and skips the full read while nothing changed. nil in older saves.
+	seq : integer
 end
 
 -- ======================================================================
@@ -451,6 +472,18 @@ global record ProblemRadarChecks
 	--- Sort order of state.alerts (tier, firstSeen, id); never errors on bad field types.
 	alertBefore : function(a : ProblemRadarAlert, b : ProblemRadarAlert) : boolean
 
+	--- Snooze: at most this many snoozed alerts are stored (the latest-ending kept).
+	MAX_SNOOZED : integer
+	--- The month presets the window offers (radar_settings snoozeMonths accepts any value in its range).
+	SNOOZE_MONTHS : {integer}
+	--- Sanitised copy of a saved snooze map (garbage dropped, capped); nil when empty.
+	cleanSnoozed : function(snoozed : any) : {string : ProblemRadarSnooze}
+	--- Snooze a listed alert until `untilMs`. Returns the new state and whether it changed (false
+	--- when the id is not listed). The alert stays stored; counts drop it.
+	snooze : function(state : ProblemRadarState, id : string, untilMs : integer) : ProblemRadarState, boolean
+	--- End a snooze (id), or every snooze (id == nil). The alerts count again at once.
+	unsnooze : function(state : ProblemRadarState, id : string) : ProblemRadarState, boolean
+
 	--- Phase 6 failure isolation: a scan that failed this many times in a row drops its kept rows.
 	FAIL_DROP_AFTER : integer
 	--- The previous alerts of `kinds` to keep after a failed scan (copies marked `carried`); none once
@@ -513,6 +546,8 @@ global record ProblemRadarNotifyInput
 	maxToasts : integer                  -- optional, default MAX_TOASTS
 	silentAll : boolean                  -- optional: mark every new alert notified without a toast (mod just added)
 	silentKinds : {string : boolean}     -- optional: the same for these kinds (just switched to "notify")
+	snoozed : {string : any}             -- optional: state.snoozed; these ids never toast and are forgotten
+	                                     -- (not notified, no cooldown), so a snooze that ends toasts again
 end
 
 --- Game-time toast budget (radar_notify.applyBudget). Transient: a module-local of the engine
@@ -601,6 +636,8 @@ global record ProblemRadarHudRow
 	metric : string        -- never nil
 	firstSeen : integer    -- 0 when missing
 	pos : {number}         -- {x, y, z} or nil
+	snoozedUntil : integer -- snoozed rows: gameTime (ms) the snooze ends; nil otherwise
+	gone : boolean         -- snoozed rows: the problem is not detected right now
 end
 
 global record ProblemRadarHudView
@@ -610,12 +647,13 @@ global record ProblemRadarHudView
 	hidden : integer                    -- total - #rows (alerts over the cap, not listed)
 	hiddenByTab : {string : integer}    -- same per tab ("all" included)
 	tierCounts : {integer}              -- [1] critical, [2] warning, [3] info
-	tabCounts : {string : integer}      -- "all", "vehicles", "lines", "stations", "fleet", "economy"
+	tabCounts : {string : integer}      -- "all", "vehicles", "lines", "stations", "fleet", "economy", "snoozed"
 	worstTier : integer                 -- 1..3, or 0 when there are no alerts
 	badgeLabel : string                 -- "Radar" (translated)
 	badgeText : string                  -- "Radar ● 3"
 	compactText : string                -- "3 crit · 2 warn · 5 info"
 	rows : {ProblemRadarHudRow}         -- tier ascending, then firstSeen ascending, then id
+	snoozedRows : {ProblemRadarHudRow}  -- snoozed alerts (not in rows or any count but "snoozed"), soonest end first
 end
 
 --- The ridge HUD's counts-only view (no rows, no texts), from state.kindCounts.
@@ -632,6 +670,7 @@ global record ProblemRadarHudModel
 	--- scripts set it to api.util.formatMoney.
 	formatMoney : function(money : integer) : string
 	MAX_RENDERED_ROWS : integer         -- rows the window renders per tab (the rest: "+N more")
+	SNOOZED_TAB : string                -- "snoozed": the tab of the snoozed alerts (after TABS)
 	--- A fresh view for any state (nil / {} / malformed alerts give the empty view).
 	build : function(state : ProblemRadarState) : ProblemRadarHudView
 	--- Like build, but the rows carry no translated texts and badge/compact texts are "" (window poll).
@@ -646,6 +685,10 @@ global record ProblemRadarHudModel
 	--- Up to `cap` (default MAX_RENDERED_ROWS) decorated rows of a tab and how many more it has. The
 	--- view's own rows are never changed (decorated copies), so a poll's deepEquals still matches.
 	visibleRows : function(view : ProblemRadarHudView, tab : string, cap? : integer) : {ProblemRadarHudRow}, integer
+	--- Snooze clicks not confirmed by the engine yet, applied on top of a view: `snooze` id -> estimated
+	--- end moves a row to snoozedRows, `wake` ids move back (gone ones vanish). Counts follow. Returns
+	--- the view itself when nothing applies.
+	applyPending : function(view : ProblemRadarHudView, snooze : {string : integer}, wake : {string : boolean}) : ProblemRadarHudView
 	--- Alert id -> creation revision of its entity: kept for known ids, looked up for new ones.
 	trackRevisions : function(prev : {string : integer}, rows : {ProblemRadarHudRow}, revOf : function(integer) : integer) : {string : integer}
 	--- false when the entity's creation revision is newer than the saved one (its id was reused).

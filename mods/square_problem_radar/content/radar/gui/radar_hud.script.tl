@@ -41,7 +41,12 @@ local GS_NAME <const> = "square_problem_radar::/radar/radar.gs"
 local EVENT_ID <const> = "ProblemRadar"
 local EV_SET_SETTING <const> = "ProblemRadar.setSetting"
 local EV_RESET_SETTINGS <const> = "ProblemRadar.resetSettings"
+local EV_SNOOZE <const> = "ProblemRadar.snooze"
+local EV_UNSNOOZE <const> = "ProblemRadar.unsnooze"
 local POLL_SECONDS <const> = 1.0
+-- The window polls at the base default (engine_react_util 0.5 s): an idle poll reads one number
+-- (state.seq) and stops there, so the faster rate costs little.
+local WINDOW_POLL_SECONDS <const> = 0.5
 
 -- Phase 7: the economy rows' money in the game's own format (api/util.d.tl:58; base use for a line's
 -- 12-month balance: line_react_util.tl:637). The model itself stays pure.
@@ -87,7 +92,8 @@ local function readFields(keys : {string}) : ProblemRadarState
 end
 
 local HUD_FIELDS : {string} = { "kindCounts", "settings", "tierCounts" }
-local WINDOW_FIELDS : {string} = { "alerts", "kindCounts" }
+-- settings: the snooze length (button tooltips, the length picker).
+local WINDOW_FIELDS : {string} = { "alerts", "kindCounts", "snoozed", "settings" }
 local SETTINGS_FIELDS : {string} = { "settings" }
 
 --- Creation revision of an entity (entity_util.makeEntityAndRevision0 reads num[1]); nil if gone.
@@ -111,11 +117,52 @@ local function getCountsFromEngine() : ProblemRadarHudCounts
 		s ~= nil and s.tierCounts or nil)
 end
 
---- Window poll: rows without translated texts (only the rendered rows get them).
-local function getFromEngine() : ProblemRadarHudView
-	local view = hud_model.buildRaw(readFields(WINDOW_FIELDS))
-	rowRevs = hud_model.trackRevisions(rowRevs, view.rows, revOf)
-	return view
+local SEQ_FIELDS : {string} = { "seq" }
+
+-- Snooze clicks the engine has not confirmed yet (hud_model.applyPending): id -> estimated end /
+-- id -> true, and id -> os.time() of the click. A click on a pending id is ignored (no repeated
+-- events while the engine catches up). Dropped once a poll shows the engine's result, or after
+-- PENDING_TIMEOUT_S (the engine refused it, e.g. the alert just cleared). os.time, not
+-- getApplicationTime: plain Lua, safe on any thread.
+local pendingSnooze : {string : integer} = {}
+local pendingWake : {string : boolean} = {}
+local pendingAt : {string : integer} = {}
+local PENDING_TIMEOUT_S <const> = 5
+
+local function reconcilePending(raw : ProblemRadarHudView)
+	if next(pendingAt) == nil then return end
+	local snoozedIds : {string : boolean} = {}
+	for __, r in ipairs(raw.snoozedRows) do snoozedIds[r.id] = true end
+	local now = os.time()
+	for id, at in pairs(pendingAt) do
+		local done = now - at > PENDING_TIMEOUT_S
+			or (pendingSnooze[id] ~= nil and snoozedIds[id])
+			or (pendingWake[id] and not snoozedIds[id])
+		if done then
+			pendingAt[id], pendingSnooze[id], pendingWake[id] = nil, nil, nil
+		end
+	end
+end
+
+-- The last full read and the state.seq it was made at: an unchanged seq means an unchanged state.
+local lastSeq : integer = nil
+local lastRaw : ProblemRadarHudView = nil
+
+--- Window poll: rows without translated texts (only the rendered rows get them), with the pending
+--- snooze clicks applied. `old` == nil: the window just opened, so always a full read.
+local function getFromEngine(old? : ProblemRadarHudView) : ProblemRadarHudView
+	local q = readFields(SEQ_FIELDS)
+	local seq = q ~= nil and q.seq or nil
+	if old == nil or lastRaw == nil or seq == nil or seq ~= lastSeq then
+		lastRaw = hud_model.buildRaw(readFields(WINDOW_FIELDS))
+		lastSeq = seq
+		local all : {ProblemRadarHudRow} = {}
+		for __, r in ipairs(lastRaw.rows) do all[#all + 1] = r end
+		for __, r in ipairs(lastRaw.snoozedRows) do all[#all + 1] = r end
+		rowRevs = hud_model.trackRevisions(rowRevs, all, revOf)
+	end
+	reconcilePending(lastRaw)
+	return hud_model.applyPending(lastRaw, pendingSnooze, pendingWake)
 end
 
 --- Poll for the Settings tab: the normalised settings only, so alert updates do not re-render it
@@ -203,6 +250,7 @@ local SECOND_TARGET_KINDS : {string : boolean} = { veh_blocked = true, train_blo
 local shownRows : {string : ProblemRadarHudRow} = {}
 local rowHandlers : {string : function()} = {}
 local altHandlers : {string : function()} = {}
+local snoozeHandlers : {string : function()} = {}
 
 local function rowHandler(id : string) : function()
 	local h = rowHandlers[id]
@@ -228,12 +276,94 @@ local function altHandler(id : string) : function()
 	return h
 end
 
+-- The snooze length for the buttons' tooltips and the optimistic end: set by ProblemRadarContent
+-- from the polled settings.
+local snoozeMonths = radar_settings.NUMBERS.snoozeMonths.default
+
+-- The window's state and commit fn (engine_react_util.useStepStateTimerWithCommit), set on every
+-- render of ProblemRadarContent; nil while the window is closed.
+local windowState : ReactStateT<ProblemRadarHudView> = nil
+local windowCommit : function(ProblemRadarHudView, Command<ICommandData>) = nil
+
+--- The snooze's end as the engine will compute it (radar.script.tl monthsMs), for the optimistic row;
+--- the poll replaces it with the engine's own value.
+local function estimateUntil() : integer
+	local ok, v = pcall(function() : integer
+		local world = api.engine.util.getWorld()
+		local gt = api.engine.getComponent(world, api.type.ComponentType.GAME_TIME) as Engine.Component.GameTime
+		local gs = api.engine.getComponent(world, api.type.ComponentType.GAME_SPEED) as Engine.Component.GameSpeed
+		local mpd = gs ~= nil and gs.millisPerDay or 0
+		local month = mpd ~= nil and mpd > 0 and api.util.getMonthDuration(mpd) or api.util.getDefaultMonthDuration()
+		return math.floor(gt.gameTime + snoozeMonths * month)
+	end)
+	return ok and v or 0
+end
+
+--- Snooze button (alert tabs) / unsnooze button (Snoozed tab): the engine stores it (radar_checks.snooze).
+--- The row moves at once: the click is recorded as pending and the window commits the view with it
+--- applied, like the base notification dismiss (notification_popups.tl, useStepStateTimerWithCommit).
+local function snoozeHandler(id : string) : function()
+	local h = snoozeHandlers[id]
+	if h == nil then
+		h = function()
+			local r = shownRows[id]
+			if r == nil or pendingAt[id] ~= nil then return end
+			local wake = r.snoozedUntil ~= nil
+			if wake then pendingWake[id] = true else pendingSnooze[id] = estimateUntil() end
+			pendingAt[id] = os.time()
+			local cmd = api.cmd.makeScriptingSendEventCmd("", EVENT_ID, wake and EV_UNSNOOZE or EV_SNOOZE, { id = id })
+			if windowState ~= nil and windowCommit ~= nil and windowState:old() ~= nil then
+				windowCommit(hud_model.applyPending(windowState:old(), pendingSnooze, pendingWake), cmd as Command<ICommandData>)
+			else
+				api.cmd.sendCommand(cmd)
+			end
+		end
+		snoozeHandlers[id] = h
+	end
+	return h
+end
+
+local SNOOZE_LABELS : {integer : string} = { [1] = "1 month", [6] = "6 months", [12] = "1 year", [60] = "5 years" }
+
+local function monthsText(months : integer) : string
+	local preset = SNOOZE_LABELS[months]
+	if preset ~= nil then return _(preset) end
+	return lang_util.format(_("{n} months"), { n = tostring(months) })
+end
+
+-- Per render (alertList): the calendar speed, read once, and the snooze buttons' tooltips (the same
+-- for every row). untilTexts caches the formatted end dates by "<ms>:<millisPerDay>".
+local renderMpd : integer = 0
+local snoozeTipText = ""
+local wakeTipText = ""
+local untilTexts : {string : string} = {}
+local untilTextCount = 0
+
+--- A snooze's end as a calendar date (as base scripts/util.tl formatTimePoint); the game time when the
+--- calendar is frozen (millisPerDay 0).
+local function untilText(ms : integer) : string
+	local key = tostring(ms) .. ":" .. tostring(renderMpd)
+	local cached = untilTexts[key]
+	if cached ~= nil then return cached end
+	local ok, txt = pcall(function() : string
+		if renderMpd == 0 then return api.util.formatGameTime(ms) end
+		return api.util.formatDate(api.engine.util.getCalendarDate(ms), api.type.enum.DateFormat.MEDIUM)
+	end)
+	local out = lang_util.format(_("until {date}"), { date = ok and txt or "" })
+	if untilTextCount >= 400 then untilTexts, untilTextCount = {}, 0 end
+	untilTexts[key] = out
+	untilTextCount = untilTextCount + 1
+	return out
+end
+
 local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
 	local tip = row.tip
 	if tip == nil then
 		tip = row.detail
 		if row.metric ~= "" then tip = tip .. " (" .. row.metric .. ")" end
 	end
+	local snoozed = row.snoozedUntil ~= nil
+	local metric = snoozed and untilText(row.snoozedUntil) or row.metric
 	local button = builtin.Button{
 		meta = { class = "radar-row", tooltip = tip },
 		content = hbox({
@@ -244,20 +374,34 @@ local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
 			text(row.label, "font-scale-body, radar-cell-label"),
 			text(row.context, "font-scale-annotation, radar-cell-context"),
 			text(row.detail, "font-scale-annotation, radar-cell-detail"),
-			text(row.metric, "font-scale-annotation, radar-cell-metric"),
+			text(metric, "font-scale-annotation, radar-cell-metric"),
 		}),
 		onClick = rowHandler(row.id),
 	}
-	if row.entity2 == nil or not SECOND_TARGET_KINDS[row.kind] then return button end
-	-- A sibling button (not nested inside the row button), so each has its own click.
-	return hbox({
-		button,
+	-- Sibling buttons (not nested inside the row button), so each has its own click. The snooze
+	-- button leads the row, so it lines up in one column whether or not the row has a second target.
+	local children : {TreeNodeId} = {
 		builtin.Button{
+			meta = { class = "radar-row-snooze", tooltip = snoozed and wakeTipText or snoozeTipText },
+			content = text(snoozed and "×" or "Zz", "font-scale-annotation"),
+			onClick = snoozeHandler(row.id),
+		},
+		button,
+	}
+	if row.entity2 ~= nil and SECOND_TARGET_KINDS[row.kind] then
+		children[#children + 1] = builtin.Button{
 			meta = { class = "radar-row-alt", tooltip = _("Show the other train") },
 			content = text("→", "font-scale-annotation"),
 			onClick = altHandler(row.id),
-		},
-	})
+		}
+	end
+	-- Keyed by alert id (base precedent: notification_popups.tl, meta.localKey per notification), so a
+	-- row that leaves the list doesn't hand new props to every row after it.
+	return builtin.BoxLayout{
+		meta = { class = boxClass(nil), localKey = row.id },
+		orientation = builtin.type.Orientation.Horizontal,
+		children = children,
+	}
 end
 
 local function alertList(view : ProblemRadarHudView, tab : string) : TreeNodeId
@@ -267,14 +411,25 @@ local function alertList(view : ProblemRadarHudView, tab : string) : TreeNodeId
 	shownRows = shown
 	local keepRow : {string : function()} = {}
 	local keepAlt : {string : function()} = {}
+	local keepSnooze : {string : function()} = {}
 	for id in pairs(shown) do
 		keepRow[id] = rowHandlers[id]
 		keepAlt[id] = altHandlers[id]
+		keepSnooze[id] = snoozeHandlers[id]
 	end
-	rowHandlers, altHandlers = keepRow, keepAlt
+	rowHandlers, altHandlers, snoozeHandlers = keepRow, keepAlt, keepSnooze
+
+	local mpdOk, mpd = pcall(function() : integer
+		local gs = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.GAME_SPEED) as Engine.Component.GameSpeed
+		return gs ~= nil and gs.millisPerDay or 0
+	end)
+	renderMpd = mpdOk and mpd or 0
+	snoozeTipText = lang_util.format(_("Snooze: hide this alert and its notifications for {time}"), { time = monthsText(snoozeMonths) })
+	wakeTipText = _("Unsnooze: list and count this alert again")
 
 	if #rows == 0 and more == 0 then
-		return vbox({ text(_("No problems detected"), "font-scale-body, radar-empty") }, "radar-list")
+		local empty = tab == hud_model.SNOOZED_TAB and _("Nothing snoozed. Zz on a row hides it for a while.") or _("No problems detected")
+		return vbox({ text(empty, "font-scale-body, radar-empty") }, "radar-list")
 	end
 	local children : {TreeNodeId} = {}
 	for i, row in ipairs(rows) do children[i] = alertRow(row) end
@@ -314,7 +469,8 @@ local NUMBER_GROUPS : {{string}} = {
 	-- { group title, key, label, key, label, ... }
 	-- Smoothing applies to every alert kind (radar_checks.merge); 0 = list / clear on the next scan.
 	{ "Timing",
-		"smoothSec", "Smoothing: problems must persist / linger (game seconds)" },
+		"smoothSec", "Smoothing: problems must persist / linger (game seconds)",
+		"snoozeMonths", "Snooze length: Zz on a row hides its alert for (game months)" },
 	{ "Stuck vehicles (game minutes standing)",
 		"stuckMinRoad", "Road vehicles", "stuckMinTram", "Trams", "stuckMinRail", "Trains (also waiting behind a train)",
 		"stuckMinWater", "Ships", "stuckMinAir", "Aircraft" },
@@ -340,7 +496,7 @@ local GROUP_HINTS : {string : string} = {
 	Economy = "Losing money is a Warning when its coverage is poor or the loss is big, and Critical when both count: a very poor coverage with a big loss, or a poor coverage with a very big loss. Within a severity, bigger losses come first.",
 }
 
-local UNIT_LABELS : {string : string} = { min = "min", days = "days", ["%"] = "%", x = "×", s = "s" }
+local UNIT_LABELS : {string : string} = { min = "min", days = "days", ["%"] = "%", x = "×", s = "s", months = "months" }
 
 local function rangeText(num : ProblemRadarNumberSetting) : string
 	local unit = _(UNIT_LABELS[num.unit] or num.unit)
@@ -506,22 +662,63 @@ local TAB_LABELS : {string : string} = {
 	stations = "Stations ({n})",
 	fleet = "Fleet ({n})",
 	economy = "Economy ({n})",
+	snoozed = "Snoozed ({n})",
 }
 
-local function tabChild(key : string, label : string, item : TreeNodeId) : TreeNodeId
+local function tabChild(key : string, label : string, item : TreeNodeId, footer? : TreeNodeId) : TreeNodeId
 	return builtin.TabWidgetChild{
 		localKey = "radar_tab_" .. key,
 		value = key,
 		indicator = text(label, "font-scale-tab-widget-indicator"),
 		item = builtin.Component{
-			layout = vbox({ item }),
+			layout = vbox(footer ~= nil and { item, footer } or { item }),
 		},
 	}
 end
 
+--- Under the alert lists: the snooze length picker (settings.snoozeMonths, presets
+--- radar_checks.SNOOZE_MONTHS; a custom value from the Settings tab selects none).
+local function snoozeFooter(settings : ProblemRadarSettings) : TreeNodeId
+	local buttons : {Builtin.ToggleButtonGroupChildParam} = {}
+	local selected = -1
+	for i, m in ipairs(radar_checks.SNOOZE_MONTHS) do
+		buttons[i] = { content = text(monthsText(m), "font-scale-annotation") }
+		if m == settings.snoozeMonths then selected = i end
+	end
+	return hbox({
+		text(_("Zz snoozes an alert for"), "font-scale-annotation, radar-footer-label"),
+		builtin.ToggleButtonGroup{
+			buttons = buttons,
+			selected = selected,
+			onValueChange = function(index : integer)
+				local m = radar_checks.SNOOZE_MONTHS[index]
+				if m ~= nil and m ~= settings.snoozeMonths then
+					sendEvent(EV_SET_SETTING, { snoozeMonths = m })
+				end
+			end,
+		},
+	}, "radar-footer")
+end
+
+--- Under the Snoozed list: wake everything at once.
+local function snoozedFooter(count : integer) : TreeNodeId
+	if count == 0 then return nil end
+	return hbox({
+		text(_("Snoozed alerts are not counted or notified. When a snooze ends, a problem that is still there notifies again."),
+			"font-scale-annotation, radar-footer-label"),
+		builtin.Button{
+			meta = { class = "radar-reset" },
+			content = text(_("Unsnooze all"), "font-scale-annotation"),
+			onClick = function() sendEvent(EV_UNSNOOZE, {}) end,
+		},
+	}, "radar-footer")
+end
+
 local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", function() : TreeNodeId
 	-- The window polls on its own (same hook as the HUD), so it stays live while open.
-	local state = engine_react_util.useStepStateTimer(getFromEngine, POLL_SECONDS)
+	-- With commit: a snooze click shows at once (snoozeHandler), polls pause until the event is done.
+	local state, commit = engine_react_util.useStepStateTimerWithCommit(getFromEngine, WINDOW_POLL_SECONDS)
+	windowState, windowCommit = state, commit as function(ProblemRadarHudView, Command<ICommandData>)
 	-- Controlled tab (value + onValueChange, like .cache/game/base/content/gui/menu/mod_manager_page.tl:286-300),
 	-- so the selected tab survives every data refresh (the tabs' labels and items change each poll).
 	local tabState = react.useState("all") as ReactStateT<string>
@@ -530,11 +727,17 @@ local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", function
 	-- Phase 6: only the selected tab builds its content (one list of at most MAX_RENDERED_ROWS rows,
 	-- or the Settings page with its own poll); every other tab gets an empty placeholder until it
 	-- is selected.
+	snoozeMonths = view.settings.snoozeMonths
 	local tabs : {TreeNodeId} = {}
 	for __, key in ipairs(hud_model.TABS) do
 		local label = lang_util.format(_(TAB_LABELS[key]), { n = tostring(view.tabCounts[key] or 0) })
-		tabs[#tabs + 1] = tabChild(key, label, key == selected and alertList(view, key) or vbox({}))
+		local on = key == selected
+		tabs[#tabs + 1] = tabChild(key, label, on and alertList(view, key) or vbox({}), on and snoozeFooter(view.settings) or nil)
 	end
+	local sz = hud_model.SNOOZED_TAB
+	local szOn = selected == sz
+	tabs[#tabs + 1] = tabChild(sz, lang_util.format(_(TAB_LABELS[sz]), { n = tostring(view.tabCounts[sz] or 0) }),
+		szOn and alertList(view, sz) or vbox({}), szOn and snoozedFooter(view.tabCounts[sz] or 0) or nil)
 	tabs[#tabs + 1] = tabChild("settings", _("Settings"), selected == "settings" and ProblemRadarSettingsPage() or vbox({}))
 	return vbox({
 		builtin.TabWidget{
@@ -573,6 +776,7 @@ local ProblemRadarWindow = react.RegisterWrapperRecipe("ProblemRadarWindow", bui
 end)
 
 local function closeWindow()
+	windowState, windowCommit = nil, nil
 	local wa = game_react_globals.getDefaultWindowApi()
 	if wa ~= nil then
 		wa.removeAllWindows(ProblemRadarWindow)
@@ -590,6 +794,22 @@ local function openWindow()
 	wa.moveSingletonWindowToFront(ProblemRadarWindow)
 end
 
+--- Whether the radar window is open: its content recipe is mounted. The WindowAPI has no query
+--- (builtin.d.tl:1216-1233), so this uses the content's poll state, set on every render and expired
+--- by react once the window is gone (however it was closed).
+local function windowOpen() : boolean
+	return windowState ~= nil and not windowState:hasExpired()
+end
+
+--- Ridge button: open the window, or close it when it is already open (like the Industry Flows button).
+local function toggleWindow()
+	if windowOpen() then
+		closeWindow()
+	else
+		openWindow()
+	end
+end
+
 ---------------------------------------------------------------------------
 -- Ridge HUD.
 
@@ -602,7 +822,7 @@ local function badge(counts : ProblemRadarHudCounts) : TreeNodeId
 			dot(counts.worstTier),
 			text(tostring(counts.total)),
 		}),
-		onClick = openWindow,
+		onClick = toggleWindow,
 	}
 end
 
@@ -610,13 +830,13 @@ end
 --- button (like the badge) that opens the window.
 local function compactPanel(counts : ProblemRadarHudCounts) : TreeNodeId
 	return builtin.Button{
-		meta = { class = "radar-panel, radar-compact", tooltip = _("Open Problem Radar") },
+		meta = { class = "radar-panel, radar-compact", tooltip = _("Open or close Problem Radar") },
 		content = hbox({
 			text(_("Radar")),
 			dot(counts.worstTier),
 			text(hud_model.compactText(counts.tierCounts)),
 		}),
-		onClick = openWindow,
+		onClick = toggleWindow,
 	}
 end
 
