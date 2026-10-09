@@ -73,6 +73,21 @@ and patching base GUI modules from a GUI script (the dots are built by a local f
   with the modId and `grep` for them. The thread column shows which Lua state ran the code.
 - The engine logs each load's mod params ("mod params: … dotSize = 4") after "Loading config from file".
 - `crash_dump/error.json` holds the most recent caught Lua error with file, line and stack trace.
+- **Removing a staging mod while a save is loaded crashes the game** (2026-10-09): deleting
+  `square_quota_run` (its staging symlink went with it) while in game, even though the save didn't use
+  it, crashed on the next staging rescan (`LocalModHubBackend::UpdateLocalInstallations`, "Mod got
+  locally deleted in restricted mod management mode", then Assertion `inAddMods && "cannot remove mods
+  in game"`). Edits to files in existing mods are fine. Quit to the main menu (or close the game) before
+  `make unlink`, deleting a mod folder, or switching to a git branch that lacks a mod.
+
+### Game-script event subscriptions are saved (2026-10-08)
+
+- `GameScriptState` subscriptions (`subscribeToEvent`) persist in the savegame. A script that subscribes
+  only `if not state:hasEventSubscriptions()` never picks up an event added in a later mod revision when
+  an existing save is loaded: the new GUI events are silently dropped (no error, the handler never runs).
+  Evidence: square_problem_radar rev 3 added `ProblemRadar.snooze`; on a rev 2 save the click did
+  nothing and stdout.txt had no handler log line. Fix: re-run the full subscribe (`subscribeToNoEvents`
+  + every `subscribeToEvent`) once per load, tracked by a module-local flag.
 
 ## Street names and Road Stops (2026-10-08)
 
