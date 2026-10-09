@@ -45,8 +45,9 @@ return {
 	regionalSets = {},
 	stationSuffix = nil,
 	notes = { "Not affiliated with the \"Texas Names\" mod; all lists here are our own." },
-	revision = 2,
+	revision = 3,
 	changelog = {
+		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
 		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },
 	},

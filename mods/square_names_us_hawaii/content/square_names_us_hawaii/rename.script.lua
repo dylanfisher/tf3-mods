@@ -332,11 +332,19 @@ local function processQueue(due, fresh)
 end
 
 local lastPoll = nil   -- os.time() of the last queue check in this Lua state
+-- true once getModParams said map editor. A game script Lua state lives for one loaded game, which is either the
+-- editor or not, so the answer is kept: without it every editor frame copied every mod's params (13 series mods
+-- active = 13 copies per frame).
+local inEditor = false
 
 local function doUpdate(state)
+	if inEditor then return end
 	if not state:hasEventSubscriptions() then
 		-- Never in the map editor: without subscriptions no build event reaches us, and a queue is never run.
-		if isMapEditor() then return end
+		if isMapEditor() then
+			inEditor = true
+			return
+		end
 		-- Lazy: lifecycle events don't reach a mod added to an existing save.
 		state:subscribeToNoEvents()
 		state:subscribeToEvent(EV_POST)

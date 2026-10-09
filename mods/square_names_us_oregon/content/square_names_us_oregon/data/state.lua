@@ -53,8 +53,9 @@ return {
 		"Not affiliated with the \"Oregon Names\" mod; all lists here are our own.",
 		"Streets cover 12 cities (Portland, Eugene, Salem, Gresham, Hillsboro, Beaverton, Bend, Medford, Corvallis, Albany, Astoria and Ashland); every other town uses the generic Oregon pool.",
 	},
-	revision = 2,
+	revision = 3,
 	changelog = {
+		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
 		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },
 	},
