@@ -453,3 +453,108 @@ test("redo: the cap holds for the redo stack and the dropped count comes back wi
 	eq(#h2.redo, 2)
 	eq(h2.redo[2].stops[1].stationGroup, 2)
 end)
+
+-- matchesLive / observeLive (per-step fast path) ---------------------------------------------------------------------
+
+-- every single-field mutation of a rich line, plus structural ones; matchesLive must agree with
+-- equal(snapshot(comp), snap) (it may only say false when they are equal, never true when they differ)
+local function richLine()
+	return line({
+		stop(10, { waypoints = { wpEdge(3, 77, 4, 0.25), wpPos(4, 1, 2, 3) } }),
+		stop(20, { stopConfig = nil }),
+		stop(30, { alternativeTerminals = {} }),
+	}, { customFilters = true, reservationPriority = 2 })
+end
+
+local MUTATIONS = {
+	function(c) c.customFilters = false end,
+	function(c) c.reservationPriority = 3 end,
+	function(c) c.stops[3] = nil end,
+	function(c) c.stops[4] = stop(40) end,
+	function(c) c.stops[1], c.stops[2] = c.stops[2], c.stops[1] end,
+	function(c) c.stops[1].stationGroup = 11 end,
+	function(c) c.stops[1].station = 1 end,
+	function(c) c.stops[1].terminal = 5 end,
+	function(c) c.stops[1].loadMode = 1 end,
+	function(c) c.stops[1].minWaitingTime = 5 end,
+	function(c) c.stops[1].maxWaitingTime = 5 end,
+	function(c) c.stops[1].maxAdditionalWaitingTime = 5 end,
+	function(c) c.stops[1].alternativeTerminals[1].terminal = 7 end,
+	function(c) c.stops[1].alternativeTerminals[1].station = 7 end,
+	function(c) c.stops[1].alternativeTerminals[2] = { station = 0, terminal = 3 } end,
+	function(c) c.stops[3].alternativeTerminals[1] = { station = 0, terminal = 3 } end,
+	function(c) c.stops[1].waypoints[1].tag = 9 end,
+	function(c) c.stops[1].waypoints[1].edgePos.param = 0.5 end,
+	function(c) c.stops[1].waypoints[1].edgePos.edgeId.entity = 78 end,
+	function(c) c.stops[1].waypoints[1].edgePos.edgeId.index = 5 end,
+	function(c) c.stops[1].waypoints[1].edgePos = nil end,
+	function(c) c.stops[1].waypoints[1].edgePos.edgeId = nil end,
+	function(c) c.stops[1].waypoints[1].pos = { x = 0, y = 0, z = 0 } end,
+	function(c) c.stops[1].waypoints[2].pos.z = 4 end,
+	function(c) c.stops[1].waypoints[2].pos = nil end,
+	function(c) c.stops[1].waypoints[2].edgePos = { edgeId = { entity = 1, index = 0 }, param = 0 } end,
+	function(c) c.stops[1].waypoints[3] = wpPos(5, 0, 0, 0) end,
+	function(c) c.stops[1].waypoints[2] = nil end,
+	function(c) c.stops[1].stopConfig.load[2] = true end,
+	function(c) c.stops[1].stopConfig.load[3] = true end,
+	function(c) c.stops[1].stopConfig.maxLoad[1] = 0.75 end,
+	function(c) c.stops[1].stopConfig.forceUnload = true end,
+	function(c) c.stops[1].stopConfig.destroyForConfigChange = true end,
+	function(c) c.stops[1].stopConfig.destroyForRefresh = false end,
+	function(c) c.stops[1].stopConfig = nil end,
+	function(c) c.stops[2].stopConfig = { load = {}, maxLoad = {} } end,
+	function(_c) end, -- unchanged
+}
+
+test("matchesLive agrees with equal(snapshot(comp), snap) for every mutation", function()
+	local snap = core.snapshot(richLine())
+	for i, mutate in ipairs(MUTATIONS) do
+		local comp = richLine()
+		mutate(comp)
+		local want = core.equal(core.snapshot(comp), snap)
+		eq(core.matchesLive(comp, snap), want, "mutation " .. i)
+		-- and the other way round: the mutated line as the stored state, the original as live
+		eq(core.matchesLive(richLine(), core.snapshot(comp)), want, "reverse mutation " .. i)
+	end
+	ok(core.matchesLive(richLine(), snap))
+	eq(core.matchesLive(nil, snap), false)
+	eq(core.matchesLive(richLine(), nil), false)
+end)
+
+test("matchesLive reads userdata-like vectors and compares userdata values by tostring", function()
+	local mode = setmetatable({}, { __tostring = function() return "LoadMode(1)" end })
+	local comp = line({ stop(10, { loadMode = mode }) })
+	local snap = core.snapshot(comp)
+	local other = setmetatable({}, { __tostring = function() return "LoadMode(1)" end })
+	local backing = { stop(10, { loadMode = other }) }
+	local vec = setmetatable({}, { __len = function() return #backing end, __index = function(_t, i) return backing[i] end })
+	ok(core.matchesLive({ stops = vec, customFilters = false, reservationPriority = 0 }, snap))
+end)
+
+test("observeLive records exactly what observe(snapshot) records", function()
+	for i, mutate in ipairs(MUTATIONS) do
+		local hA = core.newHistory(core.snapshot(richLine()))
+		local hB = core.newHistory(core.snapshot(richLine()))
+		local comp = richLine()
+		mutate(comp)
+		eq(core.observeLive(hA, comp), core.observe(hB, core.snapshot(comp)), "mutation " .. i)
+		eq(hA.states, hB.states, "mutation " .. i)
+		-- unchanged afterwards: no new entry, and the stored state is not replaced
+		local top = hA.states[#hA.states]
+		eq(core.observeLive(hA, comp), false)
+		ok(hA.states[#hA.states] == top)
+	end
+end)
+
+test("observeLive: our in-flight undo lands (live equals the top) and clears expected", function()
+	local h = core.newHistory(core.snapshot(line({ stop(10), stop(20) })))
+	core.observeLive(h, line({ stop(10) }))
+	local _t, token = core.beginUndo(h, core.snapshot(line({ stop(10) })), false)
+	ok(h.expected ~= nil)
+	eq(core.observeLive(h, line({ stop(10) })), false) -- stale: not applied yet
+	ok(h.expected ~= nil)
+	eq(core.observeLive(h, line({ stop(10), stop(20) })), false) -- applied
+	eq(h.expected, nil)
+	eq(#h.states, 1)
+	core.finishCommand(h, token, true)
+end)

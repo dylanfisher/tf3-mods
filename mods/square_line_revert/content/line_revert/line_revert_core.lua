@@ -123,6 +123,82 @@ function core.equal(a, b)
 	return deepEqual(a, b)
 end
 
+-- Fast "unchanged?" check against the live component, for the per-step poll (line_revert.script.lua observe):
+-- walks the userdata like snapshot() but builds nothing. Sound, not complete: true only when snapshot(lineComp)
+-- would be core.equal to `snap` (field by field with the same deepEqual rules), so a false just means "take the
+-- full snapshot". `snap` must come from core.snapshot (no keys beyond the ones it writes).
+
+local function sameScalarList(v, list)
+	local n = count(v)
+	if list == nil or n ~= #list then return false end
+	for i = 1, n do
+		if not deepEqual(v[i], list[i]) then return false end
+	end
+	return true
+end
+
+local function sameStopConfig(c, t)
+	if c == nil or t == nil then return c == nil and t == nil end
+	return sameScalarList(c.load, t.load) and sameScalarList(c.maxLoad, t.maxLoad)
+		and deepEqual(c.forceUnload, t.forceUnload)
+		and deepEqual(c.destroyForConfigChange, t.destroyForConfigChange)
+		and deepEqual(c.destroyForRefresh, t.destroyForRefresh)
+end
+
+local function sameWaypoint(w, t)
+	if not deepEqual(w.tag, t.tag) then return false end
+	local ep = w.edgePos
+	if ep ~= nil and ep.edgeId ~= nil then
+		local te = t.edgePos
+		if te == nil or not (deepEqual(ep.edgeId.entity, te.entity) and deepEqual(ep.edgeId.index, te.index)
+			and deepEqual(ep.param, te.param)) then return false end
+	elseif t.edgePos ~= nil then
+		return false
+	end
+	local p = w.pos
+	if p ~= nil then
+		local tp = t.pos
+		if tp == nil or not (deepEqual(p.x, tp.x) and deepEqual(p.y, tp.y) and deepEqual(p.z, tp.z)) then return false end
+	elseif t.pos ~= nil then
+		return false
+	end
+	return true
+end
+
+local function sameStop(s, t)
+	if not (deepEqual(s.stationGroup, t.stationGroup) and deepEqual(s.station, t.station)
+		and deepEqual(s.terminal, t.terminal) and deepEqual(s.loadMode, t.loadMode)
+		and deepEqual(s.minWaitingTime, t.minWaitingTime) and deepEqual(s.maxWaitingTime, t.maxWaitingTime)
+		and deepEqual(s.maxAdditionalWaitingTime, t.maxAdditionalWaitingTime)) then return false end
+	local alts, talts = s.alternativeTerminals, t.alternativeTerminals
+	local n = count(alts)
+	if talts == nil or n ~= #talts then return false end
+	for i = 1, n do
+		local a, b = alts[i], talts[i]
+		if not (deepEqual(a.station, b.station) and deepEqual(a.terminal, b.terminal)) then return false end
+	end
+	local wps, twps = s.waypoints, t.waypoints
+	n = count(wps)
+	if twps == nil or n ~= #twps then return false end
+	for i = 1, n do
+		if not sameWaypoint(wps[i], twps[i]) then return false end
+	end
+	return sameStopConfig(s.stopConfig, t.stopConfig)
+end
+
+--- True when the live LINE component equals the snapshot `snap` (see above: false may still mean equal).
+function core.matchesLive(lineComp, snap)
+	if lineComp == nil or snap == nil or snap.stops == nil then return false end
+	if not (deepEqual(lineComp.customFilters, snap.customFilters)
+		and deepEqual(lineComp.reservationPriority, snap.reservationPriority)) then return false end
+	local stops, n = lineComp.stops, count(lineComp.stops)
+	if n ~= #snap.stops then return false end
+	for i = 1, n do
+		if not sameStop(stops[i], snap.stops[i]) then return false end
+	end
+	return true
+end
+
 local function plural(n, one, many)
 	return tostring(n) .. " " .. (n == 1 and one or many)
 end
@@ -269,6 +345,16 @@ function core.observe(h, live, cap)
 	end
 	trim(h, cap)
 	return true
+end
+
+--- observe() for a live LINE component (the per-step poll). When the line still equals the newest state, that
+-- state stands in for the snapshot (observe compares with deepEqual only, so it decides the same way), and the
+-- step costs a walk over the component without building a copy. Otherwise the full snapshot is observed.
+function core.observeLive(h, lineComp, cap)
+	if lineComp == nil then return false end
+	local top = h.states[#h.states]
+	if core.matchesLive(lineComp, top) then return core.observe(h, top, cap) end
+	return core.observe(h, core.snapshot(lineComp), cap)
 end
 
 --- The state an undo (or, with `all`, a revert all) would restore, or nil when there is nothing to undo.

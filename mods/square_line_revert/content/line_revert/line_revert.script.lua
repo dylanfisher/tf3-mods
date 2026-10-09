@@ -101,8 +101,10 @@ local function ensureSession(params)
 end
 
 --- Records the live line in the session's history (a no-op when it equals the last entry or our own command).
+--- Runs every step: core.observeLive compares the component with the newest state in place and only copies it
+--- when it changed.
 local function observe(s, comp)
-	if core.observe(s.history, core.snapshot(comp)) then
+	if core.observeLive(s.history, comp) then
 		say("edit " .. core.changeCount(s.history) .. " on line " .. tostring(s.line))
 	end
 end
@@ -115,12 +117,23 @@ local function plural(n, one, many)
 	return tostring(n) .. " " .. (n == 1 and one or many)
 end
 
+--- core.diffSummary(a, b), remembered per slot ("undo" / "redo") for the last pair of states. History states are
+--- never changed once stored, so the same pair gives the same text; the tooltips ask for it every step.
+local diffMemo = {}
+local function cachedDiff(slot, a, b)
+	local m = diffMemo[slot]
+	if m and m.a == a and m.b == b then return m.text end
+	local text = core.diffSummary(a, b)
+	diffMemo[slot] = { a = a, b = b, text = text }
+	return text
+end
+
 local function undoView(h)
 	if #h.states <= 1 then
 		return { enabled = false, tooltip = "Undo: no changes since you opened this line" }
 	end
 	local top = h.states[#h.states]
-	local diff = core.diffSummary(h.states[#h.states - 1], top)
+	local diff = cachedDiff("undo", h.states[#h.states - 1], top)
 	local n = core.changeCount(h)
 	return {
 		enabled = true,
@@ -135,12 +148,12 @@ local function redoView(h)
 		return { enabled = false, tooltip = "Redo: nothing to redo" }
 	end
 	-- what the redo applies: the current top state -> the redo target; "N more" = redo steps left after this one
-	local diff = core.diffSummary(h.states[#h.states], target)
+	local diff = cachedDiff("redo", h.states[#h.states], target)
 	return { enabled = true, tooltip = "Redo: " .. diff .. " (" .. tostring(#h.redo - 1) .. " more)" }
 end
 
---- { hidden } or { line, undo = { enabled, tooltip }, redo = { enabled, tooltip } }. Both buttons call it every
---- step; the second call in a step is a no-op for the history (observe ignores a repeat).
+--- { hidden } or { line, undo = { enabled, tooltip }, redo = { enabled, tooltip } }. Called once per step for
+--- both buttons (stepView below); a repeat call is still a no-op for the history (observe ignores a repeat).
 local function computeView()
 	local params = managerParams
 	if not params or selectedCount(params) ~= 1 then return HIDDEN end
@@ -168,6 +181,34 @@ end
 
 local function sameView(a, b)
 	return a.hidden == b.hidden and a.line == b.line and sameButton(a.undo, b.undo) and sameButton(a.redo, b.redo)
+end
+
+--- One view per step for both buttons: the Undo button's step computes it (and counts a generation), the Redo
+--- button's step takes it when Undo computed a new one since Redo last looked, else computes its own. So the line
+--- is read once per step, whatever order the two steps run in (at worst Redo shows the view one step late).
+--- Cleared when the action row is built (iconToggleButton), so a new row never starts from an old window's view.
+local shared = { view = nil, gen = 0, seen = 0 }
+
+local function safeView()
+	local ok, v = pcall(computeView)
+	if not ok then
+		warnOnce("view", v)
+		return HIDDEN
+	end
+	return v
+end
+
+local function stepView(which)
+	if which == "undo" then
+		local v = safeView()
+		shared.view, shared.gen = v, shared.gen + 1
+		return v
+	end
+	if shared.view ~= nil and shared.seen ~= shared.gen then
+		shared.seen = shared.gen
+		return shared.view
+	end
+	return safeView()
 end
 
 -- Undo / redo ------------------------------------------------------------------------------------------------------
@@ -296,12 +337,7 @@ end
 local function makeButtonRecipe(recipeName, which, icon)
 	return react.RegisterRecipe(recipeName, function(_p)
 		local state = engine_react_util.useStepState(function()
-			local ok, v = pcall(computeView)
-			if not ok then
-				warnOnce("view", v)
-				return HIDDEN
-			end
-			return v
+			return stepView(which)
 		end, nil, sameView)
 		local v = state:old() or HIDDEN
 		local b = v[which]
@@ -361,6 +397,7 @@ local function iconToggleButton(className, path, ...)
 	if path ~= AUTO_RENAME_ICON then return node end
 	local ok, wrapped = pcall(function()
 		if react.getCurrentRecipeName() ~= RECIPE_ACTION_BUTTONS or not managerParams then return nil end
+		shared.view = nil
 		return builtin.BoxLayout{
 			orientation = builtin.type.Orientation.Horizontal,
 			children = {
