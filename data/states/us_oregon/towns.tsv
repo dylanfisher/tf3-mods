@@ -1,0 +1,358 @@
+name	tags	population	lat	lon	note
+Portland	west,big	630498	45.5370	-122.6500	city est2023
+Eugene	west,big	177899	44.0568	-123.1190	city est2023
+Salem	west,big	177432	44.9239	-123.0230	city est2023
+Gresham	west,big	110685	45.5023	-122.4416	city est2023
+Hillsboro	west,big	107730	45.5268	-122.9354	city est2023
+Bend	east,big	104557	44.0567	-121.3080	city est2023
+Beaverton	west,big	96945	45.4778	-122.8169	city est2023
+Medford	west,south,big	85098	42.3369	-122.8518	city est2023
+Corvallis	west,big	61087	44.5699	-123.2783	city est2023
+Springfield	west,big	61085	44.0538	-122.9811	city est2023
+Albany	west,big	57053	44.6269	-123.0967	city est2023
+Tigard	west,big	55590	45.4229	-122.7844	city est2023
+Aloha	west	49425	45.4920	-122.8725	CDP pop2010=49425
+Lake Oswego	west,big	39924	45.4136	-122.7000	city est2023
+Grants Pass	west,south,big	39149	42.4323	-123.3318	city est2023
+Keizer	west,big	38564	45.0030	-123.0245	city est2023
+Oregon City	west	37351	45.3413	-122.5923	city est2023
+Redmond	east	37009	44.2607	-121.1824	city est2023
+McMinnville	west	34450	45.2110	-123.1918	city est2023
+Woodburn	west	29033	45.1473	-122.8604	city est2023
+Happy Valley	west	28409	45.4360	-122.5101	city est2023
+Tualatin	west	27383	45.3769	-122.7747	city est2023
+Forest Grove	west	26799	45.5248	-123.1099	city est2023
+West Linn	west	26629	45.3666	-122.6389	city est2023
+Wilsonville	west	26345	45.3113	-122.7709	city est2023
+Newberg	west	26095	45.3072	-122.9602	city est2023
+Roseburg	west,south	23861	43.2236	-123.3520	city est2023
+Klamath Falls	east	21888	42.2188	-121.7787	city est2023
+Milwaukie	west	21594	45.4448	-122.6208	city est2023
+Ashland	west,south	21061	42.1922	-122.6983	city est2023
+Bethany	west	20646	45.5613	-122.8369	CDP pop2010=20646
+Sherwood	west	19957	45.3595	-122.8424	city est2023
+Hayesville	west	19936	44.9793	-122.9737	CDP pop2010=19936
+Lebanon	west	19726	44.5310	-122.9081	city est2023
+Hermiston	east	19489	45.8329	-119.2852	city est2023
+Altamont	east	19257	42.1978	-121.7248	CDP pop2010=19257
+Central Point	west,south	19171	42.3764	-122.9107	city est2023
+Canby	west	17944	45.2651	-122.6884	city est2023
+Dallas	west	17644	44.9221	-123.3129	city est2023
+Pendleton	east	17289	45.6756	-118.8197	city est2023
+Oak Grove	west	16629	45.4127	-122.6344	CDP pop2010=16629
+The Dalles	east	15786	45.5984	-121.1524	city est2023
+Troutdale	west	15717	45.5392	-122.3927	city est2023
+Coos Bay	west,coast,south	15595	43.3811	-124.2326	city est2023
+Cornelius	west	14981	45.5189	-123.0510	city est2023
+Cedar Mill	west	14546	45.5355	-122.8006	CDP pop2010=14546
+St. Helens	west	14437	45.8568	-122.8163	city est2023
+Oatfield	west	13415	45.4125	-122.5941	CDP pop2010=13415
+La Grande	east	12973	45.3245	-118.0869	city est2023
+Sandy	west	12946	45.3981	-122.2688	city est2023
+Ontario	east	11866	44.0250	-116.9788	city est2023
+Gladstone	west	11865	45.3856	-122.5928	city est2023
+Prineville	east	11745	44.2985	-120.8607	city est2023
+Monmouth	west	11270	44.8513	-123.2286	city est2023
+Fairview	west	10782	45.5476	-122.4368	city est2023
+Cottage Grove	west	10623	43.7959	-123.0572	city est2023
+Damascus	west	10539	45.4264	-122.4430	CDP pop2010=10539
+Newport	west,coast	10489	44.6214	-124.0438	city est2023
+Silverton	west	10341	45.0034	-122.7809	city est2023
+Independence	west	10247	44.8578	-123.1977	city est2023
+Baker City	east	10225	44.7749	-117.8320	city est2023
+Sweet Home	west	10206	44.4040	-122.7015	city est2023
+Molalla	west	10103	45.1493	-122.5849	city est2023
+North Bend	west,coast	10054	43.4072	-124.2345	city est2023
+Lincoln City	west,coast	10007	44.9779	-124.0061	city est2023
+Astoria	west,coast	9986	46.1874	-123.8151	city est2023
+Eagle Point	west,south	9829	42.4677	-122.8016	city est2023
+Florence	west,coast	9470	43.9916	-124.1065	city est2023
+Rockcreek	west	9316	45.5525	-122.8759	CDP pop2010=9316
+Bull Mountain	west	9133	45.4126	-122.8320	CDP pop2010=9133
+Sutherlin	west,south	8652	43.3862	-123.3227	city est2023
+Hood River	east	8346	45.7091	-121.5260	city est2023
+Cedar Hills	west	8300	45.5044	-122.8066	CDP pop2010=8300
+Scappoose	west	8259	45.7581	-122.8731	city est2023
+Stayton	west	8225	44.8055	-122.7998	city est2023
+White City	west,south	7975	42.4317	-122.8322	CDP pop2010=7975
+Umatilla	east	7755	45.9176	-119.3320	city est2023
+Madras	east	7744	44.6639	-121.1604	city est2023
+Jennings Lodge	west	7315	45.3935	-122.6155	CDP pop2010=7315
+Seaside	west,coast	7164	45.9890	-123.9210	city est2023
+Junction City	west	7072	44.2119	-123.2002	city est2023
+Milton-Freewater	east	6977	45.9340	-118.3910	city est2023
+Garden Home	west	6674	45.4634	-122.7608	CDP pop2010=6674
+Brookings	west,coast,south	6672	42.0724	-124.3049	city est2023
+West Slope	west	6554	45.4962	-122.7730	CDP pop2010=6554
+Sheridan	west	6483	45.0959	-123.3981	city est2023
+Talent	west,south	6332	42.2405	-122.7812	city est2023
+Warrenton	west,coast	6255	46.1731	-123.9297	city est2023
+Raleigh Hills	west	5896	45.4851	-122.7567	CDP pop2010=5896
+Philomath	west	5714	44.5420	-123.3595	city est2023
+Winston	west,south	5678	43.1201	-123.4245	city est2023
+Creswell	west	5597	43.9226	-123.0140	city est2023
+Estacada	west	5421	45.2982	-122.3324	city est2023
+Tillamook	west,coast	5196	45.4561	-123.8331	city est2023
+Veneta	west	5183	44.0472	-123.3513	city est2023
+King City	west	4968	45.4012	-122.8069	city est2023
+Wood Village	west	4717	45.5358	-122.4205	city est2023
+Lafayette	west	4530	45.2469	-123.1119	city est2023
+Beavercreek	west	4485	45.2810	-122.5085	CDP pop2010=4485
+Phoenix	west,south	4422	42.2748	-122.8153	city est2023
+Reedsport	west,coast	4321	43.6989	-124.1119	city est2023
+Boardman	east	4268	45.8365	-119.6928	city est2023
+Aumsville	west	4164	44.8462	-122.8699	city est2023
+Coquille	west,coast,south	3991	43.1803	-124.1842	city est2023
+Metzger	west	3765	45.4493	-122.7621	CDP pop2010=3765
+Harrisburg	west	3701	44.2703	-123.1626	city est2023
+Toledo	west,coast	3514	44.6197	-123.9337	city est2023
+Myrtle Creek	west,south	3501	43.0241	-123.2784	city est2023
+Mount Angel	west	3429	45.0695	-122.7972	city est2023
+North Plains	west	3378	45.5975	-122.9947	city est2023
+Hubbard	west	3372	45.1815	-122.8083	city est2023
+Millersburg	west	3311	44.6789	-123.0725	city est2023
+Bandon	west,coast,south	3304	43.1147	-124.4155	city est2023
+Jefferson	west	3267	44.7166	-123.0060	city est2023
+Nyssa	east	3253	43.8779	-116.9956	city est2023
+Dundee	west	3179	45.2758	-123.0074	city est2023
+Oakridge	west,mountain	3147	43.7451	-122.4650	city est2023
+Shady Cove	west,south	3064	42.6053	-122.8194	city est2023
+Sisters	east,mountain	2979	44.2924	-121.5530	city est2023
+Warm Springs	east	2945	44.7913	-121.2477	CDP pop2010=2945
+Jacksonville	west,south	2936	42.3126	-122.9692	city est2023
+Sublimity	west	2912	44.8294	-122.7923	city est2023
+Burns	east	2710	43.5883	-119.0613	city est2023
+Dayton	west	2650	45.2199	-123.0781	city est2023
+Gervais	west	2547	45.1080	-122.8964	city est2023
+La Pine	east	2540	43.6868	-121.4853	city est2023
+Myrtle Point	west,coast,south	2471	43.0627	-124.1331	city est2023
+Lakeview	east	2458	42.1914	-120.3525	town est2023
+Vernonia	west	2425	45.8640	-123.1836	city est2023
+Turner	west	2393	44.8485	-122.9513	city est2023
+Harbor	west,coast,south	2391	42.0367	-124.2520	CDP pop2010=2391
+Rogue River	west,south	2357	42.4355	-123.1682	city est2023
+Gold Beach	west,coast,south	2327	42.4133	-124.4222	city est2023
+Willamina	west	2258	45.0786	-123.4849	city est2023
+Waldport	west,coast	2257	44.4184	-124.0662	city est2023
+Odell	west	2255	45.6355	-121.5522	CDP pop2010=2255
+Carlton	west	2225	45.2945	-123.1754	city est2023
+Enterprise	east,mountain	2130	45.4258	-117.2788	city est2023
+Union	east	2118	45.2089	-117.8679	city est2023
+Mulino	west	2103	45.2220	-122.5572	CDP pop2010=2103
+Stanfield	east	2099	45.7823	-119.2161	city est2023
+Cave Junction	west,south	2052	42.1667	-123.6481	city est2023
+Lincoln Beach	west,coast	2045	44.8732	-124.0314	CDP pop2010=2045
+Irrigon	east	2008	45.8951	-119.4888	city est2023
+Mill City	west	1990	44.7520	-122.4770	city est2023
+Columbia City	west	1944	45.8975	-122.8124	city est2023
+Vale	east	1933	43.9839	-117.2421	city est2023
+Rainier	west	1926	46.0714	-122.9414	city est2023
+Rose Lodge	west,coast	1894	45.0187	-123.8882	CDP pop2010=1894
+Gearhart	west,coast	1870	46.0317	-123.9185	city est2023
+Durham	west	1860	45.3945	-122.7580	city est2023
+Chenoweth	east	1855	45.6164	-121.2343	CDP pop2010=1855
+Lakeside	west,coast	1854	43.5845	-124.1719	city est2023
+Brownsville	west	1849	44.3922	-122.9833	city est2023
+Barview	west,coast,south	1844	43.3479	-124.3065	CDP pop2010=1844
+Banks	west	1807	45.6149	-123.1071	city est2023
+Glide	west,south	1795	43.2919	-123.0736	CDP pop2010=1795
+Warren	west	1787	45.8160	-122.8827	CDP pop2010=1787
+Amity	west	1763	45.1162	-123.1997	city est2023
+Clatskanie	west	1753	46.1046	-123.2045	city est2023
+Elgin	east,mountain	1692	45.5647	-117.9213	city est2023
+Culver	east	1670	44.5234	-121.2110	city est2023
+Canyonville	west,south	1662	42.9273	-123.2789	city est2023
+Grand Ronde	west	1661	45.0738	-123.6210	CDP pop2010=1661
+John Day	east	1659	44.4181	-118.9563	city est2023
+Hines	east	1626	43.5574	-119.0820	city est2023
+Merlin	west,south	1615	42.5199	-123.4323	CDP pop2010=1615
+Stafford	west	1577	45.3826	-122.6765	CDP pop2010=1577
+Depoe Bay	west,coast	1528	44.8091	-124.0597	city est2023
+New Hope	west,south	1515	42.3693	-123.3589	CDP pop2010=1515
+Cannon Beach	west,coast	1503	45.8881	-123.9601	city est2023
+Rockaway Beach	west,coast	1449	45.6170	-123.9389	city est2023
+Bunker Hill	west,coast,south	1444	43.3474	-124.2123	CDP pop2010=1444
+Dunes City	west,coast	1407	43.9105	-124.0911	city est2023
+Sunriver	east	1393	43.8821	-121.4350	CDP pop2010=1393
+Bay City	west,coast	1386	45.5211	-123.8861	city est2023
+Cascade Locks	west	1359	45.6760	-121.8687	city est2023
+Gold Hill	west,south	1321	42.4358	-123.0526	city est2023
+Coburg	west	1311	44.1385	-123.0570	city est2023
+Pilot Rock	east	1307	45.4928	-118.8302	city est2023
+Terrebonne	east	1257	44.3533	-121.1808	CDP pop2010=1257
+Lowell	west	1256	43.9201	-122.7818	city est2023
+Tangent	west	1247	44.5476	-123.1108	city est2023
+Riddle	west,south	1224	42.9542	-123.3645	city est2023
+Siletz	west,coast	1220	44.7218	-123.9187	city est2023
+Lyons	west	1207	44.7793	-122.6118	city est2023
+Joseph	east,mountain	1198	45.3525	-117.2304	city est2023
+Drain	west	1194	43.6623	-123.3143	city est2023
+Athena	east	1186	45.8133	-118.4926	city est2023
+Yamhill	west	1153	45.3408	-123.1845	city est2023
+Port Orford	west,coast,south	1135	42.7493	-124.4981	city est2023
+Island City	east	1121	45.3358	-118.0492	city est2023
+Heppner	east	1120	45.3529	-119.5605	city est2023
+Aurora	west	1118	45.2283	-122.7572	city est2023
+Williams	west,south	1072	42.2194	-123.2922	CDP pop2010=1072
+Falls City	west	1066	44.8648	-123.4376	city est2023
+Yoncalla	west	1038	43.6002	-123.2924	city est2023
+Pacific City	west,coast	1035	45.2053	-123.9542	CDP pop2010=1035
+Metolius	east	1022	44.5875	-121.1760	city est2023
+Adair Village	west	1018	44.6707	-123.2160	city est2023
+Yachats	west,coast	1010	44.3118	-124.1014	city est2023
+Donald	west	1000	45.2215	-122.8378	city est2023
+Scio	west	961	44.7043	-122.8511	city est2023
+Halsey	west	951	44.3828	-123.1095	city est2023
+Oakland	west	951	43.4230	-123.2972	city est2023
+Glendale	west,south	864	42.7381	-123.4294	city est2023
+Lookingglass	west,south	855	43.1848	-123.4999	CDP pop2010=855
+Ruch	west,south	840	42.2314	-123.0403	CDP pop2010=840
+Prairie City	east,mountain	836	44.4611	-118.7094	city est2023
+Merrill	east	834	42.0260	-121.6008	city est2023
+Wallowa	east,mountain	828	45.5703	-117.5286	city est2023
+Garibaldi	west,coast	823	45.5608	-123.9113	city est2023
+Maywood Park	west	801	45.5525	-122.5618	city est2023
+Foots Creek	west,south	799	42.3881	-123.1410	CDP pop2010=799
+Chiloquin	east	769	42.5764	-121.8678	city est2023
+Glasgow	west,coast	763	43.4377	-124.1951	CDP pop2010=763
+Netarts	west,coast	748	45.4356	-123.9344	CDP pop2010=748
+Malin	east	741	42.0134	-121.4097	city est2023
+Melrose	west,south	735	43.2529	-123.4575	CDP pop2010=735
+Condon	east	718	45.2366	-120.1859	city est2023
+Powers	west,south	709	42.8850	-124.0762	city est2023
+Trail	west,south	702	42.6665	-122.8128	CDP pop2010=702
+Weston	east	700	45.8147	-118.4255	city est2023
+Selma	west,south	695	42.2797	-123.6151	CDP pop2010=695
+Wimer	west,south	678	42.5525	-123.1459	CDP pop2010=678
+Monroe	west	673	44.3169	-123.2989	city est2023
+Gaston	west	667	45.4349	-123.1451	city est2023
+Canyon City	east	654	44.3930	-118.9495	town est2023
+Manzanita	west,coast	642	45.7166	-123.9351	city est2023
+Arlington	east	639	45.7253	-120.1890	city est2023
+Dufur	east	631	45.4531	-121.1287	city est2023
+Echo	east	622	45.7431	-119.1918	city est2023
+Cove	east,mountain	618	45.2964	-117.8102	city est2023
+Kerby	west,south	595	42.1998	-123.6457	CDP pop2010=595
+Mount Vernon	east	554	44.4169	-119.1132	city est2023
+Lacomb	west	546	44.5844	-122.7417	CDP pop2010=546
+Johnson City	west	543	45.4042	-122.5782	city est2023
+Rivergrove	west	533	45.3852	-122.7335	city est2023
+Huntington	east	510	44.3501	-117.2668	city est2023
+O'Brien	west,coast,south	504	42.0799	-123.7046	CDP pop2010=504
+North Powder	east	496	45.0300	-117.9204	city est2023
+Tumalo	east	488	44.1561	-121.3280	CDP pop2010=488
+Dillard	west,south	478	43.1082	-123.4262	CDP pop2010=478
+Gates	west	472	44.7560	-122.4201	city est2023
+Mosier	east	463	45.6850	-121.3982	city est2023
+Nesika Beach	west,coast,south	463	42.5077	-124.4022	CDP pop2010=463
+Prospect	west,south,mountain	455	42.7547	-122.4711	CDP pop2010=455
+Fossil	east	445	44.9981	-120.2146	city est2023
+Butte Falls	west,south,mountain	437	42.5414	-122.5691	town est2023
+Wasco	east	437	45.5917	-120.6975	city est2023
+Wheeler	west,coast	428	45.6873	-123.8871	city est2023
+St. Paul	west	424	45.2122	-122.9772	city est2023
+Maupin	east	418	45.1707	-121.0884	city est2023
+Scotts Mills	west	414	45.0410	-122.6689	city est2023
+Bonanza	east	411	42.2003	-121.4067	town est2023
+Brooks	west	398	45.0509	-122.9574	CDP pop2010=398
+Crabtree	west	391	44.6376	-122.9059	CDP pop2010=391
+Adams	east	383	45.7664	-118.5641	city est2023
+Winchester Bay	west,coast	382	43.6700	-124.1869	CDP pop2010=382
+Moro	east	380	45.4838	-120.7333	city est2023
+Haines	east	379	44.9123	-117.9396	city est2023
+Takilma	west,south	378	42.0408	-123.6223	CDP pop2010=378
+Sodaville	west	369	44.4830	-122.8691	city est2023
+Black Butte Ranch	east,mountain	366	44.3642	-121.6686	CDP pop2010=366
+Halfway	east,mountain	366	44.8780	-117.1097	city est2023
+Oceanside	west,coast	361	45.4549	-123.9613	CDP pop2010=361
+Idaville	west,coast	337	45.5097	-123.8633	CDP pop2010=337
+Ione	east	325	45.5029	-119.8220	city est2023
+Westport	west	321	46.1304	-123.3714	CDP pop2010=321
+Umapine	east	315	45.9759	-118.5009	CDP pop2010=315
+Marion	west	313	44.7512	-122.9277	CDP pop2010=313
+Parkdale	east,mountain	311	45.5130	-121.5921	CDP pop2010=311
+Deer Island	west	294	45.9330	-122.8498	CDP pop2010=294
+Mehama	west	292	44.7912	-122.6284	CDP pop2010=292
+Mount Hood	east,mountain	286	45.5339	-121.5662	CDP pop2010=286
+Rufus	east	277	45.6890	-120.7461	city est2023
+Nehalem	west,coast	273	45.7195	-123.8940	city est2023
+Days Creek	west,south	272	42.9705	-123.1657	CDP pop2010=272
+Butteville	west	265	45.2524	-122.8345	CDP pop2010=265
+Westfir	west,mountain	256	43.7579	-122.5031	city est2023
+Paisley	east	255	42.6925	-120.5453	city est2023
+Lostine	east,mountain	251	45.4867	-117.4295	city est2023
+Cloverdale	west,coast	250	45.2006	-123.8842	CDP pop2010=250
+Gardiner	west,coast	248	43.7327	-124.1068	CDP pop2010=248
+Imbler	east	243	45.4621	-117.9632	city est2023
+Camp Sherman	east,mountain	233	44.4493	-121.6496	CDP pop2010=233
+Hebo	west,coast	232	45.2260	-123.8586	CDP pop2010=232
+Lexington	east	226	45.4462	-119.6880	town est2023
+Waterloo	west	223	44.4947	-122.8243	town est2023
+Sumpter	east,mountain	209	44.7435	-118.1975	city est2023
+Tygh Valley	east	206	45.2418	-121.1693	CDP pop2010=206
+Shedd	west	204	44.4580	-123.1119	CDP pop2010=204
+Government Camp	west,mountain	193	45.3022	-121.7526	CDP pop2010=193
+Helix	east	190	45.8506	-118.6590	city est2023
+Detroit	west,mountain	188	44.7338	-122.1517	city est2023
+Elkton	west	187	43.6374	-123.5691	city est2023
+Rowena	east	187	45.6701	-121.2749	CDP pop2010=187
+Langlois	west,coast,south	177	42.9259	-124.4532	CDP pop2010=177
+Long Creek	east	171	44.7142	-119.1042	city est2023
+Richland	east	170	44.7695	-117.1686	city est2023
+Ukiah	east,mountain	168	45.1347	-118.9332	city est2023
+Alsea	west	164	44.3818	-123.5958	CDP pop2010=164
+Seneca	east,mountain	164	44.1352	-118.9763	city est2023
+Grass Valley	east	161	45.3591	-120.7842	city est2023
+Idanha	west,mountain	156	44.7015	-122.0832	city est2023
+Adrian	east	155	43.7408	-117.0709	city est2023
+Silver Lake	east	149	43.1264	-121.0495	CDP pop2010=149
+Pine Grove	east	148	45.1135	-121.3553	CDP pop2010=148
+Cascadia	west,mountain	147	44.3930	-122.5026	CDP pop2010=147
+Jordan Valley	east	138	42.9793	-117.0574	city est2023
+Spray	east	138	44.8331	-119.7941	town est2023
+Barlow	west	137	45.2524	-122.7223	city est2023
+Mitchell	east	137	44.5737	-120.1529	city est2023
+Neskowin	west,coast	134	45.1208	-123.9763	CDP pop2010=134
+Dayville	east	132	44.4668	-119.5322	town est2023
+Crane	east	129	43.4179	-118.5875	CDP pop2010=129
+Beaver	west,coast	122	45.2790	-123.8246	CDP pop2010=122
+Summerville	east	117	45.4897	-118.0041	town est2023
+Monument	east	116	44.8208	-119.4209	city est2023
+Harper	east	109	43.8570	-117.6265	CDP pop2010=109
+Cape Meares	west,coast	99	45.5267	-123.9518	CDP pop2010=99
+Brogan	east	90	44.2475	-117.5187	CDP pop2010=90
+Wamic	east	85	45.2256	-121.2927	CDP pop2010=85
+Pistol River	west,coast,south	84	42.2879	-124.3988	CDP pop2010=84
+Prescott	west	80	46.0476	-122.8871	city est2023
+Rickreall	west	77	44.9319	-123.2344	CDP pop2010=77
+Wallowa Lake	east,mountain	62	45.3005	-117.2152	CDP pop2010=62
+Juntura	east	57	43.7487	-118.0788	CDP pop2010=57
+Unity	east,mountain	43	44.4516	-118.1863	city est2023
+Antelope	east	39	44.9113	-120.7236	city est2023
+Shaniko	east	31	45.0037	-120.7522	city est2023
+Granite	east,mountain	30	44.8103	-118.4192	city est2023
+Lonerock	east	23	45.0887	-119.8841	city est2023
+Beatty	east	0	42.4419	-121.2716	CDP pop n/a
+Beaver Marsh	east,mountain	0	43.1364	-121.8042	CDP pop n/a
+Bly	east	0	42.3917	-121.0435	CDP pop n/a
+Boring	west	0	45.4313	-122.3725	CDP pop n/a
+Chemult	east,mountain	0	43.2151	-121.7850	CDP pop n/a
+Crescent	east,mountain	0	43.4534	-121.6997	CDP pop n/a
+Crescent Lake	east,mountain	0	43.5096	-121.9353	CDP pop n/a
+Crooked River Ranch	east	0	44.4242	-121.2757	CDP pop n/a
+Dexter	west	0	43.9223	-122.8277	CDP pop n/a
+Elmira	west	0	44.0715	-123.3571	CDP pop n/a
+Fort Klamath	east,mountain	0	42.7050	-121.9943	CDP pop n/a
+Gilchrist	east,mountain	0	43.4785	-121.6939	CDP pop n/a
+Heceta Beach	west,coast	0	44.0242	-124.1178	CDP pop n/a
+Jasper	west	0	43.9870	-122.9163	CDP pop n/a
+Keno	east	0	42.1311	-121.9283	CDP pop n/a
+Knappa	west,coast	0	46.1708	-123.5798	CDP pop n/a
+Mapleton	west,coast	0	44.0334	-123.8648	CDP pop n/a
+Marcola	west	0	44.1751	-122.8582	CDP pop n/a
+Meacham	east,mountain	0	45.5231	-118.4395	CDP pop n/a
+Neahkahnie	west,coast	0	45.7323	-123.9398	CDP pop n/a
+Rhododendron	west,mountain	0	45.3053	-121.8479	CDP pop n/a
+Sprague River	east	0	42.4566	-121.5021	CDP pop n/a
+Svensen	west,coast	0	46.1564	-123.6554	CDP pop n/a
+Wedderburn	west,coast,south	0	42.4342	-124.4201	CDP pop n/a

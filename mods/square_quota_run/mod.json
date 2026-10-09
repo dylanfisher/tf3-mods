@@ -1,0 +1,8 @@
+{
+    "modId": "square_quota_run",
+    "revision": 1,
+    "severityAdd": "Critical",
+    "severityRemove": "Critical",
+    "visible": true,
+    "cosmetic": false
+}

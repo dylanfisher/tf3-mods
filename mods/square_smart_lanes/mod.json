@@ -1,0 +1,18 @@
+{
+    "modId": "square_smart_lanes",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": false,
+    "params": [
+        {
+            "key": "sqrl_auto",
+            "name": "Apply automatically",
+            "tooltip": "On: right after you build a roundabout (any one-way ring),\nits junctions get smart lanes.\nOff: only the Smart Lanes road tool changes lanes.",
+            "uiType": "Button",
+            "values": ["On", "Off"],
+            "defaultIndex": 0
+        }
+    ]
+}

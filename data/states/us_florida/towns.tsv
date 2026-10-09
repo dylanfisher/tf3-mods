@@ -1,0 +1,480 @@
+name	tags	population	lat	lon	note
+Jacksonville	north,big	985843	30.3369	-81.6616	city est2023
+Miami	south,big	455924	25.7752	-80.2086	city est2023
+Tampa	central,big	403364	27.9663	-82.4776	city est2023
+Orlando	central,big	320742	28.4087	-81.2548	city est2023
+St. Petersburg	central,big	263553	27.7627	-82.6441	city est2023
+Port St. Lucie	central,big	245021	27.2806	-80.3883	city est2023
+Cape Coral	south,big	224455	26.6432	-81.9974	city est2023
+Hialeah	south,big	221300	25.8699	-80.3029	city est2023
+Tallahassee	panhandle,big	202221	30.4535	-84.2523	city est2023
+Fort Lauderdale	south,big	184255	26.1412	-80.1467	city est2023
+Pembroke Pines	south,big	171119	26.0147	-80.3402	city est2023
+Hollywood	south,big	153859	26.0310	-80.1646	city est2023
+Gainesville	north,big	145812	29.6795	-82.3468	city est2023
+Miramar	south,big	138319	25.9725	-80.3386	city est2023
+Palm Bay	central,big	135566	27.9649	-80.6583	city est2023
+Coral Springs	south	134906	26.2707	-80.2593	city est2023
+West Palm Beach	south	124130	26.7451	-80.1270	city est2023
+Lakeland	central	122264	28.0555	-81.9548	city est2023
+Clearwater	central	116850	27.9794	-82.7713	city est2023
+Pompano Beach	south	113619	26.2416	-80.1339	city est2023
+Miami Gardens	south	110717	25.9489	-80.2436	city est2023
+Davie	south	107799	26.0792	-80.2830	town est2023
+Brandon	central	103483	27.9360	-82.2993	CDP pop2010=103483
+Palm Coast	north	102113	29.5368	-81.2426	city est2023
+Boca Raton	south	99974	26.3727	-80.1037	city est2023
+Deltona	central	98739	28.9051	-81.2110	city est2023
+Spring Hill	central	98621	28.4792	-82.5297	CDP pop2010=98621
+Fort Myers	south	97372	26.6201	-81.8295	city est2023
+Sunrise	south	96808	26.1716	-80.2616	city est2023
+Plantation	south	96548	26.1256	-80.2618	city est2023
+North Port	central	88934	27.0582	-82.1980	city est2023
+Deerfield Beach	south	87325	26.3117	-80.1254	city est2023
+Melbourne	central	86960	28.1104	-80.6627	city est2023
+Lehigh Acres	south	86784	26.6127	-81.6388	CDP pop2010=86784
+Daytona Beach	north	82485	29.1907	-81.0971	city est2023
+Largo	central	82248	27.9059	-82.7672	city est2023
+Homestead	south	81659	25.4663	-80.4430	city est2023
+Kissimmee	central	81269	28.3028	-81.4178	city est2023
+Boynton Beach	south	81267	26.5283	-80.0807	city est2023
+Miami Beach	south	79607	25.8106	-80.1489	city est2023
+Doral	south	79359	25.8160	-80.3576	city est2023
+Town 'n' Country	central	78442	28.0102	-82.5772	CDP pop2010=78442
+Alafaya	central	78113	28.5284	-81.1857	CDP pop2010=78113
+Kendall	south	75371	25.6695	-80.3547	CDP pop2010=75371
+Lauderhill	south	73974	26.1622	-80.2244	city est2023
+Tamarac	south	72372	26.2033	-80.2560	city est2023
+Riverview	central	71050	27.8243	-82.3045	CDP pop2010=71050
+Ocala	north	68426	29.1775	-82.1510	city est2023
+Weston	south	68181	26.1004	-80.4021	city est2023
+Delray Beach	south	67536	26.4559	-80.0904	city est2023
+St. Cloud	central	66448	28.2352	-81.2840	city est2023
+Port Orange	north	65966	29.1134	-81.0132	city est2023
+Sanford	central	65394	28.7894	-81.2756	city est2023
+Wellington	south	61634	26.6490	-80.2672	village est2023
+Jupiter	south	61291	26.9186	-80.1169	town est2023
+Palm Beach Gardens	south	61146	26.8488	-80.1671	city est2023
+Pine Hills	central	60076	28.5818	-81.4695	CDP pop2010=60076
+Apopka	central	59113	28.7017	-81.5318	city est2023
+North Miami	south	59008	25.9008	-80.1686	city est2023
+Margate	south	58593	26.2480	-80.2112	city est2023
+Coconut Creek	south	57694	26.2809	-80.1847	city est2023
+Sarasota	central	57602	27.3383	-82.5437	city est2023
+Palm Harbor	central	57439	28.0848	-82.7576	CDP pop2010=57439
+Winter Haven	central	57109	28.0458	-81.7327	city est2023
+Bradenton	central	57076	27.4898	-82.5768	city est2023
+Bonita Springs	south	56229	26.3550	-81.7842	city est2023
+Tamiami	south	55271	25.7563	-80.4026	CDP pop2010=55271
+Port Charlotte	south	54392	26.9895	-82.1137	CDP pop2010=54392
+Pensacola	panhandle	53724	30.4410	-87.1912	city est2023
+Pinellas Park	central	53456	27.8589	-82.7082	city est2023
+Poinciana	central	53193	28.1187	-81.4792	CDP pop2010=53193
+The Villages	central	51442	28.8989	-81.9937	CDP pop2010=51442
+Titusville	central	49680	28.5734	-80.8194	city est2023
+Fort Pierce	central	49374	27.4261	-80.3425	city est2023
+Ocoee	central	49261	28.5788	-81.5330	city est2023
+Clermont	central	48621	28.5333	-81.7202	city est2023
+Coral Gables	south	48353	25.6831	-80.2617	city est2023
+Winter Garden	central	47294	28.5412	-81.5912	city est2023
+Altamonte Springs	central	45257	28.6610	-81.3947	city est2023
+North Lauderdale	south	44784	26.2125	-80.2214	city est2023
+Ormond Beach	north	44277	29.2933	-81.1014	city est2023
+Oakland Park	south	44105	26.1791	-80.1524	city est2023
+Greenacres	south	44103	26.6270	-80.1376	city est2023
+Wesley Chapel	central	44092	28.2052	-82.3171	CDP pop2010=44092
+Cutler Bay	south	43762	25.5761	-80.3340	town est2023
+Lake Worth Beach	south	43346	26.6197	-80.0587	city est2023
+DeLand	north	43009	29.0227	-81.2865	city est2023
+North Miami Beach	south	42789	25.9300	-80.1652	city est2023
+Hallandale Beach	south	41547	25.9840	-80.1408	city est2023
+Oviedo	central	41231	28.6619	-81.1871	city est2023
+Plant City	central	40571	28.0154	-82.1178	city est2023
+Royal Palm Beach	south	39489	26.6990	-80.2276	village est2023
+Winter Springs	central	38941	28.6881	-81.2700	city est2023
+Aventura	south	38741	25.9602	-80.1330	city est2023
+The Acreage	south	38704	26.7742	-80.2769	CDP pop2010=38704
+Riviera Beach	south	38663	26.7814	-80.0761	city est2023
+Parkland	south	37911	26.3214	-80.2543	city est2023
+Estero	south	37908	26.4256	-81.7995	village est2023
+Haines City	central	37272	28.1128	-81.6165	city est2023
+Lauderdale Lakes	south	36035	26.1669	-80.2008	city est2023
+Dunedin	central	35930	28.0257	-82.8154	city est2023
+Panama City	panhandle	35660	30.1663	-85.6702	city est2023
+Valrico	central	35545	27.9191	-82.2313	CDP pop2010=35545
+Merritt Island	central	34743	28.3092	-80.6760	CDP pop2010=34743
+Cooper City	south	34321	26.0481	-80.2850	city est2023
+Carrollwood	central	33365	28.0582	-82.5158	CDP pop2010=33365
+New Smyrna Beach	north	32655	29.0294	-80.9549	city est2023
+Land O' Lakes	central	31996	28.2083	-82.4458	CDP pop2010=31996
+Dania Beach	south	31915	26.0572	-80.1646	city est2023
+Leesburg	central	31721	28.7172	-81.9031	city est2023
+Navarre	panhandle	31378	30.4161	-86.8887	CDP pop2010=31378
+Miami Lakes	south	31238	25.9127	-80.3204	town est2023
+Casselberry	central	30595	28.6612	-81.3219	city est2023
+Winter Park	central	29894	28.5966	-81.3457	city est2023
+Westchester	south	29862	25.7454	-80.3535	CDP pop2010=29862
+Rockledge	central	29452	28.3214	-80.7378	city est2023
+Fruit Cove	north	29362	30.0968	-81.6211	CDP pop2010=29362
+Crestview	panhandle	29300	30.7479	-86.5793	city est2023
+West Melbourne	central	29144	28.0504	-80.6583	city est2023
+Ferry Pass	panhandle	28921	30.5211	-87.1864	CDP pop2010=28921
+Lake Magdalene	central	28509	28.0817	-82.4842	CDP pop2010=28509
+Venice	central	28150	27.1170	-82.4152	city est2023
+Palm Springs	south	27132	26.6358	-80.0984	village est2023
+Fleming Island	north	27126	30.0990	-81.7119	CDP pop2010=27126
+Temple Terrace	central	26972	28.0430	-82.3759	city est2023
+Sebastian	central	26846	27.7872	-80.4800	city est2023
+Buenaventura Lakes	central	26079	28.3334	-81.3522	CDP pop2010=26079
+Tarpon Springs	central	25872	28.1491	-82.7794	city est2023
+Meadow Woods	central	25558	28.3729	-81.3337	CDP pop2010=25558
+Key West	south,keys	25103	24.5651	-81.7755	city est2023
+Eustis	central	24457	28.8572	-81.6768	city est2023
+Palmetto Bay	south	24264	25.6217	-80.3189	village est2023
+Citrus Park	central	24252	28.0710	-82.5622	CDP pop2010=24252
+Immokalee	south	24154	26.4240	-81.4216	CDP pop2010=24154
+Golden Gate	south	23961	26.1836	-81.7037	CDP pop2010=23961
+Edgewater	central	23636	28.9544	-80.9409	city est2023
+Groveland	central	23628	28.6102	-81.8271	city est2023
+Bayonet Point	central	23467	28.3265	-82.6834	CDP pop2010=23467
+Jacksonville Beach	north	23447	30.2725	-81.3856	city est2023
+DeBary	central	23209	28.8814	-81.3243	city est2023
+Palm City	central	23120	27.1778	-80.2855	CDP pop2010=23120
+Hialeah Gardens	south	22286	25.8877	-80.3569	city est2023
+Princeton	south	22038	25.5406	-80.3984	CDP pop2010=22038
+Wekiwa Springs	central	21998	28.6996	-81.4248	CDP pop2010=21998
+Sunny Isles Beach	south	21885	25.9388	-80.1235	city est2023
+Westchase	central	21747	28.0565	-82.6083	CDP pop2010=21747
+Tavares	central	21061	28.7659	-81.7564	city est2023
+Fort Walton Beach	panhandle	20925	30.4249	-86.6218	city est2023
+Zephyrhills	central	20883	28.2407	-82.1790	city est2023
+Bartow	central	20584	27.8868	-81.8218	city est2023
+Lynn Haven	panhandle	20501	30.2336	-85.6369	city est2023
+Sweetwater	south	20352	25.7844	-80.3871	city est2023
+Oakleaf Plantation	north	20315	30.1740	-81.8364	CDP pop2010=20315
+Punta Gorda	south	20227	26.8978	-82.0658	city est2023
+Pace	panhandle	20039	30.6167	-87.1647	CDP pop2010=20039
+Palm Valley	north	20019	30.2005	-81.3910	CDP pop2010=20019
+Auburndale	central	20011	28.1100	-81.7973	city est2023
+Cocoa	central	19930	28.3766	-80.7633	city est2023
+Lealman	central	19879	27.8197	-82.6846	CDP pop2010=19879
+Naples	south	19704	26.1505	-81.7953	city est2023
+Stuart	central	19430	27.1953	-80.2441	city est2023
+Panama City Beach	panhandle	19393	30.2332	-85.8771	city est2023
+Lutz	central	19344	28.1407	-82.4497	CDP pop2010=19344
+Sun City Center	central	19258	27.7144	-82.3558	CDP pop2010=19258
+Seminole	central	19252	27.8427	-82.7853	city est2023
+Maitland	central	19215	28.6296	-81.3729	city est2023
+Wildwood	central	18636	28.8058	-82.0073	city est2023
+Pinecrest	south	18051	25.6652	-80.3049	village est2023
+Minneola	central	18001	28.6023	-81.7295	city est2023
+Mount Dora	central	17756	28.8133	-81.6334	city est2023
+New Port Richey	central	17708	28.2466	-82.7175	city est2023
+Vero Beach	central	17317	27.6472	-80.3931	city est2023
+Ruskin	central	17208	27.7068	-82.4222	CDP pop2010=17208
+Lady Lake	central	16967	28.9198	-81.9328	town est2023
+Safety Harbor	central	16955	28.0063	-82.6978	city est2023
+Belle Glade	south	16840	26.6922	-80.6656	city est2023
+San Carlos Park	south	16824	26.4767	-81.8198	CDP pop2010=16824
+Longwood	central	16794	28.7014	-81.3484	city est2023
+Lake Mary	central	16709	28.7591	-81.3328	city est2023
+Lake Wales	central	16681	27.9207	-81.5995	city est2023
+Niceville	panhandle	16490	30.5288	-86.4760	city est2023
+Marco Island	south	16210	25.9320	-81.7048	city est2023
+Opa-locka	south	15794	25.9000	-80.2552	city est2023
+St. Augustine	north	15596	29.8962	-81.3111	city est2023
+West Park	south	15109	25.9787	-80.1810	city est2023
+Davenport	central	15068	28.1612	-81.6108	city est2023
+Orange City	central	14928	28.9373	-81.2833	city est2023
+Englewood	south	14863	26.9687	-82.3479	CDP pop2010=14863
+Oldsmar	central	14831	28.0484	-82.6713	city est2023
+Key Biscayne	south	14414	25.6907	-80.1656	village est2023
+Destin	panhandle	14188	30.4044	-86.4714	city est2023
+Homosassa Springs	central	13791	28.8093	-82.5408	CDP pop2010=13791
+South Daytona	north	13781	29.1662	-81.0055	city est2023
+Callaway	panhandle	13661	30.1304	-85.5486	city est2023
+Fernandina Beach	north	13647	30.6581	-81.4515	city est2023
+Palmetto	central	13577	27.5251	-82.5750	city est2023
+Miami Springs	south	13325	25.8202	-80.2889	city est2023
+Atlantic Beach	north	13182	30.3396	-81.3967	city est2023
+North Palm Beach	south	13095	26.8203	-80.0569	village est2023
+Holly Hill	north	13075	29.2456	-81.0470	city est2023
+Lake City	north	12602	30.1886	-82.6422	city est2023
+Florida City	south	12582	25.4441	-80.4677	city est2023
+Port St. John	central	12267	28.4757	-80.8104	CDP pop2010=12267
+Lantana	south	12086	26.5834	-80.0554	town est2023
+South Miami	south	12073	25.7085	-80.2951	city est2023
+Jensen Beach	central	11707	27.2440	-80.2411	CDP pop2010=11707
+Gulfport	central	11655	27.7464	-82.7099	city est2023
+Sebring	central	11563	27.4714	-81.4516	city est2023
+Miami Shores	south	11530	25.8670	-80.1783	village est2023
+Hobe Sound	central	11521	27.0727	-80.1424	CDP pop2010=11521
+Yulee	north	11491	30.6354	-81.5696	CDP pop2010=11491
+Wilton Manors	south	11403	26.1593	-80.1393	city est2023
+Cocoa Beach	central	11389	28.3291	-80.6275	city est2023
+Satellite Beach	central	11343	28.1787	-80.5994	city est2023
+Milton	panhandle	10957	30.6294	-87.0526	city est2023
+Alachua	north	10770	29.7652	-82.4751	city est2023
+Palatka	north	10730	29.6449	-81.6767	city est2023
+Lighthouse Point	south	10501	26.2778	-80.0886	city est2023
+Key Largo	south,keys	10433	25.1226	-80.4116	CDP pop2010=10433
+Avon Park	central	10219	27.5897	-81.5073	city est2023
+Green Cove Springs	north	10130	29.9853	-81.6810	city est2023
+Cape Canaveral	central	10014	28.3932	-80.6048	city est2023
+Marathon	south,keys	9849	24.7323	-81.0251	city est2023
+Brooksville	central	9789	28.5166	-82.4047	city est2023
+Palm Beach	south	9258	26.6948	-80.0419	town est2023
+Orange Park	north	9064	30.1709	-81.7047	town est2023
+Indian Harbour Beach	central	9019	28.1575	-80.6001	city est2023
+Lake Park	south	8984	26.8001	-80.0675	town est2023
+Fruitland Park	central	8765	28.8496	-81.9369	city est2023
+St. Pete Beach	central	8732	27.7168	-82.7396	city est2023
+Dade City	central	8646	28.3559	-82.1934	city est2023
+Mascotte	central	8536	28.6043	-81.9055	city est2023
+Springfield	panhandle	8255	30.1712	-85.6122	city est2023
+Macclenny	north	8027	30.2810	-82.1253	city est2023
+Newberry	north	8010	29.6458	-82.5946	city est2023
+North Bay Village	south	7930	25.8491	-80.1510	city est2023
+Quincy	panhandle	7913	30.5660	-84.5858	city est2023
+Inverness	central	7857	28.8422	-82.3423	city est2023
+Arcadia	central	7846	27.2212	-81.8584	city est2023
+Southwest Ranches	south	7566	26.0497	-80.3738	town est2023
+Longboat Key	central	7488	27.4005	-82.6442	town est2023
+Celebration	central	7427	28.3103	-81.5511	CDP pop2010=7427
+Lake Alfred	central	7355	28.1068	-81.7235	city est2023
+Marianna	panhandle	7294	30.7614	-85.2563	city est2023
+Perry	north	7281	30.1091	-83.5823	city est2023
+Clewiston	south	7238	26.7528	-80.9392	city est2023
+Belle Isle	central	7171	28.4649	-81.3513	city est2023
+Live Oak	north	7093	30.2956	-82.9851	city est2023
+Islamorada	south,keys	6988	24.9844	-80.5433	village est2023
+Neptune Beach	north	6984	30.3126	-81.3931	city est2023
+West Miami	south	6944	25.7578	-80.2969	city est2023
+Gulf Breeze	panhandle	6823	30.3683	-87.1734	city est2023
+St. Augustine Beach	north	6779	29.8416	-81.2710	city est2023
+Freeport	panhandle	6778	30.5008	-86.1344	city est2023
+DeFuniak Springs	panhandle	6764	30.7125	-86.1197	city est2023
+Indiantown	central	6755	27.0401	-80.4882	village est2023
+High Springs	north	6648	29.7996	-82.5893	city est2023
+Siesta Key	central	6565	27.2748	-82.5493	CDP pop2010=6565
+Silver Springs Shores	north	6539	29.1119	-82.0146	CDP pop2010=6539
+Treasure Island	central	6522	27.7648	-82.7691	city est2023
+Sanibel	south	6328	26.4510	-82.1057	city est2023
+Pembroke Park	south	6300	25.9889	-80.1803	town est2023
+Lauderdale-by-the-Sea	south	6154	26.1913	-80.0995	town est2023
+Miramar Beach	panhandle	6146	30.3849	-86.3436	CDP pop2010=6146
+Tequesta	south	6134	26.9649	-80.1132	village est2023
+Dundee	central	6043	28.0173	-81.6034	town est2023
+Westlake	south	5999	26.7547	-80.3015	city est2023
+Starke	north	5937	29.9475	-82.1129	city est2023
+Belleview	north	5770	29.0606	-82.0559	city est2023
+Bay Harbor Islands	south	5679	25.8880	-80.1336	town est2023
+Okeechobee	central	5602	27.2416	-80.8293	city est2023
+Pahokee	south	5553	26.8202	-80.6620	city est2023
+Flagler Beach	north	5541	29.4739	-81.1310	city est2023
+Surfside	south	5472	25.8788	-80.1250	town est2023
+South Pasadena	central	5288	27.7529	-82.7393	city est2023
+Fort Meade	central	5270	27.7659	-81.8055	city est2023
+Fort Myers Beach	south	5251	26.4302	-81.9140	town est2023
+LaBelle	south	5222	26.7210	-81.4525	city est2023
+Daytona Beach Shores	north	5194	29.1713	-80.9807	city est2023
+Grant-Valkaria	central	5045	27.9343	-80.5659	town est2023
+Valparaiso	panhandle	5029	30.4899	-86.5147	city est2023
+Fellsmere	central	4982	27.7212	-80.6099	city est2023
+Kenneth City	central	4975	27.8161	-82.7146	town est2023
+Wauchula	central	4943	27.5469	-81.8101	city est2023
+South Bay	south	4861	26.6884	-80.7355	city est2023
+Parker	panhandle	4631	30.1284	-85.6002	city est2023
+Belleair	central	4495	27.9360	-82.8128	town est2023
+Indian River Shores	central	4458	27.7101	-80.3820	town est2023
+Mulberry	central	4346	27.9054	-81.9883	city est2023
+Highland Beach	south	4266	26.4116	-80.0644	town est2023
+Big Pine Key	south,keys	4252	24.6851	-81.3625	CDP pop2010=4252
+Eagle Lake	central	4169	27.9743	-81.7554	city est2023
+Mary Esther	panhandle	4084	30.4117	-86.6590	city est2023
+Madeira Beach	central	3999	27.7956	-82.7916	city est2023
+Stock Island	south,keys	3919	24.5640	-81.7398	CDP pop2010=3919
+Umatilla	central	3889	28.9270	-81.6642	city est2023
+Bunnell	north	3879	29.4187	-81.3195	city est2023
+Juno Beach	south	3863	26.8755	-80.0596	town est2023
+St. James City	south	3784	26.5426	-82.1020	CDP pop2010=3784
+Port St. Joe	panhandle	3775	29.8176	-85.3091	city est2023
+Chipley	panhandle	3718	30.7756	-85.5400	city est2023
+Crawfordville	panhandle	3702	30.1996	-84.3634	CDP pop2010=3702
+Indian Rocks Beach	central	3640	27.8958	-82.8462	city est2023
+Oakland	central	3635	28.5521	-81.6367	town est2023
+Lake Panasoffkee	central	3551	28.7843	-82.1231	CDP pop2010=3551
+Lake Clarke Shores	south	3542	26.6456	-80.0753	town est2023
+Crystal River	central	3514	28.8955	-82.6019	city est2023
+Port Richey	central	3485	28.2750	-82.7250	city est2023
+Midway	panhandle	3478	30.5027	-84.4606	city est2023
+Loxahatchee Groves	south	3452	26.7209	-80.2772	town est2023
+Ponce Inlet	north	3450	29.0928	-80.9317	town est2023
+Frostproof	central	3393	27.7489	-81.5265	city est2023
+Melbourne Beach	central	3261	28.0669	-80.5596	town est2023
+Williston	north	3201	29.3939	-82.4423	city est2023
+Bushnell	central	3196	28.6869	-82.1144	city est2023
+Malabar	central	3120	27.9871	-80.5824	town est2023
+Indialantic	central	3114	28.0862	-80.5683	town est2023
+Windermere	central	3092	28.5025	-81.5377	town est2023
+Hilliard	north	3055	30.6866	-81.9212	town est2023
+Polk City	central	3028	28.1805	-81.8300	town est2023
+Holmes Beach	central	3027	27.5106	-82.7155	city est2023
+Madison	north	3003	30.4715	-83.4135	city est2023
+Biscayne Park	south	2993	25.8817	-80.1811	village est2023
+Chattahoochee	panhandle	2984	30.6983	-84.8306	city est2023
+Bal Harbour	south	2967	25.8933	-80.1232	village est2023
+Lake Helen	central	2964	28.9839	-81.2311	city est2023
+Bonifay	panhandle	2825	30.7813	-85.6888	city est2023
+Hypoluxo	south	2823	26.5673	-80.0518	town est2023
+Jasper	north	2762	30.4559	-82.9342	city est2023
+Edgewood	central	2737	28.4815	-81.3701	city est2023
+Monticello	panhandle	2714	30.5422	-83.8722	city est2023
+St. Leo	central	2628	28.3361	-82.2582	town est2023
+Mangonia Park	south	2586	26.7586	-80.0761	town est2023
+Lake Placid	central	2514	27.3026	-81.3715	town est2023
+Big Coppitt Key	south,keys	2458	24.5802	-81.6522	CDP pop2010=2458
+Bowling Green	central	2449	27.6378	-81.8248	city est2023
+Chiefland	north	2420	29.4922	-82.8663	city est2023
+Apalachicola	panhandle	2412	29.7274	-84.9940	city est2023
+Carrabelle	panhandle	2382	29.8544	-84.6679	city est2023
+Eastpoint	panhandle	2337	29.7567	-84.8617	CDP pop2010=2337
+Belleair Bluffs	central	2286	27.9196	-82.8197	city est2023
+Eatonville	central	2284	28.6150	-81.3924	town est2023
+Blountstown	panhandle	2270	30.4428	-85.0454	city est2023
+Virginia Gardens	south	2260	25.8095	-80.2975	village est2023
+Graceville	panhandle	2208	30.9603	-85.5128	city est2023
+Trenton	north	2192	29.6092	-82.8146	city est2023
+Wewahitchka	panhandle	2179	30.1262	-85.1907	city est2023
+Haverhill	south	2175	26.6910	-80.1217	town est2023
+Redington Shores	central	2164	27.8317	-82.8335	town est2023
+Tavernier	south,keys	2136	25.0264	-80.4997	CDP pop2010=2136
+Oak Hill	central	2128	28.8770	-80.8350	city est2023
+Atlantis	south	2107	26.5972	-80.1041	city est2023
+Sewall's Point	central	2064	27.1970	-80.1989	town est2023
+Astatula	central	2053	28.7073	-81.7342	town est2023
+Lake Butler	north	2015	30.0177	-82.3434	city est2023
+Dunnellon	north	1990	29.0596	-82.4254	city est2023
+Hillsboro Beach	south	1975	26.2785	-80.0795	town est2023
+El Portal	south	1897	25.8553	-80.1962	village est2023
+Pine Island Center	south	1854	26.6238	-82.1272	CDP pop2010=1854
+Ocean Ridge	south	1841	26.5309	-80.0468	town est2023
+Callahan	north	1798	30.5654	-81.8319	town est2023
+Cross City	north	1790	29.6386	-83.1248	town est2023
+Cudjoe Key	south,keys	1763	24.6788	-81.4997	CDP pop2010=1763
+Montverde	central	1763	28.6025	-81.6741	town est2023
+Century	panhandle	1758	30.9773	-87.2647	town est2023
+Sneads	panhandle	1756	30.7086	-84.9256	town est2023
+Havana	panhandle	1740	30.6303	-84.4138	town est2023
+Zolfo Springs	central	1735	27.4926	-81.7868	town est2023
+Crescent City	north	1696	29.4345	-81.5133	city est2023
+Howey-in-the-Hills	central	1674	28.7044	-81.7840	town est2023
+Moore Haven	south	1664	26.8338	-81.0985	city est2023
+Lake Hamilton	central	1643	28.0492	-81.6269	town est2023
+Belleair Beach	central	1617	27.9312	-82.8366	city est2023
+Inglis	north	1599	29.0330	-82.6610	town est2023
+Malone	panhandle	1567	30.9590	-85.1622	town est2023
+Pierson	north	1558	29.2416	-81.4566	town est2023
+Keystone Heights	north	1536	29.7829	-82.0356	city est2023
+Hawthorne	north	1503	29.5937	-82.0945	city est2023
+San Antonio	central	1488	28.3399	-82.2786	city est2023
+Interlachen	north	1482	29.6223	-81.8947	town est2023
+North Redington Beach	central	1469	27.8197	-82.8232	town est2023
+South Palm Beach	south	1458	26.5904	-80.0380	town est2023
+Redington Beach	central	1373	27.8095	-82.8121	town est2023
+Baldwin	north	1366	30.3078	-81.9737	town est2023
+Gretna	panhandle	1352	30.5796	-84.7110	city est2023
+Palm Beach Shores	south	1327	26.7774	-80.0344	town est2023
+Fanning Springs	north	1307	29.5881	-82.9251	city est2023
+Bronson	north	1235	29.4491	-82.6385	town est2023
+Palm Shores	central	1209	28.1918	-80.6593	town est2023
+Indian Shores	central	1192	27.8532	-82.8446	town est2023
+Archer	north	1154	29.5597	-82.5729	city est2023
+Mexico Beach	panhandle	1122	29.9477	-85.4161	city est2023
+Mayo	north	1115	30.0512	-83.1769	town est2023
+Steinhatchee	north	1047	29.6870	-83.3771	CDP pop2010=1047
+Medley	south	1036	25.8649	-80.3576	town est2023
+Anna Maria	central	1008	27.5298	-82.7337	city est2023
+Center Hill	central	1002	28.6220	-82.0150	city est2023
+Golden Beach	south	972	25.9633	-80.1221	town est2023
+Gulf Stream	south	968	26.4860	-80.0574	town est2023
+Webster	central	931	28.6048	-82.0507	city est2023
+Bristol	panhandle	924	30.4255	-84.9773	city est2023
+Bradenton Beach	central	916	27.4617	-82.6965	city est2023
+Grand Ridge	panhandle	912	30.7041	-85.0226	town est2023
+Cottondale	panhandle	868	30.7897	-85.3660	town est2023
+Penney Farms	north	838	29.9807	-81.8108	town est2023
+Jupiter Island	central	828	27.0269	-80.1019	town est2023
+Waldo	north	818	29.7920	-82.1669	city est2023
+Pomona Park	north	812	29.5030	-81.5865	town est2023
+Greenville	panhandle	778	30.4668	-83.6353	town est2023
+Coleman	central	771	28.8028	-82.0708	city est2023
+Jennings	north	769	30.5968	-83.1070	town est2023
+Shalimar	panhandle	760	30.4433	-86.5830	town est2023
+White Springs	north	760	30.3318	-82.7561	town est2023
+Branford	north	756	29.9623	-82.9243	town est2023
+Key Colony Beach	south,keys	756	24.7234	-81.0216	city est2023
+Vernon	panhandle	745	30.6122	-85.7003	city est2023
+Welaka	north	743	29.4852	-81.6610	town est2023
+Cedar Key	north	732	29.1503	-83.0374	city est2023
+Melbourne Village	central	684	28.0880	-80.6651	town est2023
+Matlacha	south	677	26.6364	-82.0766	CDP pop2010=677
+Lawtey	north	670	30.0484	-82.0725	city est2023
+Micanopy	north	652	29.5064	-82.2805	town est2023
+Fort White	north	648	29.9222	-82.7126	town est2023
+Paxton	panhandle	643	30.9726	-86.3118	town est2023
+Yankeetown	north	628	29.0319	-82.7632	town est2023
+Laurel Hill	panhandle	608	30.9606	-86.4578	city est2023
+St. Lucie Village	central	605	27.4999	-80.3418	town est2023
+Captiva	south	583	26.4976	-82.1872	CDP pop2010=583
+Jay	panhandle	572	30.9504	-87.1523	town est2023
+Bell	north	558	29.7568	-82.8620	town est2023
+Greenwood	panhandle	553	30.8727	-85.1612	town est2023
+Sea Ranch Lakes	south	552	26.1999	-80.0984	village est2023
+Orchid	central	547	27.7719	-80.4245	town est2023
+Alford	panhandle	518	30.6966	-85.3957	town est2023
+Ponce de Leon	panhandle	518	30.7240	-85.9369	town est2023
+Briny Breezes	south	517	26.5089	-80.0522	town est2023
+Beverly Beach	north	516	29.5158	-81.1469	town est2023
+McIntosh	north	508	29.4494	-82.2207	town est2023
+Reddick	north	496	29.3687	-82.1976	town est2023
+Altha	panhandle	495	30.5734	-85.1261	town est2023
+Hampton	north	488	29.8641	-82.1388	city est2023
+Glen St. Mary	north	485	30.2752	-82.1603	town est2023
+Cinco Bayou	panhandle	469	30.4222	-86.6096	town est2023
+Sopchoppy	panhandle	466	30.0599	-84.4854	city est2023
+Greensboro	panhandle	459	30.5710	-84.7229	town est2023
+Manalapan	south	429	26.5666	-80.0402	town est2023
+Jupiter Inlet Colony	south	426	26.9480	-80.0752	town est2023
+Ocean Breeze	central	402	27.2410	-80.2257	town est2023
+Worthington Springs	north	389	29.9336	-82.4085	town est2023
+Wausau	panhandle	386	30.6334	-85.5873	town est2023
+Everglades City	south	384	25.8578	-81.3865	city est2023
+Lee	north	384	30.4131	-83.3041	town est2023
+Esto	panhandle	351	30.9817	-85.6430	town est2023
+Brooker	north	336	29.8876	-82.3327	town est2023
+La Crosse	north	320	29.8501	-82.4026	town est2023
+Caryville	panhandle	315	30.7752	-85.8119	town est2023
+St. Marks	panhandle	305	30.1661	-84.2083	city est2023
+Highland Park	central	278	27.8621	-81.5664	village est2023
+Hillcrest Heights	central	274	27.8249	-81.5362	town est2023
+Westville	panhandle	270	30.7711	-85.8381	town est2023
+Golf	south	265	26.5029	-80.1058	village est2023
+Ebro	panhandle	244	30.4373	-85.8820	town est2023
+Jacob City	panhandle	225	30.8855	-85.4136	city est2023
+Raiford	north	225	30.0637	-82.2408	town est2023
+Noma	panhandle	215	30.9781	-85.6210	town est2023
+Glen Ridge	south	214	26.6721	-80.0767	town est2023
+Layton	south,keys	202	24.8251	-80.8116	city est2023
+Campbellton	panhandle	198	30.9579	-85.4086	town est2023
+Horseshoe Beach	north	174	29.4436	-83.2884	town est2023
+Cloud Lake	south	140	26.6749	-80.0715	town est2023
+Otter Creek	north	111	29.3233	-82.7751	town est2023
+Bascom	panhandle	90	30.9278	-85.1181	town est2023
+Indian Creek	south	82	25.8779	-80.1373	village est2023
+Belleair Shore	central	75	27.9173	-82.8453	town est2023
+Lazy Lake	south	31	26.1563	-80.1452	village est2023
+Lake Buena Vista	central	25	28.3773	-81.5248	city est2023
+Bay Lake	central	23	28.3892	-81.5784	city est2023
+Marineland	north	9	29.6695	-81.2148	town est2023
+St. George Island	panhandle	0	29.6521	-84.8898	CDP pop n/a

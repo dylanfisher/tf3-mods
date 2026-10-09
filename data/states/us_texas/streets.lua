@@ -1,0 +1,40 @@
+-- Generic Texas-style street pool (streetNamesScript): used by the game for new stops in every
+-- town, and left alone by the rename script in towns without a city list (cities.lua).
+-- Common US street patterns with a Texas flavour (courthouse squares, rail towns, Spanish names, live oaks,
+-- pecans and mesquite, ranch and farm roads, rivers, prairie and coast). Not tied to any one real town, so
+-- no per-street fact check is needed; keep each name <= 40 bytes.
+return {
+	-- core
+	"Main Street", "Front Street", "Railroad Street", "Depot Street", "Broadway", "Commerce Street", "Market Street",
+	"Church Street", "Court Street", "Mill Street", "School Street", "College Street", "Center Street",
+	"Elm Street", "Bridge Street", "Water Street", "Avenue A", "Avenue B", "Avenue C", "Avenue D",
+	-- Texas heroes and presidents (common courthouse-square names)
+	"Houston Street", "Austin Street", "Travis Street", "Crockett Street",
+	"Bowie Street", "Lamar Street", "Fannin Street", "Milam Street", "San Jacinto Street", "Washington Street",
+	"Jefferson Street", "Lincoln Street",
+	-- numbered
+	"1st Street", "2nd Street", "3rd Street", "4th Street", "5th Street", "6th Street", "7th Street",
+	"8th Street", "9th Street", "10th Street", "11th Street", "12th Street",
+	-- Spanish-language names common across the state
+	"Alamo Street", "Mission Road", "Presidio Street", "Rio Grande Street", "Guadalupe Street", "San Antonio Street",
+	"Laredo Street", "Camino Real", "Loma Vista Drive", "Mesa Drive", "Sierra Drive", "Plaza Street",
+	-- trees and plants
+	"Live Oak Street", "Oak Street", "Post Oak Road", "Pecan Street", "Mesquite Street", "Cedar Street",
+	"Magnolia Street", "Pine Street", "Cypress Street", "Hackberry Street", "Mulberry Street", "Walnut Street",
+	"Cottonwood Drive", "Willow Street", "Bluebonnet Drive", "Sunflower Lane", "Palm Street", "Yucca Drive",
+	-- ranch, farm and prairie
+	"Ranch Road", "Farm Road", "Cattle Drive", "Chisholm Trail", "Old Ranch Road", "Stockyard Road", "Cotton Street",
+	"Windmill Road", "Prairie Street", "Rodeo Drive", "Saddle Lane",
+	"Wagon Wheel Road", "Longhorn Drive",
+	-- water, coast and terrain
+	"River Road", "Creek Road", "Bayou Drive", "Lake Drive", "Spring Street", "Bay Street", "Beach Road",
+	"Harbor Drive", "Gulf Drive", "Shoreline Drive", "Canyon Road", "Hill Street", "Ridge Road", "Bluff Street",
+	"Mesa Road", "Valley View Drive", "High Plains Road", "Caprock Road",
+	-- roads out of town
+	"Old Post Road", "County Road", "Industrial Boulevard",
+	"Airport Road", "Cemetery Road", "Fairgrounds Road", "Oil Field Road", "Pipeline Road",
+	-- common town names
+	"Park Avenue", "Grand Avenue", "Highland Avenue", "Lakeview Drive", "Sunset Drive", "Meadow Lane",
+	"Country Club Drive", "Hillcrest Drive", "Forest Drive", "University Drive", "Liberty Street", "Independence Avenue",
+	"Martin Luther King Jr. Boulevard", "Lone Star Drive", "Frontier Drive",
+}

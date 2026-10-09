@@ -1,0 +1,16 @@
+{
+    "name": "Bigger Line Dots",
+    "summary": "Enlarges the coloured line dots shown above stations and stops on the map.",
+    "description": "Makes the coloured line dots above stations and stops on the map bigger (12 px instead of 7 px). Cosmetic, safe to add to or remove from any save.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Misc"
+    ],
+    "dependencies": [],
+    "url": ""
+}

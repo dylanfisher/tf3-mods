@@ -1,0 +1,13 @@
+<p><strong>DEV ONLY - NOT FOR UPLOAD.</strong> Never publish this mod to mod.io. It is a developer tool for a planned town street names mod and does nothing useful for players.</p>
+<p>It writes [SQTSN_PROBE] lines to stdout.txt: the towns, which entities carry names, and every newly built street stop or station with its names, town and the hook that detected it. It is read-only unless the "Rename test (DEV)" param is switched on. It also adds a name set, "DEV TSN Probe", that logs every call of the street and town name scripts.</p>
+<h4>Notes</h4>
+<ul>
+<li>Steps: plans/square_town_street_names/PROBE.md in the mod hub repository.</li>
+<li>Only pick the "DEV TSN Probe" name set in a throwaway game.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 1 (dev, never uploaded)</h4>
+<ul>
+<li>New: town/name dump on load, new stop detection (build events + polling), name change watcher, opt-in rename test, logging name set.</li>
+</ul>

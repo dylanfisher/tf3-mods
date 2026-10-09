@@ -1,0 +1,16 @@
+{
+    "name": "Industry Production Label",
+    "summary": "Production and line pickup rate on industry labels, cargo in/out per year on warehouses.",
+    "description": "See each industry's production and your lines' pickup rate, and each warehouse's incoming and outgoing cargo per year, right on their map labels. Every pill can be switched off in the mod settings.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

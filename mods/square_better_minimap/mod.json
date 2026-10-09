@@ -1,0 +1,21 @@
+{
+    "modId": "square_better_minimap",
+    "revision": 4,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "params": [
+        {
+            "key": "showArrow",
+            "name": "View direction arrow",
+            "tooltip": "Show an arrow in the minimap's camera box that points where the camera is looking.",
+            "uiType": "Button",
+            "values": [
+                "On",
+                "Off"
+            ],
+            "defaultIndex": 0
+        }
+    ]
+}

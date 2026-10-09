@@ -68,6 +68,18 @@ def staging_area() -> Path:
 
 
 WIKI_EXAMPLES_CACHE_DIR = CACHE_DIR / "wiki-examples"
+SUBSCRIBED_CACHE_DIR = CACHE_DIR / "subscribed"
+
+MODIO_GAME_ID = "10640"
+
+
+def modio_dir() -> Path:
+    """mod.io client data for TF3: subscriptions, downloaded mods, metadata."""
+    value = _lookup("TF3_MODIO")
+    path = Path(value).expanduser() if value else Path.home() / "Library/Application Support/mod.io"
+    if not (path / "common" / MODIO_GAME_ID).is_dir():
+        raise SystemExit(f"mod.io data for TF3 not found under {path}; set TF3_MODIO in .hub.env")
+    return path
 
 # File types worth extracting for grep: scripts, configs, model/material
 # definitions and Teal type definitions. Binary meshes/textures/audio are skipped.

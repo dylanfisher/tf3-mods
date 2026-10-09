@@ -9,6 +9,7 @@ You research Transport Fever 3 (TF3) modding using only the local sources in thi
 
 ## Sources, in priority order
 
+0. **In-game findings**: `docs/findings.md`. Facts verified by running mods in the game. They override the wiki (e.g. the real script function signatures, what stylesheets can access). Check it first.
 1. **Wiki manual**: `docs/wiki/`. Start with `docs/wiki/INDEX.md`, which lists every page and its section headings, then grep `docs/wiki/modding/`. Pages marked `**Wip:**` or mentioning "Transport Fever 2" may be outdated, so verify them against game files.
 2. **Scripting API**: `.cache/game/api/tealdef/**/*.d.tl` (engine API: `api.res`, `api.cmd`, `api.engine`, `api.gui`, `api.type`…) and `.cache/game/base/tealdef/**/*.d.tl` (base-game modules). The doc comments start with `---`. These are authoritative for signatures.
 3. **Base-game resources**: `.cache/game/base/content/`. This shows how the real game builds models (`.mdl`), materials (`.mtl`), constructions (`.con.lua`), scripts (`.script.tl`/`.script.lua`) and configs. Find files by name with `grep <name> docs/game/MANIFEST.txt`.

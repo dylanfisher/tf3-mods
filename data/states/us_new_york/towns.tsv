@@ -1,0 +1,542 @@
+name	tags	population	lat	lon	note
+New York	downstate,big	8258035	40.6627	-73.9387	city est2023
+Buffalo	upstate,big	274678	42.8925	-78.8597	city est2023
+Yonkers	downstate,big	207657	40.9459	-73.8674	city est2023
+Rochester	upstate,big	207274	43.1699	-77.6169	city est2023
+Syracuse	upstate,big	145560	43.0410	-76.1436	city est2023
+Albany	upstate,big	101228	42.6657	-73.7984	city est2023
+New Rochelle	downstate,big	83742	40.9232	-73.7793	city est2023
+Cheektowaga	upstate	75178	42.9090	-78.7508	CDP pop2010=75178
+Mount Vernon	downstate,big	71168	40.9131	-73.8293	city est2023
+Schenectady	upstate,big	68544	42.8026	-73.9272	city est2023
+Utica	upstate,big	63607	43.0964	-75.2260	city est2023
+White Plains	downstate,big	61288	41.0238	-73.7510	city est2023
+Brentwood	island	60664	40.7839	-73.2522	CDP pop2010=60664
+Hempstead	island,big	58225	40.7044	-73.6194	village est2023
+Levittown	island	51881	40.7240	-73.5127	CDP pop2010=51881
+Irondequoit	upstate	51692	43.2098	-77.5721	CDP pop2010=51692
+Troy	upstate,big	50607	42.7358	-73.6753	city est2023
+Niagara Falls	upstate,big	47599	43.0928	-79.0147	city est2023
+Binghamton	upstate,big	46727	42.1013	-75.9094	city est2023
+West Seneca	upstate	44711	42.8378	-78.7512	CDP pop2010=44711
+Freeport	island	43756	40.6509	-73.5846	village est2023
+West Babylon	island	43213	40.7124	-73.3597	CDP pop2010=43213
+Kiryas Joel	downstate	41857	41.3407	-74.1673	village est2023
+Hicksville	island	41547	40.7641	-73.5248	CDP pop2010=41547
+Valley Stream	island	40007	40.6647	-73.7049	village est2023
+Coram	island	39113	40.8812	-73.0059	CDP pop2010=39113
+East Meadow	island	38132	40.7201	-73.5589	CDP pop2010=38132
+Brighton	upstate	36609	43.1185	-77.5810	CDP pop2010=36609
+Commack	island	36124	40.8434	-73.2833	CDP pop2010=36124
+Long Beach	island	34595	40.5858	-73.6654	city est2023
+Central Islip	island	34450	40.7836	-73.1945	CDP pop2010=34450
+New City	downstate	33559	41.1522	-73.9904	CDP pop2010=33559
+Elmont	island	33198	40.6992	-73.7062	CDP pop2010=33198
+Huntington Station	island	33029	40.8445	-73.4048	CDP pop2010=33029
+Spring Valley	downstate	32969	41.1146	-74.0487	village est2023
+Ithaca	upstate	32724	42.4439	-76.5031	city est2023
+Oceanside	island	32109	40.6330	-73.6377	CDP pop2010=32109
+Poughkeepsie	downstate	31772	41.6946	-73.9199	city est2023
+Rome	upstate	31652	43.2260	-75.4895	city est2023
+Centereach	island	31578	40.8681	-73.0821	CDP pop2010=31578
+Harrison	downstate	30780	41.0235	-73.7193	village est2023
+Port Chester	downstate	30584	41.0047	-73.6672	village est2023
+Middletown	downstate	30152	41.4449	-74.4236	city est2023
+North Tonawanda	upstate	30031	43.0492	-78.8712	city est2023
+Franklin Square	island	29320	40.7002	-73.6775	CDP pop2010=29320
+Saratoga Springs	upstate	28544	43.0677	-73.7781	city est2023
+West Islip	island	28335	40.7029	-73.2955	CDP pop2010=28335
+Newburgh	downstate	28237	41.5032	-74.0196	city est2023
+Jamestown	upstate	27965	42.0976	-79.2361	city est2023
+Glen Cove	island	27879	40.8848	-73.6448	city est2023
+Shirley	island	27854	40.7936	-72.8759	CDP pop2010=27854
+Deer Park	island	27745	40.7614	-73.3217	CDP pop2010=27745
+Holbrook	island	27195	40.7944	-73.0700	CDP pop2010=27195
+Lindenhurst	island	26972	40.6858	-73.3716	village est2023
+Dix Hills	island	26892	40.8033	-73.3375	CDP pop2010=26892
+Ossining	downstate	26542	41.1535	-73.8706	village est2023
+Smithtown	island	26470	40.8575	-73.2167	CDP pop2010=26470
+Bay Shore	island	26337	40.7294	-73.2501	CDP pop2010=26337
+Plainview	island	26217	40.7818	-73.4731	CDP pop2010=26217
+Elmira	upstate	26176	42.0934	-76.8096	city est2023
+Auburn	upstate	25983	42.9338	-76.5672	city est2023
+Rockville Centre	island	25578	40.6640	-73.6380	village est2023
+Peekskill	downstate	25442	41.2874	-73.9236	city est2023
+Uniondale	island	24759	40.7176	-73.5947	CDP pop2010=24759
+Watertown	north	24157	43.9733	-75.9100	city est2023
+Medford	island	24142	40.8220	-72.9859	CDP pop2010=24142
+Baldwin	island	24033	40.6501	-73.6077	CDP pop2010=24033
+Kingston	downstate	23777	41.9301	-73.9968	city est2023
+Copiague	island	22993	40.6704	-73.3928	CDP pop2010=22993
+Garden City	island	22835	40.7258	-73.6454	village est2023
+East Patchogue	island	22469	40.7700	-72.9818	CDP pop2010=22469
+Merrick	island	22097	40.6532	-73.5520	CDP pop2010=22097
+Massapequa	island	21685	40.6683	-73.4715	CDP pop2010=21685
+Mineola	island	21169	40.7470	-73.6394	village est2023
+Hauppauge	island	20882	40.8224	-73.2107	CDP pop2010=20882
+Rotterdam	upstate	20652	42.7794	-73.9601	CDP pop2010=20652
+Lockport	upstate	20436	43.1695	-78.6958	city est2023
+East Northport	island	20217	40.8791	-73.3232	CDP pop2010=20217
+Lake Ronkonkoma	island	20155	40.8303	-73.1133	CDP pop2010=20155
+Lynbrook	island	20071	40.6579	-73.6742	village est2023
+Plattsburgh	north	19867	44.6920	-73.4583	city est2023
+Selden	island	19851	40.8714	-73.0466	CDP pop2010=19851
+Holtsville	island	19714	40.8124	-73.0447	CDP pop2010=19714
+Lackawanna	upstate	19593	42.8184	-78.8328	city est2023
+Eastchester	downstate	19554	40.9583	-73.8075	CDP pop2010=19554
+Mamaroneck	downstate	19533	40.9365	-73.7261	village est2023
+Ronkonkoma	island	19082	40.8035	-73.1245	CDP pop2010=19082
+Melville	island	18985	40.7824	-73.4088	CDP pop2010=18985
+Wantagh	island	18871	40.6679	-73.5105	CDP pop2010=18871
+West Hempstead	island	18862	40.6958	-73.6505	CDP pop2010=18862
+Syosset	island	18829	40.8157	-73.5020	CDP pop2010=18829
+Islip	island	18689	40.7303	-73.2161	CDP pop2010=18689
+Monsey	downstate	18412	41.1095	-74.0770	CDP pop2010=18412
+Cohoes	upstate	18206	42.7729	-73.7078	city est2023
+Amsterdam	upstate	18093	42.9416	-74.1906	city est2023
+Huntington	island	18046	40.8754	-73.4058	CDP pop2010=18046
+Nanuet	downstate	17882	41.0955	-74.0159	CDP pop2010=17882
+Scarsdale	downstate	17747	40.9936	-73.7772	village est2023
+Kings Park	island	17282	40.8870	-73.2456	CDP pop2010=17282
+Cortland	upstate	17276	42.6009	-76.1791	city est2023
+Woodmere	island	17121	40.6374	-73.7212	CDP pop2010=17121
+Oswego	upstate	17022	43.4581	-76.5037	city est2023
+Sayville	island	16853	40.7476	-73.0852	CDP pop2010=16853
+Massapequa Park	island	16826	40.6809	-73.4497	village est2023
+Bethpage	island	16429	40.7495	-73.4855	CDP pop2010=16429
+Roosevelt	island	16258	40.6794	-73.5834	CDP pop2010=16258
+Bellmore	island	16218	40.6602	-73.5266	CDP pop2010=16218
+Rye	downstate	16202	40.9447	-73.6864	city est2023
+Floral Park	island	15879	40.7220	-73.7028	village est2023
+Pearl River	downstate	15876	41.0616	-74.0078	CDP pop2010=15876
+Port Washington	island	15846	40.8275	-73.6800	CDP pop2010=15846
+Westbury	island	15739	40.7599	-73.5892	village est2023
+Farmingville	island	15481	40.8390	-73.0405	CDP pop2010=15481
+Mastic	island	15481	40.8097	-72.8480	CDP pop2010=15481
+Batavia	upstate	15437	42.9986	-78.1808	city est2023
+Oneonta	upstate	15331	42.4548	-75.0669	city est2023
+Seaford	island	15294	40.6662	-73.4926	CDP pop2010=15294
+Beacon	downstate	15025	41.5032	-73.9647	city est2023
+Eggertsville	upstate	15019	42.9665	-78.8072	CDP pop2010=15019
+Kenmore	upstate	14916	42.9646	-78.8713	village est2023
+Tonawanda	upstate	14899	43.0119	-78.8834	city est2023
+Depew	upstate	14891	42.9118	-78.7044	village est2023
+Johnson City	upstate	14874	42.1253	-75.9634	village est2023
+Gloversville	upstate	14843	43.0492	-74.3458	city est2023
+Greece	upstate	14519	43.2095	-77.7026	CDP pop2010=14519
+Glens Falls	upstate	14507	43.3112	-73.6453	city est2023
+East Islip	island	14475	40.7262	-73.1873	CDP pop2010=14475
+Manorville	island	14314	40.8623	-72.7875	CDP pop2010=14314
+New Cassel	island	14059	40.7602	-73.5649	CDP pop2010=14059
+Rocky Point	island	14014	40.9398	-72.9363	CDP pop2010=14014
+Greenlawn	island	13742	40.8635	-73.3658	CDP pop2010=13742
+Stony Brook	island	13740	40.9078	-73.1275	CDP pop2010=13740
+Olean	upstate	13650	42.0839	-78.4351	city est2023
+Hampton Bays	island	13603	40.8647	-72.5181	CDP pop2010=13603
+Jericho	island	13567	40.7874	-73.5416	CDP pop2010=13567
+Nesconset	island	13387	40.8469	-73.1520	CDP pop2010=13387
+St. James	island	13338	40.8764	-73.1521	CDP pop2010=13338
+Ridge	island	13336	40.9038	-72.8859	CDP pop2010=13336
+Riverhead	island	13299	40.9513	-72.6761	CDP pop2010=13299
+Endicott	upstate	13211	42.0975	-76.0634	village est2023
+Mastic Beach	island	12930	40.7657	-72.8367	CDP pop2010=12930
+Dunkirk	upstate	12442	42.4806	-79.3329	city est2023
+Geneva	upstate	12391	42.8635	-76.9827	city est2023
+Miller Place	island	12339	40.9431	-72.9933	CDP pop2010=12339
+Patchogue	island	12337	40.7637	-73.0198	village est2023
+Haverstraw	downstate	12226	41.1782	-73.9433	village est2023
+Stony Point	downstate	12147	41.2294	-73.9976	CDP pop2010=12147
+Mount Sinai	island	12118	40.9418	-73.0202	CDP pop2010=12118
+Babylon	island	12106	40.6937	-73.3260	village est2023
+Salisbury	island	12093	40.7458	-73.5603	CDP pop2010=12093
+Tarrytown	downstate	11691	41.0652	-73.8663	village est2023
+Woodbury	downstate	11512	41.3275	-74.1021	village est2023
+Endwell	upstate	11446	42.1229	-76.0236	CDP pop2010=11446
+Suffern	downstate	11341	41.1120	-74.1414	village est2023
+Dobbs Ferry	downstate	11309	41.0100	-73.8686	village est2023
+Fulton	upstate	11248	43.3192	-76.4197	city est2023
+Lake Grove	island	11021	40.8578	-73.1168	village est2023
+Great Neck	island	11007	40.8024	-73.7331	village est2023
+Sleepy Hollow	downstate	10962	41.0975	-73.8696	village est2023
+West Haverstraw	downstate	10622	41.2063	-73.9868	village est2023
+Corning	upstate	10612	42.1482	-77.0564	city est2023
+Mount Kisco	downstate	10567	41.2017	-73.7283	village est2023
+Chestnut Ridge	downstate	10526	41.0849	-74.0481	village est2023
+Canandaigua	upstate	10480	42.8890	-77.2803	city est2023
+Fairmount	upstate	10224	43.0414	-76.2485	CDP pop2010=10224
+Watervliet	upstate	10170	42.7249	-73.7070	city est2023
+Airmont	downstate	10163	41.0992	-74.0979	village est2023
+New Hyde Park	island	10129	40.7323	-73.6859	village est2023
+Oneida	upstate	10094	43.0704	-75.6736	city est2023
+Massena	north	10082	44.9290	-74.8930	village est2023
+Lancaster	upstate	10047	42.9006	-78.6688	village est2023
+East Rockaway	island	10010	40.6438	-73.6671	village est2023
+New Square	downstate	9824	41.1410	-74.0294	village est2023
+Rye Brook	downstate	9772	41.0300	-73.6864	village est2023
+Hamburg	upstate	9744	42.7234	-78.8348	village est2023
+Amityville	island	9577	40.6698	-73.4158	village est2023
+Monroe	downstate	9477	41.3177	-74.1857	village est2023
+Fredonia	upstate	9455	42.4407	-79.3319	village est2023
+Rensselaer	upstate	9310	42.6457	-73.7325	city est2023
+Ogdensburg	north	9304	44.7092	-75.4633	city est2023
+Scotchtown	downstate	9212	41.4762	-74.3654	CDP pop2010=9212
+Valley Cottage	downstate	9107	41.1155	-73.9435	CDP pop2010=9107
+Newark	upstate	8967	43.0420	-77.0940	village est2023
+New Windsor	downstate	8922	41.4698	-74.0318	CDP pop2010=8922
+Port Jervis	downstate	8565	41.3780	-74.6908	city est2023
+New Paltz	downstate	8552	41.7499	-74.0797	village est2023
+Farmingdale	island	8502	40.7328	-73.4468	village est2023
+Potsdam	north	8436	44.6708	-74.9835	village est2023
+Malverne	island	8417	40.6745	-73.6721	village est2023
+Mahopac	downstate	8369	41.3697	-73.7407	CDP pop2010=8369
+Congers	downstate	8363	41.1491	-73.9464	CDP pop2010=8363
+Hastings-on-Hudson	downstate	8307	40.9880	-73.8812	village est2023
+Lake Carmel	downstate	8282	41.4627	-73.6633	CDP pop2010=8282
+Croton-on-Hudson	downstate	8136	41.2097	-73.9012	village est2023
+Port Jefferson	island	8129	40.9422	-73.0528	village est2023
+Johnstown	upstate	8099	43.0073	-74.3751	city est2023
+Hornell	upstate	8049	42.3330	-77.6632	city est2023
+Geneseo	upstate	7731	42.7990	-77.8095	village est2023
+Great Neck Plaza	island	7651	40.7869	-73.7262	village est2023
+Baldwinsville	upstate	7639	43.1597	-76.3385	village est2023
+Colonie	upstate	7622	42.7209	-73.8317	village est2023
+Ilion	upstate	7567	43.0113	-75.0397	village est2023
+Williston Park	island	7459	40.7588	-73.6466	village est2023
+Hudson Falls	upstate	7376	43.3047	-73.5816	village est2023
+Briarcliff Manor	downstate	7319	41.1403	-73.8475	village est2023
+Cedarhurst	island	7285	40.6252	-73.7278	village est2023
+Westmere	upstate	7284	42.6882	-73.8735	CDP pop2010=7284
+Northport	island	7273	40.9040	-73.3450	village est2023
+Pleasantville	downstate	7255	41.1340	-73.7841	village est2023
+Nyack	downstate	7244	41.0930	-73.9152	village est2023
+Southport	upstate	7238	42.0647	-76.8225	CDP pop2010=7238
+Herkimer	upstate	7235	43.0281	-74.9933	village est2023
+East Hills	island	7228	40.7958	-73.6292	village est2023
+Monticello	upstate	7221	41.6525	-74.6878	village est2023
+Scotia	upstate	7221	42.8320	-73.9604	village est2023
+Pelham	downstate	7138	40.9111	-73.8077	village est2023
+Brockport	upstate	7111	43.2133	-77.9408	village est2023
+Canton	north	7064	44.6000	-75.1666	village est2023
+Walden	downstate	6915	41.5600	-74.1882	village est2023
+Manorhaven	island	6901	40.8389	-73.7108	village est2023
+Tuckahoe	downstate	6900	40.9531	-73.8229	village est2023
+North Syracuse	upstate	6763	43.1339	-76.1304	village est2023
+Lawrence	island	6747	40.6029	-73.7144	village est2023
+Oyster Bay	island	6707	40.8681	-73.5311	CDP pop2010=6707
+Norwich	upstate	6685	42.5333	-75.5228	city est2023
+Bayville	island	6683	40.9073	-73.5612	village est2023
+Seneca Falls	upstate	6681	42.9116	-76.7971	CDP pop2010=6681
+East Glenville	upstate	6616	42.8640	-73.9289	CDP pop2010=6616
+Springs	island	6592	41.0311	-72.1597	CDP pop2010=6592
+Warwick	downstate	6523	41.2552	-74.3547	village est2023
+Larchmont	downstate	6493	40.9260	-73.7520	village est2023
+Solvay	upstate	6484	43.0571	-76.2123	village est2023
+Mattydale	upstate	6446	43.0992	-76.1388	CDP pop2010=6446
+Irvington	downstate	6417	41.0343	-73.8670	village est2023
+Bronxville	downstate	6404	40.9395	-73.8264	village est2023
+Horseheads	upstate	6367	42.1686	-76.8297	village est2023
+Wesley Hills	downstate	6167	41.1576	-74.0790	village est2023
+East Rochester	upstate	6158	43.1122	-77.4872	village est2023
+Wappingers Falls	downstate	6046	41.5982	-73.9169	village est2023
+East Aurora	upstate	5951	42.7668	-78.6170	village est2023
+Medina	upstate	5906	43.2197	-78.3879	village est2023
+Hilton	upstate	5891	43.2900	-77.7926	village est2023
+Hudson	upstate	5790	42.2519	-73.7860	city est2023
+Salamanca	upstate	5783	42.1647	-78.7413	city est2023
+Webster	upstate	5749	43.2164	-77.4219	village est2023
+Southold	island	5748	41.0654	-72.4298	CDP pop2010=5748
+Goshen	downstate	5733	41.4016	-74.3269	village est2023
+Albion	upstate	5730	43.2460	-78.1902	village est2023
+Kaser	downstate	5699	41.1213	-74.0686	village est2023
+Washingtonville	downstate	5655	41.4285	-74.1586	village est2023
+Highland	downstate	5647	41.7215	-73.9621	CDP pop2010=5647
+Kings Point	island	5622	40.8179	-73.7393	village est2023
+Pelham Manor	downstate	5542	40.8931	-73.8059	village est2023
+Bath	upstate	5539	42.3361	-77.3169	village est2023
+Hamlin	upstate	5521	43.3023	-77.9217	CDP pop2010=5521
+Harris Hill	upstate	5508	42.9730	-78.6793	CDP pop2010=5508
+Williamsville	upstate	5458	42.9582	-78.7395	village est2023
+New Hempstead	downstate	5419	41.1457	-74.0510	village est2023
+Malone	north	5400	44.8482	-74.2896	village est2023
+North Hills	island	5370	40.7764	-73.6778	village est2023
+Fairport	upstate	5353	43.0995	-77.4431	village est2023
+Big Flats	upstate	5277	42.1636	-76.9087	CDP pop2010=5277
+Liberty	upstate	5130	41.7966	-74.7432	village est2023
+Elmsford	downstate	5103	41.0541	-73.8143	village est2023
+Mechanicville	upstate	5089	42.9041	-73.6889	city est2023
+Cold Spring Harbor	island	5070	40.8643	-73.4564	CDP pop2010=5070
+Penn Yan	upstate	5062	42.6607	-77.0531	village est2023
+Sea Cliff	island	4995	40.8462	-73.6504	village est2023
+Island Park	island	4976	40.6052	-73.6553	village est2023
+Westvale	upstate	4963	43.0399	-76.2176	CDP pop2010=4963
+Ballston Spa	upstate	4933	43.0056	-73.8545	village est2023
+Ardsley	downstate	4916	41.0135	-73.8393	village est2023
+Gates	upstate	4910	43.1564	-77.6924	CDP pop2010=4910
+Saranac Lake	north	4871	44.3259	-74.1309	village est2023
+Old Westbury	island	4833	40.7865	-73.5975	village est2023
+Chittenango	upstate	4810	43.0461	-75.8748	village est2023
+Flower Hill	island	4791	40.8075	-73.6756	village est2023
+Alfred	upstate	4789	42.2543	-77.7896	village est2023
+East Quogue	island	4757	40.8459	-72.5754	CDP pop2010=4757
+Waterloo	upstate	4704	42.9046	-76.8590	village est2023
+Southampton	island	4627	40.8766	-72.4031	village est2023
+Montebello	downstate	4624	41.1308	-74.1101	village est2023
+Galeville	upstate	4617	43.0867	-76.1878	CDP pop2010=4617
+Manlius	upstate	4593	43.0014	-75.9822	village est2023
+Wellsville	upstate	4566	42.1207	-77.9457	village est2023
+Little Falls	upstate	4516	43.0448	-74.8567	city est2023
+East Greenbush	upstate	4487	42.5952	-73.7050	CDP pop2010=4487
+Cobleskill	upstate	4479	42.6790	-74.4852	village est2023
+Canastota	upstate	4462	43.0841	-75.7555	village est2023
+Menands	upstate	4461	42.6912	-73.7262	village est2023
+Clarkson	upstate	4358	43.2398	-77.9162	CDP pop2010=4358
+Dansville	upstate	4346	42.5625	-77.6969	village est2023
+Waverly	upstate	4270	42.0127	-76.5400	village est2023
+Le Roy	upstate	4265	42.9780	-77.9909	village est2023
+Lyncourt	upstate	4250	43.0821	-76.1264	CDP pop2010=4250
+Mattituck	island	4219	41.0073	-72.5435	CDP pop2010=4219
+Gang Mills	upstate	4185	42.1604	-77.1276	CDP pop2010=4185
+Ellenville	upstate	4174	41.7047	-74.3622	village est2023
+Fayetteville	upstate	4170	43.0308	-75.9984	village est2023
+Springville	upstate	4155	42.5081	-78.6694	village est2023
+Hamilton	upstate	4100	42.8285	-75.5530	village est2023
+Owego	upstate	4096	42.1046	-76.2622	village est2023
+Brewerton	upstate	4029	43.2324	-76.1448	CDP pop2010=4029
+Chester	downstate	3996	41.3569	-74.2769	village est2023
+Cayuga Heights	upstate	3925	42.4677	-76.4884	village est2023
+Pomona	downstate	3882	41.1892	-74.0542	village est2023
+Lansing	upstate	3855	42.4901	-76.4865	village est2023
+Saugerties	upstate	3848	42.0742	-73.9419	village est2023
+South Blooming Grove	downstate	3840	41.3737	-74.1670	village est2023
+Elmira Heights	upstate	3797	42.1267	-76.8256	village est2023
+Catskill	upstate	3763	42.2149	-73.8587	village est2023
+Montgomery	downstate	3760	41.5213	-74.2387	village est2023
+Sloan	upstate	3725	42.8922	-78.7915	village est2023
+South Glens Falls	upstate	3717	43.2944	-73.6336	village est2023
+Sidney	upstate	3660	42.3083	-75.3978	village est2023
+Spencerport	upstate	3655	43.1884	-77.8074	village est2023
+Highland Falls	downstate	3647	41.3646	-73.9689	village est2023
+Minoa	upstate	3638	43.0742	-76.0083	village est2023
+Warsaw	upstate	3629	42.7428	-78.1408	village est2023
+Islandia	island	3627	40.8069	-73.1711	village est2023
+Gouverneur	north	3617	44.3366	-75.4660	village est2023
+Whitesboro	upstate	3591	43.1240	-75.2967	village est2023
+Perry	upstate	3584	42.7178	-78.0053	village est2023
+Lloyd Harbor	island	3537	40.9215	-73.4434	village est2023
+Muttontown	island	3492	40.8254	-73.5363	village est2023
+Calcium	north	3491	44.0409	-75.8494	CDP pop2010=3491
+Avon	upstate	3437	42.9128	-77.7465	village est2023
+Ticonderoga	north	3382	43.8423	-73.4230	CDP pop2010=3382
+Cutchogue	island	3349	41.0212	-72.4870	CDP pop2010=3349
+Tupper Lake	north	3328	44.2298	-74.4619	village est2023
+Lowville	north	3327	43.7866	-75.4878	village est2023
+Montauk	island	3326	41.0475	-71.9464	CDP pop2010=3326
+Palmyra	upstate	3275	43.0609	-77.2297	village est2023
+Carthage	north	3264	43.9829	-75.6030	village est2023
+Ravena	upstate	3213	42.4755	-73.8112	village est2023
+New York Mills	upstate	3190	43.1007	-75.2931	village est2023
+Brightwaters	island	3169	40.7164	-73.2615	village est2023
+Delhi	upstate	3159	42.2774	-74.9155	village est2023
+Hoosick Falls	upstate	3151	42.9009	-73.3500	village est2023
+Fort Edward	upstate	3145	43.2686	-73.5826	village est2023
+Port Washington North	island	3134	40.8430	-73.7001	village est2023
+Maybrook	downstate	3132	41.4880	-74.2125	village est2023
+Tuxedo	downstate	3111	41.2420	-74.1717	village est2023
+Warrensburg	north	3103	43.5109	-73.7698	CDP pop2010=3103
+Great Neck Estates	island	3087	40.7865	-73.7402	village est2023
+Westhampton	island	3079	40.8468	-72.6599	CDP pop2010=3079
+Homer	upstate	3077	42.6372	-76.1854	village est2023
+Orchard Park	upstate	3041	42.7622	-78.7414	village est2023
+Sloatsburg	downstate	3012	41.1620	-74.1909	village est2023
+Cornwall-on-Hudson	downstate	3008	41.4335	-74.0151	village est2023
+East Syracuse	upstate	3002	43.0638	-76.0698	village est2023
+Sherrill	upstate	2992	43.0704	-75.5992	city est2023
+Roslyn	island	2990	40.7998	-73.6504	village est2023
+Greenwood Lake	downstate	2983	41.2211	-74.2876	village est2023
+Lakewood	upstate	2948	42.0991	-79.3201	village est2023
+Brookville	island	2947	40.8079	-73.5701	village est2023
+Green Island	upstate	2947	42.7479	-73.6925	village est2023
+Westfield	upstate	2920	42.3218	-79.5748	village est2023
+Lido Beach	island	2897	40.5891	-73.6043	CDP pop2010=2897
+Akron	upstate	2883	43.0180	-78.4978	village est2023
+Walton	upstate	2883	42.1698	-75.1305	village est2023
+Florida	downstate	2867	41.3306	-74.3542	village est2023
+Mount Morris	upstate	2839	42.7237	-77.8752	village est2023
+Honeoye Falls	upstate	2825	42.9547	-77.5911	village est2023
+Voorheesville	upstate	2804	42.6537	-73.9343	village est2023
+Lake Success	island	2803	40.7639	-73.7111	village est2023
+Sag Harbor	island	2785	40.9943	-72.2885	village est2023
+Munsey Park	island	2765	40.7990	-73.6799	village est2023
+Cazenovia	upstate	2739	42.9279	-75.8513	village est2023
+Sands Point	island	2735	40.8534	-73.7036	village est2023
+Thomaston	island	2718	40.7875	-73.7152	village est2023
+Coxsackie	upstate	2717	42.3576	-73.8080	village est2023
+Victor	upstate	2672	42.9821	-77.4098	village est2023
+Corinth	upstate	2644	43.2457	-73.8303	village est2023
+Harriman	downstate	2609	41.3091	-74.1441	village est2023
+East Williston	island	2599	40.7608	-73.6336	village est2023
+Alden	upstate	2594	42.8989	-78.4946	village est2023
+Yorkville	upstate	2588	43.1124	-75.2740	village est2023
+Rhinebeck	downstate	2584	41.9288	-73.9103	village est2023
+Silver Creek	upstate	2583	42.5412	-79.1690	village est2023
+Greenport	island	2561	41.1024	-72.3668	village est2023
+Blasdell	upstate	2534	42.7965	-78.8324	village est2023
+Skaneateles	upstate	2520	42.9473	-76.4285	village est2023
+Brewster	downstate	2500	41.3962	-73.6163	village est2023
+Lewiston	upstate	2500	43.1719	-79.0407	village est2023
+Whitehall	north	2478	43.5460	-73.4338	village est2023
+Gowanda	upstate	2456	42.4604	-78.9345	village est2023
+Attica	upstate	2447	42.8639	-78.2797	village est2023
+Granville	upstate	2416	43.4134	-73.2645	village est2023
+Mohawk	upstate	2378	43.0094	-75.0071	village est2023
+Dannemora	north	2343	44.7197	-73.7185	village est2023
+Frankfort	upstate	2289	43.0378	-75.0716	village est2023
+Lake Placid	north	2275	44.2842	-73.9864	village est2023
+Pulaski	upstate	2269	43.5655	-76.1260	village est2023
+Liverpool	upstate	2250	43.1056	-76.2097	village est2023
+Falconer	upstate	2241	42.1191	-79.1969	village est2023
+Rouses Point	north	2210	44.9912	-73.3637	village est2023
+Phoenix	upstate	2201	43.2309	-76.2958	village est2023
+Churchville	upstate	2195	43.1023	-77.8816	village est2023
+Westhampton Beach	island	2192	40.8070	-72.6451	village est2023
+Canisteo	upstate	2172	42.2704	-77.6057	village est2023
+Clifton Springs	upstate	2169	42.9608	-77.1348	village est2023
+Camden	upstate	2143	43.3365	-75.7477	village est2023
+Clyde	upstate	2138	43.0842	-76.8704	village est2023
+Groton	upstate	2114	42.5834	-76.3599	village est2023
+Lima	upstate	2099	42.9069	-77.6123	village est2023
+Woodstock	upstate	2088	42.0432	-74.1167	CDP pop2010=2088
+Caledonia	upstate	2080	42.9755	-77.8571	village est2023
+Canajoharie	upstate	2053	42.8991	-74.5679	village est2023
+Waterford	upstate	2026	42.7921	-73.6788	village est2023
+Angola	upstate	2021	42.6379	-79.0295	village est2023
+Pawling	downstate	2015	41.5636	-73.5993	village est2023
+Dolgeville	upstate	2014	43.1067	-74.7800	village est2023
+Boonville	north	2007	43.4809	-75.3296	village est2023
+Scottsville	upstate	1995	43.0223	-77.7534	village est2023
+Cold Spring	downstate	1993	41.4192	-73.9547	village est2023
+Fort Plain	upstate	1991	42.9327	-74.6268	village est2023
+Arcade	upstate	1925	42.5317	-78.4399	village est2023
+Hyde Park	downstate	1908	41.7836	-73.9347	CDP pop2010=1908
+Dryden	upstate	1863	42.4908	-76.3014	village est2023
+New Hartford	upstate	1862	43.0710	-75.2886	village est2023
+Phelps	upstate	1856	42.9581	-77.0621	village est2023
+Central Square	upstate	1840	43.2860	-76.1419	village est2023
+Cooperstown	upstate	1837	42.6989	-74.9307	village est2023
+Youngstown	upstate	1834	43.2496	-79.0422	village est2023
+Keeseville	north	1815	44.5041	-73.4811	CDP pop2010=1815
+Cambridge	upstate	1796	43.0280	-73.3813	village est2023
+Oakfield	upstate	1789	43.0650	-78.2710	village est2023
+Watkins Glen	upstate	1788	42.3805	-76.8670	village est2023
+Weedsport	upstate	1768	43.0481	-76.5636	village est2023
+Bridgehampton	island	1756	40.9411	-72.3057	CDP pop2010=1756
+Marcellus	upstate	1755	42.9837	-76.3405	village est2023
+West Carthage	north	1754	43.9736	-75.6216	village est2023
+Stillwater	upstate	1748	42.9465	-73.6393	village est2023
+Holley	upstate	1730	43.2247	-78.0292	village est2023
+Painted Post	upstate	1729	42.1638	-77.0924	village est2023
+Valatie	upstate	1709	42.4131	-73.6778	village est2023
+Wayland	upstate	1705	42.5628	-77.5959	village est2023
+Clayton	north	1701	44.2375	-76.0827	village est2023
+Sodus	upstate	1701	43.2371	-77.0628	village est2023
+Atlantic Beach	island	1697	40.5861	-73.7251	village est2023
+Quogue	island	1697	40.8214	-72.5989	village est2023
+St. Johnsville	upstate	1697	43.0006	-74.6760	village est2023
+Middleport	upstate	1696	43.2117	-78.4757	village est2023
+Dundee	upstate	1688	42.5236	-76.9774	village est2023
+Trumansburg	upstate	1681	42.5403	-76.6636	village est2023
+Adams	north	1678	43.8102	-76.0230	village est2023
+Port Dickinson	upstate	1669	42.1356	-75.8944	village est2023
+Greenwich	upstate	1667	43.0865	-73.4967	village est2023
+Franklinville	upstate	1652	42.3347	-78.4548	village est2023
+Clinton	upstate	1644	43.0489	-75.3785	village est2023
+Altamont	upstate	1639	42.7053	-74.0336	village est2023
+Manchester	upstate	1631	42.9681	-77.2316	village est2023
+Cumberland Head	north	1627	44.7177	-73.3980	CDP pop2010=1627
+Peru	north	1591	44.5793	-73.5333	CDP pop2010=1591
+Athens	upstate	1583	42.2710	-73.8159	village est2023
+Wolcott	upstate	1577	43.2228	-76.8121	village est2023
+Adams Center	north	1568	43.8700	-75.9887	CDP pop2010=1568
+Addison	upstate	1564	42.1063	-77.2320	village est2023
+Montour Falls	upstate	1563	42.3487	-76.8487	village est2023
+Water Mill	island	1559	40.9224	-72.3507	CDP pop2010=1559
+Chatham	upstate	1557	42.3618	-73.5979	village est2023
+Mexico	upstate	1557	43.4652	-76.2326	village est2023
+Allegany	upstate	1555	42.0906	-78.4896	village est2023
+East Hampton	island	1546	40.9515	-72.1961	village est2023
+Morrisonville	north	1545	44.6937	-73.5589	CDP pop2010=1545
+Norwood	north	1544	44.7483	-74.9967	village est2023
+Cuba	upstate	1523	42.2183	-78.2752	village est2023
+Waterville	upstate	1510	42.9306	-75.3802	village est2023
+Millbrook	downstate	1442	41.7849	-73.6921	village est2023
+Sackets Harbor	north	1364	43.9383	-76.1129	village est2023
+Shelter Island	island	1333	41.0553	-72.2971	CDP pop2010=1333
+Norfolk	north	1327	44.7886	-74.9880	CDP pop2010=1327
+Mineville	north	1269	44.0929	-73.5214	CDP pop2010=1269
+Black River	north	1237	44.0095	-75.7965	village est2023
+Livingston Manor	upstate	1221	41.8872	-74.8236	CDP pop2010=1221
+Point Lookout	island	1219	40.5906	-73.5794	CDP pop2010=1219
+Port Henry	north	1194	44.0454	-73.4613	CDP pop2010=1194
+Stone Ridge	downstate	1173	41.8467	-74.1545	CDP pop2010=1173
+Amagansett	island	1165	40.9834	-72.1301	CDP pop2010=1165
+Philadelphia	north	1150	44.1540	-75.7098	village est2023
+Champlain	north	1142	44.9883	-73.4324	village est2023
+Hannawa Falls	north	1042	44.6007	-74.9754	CDP pop2010=1042
+Dexter	north	1008	44.0112	-76.0430	village est2023
+Lake George	north	1005	43.4259	-73.7152	village est2023
+Alexandria Bay	north	951	44.3372	-75.9227	village est2023
+Waddington	north	940	44.8613	-75.1972	village est2023
+Brownville	north	939	44.0053	-75.9831	village est2023
+Wilmington	north	937	44.3869	-73.8172	CDP pop2010=937
+Great Bend	north	843	44.0168	-75.7002	CDP pop2010=843
+Schroon Lake	north	833	43.8351	-73.7669	CDP pop2010=833
+Star Lake	north	809	44.1695	-75.0389	CDP pop2010=809
+Madrid	north	757	44.7474	-75.1294	CDP pop2010=757
+Old Forge	north	756	43.7064	-74.9691	CDP pop2010=756
+Elizabethtown	north	754	44.2261	-73.5889	CDP pop2010=754
+Willsboro	north	753	44.3635	-73.3932	CDP pop2010=753
+Theresa	north	747	44.2155	-75.7959	village est2023
+Chateaugay	north	744	44.9266	-74.0804	village est2023
+Orient	island	743	41.1489	-72.2494	CDP pop2010=743
+Altona	north	730	44.8901	-73.6596	CDP pop2010=730
+Cape Vincent	north	728	44.1232	-76.3307	village est2023
+Heuvelton	north	720	44.6164	-75.4000	village est2023
+Chestertown	north	677	43.6431	-73.7835	CDP pop2010=677
+Paul Smiths	north	671	44.4334	-74.2508	CDP pop2010=671
+Brasher Falls	north	669	44.8140	-74.7889	CDP pop2010=669
+Lacona	north	668	43.6427	-76.0661	village est2023
+Copenhagen	north	661	43.8933	-75.6726	village est2023
+Parishville	north	647	44.6297	-74.7927	CDP pop2010=647
+Croghan	north	638	43.8943	-75.3915	village est2023
+Hailesboro	north	624	44.3116	-75.4330	CDP pop2010=624
+Aurora	upstate	623	42.7522	-76.6984	village est2023
+Evans Mills	north	621	44.0870	-75.8078	village est2023
+Sandy Creek	north	621	43.6434	-76.0863	village est2023
+North Creek	north	616	43.6913	-73.9855	CDP pop2010=616
+La Fargeville	north	608	44.1933	-75.9546	CDP pop2010=608
+Redwood	north	605	44.2982	-75.8079	CDP pop2010=605
+Chaumont	north	598	44.0684	-76.1327	village est2023
+Lyons Falls	north	594	43.6170	-75.3616	village est2023
+Port Leyden	north	594	43.5847	-75.3400	village est2023
+Hammondsport	upstate	586	42.4087	-77.2229	village est2023
+Tannersville	upstate	572	42.1939	-74.1344	village est2023
+Long Lake	north	547	43.9675	-74.4269	CDP pop2010=547
+Roscoe	upstate	541	41.9407	-74.9131	CDP pop2010=541
+Bolton Landing	north	513	43.5640	-73.6525	CDP pop2010=513
+Antwerp	north	512	44.1995	-75.6090	village est2023
+Margaretville	upstate	487	42.1453	-74.6507	village est2023
+Glen Park	north	445	44.0031	-75.9584	village est2023
+Brushton	north	435	44.8307	-74.5119	village est2023
+Hunter	upstate	411	42.2105	-74.2154	village est2023
+Speculator	north	402	43.5760	-74.3562	village est2023
+Windham	upstate	367	42.3141	-74.2487	CDP pop2010=367
+Castorland	north	338	43.8862	-75.5165	village est2023
+Rensselaer Falls	north	322	44.5908	-75.3198	village est2023
+Mannsville	north	320	43.7178	-76.0668	village est2023
+Phoenicia	upstate	309	42.0832	-74.3143	CDP pop2010=309
+Constableville	north	302	43.5647	-75.4277	village est2023
+Fire Island	island	292	40.6371	-73.2033	CDP pop2010=292
+Ellicottville	upstate	284	42.2749	-78.6723	village est2023
+Fishers Island	island	236	41.2677	-71.9928	CDP pop2010=236
+Chautauqua	upstate	191	42.2101	-79.4690	CDP pop2010=191
+Ocean Beach	island	168	40.6463	-73.1565	village est2023

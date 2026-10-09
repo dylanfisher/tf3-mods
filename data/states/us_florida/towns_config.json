@@ -1,0 +1,184 @@
+{
+  "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+  "fips": "12",
+  "postal": "FL",
+  "gazetteerYear": 2023,
+  "popestYear": 2023,
+  "bigCount": 15,
+  "cdpMinPop": 15000,
+  "_regions": "First match wins. panhandle = west of -83.6 and north of 29.6 (Pensacola, Tallahassee, Panama City); north = the rest north of 29.0 (Jacksonville, Gainesville, St. Augustine, Ocala); central = 27.0-29.0 (Orlando, Tampa, Lakeland, Daytona Beach); everything else is south. keys = Monroe County (countyTags).",
+  "regions": [
+    {
+      "tag": "panhandle",
+      "polygon": [
+        [
+          31.1,
+          -87.7
+        ],
+        [
+          31.1,
+          -83.6
+        ],
+        [
+          29.6,
+          -83.6
+        ],
+        [
+          29.6,
+          -87.7
+        ]
+      ]
+    },
+    {
+      "tag": "north",
+      "polygon": [
+        [
+          31.1,
+          -87.7
+        ],
+        [
+          31.1,
+          -80.0
+        ],
+        [
+          29.0,
+          -80.0
+        ],
+        [
+          29.0,
+          -87.7
+        ]
+      ]
+    },
+    {
+      "tag": "central",
+      "polygon": [
+        [
+          29.0,
+          -87.7
+        ],
+        [
+          29.0,
+          -79.9
+        ],
+        [
+          27.0,
+          -79.9
+        ],
+        [
+          27.0,
+          -87.7
+        ]
+      ]
+    }
+  ],
+  "defaultTag": "south",
+  "rules": [],
+  "setSide": {},
+  "countyTags": {
+    "keys": [
+      "Monroe"
+    ]
+  },
+  "tagLists": {},
+  "removeTags": {},
+  "rename": {
+    "Islamorada, Village of Islands": "Islamorada",
+    "Everglades": "Everglades City"
+  },
+  "exclude": [],
+  "_cdp": "CDPs are kept when pop2010 >= cdpMinPop, not excluded, without a hyphen and without a drop word; keepCdp overrides all of that.",
+  "dropCdpWords": [
+    "North",
+    "South",
+    "East",
+    "West",
+    "Northwest",
+    "Southeast",
+    "Southwest",
+    "Northeast",
+    "Upper",
+    "Lower",
+    "Heights"
+  ],
+  "excludeCdp": [
+    "Country Club",
+    "University",
+    "Lakeside",
+    "Wright",
+    "Midway",
+    "Sunset",
+    "Brent",
+    "Pinewood",
+    "The Crossings",
+    "Oak Ridge",
+    "Four Corners",
+    "Lake Butler",
+    "Florida Ridge",
+    "Three Lakes",
+    "Ojus",
+    "Fountainebleau",
+    "Golden Glades",
+    "Ives Estates",
+    "Jasmine Estates",
+    "Bayshore Gardens",
+    "Country Walk",
+    "Southchase",
+    "The Hammocks",
+    "Kendale Lakes",
+    "Coral Terrace",
+    "Keystone",
+    "Holiday",
+    "Northdale",
+    "Bloomingdale",
+    "Ensley",
+    "Bellview",
+    "Myrtle Grove",
+    "Iona",
+    "Brownsville",
+    "Leisure City",
+    "Eglin AFB",
+    "Hurlburt Field",
+    "Patrick SFB",
+    "Patrick AFB",
+    "MacDill AFB",
+    "Whiting Field",
+    "Pensacola Station",
+    "Mayport"
+  ],
+  "keepCdp": [
+    "Key Largo",
+    "Tavernier",
+    "Big Pine Key",
+    "Stock Island",
+    "Cudjoe Key",
+    "Big Coppitt Key",
+    "Siesta Key",
+    "Miramar Beach",
+    "St. George Island",
+    "Steinhatchee",
+    "Crawfordville",
+    "Yulee",
+    "Homosassa Springs",
+    "Hobe Sound",
+    "Jensen Beach",
+    "Celebration",
+    "Englewood",
+    "St. James City",
+    "Captiva",
+    "Sebastian",
+    "Pine Island Center",
+    "Matlacha",
+    "Carrabelle",
+    "Eastpoint",
+    "Port St. John",
+    "Palm Coast",
+    "Lake Panasoffkee",
+    "Silver Springs Shores",
+    "Fernandina Beach",
+    "Callahan"
+  ],
+  "_rename": "Census 'Islamorada, Village of Islands' is signed and known as Islamorada; Census 'Everglades city' is Everglades City (the city's own name).",
+  "_excludeCdp": "Suburban-tract CDP names that read as subdivisions or generic words, CDPs that would shadow a same-named incorporated town (Lake Butler, Midway), and military bases.",
+  "_keepCdp": "Well-known smaller CDPs below cdpMinPop: the Keys, beach and island communities, and county seats."
+}

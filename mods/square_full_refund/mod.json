@@ -1,0 +1,24 @@
+{
+    "modId": "square_full_refund",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": false,
+    "params": [
+        {
+            "key": "refundWindow",
+            "name": "Refund window",
+            "tooltip": "How long after building something bulldozing it still refunds the full cost.",
+            "uiType": "Slider",
+            "values": [
+                "60 s",
+                "2 min",
+                "5 min",
+                "10 min"
+            ],
+            "numbers": [60.0, 120.0, 300.0, 600.0],
+            "defaultIndex": 0
+        }
+    ]
+}

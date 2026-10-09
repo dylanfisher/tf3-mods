@@ -1,0 +1,16 @@
+{
+    "name": "Problem Radar",
+    "summary": "Alert window for stuck vehicles, broken or money-losing lines, crowded stations and fleet health.",
+    "description": "Collects stuck vehicles, broken or money-losing lines, crowded stations and fleet problems into one sortable window. Reads the game state only and is safe to add to an existing save.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

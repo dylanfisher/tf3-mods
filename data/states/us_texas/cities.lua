@@ -1,0 +1,301 @@
+-- Real names per city, used by the rename script for NEW player-built stops and stations in a town whose
+-- current name matches the key (or an alias). Only well-known, real names; anything less certain goes to
+-- plans/square_state_names/data_review.md ("## Texas") instead of here.
+--   streets        Road Stops (edge-object stops), in this order (first unused wins). Every street was checked
+--                  on OpenStreetMap (Overpass, 2026-10-08): a highway way with that name (directional prefix
+--                  dropped) inside the city's admin boundary. Galveston's downtown streets carry dual names in
+--                  OSM ("Church Street - Avenue F", "Rosenberg Avenue - 25th Street"); the named half ships.
+--   neighborhoods  bus/tram stations. Houston: the city's super neighborhoods (COHGIS layer, 2026-10-08), with
+--                  "Greater"/"Area" dropped and slash pairs left out. Austin: the city's neighborhood planning
+--                  areas (2026-10-08). Dallas and San Antonio: OSM place/boundary hits inside the city.
+--                  Names that are also Texas towns (Jefferson) or rail stops are left out.
+--   rail           passenger train stations, WITHOUT a trailing "Station". Series policy (D5): mainline and
+--                  commuter first, then light rail. Names from the operators' GTFS feeds (stops.txt, 2026-10-08):
+--                  DART (incl. TRE), Trinity Metro TEXRail, CapMetro Rail, Houston METRORail. Slash and "&"
+--                  names left out (Pearl/Arts District, T&P), and names that are also streets in the same city
+--                  (Lovers Lane, Royal Lane, Forest Lane) or Texas towns (Wheeler, Leander). Dallas Union Station
+--                  is "EBJ Union Station" in DART's feed (renamed 2019 for Eddie Bernice Johnson); it ships in its
+--                  common short form. El Paso's Amtrak station is the Union Depot. Amtrak stops are otherwise named
+--                  after their town (the engine default, no entry).
+--   airport        airports/airfields: FAA names (AirNav 5010 data, checked 2026-10-08) in their short common
+--                  form. Dallas-Fort Worth International sits between the two cities and ships under Dallas;
+--                  Jack Brooks Regional (FAA city "Beaumont/Port Arthur") under Beaumont. Names over 40 bytes
+--                  drop the city prefix (Preston Smith, Rick Husband International).
+--   harbor         ports by their own name (checked against the port authorities and Texas statutes,
+--                  2026-10-08) and the TxDOT Galveston-Port Bolivar ferry landings.
+-- Station names are unique map-wide; street names are unique per town.
+return {
+	["Houston"] = {
+		streets = {
+			"Main Street", "Westheimer Road", "Richmond Avenue", "Washington Avenue", "Montrose Boulevard", "Kirby Drive",
+			"Shepherd Drive", "Memorial Drive", "Allen Parkway", "Louisiana Street", "Travis Street", "Milam Street",
+			"Smith Street", "Fannin Street", "San Jacinto Street", "Texas Avenue", "Prairie Street", "Navigation Boulevard",
+			"Bellaire Boulevard", "Bissonnet Street", "Holcombe Boulevard", "Westpark Drive", "Post Oak Boulevard",
+			"San Felipe Street", "Durham Drive", "Yale Street", "Heights Boulevard", "Hillcroft Avenue", "Gessner Road",
+			"Telephone Road",
+		},
+		neighborhoods = {
+			"Montrose", "Midtown", "Fourth Ward", "Third Ward", "Fifth Ward", "Second Ward", "Near Northside", "Eastwood",
+			"Magnolia Park", "Denver Harbor", "Independence Heights", "Acres Home", "Kashmere Gardens", "Gulfton",
+			"Sharpstown", "Alief", "Meyerland", "Braeburn", "Westchase", "Westbury", "Memorial", "Spring Branch", "Kingwood",
+			"Clear Lake", "Greenspoint", "Museum Park", "Pecan Park", "Park Place", "Sunnyside", "Settegast", "Brays Oaks",
+		},
+		rail = {
+			"Main Street Square", "Preston", "UH-Downtown", "Bell", "Downtown Transit Center", "McGowen", "Museum District",
+			"Smith Lands", "Fannin South", "Moody Park", "Lindale Park", "Cavalcade", "Theater District",
+			"Convention District", "Palm Center Transit Center",
+		},
+		airport = {
+			"George Bush Intercontinental Airport", "William P. Hobby Airport", "Ellington Airport",
+		},
+		harbor = {
+			"Port Houston",
+		},
+	},
+	["San Antonio"] = {
+		streets = {
+			"Commerce Street", "Houston Street", "Market Street", "Broadway", "St. Mary's Street", "Navarro Street",
+			"Presa Street", "Soledad Street", "Flores Street", "Main Avenue", "McCullough Avenue", "San Pedro Avenue",
+			"Fredericksburg Road", "Bandera Road", "Culebra Road", "Nogalitos Street", "Zarzamora Street", "Military Drive",
+			"Roosevelt Avenue", "Mission Road", "Pleasanton Road", "Hildebrand Avenue", "Blanco Road", "Wurzbach Road",
+			"Huebner Road", "Babcock Road", "Nacogdoches Road", "Austin Highway", "Durango Boulevard", "Alamo Street",
+		},
+		neighborhoods = {
+			"King William", "Monte Vista", "Tobin Hill", "Dignowity Hill", "Lavaca", "Southtown", "Pearl", "Beacon Hill",
+			"Government Hill", "Five Points", "Alta Vista", "Olmos Park Terrace", "Prospect Hill", "Denver Heights",
+			"Woodlawn Lake", "Stone Oak", "Medical Center", "Oak Park", "Monticello Park", "Arsenal",
+		},
+		airport = {
+			"San Antonio International Airport", "Stinson Municipal Airport",
+		},
+	},
+	["Dallas"] = {
+		streets = {
+			"Elm Street", "Main Street", "Commerce Street", "Akard Street", "Ervay Street", "Harwood Street", "Pearl Street",
+			"Ross Avenue", "McKinney Avenue", "Lemmon Avenue", "Cedar Springs Road", "Oak Lawn Avenue", "Greenville Avenue",
+			"Mockingbird Lane", "Northwest Highway", "Preston Road", "Inwood Road", "Lovers Lane", "Live Oak Street",
+			"Gaston Avenue", "Swiss Avenue", "Davis Street", "Jefferson Boulevard", "Zang Boulevard", "Riverfront Boulevard",
+			"Field Street", "Young Street", "Houston Street", "Lamar Street", "Forest Lane",
+		},
+		neighborhoods = {
+			"Deep Ellum", "Uptown", "Oak Lawn", "Bishop Arts District", "Oak Cliff", "Lakewood", "Lower Greenville",
+			"Design District", "Lake Highlands", "Old East Dallas", "Arts District", "Forest Hills",
+		},
+		rail = {
+			"Union Station", "West End", "Akard", "St. Paul", "Baylor", "Fair Park", "Hatcher", "Lawnview", "Lake June",
+			"Buckner", "Cedars", "Morrell", "Kiest", "VA Medical Center", "Camp Wisdom", "Ledbetter", "UNT Dallas", "Hampton",
+			"Westmoreland", "Victory", "Market Center", "Burbank", "Bachman", "Park Lane", "Walnut Hill", "White Rock",
+		},
+		airport = {
+			"Dallas Love Field", "Dallas-Fort Worth International Airport", "Dallas Executive Airport",
+		},
+	},
+	["Austin"] = {
+		streets = {
+			"Congress Avenue", "6th Street", "Lamar Boulevard", "Guadalupe Street", "Lavaca Street", "Colorado Street",
+			"Brazos Street", "San Jacinto Boulevard", "Red River Street", "Cesar Chavez Street", "Riverside Drive",
+			"Barton Springs Road", "1st Street", "Oltorf Street", "Burnet Road", "Airport Boulevard", "Manor Road",
+			"Martin Luther King Jr. Boulevard", "Rainey Street", "Trinity Street", "Duval Street", "Speedway",
+			"Dean Keeton Street", "38th Street", "45th Street", "Anderson Lane", "Koenig Lane", "William Cannon Drive",
+			"Slaughter Lane", "Parmer Lane",
+		},
+		neighborhoods = {
+			"Hyde Park", "Zilker", "Bouldin Creek", "Barton Hills", "Old West Austin", "Allandale", "North Loop", "Rosedale",
+			"Rosewood", "Govalle", "Holly", "Montopolis", "Central East Austin", "Windsor Park", "Hancock", "Chestnut",
+			"Dawson", "Galindo", "South River City", "Upper Boggy Creek", "North Shoal Creek", "Old Enfield",
+			"Georgian Acres", "Wooten", "Heritage Hills",
+		},
+		rail = {
+			"Downtown", "Plaza Saltillo", "MLK Jr.", "Highland", "Crestview", "McKalla", "Kramer", "Howard", "Lakeline",
+		},
+		airport = {
+			"Austin-Bergstrom International Airport",
+		},
+	},
+	["Fort Worth"] = {
+		streets = {
+			"Main Street", "Houston Street", "Throckmorton Street", "Commerce Street", "Belknap Street", "Weatherford Street",
+			"Lancaster Avenue", "Magnolia Avenue", "Hemphill Street", "Camp Bowie Boulevard", "University Drive",
+			"Montgomery Street", "7th Street", "Exchange Avenue", "Stockyards Boulevard", "Berry Street", "Rosedale Street",
+			"Henderson Street", "Forest Park Boulevard", "Hulen Street", "Vickery Boulevard", "Jacksboro Highway",
+			"Northside Drive", "Seminary Drive", "Riverside Drive", "Beach Street", "Bryant Irvin Road", "Calhoun Street",
+			"Jones Street", "Cherry Street",
+		},
+		rail = {
+			"Fort Worth Central", "North Side", "Mercantile Center",
+		},
+		airport = {
+			"Meacham International Airport", "Fort Worth Alliance Airport", "Spinks Airport",
+		},
+	},
+	["El Paso"] = {
+		streets = {
+			"Mesa Street", "Stanton Street", "Oregon Street", "El Paso Street", "Kansas Street", "Santa Fe Street",
+			"Montana Avenue", "Alameda Avenue", "Paisano Drive", "Texas Avenue", "Mills Avenue", "San Antonio Avenue",
+			"Missouri Avenue", "Franklin Avenue", "Yandell Drive", "Cotton Street", "Dyer Street", "Gateway Boulevard",
+			"Zaragoza Road", "Lee Trevino Drive", "Airway Boulevard", "Executive Center Boulevard", "Doniphan Drive",
+			"Resler Drive", "Rim Road", "Scenic Drive", "Piedras Street", "Trowbridge Drive", "Hondo Pass Avenue",
+			"Magoffin Avenue",
+		},
+		rail = {
+			"Union Depot",
+		},
+		airport = {
+			"El Paso International Airport",
+		},
+	},
+	["Corpus Christi"] = {
+		streets = {
+			"Shoreline Boulevard", "Ocean Drive", "Leopard Street", "Agnes Street", "Laredo Street", "Staples Street",
+			"Alameda Street", "Everhart Road", "Airline Road", "Saratoga Boulevard", "Weber Road", "Kostoryz Road",
+			"Ayers Street", "Port Avenue", "Chaparral Street", "Water Street", "Mesquite Street", "Morgan Avenue",
+			"Gollihar Road", "Holly Road", "Yorktown Boulevard", "Padre Island Drive", "Rodd Field Road", "Williams Drive",
+			"Up River Road", "Baldwin Boulevard", "Santa Fe Street", "Lipan Street",
+		},
+		airport = {
+			"Corpus Christi International Airport",
+		},
+		harbor = {
+			"Port of Corpus Christi",
+		},
+	},
+	["Laredo"] = {
+		streets = {
+			"San Bernardo Avenue", "Convent Avenue", "Flores Avenue", "Santa Ursula Avenue", "Zaragoza Street",
+			"Lincoln Street", "Matamoros Street", "Guadalupe Street", "Saunders Street", "McPherson Road",
+			"Del Mar Boulevard", "Mann Road", "Calton Road", "Jacaman Road", "Bob Bullock Loop", "Clark Boulevard",
+			"Chihuahua Street", "Juarez Avenue", "Corpus Christi Street", "Market Street", "Springfield Avenue",
+			"Shiloh Drive", "Hillside Road", "Iturbide Street", "Victoria Street", "Houston Street", "Farragut Street",
+			"Salinas Avenue", "Scott Street", "Meadow Avenue",
+		},
+		airport = {
+			"Laredo International Airport",
+		},
+	},
+	["Lubbock"] = {
+		streets = {
+			"Broadway", "Avenue Q", "University Avenue", "Indiana Avenue", "Quaker Avenue", "Slide Road", "Milwaukee Avenue",
+			"19th Street", "34th Street", "50th Street", "82nd Street", "98th Street", "4th Street", "Marsha Sharp Freeway",
+			"Avenue H", "Buddy Holly Avenue", "Frankford Avenue", "Texas Avenue", "Glenna Goodacre Boulevard",
+			"Erskine Street", "Clovis Road", "Main Street", "Crickets Avenue", "Boston Avenue", "Avenue A",
+			"Martin Luther King Jr. Boulevard",
+		},
+		airport = {
+			"Preston Smith International Airport",
+		},
+	},
+	["Amarillo"] = {
+		streets = {
+			"Polk Street", "Tyler Street", "Taylor Street", "Fillmore Street", "Pierce Street", "Buchanan Street",
+			"Washington Street", "Van Buren Street", "6th Avenue", "Amarillo Boulevard", "Georgia Street", "Western Street",
+			"Bell Street", "Coulter Street", "Soncy Road", "Hillside Road", "45th Avenue", "34th Avenue", "Plains Boulevard",
+			"Wolflin Avenue", "Ross Street", "Grand Street", "Hughes Street", "Paramount Boulevard", "Ong Street",
+			"Lakeside Drive", "Madison Street", "Johnson Street", "Harrison Street",
+		},
+		airport = {
+			"Rick Husband International Airport",
+		},
+	},
+	["Waco"] = {
+		streets = {
+			"Austin Avenue", "Franklin Avenue", "Washington Avenue", "Columbus Avenue", "University Parks Drive",
+			"Elm Avenue", "Valley Mills Drive", "Bosque Boulevard", "Lake Air Drive", "Sanger Avenue", "Herring Avenue",
+			"18th Street", "25th Street", "Dutton Avenue", "La Salle Avenue", "Speight Avenue", "New Road",
+			"Lake Shore Drive", "Mary Avenue", "4th Street", "8th Street", "Waco Drive", "Clay Avenue", "Webster Avenue",
+			"Jefferson Avenue", "Cobbs Drive",
+		},
+		airport = {
+			"Waco Regional Airport",
+		},
+	},
+	["Galveston"] = {
+		streets = {
+			"Seawall Boulevard", "Harborside Drive", "Postoffice Street", "Market Street", "Mechanic Street", "Winnie Street",
+			"Avenue O", "Avenue P", "Avenue Q", "61st Street", "45th Street", "Stewart Road", "Ferry Road", "Holiday Drive",
+			"Avenue L", "Avenue K", "The Strand", "Church Street", "Ball Street", "Sealy Street", "Rosenberg Avenue",
+			"Tremont Avenue", "Moody Avenue", "Kempner Avenue", "Texas Avenue", "Avenue M", "Avenue S", "Avenue U",
+		},
+		airport = {
+			"Scholes International Airport",
+		},
+		harbor = {
+			"Port of Galveston", "Galveston Ferry",
+		},
+	},
+	["Pasadena"] = {
+		streets = {
+			"Pasadena Boulevard", "Southmore Avenue", "Shaver Street", "Red Bluff Road", "Spencer Highway",
+			"Fairmont Parkway", "Burke Road", "Strawberry Road", "Richey Street", "Harris Avenue", "Witter Street",
+			"Main Street", "Watters Road", "Vince Street", "Jackson Avenue", "Thomas Avenue", "Munger Street",
+			"Allen-Genoa Road", "Queens Road", "Shaw Avenue",
+		},
+	},
+	["McAllen"] = {
+		airport = {
+			"McAllen International Airport",
+		},
+	},
+	["Harlingen"] = {
+		airport = {
+			"Valley International Airport",
+		},
+	},
+	["Midland"] = {
+		airport = {
+			"Midland International Air & Space Port",
+		},
+	},
+	["Beaumont"] = {
+		airport = {
+			"Jack Brooks Regional Airport",
+		},
+		harbor = {
+			"Port of Beaumont",
+		},
+	},
+	["Tyler"] = {
+		airport = {
+			"Tyler Pounds Regional Airport",
+		},
+	},
+	["Abilene"] = {
+		airport = {
+			"Abilene Regional Airport",
+		},
+	},
+	["San Angelo"] = {
+		airport = {
+			"San Angelo Regional Airport",
+		},
+	},
+	["College Station"] = {
+		airport = {
+			"Easterwood Airport",
+		},
+	},
+	["Killeen"] = {
+		airport = {
+			"Killeen Regional Airport",
+		},
+	},
+	["Port Arthur"] = {
+		harbor = {
+			"Port of Port Arthur",
+		},
+	},
+	["Brownsville"] = {
+		harbor = {
+			"Port of Brownsville",
+		},
+	},
+	["Freeport"] = {
+		harbor = {
+			"Port Freeport",
+		},
+	},
+	["Bolivar Peninsula"] = {
+		harbor = {
+			"Port Bolivar Ferry",
+		},
+	},
+}

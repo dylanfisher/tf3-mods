@@ -1,0 +1,55 @@
+{
+  "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+  "fips": "02",
+  "postal": "AK",
+  "gazetteerYear": 2023,
+  "popestYear": 2023,
+  "bigCount": 15,
+  "cdpMinPop": 50,
+  "_regions": "First match wins. islands = the Kodiak archipelago, the Aleutians and the Pribilofs; southeast = the Panhandle (Juneau, Sitka, Ketchikan, Yakutat); southcentral = Anchorage, Mat-Su, the Kenai Peninsula, Prince William Sound and the Copper River basin; interior = Fairbanks, the Tanana and middle Yukon valleys, Tok and McGrath. Everything else (North Slope, Northwest Arctic, Bering Strait, the Yukon-Kuskokwim Delta and Bristol Bay) is arctic_west.",
+  "regions": [
+    {"tag": "islands", "polygon": [[58.7, -155.0], [58.7, -151.5], [56.4, -151.5], [56.4, -155.0]]},
+    {"tag": "islands", "polygon": [[57.6, -179.99], [57.6, -159.0], [54.6, -159.0], [51.0, -179.99]]},
+    {"tag": "southeast", "polygon": [[60.4, -141.0], [60.4, -129.9], [54.4, -129.9], [54.4, -141.0]]},
+    {"tag": "southcentral", "polygon": [[62.9, -151.5], [62.9, -143.5], [61.0, -141.0], [59.0, -141.0], [59.0, -154.0], [61.0, -154.0]]},
+    {"tag": "interior", "polygon": [[67.5, -157.5], [67.5, -141.0], [61.0, -141.0], [62.9, -143.5], [62.9, -151.5], [62.0, -157.5]]}
+  ],
+  "defaultTag": "arctic_west",
+  "dropCdpWords": [
+    "North",
+    "South",
+    "East",
+    "West",
+    "Northwest",
+    "Upper",
+    "Lower",
+    "Heights"
+  ],
+  "excludeCdp": [
+    "Eielson AFB",
+    "Fort Greely",
+    "Kodiak Station",
+    "Red Dog Mine",
+    "Seldovia Village",
+    "Eagle Village",
+    "Badger",
+    "Steele Creek",
+    "Chena Ridge",
+    "Farmers Loop",
+    "Farm Loop",
+    "Gateway",
+    "Buffalo Soapstone"
+  ],
+  "keepCdp": [
+    "Knik-Fairview",
+    "Sutton",
+    "South Naknek",
+    "Denali Park"
+  ],
+  "rename": {
+    "Sutton-Alpine": "Sutton"
+  },
+  "_excludeCdp": "Military posts (Eielson AFB, Fort Greely, Kodiak Station = Coast Guard base), a mine camp (Red Dog Mine), CDPs named after a bigger neighbouring town (Seldovia Village, Eagle Village), and road-named Fairbanks/Mat-Su suburb tracts that read as subdivisions (Badger, Steele Creek, Chena Ridge, Farmers Loop, Farm Loop, Gateway, Buffalo Soapstone).",
+  "_keepCdp": "Real places hidden by the hyphen/drop-word filter (Knik-Fairview, Sutton, South Naknek) and Denali Park (CDP new since 2010, no 2010 population; the park entrance community).",
+  "_rename": "Sutton-Alpine CDP -> Sutton (the community is known as Sutton; Alpine is a small subdivision). LSAD suffixes (city and borough, municipality) are stripped by the tool."
+}

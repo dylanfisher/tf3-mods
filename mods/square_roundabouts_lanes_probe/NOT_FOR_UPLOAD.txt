@@ -1,0 +1,14 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_roundabouts_lanes_probe is a developer tool for Phase 6 of square_roundabouts (lane
+connections at ring junctions). Never publish it to mod.io (Mod Hub > My Mods would offer it
+because `make link` puts it in the staging area).
+
+It logs [SQRB-LANES] lines to stdout.txt after every player build: the build event's payload and,
+for roundabouts (ours and the vanilla one), every junction node's segments and lane connections.
+Read-only unless its "Write experiment" mod setting is On; then it changes the lane connections
+of one node per placed roundabout (at most 4 per session). How to run it:
+plans/square_roundabouts/TESTING.md "Phase 6a lane probe"; line format: PHASE6.md.
+
+When done testing: disable it in the game's mod list, or `rm` its symlink from staging_area
+(make unlink removes every mod's link).

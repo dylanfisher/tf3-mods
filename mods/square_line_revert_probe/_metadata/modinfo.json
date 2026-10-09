@@ -1,0 +1,16 @@
+{
+    "name": "DEV Line Revert Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Tests where a 'revert line' button can be mounted.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Mounts test buttons in the line manager and the line window and logs [LRPROBE] lines to stdout.txt. Read-only: never changes a line. See plans/square_line_revert/PROBE.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

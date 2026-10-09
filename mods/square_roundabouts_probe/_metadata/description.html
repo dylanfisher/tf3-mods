@@ -1,0 +1,28 @@
+<p><strong>DEV ONLY - NOT FOR UPLOAD.</strong> Never publish this mod to mod.io. It is a developer tool for Better Roundabouts (square_roundabouts) and does nothing useful for players.</p>
+<p>On game load it asks the engine whether each combination of Better Roundabouts settings could be placed, without building anything, and writes one [SQRB_PROBE] line per combination to stdout.txt. tools/parse_probe.py turns the log into a report.</p>
+<h4>Features</h4>
+<ul>
+<li><strong>Placement probe</strong>: builds a construction proposal per combination and reads the engine's error messages from makeProposalData. Never sends a build command.</li>
+<li><strong>Effective size</strong>: logs the radius (or Magic size) the roundabout geometry chose, to compare with the engine verdict.</li>
+<li><strong>Search subsets</strong>: per combination, asks about exact layouts (ring radius, Magic size and spacing, splitter parameters, tram stub) through dev-only construction params, and finds the smallest or most compact one the engine accepts.</li>
+<li><strong>Phase 5e subsets</strong>: sweeps and searches for the Channelized Junction, the Roundabout Interchange and hamburger roundabouts (p5_*).</li>
+<li><strong>Dev construction</strong> "DEV Probe: pre-1940 one-way": base entrance one-way edges as freed streets, for a pre-1940 save. Places real roads: use a throwaway save.</li>
+</ul>
+<h4>Settings</h4>
+<ul>
+<li><strong>Run the probe</strong> (default On), <strong>Subset</strong> (default smoke), <strong>Start delay</strong> (default 15 s), <strong>Combos per update</strong> (default 4).</li>
+<li><strong>Position X (m)</strong> and <strong>Position Y (m)</strong> (default 0, the map centre), <strong>Proposal context</strong> (default None), <strong>Log placeable combos</strong> (default On).</li>
+</ul>
+<h4>Notes</h4>
+<ul>
+<li>Use it on an empty, flat test map only. The probe stores nothing in the savegame (the dev construction does, once placed).</li>
+<li>Steps: plans/square_roundabouts/PROBE.md in the mod hub repository.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 1 (dev, never uploaded)</h4>
+<ul>
+<li>New: placement probe for the main and Magic Roundabout entries, named subsets, mod settings, progress and summary lines.</li>
+<li>New: search subsets for the smallest accepted layouts.</li>
+<li>New: Phase 5e subsets (Channelized Junction, Roundabout Interchange, hamburger) and the pre-1940 one-way dev construction.</li>
+</ul>

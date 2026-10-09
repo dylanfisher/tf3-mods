@@ -1,0 +1,37 @@
+<p>Multi-lane roundabouts that drive with lane discipline. Right after you build a roundabout, Smart Lanes sets which lane may go where at each of its junctions, the same settings you could make by hand with the Crossing Tool.</p>
+<p>Works for any one-way ring: the game's roundabout, Better Roundabouts and rings you draw yourself, in both driving directions.</p>
+<h4>Features</h4>
+<ul>
+<li><strong>Matched lanes</strong>: lanes line up one to one. The kerb entry lane joins the outer ring lane, the next entry lane the next ring lane, and so on; at an exit the outer ring lane leaves into the kerb exit lane, the next ring lane into the next exit lane. Two lanes only merge into one where the road really gets narrower (a 3-lane arm into a 2-lane ring).</li>
+<li><strong>Exit-only outer lane</strong>: on a roundabout whose exits all have two or more lanes, the outer ring lane leaves at the next exit, as on a turbo roundabout. Traffic going further keeps to the inner lanes.</li>
+<li><strong>Wide exits</strong>: a 3-lane exit off a 4-lane ring takes the three outer ring lanes; an exit wider than the ring is fed by the innermost ring lane as well.</li>
+<li>Splitter islands (separate entry and exit roads) are supported. Tram tracks keep the game's own connections.</li>
+<li><strong>Slip lanes</strong>: where a one-way slip lane, splitter leg or ramp leaves or joins a road (Better Roundabouts' Channelized Junction, interchange slip roads, or your own), lanes are matched one to one with no crossings. Through traffic keeps its lanes, the kerb lane feeds the slip lane, and a joining slip lane merges into the kerb lane.</li>
+<li><strong>Smart Lanes tool</strong> (Roads, Tools, next to the Crossing Tool): click a junction of a roundabout, or the roundabout itself between its junctions, to see its lane connections, then press Apply to junction or Apply to roundabout to give it smart lanes. Reset brings back the game's own connections. Slip-lane junctions work with Apply to junction; their Reset restores the lanes they had before your first Apply there. Works on junctions you built before adding the mod, too.</li>
+<li><strong>Lane status</strong>: the tool shows what lanes the selected junction or roundabout has now: Smart lanes, Game default, Custom lanes (for example set with the Crossing Tool), "Smart lanes on 3 of 6 junctions", or Not handled. Hovering a junction shows the same in the cursor tooltip.</li>
+</ul>
+<h4>Settings</h4>
+<ul>
+<li><strong>Apply automatically</strong> (default On): Off leaves new roundabouts as the game builds them; the Smart Lanes tool still works.</li>
+</ul>
+<h4>Companion mod: Better Roundabouts</h4>
+<p>Smart Lanes pairs well with <strong>Better Roundabouts</strong>, a separate mod of mine. It builds complete roundabouts in one click (round or oval, 1, 2 or 4 ring lanes, splitter islands, hamburger roundabouts), plus Magic Roundabouts, Channelized Junctions with slip lanes and Roundabout Interchanges. Smart Lanes sets up their lanes as soon as they are placed. To get it, view my other mods (click the creator name, square) and subscribe to Better Roundabouts. The two mods work independently, so you can use either one on its own.</p>
+<h4>Notes</h4>
+<ul>
+<li>Only junctions you have just built or changed are touched. Roundabouts you built before adding the mod, and junctions elsewhere, are never rewritten. When you add an arm to an existing roundabout, only the new junction gets the rule (with the outer lane allowed to continue, so every exit stays reachable).</li>
+<li>To reach an exit with fewer lanes than the ring, traffic changes lanes between junctions, as it does with the game's own lane settings.</li>
+<li>Single-lane rings, junctions with a road through the centre and bus lanes are left as the game builds them.</li>
+<li>You can still change any junction afterwards with the Crossing Tool.</li>
+<li>The Smart Lanes tool handles roundabout and slip-lane junctions for now; on other junctions (crossroads, T junctions) it only shows the connections. Right-click or Esc clears its selection.</li>
+<li>Safe to add to an existing save. Safe to remove: the lane settings it made are ordinary junction settings and stay in the save, exactly as if you had made them with the Crossing Tool.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 1 (2026-10-08)</h4>
+<ul>
+<li>New: automatic lane assignment for roundabouts (entries and exits matched lane by lane, exit-only outer lane).</li>
+<li>New: the Smart Lanes tool next to the Crossing Tool: pick a roundabout junction or a whole roundabout, Apply smart lanes or Reset to the game's own.</li>
+<li>New: lane status in the Smart Lanes tool (smart lanes, game default, custom or not handled).</li>
+<li>New: the tool's Apply and Reset buttons are greyed out when they have nothing to change.</li>
+<li>New: slip-lane junctions (a slip lane, splitter leg or ramp leaving or joining a road) get matched lanes without crossings, automatically after building and with the tool.</li>
+</ul>

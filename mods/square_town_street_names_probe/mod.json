@@ -1,0 +1,47 @@
+{
+    "modId": "square_town_street_names_probe",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "Warning",
+    "visible": true,
+    "cosmetic": true,
+    "runScript": {
+        "fileName": "square_town_street_names_probe::/mod.script@runFn"
+    },
+    "params": [
+        {
+            "key": "renameTest",
+            "name": "Rename test (DEV)",
+            "tooltip": "Off: read-only. Otherwise the probe renames each newly built stop once, from update, and logs whether the name stuck.",
+            "uiType": "ComboBox",
+            "values": [
+                "Off (read-only)",
+                "Rename station group",
+                "Rename station (stem)",
+                "Rename station (forceSameEntity)"
+            ],
+            "numbers": [
+                10.0,
+                20.0,
+                30.0,
+                40.0
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "eventDiscovery",
+            "name": "Event discovery (DEV)",
+            "tooltip": "All events: subscribe to every game-script event and log the first 3 of each kind. Build events only: just onPre/PostBuildProposal.",
+            "uiType": "ComboBox",
+            "values": [
+                "All events",
+                "Build events only"
+            ],
+            "numbers": [
+                100.0,
+                200.0
+            ],
+            "defaultIndex": 0
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "name": "Bulk Bulldozer",
+    "summary": "A bulldoze brush: paint over roads, tracks and assets, then remove them all in one go.",
+    "description": "A bulldoze brush: paint over roads, tracks and assets, then remove them all in one go. Select with a 5 to 200 m brush, check the red highlight and cost, then press Bulldoze.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

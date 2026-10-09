@@ -1,0 +1,228 @@
+{
+  "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+  "fips": "41",
+  "postal": "OR",
+  "gazetteerYear": 2023,
+  "popestYear": 2023,
+  "bigCount": 15,
+  "cdpMinPop": 500,
+  "_crest": "Cascade crest as [lat, lon] points, continuing Washington's crest south (Columbia Gorge, Mt Hood, Mt Jefferson, Santiam Pass, Three Sisters, Willamette Pass, Crater Lake, Mt McLoughlin, Siskiyou Pass); west of it = wet side ('west'), east = dry side ('east').",
+  "crest": [
+    [
+      46.3,
+      -121.5
+    ],
+    [
+      45.6,
+      -121.55
+    ],
+    [
+      45.37,
+      -121.7
+    ],
+    [
+      44.67,
+      -121.8
+    ],
+    [
+      44.42,
+      -121.87
+    ],
+    [
+      44.1,
+      -121.77
+    ],
+    [
+      43.6,
+      -122.04
+    ],
+    [
+      42.94,
+      -122.1
+    ],
+    [
+      42.45,
+      -122.31
+    ],
+    [
+      42.0,
+      -122.4
+    ]
+  ],
+  "rules": [
+    {
+      "tag": "coast",
+      "side": "west",
+      "lonLt": -123.7
+    },
+    {
+      "tag": "south",
+      "side": "west",
+      "latLt": 43.4
+    }
+  ],
+  "setSide": {},
+  "tagLists": {
+    "coast": [
+      "Knappa",
+      "Svensen",
+      "Heceta Beach"
+    ],
+    "mountain": [
+      "Government Camp",
+      "Rhododendron",
+      "Mount Hood",
+      "Parkdale",
+      "Camp Sherman",
+      "Black Butte Ranch",
+      "Sisters",
+      "Detroit",
+      "Idanha",
+      "Oakridge",
+      "Westfir",
+      "Crescent Lake",
+      "Crescent",
+      "Gilchrist",
+      "Chemult",
+      "Beaver Marsh",
+      "Prospect",
+      "Butte Falls",
+      "Fort Klamath",
+      "Joseph",
+      "Enterprise",
+      "Wallowa",
+      "Lostine",
+      "Wallowa Lake",
+      "Cove",
+      "Halfway",
+      "Sumpter",
+      "Granite",
+      "Ukiah",
+      "Elgin",
+      "Meacham",
+      "Cascadia",
+      "Seneca",
+      "Prairie City",
+      "Unity"
+    ]
+  },
+  "removeTags": {
+    "Powers": [
+      "coast"
+    ]
+  },
+  "rename": {
+    "Garden Home-Whitford": "Garden Home"
+  },
+  "exclude": [
+    "Greenhorn"
+  ],
+  "_cdp": "CDPs are kept when pop2010 >= cdpMinPop, not excluded, without a hyphen and without a drop word; keepCdp overrides all of that.",
+  "dropCdpWords": [
+    "North",
+    "South",
+    "East",
+    "West",
+    "Northwest",
+    "Upper",
+    "Lower",
+    "Heights"
+  ],
+  "excludeCdp": [
+    "Deschutes River Woods",
+    "Eagle Crest",
+    "Bayside Gardens",
+    "Four Corners",
+    "Green",
+    "Redwood",
+    "Three Rivers",
+    "Mission",
+    "Oak Hills",
+    "Jeffers Gardens",
+    "Labish Village",
+    "Gopher Flats",
+    "Mount Hood Villages",
+    "Tri-City",
+    "Roseburg North",
+    "Seventh Mountain",
+    "Summit",
+    "Annex",
+    "Fair Oaks",
+    "Riverside",
+    "Alpine"
+  ],
+  "keepCdp": [
+    "Government Camp",
+    "Camp Sherman",
+    "Black Butte Ranch",
+    "Neskowin",
+    "Oceanside",
+    "Cape Meares",
+    "Hebo",
+    "Cloverdale",
+    "Beaver",
+    "Gardiner",
+    "Winchester Bay",
+    "Langlois",
+    "Nesika Beach",
+    "Pistol River",
+    "Prospect",
+    "Parkdale",
+    "Mount Hood",
+    "Tygh Valley",
+    "Wamic",
+    "Pine Grove",
+    "Rowena",
+    "Silver Lake",
+    "Crane",
+    "Brogan",
+    "Harper",
+    "Juntura",
+    "Days Creek",
+    "Alsea",
+    "Tumalo",
+    "Westport",
+    "Deer Island",
+    "Brooks",
+    "Crabtree",
+    "Shedd",
+    "Marion",
+    "Mehama",
+    "Butteville",
+    "Rickreall",
+    "Wallowa Lake",
+    "Takilma",
+    "Dillard",
+    "Umapine",
+    "Neahkahnie",
+    "Idaville",
+    "Cascadia",
+    "Boring",
+    "Chemult",
+    "Crescent",
+    "Gilchrist",
+    "Crooked River Ranch",
+    "Rhododendron",
+    "Mapleton",
+    "Marcola",
+    "Elmira",
+    "Keno",
+    "Fort Klamath",
+    "Bly",
+    "Beatty",
+    "Sprague River",
+    "Knappa",
+    "Svensen",
+    "Jasper",
+    "Dexter",
+    "Meacham",
+    "Wedderburn",
+    "Heceta Beach",
+    "Crescent Lake",
+    "Beaver Marsh",
+    "Garden Home",
+    "West Slope"
+  ],
+  "_exclude": "Greenhorn is an incorporated city with no residents (popest 0).",
+  "_keepCdp": "keepCdp: small mountain, coast and high-desert communities (2010 pop < 500 or new 2020 CDPs with no 2010 count), plus Garden Home and West Slope (filtered by hyphen / drop word)."
+}

@@ -1,0 +1,16 @@
+{
+    "name": "Early One-way Roads",
+    "summary": "One-way old town, large town and country roads, unlocked with their two-way twin.",
+    "description": "Adds one-way versions of every basic road that lacks one, unlocked in the same years as the two-way road.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Road"
+    ],
+    "dependencies": [],
+    "url": ""
+}

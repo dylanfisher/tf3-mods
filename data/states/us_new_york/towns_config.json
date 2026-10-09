@@ -1,0 +1,208 @@
+{
+ "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, popest 2023 (incorporated), Gazetteer 2010 POP10 (CDPs).",
+ "fips": "36",
+ "postal": "NY",
+ "gazetteerYear": 2023,
+ "popestYear": 2023,
+ "bigCount": 15,
+ "incMinPop": {
+  "island": 2500,
+  "downstate": 2500,
+  "upstate": 1500,
+  "north": 300
+ },
+ "cdpMinPop": {
+  "island": 12000,
+  "downstate": 8000,
+  "upstate": 4000,
+  "north": 600
+ },
+ "regions": [
+  {
+   "tag": "island",
+   "polygon": [
+    [
+     40.87,
+     -73.77
+    ],
+    [
+     40.89,
+     -73.65
+    ],
+    [
+     40.96,
+     -73.45
+    ],
+    [
+     41.05,
+     -72.9
+    ],
+    [
+     41.2,
+     -72.3
+    ],
+    [
+     41.35,
+     -71.8
+    ],
+    [
+     40.9,
+     -71.7
+    ],
+    [
+     40.5,
+     -73.0
+    ],
+    [
+     40.5,
+     -73.77
+    ]
+   ]
+  },
+  {
+   "tag": "north",
+   "polygon": [
+    [
+     45.1,
+     -76.6
+    ],
+    [
+     45.1,
+     -73.2
+    ],
+    [
+     43.5,
+     -73.2
+    ],
+    [
+     43.45,
+     -75.0
+    ],
+    [
+     43.45,
+     -75.7
+    ],
+    [
+     43.75,
+     -76.3
+    ],
+    [
+     44.2,
+     -76.6
+    ]
+   ]
+  },
+  {
+   "tag": "downstate",
+   "polygon": [
+    [
+     40.45,
+     -74.3
+    ],
+    [
+     41.35,
+     -74.8
+    ],
+    [
+     41.6,
+     -74.8
+    ],
+    [
+     41.6,
+     -74.35
+    ],
+    [
+     42.05,
+     -74.1
+    ],
+    [
+     42.05,
+     -73.3
+    ],
+    [
+     40.45,
+     -73.3
+    ]
+   ]
+  }
+ ],
+ "defaultTag": "upstate",
+ "setSide": {
+  "Lake George": "north"
+ },
+ "keepTown": [
+  "East Hampton",
+  "Quogue",
+  "Westhampton Beach",
+  "Atlantic Beach",
+  "Ocean Beach",
+  "Rhinebeck",
+  "Cold Spring",
+  "Millbrook",
+  "Pawling",
+  "Hunter",
+  "Tannersville",
+  "Margaretville",
+  "Hammondsport",
+  "Aurora",
+  "Ellicottville"
+ ],
+ "keepCdp": [
+  "Montauk",
+  "Shelter Island",
+  "Amagansett",
+  "Bridgehampton",
+  "Orient",
+  "Cutchogue",
+  "Mattituck",
+  "Southold",
+  "Fishers Island",
+  "Lido Beach",
+  "Point Lookout",
+  "Fire Island",
+  "Oyster Bay",
+  "Cold Spring Harbor",
+  "Springs",
+  "East Quogue",
+  "Westhampton",
+  "Water Mill",
+  "Woodstock",
+  "Hyde Park",
+  "Stone Ridge",
+  "Highland",
+  "Phoenicia",
+  "Windham",
+  "Roscoe",
+  "Livingston Manor",
+  "Chautauqua",
+  "Bolton Landing",
+  "Long Lake"
+ ],
+ "excludeCdp": [
+  "Fort Drum",
+  "West Point",
+  "Binghamton University",
+  "University at Buffalo",
+  "Glens Falls North",
+  "West Glens Falls",
+  "Plattsburgh West",
+  "North Gates",
+  "South Lockport",
+  "West Elmira",
+  "South Hill",
+  "Grandyle Village",
+  "North Valley Stream",
+  "North New Hyde Park",
+  "North Massapequa",
+  "East Massapequa",
+  "North Merrick",
+  "North Bellmore",
+  "North Bay Shore",
+  "North Amityville",
+  "North Babylon",
+  "South Farmingdale"
+ ],
+ "_regions": "First match wins. island = Long Island (Nassau and Suffolk: a polygon east of the Queens line at about -73.77, south of Long Island Sound, to Montauk and Fishers Island); north = the North Country and the Adirondacks (north of about 43.45-43.5 from Lake Champlain to the Tug Hill and the Thousand Islands: Watertown, Plattsburgh, Massena, Lake Placid, Old Forge); downstate = New York City, Westchester, Rockland and the lower and mid-Hudson Valley up to about 42.05 (Kingston, Rhinebeck), west to the Orange/Sullivan line; upstate = the rest (default: Capital Region, Catskills, Mohawk Valley, Central and Western New York, Finger Lakes, Southern Tier). Lake George is set to north by hand (the Adirondack gateway, just south of the polygon edge).",
+ "_incMinPop": "New York has 595 incorporated places (62 cities, ~530 villages, many tiny) and ~700 CDPs (hamlets), far more than the 400-550 target, so both get a floor per region: incorporated island/downstate 2500, upstate 1500, north 300 (2023 estimate); CDPs (2010 population) island 12000 (Long Island hamlets are large suburbs), downstate 8000, upstate 4000, north 600. keepTown/keepCdp add well-known small places below the floors: the Hamptons, the North Fork, the barrier beaches and Fire Island (the tropical stand-in), Hudson Valley and Catskill towns (Rhinebeck, Woodstock, Hunter, Phoenicia), Finger Lakes villages (Hammondsport, Aurora) and Adirondack hamlets (Bolton Landing, Long Lake).",
+ "_cdp": "excludeCdp: military (Fort Drum, West Point), university campuses (Binghamton University, University at Buffalo), and CDPs named after a bigger neighbour that is already in the list (North Valley Stream, East Massapequa, Glens Falls North, Plattsburgh West, South Lockport, ...). Well-known hamlets with a direction stay (West Babylon, West Islip, East Northport, East Meadow)."
+}

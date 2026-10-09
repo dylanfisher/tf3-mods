@@ -1,0 +1,17 @@
+{
+    "name": "Colorado Towns & Streets",
+    "summary": "Real Colorado towns, streets for your stops, and real station names.",
+    "description": "Real Colorado towns, streets for your stops, and real station names. Adds the name set \"Colorado (Towns & Streets)\" and renames new stops and stations in known Colorado cities.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod",
+        "Misc"
+    ],
+    "dependencies": [],
+    "url": ""
+}

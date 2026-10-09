@@ -1,0 +1,56 @@
+{
+  "_doc": "Hand decisions for tools/state_towns.py (re-run it after editing; never hand-edit towns.tsv). Sources: Census Gazetteer 2023 places, Gazetteer 2010 POP10 (CDPs). Hawaii has no incorporated places at all (the City and County of Honolulu and the three other counties are the only local governments), so every town is a CDP: bigIncludesCdp lets the biggest CDPs carry the big tag, and cdpMinPop (50) only drops near-empty places; the excludes do the real trimming.",
+  "fips": "15",
+  "postal": "HI",
+  "gazetteerYear": 2023,
+  "popestYear": 2023,
+  "bigCount": 15,
+  "bigIncludesCdp": true,
+  "cdpMinPop": 50,
+  "_regions": "One region per island group, first match wins: kauai = Kauai (+ Niihau), oahu = Oahu (Honolulu County), maui = Maui, Molokai and Lanai (Maui County); everything else is the Big Island (Hawaii County, default). Polygons rather than countyTags because a countyTag is only an extra tag and the first tag would still be the default (HANDOFF Alaska).",
+  "regions": [
+    {"tag": "kauai", "polygon": [[22.4, -160.4], [22.4, -159.2], [21.7, -159.2], [21.7, -160.4]]},
+    {"tag": "oahu", "polygon": [[21.75, -158.35], [21.75, -157.6], [21.2, -157.6], [21.2, -158.35]]},
+    {"tag": "maui", "polygon": [[21.3, -157.35], [21.3, -155.9], [20.45, -155.9], [20.45, -156.75], [20.7, -157.35]]}
+  ],
+  "defaultTag": "big_island",
+  "_tagLists": "leeward = the dry (Kona) sides: the Waianae coast and Ewa plain on Oahu, South and West Maui, Lanai's and Molokai's dry south and west, the Kona and Kohala coasts and Ka'u on the Big Island, and Kauai's south and west shore; the dry-climate stand-in. upcountry = the cool uplands on the slopes of Mauna Kea, Kilauea and Haleakala (Waimea, Volcano, Kula, Makawao, Pukalani, Olinda, Mountain View) plus Lanai City (1,600 ft); the temperate/subarctic stand-in.",
+  "tagLists": {
+    "leeward": [
+      "Waianae", "Makaha", "Maili", "Nanakuli", "Kapolei", "East Kapolei", "Makakilo", "Ewa Beach", "Ewa Villages",
+      "Ko Olina", "Royal Kunia",
+      "Kihei", "Wailea", "Makena", "Maalaea", "Lahaina", "Kaanapali", "Napili", "Mahinahina", "Launiupoko", "Olowalu",
+      "Kaunakakai", "Maunaloa",
+      "Kailua-Kona", "Keauhou", "Holualoa", "Captain Cook", "Kealakekua", "Honalo", "Honaunau-Napoopoo",
+      "Waikoloa Village", "Puako", "Hawaiian Ocean View", "Naalehu", "Pahala", "Waiohinu",
+      "Kekaha", "Kaumakani", "Pakala Village", "Hanapepe", "Eleele", "Poipu", "Koloa"
+    ],
+    "upcountry": [
+      "Waimea", "Volcano", "Mountain View", "Kula", "Keokea", "Olinda", "Makawao", "Pukalani", "Haliimaile",
+      "Lanai City"
+    ]
+  },
+  "excludeCdp": [
+    "Schofield Barracks", "Hickam Housing", "Wheeler AFB", "Iroquois Point", "Kaneohe Base", "Helemano", "Kalaeloa",
+    "Manele",
+    "West Loch Estate", "Ocean Pointe", "Ewa Gentry", "Waipio Acres", "Orchidlands Estates", "Nanawale Estates",
+    "Fern Acres", "Hawaiian Acres", "Fern Forest", "Eden Roc", "Discovery Harbour",
+    "Makaha Valley", "Waimanalo Beach"
+  ],
+  "_excludeCdp": "Military posts and base housing (Schofield Barracks, Hickam Housing, Wheeler AFB, Iroquois Point = Navy housing, Kaneohe Base = Marine Corps Base Hawaii, Helemano), Kalaeloa (the former Barbers Point naval air station) and Manele (the harbour, not a town; it ships as a harbour of Lanai City). Subdivision-named CDPs on the Ewa plain and in Puna (… Estate(s), … Acres, Ocean Pointe, Ewa Gentry, Fern Forest, Eden Roc, Discovery Harbour), and CDPs named after a bigger neighbour (Makaha Valley, Waimanalo Beach).",
+  "keepCdp": [
+    "Kailua-Kona", "Haiku", "Napili", "Keauhou", "Waihee-Waiehu", "Honaunau-Napoopoo", "East Kapolei", "Kalapana",
+    "Waiahole-Waikane"
+  ],
+  "_keepCdp": "Real places hidden by the hyphen filter (Kailua-Kona, Waihee-Waiehu, Honaunau-Napoopoo, Waiahole-Waikane; Haiku, Napili and Keauhou come from hyphenated Census names) and CDPs new since 2010 with no 2010 population (East Kapolei, the new Ewa-plain town; Kalapana, the historic Puna village; Waiahole-Waikane, the windward valleys).",
+  "renameGeoid": {"1523000": "Kailua-Kona"},
+  "_renameGeoid": "Hawaii has two Kailua CDPs: 1523150 is Kailua on Oahu (38,635), 1523000 is Kailua on the Big Island (11,975), universally called Kailua-Kona (the name of its post office and the USGS GNIS alternate). Without the rename the tool keeps only the bigger of two same-named places. The two Waimea CDPs stay as Census has them; the Big Island one (9,212) wins and Waimea on Kauai (1,855) is left out.",
+  "rename": {
+    "Urban Honolulu": "Honolulu",
+    "Mililani Town": "Mililani",
+    "Haiku-Pauwela": "Haiku",
+    "Napili-Honokowai": "Napili",
+    "Kahaluu-Keauhou": "Keauhou"
+  },
+  "_rename": "Urban Honolulu CDP -> Honolulu (the Census name for the city itself). Mililani Town -> Mililani (the planned town is called Mililani; Mililani Mauka stays as its own CDP). Haiku-Pauwela -> Haiku, Napili-Honokowai -> Napili, Kahaluu-Keauhou -> Keauhou: each pair is known by its first (Haiku, Napili) or resort (Keauhou) name, and Keauhou also avoids a clash with Kahaluu on Oahu."
+}

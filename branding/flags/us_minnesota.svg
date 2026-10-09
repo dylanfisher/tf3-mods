@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600"><path fill="#52C9E8" d="M0 0h1000v600H0z" /><path fill="#002D5D" d="M0 0h560L390 300l170 300H0Z" /><g fill="#FFF"><g id="b"><path id="a" d="m210 190 v90 l45 20 45-20z" transform="rotate(22.5 210 190)" /><use transform="rotate(180 210, 300)" href="#a" /></g><use transform="rotate(45 210 300)" href="#b" /><use transform="rotate(135 210 300)" href="#b" /><use transform="rotate(270 210 300)" href="#b" /></g></svg>

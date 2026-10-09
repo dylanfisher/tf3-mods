@@ -1,0 +1,153 @@
+-- Real names per city, used by the rename script for NEW player-built stops and stations in a town whose
+-- current name matches the key (or an alias). Only well-known, real names; anything less certain goes to
+-- plans/square_state_names/data_review.md ("## Alaska") instead of here.
+--   streets        Road Stops (edge-object stops), in this order (first unused wins). Every street was checked
+--                  on OpenStreetMap (Overpass, 2026-10-08): a highway way with that name (directional prefix
+--                  dropped) inside the city's admin boundary. Alaska ships fewer street cities than other states
+--                  (9): only towns whose streets are widely known.
+--   neighborhoods  bus/tram stations. Anchorage: the Municipality's community councils (Federation of Community
+--                  Councils list, communitycouncils.org, 2026-10-08), minus slash names (Bayshore/Klatt, …), the
+--                  directional "Northeast" and Girdwood (an Alaska Railroad stop).
+--   rail           passenger train stations, WITHOUT a trailing "Station". Alaska Railroad depots as the railroad
+--                  names them (alaskarailroad.com depot locations + schedules, 2026-10-08). Most depots carry their
+--                  town's name (Fairbanks, Wasilla, Talkeetna, Healy, Nenana, Seward, Whittier = the engine
+--                  default, no entry). Whistle stops outside any town (Spencer, Grandview, Hurricane) are left out.
+--   airport        airports/airfields: FAA names (NASR 5010 data, cycle 2026-10-01) in their short common form.
+--                  Anchorage: "Anchorage International Airport" (the airport's own logo, dot.alaska.gov/anc; the
+--                  full FAA name is over 40 bytes) and "Lake Hood Seaplane Base" (same site).
+--   harbor         Alaska Marine Highway terminals as AMHS names them ("<Town> Terminal", Juneau's is Auke Bay;
+--                  dot.alaska.gov/amhs/contact.shtml), plus Dutch Harbor (Unalaska's port).
+-- Station names are unique map-wide; street names are unique per town.
+return {
+	["Anchorage"] = {
+		streets = {
+			"4th Avenue", "5th Avenue", "6th Avenue", "C Street", "A Street", "L Street", "E Street",
+			"Northern Lights Boulevard", "Benson Boulevard", "Tudor Road", "Spenard Road", "Minnesota Drive",
+			"Seward Highway", "Glenn Highway", "International Airport Road", "Muldoon Road", "Boniface Parkway",
+			"Lake Otis Parkway", "Dowling Road", "Dimond Boulevard", "DeBarr Road", "Arctic Boulevard",
+			"Bragaw Street", "Jewel Lake Road", "O'Malley Road", "Abbott Road", "Huffman Road", "Raspberry Road",
+			"Fireweed Lane", "Gambell Street", "Ingra Street", "36th Avenue", "15th Avenue", "Rabbit Creek Road",
+			"Old Seward Highway", "Sand Lake Road", "Klatt Road", "Turnagain Street", "Eagle River Road",
+			"Alyeska Highway",
+		},
+		neighborhoods = {
+			"Downtown", "Midtown", "Spenard", "South Addition", "Government Hill", "Fairview", "Mountain View",
+			"Airport Heights", "Rogers Park", "Russian Jack", "Turnagain", "Sand Lake", "Campbell Park",
+			"Abbott Loop", "Hillside", "Bear Valley", "Glen Alps", "Rabbit Creek", "Basher", "Scenic Foothills",
+			"North Star", "Eagle River", "Eagle River Valley", "South Fork", "Chugiak", "Birchwood",
+			"Eklutna Valley", "Turnagain Arm",
+		},
+		rail = { "Girdwood", "Portage" },
+		airport = { "Anchorage International Airport", "Merrill Field", "Lake Hood Seaplane Base" },
+	},
+	["Fairbanks"] = {
+		streets = {
+			"Cushman Street", "Airport Way", "College Road", "Johansen Expressway", "Steese Highway",
+			"Richardson Highway", "Robert Mitchell Expressway", "Illinois Street", "University Avenue", "Peger Road",
+			"Gaffney Road", "Cowles Street", "Noble Street", "Lathrop Street", "Barnette Street", "Wendell Avenue",
+			"Minnie Street", "Lacey Street", "1st Avenue", "2nd Avenue", "3rd Street", "Danby Street",
+			"Van Horn Road", "Trainor Gate Road", "Phillips Field Road", "Wien Street", "Old Steese Highway",
+			"Gillam Way", "Hamilton Avenue",
+		},
+		airport = { "Fairbanks International Airport" },
+	},
+	["Juneau"] = {
+		streets = {
+			"Franklin Street", "Main Street", "Seward Street", "Front Street", "Marine Way", "Egan Drive",
+			"Glacier Highway", "Mendenhall Loop Road", "Glacier Avenue", "Willoughby Avenue", "Gold Street",
+			"Gastineau Avenue", "Basin Road", "Calhoun Avenue", "Capitol Avenue", "Harris Street", "Thane Road",
+			"Douglas Highway", "Riverside Drive", "Old Dairy Road", "Yandukin Drive", "Shell Simmons Drive",
+			"Glacier Spur Road", "Montana Creek Road", "Fritz Cove Road", "Lemon Creek Road", "Behrends Avenue",
+			"Distin Avenue", "Berners Avenue", "Vintage Boulevard",
+		},
+		airport = { "Juneau International Airport" },
+		harbor = { "Auke Bay Terminal" },
+	},
+	["Ketchikan"] = {
+		streets = {
+			"Tongass Avenue", "Front Street", "Mission Street", "Creek Street", "Dock Street", "Mill Street",
+			"Stedman Street", "Water Street", "Main Street", "Park Avenue", "Deermount Street", "Bawden Street",
+			"Hill Road", "Schoenbar Road", "Grant Street", "Jefferson Street", "Fair Street", "3rd Avenue",
+			"Hopkins Alley", "Washington Street", "Madison Street", "Carlanna Lake Road", "Spruce Mill Way",
+			"Gorge Street", "Venetia Avenue",
+		},
+		airport = { "Ketchikan International Airport" },
+		harbor = { "Ketchikan Terminal" },
+	},
+	["Sitka"] = {
+		streets = {
+			"Lincoln Street", "Katlian Street", "Harbor Drive", "Lake Street", "Sawmill Creek Road",
+			"Halibut Point Road", "Edgecumbe Drive", "Seward Street", "Barracks Street", "Monastery Street",
+			"Marine Street", "Baranof Street", "Jeff Davis Street", "Indian River Road", "Airport Road",
+			"Biorka Street", "Etolin Street", "Hirst Street", "Peterson Street", "Charteris Street",
+			"Kashevaroff Street", "Knutson Drive", "Cascade Creek Road", "Verstovia Street", "Merrill Street",
+		},
+		airport = { "Sitka Rocky Gutierrez Airport" },
+		harbor = { "Sitka Terminal" },
+	},
+	["Wasilla"] = {
+		streets = {
+			"Parks Highway", "Main Street", "Palmer-Wasilla Highway", "Seward Meridian Parkway", "Knik-Goose Bay Road",
+			"Wasilla-Fishhook Road", "Lucille Street", "Church Road", "Lucus Road", "Crusey Street", "Clapp Street",
+			"Nelson Avenue", "Mack Drive", "Bogard Road", "Spruce Avenue", "Swanson Avenue", "Herning Avenue",
+			"Knik Street", "Old Matanuska Road", "Yenlo Street", "Railroad Avenue", "Willow Street",
+			"Boundary Street", "Aviation Avenue", "Peck Street", "Riley Avenue", "Nicola Avenue", "Fireweed Road",
+		},
+		airport = { "Wasilla Airport" },
+	},
+	["Kodiak"] = {
+		streets = {
+			"Rezanof Drive", "Marine Way", "Shelikof Street", "Mill Bay Road", "Lower Mill Bay Road",
+			"Monashka Bay Road", "Thorsheim Street", "Hillside Drive", "Larch Street", "Mission Road",
+			"Pillar Mountain Road", "Cope Street", "Alimaq Drive", "Dog Bay Road", "Erskine Avenue", "Selief Lane",
+			"Woody Way", "Tagura Road", "Powell Avenue", "Baranof Street",
+		},
+		airport = { "Kodiak Airport" },
+		harbor = { "Kodiak Terminal" },
+	},
+	["Palmer"] = {
+		streets = {
+			"Colony Way", "Alaska Street", "Glenn Highway", "Old Glenn Highway", "Palmer-Wasilla Highway",
+			"Bogard Road", "Evergreen Avenue", "Arctic Avenue", "Dogwood Avenue", "Felton Street",
+			"Inner Springer Loop", "Outer Springer Loop", "Cobb Street", "Valley Way", "Chugach Street",
+			"Gulkana Street", "Glacier View Avenue", "Cottonwood Avenue", "Denali Street", "Anna Street",
+			"Fireweed Avenue", "Dahlia Avenue", "Scott Road", "Elmwood Avenue", "Hemmer Road", "Eagle Avenue",
+			"Caribou Avenue", "Bailey Street",
+		},
+	},
+	["Homer"] = {
+		streets = {
+			"Pioneer Avenue", "Homer Spit Road", "Sterling Highway", "Lake Street", "Ocean Drive",
+			"Homer Bypass Road", "East End Road", "East Hill Road", "West Hill Road", "Kachemak Drive",
+			"Skyline Drive", "Bartlett Street", "Main Street", "Heath Street", "Fairview Avenue",
+			"Freight Dock Road", "Svedlund Street", "Kachemak Way", "Lee Drive", "Bay Avenue", "Bunnell Avenue",
+			"Ohlson Lane", "Mission Road", "Soundview Avenue", "Fish Dock Road",
+		},
+		airport = { "Homer Airport" },
+		harbor = { "Homer Terminal" },
+	},
+	["Denali Park"] = { rail = { "Denali" } },
+	["Utqiaġvik"] = { airport = { "Wiley Post-Will Rogers Memorial Airport" } },
+	["Kotzebue"] = { airport = { "Ralph Wien Memorial Airport" } },
+	["Nome"] = { airport = { "Nome Airport" } },
+	["Bethel"] = { airport = { "Bethel Airport" } },
+	["Kenai"] = { airport = { "Kenai Municipal Airport" } },
+	["Soldotna"] = { airport = { "Soldotna Airport" } },
+	["Seward"] = { airport = { "Seward Airport" } },
+	["Talkeetna"] = { airport = { "Talkeetna Airport" } },
+	["Valdez"] = { airport = { "Valdez Pioneer Field" }, harbor = { "Valdez Terminal" } },
+	["Cordova"] = { airport = { "Merle K. (Mudhole) Smith Airport" }, harbor = { "Cordova Terminal" } },
+	["Whittier"] = { harbor = { "Whittier Terminal" } },
+	["Unalaska"] = { airport = { "Unalaska Airport" }, harbor = { "Dutch Harbor" } },
+	["Prudhoe Bay"] = { airport = { "Deadhorse Airport" } },
+	["Dillingham"] = { airport = { "Dillingham Airport" } },
+	["King Salmon"] = { airport = { "King Salmon Airport" } },
+	["Galena"] = { airport = { "Edward G. Pitka Sr. Airport" } },
+	["McGrath"] = { airport = { "McGrath Airport" } },
+	["Wrangell"] = { airport = { "Wrangell Airport" }, harbor = { "Wrangell Terminal" } },
+	["Petersburg"] = { airport = { "Petersburg James A. Johnson Airport" }, harbor = { "Petersburg Terminal" } },
+	["Haines"] = { airport = { "Haines Airport" }, harbor = { "Haines Terminal" } },
+	["Skagway"] = { airport = { "Skagway Airport" }, harbor = { "Skagway Terminal" } },
+	["Yakutat"] = { airport = { "Yakutat Airport" } },
+	["Hoonah"] = { harbor = { "Hoonah Terminal" } },
+}

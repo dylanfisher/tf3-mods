@@ -1,0 +1,486 @@
+name	tags	population	lat	lon	note
+Minneapolis	metro,big	425115	44.9633	-93.2683	city est2023
+St. Paul	metro,big	303820	44.9489	-93.1041	city est2023
+Rochester	south,big	122413	44.0143	-92.4786	city est2023
+Duluth	north,big	87680	46.7745	-92.1341	city est2023
+Bloomington	metro,big	87398	44.8297	-93.3152	city est2023
+Brooklyn Park	metro,big	82017	45.1109	-93.3491	city est2023
+Woodbury	metro,big	79538	44.9063	-92.9237	city est2023
+Plymouth	metro,big	77648	45.0223	-93.4629	city est2023
+Lakeville	metro,big	76243	44.6761	-93.2517	city est2023
+Blaine	metro,big	73774	45.1705	-93.2061	city est2023
+Maple Grove	metro,big	71288	45.1128	-93.4630	city est2023
+St. Cloud	south,big	71013	45.5267	-94.1710	city est2023
+Eagan	metro,big	67396	44.8152	-93.1628	city est2023
+Burnsville	metro,big	64772	44.7644	-93.2794	city est2023
+Coon Rapids	metro,big	63377	45.1764	-93.3115	city est2023
+Eden Prairie	metro	62166	44.8496	-93.4587	city est2023
+Apple Valley	metro	55336	44.7453	-93.1994	city est2023
+Edina	metro	53348	44.8911	-93.3598	city est2023
+Minnetonka	metro	52463	44.9326	-93.4567	city est2023
+St. Louis Park	metro	49697	44.9487	-93.3650	city est2023
+Shakopee	metro	47158	44.7719	-93.4757	city est2023
+Mankato	south	45742	44.1711	-93.9764	city est2023
+Moorhead	prairie	45202	46.8647	-96.7446	city est2023
+Cottage Grove	metro	42056	44.8133	-92.9143	city est2023
+Maplewood	metro	39958	45.0190	-93.0311	city est2023
+Richfield	metro	36445	44.8744	-93.2824	city est2023
+Inver Grove Heights	metro	36114	44.8290	-93.0601	city est2023
+Roseville	metro	35451	45.0156	-93.1538	city est2023
+Andover	metro	33089	45.2524	-93.3374	city est2023
+Savage	metro	32999	44.7591	-93.3642	city est2023
+Brooklyn Center	metro	31688	45.0680	-93.3178	city est2023
+Fridley	metro	30156	45.0842	-93.2601	city est2023
+Chaska	metro	29034	44.8164	-93.6100	city est2023
+Ramsey	metro	28560	45.2600	-93.4522	city est2023
+Oakdale	metro	28226	44.9875	-92.9636	city est2023
+Prior Lake	metro	28027	44.7256	-93.4409	city est2023
+Rosemount	metro	27590	44.7458	-93.0689	city est2023
+Elk River	metro	27342	45.3322	-93.5665	city est2023
+Owatonna	south	26534	44.0919	-93.2317	city est2023
+Shoreview	metro	26374	45.0830	-93.1405	city est2023
+Austin	south	26171	43.6721	-92.9779	city est2023
+Winona	south	26029	44.0513	-91.6681	city est2023
+Chanhassen	metro	25937	44.8543	-93.5624	city est2023
+Faribault	south	24642	44.2997	-93.2789	city est2023
+Farmington	metro	23909	44.6592	-93.1687	city est2023
+White Bear Lake	metro	23363	45.0652	-93.0129	city est2023
+Otsego	metro	23241	45.2643	-93.6207	city est2023
+Champlin	metro	22856	45.1729	-93.3868	city est2023
+Lino Lakes	metro	22376	45.1555	-93.1069	city est2023
+Columbia Heights	metro	22278	45.0491	-93.2467	city est2023
+New Brighton	metro	22228	45.0672	-93.2058	city est2023
+Hastings	metro	22121	44.7318	-92.8545	city est2023
+Crystal	metro	21906	45.0373	-93.3595	city est2023
+West St. Paul	metro	21722	44.9024	-93.0853	city est2023
+Willmar	south	21335	45.1210	-95.0587	city est2023
+Golden Valley	metro	21211	44.9902	-93.3587	city est2023
+St. Michael	metro	21034	45.1992	-93.6895	city est2023
+Northfield	south	21020	44.4556	-93.1703	city est2023
+New Hope	metro	20705	45.0359	-93.3869	city est2023
+Forest Lake	metro	20685	45.2508	-92.9669	city est2023
+South St. Paul	metro	20664	44.8880	-93.0405	city est2023
+Sartell	south	19726	45.6181	-94.2122	city est2023
+Stillwater	metro	19240	45.0586	-92.8304	city est2023
+Hopkins	metro	18589	44.9251	-93.4045	city est2023
+Albert Lea	south	18269	43.6543	-93.3641	city est2023
+Anoka	metro	17996	45.2144	-93.3916	city est2023
+Red Wing	south	16756	44.5813	-92.6050	city est2023
+Ham Lake	metro	16726	45.2539	-93.1948	city est2023
+Buffalo	metro	16541	45.1795	-93.8640	city est2023
+Hugo	metro	16501	45.1642	-92.9601	city est2023
+Hibbing	north	15979	47.3959	-92.9465	city est2023
+Bemidji	north	15743	47.4870	-94.8827	city est2023
+Alexandria	lakes	14943	45.8772	-95.3770	city est2023
+Monticello	metro	14831	45.2979	-93.7983	city est2023
+Hutchinson	south	14701	44.8854	-94.3769	city est2023
+Brainerd	lakes	14563	46.3553	-94.1984	city est2023
+Fergus Falls	prairie	14214	46.2850	-96.0761	city est2023
+North Mankato	south	14091	44.1827	-94.0411	city est2023
+Robbinsdale	metro	13968	45.0245	-93.3306	city est2023
+New Ulm	south	13925	44.3121	-94.4689	city est2023
+Marshall	prairie	13906	44.4491	-95.7892	city est2023
+Sauk Rapids	south	13775	45.5947	-94.1527	city est2023
+Lake Elmo	metro	13756	44.9878	-92.9097	city est2023
+Waconia	metro	13742	44.8415	-93.7901	city est2023
+Rogers	metro	13617	45.1838	-93.5717	city est2023
+Worthington	prairie	13614	43.6287	-95.5997	city est2023
+Mounds View	metro	12782	45.1067	-93.2068	city est2023
+Vadnais Heights	metro	12632	45.0579	-93.0665	city est2023
+Big Lake	metro	12610	45.3424	-93.7430	city est2023
+North St. Paul	metro	12574	45.0135	-93.0018	city est2023
+Cloquet	north	12570	46.7251	-92.5013	city est2023
+St. Peter	south	12291	44.3293	-93.9677	city est2023
+East Bethel	metro	12189	45.3532	-93.2177	city est2023
+North Branch	south	11791	45.5109	-92.9443	city est2023
+Mendota Heights	metro	11564	44.8789	-93.1339	city est2023
+Victoria	metro	11493	44.8621	-93.6584	city est2023
+Grand Rapids	north	11271	47.2385	-93.5326	city est2023
+Cambridge	south	10509	45.5608	-93.2277	city est2023
+Little Canada	metro	10297	45.0233	-93.0837	city est2023
+Fairmont	south	10240	43.6448	-94.4640	city est2023
+Hermantown	north	10202	46.8023	-92.2408	city est2023
+Dayton	metro	10157	45.1891	-93.4716	city est2023
+Detroit Lakes	lakes	9981	46.8076	-95.8466	city est2023
+St. Anthony	metro	9970	45.0303	-93.2154	city est2023
+Arden Hills	metro	9461	45.0712	-93.1655	city est2023
+Waseca	south	9221	44.0815	-93.5040	city est2023
+Oak Grove	metro	9194	45.3484	-93.3273	city est2023
+Little Falls	lakes	9095	45.9856	-94.3597	city est2023
+Baxter	lakes	9092	46.3439	-94.2760	city est2023
+East Grand Forks	prairie	8929	47.9286	-97.0138	city est2023
+Mound	metro	8895	44.9320	-93.6583	city est2023
+Thief River Falls	prairie	8821	48.1112	-96.1776	city est2023
+Minnetrista	metro	8791	44.9386	-93.7124	city est2023
+Albertville	metro	8527	45.2360	-93.6627	city est2023
+St. Francis	metro	8442	45.3940	-93.3941	city est2023
+Waite Park	south	8396	45.5209	-94.2430	city est2023
+Virginia	north	8291	47.5280	-92.5176	city est2023
+New Prague	south	8240	44.5457	-93.5756	city est2023
+Mahtomedi	metro	8184	45.0583	-92.9702	city est2023
+Orono	metro	8119	44.9610	-93.5877	city est2023
+Wyoming	metro	8116	45.3399	-92.9684	city est2023
+Corcoran	metro	7719	45.1069	-93.5780	city est2023
+Shorewood	metro	7526	44.9024	-93.5953	city est2023
+Belle Plaine	metro	7416	44.6198	-93.7646	city est2023
+Isanti	south	7370	45.4915	-93.2428	city est2023
+Crookston	prairie	7268	47.7747	-96.6064	city est2023
+Delano	metro	7142	45.0384	-93.7930	city est2023
+Kasson	south	7126	44.0325	-92.7483	city est2023
+Spring Lake Park	metro	7049	45.1159	-93.2452	city est2023
+Medina	metro	7039	45.0345	-93.5756	city est2023
+Stewartville	south	6904	43.8607	-92.4898	city est2023
+Byron	south	6803	44.0381	-92.6410	city est2023
+St. Joseph	south	6788	45.5651	-94.3021	city est2023
+Zimmerman	south	6762	45.4406	-93.5961	city est2023
+Jordan	metro	6752	44.6646	-93.6402	city est2023
+Carver	metro	6613	44.7615	-93.6325	city est2023
+Litchfield	south	6541	45.1220	-94.5259	city est2023
+Chisago City	metro	5698	45.3456	-92.9100	city est2023
+Glencoe	south	5672	44.7696	-94.1510	city est2023
+International Falls	north	5603	48.5864	-93.4077	city est2023
+Credit River	metro	5575	44.6708	-93.3611	city est2023
+St. Paul Park	metro	5371	44.8357	-92.9941	city est2023
+Newport	metro	5321	44.8744	-92.9986	city est2023
+Lake City	south	5315	44.4457	-92.2809	city est2023
+Princeton	south	5312	45.5682	-93.5903	city est2023
+La Crescent	south	5294	43.8297	-91.3050	city est2023
+Montevideo	prairie	5235	44.9502	-95.7154	city est2023
+North Oaks	metro	5163	45.1048	-93.1011	city est2023
+Morris	prairie	5140	45.5859	-95.9054	city est2023
+Becker	metro	5074	45.3865	-93.8873	city est2023
+Redwood Falls	south	5059	44.5471	-95.1026	city est2023
+Elko New Market	metro	5048	44.5671	-93.3343	city est2023
+Lindstrom	metro	5008	45.3858	-92.8437	city est2023
+Lonsdale	south	4937	44.4776	-93.4242	city est2023
+Luverne	prairie	4918	43.6536	-96.2151	city est2023
+Windom	prairie	4797	43.8736	-95.1191	city est2023
+Dilworth	prairie	4772	46.8794	-96.6983	city est2023
+St. James	south	4699	43.9834	-94.6254	city est2023
+Chisholm	north	4687	47.4875	-92.8794	city est2023
+Sauk Centre	lakes	4610	45.7365	-94.9527	city est2023
+Wadena	lakes	4331	46.4472	-95.1267	city est2023
+Park Rapids	lakes	4302	46.9164	-95.0579	city est2023
+Wayzata	metro	4284	44.9700	-93.5182	city est2023
+Cold Spring	south	4259	45.4583	-94.4282	city est2023
+Le Sueur	south	4221	44.4705	-93.9018	city est2023
+Cannon Falls	south	4202	44.5173	-92.8893	city est2023
+Rice Lake	north	4160	46.9089	-92.1322	city est2023
+Pipestone	prairie	4103	43.9959	-96.3111	city est2023
+Goodview	south	4087	44.0688	-91.7146	city est2023
+St. Charles	south	4037	43.9687	-92.0593	city est2023
+Zumbrota	south	4005	44.2952	-92.6729	city est2023
+Pine Island	south	3871	44.1981	-92.6281	city est2023
+Mora	south	3787	45.8770	-93.2903	city est2023
+Pine City	south	3711	45.8410	-92.9665	city est2023
+Long Prairie	lakes	3707	45.9747	-94.8614	city est2023
+St. Augusta	south	3678	45.4502	-94.1938	city est2023
+Perham	lakes	3666	46.5996	-95.5771	city est2023
+Melrose	south	3611	45.6770	-94.8148	city est2023
+Two Harbors	north	3531	47.0300	-91.6757	city est2023
+Plainview	south	3527	44.1647	-92.1692	city est2023
+Montgomery	south	3508	44.4451	-93.5798	city est2023
+Sleepy Eye	south	3482	44.2989	-94.7236	city est2023
+Benson	south	3437	45.3152	-95.6054	city est2023
+Eveleth	north	3434	47.4749	-92.5496	city est2023
+Annandale	south	3424	45.2599	-94.1213	city est2023
+Rush City	south	3344	45.6874	-92.9653	city est2023
+Breckenridge	prairie	3331	46.2659	-96.5846	city est2023
+Jackson	south	3272	43.6257	-94.9886	city est2023
+Eagle Lake	south	3251	44.1635	-93.8820	city est2023
+Ely	north	3223	47.9056	-91.8507	city est2023
+Blue Earth	south	3163	43.6410	-94.1003	city est2023
+Proctor	north	3087	46.7408	-92.2281	city est2023
+Milaca	south	3053	45.7567	-93.6513	city est2023
+Staples	lakes	3035	46.3722	-94.8150	city est2023
+Moose Lake	north	3004	46.4503	-92.7610	city est2023
+Chatfield	south	2993	43.8445	-92.1829	city est2023
+Dodge Center	south	2928	44.0285	-92.8522	city est2023
+Mountain Iron	north	2854	47.5367	-92.6166	city est2023
+Albany	south	2832	45.6267	-94.5632	city est2023
+Caledonia	south	2794	43.6341	-91.5004	city est2023
+Cokato	south	2770	45.0767	-94.1875	city est2023
+Barnesville	prairie	2766	46.6503	-96.4165	city est2023
+Breezy Point	lakes	2754	46.6091	-94.2073	city est2023
+Cohasset	north	2714	47.2424	-93.6642	city est2023
+Roseau	prairie	2692	48.8444	-95.7625	city est2023
+Granite Falls	prairie	2685	44.8073	-95.5423	city est2023
+Foley	south	2673	45.6636	-93.9095	city est2023
+Glenwood	south	2637	45.6647	-95.3873	city est2023
+Pelican Rapids	prairie	2597	46.5703	-96.0859	city est2023
+Wabasha	south	2592	44.3711	-92.0457	city est2023
+Paynesville	south	2558	45.3785	-94.7216	city est2023
+Le Center	south	2517	44.3866	-93.7311	city est2023
+Lake Crystal	south	2502	44.1054	-94.2191	city est2023
+Sandstone	north	2473	46.1290	-92.8646	city est2023
+Janesville	south	2468	44.1198	-93.7097	city est2023
+Pequot Lakes	lakes	2464	46.5881	-94.2880	city est2023
+Spring Valley	south	2459	43.6888	-92.3898	city est2023
+Crosslake	lakes	2431	46.6782	-94.1020	city est2023
+Rockville	south	2426	45.4660	-94.3189	city est2023
+Wells	south	2398	43.7432	-93.7329	city est2023
+Madelia	south	2375	44.0482	-94.4199	city est2023
+Crosby	lakes	2355	46.4933	-93.9457	city est2023
+Gaylord	south	2326	44.5558	-94.2132	city est2023
+Arlington	south	2305	44.6083	-94.0768	city est2023
+Olivia	south	2289	44.7770	-94.9971	city est2023
+Hawley	prairie	2283	46.8731	-96.3193	city est2023
+Excelsior	metro	2277	44.9027	-93.5664	city est2023
+Winsted	south	2225	44.9582	-94.0503	city est2023
+Maple Lake	south	2209	45.2326	-94.0095	city est2023
+Howard Lake	south	2186	45.0540	-94.0610	city est2023
+Rice	south	2177	45.7586	-94.2429	city est2023
+Aitkin	lakes	2152	46.5266	-93.7050	city est2023
+Nisswa	lakes	2122	46.5007	-94.2978	city est2023
+Waverly	south	2121	45.0637	-93.9666	city est2023
+Clearwater	south	2106	45.4099	-94.0446	city est2023
+Tracy	prairie	2040	44.2404	-95.6209	city est2023
+Eyota	south	2019	43.9883	-92.2321	city est2023
+Springfield	south	1992	44.2372	-94.9819	city est2023
+Hoyt Lakes	north	1990	47.5716	-92.1083	city est2023
+Coleraine	north	1989	47.2587	-93.4539	city est2023
+Ortonville	prairie	1984	45.3024	-96.4422	city est2023
+Slayton	prairie	1977	43.9902	-95.7584	city est2023
+Warroad	north	1959	48.9171	-95.3280	city est2023
+Blooming Prairie	south	1952	43.8685	-93.0557	city est2023
+Mountain Lake	south	1946	43.9401	-94.9277	city est2023
+Hinckley	south	1936	46.0130	-92.9127	city est2023
+Lester Prairie	south	1901	44.8833	-94.0370	city est2023
+Kenyon	south	1878	44.2726	-92.9864	city est2023
+Esko	north	1869	46.7100	-92.3721	CDP pop2010=1869
+Rushford	south	1861	43.8134	-91.7538	city est2023
+Silver Bay	north	1812	47.2933	-91.2768	city est2023
+Braham	south	1793	45.7223	-93.1722	city est2023
+Rock Creek	south	1782	45.7647	-92.9035	city est2023
+Oronoco	south	1781	44.1584	-92.5392	city est2023
+Dundas	south	1758	44.4277	-93.2038	city est2023
+Osakis	lakes	1752	45.8654	-95.1531	city est2023
+Waterville	south	1752	44.2219	-93.5726	city est2023
+Lakefield	prairie	1717	43.6780	-95.1695	city est2023
+Ada	prairie	1703	47.2989	-96.5165	city est2023
+Avon	south	1693	45.6055	-94.4477	city est2023
+Canby	prairie	1683	44.7161	-96.2698	city est2023
+Gilbert	north	1664	47.4908	-92.4583	city est2023
+Aurora	north	1660	47.5316	-92.2410	city est2023
+Mapleton	south	1649	43.9271	-93.9553	city est2023
+Warren	prairie	1559	48.1940	-96.7688	city est2023
+Dassel	south	1526	45.0849	-94.3170	city est2023
+Lewiston	south	1507	43.9824	-91.8695	city est2023
+Richmond	south	1503	45.4545	-94.5136	city est2023
+Madison	prairie	1491	45.0128	-96.1891	city est2023
+Pierz	lakes	1460	45.9772	-94.1008	city est2023
+Dawson	prairie	1433	44.9290	-96.0504	city est2023
+Starbuck	south	1405	45.6116	-95.5322	city est2023
+Winnebago	south	1383	43.7649	-94.1706	city est2023
+Fosston	north	1382	47.5851	-95.7527	city est2023
+Babbitt	north	1376	47.6431	-91.9283	city est2023
+Medford	south	1368	44.1685	-93.2473	city est2023
+Appleton	prairie	1365	45.1995	-96.0222	city est2023
+Clara City	prairie	1360	44.9574	-95.3677	city est2023
+Glyndon	prairie	1358	46.8710	-96.5784	city est2023
+Hayfield	south	1356	43.8903	-92.8470	city est2023
+New York Mills	lakes	1355	46.5196	-95.3728	city est2023
+Minneota	prairie	1348	44.5625	-95.9827	city est2023
+Menahga	lakes	1347	46.7537	-95.1029	city est2023
+Wheaton	prairie	1339	45.8059	-96.4980	city est2023
+Red Lake Falls	prairie	1336	47.8837	-96.2727	city est2023
+Fulda	prairie	1333	43.8674	-95.6055	city est2023
+Winthrop	south	1328	44.5423	-94.3600	city est2023
+Preston	south	1324	43.6726	-92.0828	city est2023
+Grand Marais	north	1321	47.7586	-90.3443	city est2023
+Frazee	lakes	1308	46.7288	-95.7039	city est2023
+Bagley	north	1305	47.5244	-95.4028	city est2023
+Madison Lake	south	1301	44.2081	-93.8179	city est2023
+New London	south	1284	45.2969	-94.9475	city est2023
+Elbow Lake	lakes	1281	45.9896	-95.9788	city est2023
+Royalton	south	1281	45.8303	-94.2926	city est2023
+Renville	south	1265	44.7908	-95.2048	city est2023
+Edgerton	prairie	1249	43.8753	-96.1305	city est2023
+Goodhue	south	1245	44.3994	-92.6255	city est2023
+Spring Grove	south	1219	43.5608	-91.6370	city est2023
+New Richland	south	1216	43.8939	-93.4939	city est2023
+Fairfax	south	1213	44.5283	-94.7230	city est2023
+Mahnomen	lakes	1210	47.3147	-95.9674	city est2023
+Adrian	prairie	1182	43.6336	-95.9328	city est2023
+Elgin	south	1148	44.1292	-92.2544	city est2023
+Harris	south	1139	45.5978	-92.9886	city est2023
+Cottonwood	prairie	1138	44.6110	-95.6719	city est2023
+Grand Meadow	south	1131	43.7062	-92.5702	city est2023
+Lake Shore	lakes	1121	46.5043	-94.3665	city est2023
+East Gull Lake	lakes	1120	46.3970	-94.3638	city est2023
+Nicollet	south	1112	44.2746	-94.1881	city est2023
+Wanamingo	south	1107	44.3028	-92.7873	city est2023
+Tyler	prairie	1104	44.2779	-96.1361	city est2023
+Mantorville	south	1101	44.0652	-92.7472	city est2023
+Atwater	south	1085	45.1355	-94.7769	city est2023
+Spicer	south	1081	45.2336	-94.9400	city est2023
+Truman	south	1064	43.8279	-94.4366	city est2023
+Eden Valley	south	1061	45.3256	-94.5459	city est2023
+Taylors Falls	south	1054	45.4056	-92.6736	city est2023
+Sherburn	south	1050	43.6549	-94.7275	city est2023
+Harmony	south	1042	43.5540	-92.0075	city est2023
+Parkers Prairie	lakes	1028	46.1528	-95.3283	city est2023
+Watkins	south	1017	45.3158	-94.4120	city est2023
+Morristown	south	1006	44.2252	-93.4452	city est2023
+Scanlon	north	1004	46.7059	-92.4287	city est2023
+Hector	south	990	44.7413	-94.7121	city est2023
+Houston	south	983	43.7566	-91.5727	city est2023
+Walker	lakes	981	47.0908	-94.5869	city est2023
+Bird Island	south	977	44.7650	-94.8942	city est2023
+Henderson	south	975	44.5243	-93.9135	city est2023
+Keewatin	north	971	47.3994	-93.0842	city est2023
+Biwabik	north	963	47.5403	-92.3422	city est2023
+Carlton	north	960	46.6558	-92.4304	city est2023
+Nashwauk	north	959	47.3800	-93.1667	city est2023
+Le Roy	south	953	43.5133	-92.5078	city est2023
+Buhl	north	947	47.4986	-92.7811	city est2023
+Baudette	north	935	48.7123	-94.5918	city est2023
+Pine River	lakes	930	46.7233	-94.3966	city est2023
+Battle Lake	lakes	911	46.2849	-95.7187	city est2023
+Deer River	north	906	47.3391	-93.7928	city est2023
+Mazeppa	south	884	44.2737	-92.5402	city est2023
+Morgan	south	878	44.4159	-94.9249	city est2023
+Hallock	prairie	873	48.7654	-96.9425	city est2023
+Emily	lakes	863	46.7690	-93.9805	city est2023
+Hancock	south	863	45.4976	-95.7948	city est2023
+Silver Lake	south	861	44.9042	-94.1986	city est2023
+Henning	lakes	859	46.3231	-95.4420	city est2023
+Kimball	south	856	45.3143	-94.3008	city est2023
+West Concord	south	841	44.1528	-92.9000	city est2023
+Browerville	lakes	831	46.0805	-94.8646	city est2023
+Onamia	south	831	46.0703	-93.6671	city est2023
+Clarkfield	prairie	827	44.7903	-95.8076	city est2023
+Isle	south	824	46.1381	-93.4558	city est2023
+Blackduck	north	818	47.7209	-94.5455	city est2023
+Stockton	south	816	44.0271	-91.7697	city est2023
+Bovey	north	813	47.2981	-93.4052	city est2023
+Rushford Village	south	803	43.8046	-91.7856	city est2023
+St. Stephen	south	803	45.7010	-94.2742	city est2023
+Fertile	prairie	784	47.5307	-96.2816	city est2023
+Lamberton	prairie	783	44.2306	-95.2676	city est2023
+Sebeka	lakes	740	46.6292	-95.0879	city est2023
+Walnut Grove	prairie	736	44.2250	-95.4692	city est2023
+Westbrook	prairie	734	44.0422	-95.4375	city est2023
+Wabasso	prairie	728	44.4025	-95.2554	city est2023
+Lanesboro	south	720	43.7151	-91.9702	city est2023
+Lake Park	prairie	719	46.8836	-96.0976	city est2023
+Hoffman	lakes	710	45.8344	-95.7874	city est2023
+Ottertail	lakes	709	46.4316	-95.5712	city est2023
+Twin Valley	prairie	704	47.2589	-96.2592	city est2023
+Motley	lakes	688	46.3348	-94.6428	city est2023
+Cass Lake	north	686	47.3797	-94.5994	city est2023
+Karlstad	prairie	684	48.5780	-96.5161	city est2023
+Greenbush	prairie	674	48.7011	-96.1836	city est2023
+La Prairie	north	669	47.2300	-93.4914	city est2023
+Lake Benton	prairie	669	44.2622	-96.2993	city est2023
+Hills	prairie	668	43.5276	-96.3593	city est2023
+Clarissa	lakes	654	46.1285	-94.9491	city est2023
+Taconite	north	644	47.3180	-93.3829	city est2023
+Randall	lakes	612	46.0887	-94.5007	city est2023
+Hill City	north	609	46.9852	-93.5950	city est2023
+Marble	north	609	47.3318	-93.2900	city est2023
+Sabin	prairie	606	46.7814	-96.6542	city est2023
+Barnum	north	605	46.5054	-92.6884	city est2023
+Hendricks	prairie	601	44.5086	-96.4264	city est2023
+Jasper	prairie	596	43.8489	-96.3996	city est2023
+Heron Lake	prairie	591	43.7981	-95.3198	city est2023
+Evansville	lakes	590	46.0060	-95.6880	city est2023
+McIntosh	north	584	47.6374	-95.8870	city est2023
+Balaton	prairie	583	44.2329	-95.8711	city est2023
+Deerwood	lakes	578	46.4673	-93.8985	city est2023
+Stephen	prairie	578	48.4524	-96.8763	city est2023
+Ironton	lakes	568	46.4822	-94.0033	city est2023
+Audubon	lakes	562	46.8652	-95.9841	city est2023
+Halstad	prairie	560	47.3511	-96.8257	city est2023
+Bertha	lakes	551	46.2671	-95.0618	city est2023
+Ranier	north	545	48.6043	-93.3573	city est2023
+Eagle Bend	lakes	541	46.1643	-95.0341	city est2023
+Ivanhoe	prairie	537	44.4643	-96.2517	city est2023
+Littlefork	north	536	48.3964	-93.5578	city est2023
+Argyle	prairie	534	48.3366	-96.8162	city est2023
+Cook	north	524	47.8357	-92.6889	city est2023
+Pillager	lakes	521	46.3306	-94.4774	city est2023
+Graceville	prairie	520	45.5687	-96.4372	city est2023
+Floodwood	north	518	46.9106	-92.9059	city est2023
+Browns Valley	prairie	511	45.5947	-96.8327	city est2023
+Verndale	lakes	511	46.3969	-95.0122	city est2023
+Jenkins	lakes	499	46.6511	-94.3282	city est2023
+Brandon	lakes	498	45.9669	-95.5940	city est2023
+Brewster	prairie	495	43.6973	-95.4645	city est2023
+Rothsay	prairie	491	46.4731	-96.2842	city est2023
+Sacred Heart	prairie	490	44.7817	-95.3507	city est2023
+Carlos	lakes	487	45.9735	-95.2923	city est2023
+Ellsworth	prairie	483	43.5206	-96.0186	city est2023
+Upsala	lakes	482	45.8129	-94.5637	city est2023
+Ashby	lakes	481	46.0955	-95.8192	city est2023
+Ulen	prairie	475	47.0782	-96.2582	city est2023
+Clearbrook	north	466	47.6962	-95.4293	city est2023
+Sturgeon Lake	north	462	46.3903	-92.8221	city est2023
+Fifty Lakes	lakes	454	46.7655	-94.1178	city est2023
+Soudan	north	446	47.8130	-92.2356	CDP pop2010=446
+Wrenshall	north	441	46.6217	-92.3841	city est2023
+Miltona	lakes	438	46.0463	-95.2932	city est2023
+Lynd	prairie	429	44.4018	-95.8741	city est2023
+Akeley	lakes	424	47.0004	-94.7282	city est2023
+Tower	north	424	47.8158	-92.2747	city est2023
+Badger	prairie	419	48.7768	-96.0213	city est2023
+Milan	prairie	414	45.1126	-95.9118	city est2023
+Oklee	north	411	47.8387	-95.8495	city est2023
+Chokio	prairie	410	45.5731	-96.1742	city est2023
+Bigfork	north	407	47.7469	-93.6533	city est2023
+Fisher	prairie	404	47.7992	-96.7995	city est2023
+Waubun	lakes	399	47.1839	-95.9401	city est2023
+Remer	lakes	398	47.0569	-93.9126	city est2023
+Willow River	north	395	46.3238	-92.8300	city est2023
+Nevis	lakes	393	46.9648	-94.8430	city est2023
+Herman	prairie	390	45.8105	-96.1414	city est2023
+Erskine	prairie	388	47.6632	-96.0167	city est2023
+McGregor	north	380	46.6104	-93.2995	city est2023
+Alvarado	prairie	378	48.1929	-96.9985	city est2023
+Ghent	prairie	377	44.5116	-95.8926	city est2023
+Clinton	prairie	376	45.4669	-96.4426	city est2023
+Barrett	lakes	375	45.9132	-95.9047	city est2023
+Wood Lake	prairie	375	44.6513	-95.5358	city est2023
+Underwood	lakes	363	46.2911	-95.8728	city est2023
+Round Lake	prairie	361	43.5372	-95.4719	city est2023
+Rushmore	prairie	358	43.6197	-95.7990	city est2023
+Vergas	lakes	354	46.6488	-95.8021	city est2023
+Russell	prairie	351	44.3204	-95.9440	city est2023
+Lancaster	prairie	350	48.8582	-96.8014	city est2023
+Newfolden	prairie	345	48.3567	-96.3297	city est2023
+Garfield	lakes	340	45.9376	-95.4985	city est2023
+Jeffers	prairie	340	44.0559	-95.1954	city est2023
+Lowry	lakes	334	45.7049	-95.5191	city est2023
+Askov	north	333	46.1886	-92.7824	city est2023
+Swanville	lakes	333	45.9162	-94.6388	city est2023
+Deer Creek	lakes	332	46.3897	-95.3208	city est2023
+Grey Eagle	lakes	327	45.8243	-94.7491	city est2023
+Calumet	north	325	47.3220	-93.2642	city est2023
+Cuyuna	lakes	323	46.5067	-93.9197	city est2023
+Finlayson	north	321	46.2104	-92.9304	city est2023
+Sanborn	prairie	321	44.2100	-95.1295	city est2023
+Wilmont	prairie	320	43.7639	-95.8263	city est2023
+Maynard	prairie	301	44.9056	-95.4686	city est2023
+Hackensack	lakes	300	46.9265	-94.5160	city est2023
+Frontenac	south	282	44.5038	-92.3526	CDP pop2010=282
+Backus	lakes	271	46.8209	-94.5145	city est2023
+Kensington	lakes	269	45.7782	-95.6969	city est2023
+Gonvick	north	266	47.7391	-95.5125	city est2023
+Wilton	north	266	47.5075	-94.9998	city est2023
+Kelliher	north	250	47.9482	-94.4378	city est2023
+Cromwell	north	246	46.6793	-92.8709	city est2023
+Rutledge	north	217	46.2559	-92.8782	city est2023
+Orr	north	212	48.0576	-92.8236	city est2023
+Lutsen	north	190	47.6744	-90.6928	CDP pop2010=190
+Warba	north	184	47.1356	-93.2701	city est2023
+Tenstrike	north	181	47.6594	-94.6839	city est2023
+Grygla	north	175	48.2997	-95.6240	city est2023
+Kettle River	north	174	46.4862	-92.8776	city est2023
+Big Falls	north	173	48.1796	-93.8092	city est2023
+Wright	north	169	46.6725	-93.0069	city est2023
+Palisade	north	166	46.7127	-93.4893	city est2023
+Winton	north	165	47.9292	-91.8013	city est2023
+Williams	north	155	48.7680	-94.9533	city est2023
+Northome	north	154	47.8744	-94.2683	city est2023
+Roosevelt	north	153	48.8070	-95.1010	city est2023
+Angle Inlet	north	60	49.3474	-95.0698	CDP pop2010=60

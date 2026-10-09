@@ -1,0 +1,551 @@
+name	tags	population	lat	lon	note
+Los Angeles	socal,big	3820914	34.0194	-118.4108	city est2023
+San Diego	socal,big	1388320	32.8150	-117.1356	city est2023
+San Jose	bay,big	969655	37.2960	-121.8146	city est2023
+San Francisco	bay,big	808988	37.7272	-123.0322	city est2023
+Fresno	valley,big	545716	36.7827	-119.7934	city est2023
+Sacramento	valley,big	526384	38.5677	-121.4682	city est2023
+Long Beach	socal,big	449468	33.7808	-118.1682	city est2023
+Oakland	bay,big	436504	37.7698	-122.2257	city est2023
+Bakersfield	valley,big	413381	35.3532	-119.0379	city est2023
+Anaheim	socal,big	340512	33.8555	-117.7587	city est2023
+Stockton	valley,big	319543	37.9772	-121.3089	city est2023
+Riverside	socal,big	318858	33.9381	-117.3932	city est2023
+Irvine	socal,big	314621	33.6784	-117.7713	city est2023
+Santa Ana	socal,big	310539	33.7363	-117.8829	city est2023
+Chula Vista	socal,big	274333	32.6277	-117.0152	city est2023
+Fremont	bay	226208	37.4945	-121.9411	city est2023
+Santa Clarita	socal	224028	34.4165	-118.5007	city est2023
+San Bernardino	socal	223728	34.1411	-117.2946	city est2023
+Modesto	valley	218915	37.6375	-121.0030	city est2023
+Fontana	socal	215465	34.1097	-117.4629	city est2023
+Moreno Valley	socal	212392	33.9233	-117.2057	city est2023
+Oxnard	socal	198488	34.1994	-119.2075	city est2023
+Huntington Beach	socal	192129	33.6980	-118.0038	city est2023
+Glendale	socal	187050	34.1814	-118.2458	city est2023
+Ontario	socal	182457	34.0376	-117.6044	city est2023
+Elk Grove	valley	178444	38.4146	-121.3850	city est2023
+Santa Rosa	bay	175845	38.4458	-122.7062	city est2023
+Rancho Cucamonga	socal	174405	34.1303	-117.5661	city est2023
+Oceanside	socal	170020	33.2246	-117.3063	city est2023
+Garden Grove	socal	168234	33.7788	-117.9605	city est2023
+Lancaster	desert	166236	34.6936	-118.1753	city est2023
+Palmdale	desert	161404	34.5910	-118.1054	city est2023
+Corona	socal	160238	33.8620	-117.5655	city est2023
+Salinas	central	159506	36.6902	-121.6338	city est2023
+Roseville	valley	159135	38.7703	-121.3196	city est2023
+Hayward	bay	155675	37.6268	-122.1040	city est2023
+Sunnyvale	bay	151967	37.3858	-122.0263	city est2023
+Escondido	socal	148122	33.1331	-117.0740	city est2023
+Pomona	socal	145502	34.0585	-117.7611	city est2023
+Visalia	valley	144998	36.3280	-119.3285	city est2023
+Fullerton	socal	139250	33.8857	-117.9280	city est2023
+Torrance	socal	139224	33.8305	-118.3566	city est2023
+Victorville	desert	138869	34.5277	-117.3536	city est2023
+Orange	socal	138337	33.7870	-117.8613	city est2023
+Pasadena	socal	133560	34.1606	-118.1380	city est2023
+Santa Clara	bay	131062	37.3646	-121.9680	city est2023
+East Los Angeles	socal	126496	34.0315	-118.1686	CDP pop2010=126496
+Clovis	valley	125826	36.8290	-119.6849	city est2023
+Simi Valley	socal	125113	34.2669	-118.7485	city est2023
+Thousand Oaks	socal	123463	34.1933	-118.8742	city est2023
+Vallejo	bay	122807	38.1069	-122.2623	city est2023
+Concord	bay	122315	37.9722	-122.0016	city est2023
+Fairfield	bay	120768	38.2621	-122.0324	city est2023
+Berkeley	bay	118962	37.8657	-122.2987	city est2023
+Antioch	bay	117096	37.9783	-121.7961	city est2023
+Richmond	bay	114106	37.9523	-122.3606	city est2023
+Carlsbad	socal	113495	33.1293	-117.2842	city est2023
+Menifee	socal	113433	33.6899	-117.1844	city est2023
+Murrieta	socal	111878	33.5721	-117.1904	city est2023
+Temecula	socal	110682	33.4931	-117.1317	city est2023
+Santa Maria	central	109987	34.9331	-120.4436	city est2023
+Ventura	socal	109058	34.2678	-119.2542	city est2023
+Downey	socal	108816	33.9382	-118.1309	city est2023
+Costa Mesa	socal	108354	33.6659	-117.9123	city est2023
+Jurupa Valley	socal	107321	34.0026	-117.4676	city est2023
+West Covina	socal	105617	34.0559	-117.9099	city est2023
+El Monte	socal	103794	34.0746	-118.0291	city est2023
+Rialto	socal	103391	34.1174	-117.3892	city est2023
+El Cajon	socal	102991	32.8017	-116.9605	city est2023
+Inglewood	socal	102865	33.9561	-118.3443	city est2023
+Burbank	socal	102755	34.1901	-118.3264	city est2023
+Vacaville	valley	102526	38.3586	-121.9686	city est2023
+San Mateo	bay	101327	37.5603	-122.3106	city est2023
+Chico	valley	101301	39.7590	-121.8177	city est2023
+Hesperia	desert	100633	34.3970	-117.3152	city est2023
+Daly City	bay	99833	37.6862	-122.4687	city est2023
+Vista	socal	98344	33.1897	-117.2386	city est2023
+Norwalk	socal	98078	33.9076	-118.0835	city est2023
+Tracy	valley	98010	37.7274	-121.4522	city est2023
+San Marcos	socal	94188	33.1326	-117.1699	city est2023
+Merced	valley	93692	37.3057	-120.4779	city est2023
+Chino	socal	93114	33.9780	-117.6577	city est2023
+Indio	desert	93057	33.7316	-116.2360	city est2023
+Redding	valley	92727	40.5703	-122.3668	city est2023
+Hemet	socal	92368	33.7341	-116.9968	city est2023
+Carson	socal	91139	33.8404	-118.2496	city est2023
+Manteca	valley	91059	37.7928	-121.2261	city est2023
+Compton	socal	90986	33.8940	-118.2275	city est2023
+Mission Viejo	socal	90624	33.6093	-117.6565	city est2023
+South Gate	socal	90070	33.9442	-118.1928	city est2023
+Santa Monica	socal	89922	34.0109	-118.4982	city est2023
+Westminster	socal	88729	33.7523	-117.9939	city est2023
+Santa Barbara	socal	86499	34.4036	-119.7137	city est2023
+Citrus Heights	valley	86239	38.6948	-121.2880	city est2023
+Lake Forest	socal	85840	33.6549	-117.6758	city est2023
+San Leandro	bay	85784	37.7034	-122.1630	city est2023
+San Ramon	bay	84929	37.7653	-121.9320	city est2023
+Folsom	valley	84782	38.6666	-121.1416	city est2023
+Whittier	socal	84143	33.9668	-118.0201	city est2023
+Hawthorne	socal	83364	33.9148	-118.3481	city est2023
+Livermore	bay	82908	37.6870	-121.7598	city est2023
+Newport Beach	socal	82637	33.5973	-117.8904	city est2023
+Rancho Cordova	valley	82605	38.5771	-121.2362	city est2023
+Buena Park	socal	81958	33.8574	-118.0074	city est2023
+Mountain View	bay	81785	37.3997	-122.0793	city est2023
+Redwood City	bay	80996	37.5153	-122.2137	city est2023
+Perris	socal	80603	33.7898	-117.2222	city est2023
+Alhambra	socal	79776	34.0836	-118.1364	city est2023
+Upland	socal	78699	34.1161	-117.6599	city est2023
+Lakewood	socal	78135	33.8471	-118.1219	city est2023
+Tustin	socal	77704	33.7309	-117.8106	city est2023
+Napa	bay	77492	38.2979	-122.3007	city est2023
+Milpitas	bay	77321	37.4331	-121.8909	city est2023
+Chino Hills	socal	77212	33.9430	-117.7256	city est2023
+Pittsburg	bay	75803	38.0168	-121.8969	city est2023
+Alameda	bay	75353	37.7419	-122.2599	city est2023
+Bellflower	socal	75122	33.8878	-118.1273	city est2023
+Apple Valley	desert	75036	34.5334	-117.2104	town est2023
+Pleasanton	bay	74653	37.6672	-121.8812	city est2023
+Rocklin	valley	73472	38.8069	-121.2497	city est2023
+Lake Elsinore	socal	73028	33.6860	-117.3354	city est2023
+Redlands	socal	72556	34.0535	-117.1705	city est2023
+Turlock	valley	72100	37.5055	-120.8593	city est2023
+Tulare	valley	71092	36.1994	-119.3419	city est2023
+Eastvale	socal	70510	33.9633	-117.5824	city est2023
+Camarillo	socal	69514	34.2218	-119.0322	city est2023
+Walnut Creek	bay	69152	37.9027	-122.0405	city est2023
+Dublin	bay	69128	37.7161	-121.8962	city est2023
+Baldwin Park	socal	68806	34.0828	-117.9713	city est2023
+Yuba City	valley	68666	39.1298	-121.6415	city est2023
+Madera	valley	68079	36.9658	-120.0862	city est2023
+Redondo Beach	socal	67749	33.8495	-118.4008	city est2023
+Lodi	valley	67679	38.1216	-121.2908	city est2023
+Yorba Linda	socal	66147	33.8890	-117.7721	city est2023
+Palo Alto	bay	65882	37.3965	-122.1431	city est2023
+Davis	valley	65832	38.5561	-121.7378	city est2023
+Union City	bay	65414	37.6028	-122.0188	city est2023
+Brentwood	bay	65126	37.9356	-121.7190	city est2023
+Lynwood	socal	63234	33.9240	-118.2017	city est2023
+South San Francisco	bay	63123	37.6551	-122.3762	city est2023
+Laguna Niguel	socal	62899	33.5287	-117.7013	city est2023
+Porterville	valley	62876	36.0635	-119.0336	city est2023
+San Clemente	socal	62313	33.4491	-117.6131	city est2023
+Carmichael	valley	61762	38.6308	-121.3256	CDP pop2010=61762
+Santa Cruz	central	61501	36.9744	-122.0353	city est2023
+Castro Valley	bay	61388	37.7083	-122.0628	CDP pop2010=61388
+Woodland	valley	61123	38.6712	-121.7500	city est2023
+La Habra	socal	60991	33.9279	-117.9516	city est2023
+Encinitas	socal	60841	33.0506	-117.2636	city est2023
+La Mesa	socal	60537	32.7695	-117.0219	city est2023
+Montebello	socal	60015	34.0154	-118.1110	city est2023
+Hanford	valley	59938	36.3277	-119.6546	city est2023
+San Rafael	bay	59555	37.9810	-122.5069	city est2023
+Santee	socal	59478	32.8550	-116.9861	city est2023
+Pico Rivera	socal	59189	33.9895	-118.0893	city est2023
+Petaluma	bay	58800	38.2423	-122.6288	city est2023
+Beaumont	socal	58463	33.8767	-116.9530	city est2023
+Gardena	socal	58377	33.8944	-118.3075	city est2023
+Gilroy	central	58250	37.0064	-121.5853	city est2023
+Monterey Park	socal	57877	34.0484	-118.1332	city est2023
+Cupertino	bay	57285	37.3194	-122.0450	city est2023
+Highland	socal	56202	34.1135	-117.1657	city est2023
+West Sacramento	valley	55842	38.5544	-121.5487	city est2023
+Fountain Valley	socal	55468	33.7106	-117.9511	city est2023
+San Jacinto	socal	55440	33.7989	-116.9959	city est2023
+National City	socal	55236	32.6659	-117.0974	city est2023
+Lincoln	valley	54538	38.8745	-121.2929	city est2023
+Arcadia	socal	54157	34.1327	-118.0363	city est2023
+Yucaipa	socal	53947	34.0336	-117.0429	city est2023
+Colton	socal	53357	34.0545	-117.3250	city est2023
+Cathedral City	desert	52356	33.8355	-116.4631	city est2023
+Placentia	socal	52192	33.8812	-117.8548	city est2023
+Diamond Bar	socal	52041	34.0016	-117.8176	city est2023
+Palm Desert	desert	51951	33.7376	-116.3641	city est2023
+Huntington Park	socal	51942	33.9792	-118.2174	city est2023
+Novato	bay	51722	38.0851	-122.5483	city est2023
+Delano	valley	51500	35.7664	-119.2642	city est2023
+Paramount	socal	51072	33.8989	-118.1666	city est2023
+Watsonville	central	50867	36.9236	-121.7724	city est2023
+Aliso Viejo	socal	50263	33.5792	-117.7289	city est2023
+Glendora	socal	49934	34.1450	-117.8478	city est2023
+Rosemead	socal	49305	34.0689	-118.0827	city est2023
+San Luis Obispo	central	49244	35.2662	-120.6684	city est2023
+Cypress	socal	48782	33.8185	-118.0383	city est2023
+Covina	socal	48728	34.0905	-117.8821	city est2023
+Los Banos	valley	48553	37.0632	-120.8403	city est2023
+Brea	socal	48479	33.9252	-117.8651	city est2023
+Ceres	valley	48397	37.5988	-120.9681	city est2023
+Azusa	socal	48272	34.1385	-117.9123	city est2023
+Poway	socal	48051	32.9877	-117.0218	city est2023
+Newark	bay	46929	37.5043	-122.0319	city est2023
+Cerritos	socal	46797	33.8677	-118.0695	city est2023
+Rancho Santa Margarita	socal	46182	33.6323	-117.5990	city est2023
+Oakley	valley	45761	37.9961	-121.6936	city est2023
+La Mirada	socal	45505	33.9020	-118.0090	city est2023
+Palm Springs	desert	45218	33.8034	-116.5383	city est2023
+Hollister	central	44658	36.8556	-121.3986	city est2023
+Rohnert Park	bay	44546	38.3476	-122.7009	city est2023
+Morgan Hill	bay	44478	37.1325	-121.6419	city est2023
+El Centro	desert	43772	32.7864	-115.5602	city est2023
+Coachella	desert	43590	33.6904	-116.1431	city est2023
+Lompoc	central	43045	34.6627	-120.4708	city est2023
+Danville	bay	42999	37.8121	-121.9698	town est2023
+Altadena	socal	42777	34.1922	-118.1356	CDP pop2010=42777
+El Dorado Hills	valley	42108	38.6761	-121.0477	CDP pop2010=42108
+Campbell	bay	41700	37.2802	-121.9533	city est2023
+San Bruno	bay	41327	37.6256	-122.4314	city est2023
+Rancho Palos Verdes	socal	39980	33.7385	-118.3697	city est2023
+Lathrop	valley	39857	37.8087	-121.3178	city est2023
+La Quinta	desert	39081	33.6461	-116.2753	city est2023
+Culver City	socal	39041	34.0058	-118.3968	city est2023
+Stanton	socal	38815	33.8002	-117.9934	city est2023
+Calexico	desert	38224	32.6849	-115.4947	city est2023
+Adelanto	desert	38187	34.5809	-117.4395	city est2023
+San Gabriel	socal	37732	34.0946	-118.0985	city est2023
+Montclair	socal	37545	34.0715	-117.6981	city est2023
+Bell Gardens	socal	37467	33.9644	-118.1544	city est2023
+Wildomar	socal	37087	33.6173	-117.2583	city est2023
+Monrovia	socal	36768	34.1640	-117.9846	city est2023
+La Puente	socal	36516	34.0323	-117.9535	city est2023
+Pacifica	bay	36426	37.6066	-122.4772	city est2023
+Martinez	bay	36395	37.9981	-122.1144	city est2023
+Claremont	socal	35640	34.1249	-117.7139	city est2023
+Moorpark	socal	35543	34.2859	-118.8770	city est2023
+Temple City	socal	34854	34.1022	-118.0580	city est2023
+San Juan Capistrano	socal	34754	33.5009	-117.6544	city est2023
+West Hollywood	socal	34349	34.0883	-118.3718	city est2023
+Pleasant Hill	bay	33802	37.9542	-122.0758	city est2023
+Desert Hot Springs	desert	33438	33.9576	-116.5423	city est2023
+Manhattan Beach	socal	33369	33.9009	-118.4207	city est2023
+San Dimas	socal	33105	34.1080	-117.8085	city est2023
+Goleta	socal	32665	34.4354	-119.8589	city est2023
+Dana Point	socal	32567	33.4755	-117.6931	city est2023
+Los Gatos	bay	32216	37.2299	-121.9568	town est2023
+Foster City	bay	32180	37.5648	-122.2508	city est2023
+Atwater	valley	32052	37.3540	-120.5972	city est2023
+Bell	socal	31864	33.9797	-118.1792	city est2023
+Santa Paula	socal	31792	34.3549	-119.0663	city est2023
+Menlo Park	bay	31690	37.4797	-122.1481	city est2023
+Banning	socal	31680	33.9459	-116.8990	city est2023
+Seaside	central	31317	36.6251	-121.8178	city est2023
+San Pablo	bay	31249	37.9629	-122.3426	city est2023
+Paso Robles	central	31134	35.6285	-120.6504	city est2023
+Beverly Hills	socal	30974	34.0792	-118.4024	city est2023
+Fallbrook	socal	30534	33.3742	-117.2204	CDP pop2010=30534
+Laguna Hills	socal	30243	33.5912	-117.6976	city est2023
+Lawndale	socal	30155	33.8884	-118.3531	city est2023
+Los Altos	bay	29990	37.3684	-122.0966	city est2023
+Burlingame	bay	29910	37.5900	-122.3633	city est2023
+La Verne	socal	29898	34.1205	-117.7699	city est2023
+Atascadero	central	29700	35.4857	-120.6879	city est2023
+Saratoga	bay	29607	37.2683	-122.0262	city est2023
+Monterey	central	29116	36.6012	-121.8831	city est2023
+San Carlos	bay	28862	37.4990	-122.2676	city est2023
+Suisun City	bay	28743	38.2483	-122.0101	city est2023
+Twentynine Palms	desert	28734	34.1478	-116.0660	city est2023
+East Palo Alto	bay	28216	37.4678	-122.1325	city est2023
+Ridgecrest	desert	28088	35.6285	-117.6640	city est2023
+Brawley	desert	27849	32.9785	-115.5286	city est2023
+Lemon Grove	socal	27569	32.7331	-117.0344	city est2023
+Walnut	socal	27104	34.0372	-117.8556	city est2023
+Wasco	valley	26917	35.5938	-119.3671	city est2023
+Lemoore	valley	26809	36.2944	-119.7983	city est2023
+Belmont	bay	26622	37.5144	-122.2945	city est2023
+Hercules	bay	26582	38.0214	-122.2889	city est2023
+Benicia	bay	26429	38.0727	-122.1552	city est2023
+Sanger	valley	26343	36.6990	-119.5575	city est2023
+Reedley	valley	25958	36.5984	-119.4467	city est2023
+Dinuba	valley	25863	36.5451	-119.3988	city est2023
+Windsor	bay	25828	38.5421	-122.8086	town est2023
+Galt	valley	25767	38.2685	-121.2990	city est2023
+Eureka	north	25734	40.7976	-124.1542	city est2023
+South Pasadena	socal	25623	34.1090	-118.1566	city est2023
+El Cerrito	bay	25552	37.9196	-122.3025	city est2023
+Imperial Beach	socal	25458	32.5691	-117.1149	city est2023
+Norco	socal	25398	33.9255	-117.5520	city est2023
+Loma Linda	socal	25111	34.0429	-117.2489	city est2023
+Patterson	valley	25063	37.4759	-121.1539	city est2023
+Lafayette	bay	25048	37.8910	-122.1195	city est2023
+Riverbank	valley	25001	37.7260	-120.9448	city est2023
+Barstow	desert	24964	34.8670	-117.0430	city est2023
+Selma	valley	24467	36.5717	-119.6139	city est2023
+Seal Beach	socal	24352	33.7544	-118.0713	city est2023
+Soledad	central	23947	36.4345	-121.3178	city est2023
+Maywood	socal	23824	33.9885	-118.1877	city est2023
+San Fernando	socal	23364	34.2887	-118.4362	city est2023
+Duarte	socal	23131	34.1610	-117.9504	city est2023
+Isla Vista	socal	23096	34.4122	-119.8607	CDP pop2010=23096
+Oakdale	valley	23045	37.7617	-120.8464	city est2023
+Marina	central	22833	36.6803	-121.7894	city est2023
+Laguna Beach	socal	22332	33.5434	-117.7618	city est2023
+Calabasas	socal	22227	34.1343	-118.6665	city est2023
+Millbrae	bay	22087	37.5990	-122.4020	city est2023
+Corcoran	valley	22044	36.0841	-119.5613	city est2023
+Shafter	valley	21915	35.4794	-119.2013	city est2023
+Cudahy	socal	21723	33.9640	-118.1826	city est2023
+Yucca Valley	desert	21664	34.1233	-116.4216	town est2023
+Imperial	desert	21591	32.8388	-115.5720	city est2023
+American Canyon	bay	21347	38.1790	-122.2596	city est2023
+Port Hueneme	socal	21217	34.1621	-119.2042	city est2023
+South Lake Tahoe	mountain	21079	38.9282	-119.9810	city est2023
+Greenfield	central	20634	36.3240	-121.2437	city est2023
+Santa Fe Springs	socal	20174	33.9336	-118.0626	city est2023
+Lomita	socal	19782	33.7933	-118.3175	city est2023
+La Cañada Flintridge	socal	19538	34.2097	-118.2001	city est2023
+Agoura Hills	socal	19474	34.1489	-118.7639	city est2023
+Oroville	valley	19449	39.4954	-121.5601	city est2023
+Arvin	valley	19364	35.1944	-118.8306	city est2023
+Orinda	bay	19364	37.8816	-122.1686	city est2023
+Chowchilla	valley	19328	37.1161	-120.2420	city est2023
+Dixon	valley	19309	38.4475	-121.8242	city est2023
+Albany	bay	19097	37.8907	-122.3181	city est2023
+South El Monte	socal	19032	34.0504	-118.0484	city est2023
+Arcata	north	19012	40.8623	-124.0750	city est2023
+Hermosa Beach	socal	18641	33.8698	-118.4053	city est2023
+Pinole	bay	18481	38.0017	-122.3185	city est2023
+Coronado	socal	18437	32.6576	-117.1565	city est2023
+Arroyo Grande	central	18243	35.1241	-120.5845	city est2023
+Rosamond	desert	18150	34.8656	-118.2148	CDP pop2010=18150
+Blythe	desert	18045	33.6535	-114.6218	city est2023
+Rancho Mirage	desert	17795	33.7638	-116.4304	city est2023
+Coalinga	valley	17369	36.1331	-120.3390	city est2023
+Kerman	valley	17238	36.7250	-120.0625	city est2023
+Fillmore	socal	17190	34.3990	-118.9175	city est2023
+Truckee	mountain	17039	39.3505	-120.1939	town est2023
+Laguna Woods	socal	16998	33.6121	-117.7303	city est2023
+Moraga	bay	16547	37.8457	-122.1232	town est2023
+Clearlake	north	16481	38.9600	-122.6332	city est2023
+El Segundo	socal	16445	33.9104	-118.4251	city est2023
+Ukiah	north	16072	39.1466	-123.2103	city est2023
+Ripon	valley	16068	37.7420	-121.1304	city est2023
+Artesia	socal	15597	33.8676	-118.0806	city est2023
+McKinleyville	north	15177	40.9516	-124.0774	CDP pop2010=15177
+La Palma	socal	15029	33.8506	-118.0396	city est2023
+Pacific Grove	central	14757	36.6226	-121.9264	city est2023
+Livingston	valley	14643	37.3873	-120.7249	city est2023
+Parlier	valley	14426	36.6090	-119.5436	city est2023
+Red Bluff	valley	14413	40.1735	-122.2415	city est2023
+Los Osos	central	14276	35.3071	-120.8245	CDP pop2010=14276
+Avenal	valley	14075	36.0311	-120.1162	city est2023
+Grass Valley	mountain	14074	39.2203	-121.0527	city est2023
+McFarland	valley	14049	35.6673	-119.2307	city est2023
+King City	central	13917	36.2163	-121.1320	city est2023
+California City	desert	13802	35.1466	-117.8693	city est2023
+Mill Valley	bay	13792	37.9081	-122.5423	city est2023
+Auburn	valley	13658	38.8951	-121.0767	city est2023
+Hawaiian Gardens	socal	13396	33.8305	-118.0735	city est2023
+Kingsburg	valley	13013	36.5252	-119.5666	city est2023
+Grand Terrace	socal	12939	34.0311	-117.3131	city est2023
+Carpinteria	socal	12828	34.3852	-119.5008	city est2023
+Emeryville	bay	12732	37.8385	-122.3017	city est2023
+Susanville	north	12689	40.4337	-120.6283	city est2023
+Solana Beach	socal	12675	32.9913	-117.2581	city est2023
+Marysville	valley	12674	39.1515	-121.5834	city est2023
+Palos Verdes Estates	socal	12646	33.7743	-118.4258	city est2023
+Larkspur	bay	12589	37.9405	-122.5302	city est2023
+Grover Beach	central	12547	35.1209	-120.6197	city est2023
+Mendota	valley	12530	36.7576	-120.3805	city est2023
+San Anselmo	bay	12498	37.9821	-122.5699	town est2023
+Lindsay	valley	12496	36.2091	-119.0933	city est2023
+Lake Arrowhead	mountain	12424	34.2540	-117.1781	CDP pop2010=12424
+Big Bear City	mountain	12304	34.2541	-116.7964	CDP pop2010=12304
+Fortuna	north	12285	40.5871	-124.1422	city est2023
+Newman	valley	12207	37.3161	-121.0214	city est2023
+San Marino	socal	11977	34.1227	-118.1129	city est2023
+Los Alamitos	socal	11901	33.7969	-118.0612	city est2023
+Scotts Valley	central	11879	37.0555	-122.0118	city est2023
+Commerce	socal	11672	33.9945	-118.1500	city est2023
+Signal Hill	socal	11249	33.8035	-118.1697	city est2023
+Anderson	valley	11210	40.4498	-122.2951	city est2023
+Calimesa	socal	11165	33.9874	-117.0542	city est2023
+Healdsburg	bay	11137	38.6225	-122.8651	city est2023
+Half Moon Bay	bay	11105	37.4673	-122.4405	city est2023
+Canyon Lake	socal	11096	33.6883	-117.2635	city est2023
+Hillsborough	bay	10883	37.5572	-122.3585	town est2023
+Tehachapi	desert	10881	35.1430	-118.4460	city est2023
+Crestline	mountain	10770	34.2541	-117.2867	CDP pop2010=10770
+Clayton	bay	10754	37.9403	-121.9301	city est2023
+Sierra Madre	socal	10713	34.1688	-118.0502	city est2023
+Placerville	valley	10656	38.7311	-120.7977	city est2023
+Piedmont	bay	10635	37.8225	-122.2300	city est2023
+Sonoma	bay	10619	38.2903	-122.4598	city est2023
+Morro Bay	central	10589	35.3668	-120.8683	city est2023
+Malibu	socal	10277	34.0259	-118.7596	city est2023
+Shasta Lake	valley	10262	40.6766	-122.3809	city est2023
+Farmersville	valley	10243	36.3047	-119.2086	city est2023
+Exeter	valley	10206	36.2941	-119.1460	city est2023
+Rio Vista	valley	10145	38.1767	-121.7034	city est2023
+Corte Madera	bay	9947	37.9318	-122.5077	town est2023
+Capitola	central	9572	36.9761	-121.9540	city est2023
+Orange Cove	valley	9497	36.6211	-119.3187	city est2023
+Live Oak	valley	9443	39.2788	-121.6624	city est2023
+Waterford	valley	9323	37.6427	-120.7542	city est2023
+Montecito	socal	8965	34.4186	-119.6331	CDP pop2010=8965
+Tiburon	bay	8846	37.8868	-122.4626	town est2023
+Cloverdale	bay	8825	38.7948	-123.0147	city est2023
+Guadalupe	central	8622	34.9649	-120.5731	city est2023
+Firebaugh	valley	8547	36.8537	-120.4537	city est2023
+Gonzales	central	8327	36.5060	-121.4429	city est2023
+Paradise	valley	8285	39.7542	-121.6064	town est2023
+Los Altos Hills	bay	8189	37.3668	-122.1386	town est2023
+Orland	valley	8132	39.7461	-122.1855	city est2023
+Corning	valley	8069	39.9282	-122.1820	city est2023
+Rolling Hills Estates	socal	8033	33.7784	-118.3274	city est2023
+Pismo Beach	central	7948	35.1532	-120.6739	city est2023
+Woodlake	valley	7846	36.4128	-119.1007	city est2023
+Yreka	north	7808	41.7240	-122.6316	city est2023
+Winters	valley	7694	38.5333	-121.9755	city est2023
+Hughson	valley	7683	37.6021	-120.8660	city est2023
+Westlake Village	socal	7573	34.1367	-118.8174	city est2023
+Ojai	socal	7466	34.4492	-119.2467	city est2023
+Cotati	bay	7430	38.3285	-122.7100	city est2023
+Fairfax	bay	7417	37.9885	-122.5952	town est2023
+Joshua Tree	desert	7414	34.1236	-116.3129	CDP pop2010=7414
+Sebastopol	bay	7380	38.4000	-122.8276	city est2023
+Escalon	valley	7355	37.7913	-120.9996	city est2023
+Fowler	valley	7274	36.6241	-119.6747	city est2023
+Gridley	valley	7269	39.3622	-121.6971	city est2023
+Mammoth Lakes	mountain	7187	37.6244	-118.9884	town est2023
+Sausalito	bay	7021	37.8584	-122.4918	city est2023
+Taft	valley	6961	35.1267	-119.4242	city est2023
+Fort Bragg	north	6919	39.4398	-123.8018	city est2023
+Atherton	bay	6823	37.4571	-122.2011	town est2023
+Loomis	valley	6779	38.8094	-121.1955	town est2023
+Colusa	valley	6527	39.2000	-122.0095	city est2023
+Huron	valley	6377	36.2042	-120.0953	city est2023
+Aptos	central	6220	36.9911	-121.8935	CDP pop2010=6220
+Calipatria	desert	6188	33.1687	-115.4856	city est2023
+Willows	valley	6160	39.5148	-122.1992	city est2023
+Gustine	valley	6099	37.2525	-120.9955	city est2023
+Cambria	central	6032	35.5521	-121.0841	CDP pop2010=6032
+Solvang	central	5970	34.5938	-120.1397	city est2023
+Lucerne Valley	desert	5811	34.4427	-116.9021	CDP pop2010=5811
+Dos Palos	valley	5708	36.9854	-120.6338	city est2023
+Villa Park	socal	5664	33.8180	-117.8113	city est2023
+Williams	valley	5617	39.1498	-122.1390	city est2023
+Crescent City	north	5611	41.7645	-124.2008	city est2023
+Holtville	desert	5555	32.8138	-115.3783	city est2023
+Ione	valley	5431	38.3629	-120.9477	city est2023
+La Habra Heights	socal	5368	33.9590	-117.9490	city est2023
+St. Helena	bay	5272	38.5128	-122.4681	city est2023
+Lakeport	north	5135	39.0383	-122.9226	city est2023
+Jackson	valley	5132	38.3485	-120.7728	city est2023
+Calistoga	bay	5058	38.5814	-122.5827	city est2023
+Woodside	bay	5037	37.4222	-122.2586	town est2023
+Big Bear Lake	mountain	5007	34.2429	-116.8939	city est2023
+Buellton	central	4990	34.6155	-120.1942	city est2023
+Sonora	valley	4917	37.9817	-120.3828	city est2023
+Indian Wells	desert	4862	33.6999	-116.3295	city est2023
+Running Springs	mountain	4862	34.2114	-117.1046	CDP pop2010=4862
+Willits	north	4843	39.4050	-123.3489	city est2023
+Needles	desert	4824	34.8134	-114.6266	city est2023
+Brisbane	bay	4577	37.6758	-122.3833	city est2023
+Guerneville	bay	4534	38.5172	-122.9899	CDP pop2010=4534
+Wrightwood	mountain	4525	34.3460	-117.6276	CDP pop2010=4525
+Santa Ynez	central	4418	34.6175	-120.0964	CDP pop2010=4418
+Mojave	desert	4238	35.0150	-118.1902	CDP pop2010=4238
+Portola Valley	bay	4204	37.3652	-122.2327	town est2023
+Wheatland	valley	4022	39.0312	-121.3900	city est2023
+Idyllwild	mountain	3874	33.7442	-116.7307	CDP pop2010=3874
+Del Mar	socal	3867	32.9639	-117.2598	city est2023
+Arnold	mountain	3843	38.2490	-120.3493	CDP pop2010=3843
+Kings Beach	mountain	3796	39.2475	-120.0199	CDP pop2010=3796
+Salton City	desert	3763	33.2994	-115.9609	CDP pop2010=3763
+Angels	valley	3752	38.0710	-120.5517	city est2023
+Bishop	desert	3742	37.3664	-118.3958	city est2023
+San Joaquin	valley	3679	36.6056	-120.1899	city est2023
+Weaverville	north	3600	40.7407	-122.9290	CDP pop2010=3600
+Lake Isabella	mountain	3466	35.6371	-118.4826	CDP pop2010=3466
+Monte Sereno	bay	3459	37.2404	-121.9882	city est2023
+Borrego Springs	desert	3429	33.2410	-116.3571	CDP pop2010=3429
+Yountville	bay	3356	38.3935	-122.3655	city est2023
+Rio Dell	north	3308	40.4956	-124.1152	city est2023
+Avalon	socal	3261	33.3433	-118.3176	city est2023
+Nevada City	mountain	3224	39.2596	-121.0333	city est2023
+Mount Shasta	north	3179	41.3209	-122.3155	city est2023
+Burney	north	3154	40.8894	-121.6755	CDP pop2010=3154
+Carmel-by-the-Sea	central	3104	36.5529	-121.9219	city est2023
+Oakhurst	mountain	2829	37.3414	-119.6262	CDP pop2010=2829
+Sutter Creek	valley	2718	38.3924	-120.7990	city est2023
+Frazier Park	mountain	2691	34.8142	-118.9550	CDP pop2010=2691
+Alturas	north	2657	41.4891	-120.5513	city est2023
+Cayucos	central	2592	35.4396	-120.8898	CDP pop2010=2592
+Weed	north	2574	41.4121	-122.3810	city est2023
+Hayfork	north	2368	40.5759	-123.1236	CDP pop2010=2368
+Ross	bay	2290	37.9638	-122.5616	town est2023
+Twain Harte	mountain	2226	38.0369	-120.2339	CDP pop2010=2226
+Murphys	valley	2213	38.1361	-120.4439	CDP pop2010=2213
+Three Rivers	mountain	2182	36.4400	-118.8803	CDP pop2010=2182
+Mariposa	valley	2173	37.4912	-119.9732	CDP pop2010=2173
+Chester	mountain	2144	40.3017	-121.2325	CDP pop2010=2144
+Portola	mountain	2124	39.8208	-120.4743	city est2023
+San Juan Bautista	central	2106	36.8451	-121.5369	city est2023
+Belvedere	bay	2050	37.8736	-122.4710	city est2023
+Colfax	mountain	2050	39.0938	-120.9532	city est2023
+Lone Pine	desert	2035	36.5744	-118.0806	CDP pop2010=2035
+Westmorland	desert	1981	33.0390	-115.6224	city est2023
+Biggs	valley	1921	39.4102	-121.7133	city est2023
+Quincy	mountain	1728	39.9310	-120.9549	CDP pop2010=1728
+Willow Creek	north	1710	40.9393	-123.6411	CDP pop2010=1710
+Hidden Hills	socal	1685	34.1637	-118.6612	city est2023
+Rolling Hills	socal	1644	33.7600	-118.3472	city est2023
+Dunsmuir	north	1642	41.2315	-122.2709	city est2023
+Avila Beach	central	1627	35.1994	-120.7208	CDP pop2010=1627
+Bolinas	bay	1620	37.9177	-122.7095	CDP pop2010=1620
+Tahoe City	mountain	1557	39.1483	-120.1709	CDP pop2010=1557
+Del Rey Oaks	central	1550	36.5897	-121.8295	city est2023
+Walnut Grove	valley	1542	38.2506	-121.5350	CDP pop2010=1542
+Julian	mountain	1502	33.0735	-116.5889	CDP pop2010=1502
+Kettleman City	valley	1439	36.0090	-119.9629	CDP pop2010=1439
+Irwindale	socal	1426	34.1119	-117.9636	city est2023
+Colma	bay	1407	37.6767	-122.4528	town est2023
+Kernville	mountain	1395	35.7550	-118.4309	CDP pop2010=1395
+Ferndale	north	1389	40.5781	-124.2612	city est2023
+Happy Camp	north	1190	41.8159	-123.3928	CDP pop2010=1190
+Montague	north	1182	41.7271	-122.5305	city est2023
+Blue Lake	north	1172	40.8810	-123.9949	city est2023
+Plymouth	valley	1131	38.4717	-120.8572	city est2023
+McCloud	north	1101	41.2547	-122.1362	CDP pop2010=1101
+Bodega Bay	bay	1077	38.3275	-123.0299	CDP pop2010=1077
+Maricopa	valley	1009	35.0509	-119.4066	city est2023
+Niland	desert	1006	33.2387	-115.5144	CDP pop2010=1006
+Garberville	north	913	40.1003	-123.7943	CDP pop2010=913
+Mendocino	north	894	39.3125	-123.7924	CDP pop2010=894
+Bradbury	socal	892	34.1532	-117.9688	city est2023
+Tulelake	north	867	41.9535	-121.4749	city est2023
+Point Reyes Station	bay	848	38.0846	-122.8092	CDP pop2010=848
+Dorris	north	832	41.9650	-121.9204	city est2023
+Isleton	valley	777	38.1613	-121.6050	city est2023
+Graeagle	mountain	737	39.7525	-120.6454	CDP pop2010=737
+Baker	desert	735	35.2769	-116.0717	CDP pop2010=735
+Loyalton	mountain	728	39.6769	-120.2448	city est2023
+Shelter Cove	north	693	40.0390	-124.0558	CDP pop2010=693
+Fort Jones	north	673	41.6085	-122.8411	city est2023
+Independence	desert	669	36.8303	-118.2079	CDP pop2010=669
+Etna	north	653	41.4582	-122.8958	city est2023
+Shaver Lake	mountain	634	37.0992	-119.3257	CDP pop2010=634
+Stinson Beach	bay	632	37.9025	-122.6501	CDP pop2010=632
+June Lake	mountain	629	37.7618	-119.1147	CDP pop2010=629
+Bridgeport	mountain	575	38.2552	-119.2104	CDP pop2010=575
+Fall River Mills	north	573	41.0072	-121.4411	CDP pop2010=573
+Point Arena	north	451	38.9123	-123.6956	city est2023
+Tehama	valley	424	40.0218	-122.1269	city est2023
+Sand City	central	328	36.6218	-121.8477	city est2023
+Trinidad	north	325	41.0577	-124.1433	city est2023
+Downieville	mountain	282	39.5786	-120.8164	CDP pop2010=282
+Lee Vining	mountain	222	37.9549	-119.1220	CDP pop2010=222
+Amador City	valley	204	38.4190	-120.8233	city est2023
+Trona	desert	18	35.8158	-117.3473	CDP pop2010=18
+Meyers	mountain	0	38.8348	-120.0186	CDP pop n/a

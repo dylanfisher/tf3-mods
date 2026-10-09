@@ -1,0 +1,16 @@
+{
+    "name": "Smart Lanes",
+    "summary": "Lane discipline on roundabouts: entries and exits matched lane by lane, set when you build.",
+    "description": "Lane discipline on roundabouts. Right after you build a roundabout, Smart Lanes sets which lane may go where at its junctions (entries and exits matched lane by lane, exit-only outer lane), like the Crossing Tool would.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

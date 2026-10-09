@@ -75,6 +75,24 @@ def load_json(path: Path, report: Report) -> dict | None:
     return data
 
 
+def check_params(path: Path, data: dict, report: Report) -> None:
+    # The game parses param "numbers" as doubles and skips the whole mod on an
+    # integer literal ("Value is not a double"), so 60 must be written 60.0.
+    raw = json.loads(path.read_text(encoding="utf-8-sig"), parse_int=lambda s: ("int", s))
+    for param in raw.get("params") or []:
+        if not isinstance(param, dict):
+            continue
+        ints = [v[1] for v in param.get("numbers") or [] if isinstance(v, tuple)]
+        if ints:
+            report.error(
+                f"mod.json: param {param.get('key')!r} numbers {ints} must be written as decimals "
+                "(e.g. 60.0); the game skips the mod with 'Value is not a double'"
+            )
+        values, numbers = param.get("values"), param.get("numbers")
+        if values is not None and numbers is not None and len(values) != len(numbers):
+            report.error(f"mod.json: param {param.get('key')!r} has {len(values)} values but {len(numbers)} numbers")
+
+
 def check_mod_json(mod: Path, report: Report) -> None:
     path = mod / "mod.json"
     if not path.exists():
@@ -100,6 +118,7 @@ def check_mod_json(mod: Path, report: Report) -> None:
     for key in ("visible", "cosmetic"):
         if key in data and not isinstance(data[key], bool):
             report.error(f"mod.json: {key} must be true/false")
+    check_params(path, data, report)
     for key in SCRIPT_KEYS:
         ref = (data.get(key) or {}).get("fileName") if isinstance(data.get(key), dict) else None
         if not ref:
@@ -113,6 +132,8 @@ def check_mod_json(mod: Path, report: Report) -> None:
             report.warn(f"mod.json: {key} references mod '{ref_mod}', not this mod's id '{mod_id}'")
         elif not any((mod / "content" / f"{file_stem}{ext}").exists() for ext in (".tl", ".lua")):
             report.error(f"mod.json: {key} script content/{file_stem}.tl|.lua not found")
+    if not (mod / "content" / f"{mod.name}_presence.lua").exists():
+        report.warn(f"content/{mod.name}_presence.lua missing (presence marker, CLAUDE.md \"Detecting another of our mods\")")
 
 
 def check_modinfo(mod: Path, report: Report, tags: set[str] | None) -> None:
@@ -151,6 +172,48 @@ def check_modinfo(mod: Path, report: Report, tags: set[str] | None) -> None:
             report.warn(f"_metadata/0.png is {size[0]}x{size[1]}, expected 1920x1080")
         if cover.stat().st_size > MAX_COVER_BYTES:
             report.error("_metadata/0.png exceeds 8 MB")
+
+
+# Tags the in-game mod browser renders (docs/wiki/modding/general/guidelines.md:189-196); the house
+# format for description.html is in branding/README.md "Mod description".
+DESCRIPTION_TAGS = {"p", "h1", "h2", "h3", "h4", "strong", "b", "em", "i", "ul", "ol", "li", "hr", "br", "a"}
+MAX_DESCRIPTION_CHARS = 150_000  # mod.io mod description maxLength (api.mod.io/v1/swagger)
+
+
+def check_description(mod: Path, report: Report) -> None:
+    path = mod / "_metadata" / "description.html"
+    if not path.exists():
+        report.warn("_metadata/description.html missing (house style: description with a Changelog, see branding/README.md)")
+        return
+    html = path.read_text(encoding="utf-8")
+    if len(html) > MAX_DESCRIPTION_CHARS:
+        report.error(f"description.html is {len(html)} chars, mod.io allows {MAX_DESCRIPTION_CHARS}")
+    for tag in sorted({t.lower() for t in re.findall(r"</?\s*([a-zA-Z][a-zA-Z0-9]*)", html)} - DESCRIPTION_TAGS):
+        report.warn(f"description.html: <{tag}> is not rendered by the in-game browser")
+    # Every piece of text sits in a block: <p>, a heading or a list item. Remove those blocks and the
+    # remaining tags; whatever text is left was written loose.
+    loose = re.sub(r"<(p|h[1-4]|li)\b[^>]*>.*?</\1\s*>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+    loose = re.sub(r"<[^>]+>", " ", loose)
+    for text in re.findall(r"\S[^\n]*", loose):
+        report.warn(f"description.html: text outside <p>, <h1>-<h4> or <li>: {text.strip()[:60]!r}")
+    # House style: <h2> is reserved for the Changelog title; sections and revisions are <h4>.
+    for title in re.findall(r"<h2[^>]*>(.*?)</h2\s*>", html, re.IGNORECASE | re.DOTALL):
+        if title.strip().lower() != "changelog":
+            report.warn(f"description.html: <h2> is only for the Changelog, use <h4> for {title.strip()[:40]!r}")
+    if re.search(r"<h[13]\b", html, re.IGNORECASE):
+        report.warn("description.html: use <h2> for the Changelog title and <h4> for every other heading")
+    if not re.search(r"<h[1-3][^>]*>\s*Changelog\s*</h[1-3]>", html, re.IGNORECASE):
+        report.warn("description.html: no Changelog heading")
+        return
+    mod_json = mod / "mod.json"
+    revision = None
+    if mod_json.exists():
+        try:
+            revision = json.loads(mod_json.read_text(encoding="utf-8")).get("revision")
+        except ValueError:
+            pass
+    if isinstance(revision, int) and not re.search(rf"<h4[^>]*>\s*Revision {revision}\b", html, re.IGNORECASE):
+        report.warn(f"description.html: Changelog has no 'Revision {revision}' entry (mod.json revision)")
 
 
 def png_size(path: Path) -> tuple[int, int] | None:
@@ -218,6 +281,7 @@ def validate(mod: Path, tags: set[str] | None) -> Report:
     report = Report(mod)
     check_mod_json(mod, report)
     check_modinfo(mod, report, tags)
+    check_description(mod, report)
     strings = mod / "strings.json"
     if strings.exists():
         load_json(strings, report)

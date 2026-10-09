@@ -1,0 +1,161 @@
+{
+ "_note": "Pinned state flags for the US State Names series covers. Fetch + sanitize with `uv run tools/fetch_flags.py`; add a state with `--lookup \"Flag of <State>.svg\" --key us_<state>`. aspect = width / height, copy it to the state's Square.stateCover entry in branding/mods.js.",
+ "flags": [
+  {
+   "key": "us_washington",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Washington.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/5/54/Flag_of_Washington.svg",
+   "sha1": "89fd75ff662fedfa4b75e47c6ed6a11a5a770f35",
+   "license": "Public domain",
+   "author": "WA Secretary of State",
+   "restrictions": "insignia",
+   "uploaded": "2026-09-12T03:07:21Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.6
+  },
+  {
+   "key": "us_arizona",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Arizona.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Flag_of_Arizona.svg",
+   "sha1": "a8b734c09039728b30b305e0e5417694139ef88b",
+   "license": "Public domain",
+   "author": "Original: Unknown author Vector: Madden",
+   "restrictions": "insignia",
+   "uploaded": "2026-01-22T00:28:29Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.5
+  },
+  {
+   "key": "us_florida",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Florida.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Flag_of_Florida.svg",
+   "sha1": "81f03dca98f684547c65bbab438dbeea828a3742",
+   "license": "Public domain",
+   "author": "Template:Brendon Tiana",
+   "restrictions": "insignia",
+   "uploaded": "2026-08-23T08:18:48Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.5
+  },
+  {
+   "key": "us_colorado",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Colorado.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/4/46/Flag_of_Colorado.svg",
+   "sha1": "bfb4d7d98c622dd307f5c8daf24d19b4ddc399cb",
+   "license": "Public domain",
+   "author": "Original: Andrew Carlyle Carson Vector: Fleminra",
+   "restrictions": "insignia",
+   "uploaded": "2026-01-22T00:32:13Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.5
+  },
+  {
+   "key": "us_california",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_California.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/0/01/Flag_of_California.svg",
+   "sha1": "c1b088f68e0ab1d2aea62723f9e857fcd6552978",
+   "license": "Public domain",
+   "author": "Original: Donald Graeme Kelley Vectorization: Devin Cook",
+   "restrictions": "insignia",
+   "uploaded": "2025-11-09T15:05:36Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.5
+  },
+  {
+   "key": "us_texas",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Texas.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Flag_of_Texas.svg",
+   "sha1": "889c03dbd4b69f60f3bef08af256e651476a05a5",
+   "license": "Public domain",
+   "author": "Paul B. Joiner",
+   "restrictions": "insignia",
+   "uploaded": "2025-09-29T22:01:09Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.5
+  },
+  {
+   "key": "us_alaska",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Alaska.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Flag_of_Alaska.svg",
+   "sha1": "2b87f6468b49810b6af02983a6496c5a5d5670d2",
+   "license": "Public domain",
+   "author": "Benny Benson",
+   "restrictions": "insignia",
+   "uploaded": "2022-11-28T10:49:57Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.416
+  },
+  {
+   "key": "us_new_york",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_New_York.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Flag_of_New_York.svg",
+   "sha1": "a73686e5d0852d99e237cf7e50041ac3e1534a37",
+   "license": "Public domain",
+   "author": "State of New York",
+   "restrictions": "insignia",
+   "uploaded": "2026-09-11T20:18:20Z",
+   "retrieved": "2026-10-08",
+   "aspect": 2.0
+  },
+  {
+   "key": "us_minnesota",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Minnesota.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Flag_of_Minnesota.svg",
+   "sha1": "8ac3bc6eeddbaeb55a54c88923fb80e879249f4f",
+   "license": "Public domain",
+   "author": "Original: Minnesota State Emblems Redesign Commission Vector: Jamie Eilat, Undertiago",
+   "restrictions": "insignia",
+   "uploaded": "2024-07-16T19:20:31Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.6667
+  },
+  {
+   "key": "us_new_mexico",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_New_Mexico.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Flag_of_New_Mexico.svg",
+   "sha1": "120a055a856e270c877bb48d093175705a78cc20",
+   "license": "Public domain",
+   "author": "",
+   "restrictions": "insignia",
+   "uploaded": "2026-03-21T21:34:29Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.5
+  },
+  {
+   "key": "us_oregon",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Oregon.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Flag_of_Oregon.svg",
+   "sha1": "8d43b381e6fe3a0d38e4d8deab0caf48968abb35",
+   "license": "Public domain",
+   "author": "User:Denelson83",
+   "restrictions": "insignia",
+   "uploaded": "2026-08-21T12:58:57Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.5
+  },
+  {
+   "key": "us_pennsylvania",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Pennsylvania.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Flag_of_Pennsylvania.svg",
+   "sha1": "4a98227f74e33fca2b3cf8398fa7fc632bff105f",
+   "license": "Public domain",
+   "author": "Simtropolitan, Jean-Pierre Demailly (old version)",
+   "restrictions": "insignia",
+   "uploaded": "2026-08-21T12:57:43Z",
+   "retrieved": "2026-10-08",
+   "aspect": 1.3704
+  },
+  {
+   "key": "us_hawaii",
+   "file": "https://commons.wikimedia.org/wiki/File:Flag_of_Hawaii.svg",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Flag_of_Hawaii.svg",
+   "sha1": "2d21d9dbf312d653d1919620dd91b96af2e0afbb",
+   "license": "Public domain",
+   "author": "Dbenbenn",
+   "restrictions": "insignia",
+   "uploaded": "2026-03-31T17:07:49Z",
+   "retrieved": "2026-10-08",
+   "aspect": 2.0
+  }
+ ]
+}

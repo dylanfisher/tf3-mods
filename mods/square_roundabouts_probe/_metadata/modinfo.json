@@ -1,0 +1,16 @@
+{
+    "name": "DEV Roundabouts Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Logs which Better Roundabouts settings the engine rejects.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Developer tool for square_roundabouts: on game load it asks the engine (makeProposalData) whether each combination of construction params could be placed, without building anything, and logs one [SQRB_PROBE] line per combination to stdout.txt. See plans/square_roundabouts/PROBE.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

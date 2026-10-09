@@ -1,0 +1,17 @@
+{
+    "name": "Oregon Towns & Streets",
+    "summary": "Real Oregon towns, streets for your stops, and real station names.",
+    "description": "Real Oregon towns, streets for your stops, and real station names. Adds the name set \"Oregon (Towns & Streets)\" and renames new stops and stations in known Oregon cities.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod",
+        "Misc"
+    ],
+    "dependencies": [],
+    "url": ""
+}

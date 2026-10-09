@@ -1,0 +1,489 @@
+name	tags	population	lat	lon	note
+Philadelphia	southeast,big	1550542	40.0094	-75.1333	city est2023
+Pittsburgh	southwest,big	303255	40.4399	-79.9757	city est2023
+Allentown	southeast,big	124880	40.5936	-75.4784	city est2023
+Reading	southeast,big	94903	40.3392	-75.9263	city est2023
+Erie	northwest,big	92957	42.1166	-80.0735	city est2023
+Bethlehem	southeast,big	78300	40.6264	-75.3679	city est2023
+Scranton	northeast,big	75805	41.4042	-75.6659	city est2023
+Lancaster	southeast,big	57153	40.0421	-76.3010	city est2023
+Levittown	southeast	52983	40.1523	-74.8523	CDP pop2010=52983
+Harrisburg	central,big	50012	40.2759	-76.8850	city est2023
+York	central,big	44867	39.9648	-76.7318	city est2023
+Wilkes-Barre	northeast,big	44254	41.2466	-75.8757	city est2023
+Altoona	central,big	42788	40.5081	-78.4011	city est2023
+State College	central,big	40687	40.7910	-77.8568	borough est2023
+Norristown	southeast,big	35769	40.1221	-75.3399	borough est2023
+Chester	southeast,big	33595	39.8456	-75.3719	city est2023
+Bethel Park	southwest	32398	40.3238	-80.0364	municipality est2023
+Hazleton	northeast	30037	40.9505	-75.9725	city est2023
+Easton	southeast	29538	40.6860	-75.2185	city est2023
+Drexel Hill	southeast	28043	39.9495	-75.3039	CDP pop2010=28043
+Monroeville	southwest	27974	40.4263	-79.7614	municipality est2023
+Williamsport	central	27470	41.2400	-77.0356	city est2023
+Plum	southwest	26391	40.5019	-79.7482	borough est2023
+Lebanon	southeast	26378	40.3412	-76.4227	city est2023
+Pottstown	southeast	23349	40.2509	-75.6448	borough est2023
+Carlisle	central	22341	40.2000	-77.2041	borough est2023
+Chambersburg	central	22245	39.9314	-77.6556	borough est2023
+Allison Park	southwest	21552	40.5730	-79.9603	CDP pop2010=21552
+New Castle	southwest	21413	40.9956	-80.3458	city est2023
+Murrysville	southwest	20745	40.4429	-79.6583	municipality est2023
+Baldwin	southwest	20708	40.3806	-79.9452	borough est2023
+King of Prussia	southeast	19936	40.0960	-75.3791	CDP pop2010=19936
+Phoenixville	southeast	19871	40.1352	-75.5227	borough est2023
+West Chester	southeast	19658	39.9599	-75.6054	borough est2023
+Lansdale	southeast	18978	40.2417	-75.2812	borough est2023
+West Mifflin	southwest	18916	40.3577	-79.9054	borough est2023
+Johnstown	southwest	17950	40.3261	-78.9191	city est2023
+McKeesport	southwest	17132	40.3419	-79.8450	city est2023
+Hanover	central	16573	39.8118	-76.9836	borough est2023
+Hermitage	northwest	15923	41.2296	-80.4407	city est2023
+Willow Grove	southeast	15726	40.1472	-75.1169	CDP pop2010=15726
+Franklin Park	southwest	15024	40.5921	-80.0987	borough est2023
+Fullerton	southeast	14925	40.6307	-75.4802	CDP pop2010=14925
+Horsham	southeast	14842	40.1825	-75.1387	CDP pop2010=14842
+Whitehall	southwest	14615	40.3602	-79.9898	borough est2023
+Greensburg	southwest	14603	40.3112	-79.5444	city est2023
+Indiana	southwest	14289	40.6220	-79.1553	borough est2023
+Hershey	central	14257	40.2800	-76.6443	CDP pop2010=14257
+Dunmore	northeast	14186	41.4140	-75.6063	borough est2023
+Wilkinsburg	southwest	13813	40.4442	-79.8733	borough est2023
+Ephrata	southeast	13660	40.1809	-76.1802	borough est2023
+Washington	southwest	13429	40.1742	-80.2468	city est2023
+Pottsville	northeast	13355	40.6799	-76.2092	city est2023
+Kingston	northeast	13331	41.2648	-75.8866	borough est2023
+Coatesville	southeast	13275	39.9852	-75.8190	city est2023
+Colonial Park	central	13229	40.2987	-76.8070	CDP pop2010=13229
+Bloomsburg	northeast	13112	41.0027	-76.4566	town est2023
+Butler	southwest	13099	40.8616	-79.8962	city est2023
+Weigelstown	central	12875	39.9852	-76.8307	CDP pop2010=12875
+Sharon	northwest	12813	41.2340	-80.4998	city est2023
+Montgomeryville	southeast	12624	40.2502	-75.2405	CDP pop2010=12624
+Ardmore	southeast	12455	40.0032	-75.2947	CDP pop2010=12455
+St. Marys	north	12399	41.4550	-78.5202	city est2023
+Meadville	northwest	12361	41.6479	-80.1474	city est2023
+Yeadon	southeast	12247	39.9325	-75.2527	borough est2023
+Jefferson Hills	southwest	12178	40.2972	-79.9425	borough est2023
+Emmaus	southeast	12017	40.5352	-75.4979	borough est2023
+Elizabethtown	southeast	12000	40.1533	-76.5987	borough est2023
+New Kensington	southwest	11911	40.5725	-79.7531	city est2023
+Lower Burrell	southwest	11561	40.5833	-79.7180	city est2023
+Wyomissing	southeast	11132	40.3347	-75.9661	borough est2023
+Lansdowne	southeast	11077	39.9408	-75.2760	borough est2023
+Waynesboro	central	11067	39.7524	-77.5823	borough est2023
+Mountain Top	northeast	10982	41.1353	-75.9044	CDP pop2010=10982
+Broomall	southeast	10789	39.9688	-75.3541	CDP pop2010=10789
+Nanticoke	northeast	10615	41.2005	-75.9997	city est2023
+Darby	southeast	10614	39.9210	-75.2611	borough est2023
+Northampton	southeast	10404	40.6882	-75.4874	borough est2023
+Columbia	southeast	10380	40.0349	-76.4959	borough est2023
+Munhall	southwest	10380	40.3936	-79.9010	borough est2023
+Berwick	northeast	10261	41.0550	-76.2510	borough est2023
+Croydon	southeast	9950	40.0903	-74.8967	CDP pop2010=9950
+Mechanicsburg	central	9911	40.2114	-77.0059	borough est2023
+Bristol	southeast	9876	40.1028	-74.8523	borough est2023
+Lititz	southeast	9742	40.1540	-76.3043	borough est2023
+Brentwood	southwest	9706	40.3734	-79.9758	borough est2023
+Morrisville	southeast	9705	40.2076	-74.7803	borough est2023
+Canonsburg	southwest	9629	40.2642	-80.1868	borough est2023
+Middletown	central	9608	40.2009	-76.7292	borough est2023
+Uniontown	southwest	9577	39.8993	-79.7245	city est2023
+Sunbury	central	9539	40.8615	-76.7867	city est2023
+Woodlyn	southeast	9485	39.8774	-75.3445	CDP pop2010=9485
+Oil City	north	9374	41.4288	-79.7078	city est2023
+Harleysville	southeast	9286	40.2784	-75.3879	CDP pop2010=9286
+Perkasie	southeast	9277	40.3717	-75.2928	borough est2023
+Conshohocken	southeast	9256	40.0772	-75.3041	borough est2023
+Millersville	southeast	9252	40.0053	-76.3518	borough est2023
+Quakertown	southeast	9247	40.4397	-75.3458	borough est2023
+Warren	north	9125	41.8429	-79.1439	city est2023
+East Stroudsburg	northeast	9042	41.0049	-75.1715	borough est2023
+Aliquippa	southwest	9022	40.6158	-80.2552	city est2023
+Glenshaw	southwest	8981	40.5391	-79.9735	CDP pop2010=8981
+Economy	southwest	8962	40.6437	-80.1863	borough est2023
+Collingdale	southeast	8833	39.9151	-75.2776	borough est2023
+Carbondale	northeast	8796	41.5714	-75.5048	city est2023
+Beaver Falls	southwest	8777	40.7594	-80.3226	city est2023
+Old Forge	northeast	8612	41.3704	-75.7409	borough est2023
+Jeannette	southwest	8591	40.3278	-79.6139	city est2023
+Gettysburg	central	8468	39.8306	-77.2341	borough est2023
+Fairless Hills	southeast	8466	40.1777	-74.8510	CDP pop2010=8466
+Lock Haven	central	8457	41.1371	-77.4532	city est2023
+Audubon	southeast	8433	40.1303	-75.4280	CDP pop2010=8433
+Lewistown	central	8418	40.5972	-77.5715	borough est2023
+Glenside	southeast	8384	40.1032	-75.1519	CDP pop2010=8384
+Sanatoga	southeast	8378	40.2508	-75.5882	CDP pop2010=8378
+Mount Joy	southeast	8340	40.1106	-76.5057	borough est2023
+Doylestown	southeast	8338	40.3142	-75.1277	borough est2023
+Folsom	southeast	8323	39.8924	-75.3287	CDP pop2010=8323
+Pleasant Hills	southwest	8322	40.3298	-79.9596	borough est2023
+Downingtown	southeast	8320	40.0083	-75.7022	borough est2023
+Brookhaven	southeast	8291	39.8711	-75.3913	borough est2023
+Swissvale	southwest	8290	40.4203	-79.8860	borough est2023
+Hatboro	southeast	8257	40.1774	-75.1055	borough est2023
+Kulpsville	southeast	8194	40.2439	-75.3407	CDP pop2010=8194
+Camp Hill	central	8163	40.2422	-76.9274	borough est2023
+Wilson	southeast	8135	40.6844	-75.2417	borough est2023
+Castle Shannon	southwest	8101	40.3664	-80.0195	borough est2023
+Bellevue	southwest	8000	40.4939	-80.0553	borough est2023
+Dormont	southwest	7930	40.3940	-80.0377	borough est2023
+Latrobe	southwest	7922	40.3124	-79.3826	borough est2023
+Carnegie	southwest	7847	40.4080	-80.0860	borough est2023
+Grove City	northwest	7779	41.1571	-80.0886	borough est2023
+Palmyra	southeast	7702	40.3100	-76.5948	borough est2023
+Pittston	northeast	7638	41.3279	-75.7857	city est2023
+Bradford	north	7560	41.9610	-78.6409	city est2023
+New Cumberland	central	7547	40.2288	-76.8783	borough est2023
+Archbald	northeast	7457	41.5064	-75.5505	borough est2023
+Ellwood City	southwest	7454	40.8620	-80.2829	borough est2023
+White Oak	southwest	7346	40.3388	-79.7961	borough est2023
+DuBois	north	7320	41.1223	-78.7562	city est2023
+Souderton	southeast	7276	40.3110	-75.3224	borough est2023
+Ridley Park	southeast	7216	39.8780	-75.3255	borough est2023
+Glenolden	southeast	7168	39.8996	-75.2920	borough est2023
+Tamaqua	northeast	6917	40.8041	-75.9266	borough est2023
+Huntingdon	central	6898	40.4982	-78.0073	borough est2023
+Ambridge	southwest	6875	40.5916	-80.2269	borough est2023
+Ambler	southeast	6843	40.1564	-75.2215	borough est2023
+Shamokin	central	6803	40.7881	-76.5550	city est2023
+Clifton Heights	southeast	6796	39.9301	-75.2958	borough est2023
+Folcroft	southeast	6735	39.8882	-75.2758	borough est2023
+Monessen	southwest	6723	40.1520	-79.8830	city est2023
+Connellsville	southwest	6700	40.0159	-79.5896	city est2023
+Blakely	northeast	6653	41.4859	-75.6013	borough est2023
+Oakmont	southwest	6626	40.5198	-79.8367	borough est2023
+Swarthmore	southeast	6536	39.9023	-75.3487	borough est2023
+Kennett Square	southeast	6521	39.8438	-75.7113	borough est2023
+Milton	central	6497	41.0021	-76.8523	borough est2023
+Red Lion	central	6487	39.8986	-76.6077	borough est2023
+Catasauqua	southeast	6469	40.6538	-75.4610	borough est2023
+West View	southwest	6437	40.5182	-80.0333	borough est2023
+Prospect Park	southeast	6374	39.8861	-75.3074	borough est2023
+Linglestown	central	6334	40.3443	-76.7948	CDP pop2010=6334
+Steelton	central	6308	40.2258	-76.8254	borough est2023
+Taylor	northeast	6246	41.3958	-75.7147	borough est2023
+Forest Hills	southwest	6189	40.4251	-79.8545	borough est2023
+South Williamsport	central	6166	41.2294	-77.0005	borough est2023
+Hellertown	southeast	6117	40.5813	-75.3379	borough est2023
+Enola	central	6111	40.2906	-76.9355	CDP pop2010=6111
+Corry	north	6075	41.9282	-79.6331	city est2023
+Nazareth	southeast	6061	40.7400	-75.3126	borough est2023
+Dickson City	northeast	6002	41.4683	-75.6358	borough est2023
+Moosic	northeast	5982	41.3560	-75.7047	borough est2023
+Sharon Hill	southeast	5958	39.9074	-75.2678	borough est2023
+Clairton	southwest	5949	40.2967	-79.8890	city est2023
+Franklin	northwest	5935	41.3830	-79.8321	city est2023
+Bellefonte	central	5930	40.9142	-77.7682	borough est2023
+Somerset	southwest	5898	40.0050	-79.0779	borough est2023
+Norwood	southeast	5890	39.8860	-75.2958	borough est2023
+Crafton	southwest	5866	40.4333	-80.0711	borough est2023
+Media	southeast	5862	39.9200	-75.3883	borough est2023
+Oxford	southeast	5847	39.7856	-75.9797	borough est2023
+Stroudsburg	northeast	5832	40.9832	-75.1943	borough est2023
+Edinboro	northwest	5821	41.8750	-80.1242	borough est2023
+Clearfield	north	5810	41.0215	-78.4394	borough est2023
+Plymouth	northeast	5755	41.2409	-75.9520	borough est2023
+New Holland	southeast	5748	40.1013	-76.0901	borough est2023
+McKees Rocks	southwest	5695	40.4690	-80.0633	borough est2023
+Mount Carmel	northeast	5635	40.7959	-76.4120	borough est2023
+Palmerton	southeast	5616	40.8041	-75.6171	borough est2023
+Punxsutawney	central	5613	40.9437	-78.9748	borough est2023
+Shippensburg	central	5594	40.0487	-77.5232	borough est2023
+Selinsgrove	central	5562	40.8001	-76.8654	borough est2023
+New Brighton	southwest	5534	40.7356	-80.3095	borough est2023
+Exeter	northeast	5524	41.3332	-75.8212	borough est2023
+Hollidaysburg	central	5506	40.4311	-78.3930	borough est2023
+Monaca	southwest	5487	40.6834	-80.2734	borough est2023
+Greenville	northwest	5484	41.4051	-80.3838	borough est2023
+Shillington	southeast	5464	40.3026	-75.9671	borough est2023
+Paxtonia	central	5412	40.3166	-76.7885	CDP pop2010=5412
+Sayre	north	5400	41.9857	-76.5208	borough est2023
+Olyphant	northeast	5380	41.4515	-75.5758	borough est2023
+Collegeville	southeast	5351	40.1869	-75.4575	borough est2023
+Coraopolis	southwest	5344	40.5146	-80.1618	borough est2023
+Tyrone	central	5328	40.6765	-78.2460	borough est2023
+Bridgeport	southeast	5310	40.1041	-75.3435	borough est2023
+Lehighton	northeast	5256	40.8277	-75.7165	borough est2023
+Schuylkill Haven	northeast	5256	40.6283	-76.1725	borough est2023
+Lewisburg	central	5255	40.9641	-76.8900	borough est2023
+Fox Chapel	southwest	5180	40.5260	-79.8889	borough est2023
+West Hazleton	northeast	5171	40.9743	-76.0254	borough est2023
+Titusville	north	5164	41.6272	-79.6698	city est2023
+Bangor	northeast	5128	40.8680	-75.2085	borough est2023
+Birdsboro	southeast	5095	40.2623	-75.8101	borough est2023
+New Freedom	central	5089	39.7353	-76.6967	borough est2023
+West York	central	5078	39.9534	-76.7610	borough est2023
+Duryea	northeast	5075	41.3513	-75.7761	borough est2023
+Duquesne	southwest	5072	40.3735	-79.8502	city est2023
+Clarks Summit	northeast	5060	41.4902	-75.7065	borough est2023
+Swoyersville	northeast	5030	41.2977	-75.8799	borough est2023
+Manheim	southeast	4994	40.1633	-76.3960	borough est2023
+Vandergrift	southwest	4958	40.5994	-79.5755	borough est2023
+Edwardsville	northeast	4932	41.2602	-75.9099	borough est2023
+Turtle Creek	southwest	4929	40.4086	-79.8215	borough est2023
+Royersford	southeast	4916	40.1863	-75.5389	borough est2023
+Telford	southeast	4896	40.3256	-75.3273	borough est2023
+Littlestown	central	4866	39.7455	-77.0857	borough est2023
+Westmont	southwest	4825	40.3194	-78.9524	borough est2023
+Fountain Hill	southeast	4798	40.6028	-75.3961	borough est2023
+Lemoyne	central	4785	40.2442	-76.8991	borough est2023
+Green Tree	southwest	4755	40.4171	-80.0543	borough est2023
+Sugarcreek	northwest	4704	41.4402	-79.8288	borough est2023
+Jenkintown	southeast	4699	40.0963	-75.1298	borough est2023
+Arnold	southwest	4676	40.5789	-79.7653	city est2023
+Montoursville	central	4666	41.2465	-76.9167	borough est2023
+West Pittston	northeast	4648	41.3296	-75.8000	borough est2023
+McMurray	southwest	4647	40.2815	-80.0874	CDP pop2010=4647
+California	southwest	4639	40.0667	-79.9120	borough est2023
+Bridgeville	southwest	4622	40.3582	-80.1076	borough est2023
+Cornwall	southeast	4622	40.2611	-76.4110	borough est2023
+Avalon	southwest	4588	40.5012	-80.0685	borough est2023
+East Petersburg	southeast	4571	40.1034	-76.3497	borough est2023
+West Reading	southeast	4543	40.3338	-75.9469	borough est2023
+Jim Thorpe	northeast	4529	40.8572	-75.7763	borough est2023
+Sellersville	southeast	4515	40.3605	-75.3069	borough est2023
+Hummelstown	central	4505	40.2653	-76.7129	borough est2023
+Donora	southwest	4500	40.1795	-79.8624	borough est2023
+Jessup	northeast	4488	41.4522	-75.5413	borough est2023
+Narberth	southeast	4488	40.0077	-75.2635	borough est2023
+Hamburg	northeast	4474	40.5562	-75.9824	borough est2023
+Honesdale	northeast	4438	41.5757	-75.2508	borough est2023
+Minersville	northeast	4400	40.6908	-76.2594	borough est2023
+Chalfont	southeast	4396	40.2890	-75.2096	borough est2023
+Beaver	southwest	4352	40.6935	-80.3076	borough est2023
+Scottdale	southwest	4337	40.1034	-79.5898	borough est2023
+Plains	northeast	4335	41.2758	-75.8519	CDP pop2010=4335
+Glassport	southwest	4301	40.3258	-79.8860	borough est2023
+Clarion	north	4295	41.2094	-79.3801	borough est2023
+Laureldale	southeast	4286	40.3897	-75.9135	borough est2023
+Sinking Spring	southeast	4275	40.3247	-76.0225	borough est2023
+Boyertown	southeast	4257	40.3323	-75.6375	borough est2023
+Larksville	northeast	4252	41.2640	-75.9309	borough est2023
+Slatington	southeast	4250	40.7536	-75.6108	borough est2023
+Shenandoah	northeast	4246	40.8171	-76.2007	borough est2023
+Greencastle	central	4244	39.7907	-77.7267	borough est2023
+Forty Fort	northeast	4233	41.2801	-75.8732	borough est2023
+Aldan	southeast	4210	39.9224	-75.2881	borough est2023
+Tarentum	southwest	4187	40.6045	-79.7600	borough est2023
+Charleroi	southwest	4174	40.1379	-79.8998	borough est2023
+Dallastown	central	4174	39.8997	-76.6409	borough est2023
+Kutztown	southeast	4164	40.5213	-75.7773	borough est2023
+Mount Pleasant	southwest	4161	40.1509	-79.5434	borough est2023
+Farrell	northwest	4160	41.2111	-80.4973	city est2023
+North Braddock	southwest	4153	40.4017	-79.8537	borough est2023
+Sharpsville	northwest	4147	41.2590	-80.4818	borough est2023
+Lansford	northeast	4145	40.8330	-75.8844	borough est2023
+Danville	central	4140	40.9617	-76.6120	borough est2023
+Akron	southeast	4121	40.1578	-76.2034	borough est2023
+Throop	northeast	4102	41.4382	-75.5927	borough est2023
+Jersey Shore	central	4087	41.2007	-77.2666	borough est2023
+Monongahela	southwest	4087	40.1912	-79.9225	city est2023
+Pennsburg	southeast	4057	40.3936	-75.4964	borough est2023
+Fleetwood	southeast	4046	40.4565	-75.8216	borough est2023
+North East	northwest	4043	42.2134	-79.8334	borough est2023
+Level Green	southwest	4020	40.3902	-79.7215	CDP pop2010=4020
+Trappe	southeast	4009	40.1991	-75.4754	borough est2023
+Carroll Valley	central	4004	39.7502	-77.3869	borough est2023
+Lawrence Park	northwest	3982	42.1506	-80.0230	CDP pop2010=3982
+Ridgway	north	3938	41.4319	-78.7271	borough est2023
+Brookville	north	3918	41.1617	-79.0827	borough est2023
+Shrewsbury	central	3907	39.7713	-76.6799	borough est2023
+Kittanning	southwest	3887	40.8287	-79.5187	borough est2023
+Frackville	northeast	3883	40.7833	-76.2329	borough est2023
+Northumberland	central	3839	40.8972	-76.7930	borough est2023
+Windber	southwest	3835	40.2355	-78.8247	borough est2023
+Freeland	northeast	3822	41.0212	-75.8963	borough est2023
+Irwin	southwest	3813	40.3251	-79.6998	borough est2023
+Baden	southwest	3809	40.6397	-80.2225	borough est2023
+Zelienople	southwest	3791	40.7857	-80.1387	borough est2023
+Sewickley	southwest	3772	40.5397	-80.1789	borough est2023
+Waynesburg	southwest	3728	39.8983	-80.1855	borough est2023
+Boalsburg	central	3722	40.7780	-77.7744	CDP pop2010=3722
+Slippery Rock	southwest	3579	41.0695	-80.0579	borough est2023
+Port Vue	southwest	3568	40.3379	-79.8741	borough est2023
+Mahanoy City	northeast	3520	40.8126	-76.1382	borough est2023
+Manor	southwest	3520	40.3459	-79.6693	borough est2023
+Kane	north	3499	41.6630	-78.8090	borough est2023
+Pen Argyl	northeast	3462	40.8678	-75.2539	borough est2023
+Mifflinburg	central	3441	40.9196	-77.0474	borough est2023
+Wellsboro	north	3427	41.7455	-77.3037	borough est2023
+Nesquehoning	northeast	3344	40.8781	-75.8220	borough est2023
+Ebensburg	central	3337	40.4881	-78.7265	borough est2023
+Penbrook	central	3244	40.2780	-76.8483	borough est2023
+Athens	north	3231	41.9375	-76.5140	borough est2023
+Boiling Springs	central	3225	40.1593	-77.1399	CDP pop2010=3225
+Wesleyville	northwest	3148	42.1369	-80.0123	borough est2023
+Marienville	north	3137	41.4688	-79.1181	CDP pop2010=3137
+Summit Hill	northeast	3134	40.8250	-75.8462	borough est2023
+Fayetteville	central	3128	39.9114	-77.5651	CDP pop2010=3128
+McSherrystown	central	3128	39.8035	-77.0199	borough est2023
+Wyoming	northeast	3118	41.3057	-75.8429	borough est2023
+Strasburg	southeast	3094	39.9845	-76.1862	borough est2023
+Wormleysburg	central	3067	40.2606	-76.9103	borough est2023
+Mansfield	north	3058	41.8062	-77.0784	borough est2023
+Mount Pocono	northeast	3042	41.1225	-75.3578	borough est2023
+Orwigsburg	northeast	3002	40.6542	-76.1040	borough est2023
+Girard	northwest	2944	42.0041	-80.3192	borough est2023
+Union City	northwest	2866	41.8977	-79.8432	borough est2023
+Lake City	northwest	2864	42.0177	-80.3463	borough est2023
+Bedford	central	2830	40.0151	-78.5030	borough est2023
+Harveys Lake	northeast	2817	41.3647	-76.0447	borough est2023
+Manchester	central	2788	40.0612	-76.7194	borough est2023
+Hallam	central	2774	40.0024	-76.6042	borough est2023
+Towanda	north	2774	41.7709	-76.4465	borough est2023
+St. Clair	northeast	2756	40.7211	-76.1903	borough est2023
+Luzerne	northeast	2723	41.2869	-75.8968	borough est2023
+Highspire	central	2713	40.2086	-76.7855	borough est2023
+Philipsburg	central	2710	40.8929	-78.2167	borough est2023
+Kulpmont	northeast	2703	40.7954	-76.4721	borough est2023
+Dallas	northeast	2691	41.3315	-75.9729	borough est2023
+Marysville	central	2673	40.3376	-76.9321	borough est2023
+West Wyoming	northeast	2653	41.3216	-75.8578	borough est2023
+Dillsburg	central	2634	40.1115	-77.0325	borough est2023
+New Hope	southeast	2631	40.3614	-74.9568	borough est2023
+Ashley	northeast	2603	41.2127	-75.8994	borough est2023
+Dupont	northeast	2556	41.3238	-75.7419	borough est2023
+Weatherly	northeast	2551	40.9420	-75.8209	borough est2023
+Avoca	northeast	2524	41.3382	-75.7422	borough est2023
+Millersburg	central	2522	40.5432	-76.9529	borough est2023
+Curwensville	central	2501	40.9729	-78.5186	borough est2023
+Reynoldsville	north	2496	41.0949	-78.8877	borough est2023
+Spring Grove	central	2488	39.8809	-76.8640	borough est2023
+Ashland	northeast	2483	40.7811	-76.3450	borough est2023
+McAdoo	northeast	2469	40.9010	-75.9924	borough est2023
+Coaldale	northeast	2427	40.8197	-75.9161	borough est2023
+Matamoras	northeast	2417	41.3666	-74.6997	borough est2023
+Muncy	central	2398	41.2022	-76.7855	borough est2023
+Portage	central	2388	40.3869	-78.6747	borough est2023
+Fairview	northwest	2348	42.0255	-80.2547	CDP pop2010=2348
+Johnsonburg	north	2329	41.4922	-78.6788	borough est2023
+Cambridge Springs	northwest	2320	41.8020	-80.0598	borough est2023
+Roaring Spring	central	2315	40.3348	-78.3960	borough est2023
+Coudersport	north	2314	41.7758	-78.0160	borough est2023
+Effort	northeast	2269	40.9415	-75.4377	CDP pop2010=2269
+Mount Union	central	2257	40.3841	-77.8815	borough est2023
+North York	central	2247	39.9780	-76.7309	borough est2023
+Brockway	north	2238	41.2471	-78.7924	borough est2023
+Watsontown	central	2214	41.0853	-76.8649	borough est2023
+Trucksville	northeast	2152	41.3100	-75.9281	CDP pop2010=2152
+Jermyn	northeast	2130	41.5273	-75.5454	borough est2023
+Glen Rock	central	2122	39.7935	-76.7307	borough est2023
+Hughesville	central	2116	41.2390	-76.7254	borough est2023
+Chinchilla	northeast	2098	41.4858	-75.6665	CDP pop2010=2098
+New Wilmington	northwest	2097	41.1176	-80.3315	borough est2023
+Pine Grove	northeast	2061	40.5534	-76.3860	borough est2023
+Port Allegany	north	2059	41.8152	-78.2765	borough est2023
+Shavertown	northeast	2019	41.3188	-75.9404	CDP pop2010=2019
+Moscow	northeast	2017	41.3422	-75.5279	borough est2023
+Riverside	central	2013	40.9490	-76.6419	borough est2023
+Mount Holly Springs	central	2011	40.1093	-77.1829	borough est2023
+Mercer	northwest	1933	41.2265	-80.2363	borough est2023
+Emporium	north	1856	41.5104	-78.2340	borough est2023
+Conyngham	northeast	1817	40.9912	-76.0599	borough est2023
+Port Carbon	northeast	1808	40.6969	-76.1666	borough est2023
+Elkland	north	1791	41.9891	-77.3141	borough est2023
+Mayfield	northeast	1763	41.5397	-75.5311	borough est2023
+Forest City	northeast	1751	41.6527	-75.4692	borough est2023
+Tunkhannock	northeast	1737	41.5411	-75.9491	borough est2023
+Canton	north	1713	41.6571	-76.8527	borough est2023
+Tremont	northeast	1684	40.6302	-76.3912	borough est2023
+Youngsville	north	1679	41.8525	-79.3167	borough est2023
+Cressona	northeast	1610	40.6304	-76.1939	borough est2023
+Roseto	northeast	1559	40.8782	-75.2203	borough est2023
+Catawissa	northeast	1527	40.9531	-76.4599	borough est2023
+Clarks Green	northeast	1513	41.5009	-75.6953	borough est2023
+Blossburg	north	1509	41.6795	-77.0690	borough est2023
+Albion	northwest	1496	41.8900	-80.3648	borough est2023
+Ligonier	southwest	1481	40.2449	-79.2375	borough est2023
+Waterford	northwest	1446	41.9452	-79.9851	borough est2023
+Pocono Pines	northeast	1409	41.1163	-75.4588	CDP pop2010=1409
+Russell	north	1408	41.9374	-79.1403	CDP pop2010=1408
+Hyde	north	1399	41.0070	-78.4678	CDP pop2010=1399
+Smethport	north	1386	41.8084	-78.4447	borough est2023
+Intercourse	southeast	1274	40.0364	-76.1058	CDP pop2010=1274
+Troy	north	1241	41.7833	-76.7922	borough est2023
+Hawley	northeast	1223	41.4759	-75.1760	borough est2023
+Sheffield	north	1132	41.7010	-79.0299	CDP pop2010=1132
+Paradise	southeast	1129	40.0062	-76.1223	CDP pop2010=1129
+Milford	northeast	1128	41.3237	-74.8010	borough est2023
+Cochranton	northwest	1099	41.5191	-80.0470	borough est2023
+Westfield	north	1097	41.9177	-77.5403	borough est2023
+Sykesville	north	1089	41.0447	-78.8112	borough est2023
+Knox	north	1076	41.2344	-79.5361	borough est2023
+Shinglehouse	north	1070	41.9670	-78.1905	borough est2023
+Seneca	north	1065	41.3772	-79.7052	CDP pop2010=1065
+South Waverly	north	1065	41.9942	-76.5444	borough est2023
+Renovo	north	1047	41.3278	-77.7672	borough est2023
+Falls Creek	north	1014	41.1420	-78.8069	borough est2023
+Galeton	north	959	41.7343	-77.6435	borough est2023
+New Bethlehem	north	953	41.0063	-79.3253	borough est2023
+Linesville	northwest	942	41.6564	-80.4224	borough est2023
+Kersey	north	937	41.3573	-78.6092	CDP pop2010=937
+Stoneboro	northwest	931	41.3304	-80.1181	borough est2023
+Rimersburg	north	919	41.0408	-79.5024	borough est2023
+Saegertown	northwest	851	41.7146	-80.1309	borough est2023
+Pleasantville	north	826	41.5935	-79.5808	borough est2023
+Columbus	north	824	41.9479	-79.5832	CDP pop2010=824
+Mount Jewett	north	823	41.7291	-78.6403	borough est2023
+Harrisville	northwest	800	41.1364	-80.0107	borough est2023
+West Middlesex	northwest	794	41.1742	-80.4555	borough est2023
+Roulette	north	779	41.7768	-78.1551	CDP pop2010=779
+Eldred	north	736	41.9568	-78.3806	borough est2023
+Fredericksburg	northwest	733	41.6438	-80.1764	CDP pop2010=733
+Conneautville	northwest	720	41.7578	-80.3686	borough est2023
+Confluence	southwest	707	39.8099	-79.3559	borough est2023
+Lawrenceville	north	688	41.9961	-77.1304	borough est2023
+Parker	north	682	41.0906	-79.6846	city est2023
+Sligo	north	673	41.1102	-79.5031	borough est2023
+Knoxville	north	671	41.9605	-77.4379	borough est2023
+Delaware Water Gap	northeast	666	40.9679	-75.1338	borough est2023
+Noxen	north	633	41.4220	-76.0692	CDP pop2010=633
+Sandy Lake	northwest	633	41.3502	-80.0837	borough est2023
+Polk	northwest	623	41.3684	-79.9293	borough est2023
+Tidioute	north	613	41.6861	-79.3920	borough est2023
+Conneaut Lake	northwest	612	41.6027	-80.3094	borough est2023
+Wyalusing	north	610	41.6726	-76.2612	borough est2023
+Emlenton	north	603	41.1802	-79.7086	borough est2023
+Tioga	north	602	41.9078	-77.1352	borough est2023
+Ulysses	north	589	41.9031	-77.7548	borough est2023
+Jamestown	northwest	570	41.4841	-80.4372	borough est2023
+Wheatland	northwest	569	41.1969	-80.4958	borough est2023
+Cranesville	northwest	566	41.9026	-80.3365	borough est2023
+Clark	northwest	562	41.2877	-80.4047	borough est2023
+Lewis Run	north	559	41.8676	-78.6540	borough est2023
+Sugar Grove	north	544	41.9837	-79.3396	borough est2023
+Weedville	north	542	41.2758	-78.4902	CDP pop2010=542
+Strattanville	north	525	41.2025	-79.3269	borough est2023
+Hydetown	north	520	41.6516	-79.7241	borough est2023
+Canadohta Lake	northwest	516	41.8115	-79.8358	CDP pop2010=516
+Summerville	north	501	41.1164	-79.1883	borough est2023
+Monroe	north	482	41.7121	-76.4751	borough est2023
+McKean	northwest	477	41.9985	-80.1396	borough est2023
+Hawthorn	north	468	41.0205	-79.2832	borough est2023
+Austin	north	467	41.6373	-78.0903	borough est2023
+Dushore	north	451	41.5260	-76.3985	borough est2023
+Rouseville	north	445	41.4685	-79.6812	borough est2023
+Shippenville	north	436	41.2510	-79.4626	borough est2023
+Platea	northwest	433	41.9510	-80.3304	borough est2023
+Clintonville	northwest	431	41.2010	-79.8745	borough est2023
+Fredonia	northwest	425	41.3219	-80.2581	borough est2023
+Tionesta	north	415	41.4979	-79.4494	borough est2023
+Bruin	north	408	41.0544	-79.7273	borough est2023
+Bird-in-Hand	southeast	402	40.0367	-76.1895	CDP pop2010=402
+South Renovo	north	402	41.3247	-77.7423	borough est2023
+Clarendon	north	401	41.7806	-79.0940	borough est2023
+Cooperstown	northwest	389	41.4998	-79.8736	borough est2023
+Mill Village	northwest	386	41.8775	-79.9726	borough est2023
+Rome	north	381	41.8580	-76.3411	borough est2023
+Springboro	northwest	367	41.8006	-80.3717	borough est2023
+Laceyville	north	358	41.6459	-76.1587	borough est2023
+Wattsburg	northwest	347	42.0027	-79.8048	borough est2023
+Blooming Valley	northwest	340	41.6770	-80.0309	borough est2023
+St. Petersburg	north	332	41.1610	-79.6545	borough est2023
+Townville	northwest	319	41.6791	-79.8800	borough est2023
+Laporte	north	316	41.4171	-76.4924	borough est2023
+Corsica	north	313	41.1813	-79.2026	borough est2023
+Eagles Mere	north	152	41.4098	-76.5831	borough est2023
+Ohiopyle	southwest	37	39.8641	-79.4947	borough est2023
+Chadds Ford	southeast	0	39.8759	-75.6082	CDP pop n/a

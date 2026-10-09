@@ -1,0 +1,16 @@
+{
+    "name": "Line Editor Undo",
+    "summary": "Undo and redo edits of a line's stops one step at a time, or undo all at once with Shift+click.",
+    "description": "Undo and redo edits of a line's stops in the line manager, one step at a time, or undo all at once with Shift+click. GUI only: stores nothing in the savegame.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}
