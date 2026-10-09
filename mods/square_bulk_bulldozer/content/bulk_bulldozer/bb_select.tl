@@ -210,6 +210,32 @@ function sel.add(s : BulkBulldozerStroke, c : BulkBulldozerCandidate) : boolean
 	return true
 end
 
+-- User request 2026-10-08: a Shift stroke takes entities back out of the selection. Removes every
+-- kept entity of `entities` (unknown ones are ignored) and returns how many went. Skip records
+-- stay; the cap note goes once the selection is below the cap again.
+function sel.remove(s : BulkBulldozerStroke, entities : {integer}) : integer
+	local gone : {integer : boolean} = {}
+	local n = 0
+	for _, e in ipairs(entities or {}) do
+		local c = s.keep[e]
+		if c ~= nil and not gone[e] then
+			gone[e] = true
+			n = n + 1
+			s.keep[e] = nil
+			s.kindCounts[c.kind] = s.kindCounts[c.kind] - 1
+			s.objects = s.objects - (c.objects or 0)
+		end
+	end
+	if n == 0 then return 0 end
+	local order : {integer} = {}
+	for _, e in ipairs(s.order) do
+		if not gone[e] then order[#order + 1] = e end
+	end
+	s.order = order
+	if #order < sel.STROKE_CAP then s.capped = false end
+	return n
+end
+
 function sel.entities(s : BulkBulldozerStroke) : {integer}
 	local out : {integer} = {}
 	for i, e in ipairs(s.order) do out[i] = e end

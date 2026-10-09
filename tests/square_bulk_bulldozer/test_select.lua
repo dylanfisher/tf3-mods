@@ -271,6 +271,34 @@ test("a later stroke adds to the same selection (select, then confirm)", functio
 	eq(sel.needsConfirmation, nil, "no threshold rule: every selection waits for the button")
 end)
 
+test("remove: a Shift stroke takes kept entities back out", function()
+	local s = sel.newStroke()
+	sel.add(s, sel.classify(edge({ entity = 601 }), allOn(), CTX))
+	sel.add(s, sel.classify(edge({ entity = 602, isStreet = false, objects = { 1, 2 } }), allOn(), CTX))
+	sel.add(s, sel.classify(con({ entity = 603 }), allOn(), CTX))
+	sel.add(s, sel.classify(con({ industries = 1, entity = 604 }), allOn(), CTX))   -- skipped
+	eq(sel.remove(s, { 602, 604, 999, 602 }), 1, "only kept entities count, each once")
+	eq(sel.entities(s), { 601, 603 })
+	eq(s.keep[602], nil)
+	eq(s.kindCounts.track, 0)
+	eq(s.objects, 0)
+	eq(s.skipped[604], "industry", "skip records stay")
+	eq(sel.remove(s, {}), 0)
+	eq(sel.remove(s, nil), 0)
+	-- removed entities can be painted in again
+	eq(sel.add(s, sel.classify(edge({ entity = 602 }), allOn(), CTX)), true)
+	eq(sel.entities(s), { 601, 603, 602 })
+end)
+
+test("remove: dropping below the cap lifts the cap note", function()
+	local s = sel.newStroke()
+	for i = 1, sel.STROKE_CAP + 1 do sel.add(s, sel.classify(edge({ entity = 10000 + i }), allOn(), CTX)) end
+	eq(s.capped, true)
+	eq(sel.remove(s, { 10001 }), 1)
+	eq(s.capped, false)
+	eq(sel.count(s), sel.STROKE_CAP - 1)
+end)
+
 test("describe: counts per kind and per skip reason", function()
 	local s = sel.newStroke()
 	eq(sel.describe(s), { "Nothing selected" })

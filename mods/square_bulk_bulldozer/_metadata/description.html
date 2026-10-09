@@ -3,7 +3,7 @@
 <h4>Features</h4>
 <ul>
 <li><strong>Brush</strong>: a circle of 5 to 200 m (default 20 m) follows the cursor over the terrain. Set the size with the Radius slider in the toolbar.</li>
-<li><strong>Select, then bulldoze</strong>: hold the left mouse button and paint to select. Every further stroke adds to the selection (up to 400 objects). Nothing is removed until you press <strong>Bulldoze</strong> in the toolbar.</li>
+<li><strong>Select, then bulldoze</strong>: hold the left mouse button and paint to select. Every further stroke adds to the selection (up to 400 objects). Hold <strong>Shift</strong> while you paint to take objects back out of the selection (the brush turns blue). Nothing is removed until you press <strong>Bulldoze</strong> in the toolbar.</li>
 <li><strong>Live highlight</strong>: selected roads, tracks and buildings turn red, and hovering previews what the brush would catch. The toolbar shows how many objects are selected, of which kind, and what removing them costs.</li>
 <li><strong>Clear</strong>: the Clear button, a right-click or Esc empties the selection without removing anything. Closing the tool or switching to another one empties it too.</li>
 <li><strong>Filters</strong>: choose what the brush picks up. Roads (on: your roads and town roads), Tracks (on), Stations &amp; depots (off), Other assets (on: placed assets that are not stations, depots or industries), Town buildings (off) and Underground (off: tunnels).</li>
@@ -19,6 +19,11 @@
 </ul>
 <hr>
 <h2>Changelog</h2>
+<h4>Revision 2 (2026-10-08)</h4>
+<ul>
+<li>New: hold Shift while painting to remove objects from the selection.</li>
+<li>Changed: Performance: the brush reads only the objects it actually touches in full, and the red selection highlight reuses what it already drew, so painting and hovering over big towns with a large brush stay smoother.</li>
+</ul>
 <h4>Revision 1 (2026-10-07)</h4>
 <ul>
 <li>New: first release.</li>
