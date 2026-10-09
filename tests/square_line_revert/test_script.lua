@@ -695,3 +695,28 @@ test("session reset clears redo", function()
 	renderRedo().onClick()
 	eq(#sent, 1)
 end)
+
+test("one line read per step for both buttons; the tooltip diff is computed once per state pair", function()
+	world.lines[1] = lineComp({ 10, 20 })
+	line_util.makeLineActionDescriptor(makeParams(1))
+	renderAPlus() -- session start
+	local reads = 0
+	local get = api.engine.getComponent
+	api.engine.getComponent = function(e, ct)
+		if ct == "LINE" then reads = reads + 1 end
+		return get(e, ct)
+	end
+	world.lines[1] = lineComp({ 10 })
+	local _btn, node = renderAPlus() -- one step: Undo then Redo
+	eq(reads, 1)
+	eq(node.children[1].children[1].meta.enabled, true)
+	eq(node.children[2].children[1].meta.enabled, false)
+	local core = ug_require "square_line_revert::/line_revert/line_revert_core.lua"
+	local diffs = 0
+	local diff = core.diffSummary
+	core.diffSummary = function(a, b) diffs = diffs + 1; return diff(a, b) end
+	for _i = 1, 5 do renderAPlus() end
+	eq(diffs, 0)
+	core.diffSummary = diff
+	api.engine.getComponent = get
+end)
