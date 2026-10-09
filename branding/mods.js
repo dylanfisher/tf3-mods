@@ -9,18 +9,6 @@
 //   coordinates drawn above the pictogram; o.dx = pictogram shift when the title is off). Both are used by
 //   Square.stateCover (README "State series"); one-off mods normally need neither.
 Square.register({
-  id: 'square_quota_run', name: 'Quota Run', tagline: 'Hit the quota, draft a card', accent: '#F2B33D',
-  glyph: S => `
-    <rect class="ink sep" x="270" y="200" width="260" height="370" rx="30" transform="rotate(-18 400 720)"/>
-    <rect class="ink sep" x="270" y="200" width="260" height="370" rx="30" transform="rotate(18 400 720)"/>
-    <rect class="under" x="270" y="180" width="260" height="370" rx="30"/>
-    <rect class="acc sep" x="270" y="180" width="260" height="370" rx="30"/>
-    <path class="scut" d="M318 485 H372 V420 H428 V355 H468" stroke-width="28" stroke-linejoin="round" stroke-linecap="round"/>
-    <path class="cutf" d="M462 318 L520 355 L462 392 Z"/>
-    ${S.ground(130, 540, 680)}`,
-});
-
-Square.register({
   id: 'square_bigger_line_dots', name: 'Bigger Line Dots', tagline: 'Line dots you can actually see', accent: '#4FA3E0',
   glyph: S => `
     <g opacity=".45">
