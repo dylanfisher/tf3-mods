@@ -818,3 +818,13 @@ test("perf: stop renames use the town's station list, not the whole-map lookup",
 	eq(w.sent[1].n, "Pine Street", "the existing Pike Street is still seen")
 	eq(w.calls.map, 0)
 end)
+
+test("perf: map editor frames read mod params once, not every frame", function()
+	local w = world({ mapEditor = true })
+	local script = load(w)
+	local state = fakeState()
+	countCalls(w, "params", w.api.engine.config, "getModParams")
+	for _ = 1, 60 do tick(script, state, w, 1) end
+	eq(w.calls.params, 1)
+	ok(not state.raw.subs, "still no subscription in the map editor")
+end)

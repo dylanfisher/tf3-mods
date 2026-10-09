@@ -56,8 +56,9 @@ return {
 		"Hawaii is the smallest state in this series: every Census place in Hawaii is an unincorporated community (CDP), so the list has about 130 towns. Real streets cover 13 towns; every other town uses the Hawaii-style street list. Names are plain ASCII (no okina or kahako), as Census and most street signs write them.",
 		"Not affiliated with the \"Hawaii Names\" mod; all lists here are our own.",
 	},
-	revision = 2,
+	revision = 3,
 	changelog = {
+		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
 		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },
 	},
