@@ -1,7 +1,7 @@
 # TF3 mod hub. All tools are stdlib/PEP 723 scripts run through uv.
 UV := uv run --quiet
 
-.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal sim covers shots state-towns state-mod state-mods names-browser flags test-tools
+.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal covers shots state-towns state-mod state-mods names-browser flags test-tools
 
 help:
 	@echo "make docs        Re-sync all local docs (wiki + game files)"
@@ -23,7 +23,6 @@ help:
 	@echo "make names-browser                                   Write plans/square_state_names/names_browser.html (all state names)"
 	@echo "make test-tools                                      Unit tests for the state generator tools (tests/tools)"
 	@echo "make flags [STATE=us_washington] [ARGS='--lookup \"Flag of Oregon.svg\" --key us_oregon']  Fetch + sanitize pinned state flags -> branding/flags/"
-	@echo "make sim [ARGS='--rate 150 --runs 100 ...']  Offline Quota Run simulator (ARGS=--help for options)"
 
 docs: docs-wiki docs-game
 
@@ -57,9 +56,6 @@ test:
 
 teal:
 	$(UV) tools/setup_teal.py
-
-sim:
-	$(UV) tools/quota_sim.py $(ARGS)
 
 covers:
 	$(UV) tools/render_covers.py $(ARGS) $(MOD)
