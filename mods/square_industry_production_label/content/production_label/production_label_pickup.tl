@@ -64,8 +64,30 @@ function pickup.aggregate(a : SquareProductionLabelPickupAdapter) : {integer : {
 	-- are read at most once.
 	local NONE : {any} = {}
 	local stopsOf : {integer : {SquareProductionLabelPickupStop}} = {}
-	local reachOf : {integer : {integer}} = {}
 	local outputsOf : {integer : {integer}} = {}
+	-- Per group: the flat (stockList, output cargo) pairs in its reach, built once from reach x outputs.
+	-- Most catchables (town buildings) produce nothing, so every stop at the group walks only the few
+	-- producing pairs instead of the whole reach (PERF_REVIEW.md 2026-10-08).
+	local producersOf : {integer : {{integer, integer}}} = {}
+
+	local function producers(stationGroup : integer) : {{integer, integer}}
+		local pairsList = producersOf[stationGroup]
+		if pairsList ~= nil then return pairsList end
+		pairsList = {}
+		local reach = a.reachableStockLists(stationGroup) or NONE as {integer}
+		for __, stockList in ipairs(reach) do
+			local outputs = outputsOf[stockList]
+			if outputs == nil then
+				outputs = a.outputCargoTypes(stockList) or NONE as {integer}
+				outputsOf[stockList] = outputs
+			end
+			for __, cargo in ipairs(outputs) do
+				pairsList[#pairsList + 1] = { stockList, cargo }
+			end
+		end
+		producersOf[stationGroup] = pairsList
+		return pairsList
+	end
 	-- served[stockList][cargo][line] = true: a set, so each line counts once per (stockList, cargo)
 	-- however often it stops at the group (or at several terminals of it).
 	local served : {integer : {integer : {integer : boolean}}} = {}
@@ -76,31 +98,20 @@ function pickup.aggregate(a : SquareProductionLabelPickupAdapter) : {integer : {
 		if load == nil or not loadsCargo(load, passenger) then return end
 		if a.terminalCargoLoad(stationGroup, stop.station, stop.terminal) == false then return end
 		stats.cargoStops = stats.cargoStops + 1
-		local reach = reachOf[stationGroup]
-		if reach == nil then
-			reach = a.reachableStockLists(stationGroup) or NONE as {integer}
-			reachOf[stationGroup] = reach
-		end
-		for __, stockList in ipairs(reach) do
-			local outputs = outputsOf[stockList]
-			if outputs == nil then
-				outputs = a.outputCargoTypes(stockList) or NONE as {integer}
-				outputsOf[stockList] = outputs
-			end
-			for __, cargo in ipairs(outputs) do
-				if load[cargo + 1] == true then
-					local byCargo = served[stockList]
-					if byCargo == nil then
-						byCargo = {}
-						served[stockList] = byCargo
-					end
-					local lines = byCargo[cargo]
-					if lines == nil then
-						lines = {}
-						byCargo[cargo] = lines
-					end
-					lines[line] = true
+		for __, pair in ipairs(producers(stationGroup)) do
+			local stockList, cargo = pair[1], pair[2]
+			if load[cargo + 1] == true then
+				local byCargo = served[stockList]
+				if byCargo == nil then
+					byCargo = {}
+					served[stockList] = byCargo
 				end
+				local lines = byCargo[cargo]
+				if lines == nil then
+					lines = {}
+					byCargo[cargo] = lines
+				end
+				lines[line] = true
 			end
 		end
 	end
