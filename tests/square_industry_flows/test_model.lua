@@ -329,6 +329,28 @@ test("buildView: de-dup when two selected types see the same link", function()
 	eq(v.total, 6)
 end)
 
+test("buildView: de-dup keeps the first sighting (input flag) and asks flowCount once", function()
+	-- Two mills of the selected type supply each other: each link is seen twice (as one mill's
+	-- output and the other's input). Mill 1 comes first, inputs before outputs.
+	local w = world({
+		ind(1, MILL, { inputs = { LOGS }, inputStocks = { LOGS }, outputs = { LOGS }, outputStocks = { LOGS } }),
+		ind(2, MILL, { inputs = { LOGS }, inputStocks = { LOGS }, outputs = { LOGS }, outputStocks = { LOGS } }),
+		ind(3, FOREST, { outputs = { LOGS }, outputStocks = { LOGS } }),
+	}, { { entity = 100, pos = { 0, 0, 0 }, needs = { LOGS } } })
+	local calls = {}
+	local v = model.buildView(w, model.newSelection({ MILL }), ALL, flows({}, calls))
+	local byKey = {}
+	for _, l in ipairs(v.links) do byKey[l.fromEntity .. ">" .. l.toEntity .. ":" .. l.cargo] = l end
+	eq(keys(v), { "1>2:3", "1>100:3", "2>1:3", "2>100:3", "3>1:3", "3>2:3" })
+	-- 2>1 is seen first as 1's input, 1>2 first as 1's output (before 2's input loop)
+	eq(byKey["2>1:3"].input, true)
+	eq(byKey["1>2:3"].input, false)
+	eq(#calls, 6, "one flowCount per distinct link")
+	for _, l in ipairs(v.links) do
+		ok(l.from ~= nil and l.to ~= nil, "every drawn link has positions")
+	end
+end)
+
 test("buildView: duplicate cargo entries and multiple rules give one link", function()
 	local w = world({
 		ind(1, FOREST, { outputs = { LOGS, LOGS }, outputStocks = { LOGS, LOGS } }),
