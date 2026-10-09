@@ -113,6 +113,31 @@ test("reach is queried once per group and only for groups with a cargo-loading s
 	eq(calls.outputs, { [100] = 1, [200] = 1, [300] = 1 })
 end)
 
+test("busy group with many non-producing catchables: reach and outputs read once, same sums", function()
+	-- Group 2 reaches 50 town buildings (no outputs) besides the farm and the mine; four lines stop
+	-- there, two of them twice. Producing pairs are built once per group (PERF_REVIEW.md 2026-10-08).
+	local w = baseWorld()
+	local reach = {}
+	for i = 1, 50 do
+		reach[i] = 1000 + i
+		w.outputs[1000 + i] = {}
+	end
+	reach[#reach + 1] = 200
+	reach[#reach + 1] = 300
+	reach[#reach + 1] = 200 -- duplicate entry: still one line per (stockList, cargo)
+	w.reach[2] = reach
+	w.lines[13] = { stop(2, loads(GRAIN)), stop(2, loads(COAL), { terminal = 1 }) }
+	w.lines[14] = { stop(2, loads(COAL)) }
+	w.rates[13], w.rates[14] = 7, 3
+	w.map[2] = { { 11, 0 }, { 12, 1 }, { 13, 0 }, { 13, 1 }, { 14, 0 } }
+	local a, calls = adapter(w)
+	local rates = pickup.aggregate(a)
+	eq(rates[200], { [GRAIN] = 40 + 25 + 7 })
+	eq(rates[300], { [COAL] = 25 + 7 + 3 })
+	eq(calls.reach[2], 1)
+	for sl, n in pairs(calls.outputs) do eq(n, 1, "outputs read once for " .. tostring(sl)) end
+end)
+
 test("passenger-only stops never query reach (bus stations cost nothing)", function()
 	local w = baseWorld()
 	w.map = { [5] = { { 20, 0 } } }
