@@ -24,7 +24,7 @@ local function with(over)
 	local s = { hudMode = "badge", stuckMinRoad = 3, stuckMinTram = 3, stuckMinRail = 5, stuckMinWater = 10,
 		stuckMinAir = 5, idleDepotDays = 30, lineOverloadFactor = 3, lineUnderusedPct = 10, lineClumpPct = 20,
 		lineGapPct = 300, lineSustainMin = 10, wornPct = 20, notifyPaused = false, smoothSec = 30,
-		econLossWarnPct = 75, econLossCritPct = 50, econLossSharePct = 2, econLowUsePct = 20, notify = notifyWith() }
+		econLossWarnPct = 75, econLossCritPct = 50, econLossSharePct = 2, econLowUsePct = 20, snoozeMonths = 6, notify = notifyWith() }
 	for k, v in pairs(over or {}) do s[k] = v end
 	return s
 end
@@ -38,12 +38,12 @@ end)
 test("schema: KEYS lists every key once; NUMBERS defaults within range; a stuck key per carrier", function()
 	eq(settings.KEYS, { "hudMode", "notifyPaused", "smoothSec", "stuckMinRoad", "stuckMinTram", "stuckMinRail", "stuckMinWater", "stuckMinAir",
 		"idleDepotDays", "wornPct", "lineOverloadFactor", "lineUnderusedPct", "lineClumpPct", "lineGapPct", "lineSustainMin",
-		"econLossWarnPct", "econLossCritPct", "econLossSharePct", "econLowUsePct" })
+		"econLossWarnPct", "econLossCritPct", "econLossSharePct", "econLowUsePct", "snoozeMonths" })
 	local d = settings.defaults()
 	for _, key in ipairs(settings.KEYS) do ok(d[key] ~= nil, key .. " has a default") end
 	for key, num in pairs(settings.NUMBERS) do
 		ok(num.min <= num.default and num.default <= num.max, key .. " default in range")
-		ok(num.unit == "min" or num.unit == "days" or num.unit == "%" or num.unit == "x" or num.unit == "s", key .. " unit")
+		ok(num.unit == "min" or num.unit == "days" or num.unit == "%" or num.unit == "x" or num.unit == "s" or num.unit == "months", key .. " unit")
 	end
 	eq(settings.STUCK_KEYS, { ROAD = "stuckMinRoad", TRAM = "stuckMinTram", RAIL = "stuckMinRail", WATER = "stuckMinWater", AIR = "stuckMinAir" })
 end)

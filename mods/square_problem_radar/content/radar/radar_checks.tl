@@ -52,6 +52,10 @@ checks.MAX_USE_TRACKED = 1000
 -- year would show nothing for a year after the mod is added; the average is bias-corrected, so half a
 -- year of samples is already a fair mean, just a less smoothed one).
 checks.USE_MIN_TRACK_FRACTION = 0.5
+-- Snooze (state.snoozed): at most this many snoozed alerts (save size); over the cap the ones ending
+-- last are kept. The window's snooze length presets, in game months.
+checks.MAX_SNOOZED = 200
+checks.SNOOZE_MONTHS = { 1, 6, 12, 60 }
 
 -- Catalogue (PLAN "Alert catalogue"). Critical = 1, Warning = 2, Info = 3. Phase 7 economy kinds set
 -- each row's tier by the size of the problem (Info .. maxTier); `tier` is their mildest tier.
@@ -113,6 +117,62 @@ end
 local function toInt(v : any) : integer
 	if type(v) ~= "number" then return nil end
 	return math.floor(v as number)
+end
+
+local function optString(v : any) : string
+	return type(v) == "string" and v as string or ""
+end
+
+-- Whole numbers (pre-5.3 Lua: no math.type; a save may hand back floats). Module level: validSnooze
+-- runs for every snooze on every upgradeState (twice per scan slot), so no closure per entry.
+local function whole(x : any) : boolean return type(x) == "number" and x as number == math.floor(x as number) end
+
+local function validSnooze(k : any, v : any) : boolean
+	if type(k) ~= "string" or type(v) ~= "table" then return false end
+	local z = v as {string : any}
+	return whole(z.untilMs) and type(z.kind) == "string" and type(z.label) == "string"
+		and type(z.etype) == "string" and type(z.context) == "string" and (z.entity == nil or whole(z.entity))
+end
+
+function checks.cleanSnoozed(m : any) : {string : ProblemRadarSnooze}
+	if type(m) ~= "table" then return nil end
+	-- Already clean and within the cap (every scan and event sees the saved map): no copy.
+	local n, clean = 0, true
+	for k, v in pairs(m as {any : any}) do
+		n = n + 1
+		if not validSnooze(k, v) then clean = false break end
+	end
+	if clean and n > 0 and n <= checks.MAX_SNOOZED then return m as {string : ProblemRadarSnooze} end
+	local out : {string : ProblemRadarSnooze} = {}
+	local ids : {string} = {}
+	for k, v in pairs(m as {any : any}) do
+		local z = type(v) == "table" and v as ProblemRadarSnooze or nil
+		local untilMs = z ~= nil and toInt(z.untilMs) or nil
+		if type(k) == "string" and untilMs ~= nil and type(z.kind) == "string" then
+			out[k as string] = { untilMs = untilMs, kind = z.kind, label = optString(z.label), etype = optString(z.etype),
+				context = optString(z.context), entity = toInt(z.entity) }
+			ids[#ids + 1] = k as string
+		end
+	end
+	if #ids == 0 then return nil end
+	if #ids <= checks.MAX_SNOOZED then return out end
+	table.sort(ids, function(a : string, b : string) : boolean
+		if out[a].untilMs ~= out[b].untilMs then return out[a].untilMs > out[b].untilMs end
+		return a < b
+	end)
+	local capped : {string : ProblemRadarSnooze} = {}
+	for i = 1, checks.MAX_SNOOZED do capped[ids[i]] = out[ids[i]] end
+	return capped
+end
+
+--- The alerts that count (not snoozed).
+local function unsnoozed(alerts : {ProblemRadarAlert}, snoozed : {string : ProblemRadarSnooze}) : {ProblemRadarAlert}
+	if snoozed == nil then return alerts end
+	local out : {ProblemRadarAlert} = {}
+	for __, a in ipairs(alerts) do
+		if type(a) ~= "table" or snoozed[a.id] == nil then out[#out + 1] = a end
+	end
+	return out
 end
 
 -- v3 memory: the vehicle timers only.
@@ -193,13 +253,16 @@ function checks.upgradeState(s : any) : ProblemRadarState, boolean
 			-- pending) is valid and not a change; merge sanitises every entry it reads. Alerts
 			-- already listed in the save stay listed: they are in `alerts`, never pending.
 			if type(t.pending) == "table" then n.pending = t.pending end
+			-- Snooze (optional, lazy like pending): sanitised; missing is valid and not a change.
+			n.snoozed = checks.cleanSnoozed(t.snoozed)
+			n.seq = toInt(t.seq)
 		end
 		-- v6 tier counts: kept when valid, else rebuilt from the alerts and kind counts.
 		local tc = t.tierCounts as {any}
 		if current and type(tc) == "table" and type(tc[1]) == "number" and type(tc[2]) == "number" and type(tc[3]) == "number" then
 			n.tierCounts = t.tierCounts
 		else
-			n.tierCounts = checks.tierCounts(n.alerts, n.kindCounts)
+			n.tierCounts = checks.tierCounts(unsnoozed(n.alerts, n.snoozed), n.kindCounts)
 			changed = true
 		end
 	end
@@ -1558,11 +1621,25 @@ function checks.merge(state : ProblemRadarState, group : string, fresh : {Proble
 	end
 	local prevPending = checks.index(prevPendingList)
 
+	-- Snoozes of this group's kinds (or of unknown kinds) end here once their time has passed; the
+	-- other groups' are left to their own merge, so their counts change together with their rows.
+	local snoozed : {string : ProblemRadarSnooze} = {}
+	local snoozeChanged = false
+	for id, z in pairs(s.snoozed or {}) do
+		if z.untilMs <= now and (groupKinds[z.kind] or checks.KINDS[z.kind] == nil) then
+			snoozeChanged = true
+		else
+			snoozed[id] = z
+		end
+	end
+
 	-- Kinds with alerts over the stored cap (counted but not stored): their unseen ids may be
 	-- listed ones, so they appear at once instead of going pending (no count flicker).
 	local stored : {string : integer} = {}
 	for __, a in ipairs(prevAlerts) do
-		if type(a.kind) == "string" then stored[a.kind] = (stored[a.kind] or 0) + 1 end
+		if type(a.kind) == "string" and (s.snoozed == nil or s.snoozed[a.id] == nil) then
+			stored[a.kind] = (stored[a.kind] or 0) + 1
+		end
 	end
 	local overCap : {string : boolean} = {}
 	for k, n in pairs(s.kindCounts) do
@@ -1583,9 +1660,10 @@ function checks.merge(state : ProblemRadarState, group : string, fresh : {Proble
 		if live(p.kind) and not groupKinds[p.kind] then pendingOut[#pendingOut + 1] = p end
 	end
 
+	-- A snoozed alert is stored (so it keeps its firstSeen and smoothing) but not counted.
 	local function show(a : ProblemRadarAlert)
 		combined[#combined + 1] = a
-		counts[a.kind] = (counts[a.kind] or 0) + 1
+		if snoozed[a.id] == nil then counts[a.kind] = (counts[a.kind] or 0) + 1 end
 	end
 	-- Missed for longer than the window (missedAt nil: not missed).
 	local function expired(missedAt : integer) : boolean
@@ -1667,7 +1745,7 @@ function checks.merge(state : ProblemRadarState, group : string, fresh : {Proble
 	local total = 0
 	for __, n in pairs(counts) do total = total + n end
 
-	local changed = #alerts ~= #prevAlerts or total ~= s.total
+	local changed = snoozeChanged or #alerts ~= #prevAlerts or total ~= s.total
 	if not changed then
 		for i, a in ipairs(alerts) do
 			if not sameAlert(a, prevAlerts[i]) then
@@ -1684,7 +1762,7 @@ function checks.merge(state : ProblemRadarState, group : string, fresh : {Proble
 			if counts[k] ~= n then changed = true break end
 		end
 	end
-	local tierCounts = checks.tierCounts(alerts, counts)
+	local tierCounts = checks.tierCounts(unsnoozed(alerts, snoozed), counts)
 	if not changed then
 		local tc = s.tierCounts or {}
 		changed = tc[1] ~= tierCounts[1] or tc[2] ~= tierCounts[2] or tc[3] ~= tierCounts[3]
@@ -1709,7 +1787,68 @@ function checks.merge(state : ProblemRadarState, group : string, fresh : {Proble
 		-- nil when empty (smoothing off, or nothing pending): the state shape of older saves.
 		pending = #pendingCapped > 0 and pendingCapped or nil,
 		tierCounts = tierCounts,
+		snoozed = next(snoozed) ~= nil and snoozed or nil,
+		seq = s.seq,
 	}, changed
+end
+
+---------------------------------------------------------------------------
+-- Snooze (GUI events "ProblemRadar.snooze" / "ProblemRadar.unsnooze", radar.script.tl)
+
+local function copyCounts(m : {string : integer}) : {string : integer}
+	local out : {string : integer} = {}
+	for k, v in pairs(m or {}) do out[k] = v end
+	return out
+end
+
+function checks.snooze(state : ProblemRadarState, id : string, untilMs : integer) : ProblemRadarState, boolean
+	local s = checks.upgradeState(state)
+	local a = type(id) == "string" and checks.index(s.alerts)[id] or nil
+	if a == nil or type(untilMs) ~= "number" or checks.KINDS[a.kind] == nil then return s, false end
+	local snoozed : {string : ProblemRadarSnooze} = {}
+	for k, z in pairs(s.snoozed or {}) do snoozed[k] = z end
+	-- Already snoozed (a repeated click before the window caught up): nothing to save. The Snoozed
+	-- tab's button unsnoozes, so a new length is set by unsnoozing first.
+	if snoozed[id] ~= nil then return s, false end
+	local was = false
+	snoozed[id] = { untilMs = math.floor(untilMs), kind = a.kind, label = optString(a.label), etype = optString(a.etype),
+		context = optString(a.context), entity = toInt(a.entity) }
+	s.snoozed = checks.cleanSnoozed(snoozed)
+	if not was then
+		local counts = copyCounts(s.kindCounts)
+		local n = (counts[a.kind] or 0) - 1
+		counts[a.kind] = n > 0 and n or nil
+		s.kindCounts = counts
+		s.total = math.max(0, (s.total or 0) - 1)
+	end
+	s.tierCounts = checks.tierCounts(unsnoozed(s.alerts, s.snoozed), s.kindCounts)
+	return s, true
+end
+
+function checks.unsnooze(state : ProblemRadarState, id : string) : ProblemRadarState, boolean
+	local s = checks.upgradeState(state)
+	if s.snoozed == nil then return s, false end
+	local listed = checks.index(s.alerts)
+	local counts = copyCounts(s.kindCounts)
+	local kept : {string : ProblemRadarSnooze} = {}
+	local changed = false
+	for k, z in pairs(s.snoozed) do
+		if id == nil or k == id then
+			changed = true
+			local a = listed[k]
+			if a ~= nil and checks.KINDS[a.kind] ~= nil then
+				counts[a.kind] = (counts[a.kind] or 0) + 1
+				s.total = (s.total or 0) + 1
+			end
+		else
+			kept[k] = z
+		end
+	end
+	if not changed then return s, false end
+	s.snoozed = next(kept) ~= nil and kept or nil
+	s.kindCounts = counts
+	s.tierCounts = checks.tierCounts(unsnoozed(s.alerts, s.snoozed), s.kindCounts)
+	return s, true
 end
 
 return checks

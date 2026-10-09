@@ -15,6 +15,8 @@ local radar_checks = ug_require "square_problem_radar::/radar/radar_checks.tl" a
 local model : ProblemRadarHudModel = {}
 
 model.TABS = { "all", "vehicles", "lines", "stations", "fleet", "economy" }
+-- Snoozed alerts (state.snoozed) are only in this tab and its count, never in TABS' rows or counts.
+model.SNOOZED_TAB = "snoozed"
 -- The window renders at most this many rows of the selected tab (Phase 6); the rest is one
 -- "+N more" line, so a long list never builds thousands of widgets.
 model.MAX_RENDERED_ROWS = 100
@@ -464,6 +466,11 @@ function model.decorate(row : ProblemRadarHudRow) : ProblemRadarHudRow
 	local etype = row.etype or ""
 	row.kindLabel = model.kindLabel(row.kind)
 	row.typeLabel = TYPE_LABELS[etype] ~= nil and _(TYPE_LABELS[etype]) or etype
+	if row.gone then
+		-- A snooze whose problem is not detected right now: only the snapshot is known.
+		row.detail = _("Not detected right now")
+		return row
+	end
 	row.detail = model.detailText(row.kind, row.code, row.arg, optStr(row.metric))
 	row.tip = model.tipText(row.kind, row.arg)
 	-- line_unprofitable: the engine's metric is the raw 12-month balance; shown as money.
@@ -531,20 +538,58 @@ function model.build(s : ProblemRadarState) : ProblemRadarHudView
 	return view
 end
 
+--- A snoozed alert that is not stored right now (its problem cleared): a row from the snapshot.
+local function snapshotRow(id : string, z : ProblemRadarSnooze) : ProblemRadarHudRow
+	local info = radar_checks.KINDS[z.kind]
+	if info == nil then return nil end
+	local label = z.label
+	if label == "" and z.entity ~= nil then label = "#" .. tostring(z.entity) end
+	return {
+		id = id, kind = z.kind, tab = info.tab, tier = info.tier, entity = z.entity, label = label,
+		context = z.context, etype = z.etype, kindLabel = "", typeLabel = "", detail = "", metric = "",
+		firstSeen = 0, snoozedUntil = z.untilMs, gone = true,
+	}
+end
+
+local function snoozeBefore(a : ProblemRadarHudRow, b : ProblemRadarHudRow) : boolean
+	if a.snoozedUntil ~= b.snoozedUntil then return a.snoozedUntil < b.snoozedUntil end
+	return a.id < b.id
+end
+
 function model.buildRaw(s : ProblemRadarState) : ProblemRadarHudView
 	local st = type(s) == "table" and s or {} as ProblemRadarState
+	local snoozed = radar_checks.cleanSnoozed(st.snoozed) or {}
 	local rows : {ProblemRadarHudRow} = {}
+	local snoozedRows : {ProblemRadarHudRow} = {}
+	local stored : {string : boolean} = {}
 	if type(st.alerts) == "table" then
 		for __, a in ipairs(st.alerts) do
 			local row = toRow(a)
-			if row ~= nil then rows[#rows + 1] = row end
+			if row ~= nil then
+				local z = snoozed[row.id]
+				if z ~= nil then
+					row.snoozedUntil = z.untilMs
+					snoozedRows[#snoozedRows + 1] = row
+					stored[row.id] = true
+				else
+					rows[#rows + 1] = row
+				end
+			end
+		end
+	end
+	for id, z in pairs(snoozed) do
+		if not stored[id] then
+			local row = snapshotRow(id, z)
+			if row ~= nil then snoozedRows[#snoozedRows + 1] = row end
 		end
 	end
 	table.sort(rows, rowBefore)
+	table.sort(snoozedRows, snoozeBefore)
 
 	local tierCounts : {integer} = { 0, 0, 0 }
-	local tabCounts : {string : integer} = { all = #rows, vehicles = 0, lines = 0, stations = 0, fleet = 0, economy = 0 }
-	local hiddenByTab : {string : integer} = { all = 0, vehicles = 0, lines = 0, stations = 0, fleet = 0, economy = 0 }
+	local tabCounts : {string : integer} = { all = #rows, vehicles = 0, lines = 0, stations = 0, fleet = 0, economy = 0,
+		snoozed = #snoozedRows }
+	local hiddenByTab : {string : integer} = { all = 0, vehicles = 0, lines = 0, stations = 0, fleet = 0, economy = 0, snoozed = 0 }
 	local rowsPerKind : {string : integer} = {}
 	local worst = 0
 	for __, r in ipairs(rows) do
@@ -590,6 +635,7 @@ function model.buildRaw(s : ProblemRadarState) : ProblemRadarHudView
 		badgeText = "",
 		compactText = "",
 		rows = rows,
+		snoozedRows = snoozedRows,
 	}
 end
 
@@ -617,9 +663,11 @@ function model.visibleRows(view : ProblemRadarHudView, tab : string, cap? : inte
 	local limit = cap or model.MAX_RENDERED_ROWS
 	local out : {ProblemRadarHudRow} = {}
 	local matching = 0
-	if view ~= nil and view.rows ~= nil then
-		for __, r in ipairs(view.rows) do
-			if tab == "all" or r.tab == tab then
+	local snoozedTab = tab == model.SNOOZED_TAB
+	local source = view ~= nil and (snoozedTab and view.snoozedRows or view.rows) or nil
+	if source ~= nil then
+		for __, r in ipairs(source) do
+			if tab == "all" or snoozedTab or r.tab == tab then
 				matching = matching + 1
 				if #out < limit then
 					out[#out + 1] = r.kindLabel == "" and model.decorate(copyRow(r)) or r
@@ -629,6 +677,74 @@ function model.visibleRows(view : ProblemRadarHudView, tab : string, cap? : inte
 	end
 	local hidden = view ~= nil and view.hiddenByTab ~= nil and view.hiddenByTab[tab] or 0
 	return out, matching - #out + hidden
+end
+
+--- Snooze clicks the engine has not confirmed yet, applied on top of a polled view so the row moves
+--- at once (the window commits this view, base engine_react_util.useStepStateTimerWithCommit) and stays
+--- moved until a poll shows the engine's own result. `snooze`: id -> estimated end (gameTime ms);
+--- `wake`: ids to unsnooze. Returns the view itself when nothing applies, else a new view (the rows'
+--- tables are shared; counts, rows and snoozedRows are fresh).
+function model.applyPending(view : ProblemRadarHudView, snooze : {string : integer}, wake : {string : boolean}) : ProblemRadarHudView
+	-- Nothing pending (every idle window poll): no walk over the rows.
+	if view == nil or (next(snooze) == nil and next(wake) == nil) then return view end
+	local any = false
+	for __, r in ipairs(view.rows) do
+		if snooze[r.id] ~= nil then any = true break end
+	end
+	if not any then
+		for __, r in ipairs(view.snoozedRows) do
+			if wake[r.id] then any = true break end
+		end
+	end
+	if not any then return view end
+
+	local out : ProblemRadarHudView = {}
+	for k, v in pairs(view as {string : any}) do (out as {string : any})[k] = v end
+	local tabCounts : {string : integer} = {}
+	for k, v in pairs(view.tabCounts) do tabCounts[k] = v end
+	local tierCounts : {integer} = { view.tierCounts[1], view.tierCounts[2], view.tierCounts[3] }
+	local total = view.total
+	local rows : {ProblemRadarHudRow} = {}
+	local snoozedRows : {ProblemRadarHudRow} = {}
+	local function count(r : ProblemRadarHudRow, d : integer)
+		tierCounts[r.tier] = tierCounts[r.tier] + d
+		tabCounts.all = tabCounts.all + d
+		if tabCounts[r.tab] ~= nil and r.tab ~= "all" then tabCounts[r.tab] = tabCounts[r.tab] + d end
+		total = total + d
+	end
+	for __, r in ipairs(view.rows) do
+		local untilMs = snooze[r.id]
+		if untilMs ~= nil then
+			local c = copyRow(r)
+			c.snoozedUntil = untilMs
+			snoozedRows[#snoozedRows + 1] = c
+			count(r, -1)
+		else
+			rows[#rows + 1] = r
+		end
+	end
+	for __, r in ipairs(view.snoozedRows) do
+		if wake[r.id] then
+			if not r.gone then
+				local c = copyRow(r)
+				c.snoozedUntil = nil
+				rows[#rows + 1] = c
+				count(c, 1)
+			end
+		else
+			snoozedRows[#snoozedRows + 1] = r
+		end
+	end
+	table.sort(rows, rowBefore)
+	table.sort(snoozedRows, snoozeBefore)
+	tabCounts.snoozed = #snoozedRows
+	out.rows = rows
+	out.snoozedRows = snoozedRows
+	out.tabCounts = tabCounts
+	out.tierCounts = tierCounts
+	out.total = total
+	out.worstTier = tierCounts[1] > 0 and 1 or (tierCounts[2] > 0 and 2 or (tierCounts[3] > 0 and 3 or 0))
+	return out
 end
 
 --- Creation revisions per alert id, so a click can tell a reused entity id from the entity the

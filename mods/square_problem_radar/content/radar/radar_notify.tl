@@ -31,6 +31,9 @@
 --   * Maps are capped (save size): notified at MAX_NOTIFIED (it only holds ids that are currently
 --     listed, so it is bounded by radar_checks.MAX_STORED_ALERTS anyway), cleared at MAX_CLEARED
 --     (the most recent clears are kept; a dropped one simply toasts again when it comes back).
+--   * Snooze (input.snoozed, radar_checks.snooze): a snoozed id never toasts and is dropped from both
+--     maps (not notified, no cooldown), so when the snooze ends and the problem is still there it is
+--     a new problem and toasts (the player asked to hear about it again after that time).
 -- `changed` is true only when a map changed, so the engine calls state:set only on a transition.
 
 local radar_settings = ug_require "square_problem_radar::/radar/radar_settings.tl" as ProblemRadarSettingsModule
@@ -120,19 +123,22 @@ function notify.step(input : ProblemRadarNotifyInput) : ProblemRadarNotifyResult
 	local cooldown = notify.COOLDOWN_MS
 	local maxToasts = input.maxToasts or notify.MAX_TOASTS
 
+	local snoozed : {any : any} = type(input.snoozed) == "table" and input.snoozed as {any : any} or {}
 	local present : {string : ProblemRadarAlert} = {}
 	for __, a in ipairs(input.alerts or {}) do
-		if type(a) == "table" and type(a.id) == "string" then present[a.id] = a end
+		if type(a) == "table" and type(a.id) == "string" and snoozed[a.id] == nil then present[a.id] = a end
 	end
 
 	local notified : {string : integer} = {}
 	local cleared : {string : integer} = {}
 	for id, t in pairs(cleanMap(input.cleared)) do
 		-- keep only running cooldowns (a time in the future counts as "now")
-		if now - math.min(t, now) < cooldown then cleared[id] = math.min(t, now) end
+		if now - math.min(t, now) < cooldown and snoozed[id] == nil then cleared[id] = math.min(t, now) end
 	end
 	for id, t in pairs(cleanMap(input.notified)) do
-		if present[id] ~= nil then
+		if snoozed[id] ~= nil then
+			-- snoozed: forgotten
+		elseif present[id] ~= nil then
 			notified[id] = t
 		else
 			cleared[id] = now -- it just cleared: the cooldown starts

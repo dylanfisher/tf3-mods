@@ -30,6 +30,8 @@
 --   api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", "ProblemRadar", "ProblemRadar.setSetting", { hudMode = "compact" }))
 --   api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", "ProblemRadar", "ProblemRadar.setSetting", { notify = { veh_stuck = "off" } }))
 --   api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", "ProblemRadar", "ProblemRadar.resetSettings", {}))
+--   api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", "ProblemRadar", "ProblemRadar.snooze", { id = "line_unprofitable:123" }))
+--   api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", "ProblemRadar", "ProblemRadar.unsnooze", {}))
 -- src (console pattern): .cache/game/base/content/game_mechanics/subventions/subventions.script.tl:9-12
 
 local radar_settings = ug_require "square_problem_radar::/radar/radar_settings.tl" as ProblemRadarSettingsModule
@@ -44,6 +46,10 @@ local entity_util = ug_require "::/scripts/entity_util.tl" as EntityUtil
 local EVENT_ID <const> = "ProblemRadar"
 local EV_SET_SETTING <const> = "ProblemRadar.setSetting"
 local EV_RESET_SETTINGS <const> = "ProblemRadar.resetSettings"
+-- Snooze one listed alert ({ id = "<alert id>" }, for settings.snoozeMonths) / end one ({ id = ... }) or
+-- every snooze ({}).
+local EV_SNOOZE <const> = "ProblemRadar.snooze"
+local EV_UNSNOOZE <const> = "ProblemRadar.unsnooze"
 local PREFIX <const> = "[ProblemRadar] "
 -- Notification type: content/radar/notify/radar_notification.{res.lua,script.tl}. The base maps the
 -- type string "<mod>::/<path>.script" to "<path>.res" (notification_util.tl:12-14) and calls
@@ -1262,6 +1268,26 @@ local function subscribe(state : GameScriptState<ProblemRadarState>)
 	state:subscribeToNoEvents()
 	state:subscribeToEvent(EV_SET_SETTING)
 	state:subscribeToEvent(EV_RESET_SETTINGS)
+	state:subscribeToEvent(EV_SNOOZE)
+	state:subscribeToEvent(EV_UNSNOOZE)
+end
+
+--- state:set with the change counter bumped (state.seq): the window's poll compares it and skips the
+--- full read while it is unchanged. Wraps well below 2^31.
+local function save(state : GameScriptState<ProblemRadarState>, s : ProblemRadarState)
+	s.seq = ((s.seq or 0) + 1) % 1000000000
+	state:set(s)
+end
+
+-- Subscriptions are saved with the game, so a save from an older build only has the events that
+-- build knew (revision 2: no snooze events, so the GUI's snooze clicks were dropped). Re-subscribe
+-- once per load; module-local, so every load starts false.
+local subscribedThisLoad = false
+
+local function ensureSubscribed(state : GameScriptState<ProblemRadarState>)
+	if subscribedThisLoad and state:hasEventSubscriptions() then return end
+	subscribe(state)
+	subscribedThisLoad = true
 end
 
 --- Make sure state and subscriptions exist. Called lazily from update() and on lifecycle events
@@ -1269,12 +1295,12 @@ end
 --- Older states (v1, Phase 1) are migrated by radar_checks.upgradeState.
 local function ensureInitialised(state : GameScriptState<ProblemRadarState>, why : string)
 	if isMapEditor() then return end
-	if not state:hasEventSubscriptions() then subscribe(state) end
+	ensureSubscribed(state)
 	local raw = state:get()
 	if needsPrime(raw) then requestPrime(nil) end
 	local s, changed = radar_checks.upgradeState(raw)
 	if changed then
-		state:set(s)
+		save(state, s)
 		log.message(PREFIX .. "state initialised (" .. why .. ")")
 	end
 end
@@ -1314,9 +1340,41 @@ local function handleSettings(state : GameScriptState<ProblemRadarState>, name :
 		local primed = radar_notify.newlyNotify(old, newSettings)
 		if primed ~= nil then requestPrime(primed) end
 		s.settings = newSettings
-		state:set(s)
+		save(state, s)
 		log.message(PREFIX .. (name == EV_RESET_SETTINGS and "settings reset: " or "settings: ") .. settingsDiff(old, newSettings))
 	end
+end
+
+--- Game ms in `months` calendar months at the current calendar speed (GAME_SPEED.millisPerDay, as
+--- base scripts/util.tl formatDurationWithCurrentCalenderSpeed); the default month when the calendar
+--- is frozen (millisPerDay 0) or unreadable.
+local function monthsMs(months : integer) : integer
+	local gs = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.GAME_SPEED) as Engine.Component.GameSpeed
+	local mpd = gs ~= nil and gs.millisPerDay or 0
+	local month = mpd ~= nil and mpd > 0 and api.util.getMonthDuration(mpd) or api.util.getDefaultMonthDuration()
+	return math.floor(months * month)
+end
+
+--- "ProblemRadar.snooze" { id } / "ProblemRadar.unsnooze" { id } or {} (all): radar_checks.snooze /
+--- unsnooze, saved only when something changed. Notifications follow on the next notify step.
+local function handleSnooze(state : GameScriptState<ProblemRadarState>, name : string, param : any)
+	if isMapEditor() then return end
+	local p = type(param) == "table" and param as {string : any} or {}
+	local id = type(p.id) == "string" and p.id as string or nil
+	local s = radar_checks.upgradeState(state:get())
+	local new, changed : ProblemRadarState, boolean
+	if name == EV_SNOOZE then
+		if id == nil then return end
+		local gt = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.GAME_TIME) as Engine.Component.GameTime
+		if gt == nil then return end
+		local months = radar_settings.normalize(s.settings).snoozeMonths
+		new, changed = radar_checks.snooze(s, id, gt.gameTime + monthsMs(months))
+		if changed then log.message(PREFIX .. "snoozed " .. id .. " for " .. tostring(months) .. " months") end
+	else
+		new, changed = radar_checks.unsnooze(s, id)
+		if changed then log.message(PREFIX .. "unsnoozed " .. (id or "all")) end
+	end
+	if changed then save(state, new) end
 end
 
 --- Raise the notifications decided by radar_notify.step. Base pattern: a Notification table sent
@@ -1400,6 +1458,7 @@ local function scanGroup(state : GameScriptState<ProblemRadarState>, group : str
 			cleared = merged.notifyCleared,
 			silentAll = primeAll,
 			silentKinds = primeKinds,
+			snoozed = merged.snoozed,
 		})
 		if nr.changed then
 			merged.notified = nr.notified
@@ -1419,7 +1478,7 @@ local function scanGroup(state : GameScriptState<ProblemRadarState>, group : str
 	end
 
 	if changed then
-		state:set(merged)
+		save(state, merged)
 		if upgraded then log.message(PREFIX .. "state initialised (update)") end
 	end
 	if #sendToasts > 0 or sendMore > 0 then
@@ -1436,7 +1495,7 @@ local function doUpdate(state : GameScriptState<ProblemRadarState>, dt : number)
 	-- (src: .cache/game/base/content/industries/industry_workers.script.tl:19-21); the state
 	-- itself is built/migrated by the first scan slot (scanGroup → upgradeState).
 	if isMapEditor() then return end
-	if not state:hasEventSubscriptions() then
+	if not subscribedThisLoad or not state:hasEventSubscriptions() then
 		ensureInitialised(state, "update")
 	end
 
@@ -1468,6 +1527,8 @@ local function doHandleEvent(state : GameScriptState<ProblemRadarState>, id : st
 		-- Sent by the GUI: api.cmd.makeScriptingSendEventCmd("", "ProblemRadar", name, param)
 		-- (.cache/game/api/tealdef/api/cmd.d.tl:788; GUI usage subventions_gui.tl:135)
 		handleSettings(state, name, param)
+	elseif id == EVENT_ID and (name == EV_SNOOZE or name == EV_UNSNOOZE) then
+		handleSnooze(state, name, param)
 	end
 end
 
