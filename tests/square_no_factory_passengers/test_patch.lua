@@ -50,17 +50,20 @@ local function loads(line)
 	return out
 end
 
-local fakeLineUtil, patch, baseCalls, paxFetches
+local fakeLineUtil, patch, baseCalls, paxFetches, cargoFetches, componentReads
 
 before_each(function()
 	reset_modules()
 	clear_logs()
 	baseCalls = 0
 	paxFetches = 0
+	cargoFetches = 0
+	componentReads = 0
 	set_global("api", {
 		type = { ComponentType = CT },
 		engine = {
 			getComponent = function(e, t)
+				componentReads = componentReads + 1
 				if t == CT.STATION_GROUP then return world.groups[e] end
 				if t == CT.INDUSTRY then return world.industries[e] end
 				if t == CT.TOWN_BUILDING then return world.townBuildings[e] end
@@ -69,7 +72,10 @@ before_each(function()
 				error("full entity scan on the GUI thread")
 			end,
 			system = { catchmentAreaSystem = { getStationCatchables = function(st, cargo)
-				if cargo then return world.cargo[st] or {} end
+				if cargo then
+					cargoFetches = cargoFetches + 1
+					return world.cargo[st] or {}
+				end
 				paxFetches = paxFetches + 1
 				return world.pax[st] or {}
 			end } },
@@ -140,11 +146,21 @@ test("factory -> dock: both stops cleared", function()
 	eq(loads(line), { { false, true }, { false, false } })
 end)
 
-test("dock -> town without a factory keeps passengers, pax catchables never fetched", function()
+test("dock -> town without a factory keeps passengers", function()
 	local line = { path = { via(700, { false }), via(200, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
 	eq(loads(line), { { true }, { true } })
-	eq(paxFetches, 0)
+	eq(cargoFetches, 1, "only the dock (no homes) is tested for an industry")
+end)
+
+test("town line: one passenger fetch and one home test per group, no cargo scan", function()
+	local line = { path = { via(200, { false }), via(300, { false }), via(200, { false }) } }
+	fakeLineUtil.autoLoadConfig(line)
+	eq(loads(line), { { true }, { true }, { true } })
+	eq(paxFetches, 2)
+	eq(cargoFetches, 0)
+	-- 2 STATION_GROUP reads + 601 (home) at 2000 + 500 (workplace), 602 (home) at 3000
+	eq(componentReads, 5)
 end)
 
 test("factory -> dock -> town: town stop keeps passengers", function()
@@ -156,7 +172,8 @@ end)
 test("passenger catchables fetched once per group", function()
 	local line = { path = { via(200, { false }), via(100, { false }), via(200, { false }), via(100, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
-	eq(paxFetches, 2, "group 100, then group 200 for the line rule; cached for the repeats")
+	eq(paxFetches, 2, "once per distinct group, not per stop")
+	eq(cargoFetches, 1, "only group 100 reaches no homes")
 	eq(loads(line), { { true }, { false }, { true }, { false } })
 end)
 
