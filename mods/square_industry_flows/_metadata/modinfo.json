@@ -2,6 +2,56 @@
     "name": "Industry Flows",
     "summary": "Show the cargo-flow arrows of every industry of one type at once.",
     "description": "Shows the cargo-flow arrows of every industry of the types you pick, all at once. Open it with the Flows button in the top-left button ridge.",
+    "localization": {
+        "ru": {
+            "name": "Потоки предприятий",
+            "summary": "Стрелки грузопотоков всех предприятий одного типа сразу."
+        },
+        "de": {
+            "name": "Industrieströme",
+            "summary": "Zeigt die Frachtstrom-Pfeile aller Industrien eines Typs auf einmal."
+        },
+        "fr": {
+            "name": "Flux industriels",
+            "summary": "Affiche d'un coup les flèches de flux de toutes les industries d'un même type."
+        },
+        "es": {
+            "name": "Flujos industriales",
+            "summary": "Muestra a la vez las flechas de flujo de carga de todas las industrias de un tipo."
+        },
+        "it": {
+            "name": "Flussi industriali",
+            "summary": "Mostra insieme le frecce dei flussi di merci di tutte le industrie di un tipo."
+        },
+        "nl": {
+            "name": "Industriestromen",
+            "summary": "Toon de vrachtstroompijlen van alle industrieën van één type tegelijk."
+        },
+        "pl": {
+            "name": "Przepływy przemysłowe",
+            "summary": "Pokazuje naraz strzałki przepływu towarów wszystkich zakładów jednego typu."
+        },
+        "pt_BR": {
+            "name": "Fluxos industriais",
+            "summary": "Mostra de uma vez as setas de fluxo de carga de todas as indústrias de um tipo."
+        },
+        "ja": {
+            "name": "産業フロー",
+            "summary": "同じ種類のすべての産業の貨物フロー矢印を一度に表示します。"
+        },
+        "ko": {
+            "name": "산업 흐름",
+            "summary": "한 종류의 모든 산업의 화물 흐름 화살표를 한 번에 표시합니다."
+        },
+        "zh_CN": {
+            "name": "产业流向",
+            "summary": "一次显示同一类型所有产业的货物流向箭头。"
+        },
+        "zh_TW": {
+            "name": "產業流向",
+            "summary": "一次顯示同一類型所有產業的貨物流向箭頭。"
+        }
+    },
     "authors": [
         {
             "name": "square",
