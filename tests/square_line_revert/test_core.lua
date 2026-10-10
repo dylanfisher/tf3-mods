@@ -135,6 +135,27 @@ test("line settings", function()
 	eq(core.diffSummary(a, snap({ stop(10) }, { customFilters = true })), "line settings changed")
 end)
 
+test("fill: named placeholders, any order, missing ones kept, % in values", function()
+	eq(core.fill("{b} then {a}", { a = 1, b = "x" }), "x then 1")
+	eq(core.fill("{n} and {gone}", { n = 2 }), "2 and {gone}")
+	eq(core.fill("{diff}", { diff = "50%" }), "50%")
+end)
+
+test("diffSummary translates each phrase and the list separator", function()
+	local T = {
+		["{list}, {item}"] = "{list}、{item}",
+		["{n} stops removed"] = "removed: {n}",
+		["1 stop added"] = "one added",
+	}
+	local orig = _
+	set_global("_", function(s) return T[s] or s end)
+	local okRun, err = pcall(function()
+		eq(core.diffSummary(snap({ stop(10), stop(20), stop(30) }), snap({ stop(10), stop(40) })), "removed: 2、one added")
+	end)
+	set_global("_", orig)
+	if not okRun then error(err, 0) end
+end)
+
 test("equal: extra or missing keys differ", function()
 	ok(core.equal({ a = 1 }, { a = 1 }))
 	ok(not core.equal({ a = 1 }, { a = 1, b = 2 }))

@@ -2,6 +2,56 @@
     "name": "Line Editor Undo",
     "summary": "Undo and redo edits of a line's stops one step at a time, or undo all at once with Shift+click.",
     "description": "Undo and redo edits of a line's stops in the line manager, one step at a time, or undo all at once with Shift+click. GUI only: stores nothing in the savegame.",
+    "localization": {
+        "ru": {
+            "name": "Отмена в редакторе маршрутов",
+            "summary": "Отменяйте и повторяйте правки остановок маршрута по шагу или отмените всё через Shift+щелчок."
+        },
+        "de": {
+            "name": "Linieneditor: Rückgängig",
+            "summary": "Änderungen an den Halten einer Linie Schritt für Schritt rückgängig machen, mit Shift+Klick alle."
+        },
+        "fr": {
+            "name": "Annuler dans l'éditeur de ligne",
+            "summary": "Annulez et rétablissez les arrêts d'une ligne pas à pas, ou annulez tout d'un coup avec Maj+clic."
+        },
+        "es": {
+            "name": "Deshacer en editor de líneas",
+            "summary": "Deshaz y rehaz cambios en las paradas de una línea paso a paso, o deshaz todo con Mayús+clic."
+        },
+        "it": {
+            "name": "Annulla nell'editor linee",
+            "summary": "Annulla e ripeti le modifiche alle fermate di una linea passo per passo, o tutte con Maiusc+clic."
+        },
+        "nl": {
+            "name": "Lijneditor ongedaan maken",
+            "summary": "Maak wijzigingen aan de haltes van een lijn stap voor stap ongedaan, of alles met Shift+klik."
+        },
+        "pl": {
+            "name": "Cofanie w edytorze linii",
+            "summary": "Cofaj i ponawiaj zmiany przystanków linii krok po kroku albo cofnij wszystko przez Shift+klik."
+        },
+        "pt_BR": {
+            "name": "Desfazer no editor de linhas",
+            "summary": "Desfaça e refaça edições nas paradas de uma linha passo a passo, ou desfaça tudo com Shift+clique."
+        },
+        "ja": {
+            "name": "路線エディターの元に戻す",
+            "summary": "路線の停留所の編集を 1 手ずつ元に戻す／やり直し、Shift+クリックですべて元に戻せます。"
+        },
+        "ko": {
+            "name": "노선 편집기 실행 취소",
+            "summary": "노선 정류장 편집을 한 단계씩 실행 취소하거나 다시 실행하고, Shift+클릭으로 모두 되돌립니다."
+        },
+        "zh_CN": {
+            "name": "线路编辑器撤销",
+            "summary": "逐步撤销和重做线路站点的编辑，或按 Shift+单击一次全部撤销。"
+        },
+        "zh_TW": {
+            "name": "路線編輯器復原",
+            "summary": "逐步復原與重做路線站點的編輯，或按 Shift+點擊一次全部復原。"
+        }
+    },
     "authors": [
         {
             "name": "square",
