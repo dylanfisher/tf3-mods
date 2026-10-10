@@ -145,9 +145,11 @@ function data()
 		color = colorDefault.NeutralLight,
 	})
 
+	-- Wraps: translated details (de/fr/ru) run longer than the English ~45 characters.
 	a(WIN .. " TextView!radar-cell-detail", {
 		minSize = { 280, -1 },
 		maxSize = { 280, -1 },
+		textAutoWrap = true,
 	})
 
 	a(WIN .. " TextView!radar-cell-metric", {
@@ -190,6 +192,7 @@ function data()
 	a(WIN .. " TextView!radar-set-kind", {
 		minSize = { 120, -1 },
 		maxSize = { 120, -1 },
+		textAutoWrap = true, -- translated alert names can be longer than 120 px
 	})
 
 	a(WIN .. " TextView!radar-set-tier", {

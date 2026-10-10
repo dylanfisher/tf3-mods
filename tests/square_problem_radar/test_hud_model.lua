@@ -438,3 +438,46 @@ test("Phase 6: trackRevisions remembers each listed entity's revision; sameRevis
 	ok(model.sameRevision(nil, 10), "unknown counts as the same")
 	ok(model.sameRevision(9, nil))
 end)
+
+-- translations ---------------------------------------------------------------
+
+test("metricText: the engine's unit letters go through _() templates; other metrics unchanged", function()
+	eq(model.metricText("veh_stuck", "12m"), "12m")
+	eq(model.metricText("veh_stuck", "1h05m"), "1h05m")
+	eq(model.metricText("train_blocked_by", "20m +2"), "20m +2")
+	eq(model.metricText("train_blocked_by", "1h05m +2"), "1h05m +2")
+	eq(model.metricText("fleet_idle_depot", "31d"), "31d")
+	eq(model.metricText("line_cargo_not_unloaded", "3 veh · 42"), "3 veh · 42")
+	eq(model.metricText("line_overloaded", "2.8×"), "2.8×")
+	eq(model.metricText("fleet_worn", "40%"), "40%")
+	eq(model.metricText("veh_stuck", ""), "")
+	eq(model.metricText("veh_stuck", nil), nil)
+end)
+
+test("translated templates: units, joins and parentheses come from _(), names stay as they are", function()
+	local fake = {
+		["{m}m"] = "{m} мин", ["{h}h{m}m"] = "{h} ч {m} мин", ["{n}d"] = "{n} дн.",
+		["{n} veh · {cargo}"] = "{n} ТС · {cargo}",
+		["{text}, next stop {stop}"] = "{text}, след. {stop}",
+		["Standing {time}"] = "Стоит {time}",
+		["{text}: {reason}"] = "{text} - {reason}",
+		["{kind}: {name}"] = "[{kind}] {name}",
+		["{text} ({context})"] = "{text} <{context}>",
+	}
+	local real = _
+	_ = function(s) return fake[s] or s end
+	local okRun, err = pcall(function()
+		eq(model.metricText("veh_stuck", "1h05m"), "1 ч 05 мин")
+		eq(model.metricText("train_blocked_by", "20m +2"), "20 мин +2")
+		eq(model.metricText("fleet_idle_depot", "31d"), "31 дн.")
+		eq(model.metricText("line_cargo_not_unloaded", "3 veh · 42"), "3 ТС · 42")
+		eq(model.detailText("veh_stuck", "ROAD", "Central", "12m"), "Стоит 12 мин, след. Central")
+		eq(model.detailText("veh_nopath", "NoPathElectric", "NoElectric"), "No Electrified Path - Missing electric tracks.")
+		local title, desc = model.notificationText({ kind = "veh_stuck", tier = 1, label = "Bus 14", code = "ROAD",
+			metric = "3m", context = "Line 14" })
+		eq(title, "[Stuck] Bus 14")
+		eq(desc, "Стоит 3 мин <Line 14>")
+	end)
+	_ = real
+	if not okRun then error(err, 0) end
+end)
