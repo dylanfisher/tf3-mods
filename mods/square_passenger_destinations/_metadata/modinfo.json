@@ -2,6 +2,56 @@
     "name": "Passenger Destinations",
     "summary": "Arrows from a station or person to the homes, shops and workplaces passengers travel to.",
     "description": "Arrows from a station or person to the homes, shops and workplaces passengers travel to. Adds a card to the station and person windows.",
+    "localization": {
+        "ru": {
+            "name": "Цели пассажиров",
+            "summary": "Стрелки от станции или человека к домам, магазинам и местам работы, куда едут пассажиры."
+        },
+        "de": {
+            "name": "Passagierziele",
+            "summary": "Pfeile von einer Station oder Person zu den Wohnungen, Läden und Arbeitsplätzen der Passagiere."
+        },
+        "fr": {
+            "name": "Destinations des passagers",
+            "summary": "Flèches d'une gare ou d'une personne vers les domiciles, commerces et lieux de travail visés."
+        },
+        "es": {
+            "name": "Destinos de pasajeros",
+            "summary": "Flechas de una estación o persona a los hogares, tiendas y trabajos a los que viajan los pasajeros."
+        },
+        "it": {
+            "name": "Destinazioni passeggeri",
+            "summary": "Frecce da una stazione o persona verso case, negozi e posti di lavoro dove vanno i passeggeri."
+        },
+        "nl": {
+            "name": "Reisbestemmingen",
+            "summary": "Pijlen van een station of persoon naar de woningen, winkels en werkplekken waar reizigers heen gaan."
+        },
+        "pl": {
+            "name": "Cele pasażerów",
+            "summary": "Strzałki od stacji lub osoby do domów, sklepów i miejsc pracy, do których jadą pasażerowie."
+        },
+        "pt_BR": {
+            "name": "Destinos dos passageiros",
+            "summary": "Setas de uma estação ou pessoa até as casas, lojas e trabalhos para onde os passageiros vão."
+        },
+        "ja": {
+            "name": "旅客の行き先",
+            "summary": "駅や人物から、旅客が向かう自宅・店舗・職場へ矢印を表示します。"
+        },
+        "ko": {
+            "name": "승객 목적지",
+            "summary": "역이나 사람에서 승객이 향하는 집, 상점, 직장까지 화살표를 표시합니다."
+        },
+        "zh_CN": {
+            "name": "乘客目的地",
+            "summary": "从车站或个人指向乘客前往的住宅、商店和工作地点的箭头。"
+        },
+        "zh_TW": {
+            "name": "乘客目的地",
+            "summary": "從車站或個人指向乘客前往的住家、商店與工作地點的箭頭。"
+        }
+    },
     "authors": [
         {
             "name": "square",
