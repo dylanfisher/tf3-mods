@@ -7,6 +7,13 @@
 local MOD_ID = "square_names_us_arizona"
 local TAG = "[" .. MOD_ID .. "] "
 
+-- SQPERF (plans/sqperf/README.md): sections towns, streets. The engine asks for streets ~260 times per load
+-- (docs/findings.md), so the level 1 lines with counts are for the first call of each in this Lua state only.
+-- No api.engine here (Probe 3), so the level 3 gate reads as Off; the slow-call watchdog still works.
+local sqperf = require(MOD_ID .. "::/sqperf/" .. MOD_ID .. ".lua")
+local perf = sqperf.new({ mod = MOD_ID, ctx = "names", paramKey = "sqperf_log" })
+local t0 = perf:start()
+
 local function req(file)
 	return require(MOD_ID .. "::/" .. MOD_ID .. "/" .. file)
 end
@@ -65,7 +72,7 @@ local function plainTowns(rows, num)
 	return res
 end
 
-local function townsFn(captureParams, params)
+local function townsBody(captureParams, params)
 	local num = (params and tonumber(params.num)) or -1
 	local rows = townRows()
 	local ok, res = pcall(function()
@@ -87,7 +94,7 @@ local function townsFn(captureParams, params)
 	return plainTowns(rows, num)
 end
 
-local function streetsFn(_captureParams, params)
+local function streetsBody(_captureParams, params)
 	local num = (params and tonumber(params.num)) or -1
 	local ok, streets = pcall(req, "data/streets.lua")
 	if not ok or type(streets) ~= "table" or #streets == 0 then
@@ -104,6 +111,38 @@ local function streetsFn(_captureParams, params)
 	for i = 1, num do res[i] = streets[math.random(1, #streets)] end
 	return res
 end
+
+--- Level 1 line with counts: `phase=<name> ms=… timer=… <name>=<count> num=<num>` (perf:phase with a detail
+--- pattern: logged when ms >= the instrument's threshold or its level 3 is on, formatted only then).
+local function phaseCounts(name, t, n, num)
+	perf:phase(name, t, "%s=%d num=%s", name, type(n) == "table" and #n or 0, tostring(num))
+end
+
+local townsLogged, streetsLogged = false, false
+
+local function townsFn(captureParams, params)
+	local t = perf:start()
+	local res = townsBody(captureParams, params)
+	perf:stop("towns", t)
+	if not townsLogged then
+		townsLogged = true
+		phaseCounts("towns", t, res, params and params.num)
+	end
+	return res
+end
+
+local function streetsFn(captureParams, params)
+	local t = perf:start()
+	local res = streetsBody(captureParams, params)
+	perf:stop("streets", t)
+	if not streetsLogged then
+		streetsLogged = true
+		phaseCounts("streets", t, res, params and params.num)
+	end
+	return res
+end
+
+perf:phase("init", t0)
 
 function data()
 	return {

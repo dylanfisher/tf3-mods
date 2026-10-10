@@ -1,7 +1,7 @@
 {
     "name": "Arizona Towns & Streets",
-    "summary": "Real Arizona towns, streets for your stops, and real station names.",
-    "description": "Real Arizona towns, streets for your stops, and real station names. Adds the name set \"Arizona (Towns & Streets)\" and renames new stops and stations in known Arizona cities.",
+    "summary": "Real Arizona towns, plus real local names for the stops and stations you build.",
+    "description": "Real Arizona towns, plus real local names for the stops and stations you build. Adds the name set \"Arizona (Towns & Streets)\" and renames new stops and stations in known Arizona cities.",
     "authors": [
         {
             "name": "square",

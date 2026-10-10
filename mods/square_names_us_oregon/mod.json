@@ -1,6 +1,6 @@
 {
     "modId": "square_names_us_oregon",
-    "revision": 3,
+    "revision": 4,
     "severityAdd": "None",
     "severityRemove": "Warning",
     "visible": true,
@@ -36,6 +36,17 @@
             "numbers": [
                 1.0,
                 0.0
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, this mod writes how long its name lists and station renaming took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus one line per renamed stop or station. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
             ],
             "defaultIndex": 0
         }

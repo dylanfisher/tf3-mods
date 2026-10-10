@@ -1,7 +1,7 @@
 {
     "name": "Washington Towns & Streets",
-    "summary": "Real Washington towns, streets for your stops, and real station names.",
-    "description": "Real Washington towns, streets for your stops, and real station names. Adds the name set \"Washington (Towns & Streets)\" and renames new stops and stations in known Washington cities.",
+    "summary": "Real Washington towns, plus real local names for the stops and stations you build.",
+    "description": "Real Washington towns, plus real local names for the stops and stations you build. Adds the name set \"Washington (Towns & Streets)\" and renames new stops and stations in known Washington cities.",
     "authors": [
         {
             "name": "square",

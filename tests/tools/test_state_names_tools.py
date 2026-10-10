@@ -315,6 +315,14 @@ class GenTest(unittest.TestCase):
             self.assertIn('"Pena Street"', by_name["cities.lua"])
             self.assertIn("like Pena Street", by_name["description.html"])
             self.assertNotIn("ñ", by_name["description.html"])
+            # SQPERF: the copy tools/sqperf_sync.py would write, and the debug param after the two saved ones
+            mod_dir = gen.MODS_DIR / mod_id
+            self.assertEqual(files[mod_dir / "content" / "sqperf" / f"{mod_id}.lua"].encode("utf-8"),
+                             (gen.ROOT / "tools" / "sqperf" / "sqperf.lua").read_bytes())
+            self.assertIn("record SquareNamesUsZzSqPerf", files[mod_dir / "content" / "sqperf" / f"{mod_id}_types.d.tl"])
+            params = json.loads(files[mod_dir / "mod.json"])["params"]
+            self.assertEqual([p["key"] for p in params], ["streetNames", "stationNames", "sqperf_log"])
+            self.assertEqual(params[2]["values"], ["Off", "On"])
             (d / "state.lua").write_text((d / "state.lua").read_text(encoding="utf-8").replace("minTowns = 2", "minTowns = 3"),
                                          encoding="utf-8")
             _, _, errors = gen.render("us_zz")

@@ -22,6 +22,8 @@ Outputs (all overwritten; files the generator no longer produces are removed fro
   mods/<modId>/content/<modId>/{mod.script,names.script,rename.script,rename.gs,sn_logic}.lua
   mods/<modId>/content/<modId>/data/{towns,streets,cities,state,contested}.lua
   mods/<modId>/content/<modId>_presence.lua (presence marker, same text as tools/new_mod.py)
+  mods/<modId>/content/sqperf/<modId>{.lua,_types.d.tl} (SQPERF copy, exactly what tools/sqperf_sync.py writes;
+               plans/sqperf/README.md), so `make sqperf-sync MOD=... ARGS=--check` agrees with --check here
                contested.lua: city names (keys/aliases) shared with other states' cities.lua -> the modId
                of the bigger city (towns.tsv population), computed across every data/states/*
   tests/<modId>/test_*.lua
@@ -45,6 +47,7 @@ from lupa.lua54 import LuaRuntime
 sys.path.insert(0, str(Path(__file__).parent))
 from hubconfig import MODS_DIR, ROOT  # noqa: E402
 from new_mod import PRESENCE_STUB  # noqa: E402
+import sqperf_sync  # noqa: E402
 
 DATA_DIR = ROOT / "data" / "states"
 TEMPLATES = ROOT / "templates" / "state_names"
@@ -489,6 +492,19 @@ def render(key: str) -> tuple[str, dict[Path, str], list[str]]:
                 "numbers": [1.0, 0.0],
                 "defaultIndex": 0,
             },
+            # SQPERF level 3 gate (plans/sqperf/README.md), copied from square_problem_radar's mod.json. Always
+            # last: saves store params by key, and the two above keep their order and indices.
+            {
+                "key": "sqperf_log",
+                "name": "Debug: performance log",
+                "tooltip": "Off: normal play. On: every 30 s, this mod writes how long its name lists and station "
+                           "renaming took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus one "
+                           "line per renamed stop or station. Only for tracking down slowdowns; leave it Off "
+                           "otherwise. Slow calls are always logged briefly, whatever this setting.",
+                "uiType": "Button",
+                "values": ["Off", "On"],
+                "defaultIndex": 0,
+            },
         ],
     }
     files[mod / "mod.json"] = json.dumps(mod_json, indent=4, ensure_ascii=False) + "\n"
@@ -520,6 +536,10 @@ def render(key: str) -> tuple[str, dict[Path, str], list[str]]:
     files[pkg / "data" / "contested.lua"] = contested_lua(key, contested_map(key))
     # Presence marker every hub mod ships (tools/new_mod.py); rendered here so a regeneration keeps it.
     files[content / f"{mod_id}_presence.lua"] = PRESENCE_STUB.format(mod_id=mod_id)
+    # SQPERF copy: the same files and bytes tools/sqperf_sync.py would write (no tealdef/ here, so only the two
+    # content/sqperf/ files). Rendered here because everything under content/ not rendered counts as stale.
+    for path, data in sqperf_sync.expected(mod).items():
+        files[path] = data.decode("utf-8")
     for test in sorted((TEMPLATES / "tests").glob("test_*.lua")):
         files[TESTS_DIR / mod_id / test.name] = header + subst(test.read_text(encoding="utf-8"), mod_id, key)
     return mod_id, files, errors
@@ -549,7 +569,8 @@ def main() -> None:
         for e in errors:
             print(f"lint: {e}")
         failed |= bool(errors)
-        stale = [p for p, text in files.items() if not p.exists() or p.read_text(encoding="utf-8") != text]
+        # Compared and written as bytes: the SQPERF copies must match tools/sqperf/ byte for byte.
+        stale = [p for p, text in files.items() if not p.exists() or p.read_bytes() != text.encode("utf-8")]
         extra = sorted(managed_existing(mod_id) - set(files))
         rel = lambda p: p.relative_to(ROOT).as_posix()  # noqa: E731
         if args.check:
@@ -565,7 +586,7 @@ def main() -> None:
             continue
         for p in stale:
             p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(files[p], encoding="utf-8")
+            p.write_bytes(files[p].encode("utf-8"))
         for p in extra:
             p.unlink()
         print(f"{mod_id}: {len(files)} files, {len(stale)} written, {len(extra)} removed")

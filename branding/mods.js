@@ -339,6 +339,8 @@ Square.stateCover({
 Square.stateCover({
   id: 'square_names_us_hawaii', state: 'Hawaii', flag: 'us_hawaii.svg', flagAspect: 2.0, accent: '#D63384',
 });
+
+// Local SQ Opt forks (gitignored, never uploaded): fork-orange field instead of the teal. README "Local forks".
 Square.forkCover({
   id: 'square_opt_zhenya_auto_assign_terminals', name: 'SQ Opt: Auto Assign Terminals',
 });
@@ -349,6 +351,9 @@ Square.devCover({
 });
 Square.devCover({
   id: 'square_line_revert_probe', name: 'DEV Line Revert Probe', group: 'lines',
+});
+Square.devCover({
+  id: 'square_roundabouts_lanes_probe', name: 'DEV Roundabouts Lane Probe', group: 'roundabouts',
 });
 Square.devCover({
   id: 'square_roundabouts_probe', name: 'DEV Roundabouts Probe', group: 'roundabouts',

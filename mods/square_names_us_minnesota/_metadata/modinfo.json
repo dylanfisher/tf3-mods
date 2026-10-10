@@ -1,7 +1,7 @@
 {
     "name": "Minnesota Towns & Streets",
-    "summary": "Real Minnesota towns, streets for your stops, and real station names.",
-    "description": "Real Minnesota towns, streets for your stops, and real station names. Adds the name set \"Minnesota (Towns & Streets)\" and renames new stops and stations in known Minnesota cities.",
+    "summary": "Real Minnesota towns, plus real local names for the stops and stations you build.",
+    "description": "Real Minnesota towns, plus real local names for the stops and stations you build. Adds the name set \"Minnesota (Towns & Streets)\" and renames new stops and stations in known Minnesota cities.",
     "authors": [
         {
             "name": "square",

@@ -1,7 +1,7 @@
 {
     "name": "California Towns & Streets",
-    "summary": "Real California towns, streets for your stops, and real station names.",
-    "description": "Real California towns, streets for your stops, and real station names. Adds the name set \"California (Towns & Streets)\" and renames new stops and stations in known California cities.",
+    "summary": "Real California towns, plus real local names for the stops and stations you build.",
+    "description": "Real California towns, plus real local names for the stops and stations you build. Adds the name set \"California (Towns & Streets)\" and renames new stops and stations in known California cities.",
     "authors": [
         {
             "name": "square",

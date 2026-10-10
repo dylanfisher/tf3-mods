@@ -1,7 +1,7 @@
 {
     "name": "Hawaii Towns & Streets",
-    "summary": "Real Hawaii towns, streets for your stops, and real station names.",
-    "description": "Real Hawaii towns, streets for your stops, and real station names. Adds the name set \"Hawaii (Towns & Streets)\" and renames new stops and stations in known Hawaii cities.",
+    "summary": "Real Hawaii towns, plus real local names for the stops and stations you build.",
+    "description": "Real Hawaii towns, plus real local names for the stops and stations you build. Adds the name set \"Hawaii (Towns & Streets)\" and renames new stops and stations in known Hawaii cities.",
     "authors": [
         {
             "name": "square",
