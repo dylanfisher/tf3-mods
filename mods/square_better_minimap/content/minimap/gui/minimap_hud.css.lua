@@ -1,6 +1,7 @@
 -- Minimap styles. Pattern: mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
 -- (.css.lua files are picked up by extension, docs/wiki/modding/general/resourcetypes.md "Stylesheets").
--- EVERY rule is scoped under one of our own recipe names (R::MinimapHudPlugin, R::MinimapContent)
+-- EVERY rule is scoped under one of our own recipe names (R::MinimapHudPlugin, R::MinimapContent,
+-- R::MinimapSizeButton)
 -- or our own window id (#squareminimap.window), so nothing here touches base UI or other mods.
 -- Colour names: .cache/game/base/content/gui/main/default_colors.gres.lua.
 -- The preview and camera-box sizes are set per render with meta.styleSheet (styleutil.makeStyle,
@@ -52,8 +53,21 @@ function data()
 		padding = { 2, 4, 2, 4 },
 	})
 
-	a(WIN .. " Button!minimap-small-button", {
-		padding = { 1, 6, 1, 6 },
+	-- Size toggle (its own recipe, in the window header or the control row: minimap_hud.script.tl
+	-- SIZE_BUTTON_IN_HEADER): our tight magnifier mask (SIZE_ICON, zoom@2x.tga), tinted light (greyscale masks take
+	-- the ImageView `color`: game_bar.css.lua:520-527). 14 px was too small to read in game.
+	local SIZE_BTN = "R::MinimapSizeButton"
+	a(SIZE_BTN .. " Button!minimap-size-button", {
+		padding = { 2, 4, 2, 4 },
+	})
+	-- No "Map" title (2026-10-10, user): the title is empty; hide its (padded) TextView too. The header
+	-- button stays at the left end (right-aligning it next to the pin failed in game).
+	a("Window" .. WINDOW .. " Window::Title", {
+		visibility = "none",
+	})
+	a(SIZE_BTN .. " ImageView!minimap-size-icon", {
+		size = { 24, 24 }, -- zoom@2x.tga is 48x48: 1:1
+		color = colorDefault.NeutralLightest,
 	})
 
 	-- Camera view footprint: hollow rectangle.
@@ -63,10 +77,10 @@ function data()
 		backgroundColor = colorDefault.Invisible,
 	})
 
-	-- View direction arrow inside the box: the white arrow mask tinted in the box colour
-	-- (ImageView `color` tint: game_bar.css.lua:161-165).
+	-- View direction triangle inside the box: white, untinted (its dark halo is baked into the icon;
+	-- ImageView `color` tint: game_bar.css.lua:161-165).
 	a(WIN .. " ImageView!minimap-cam-arrow", {
-		color = colorDefault.Warning,
+		color = colorDefault.NeutralLightest,
 	})
 
 

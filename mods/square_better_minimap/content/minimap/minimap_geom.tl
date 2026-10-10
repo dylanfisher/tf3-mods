@@ -238,6 +238,8 @@ function geom.readPrefs(raw : any, nSizes : integer, minTop : number) : SquareMi
 	end
 	p.pinned = bool(t.pinned)
 	p.showIndustries = bool(t.showIndustries)
+	p.showNet = bool(t.showNet)
+	p.hiVis = bool(t.hiVis)
 	p.open = bool(t.open)
 	return p
 end
