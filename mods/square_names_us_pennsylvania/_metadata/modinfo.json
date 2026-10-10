@@ -1,7 +1,7 @@
 {
     "name": "Pennsylvania Towns & Streets",
-    "summary": "Real Pennsylvania towns, streets for your stops, and real station names.",
-    "description": "Real Pennsylvania towns, streets for your stops, and real station names. Adds the name set \"Pennsylvania (Towns & Streets)\" and renames new stops and stations in known Pennsylvania cities.",
+    "summary": "Real Pennsylvania towns, plus real local names for the stops and stations you build.",
+    "description": "Real Pennsylvania towns, plus real local names for the stops and stations you build. Adds the name set \"Pennsylvania (Towns & Streets)\" and renames new stops and stations in known Pennsylvania cities.",
     "authors": [
         {
             "name": "square",

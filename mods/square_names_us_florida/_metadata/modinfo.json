@@ -1,7 +1,7 @@
 {
     "name": "Florida Towns & Streets",
-    "summary": "Real Florida towns, streets for your stops, and real station names.",
-    "description": "Real Florida towns, streets for your stops, and real station names. Adds the name set \"Florida (Towns & Streets)\" and renames new stops and stations in known Florida cities.",
+    "summary": "Real Florida towns, plus real local names for the stops and stations you build.",
+    "description": "Real Florida towns, plus real local names for the stops and stations you build. Adds the name set \"Florida (Towns & Streets)\" and renames new stops and stations in known Florida cities.",
     "authors": [
         {
             "name": "square",

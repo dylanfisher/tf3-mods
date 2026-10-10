@@ -9,7 +9,7 @@ return {
 	fips = "27",
 	modName = "Minnesota Towns & Streets",
 	setName = "Minnesota (Towns & Streets)",
-	summary = "Real Minnesota towns, streets for your stops, and real station names.",
+	summary = "Real Minnesota towns, plus real local names for the stops and stations you build.",
 	examples = { stops = "Nicollet Avenue or Grand Avenue", stations = "Union Depot, Target Field or Duluth International Airport" },
 	flag = "us_minnesota.svg",
 	-- The 2024 flag's light blue (#52C9E8 in the pinned SVG): its dark blue (#002D5D) is close to Colorado's
@@ -47,8 +47,9 @@ return {
 	regionalSets = {},
 	stationSuffix = nil,
 	notes = { "Not affiliated with the \"Minnesota Names\" mod; all lists here are our own." },
-	revision = 3,
+	revision = 4,
 	changelog = {
+		{ rev = 4, date = "2026-10-09", items = { "Clearer description: says up front that the mod renames the stops and stations you build, not just the default name lists." } },
 		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
 		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },

@@ -27,6 +27,10 @@ local function load(opts)
 	stub_module(P .. "data/towns.lua", opts.towns or TOWNS)
 	stub_module(P .. "data/state.lua", STATE)
 	stub_module(P .. "data/streets.lua", opts.streets or STREETS)
+	-- SQPERF thresholds out of reach, so a busy test machine never adds a level 1 / slow line (debug-On lines
+	-- are still logged); the script's require gets this same cached module.
+	local sq = ug_require(MOD .. "::/sqperf/" .. MOD .. ".lua")
+	sq.INIT_LOG_MS, sq.SIM_SLOW_MS, sq.GUI_SLOW_MS = math.huge, math.huge, math.huge
 	if opts.runFnClimate then
 		ug_require(P .. "mod.script.lua")
 		data().runFn({}, { climate = opts.runFnClimate, nameList = "x" }, {})
@@ -177,4 +181,42 @@ test("streets: num = -1 is a shuffle of the whole pool; positive num picks", fun
 	for _, s in ipairs(all) do set[s] = true end
 	for _, s in ipairs(STREETS) do ok(set[s], s) end
 	eq(#fns.streetsFn({}, { lang = "en", num = 5 }), 5)
+end)
+
+test("sqperf: first towns and streets call log a phase line with counts (debug On), later calls don't", function()
+	clear_logs()
+	local api = apiWithClimate("::/climates/dry/dry.clima")
+	api.engine.config.getModParams = function() return { [MOD] = { sqperf_log = 2 } } end
+	local fns = load({ api = api })
+	eq(#fns.townsFn({}, { lang = "en", num = 10 }), 10)
+	for _ = 1, 3 do eq(#fns.streetsFn({}, { lang = "en", num = -1 }), #STREETS) end
+	local towns, streets = {}, {}
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("phase=towns", 1, true) then towns[#towns + 1] = e.msg end
+		if e.msg:find("phase=streets", 1, true) then streets[#streets + 1] = e.msg end
+	end
+	eq(#towns, 1)
+	ok(towns[1]:find("[SQPERF] mod=" .. MOD .. " ctx=names", 1, true), towns[1])
+	ok(towns[1]:find("towns=10 num=10", 1, true), towns[1])
+	eq(#streets, 1)
+	ok(streets[1]:find("streets=" .. #STREETS .. " num=-1", 1, true), streets[1])
+end)
+
+test("sqperf: DEV master switch square_sqperf_all active (own param Off) -> phase lines logged", function()
+	clear_logs()
+	local api = apiWithClimate("::/climates/dry/dry.clima")
+	api.engine.config.getModParams = function() return { [MOD] = { sqperf_log = 1 }, square_sqperf_all = {} } end
+	local fns = load({ api = api })
+	fns.townsFn({}, { lang = "en", num = 10 })
+	local towns = 0
+	for _, e in ipairs(log_entries()) do if e.msg:find("phase=towns", 1, true) then towns = towns + 1 end end
+	eq(towns, 1)
+end)
+
+test("sqperf: no api.engine (the game's name scripts) -> debug Off, nothing logged", function()
+	clear_logs()
+	local fns = load({})
+	eq(#fns.townsFn({}, { lang = "en", num = 10 }), 10)
+	fns.streetsFn({}, { lang = "en", num = -1 })
+	for _, e in ipairs(log_entries()) do ok(not e.msg:find("[SQPERF]", 1, true), e.msg) end
 end)

@@ -9,7 +9,7 @@ return {
 	fips = "15",
 	modName = "Hawaii Towns & Streets",
 	setName = "Hawaii (Towns & Streets)",
-	summary = "Real Hawaii towns, streets for your stops, and real station names.",
+	summary = "Real Hawaii towns, plus real local names for the stops and stations you build.",
 	examples = { stops = "Kalakaua Avenue or Alii Drive", stations = "Waikiki, Pearlridge or Kona International Airport" },
 	flag = "us_hawaii.svg",
 	-- Hibiscus pink (not a flag colour): the flag's navy (#012169) is close to Colorado's #00205B and its red
@@ -56,8 +56,9 @@ return {
 		"Hawaii is the smallest state in this series: every Census place in Hawaii is an unincorporated community (CDP), so the list has about 130 towns. Real streets cover 13 towns; every other town uses the Hawaii-style street list. Names are plain ASCII (no okina or kahako), as Census and most street signs write them.",
 		"Not affiliated with the \"Hawaii Names\" mod; all lists here are our own.",
 	},
-	revision = 3,
+	revision = 4,
 	changelog = {
+		{ rev = 4, date = "2026-10-09", items = { "Clearer description: says up front that the mod renames the stops and stations you build, not just the default name lists." } },
 		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
 		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },

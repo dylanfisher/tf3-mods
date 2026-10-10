@@ -1,7 +1,7 @@
 {
     "name": "Alaska Towns & Streets",
-    "summary": "Real Alaska towns, streets for your stops, and real station names.",
-    "description": "Real Alaska towns, streets for your stops, and real station names. Adds the name set \"Alaska (Towns & Streets)\" and renames new stops and stations in known Alaska cities.",
+    "summary": "Real Alaska towns, plus real local names for the stops and stations you build.",
+    "description": "Real Alaska towns, plus real local names for the stops and stations you build. Adds the name set \"Alaska (Towns & Streets)\" and renames new stops and stations in known Alaska cities.",
     "authors": [
         {
             "name": "square",

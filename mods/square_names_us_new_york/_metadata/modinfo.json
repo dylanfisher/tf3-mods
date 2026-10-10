@@ -1,7 +1,7 @@
 {
     "name": "New York Towns & Streets",
-    "summary": "Real New York towns, streets for your stops, and real station names.",
-    "description": "Real New York towns, streets for your stops, and real station names. Adds the name set \"New York (Towns & Streets)\" and renames new stops and stations in known New York cities.",
+    "summary": "Real New York towns, plus real local names for the stops and stations you build.",
+    "description": "Real New York towns, plus real local names for the stops and stations you build. Adds the name set \"New York (Towns & Streets)\" and renames new stops and stations in known New York cities.",
     "authors": [
         {
             "name": "square",

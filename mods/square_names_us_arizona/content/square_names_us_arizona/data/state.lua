@@ -10,7 +10,7 @@ return {
 	fips = "04",
 	modName = "Arizona Towns & Streets",
 	setName = "Arizona (Towns & Streets)",
-	summary = "Real Arizona towns, streets for your stops, and real station names.",
+	summary = "Real Arizona towns, plus real local names for the stops and stations you build.",
 	examples = { stops = "Camelback Road or Speedway Boulevard", stations = "Sky Harbor Airport, Williams Depot or Falcon Field" },
 	flag = "us_arizona.svg",
 	-- The flag's copper star (#ce5c17 in the pinned SVG); its red and blue are common to many states.
@@ -44,8 +44,9 @@ return {
 	regionalSets = {},
 	stationSuffix = nil,
 	notes = { "Not affiliated with the \"Arizona Names\" mod; all lists here are our own." },
-	revision = 3,
+	revision = 4,
 	changelog = {
+		{ rev = 4, date = "2026-10-09", items = { "Clearer description: says up front that the mod renames the stops and stations you build, not just the default name lists." } },
 		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
 		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },

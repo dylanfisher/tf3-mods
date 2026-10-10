@@ -17,6 +17,14 @@
 
 local MOD_ID = "square_names_us_colorado"
 local TAG = "[" .. MOD_ID .. "] "
+
+-- SQPERF (plans/sqperf/README.md): sections update (every frame, includes rename_pass), event (build events),
+-- rename_pass (processQueue); level 3 counters due, renamed_stops, renamed_stations. The first rename pass in
+-- this Lua state (a queue loaded from a save is renamed right after load) gets a level 1 line with counts. The
+-- per-rename "renamed … -> …" line is logged only with the mod's "Debug: performance log" param On.
+local sqperf = require(MOD_ID .. "::/sqperf/" .. MOD_ID .. ".lua")
+local perf = sqperf.new({ mod = MOD_ID, ctx = "gs", paramKey = "sqperf_log" })
+local t0 = perf:start()
 local STATE_V = 1
 local QUEUE_CAP = 64
 local DELAY_SECONDS = 1   -- let the engine finish naming the new group first
@@ -265,7 +273,7 @@ end
 
 --- Renames the `due` entries. `fresh` holds every station still queued (due or not): a group whose stations
 --- are all in it was made by these builds; any other member means it joined an existing group.
---- Returns the number of commands sent.
+--- Returns the number of commands sent and how many of them were Road Stops.
 local function processQueue(due, fresh)
 	local logic = req("sn_logic.lua")
 	local cities = req("data/cities.lua")
@@ -275,13 +283,15 @@ local function processQueue(due, fresh)
 	local params = allParams[MOD_ID] or {}
 	local streetsOn = logic.paramOn(params.streetNames)
 	local stationsOn = logic.paramOn(params.stationNames)
+	-- "Debug: performance log" On (or the DEV master switch square_sqperf_all active): one line per rename
+	local debugLog = sqperf.debugOn(allParams, MOD_ID)
 	local cfg = try(api.engine.config.getConfigDict)
 	local nameList = cfg and try(function() return cfg.nameList end) or nil
-	if not logic.isActive(nameList, MOD_ID) then return 0 end
+	if not logic.isActive(nameList, MOD_ID) then return 0, 0 end
 
 	local now = os.time()
 	pruneSent(now)
-	local done, townUsed, globalUsed, sent = {}, {}, nil, 0
+	local done, townUsed, globalUsed, sent, stops = {}, {}, nil, 0, 0
 	for _, e in ipairs(due) do
 		local ok, err = pcall(function()
 			if not exists(e.st) then return end                                -- bulldozed since the build
@@ -324,11 +334,21 @@ local function processQueue(due, fresh)
 			api.cmd.sendCommand(api.cmd.makeEntitySetNameCmd(g, name))
 			sentNames[g] = { n = name, t = now }
 			sent = sent + 1
-			log(string.format("renamed %s group %d (%s) -> %s", e.k, g, tostring(cur), name))
+			if wantStop then stops = stops + 1 end
+			if debugLog then log(string.format("renamed %s group %d (%s) -> %s", e.k, g, tostring(cur), name)) end
 		end)
 		if not ok then warnOnce("rename:" .. tostring(err), "rename failed: " .. tostring(err)) end
 	end
-	return sent
+	return sent, stops
+end
+
+--- Level 1 line with counts for the first rename pass in this Lua state: `phase=rename ms=… timer=… due=…
+--- renamed_stops=… renamed_stations=…` (perf:phase with a detail pattern: logged when ms >= the instrument's
+--- threshold or its level 3 is on, formatted only then).
+local firstPassLogged = false
+local function firstPassLine(t, due, sent, stops)
+	firstPassLogged = true
+	perf:phase("rename", t, "due=%d renamed_stops=%d renamed_stations=%d", due, stops, sent - stops)
 end
 
 local lastPoll = nil   -- os.time() of the last queue check in this Lua state
@@ -369,18 +389,31 @@ local function doUpdate(state)
 	-- Drop the due entries even if renaming fails, so a bad entry never sticks in the save.
 	state:set({ v = STATE_V, q = keep, b = s.b })
 	if #due == 0 then return end
-	local ok, err = pcall(processQueue, due, fresh)
-	if not ok then warnOnce("process:" .. tostring(err), "rename pass failed: " .. tostring(err)) end
+	local t = perf:start()
+	local ok, sent, stops = pcall(processQueue, due, fresh)
+	perf:stop("rename_pass", t)
+	if not ok then warnOnce("process:" .. tostring(sent), "rename pass failed: " .. tostring(sent)) end
+	if not ok or type(sent) ~= "number" or type(stops) ~= "number" then sent, stops = 0, 0 end
+	perf:count("due", #due)
+	perf:count("renamed_stops", stops)
+	perf:count("renamed_stations", sent - stops)
+	if not firstPassLogged then firstPassLine(t, #due, sent, stops) end
 end
+
+perf:phase("init", t0)
 
 function data()
 	return {
 		update = function(_userParams, state, _dt)
+			local t = perf:start()
 			local ok, err = pcall(doUpdate, state)
+			perf:stop("update", t)
 			if not ok then warnOnce("update:" .. tostring(err), "update failed: " .. tostring(err)) end
 		end,
 		handleEvent = function(_userParams, state, _src, id, name, param)
+			local t = perf:start()
 			local ok, err = pcall(doHandleEvent, state, id, name, param)
+			perf:stop("event", t)
 			if not ok then warnOnce("event:" .. tostring(err), "handleEvent " .. tostring(name) .. " failed: " .. tostring(err)) end
 		end,
 	}

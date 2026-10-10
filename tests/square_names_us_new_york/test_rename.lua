@@ -146,6 +146,10 @@ local function load(w)
 	stub_module(P .. "data/cities.lua", CITIES)
 	stub_module(P .. "data/state.lua", {})
 	stub_module(P .. "data/contested.lua", w.contested)
+	-- SQPERF thresholds out of reach, so a busy test machine never adds a level 1 / slow line (debug-On lines
+	-- are still logged); the script's require gets this same cached module.
+	local sq = ug_require(MOD .. "::/sqperf/" .. MOD .. ".lua")
+	sq.INIT_LOG_MS, sq.SIM_SLOW_MS, sq.GUI_SLOW_MS = math.huge, math.huge, math.huge
 	ug_require(P .. "rename.script.lua")
 	return data()
 end
@@ -825,7 +829,94 @@ test("perf: map editor frames read mod params once, not every frame", function()
 	local script = load(w)
 	local state = fakeState()
 	countCalls(w, "params", w.api.engine.config, "getModParams")
-	for _ = 1, 60 do tick(script, state, w, 1) end
-	eq(w.calls.params, 1)
+	tick(script, state, w, 1)
+	-- the first frame asks once; SQPERF reads its level 3 gate at its first window (then once per 30 s)
+	eq(w.calls.params, 2)
+	for _ = 1, 59 do tick(script, state, w, 1) end
+	eq(w.calls.params, 2, "no reads on later frames")
 	ok(not state.raw.subs, "still no subscription in the map editor")
+end)
+
+---------------------------------------------------------------------------
+-- SQPERF (plans/sqperf/README.md): timed sections, the first-pass line, the per-rename line behind the debug param.
+
+local function sqperfLines()
+	local out = {}
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("[SQPERF]", 1, true) then out[#out + 1] = e.msg end
+	end
+	return out
+end
+
+local function captured()
+	local lines = {}
+	set_global("print", function(m) lines[#lines + 1] = tostring(m) end)
+	return lines
+end
+
+test("sqperf: debug On -> first rename pass line with counts, one renamed line per rename", function()
+	clear_logs()
+	local w = world({ params = { sqperf_log = 2 } })
+	local script = load(w)
+	local printed = captured()
+	local state = fakeState()
+	script.update({}, state, 0.2)
+	w.station(20, 21, 1, "Main Street")
+	w.add(100, "CONSTRUCTION", { fileName = "stations/rail/modular_station/modular_station.con", stations = { 101 } })
+	w.station(102, 101, 1, "Seattle Station")
+	build(script, state, w, { 21 }, { 100 })
+	tick(script, state, w)
+	eq(#w.sent, 2)
+	local phase
+	for _, l in ipairs(sqperfLines()) do
+		if l:find("phase=rename", 1, true) then phase = l end
+	end
+	ok(phase, "phase=rename line")
+	ok(phase:find("mod=" .. MOD .. " ctx=gs", 1, true), phase)
+	ok(phase:find("due=2 renamed_stops=1 renamed_stations=1", 1, true), phase)
+	local renamed = 0
+	for _, l in ipairs(printed) do if l:find("renamed ", 1, true) then renamed = renamed + 1 end end
+	eq(renamed, 2)
+	-- a second pass: no second phase line
+	w.station(30, 31, 1, "Front Street")
+	build(script, state, w, { 31 })
+	tick(script, state, w)
+	local n = 0
+	for _, l in ipairs(sqperfLines()) do if l:find("phase=rename", 1, true) then n = n + 1 end end
+	eq(n, 1)
+end)
+
+test("sqperf: debug Off + DEV master switch square_sqperf_all active -> renamed lines and the phase line", function()
+	clear_logs()
+	local w = world({ params = { sqperf_log = 1 }, otherMods = { "square_sqperf_all" } })
+	local script = load(w)
+	local printed = captured()
+	local state = fakeState()
+	script.update({}, state, 0.2)
+	w.station(20, 21, 1, "Main Street")
+	build(script, state, w, { 21 })
+	tick(script, state, w)
+	eq(#w.sent, 1)
+	local renamed = 0
+	for _, l in ipairs(printed) do if l:find("renamed ", 1, true) then renamed = renamed + 1 end end
+	eq(renamed, 1)
+	local phase
+	for _, l in ipairs(sqperfLines()) do if l:find("phase=rename", 1, true) then phase = l end end
+	ok(phase and phase:find("due=1 renamed_stops=1 renamed_stations=0", 1, true), tostring(phase))
+end)
+
+test("sqperf: debug Off -> no renamed lines and no SQPERF lines; renaming unchanged", function()
+	clear_logs()
+	local w = world()
+	local script = load(w)
+	local printed = captured()
+	local state = fakeState()
+	script.update({}, state, 0.2)
+	w.station(20, 21, 1, "Main Street")
+	build(script, state, w, { 21 })
+	tick(script, state, w)
+	eq(#w.sent, 1)
+	eq(w.sent[1].n, "Pine Street")
+	for _, l in ipairs(printed) do ok(not l:find("renamed ", 1, true), l) end
+	eq(sqperfLines(), {})
 end)

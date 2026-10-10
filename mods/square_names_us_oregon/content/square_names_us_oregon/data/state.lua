@@ -10,7 +10,7 @@ return {
 	fips = "41",
 	modName = "Oregon Towns & Streets",
 	setName = "Oregon (Towns & Streets)",
-	summary = "Real Oregon towns, streets for your stops, and real station names.",
+	summary = "Real Oregon towns, plus real local names for the stops and stations you build.",
 	examples = { stops = "Burnside Street or Willamette Street", stations = "Union Station, Pioneer Square North or Mahlon Sweet Field" },
 	flag = "us_oregon.svg",
 	-- Douglas fir green (the state tree): the flag's navy is close to Colorado's blue and its gold to Alaska's and
@@ -53,8 +53,9 @@ return {
 		"Not affiliated with the \"Oregon Names\" mod; all lists here are our own.",
 		"Streets cover 12 cities (Portland, Eugene, Salem, Gresham, Hillsboro, Beaverton, Bend, Medford, Corvallis, Albany, Astoria and Ashland); every other town uses the generic Oregon pool.",
 	},
-	revision = 3,
+	revision = 4,
 	changelog = {
+		{ rev = 4, date = "2026-10-09", items = { "Clearer description: says up front that the mod renames the stops and stations you build, not just the default name lists." } },
 		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
 		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },

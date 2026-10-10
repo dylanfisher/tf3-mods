@@ -174,6 +174,185 @@ Square.slides('square_names_us_washington', [
              inset: { src: '02-bellevue-line.jpg', crop: [225, 1740, 1310, 425] } } },
   { title: 'Real airports too', sub: 'Stations, airports and harbours get real names',
     media: { src: '03-seatac-airport.jpg', crop: [1260, 900, 2000, 1200] } },
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '520 towns, picked by map climate'],
+      ['Local-style street names', '132'],
+      ['Real streets for new Road Stops', '374 streets in 24 cities'],
+      ['Real names for new stations, airports and ferry terminals', '52 names in 18 cities'],
+      ['Neighbourhood names for bus and tram stations', '118 in 13 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_alaska', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '282 towns, picked by map climate'],
+      ['Local-style street names', '128'],
+      ['Real streets for new Road Stops', '250 streets in 9 cities'],
+      ['Real names for new train stations, airports and ferry terminals', '48 names in 32 cities'],
+      ['Neighbourhood names for bus and tram stations', '28 in 1 city'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_arizona', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '275 towns, picked by map climate'],
+      ['Local-style street names', '129'],
+      ['Real streets for new Road Stops', '316 streets in 13 cities'],
+      ['Real names for new train stations and airports', '17 names in 14 cities'],
+      ['Neighbourhood names for bus and tram stations', '38 in 3 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_california', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '550 towns, picked by map climate'],
+      ['Local-style street names', '127'],
+      ['Real streets for new Road Stops', '360 streets in 13 cities'],
+      ['Real names for new train stations, airports and ports', '105 names in 17 cities'],
+      ['Neighbourhood names for bus and tram stations', '92 in 4 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_colorado', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '334 towns, picked by map climate'],
+      ['Local-style street names', '125'],
+      ['Real streets for new Road Stops', '293 streets in 12 cities'],
+      ['Real names for new train stations and airports', '25 names in 10 cities'],
+      ['Neighbourhood names for bus and tram stations', '42 in 2 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_florida', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '479 towns, picked by map climate'],
+      ['Local-style street names', '137'],
+      ['Real streets for new Road Stops', '336 streets in 13 cities'],
+      ['Real names for new train stations, airports and ports', '34 names in 16 cities'],
+      ['Neighbourhood names for bus and tram stations', '63 in 4 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_hawaii', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '131 towns, picked by map climate'],
+      ['Local-style street names', '123'],
+      ['Real streets for new Road Stops', '299 streets in 13 cities'],
+      ['Real names for new train stations, airports and harbours', '29 names in 20 cities'],
+      ['Neighbourhood names for bus and tram stations', '51 in 2 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_minnesota', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '485 towns, picked by map climate'],
+      ['Local-style street names', '129'],
+      ['Real streets for new Road Stops', '329 streets in 12 cities'],
+      ['Real names for new train stations and airports', '49 names in 38 cities'],
+      ['Neighbourhood names for bus and tram stations', '96 in 3 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_new_mexico', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '278 towns, picked by map climate'],
+      ['Local-style street names', '128'],
+      ['Real streets for new Road Stops', '401 streets in 12 cities'],
+      ['Real names for new train stations and airports', '35 names in 28 cities'],
+      ['Neighbourhood names for bus and tram stations', '50 in 2 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_new_york', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '541 towns, picked by map climate'],
+      ['Local-style street names', '129'],
+      ['Real streets for new Road Stops', '381 streets in 13 cities'],
+      ['Real names for new train stations, airports and harbours', '102 names in 48 cities'],
+      ['Neighbourhood names for bus and tram stations', '177 in 5 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_oregon', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '357 towns, picked by map climate'],
+      ['Local-style street names', '162'],
+      ['Real streets for new Road Stops', '342 streets in 12 cities'],
+      ['Real names for new train stations and airports', '81 names in 44 cities'],
+      ['Neighbourhood names for bus and tram stations', '95 in 4 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_pennsylvania', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '488 towns, picked by map climate'],
+      ['Local-style street names', '137'],
+      ['Real streets for new Road Stops', '372 streets in 13 cities'],
+      ['Real names for new train stations, airports and ferry landings', '109 names in 54 cities'],
+      ['Neighbourhood names for bus and tram stations', '109 in 2 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
+]);
+
+Square.slides('square_names_us_texas', [
+  // Counts match the rev 4 description (tools/gen_state_mod.py); update both when the data changes.
+  { title: 'More than a name list', sub: 'It names the stops and stations you build',
+    media: { layout: 'table', head: ['Feature', 'This mod'], rows: [
+      ['Town name set', '533 towns, picked by map climate'],
+      ['Local-style street names', '128'],
+      ['Real streets for new Road Stops', '367 streets in 13 cities'],
+      ['Real names for new train stations, airports and ports', '91 names in 25 cities'],
+      ['Neighbourhood names for bus and tram stations', '88 in 4 cities'],
+      ['Real names in renamed towns, with any name set', 'Yes'],
+      ['Settings', 'Street and station toggles'],
+    ] } },
 ]);
 
 Square.slides('square_smart_lanes', [

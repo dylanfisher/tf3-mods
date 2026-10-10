@@ -9,7 +9,7 @@ return {
 	fips = "36",
 	modName = "New York Towns & Streets",
 	setName = "New York (Towns & Streets)",
-	summary = "Real New York towns, streets for your stops, and real station names.",
+	summary = "Real New York towns, plus real local names for the stops and stations you build.",
 	examples = { stops = "Broadway or Delaware Avenue", stations = "Grand Central, Penn Station or LaGuardia Airport" },
 	flag = "us_new_york.svg",
 	-- The seal's gold (#ECC875 in the pinned SVG): the flag's blue field (#002D72) is close to Colorado's accent
@@ -45,8 +45,9 @@ return {
 	regionalSets = {},
 	stationSuffix = nil,
 	notes = { "Not affiliated with the \"New York Names\" mod; all lists here are our own." },
-	revision = 3,
+	revision = 4,
 	changelog = {
+		{ rev = 4, date = "2026-10-09", items = { "Clearer description: says up front that the mod renames the stops and stations you build, not just the default name lists." } },
 		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
 		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },

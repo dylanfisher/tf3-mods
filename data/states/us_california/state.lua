@@ -9,7 +9,7 @@ return {
 	fips = "06",
 	modName = "California Towns & Streets",
 	setName = "California (Towns & Streets)",
-	summary = "Real California towns, streets for your stops, and real station names.",
+	summary = "Real California towns, plus real local names for the stops and stations you build.",
 	examples = { stops = "Sunset Boulevard or Market Street", stations = "Union Station, Santa Fe Depot or the Ferry Building" },
 	flag = "us_california.svg",
 	-- The bear's brown (#5C462B in the pinned SVG): the flag's red is Florida's, its green is Washington's.
@@ -47,8 +47,9 @@ return {
 	regionalSets = {},
 	stationSuffix = nil,
 	notes = { "Not affiliated with the \"California Names\" mod; all lists here are our own." },
-	revision = 3,
+	revision = 4,
 	changelog = {
+		{ rev = 4, date = "2026-10-09", items = { "Clearer description: says up front that the mod renames the stops and stations you build, not just the default name lists." } },
 		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },
 		{ rev = 1, date = "2026-10-08", items = { "New: first release." } },
