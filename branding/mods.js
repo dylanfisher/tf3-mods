@@ -196,7 +196,6 @@ Square.register({
   },
 });
 
-// US State Names series: one line per state, same cover every time (cover.js stateCover, README "State series").
 Square.register({
   id: 'square_better_bus_overlay', name: 'Better Bus Overlay', tagline: 'Lines, gaps and busy stops', accent: '#5B7CFA',
   // Three line routes in line colours sweep across behind three stop pins (the game's HUD pin shape: rounded

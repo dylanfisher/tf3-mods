@@ -177,6 +177,12 @@ Square.slides('square_names_us_washington', [
 ]);
 
 Square.slides('square_smart_lanes', [
+  // 'Find it' slide moved to the front: every slide number shifted, so delete all mod.io gallery
+  // media before the next update (README "Gallery slides").
+  { title: 'Find it under Tools', sub: 'Road menu, Tools tab, by the Crossing Tool',
+    media: { layout: 'inset', at: 'tr', insetW: 460,
+             main: { src: '02-ring-select.jpg', crop: [980, 1600, 3160, 1200] },
+             inset: { src: '02-ring-select.jpg', crop: [3760, 2408, 332, 212] } } },
   { title: 'Lanes that never cross', sub: 'Each entry lane gets its own ring lane and exit',
     media: { src: '03-junction-hover.jpg', crop: [1000, 400, 2760, 1760] } },
   { title: 'Junction or whole ring', sub: 'Apply or Reset with the Smart Lanes tool',
@@ -186,6 +192,7 @@ Square.slides('square_smart_lanes', [
   { title: 'Every lane, shown', sub: 'Coloured lines show each connection',
     media: { src: '01-ring-lanes.jpg', crop: [1600, 760, 1760, 1160] } },
 ]);
+
 Square.slides('square_supply_gaps', [
   { title: 'See what your routes miss', sub: 'Every town building that needs a cargo it isn\'t getting',
     media: { layout: 'inset', at: 'bl', insetW: 380,

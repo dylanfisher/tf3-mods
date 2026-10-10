@@ -24,6 +24,16 @@
 -- Log lines start with [SQRL]: one APPLY line per changed node, SKIP for ring nodes left alone,
 -- WRITE / VERIFY per ring, ERROR (at most 20 per session). Slip nodes: APPLY / SKIP / WRITE /
 -- VERIFY with kind=slip (SKIP only for slip candidates that do not fit, not for every plain node).
+--
+-- SQPERF (plans/sqperf/README.md): this file loads in the engine Lua states and the GUI one.
+-- Instrument `perf` (ctx gs): load time of the state (phase=init), sections update and event;
+-- `perfGui` (ctx gui): gui_update with job / verify nested. Slow calls are always logged; the
+-- "Debug: performance log" setting (sqperf_log) adds a 30 s summary. Local counters only.
+
+local sqperf = ug_require "square_smart_lanes::/sqperf/square_smart_lanes.lua"
+local perf = sqperf.new({ mod = "square_smart_lanes", ctx = "gs", paramKey = "sqperf_log", first = { "update" } })
+local perfGui = sqperf.new({ mod = "square_smart_lanes", ctx = "gui", paramKey = "sqperf_log", first = { "gui_update" } })
+local perfInit = perf:start()
 
 local Ring = ug_require "square_smart_lanes::/smart_lanes/sl_ring.lua"
 local Rules = ug_require "square_smart_lanes::/smart_lanes/sl_rules.lua"
@@ -129,6 +139,7 @@ local function handleBuild(state, p)
 	s.jobs[#s.jobs + 1] = { seq = s.seq, ttl = JOB_TTL, nodes = seeds }
 	while #s.jobs > MAX_JOBS do table.remove(s.jobs, 1) end
 	state:set(s)
+	perf:count("jobs")
 end
 
 local function doHandleEvent(state, id, name, param)
@@ -259,7 +270,9 @@ local function guiBody(state)
 	for i, job in ipairs(G.pending) do
 		if G.frames >= job.due then
 			table.remove(G.pending, i)
+			local tJob = perfGui:start()
 			local ok, e = pcall(processJob, job)
+			perfGui:stop("job", tJob)
 			if not ok then err("job" .. job.seq, e) end
 			break
 		end
@@ -269,7 +282,9 @@ local function guiBody(state)
 		local v = G.verify[i]
 		if G.frames >= v.due then
 			table.remove(G.verify, i)
+			local tVerify = perfGui:start()
 			local ok, e = pcall(verify, v)
+			perfGui:stop("verify", tVerify)
 			if not ok then err("verify", e) end
 		else
 			i = i + 1
@@ -280,16 +295,24 @@ end
 function data()
 return {
 	update = function(_userParams, state, _dt)
+		local t0 = perf:start()
 		local ok, e = pcall(doUpdate, state)
+		perf:stop("update", t0)
 		if not ok then err("update", e) end
 	end,
 	handleEvent = function(_userParams, state, _src, id, name, param)
+		local t0 = perf:start()
 		local ok, e = pcall(doHandleEvent, state, id, name, param)
+		perf:stop("event", t0)
 		if not ok then err("handleEvent", e) end
 	end,
 	guiUpdate = function(_userParams, state, _guiState)
+		local t0 = perfGui:start()
 		local ok, e = pcall(guiBody, state)
+		perfGui:stop("gui_update", t0)
 		if not ok then err("guiUpdate", e) end
 	end,
 }
 end
+
+perf:phase("init", perfInit)

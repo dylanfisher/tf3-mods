@@ -1,6 +1,6 @@
 {
     "modId": "square_smart_lanes",
-    "revision": 1,
+    "revision": 2,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -12,6 +12,17 @@
             "tooltip": "On: right after you build a roundabout (any one-way ring),\nits junctions get smart lanes.\nOff: only the Smart Lanes road tool changes lanes.",
             "uiType": "Button",
             "values": ["On", "Off"],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Smart Lanes writes how long its build handling and road tool took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus the road tool's hover diagnostics ([SQRL] PROBE lines). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
             "defaultIndex": 0
         }
     ]
