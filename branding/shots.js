@@ -180,6 +180,27 @@ Square.slides('square_smart_lanes', [
   { title: 'Every lane, shown', sub: 'Coloured lines show each connection',
     media: { src: '01-ring-lanes.jpg', crop: [1600, 760, 1760, 1160] } },
 ]);
+Square.slides('square_supply_gaps', [
+  { title: 'See what your routes miss', sub: 'Every town building that needs a cargo it isn\'t getting',
+    media: { layout: 'inset', at: 'bl', insetW: 380,
+             main: { src: '01-all-needed-labels.jpg', crop: [1080, 0, 2920, 2620] },
+             inset: { src: '01-all-needed-labels.jpg', crop: [56, 720, 900, 1130] } } },
+  { title: 'Not reached or running dry', sub: 'Arrow: no stop in range. Exclamation: stock empty',
+    media: { layout: 'inset', at: 'bl', insetW: 380,
+             main: { src: '03-fish-in-range-empty.jpg', crop: [1640, 240, 2640, 2160] },
+             inset: { src: '03-fish-in-range-empty.jpg', crop: [56, 720, 900, 1130] } } },
+  { title: 'Every district in numbers', sub: 'The share of buildings each cargo reaches',
+    media: { src: '01-all-needed-labels.jpg', crop: [1640, 700, 1240, 840] } },
+  { title: 'One cargo at a time', sub: 'Counts per cargo for the towns on screen',
+    media: { layout: 'inset', at: 'tl', insetW: 900, insetY: 0.36,
+             main: { src: '04-fuel-tooltip.jpg', crop: [1950, 340, 1790, 1720] },
+             inset: { src: '04-fuel-tooltip.jpg', crop: [56, 968, 1880, 384] } } },
+  { title: 'Stays on while you build', sub: 'Gaps: on keeps the markers up as you place road stops',
+    media: { layout: 'inset', at: 'tl', insetW: 300,
+             main: { src: '07-gaps-on-ridge.jpg', crop: [990, 100, 2460, 1900] },
+             inset: { src: '07-gaps-on-ridge.jpg', crop: [690, 20, 210, 90] } } },
+]);
+
 Square.slides('square_better_bus_overlay', [
   { title: 'See your lines', sub: 'Every line route stays on the map while you place a stop',
     media: { layout: 'wipe', labels: ['Before', 'After'], darkChips: true, split: 0.42,

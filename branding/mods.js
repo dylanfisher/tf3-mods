@@ -217,6 +217,27 @@ Square.register({
 });
 
 Square.register({
+  id: 'square_supply_gaps', name: 'Supply Gap Overview', tagline: 'Find buildings your routes miss', accent: '#C2E83A',
+  // Three town buildings on a base line: an accent down arrow over the left house (no delivering stop
+  // in range) and an accent exclamation over the right one (in range, stock empty); the middle block is served.
+  glyph: S => {
+    const house = cx => `
+    <path class="ink" d="M${cx - 112} 470 L${cx} 352 L${cx + 112} 470 Z" stroke="var(--ink)" stroke-width="28" stroke-linejoin="round"/>
+    <rect class="ink" x="${cx - 95}" y="450" width="190" height="210" rx="14"/>
+    <rect class="cut" x="${cx - 26}" y="560" width="52" height="100" rx="10"/>`;
+    return `<g transform="translate(20 70)">
+    ${house(150)}${house(650)}
+    <rect class="ink sep" x="300" y="330" width="200" height="330" rx="16"/>
+    ${[380, 470, 560].map(y => [345, 418].map(x => `<rect class="cut" x="${x}" y="${y}" width="38" height="50" rx="8"/>`).join('')).join('')}
+    ${S.ground(40, 720, 660)}
+    <rect class="acc" x="118" y="0" width="64" height="170" rx="20"/>
+    <path class="acc" d="M150 276 L64 156 H236 Z" stroke="var(--acc)" stroke-width="24" stroke-linejoin="round"/>
+    <rect class="acc" x="618" y="0" width="64" height="186" rx="32"/>
+    <circle class="acc" cx="650" cy="250" r="38"/></g>`;
+  },
+});
+
+Square.register({
   id: 'square_blank_slate', name: 'Blank Slate: Empty Flat Test Map', tagline: 'A flat, empty island to test on', accent: '#7CF0B4',
   // Top view of the generated map: an accent sea with two wave knock-outs around a blank ink island
   // (the rounded-square plateau of the heightmap).
