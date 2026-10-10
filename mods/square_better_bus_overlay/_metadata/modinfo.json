@@ -2,6 +2,56 @@
     "name": "Better Bus Overlay",
     "summary": "Shows your road and tram lines and unserved buildings while placing stops, bus lanes or crosswalks.",
     "description": "Shows your bus, tram and truck lines and unserved buildings while you place stops, bus lanes or crosswalks. GUI only: stores nothing in the savegame.",
+    "localization": {
+        "ru": {
+            "name": "Улучшенный слой автобусов",
+            "summary": "Показывает ваши дорожные и трамвайные маршруты и необслуживаемые здания при установке остановок."
+        },
+        "de": {
+            "name": "Bessere Bus-Ansicht",
+            "summary": "Zeigt Strassen- und Tramlinien und unversorgte Gebäude beim Bau von Haltestellen und Busspuren."
+        },
+        "fr": {
+            "name": "Meilleure vue des bus",
+            "summary": "Montre vos lignes de bus et tram et les bâtiments non desservis en plaçant arrêts et voies de bus."
+        },
+        "es": {
+            "name": "Mejor vista de autobuses",
+            "summary": "Muestra tus líneas de bus y tranvía y los edificios sin servicio al colocar paradas o carriles bus."
+        },
+        "it": {
+            "name": "Vista autobus migliorata",
+            "summary": "Mostra le linee bus e tram e gli edifici non serviti mentre posizioni fermate o corsie bus."
+        },
+        "nl": {
+            "name": "Betere busweergave",
+            "summary": "Toont je weg- en tramlijnen en onbediende gebouwen bij het plaatsen van haltes, busbanen of zebra's."
+        },
+        "pl": {
+            "name": "Lepsza nakładka autobusów",
+            "summary": "Pokazuje linie drogowe i tramwajowe oraz nieobsłużone budynki podczas stawiania przystanków."
+        },
+        "pt_BR": {
+            "name": "Visão de ônibus melhorada",
+            "summary": "Mostra suas linhas rodoviárias e de bonde e prédios sem atendimento ao posicionar paradas e faixas."
+        },
+        "ja": {
+            "name": "バス表示の改善",
+            "summary": "停留所・バスレーン・横断歩道の配置中に、道路と路面電車の路線と未接続の建物を表示します。"
+        },
+        "ko": {
+            "name": "더 나은 버스 오버레이",
+            "summary": "정류장, 버스 차로, 횡단보도를 놓을 때 도로·트램 노선과 서비스되지 않는 건물을 표시합니다."
+        },
+        "zh_CN": {
+            "name": "更好的公交叠加层",
+            "summary": "放置站点、公交专用道或人行横道时，显示你的道路和有轨电车线路以及未覆盖的建筑。"
+        },
+        "zh_TW": {
+            "name": "更好的公車疊加層",
+            "summary": "放置站點、公車專用道或行人穿越道時，顯示你的道路與路面電車路線以及未覆蓋的建築。"
+        }
+    },
     "authors": [
         {
             "name": "square",
