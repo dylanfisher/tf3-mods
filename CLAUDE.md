@@ -15,10 +15,12 @@ docs/findings.md         in-game verified facts that override the wiki (hand-wri
 .cache/wiki-examples/    text files from the wiki's example/template mod zips (gitignored)
 .cache/subscribed/       copies of your subscribed mod.io mods + INDEX.md (gitignored, `make subscribed`)
 tools/                   sync + mod tooling (Python, run via `uv run` / make)
+mods/square_opt_<id>/    local "SQ Opt" forks of other authors' mods (gitignored, never uploaded)
+forks/<forkId>/          fork upstream snapshots and merge workspace (gitignored)
 plans/<modId>/           design plans and research per mod (never shipped)
 tests/<modId>/           offline unit tests for mod scripts (test_*.lua/.tl), run by tests/run_tests.py
 branding/                "square" cover house style: cover.js (renderer), mods.js (per-mod entries), index.html (gallery)
-.claude/agents/          tf3-docs-researcher, tf3-docs-syncer, tf3-mod-scaffolder, tf3-mod-validator
+.claude/agents/          tf3-docs-researcher, tf3-docs-syncer, tf3-mod-scaffolder, tf3-mod-validator, tf3-fork-merger
 ```
 
 ## Commands
@@ -26,13 +28,18 @@ branding/                "square" cover house style: cover.js (renderer), mods.j
 - `make docs`: regenerate all local docs (`docs-wiki` takes ~1 min, `docs-game` ~5 s). Each run rebuilds from scratch.
 - `make subscribed`: copy the mod.io mods you're subscribed to into `.cache/subscribed/<modId>/` (reference only; never link them into staging, since a staging copy overrides the subscribed one).
 - `make new-mod ID=square_modname NAME='Display Name' ARGS='--script --tag "Script Mod"'`
+- `make fork-new UP=<upstreamModId>`, `make fork-status`, `make fork-merge FORK=<forkId>`, `make fork-finish FORK=…`, `make fork-abort FORK=…`: local forks of subscribed mods (see "Forks of other authors' mods").
 - `make link` / `make unlink`: symlink `mods/*` into `staging_area`.
 - `make validate [MOD=mods/<id>]`: pre-flight checks against wiki rules.
 - `make check [MOD=mods/<id>|PATHS='file/dir ...'] [ARGS=--allow-lua53]`: offline Teal type-check, Lua syntax-check and pre-5.3 lint (Lua 5.3+ constructs fail; the flag skips the lint) with the game's tl.lua.
-- `make test [MOD=mods/<id>] [ARGS="-k TEXT -j N"]`: run `tests/<modId>/test_*` against the mod's transpiled modules, one process per test file in parallel (harness docs in `tests/run_tests.py`). `SQRB_FULL=1 make test MOD=mods/square_roundabouts` also runs the exhaustive roundabout sweep (a few minutes longer).
+- `make test [MOD=mods/<id>] [ARGS="-f FILE -k TEXT -j N"]`: run `tests/<modId>/test_*` against the mod's transpiled modules in parallel processes; slow files are split into shards using the per-test times of earlier runs (`.cache/test_timings.json`). `-f` picks test files by name, `-k` tests by name (harness docs in `tests/run_tests.py`). `SQRB_FULL=1 make test MOD=mods/square_roundabouts` also runs the exhaustive roundabout sweep (a few minutes longer).
 - `make covers [MOD=mods/<id>] [ARGS=--no-text]`: render the house-style cover to `mods/<id>/_metadata/0.png` with headless Chrome.
 - `make shots [MOD=mods/<id>]`: render gallery slides (`_metadata/1.png`, `2.png`, …) from the captures in `plans/<id>/shots/`, as defined in `branding/shots.js`.
+- `make modio [MOD=mods/<id>] [ARGS='--diff --apply --only text,tags,logo,gallery --force --prune-tags']`: compare each published mod's mod.io profile (name, summary, description, tags, `0.png` logo, `1.png`… gallery) with the repo and, with `--apply`, update it through the mod.io API. Dry run by default. Needs `MODIO_TOKEN` in `.hub.env`. Never touches the modfile (the Mod Hub cooks it and writes the metadata the game reads). Sync state lives in `branding/modio_state.json`. `MODIO_TOKEN` is a 1Password `op://` reference, so **never run `make modio` or any `op` command yourself**: ask the user to run it (`! make modio ...`) and paste the output; they approve the 1Password prompt.
+- `make modio-status [MOD=mods/<id>] [ARGS=--verbose]`: download each published mod's live modfile (cached in `.cache/modio/modfiles/`) and compare it with `mods/<id>/`: live vs local `revision` and the changed files, i.e. which mods need a Hub update and which changed without a revision bump. `_metadata` images and texts are profile changes (`make modio`), listed only with `--verbose`. Same token rule as `make modio`.
 - `make teal`: write `tlconfig.lua` for VS Code Teal autocompletion.
+- `make sqperf-sync [MOD=mods/<id>] [ARGS=--check]`: copy the SQPERF module `tools/sqperf/` into every mod that uses it (MOD: add it there); `--check` only reports drift. See `plans/sqperf/README.md`.
+- `make perf [LOG=path] [ARGS='--mod X --last --skip 1']`: per-mod report of the `[SQPERF]` lines in the latest `stdout.txt` (`--last`: the most recent load that has SQPERF lines). Enable the DEV mod `mods/square_sqperf_all` (never upload) to turn every SQPERF mod's debug log on at once.
 
 If `.cache/` is missing (fresh clone), run `make docs` before researching.
 
@@ -57,7 +64,8 @@ Use `rg` (or `grep -r`) on these paths. `.cache` is gitignored, so pass `--no-ig
 - Some wiki pages carry a "Wip: not yet adapted for TF3" banner, and some text still says "Transport Fever 2". Treat those pages with caution and confirm against game files.
 - Script functions take `captureParams` first: `runFn(captureParams, settings, allModParams)`; the wiki omits it. Param values are 1-based option indices. See `docs/findings.md`.
 - A mod.json param can't change a stylesheet: `.css.lua` only has `api.gui`/`api.type`, runs in its own Lua state, and no channel from the scripts reaches it (6 tried). Ship variant mods for style options. See `docs/findings.md`.
-- Upload: Mod Hub → My Mods publishes from the staging area to mod.io and validates on upload. Bump `revision` with every update.
+- Construction geometry must never contain `-0` (mirroring code makes it): at exactly 0° rotation the builder's transform keeps it and the layout is silently refused ("Construction Not Possible", fine at 1°). Normalise zeros to `+0` before returning from `updateFn`. Script probes can't reproduce it. See `docs/findings.md` "Negative zero".
+- Upload: Mod Hub → My Mods publishes from the staging area to mod.io and validates on upload. Bump `revision` with every update. Text, tags, logo and gallery changes that need no new modfile go through `make modio` instead (mod.io API; Steam auth isn't usable outside the game, so it uses a mod.io personal access token). Step by step: "Releasing updates" below.
 
 ## Conventions
 
@@ -67,6 +75,38 @@ Use `rg` (or `grep -r`) on these paths. `.cache` is gitignored, so pass `--no-ig
 - After `make docs`, `git diff --stat docs/` shows what changed upstream or in a game update.
 - Every mod has a `_metadata/description.html` with a **Changelog** section (newest revision first). Add an entry with every `revision` bump. Headings: `<h2>` only for the Changelog title, `<h4>` for everything else (sections and revision entries). Format and template: `branding/README.md` "Mod description".
 - Mods follow `docs/wiki/modding/general/guidelines.md`: no whitespace or special characters in names, lowercase preferred, UTF-8 without BOM, DDS textures with mipmaps, WAV at 16-bit/48 kHz, at most 500 MB.
+
+## Releasing updates
+
+The user runs every `make modio*` command (1Password prompt); Claude asks for the pasted output.
+
+1. **Before:** `make modio-status` lists which mods differ from their live upload. "Needs a Hub update": ready.
+   "Changed, revision not bumped": bump `revision` in `mod.json` and add a Changelog entry to `description.html` first.
+2. **Upload** those mods in game: Mod Hub → My Mods.
+3. **After (required):** a Hub update does not update the mod.io description (new changelog entries stay
+   local) and re-sends the slides as re-encoded copies. `make modio ARGS=--diff` shows what differs,
+   `make modio ARGS=--apply` pushes the description and restores the original slides, and `make modio-status` should now say
+   "Up to date". A fresh upload shows as "Uploaded, waiting for mod.io" until mod.io's scan makes it live.
+
+Changes to slides, the cover or the description alone need no Hub upload: just `make modio ARGS=--apply`.
+
+## Forks of other authors' mods (SQ Opt)
+
+To improve someone else's mod locally (e.g. performance) and keep taking the author's updates:
+
+- `make subscribed`, then `make fork-new UP=<upstreamModId>`. This creates `mods/square_opt_<upstreamModId>/`, display name
+  `SQ Opt: <original name>` (32 chars max), revision 1, marked incompatible with the original, plus a fork-orange cover entry in
+  `branding/mods.js` (render with `make covers MOD=mods/<forkId>`; `branding/README.md` "Local forks"). In game, enable
+  the fork and disable the original.
+- The fork keeps upstream's file layout and changes as few lines as possible: every extra changed line is a future merge
+  conflict. Mark changed code `-- optimized:` and list each change, with its reason, in `plans/<forkId>/FORK.md`. That file
+  is the merge checklist.
+- Updates: `make subscribed` + `make fork-status`. For UPDATE AVAILABLE, use the `tf3-fork-merger` agent: three-way merge
+  against the upstream snapshot in `forks/<forkId>/base/`, conflict resolution, a FORK.md check, `make fork-finish`.
+- Third-party code stays local. `mods/square_opt_*`, `forks/`, `plans/*/original/` and `mods/square_aat_perftest/` are
+  gitignored, and only `plans/<forkId>/` notes are committed. Never upload a fork; send improvements to the author.
+- Measuring a change: build a DEV harness with both implementations behind a param and identical timers.
+  `mods/square_aat_perftest` with `plans/zhenya_auto_assign_terminals/PERFTEST.md` and `perf_report.py` is the example.
 
 ## Mod covers (square house style)
 

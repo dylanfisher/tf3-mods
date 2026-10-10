@@ -66,14 +66,33 @@ Every mod ships under the creator name **square** (modId `square_<name>`, modinf
 | No Factory Passengers | `#E5554F` red |
 | Problem Radar | `#F1B43D` amber |
 | Better Minimap | `#E8B740` gold (matches the in-game camera box). Instead of a pictogram it shows a large rounded card of the real game (the first slide's crop of `plans/square_better_minimap/shots/01-overview.jpg`) laid across the diagonal. |
-| Better Roundabouts | `#E8833A` orange |
+| Roundabouts & Interchanges | `#E8833A` orange |
 | Early One-way Roads | `#9B7BE0` purple |
 | Bulk Bulldozer | `#F4D32B` hazard yellow (lighter and greener than the ambers) |
 | Line Editor Undo | `#C964E8` orchid (bluer and brighter than the pink, redder than the purple) |
 | Smart Lanes | `#3FD6EE` sky cyan (lighter and greener than the blue, bluer than the teal) |
+| Better Bus Overlay | `#5B7CFA` royal blue (deeper and more violet than the Bigger Line Dots blue, bluer than the purple) |
+| Supply Gap Overview | `#C2E83A` lime (yellower than the Industry Production Label green, greener than the hazard yellow) |
+| Blank Slate: Empty Flat Test Map | `#7CF0B4` mint (the sea around the island) |
+| Passenger Destinations | `#FF8A65` coral (lighter and pinker than the roundabout orange, more orange than the No Factory Passengers red) |
+| Stress Test Debug Tool | `#F048D8` hot magenta (more saturated than the Full Refund pink, redder than the Line Editor Undo orchid) |
 | State series (`<State> Towns & Streets`) | The flag's main colour (Washington `#00843D`), or a secondary one when the main is generic (Arizona `#CE5C17`, the copper star; Florida `#C60013`, the red saltire; Colorado `#00205B`, the blue bands; California `#5C462B`, the bear brown, since its red and green are taken; Texas `#BF0A30`, the flag red, since its blue is exactly Colorado's; Alaska `#FFB612`, the gold stars, since its dark blue is close to Colorado's; New York `#ECC875`, the seal's gold, since its blue field is close to Colorado's and its red to Texas's; Minnesota `#52C9E8`, the 2024 flag's light blue, since its dark blue is close to Colorado's; New Mexico `#0095B6`, turquoise (the state gem), since the Zia red is Texas's and its yellow sits next to Alaska's gold and the hazard yellow; Oregon `#2C5E3F`, Douglas fir green (the state tree), since the navy is close to Colorado's and the gold to Alaska's and New York's; Pennsylvania `#1F5290`, the seal shield's sea blue, since its blue field is exactly Colorado's and the seal's gold, red and green sit next to Alaska's/New York's, Texas's and Washington's; Hawaii `#D63384`, hibiscus pink (not a flag colour), since the flag's navy is close to Colorado's and its red to Florida's and Texas's). Recorded only; the series pictogram is all ink and the flag sticker carries the colour, so state accents may repeat or sit close to other mods. |
 
-Pick the next mod's accent away from these, for example lime `#C2E83A`. Avoid the family teal `#2FA48F`.
+Pick the next mod's accent away from these, for example sand `#D9B98C`. Avoid the family teal `#2FA48F`, the fork orange `#E2873B` and the DEV grey `#8E9BAE`.
+
+## Local forks (SQ Opt)
+
+Local "SQ Opt" forks of other authors' mods (`square_opt_<upstreamId>`, never uploaded) use the same Diagonal Split with **fork orange** `#E2873B` in place of the family teal, on both the title field and the stripe, so a local override stands out in the in-game mod list. The pictogram is a generic ink branch splitting off a main line, with an orange lightning bolt (optimized); the tagline is "Local copy, not for upload". It all lives in `cover.js` (`FORK`, `forkCover`), so change it there for every fork at once.
+
+`make fork-new` adds the `Square.forkCover({ id, name })` line to `mods.js` itself; then run `make covers MOD=mods/<forkId>`. `tools/fork_mod.py` treats `_metadata/0.png` as the fork's own file, so an upstream merge never brings the author's cover back. Don't use fork orange for anything else.
+
+## DEV mods (test harnesses and probes)
+
+Our own DEV mods (a `DEV …` display name and a `NOT_FOR_UPLOAD.txt`, never uploaded: perf harnesses, API probes) use the same Diagonal Split with **DEV grey** `#8E9BAE` in place of the family teal, on both the title field and the stripe. Grey is the one hue no accent, state colour or fork uses, and it reads as "not a real mod" in the in-game mod list; the title ink `#0f1d1b` keeps about 6.2:1 contrast on it (the teal gives 5.6:1). The pictogram is one shared lab flask: an ink flask with a knocked-out neck, grey liquid with two knocked-out bubbles. The default tagline is "Dev tool, not for upload"; a mod may pass a short specific one instead. It all lives in `cover.js` (`DEV`, `devGlyph`, `devCover`), so change it there for every DEV mod at once.
+
+**Groups.** DEV mods of one kind share a colour, set with `group` (`DEV_GROUPS` in `cover.js`). The title field is a diagonal gradient from the group's unsaturated `from` colour (top left, behind the text) to its saturated `to` colour (bottom right, at the diagonal); the stripe and the flask liquid use `to`. Groups: `perf` blue `#8FA9C2` → `#3F9BF0` (perf harnesses, SQPERF), `roundabouts` yellow `#BFAE7E` → `#E8C21E` (Roundabouts & Interchanges probes, kept away from the fork orange), `lines` violet `#AE9DC2` → `#B66EF2` (line tools probes), `names` green `#95AE8B` → `#6CCB45` (town and street names probes). The shared layout and flask keep them one DEV family, and the title ink keeps at least 5.6:1 contrast across the whole gradient. An ungrouped DEV mod keeps the flat grey. For a probe of a new mod family, add a group to `DEV_GROUPS` (a greyish `from`, a saturated `to` of the same hue, title-ink contrast at least 4.5:1 on both, away from the teal, the fork orange and the existing groups) instead of reusing one.
+
+Add one `Square.devCover({ id, name, group })` line to `mods.js` (optional `tagline`, and `titleLines` when the automatic wrap breaks badly, as for `DEV SQPERF: all mods`), then `make covers MOD=mods/<id>`. The title keeps the `DEV ` prefix so it matches modinfo. Not for shipped mods, even debug tools that are uploaded (Stress Test Debug Tool has its own cover), and not for SQ Opt forks. Don't use DEV grey for anything else.
 
 ## State series (`<State> Towns & Streets`)
 
@@ -99,9 +118,9 @@ Same family as the cover: the teal panel on the left carries the mod name, a 2�
 
 - **Captures**: full-screen, Retina 5120×2880, saved to `plans/<id>/shots/NN-slug.jpg` (never shipped). English UI, same UI scale, no other mods in frame.
 - **Crop to the point**: `crop: [x, y, w, h]` in capture pixels. Show the window, label or area the slide is about, never the whole screen. The quickest way to find coordinates is a 1280-wide preview (multiply by 4).
-- **Layouts**: `single` (one crop), `inset` (scene plus a UI crop overlapping a corner, e.g. the panel that produced it, or a zoom of a small HUD element), `wipe` (two same-camera captures split on a 45° diagonal, labelled Off/On), `stack` (the same UI in two states, labelled).
+- **Layouts**: `single` (one crop), `inset` (scene plus a UI crop overlapping a corner, e.g. the panel that produced it, or a zoom of a small HUD element; `insetW` sets its width, and optional `insetY` centres it at that fraction of the slide height instead of the corner), `wipe` (two same-camera captures split on a 45° diagonal, labelled Off/On), `stack` (the same UI in two states, labelled).
 - Keep headlines to what the player gets, like the cover tagline. 3 slides per mod is plenty.
-- **After the first upload, only append slides.** A Mod Hub update does not replace gallery images that mod.io already has under the same number: it only adds new numbers (Problem Radar rev 2: the new economy slide rendered as `3.png` and pushed the settings slide to `4.png`, but mod.io kept the old `3.png` and showed settings twice). New slides go at the end of the `shots.js` list. Changing or reordering an existing slide means deleting the old images in mod.io (Edit → Media) before the update.
+- **After the first upload, sync the gallery with `make modio`.** A Mod Hub update does not replace gallery images that mod.io already has under the same number: it only adds new numbers (Problem Radar rev 2: the new economy slide rendered as `3.png` and pushed the settings slide to `4.png`, but mod.io kept the old `3.png` and showed settings twice). `make modio MOD=mods/<id>` shows whether mod.io's gallery and logo match `_metadata/`, and `ARGS=--apply` replaces the whole gallery with the local `1.png`, `2.png`, …, uploaded as `N-<hash>.png` so a changed slide gets a new URL (re-using `1.png` kept showing the old picture from caches). The Hub re-sends the slides on every update, so run it after each Hub update (CLAUDE.md "Releasing updates").
 
 ## Mod description (`_metadata/description.html`)
 

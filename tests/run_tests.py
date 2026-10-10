@@ -5,7 +5,7 @@
 """Run offline unit tests for mod scripts (Lua 5.4 + the game's Teal compiler).
 
 Usage:
-  uv run tests/run_tests.py [-k TEXT] [-j N] [MOD ...]
+  uv run tests/run_tests.py [-k TEXT] [-f FILE] [-j N] [MOD ...]
 
 MOD is a mod dir (mods/<id>) or a modId; default: every mod that has a
 tests/<modId>/ folder. Runs tests/<modId>/test_*.lua and test_*.tl in name order.
@@ -26,15 +26,26 @@ in that file). Available there, besides the Lua standard library:
 Mod .tl modules are type-checked with the mod's .d.tl definitions before they
 run; a type error fails the test that required the module. Test .tl files can
 use tests/harness.d.tl for the harness globals.
--k runs only tests whose name contains TEXT. -j N runs N test files at once, each in
-its own process (default: CPU count; -j 1 runs them in order in one process). Output
-is printed per file in name order; `print` inside a test is captured and shown under
-that test. Exit code 1 on any failure.
+-k runs only tests whose name contains TEXT (plain substring of the test name, not the
+file name: `-k short` also hits "... short edges" tests elsewhere); files with no match
+are not listed, but every file still loads. -f TEXT keeps only test files whose name
+contains TEXT (repeatable; e.g. `-f through -f ramps`), so the others never load.
+-j N runs N worker processes (default: CPU count; -j 1 runs everything in order in one
+process). Output is printed per file in name order with the time of each test >= 1 s;
+`print` inside a test is captured and shown under that test. Exit code 1 on any failure.
+
+Sharding: each run records per-test CPU seconds in .cache/test_timings.json. Later runs
+split a slow file into shards (each a process that loads the file and runs a subset of
+its tests; tests not in the record run in the first shard), slowest first, so one long
+file no longer sets the wall time. Tests must not depend on state left by an earlier
+test in the same file; a file that does puts the text "run_tests: no-split" in it.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
+import math
 import os
 import sys
 import time
@@ -43,7 +54,7 @@ from pathlib import Path
 
 TESTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TESTS_DIR.parent / "tools"))
-from hubconfig import MODS_DIR, ROOT  # noqa: E402
+from hubconfig import CACHE_DIR, MODS_DIR, ROOT  # noqa: E402
 from tealrt import Teal, def_modules  # noqa: E402
 
 HARNESS = r"""
@@ -175,8 +186,17 @@ function runner.new_sandbox()
   return sb, tests, hooks
 end
 
--- Runs one test file's code. Returns {load_error=?, results={{name, ok, err}}}.
-function runner.run_file(code, chunkname, filter)
+local function name_set(text)
+  if not text then return nil end
+  local set = {}
+  for n in (text .. "\n"):gmatch("([^\n]*)\n") do set[n] = true end
+  return set
+end
+
+-- Runs one test file's code. Returns {load_error=?, results={{idx, name, ok, err, printed, secs}}}.
+-- only / known (names joined by "\n", or nil) pick a shard of the file: run the tests named in
+-- only, plus any test not named in known (new since the timings were recorded).
+function runner.run_file(code, chunkname, filter, only, known)
   local sb, tests, hooks = runner.new_sandbox()
   local out = { results = {} }
   local chunk, err = load(code, "@" .. chunkname, "t", sb)
@@ -184,14 +204,17 @@ function runner.run_file(code, chunkname, filter)
   local okl, lerr = xpcall(chunk, debug.traceback)
   out.printed = sb.take_printed()
   if not okl then out.load_error = lerr return out end
-  for _, t in ipairs(tests) do
-    if not filter or t.name:find(filter, 1, true) then
+  local onlySet, knownSet = name_set(only), name_set(known)
+  for idx, t in ipairs(tests) do
+    local picked = not onlySet or onlySet[t.name] or (knownSet and not knownSet[t.name])
+    if picked and (not filter or t.name:find(filter, 1, true)) then
+      local t0 = os.clock()
       local okt, terr = xpcall(function()
         for _, h in ipairs(hooks) do h() end
         t.fn()
       end, debug.traceback)
-      out.results[#out.results + 1] = { name = t.name, ok = okt, err = okt and "" or tostring(terr),
-        printed = sb.take_printed() }
+      out.results[#out.results + 1] = { idx = idx, name = t.name, ok = okt, err = okt and "" or tostring(terr),
+        printed = sb.take_printed(), secs = os.clock() - t0 }
     end
   end
   return out
@@ -258,99 +281,183 @@ class ModRunner:
 
         self.runner = self.teal.lua.eval("load")(HARNESS, "=run_tests")(compile_module, self.mod_id)
 
-    def run_file(self, tf: Path, filter_text: str | None) -> tuple[int, int, str]:
-        """Runs one test file; returns (passed, failed, report text)."""
+    def run_file(self, tf: Path, filter_text: str | None, only: list[str] | None = None,
+                 known: list[str] | None = None) -> dict:
+        """Runs one test file (or the shard picked by only/known); returns plain data for the parent."""
         name = display(tf)
         started = time.perf_counter()
-        lines: list[str] = []
-        passed = failed = 0
-
-        def indent(text: str, prefix: str) -> str:
-            return prefix + text.replace("\n", "\n" + prefix)
-
         src = tf.read_text(encoding="utf-8-sig")
         if tf.suffix == ".tl":
             code, diags = self.teal.gen(self.env, src, name)
             if code is None:
-                lines.append("    FAIL  (compile)")
-                lines.extend(f"      {d}" for d in diags)
-                return 0, 1, "\n".join([f"  {name}", *lines])
+                return {"compile_errors": [str(d) for d in diags], "results": [], "took": 0.0}
             src = code
-        out = self.runner.run_file(src, name, filter_text)
-        if out.printed:
-            lines.append(indent(str(out.printed), "      "))
-        if out.load_error is not None:
-            failed += 1
-            lines.append("    FAIL  (loading file)")
-            lines.append(indent(trim_traceback(str(out.load_error)), "      "))
-        else:
-            for r in out.results.values():
-                if r.ok:
-                    passed += 1
-                    lines.append(f"    ok    {r.name}")
-                else:
-                    failed += 1
-                    lines.append(f"    FAIL  {r.name}")
-                    lines.append(indent(trim_traceback(str(r.err)), "      "))
-                if r.printed:
-                    lines.append(indent(str(r.printed), "      "))
-        took = time.perf_counter() - started
-        header = f"  {name}" + (f"  ({took:.1f} s)" if took >= 1 else "")
-        return passed, failed, "\n".join([header, *lines])
+        join = (lambda names: "\n".join(names) if names is not None else None)
+        out = self.runner.run_file(src, name, filter_text, join(only), join(known))
+        results = [] if out.results is None else [
+            {"idx": int(r.idx), "name": str(r.name), "ok": bool(r.ok), "err": str(r.err),
+             "printed": str(r.printed or ""), "secs": float(r.secs)} for r in out.results.values()]
+        return {"printed": str(out.printed or ""),
+                "load_error": None if out.load_error is None else str(out.load_error),
+                "results": results, "took": time.perf_counter() - started}
+
+
+def format_file(name: str, shards: list[dict]) -> tuple[int, int, str]:
+    """Merges a file's shard outputs (in test order); returns (passed, failed, report text)."""
+
+    def indent(text: str, prefix: str) -> str:
+        return prefix + text.replace("\n", "\n" + prefix)
+
+    lines: list[str] = []
+    passed = failed = 0
+    first = shards[0]
+    took = max(s["took"] for s in shards)
+    if first.get("compile_errors"):
+        return 0, 1, "\n".join([f"  {name}", "    FAIL  (compile)", *(f"      {d}" for d in first["compile_errors"])])
+    if first.get("printed"):
+        lines.append(indent(first["printed"], "      "))
+    load_error = next((s["load_error"] for s in shards if s.get("load_error")), None)
+    if load_error is not None:
+        failed += 1
+        lines.append("    FAIL  (loading file)")
+        lines.append(indent(trim_traceback(load_error), "      "))
+    else:
+        for r in sorted((r for s in shards for r in s["results"]), key=lambda r: r["idx"]):
+            secs = f"  ({r['secs']:.1f} s)" if r["secs"] >= 1 else ""
+            if r["ok"]:
+                passed += 1
+                lines.append(f"    ok    {r['name']}{secs}")
+            else:
+                failed += 1
+                lines.append(f"    FAIL  {r['name']}{secs}")
+                lines.append(indent(trim_traceback(r["err"]), "      "))
+            if r["printed"]:
+                lines.append(indent(r["printed"], "      "))
+    split = f", {len(shards)} shards" if len(shards) > 1 else ""
+    header = f"  {name}" + (f"  ({took:.1f} s{split})" if took >= 1 else "")
+    return passed, failed, "\n".join([header, *lines])
 
 
 _RUNNERS: dict[Path, ModRunner] = {}
 
 
-def run_file(mod: Path, tf: Path, filter_text: str | None) -> tuple[int, int, str]:
-    """Worker entry: one test file, reusing this process's runner for the mod."""
+def run_file(mod: Path, tf: Path, filter_text: str | None, only=None, known=None) -> dict:
+    """Worker entry: one test file or shard, reusing this process's runner for the mod."""
     if mod not in _RUNNERS:
         _RUNNERS[mod] = ModRunner(mod)
-    return _RUNNERS[mod].run_file(tf, filter_text)
+    return _RUNNERS[mod].run_file(tf, filter_text, only, known)
 
 
 def test_files(mod: Path) -> list[Path]:
     return sorted(p for p in (TESTS_DIR / mod.name).glob("test_*") if p.suffix in (".lua", ".tl"))
 
 
+# Per-test CPU seconds from earlier runs (gitignored); used to split slow files into shards.
+TIMINGS = CACHE_DIR / "test_timings.json"
+NO_SPLIT = "run_tests: no-split"  # put this in a test file whose tests depend on each other's state
+
+
+def load_timings() -> dict[str, dict[str, float]]:
+    try:
+        return json.loads(TIMINGS.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def plan(jobs: list[tuple[Path, Path]], timings: dict, workers: int, filter_text: str | None):
+    """Returns [(mod, tf, only, known, estimate)], slow files split by recorded per-test times
+    into shards no bigger than the slowest single test or half the even share per worker."""
+    known = {}
+    for _, tf in jobs:
+        times = timings.get(display(tf))
+        if times and filter_text:
+            times = {n: t for n, t in times.items() if filter_text in n}
+        known[display(tf)] = times or None
+    totals = [sum(t.values()) for t in known.values() if t]
+    singles = [max(t.values()) for t in known.values() if t]
+    # half the even share: this Mac's cores differ in speed (6 fast + 12 slower) and the pool hands
+    # out shards as workers free up, so smaller shards balance better than one per worker
+    target = max(max(singles, default=0), sum(totals) / max(2 * workers, 1))
+    out = []
+    for mod, tf in jobs:
+        times = known[display(tf)]
+        total = sum(times.values()) if times else 0.0
+        if not times or total <= target or workers <= 1 or NO_SPLIT in tf.read_text(encoding="utf-8-sig"):
+            out.append((mod, tf, None, None, total or target))
+            continue
+        # 1.5x the minimum shard count leaves LPT room to keep the slowest test's shard alone
+        bins: list[list] = [[0.0, []] for _ in range(min(workers, len(times), math.ceil(1.5 * total / target)))]
+        for n, secs in sorted(times.items(), key=lambda kv: -kv[1]):
+            b = min(bins, key=lambda b: b[0])
+            b[0] += secs
+            b[1].append(n)
+        names = list(timings[display(tf)])
+        for i, (est, only) in enumerate(b for b in bins if b[1]):
+            out.append((mod, tf, only, names if i == 0 else None, est))
+    return out
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("mods", nargs="*")
     parser.add_argument("-k", dest="filter", help="only tests whose name contains this text")
+    parser.add_argument("-f", dest="files", action="append",
+                        help="only test files whose name contains this text (repeatable)")
     parser.add_argument("-j", dest="jobs", type=int, default=os.cpu_count() or 1,
-                        help="test files run in parallel (default: CPU count; 1 = serial)")
+                        help="worker processes (default: CPU count; 1 = serial, no sharding)")
     args = parser.parse_args()
 
     if args.mods:
         mods = [resolve_mod(m) for m in args.mods]
     else:
         mods = sorted(p.resolve() for p in MODS_DIR.iterdir() if (TESTS_DIR / p.name).is_dir())
-    jobs = [(mod, tf) for mod in mods for tf in test_files(mod)]
+    jobs = [(mod, tf) for mod in mods for tf in test_files(mod)
+            if not args.files or any(f in tf.name for f in args.files)]
     for mod in mods:
         if not test_files(mod):
             print(f"[{mod.name}] no tests in {display(TESTS_DIR / mod.name)}")
+    if not jobs:
+        raise SystemExit(f"no test files match -f {args.files}")
 
     started = time.perf_counter()
     passed = failed = 0
-    current = None
+    timings = load_timings()
+    planned = plan(jobs, timings, args.jobs, args.filter)
+    if args.jobs <= 1 or len(planned) <= 1:
+        outputs = {tf: [run_file(mod, tf, args.filter)] for mod, tf in jobs}
+    else:
+        with ProcessPoolExecutor(max_workers=min(args.jobs, len(planned))) as pool:
+            # slowest first, so the long shards don't start last
+            futures = [(tf, pool.submit(run_file, mod, tf, args.filter, only, known))
+                       for mod, tf, only, known, _ in sorted(planned, key=lambda p: -p[4])]
+            outputs = {tf: [] for _, tf in jobs}
+            for tf, fut in futures:
+                outputs[tf].append(fut.result())
 
-    def report(mod: Path, result: tuple[int, int, str]) -> None:
-        nonlocal passed, failed, current
+    current = None
+    for mod, tf in jobs:
+        shards = outputs[tf]
+        p, f, text = format_file(display(tf), shards)
+        passed += p
+        failed += f
+        if args.filter and not p + f:
+            continue  # -k: files with no matching test stay quiet
         if mod != current:
             print(f"[{mod.name}]")
             current = mod
-        passed += result[0]
-        failed += result[1]
-        print(result[2], flush=True)
-
-    if args.jobs <= 1 or len(jobs) <= 1:
-        for mod, tf in jobs:
-            report(mod, run_file(mod, tf, args.filter))
-    else:
-        with ProcessPoolExecutor(max_workers=min(args.jobs, len(jobs))) as pool:
-            futures = [pool.submit(run_file, mod, tf, args.filter) for mod, tf in jobs]
-            for (mod, _), fut in zip(jobs, futures):  # print in name order as results arrive
-                report(mod, fut.result())
+        print(text, flush=True)
+        if not any(s.get("load_error") or s.get("compile_errors") for s in shards):
+            # a full run replaces the file's record (drops renamed tests); a -k run updates it
+            rec = timings.setdefault(display(tf), {}) if args.filter else timings.__setitem__(display(tf), {}) or timings[display(tf)]
+            for r in (r for s in shards for r in s["results"]):
+                rec[r["name"]] = round(r["secs"], 3)
+    for key in [k for k in timings if not (ROOT / k).exists()]:
+        del timings[key]  # deleted / renamed test files (e.g. a temporary test_zz_debug.lua)
+    try:
+        TIMINGS.parent.mkdir(parents=True, exist_ok=True)
+        TIMINGS.write_text(json.dumps(timings, indent=0, sort_keys=True))
+    except OSError:
+        pass
     print(f"{passed} passed, {failed} failed ({time.perf_counter() - started:.1f} s)")
     sys.exit(1 if failed or not passed else 0)
 
