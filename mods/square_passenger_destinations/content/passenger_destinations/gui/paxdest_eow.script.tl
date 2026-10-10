@@ -343,12 +343,14 @@ local function buildingInfo(entity : integer) : BuildingInfo
 	return info
 end
 
+-- Only names from the game are cached; "Other" is translated at use time (never stored or used as a key).
 local townNames : {integer : string} = {}
 local function townName(town : integer) : string
 	if town == nil or town < 0 then return _("Other") end
 	local n = townNames[town]
 	if n == nil then
-		n = entityName(town) or _("Other")
+		n = entityName(town)
+		if n == nil then return _("Other") end
 		townNames[town] = n
 	end
 	return n
@@ -363,11 +365,10 @@ local function destinationIndex(sp : Engine.Component.SimPerson) : integer
 	return nil
 end
 
-local KIND_NAMES : {string} = { _("Home"), _("Shop"), _("Work") }
-
-local function kindName(index : integer) : string
-	return index ~= nil and KIND_NAMES[index + 1] or nil
-end
+-- English keys, translated at use time with _(). Whole phrases with placeholders, so a language can
+-- reorder them (no sentence building).
+local KIND_COUNTS : {string} = { "Home {n}", "Shop {n}", "Work {n}", "Other {n}" }   -- i18n: keys
+local KIND_PLACES : {string} = { "Home, {town}", "Shop, {town}", "Work, {town}" }   -- i18n: keys
 
 local record Cluster
 	x : number
@@ -380,7 +381,7 @@ end
 --- CLUSTER_M grid; one arrow per cluster (to its centroid), biggest first. Rows: counts per town.
 local function computeStationFinal(group : integer, selected : {string : boolean}) : Snapshot
 	local clusters : {string : Cluster} = {}
-	local towns : {string : integer} = {}
+	local towns : {integer : integer} = {}   -- town entity (-1: none) -> passengers
 	local kinds : {integer} = { 0, 0, 0, 0 }   -- home, shop, work, other
 	local total = 0
 	forEachWaiting(group, selected, false, function(person : integer, _at : Engine.Component.SimEntityAtTerminal)
@@ -390,8 +391,8 @@ local function computeStationFinal(group : integer, selected : {string : boolean
 		local idx = destinationIndex(sp)
 		kinds[(idx or 3) + 1] = kinds[(idx or 3) + 1] + 1
 		local info = buildingInfo(sp.targetOrAtEntity as integer)
-		local tn = townName(info.town)
-		towns[tn] = (towns[tn] or 0) + 1
+		local tid = (info.town ~= nil and info.town >= 0) and info.town or -1
+		towns[tid] = (towns[tid] or 0) + 1
 		local p = info.pos
 		if p ~= nil then
 			local key = tostring(math.floor(p[1] / CLUSTER_M)) .. ":" .. tostring(math.floor(p[2] / CLUSTER_M))
@@ -421,22 +422,27 @@ local function computeStationFinal(group : integer, selected : {string : boolean
 		end
 	end
 
-	local townList : {string} = {}
-	for name, __ in pairs(towns) do townList[#townList + 1] = name end
-	table.sort(townList, function(a : string, b : string) : boolean
+	local townList : {integer} = {}
+	local names : {integer : string} = {}
+	for tid, __ in pairs(towns) do
+		townList[#townList + 1] = tid
+		names[tid] = townName(tid)
+	end
+	table.sort(townList, function(a : integer, b : integer) : boolean
 		if towns[a] ~= towns[b] then return towns[a] > towns[b] end
+		if names[a] ~= names[b] then return names[a] < names[b] end
 		return a < b
 	end)
 	for i = 1, math.min(#townList, MAX_ROWS) do
-		snap.rows[#snap.rows + 1] = { name = townList[i], count = towns[townList[i]] }
+		snap.rows[#snap.rows + 1] = { name = names[townList[i]], count = towns[townList[i]] }
 	end
 	if #townList > MAX_ROWS then
 		snap.note = lang_util.format(_("+{n} more towns"), { n = tostring(#townList - MAX_ROWS) })
 	end
 	if total > 0 then
 		local parts : {string} = {}
-		for i = 1, 3 do parts[i] = KIND_NAMES[i] .. " " .. tostring(kinds[i]) end
-		if kinds[4] > 0 then parts[4] = _("Other") .. " " .. tostring(kinds[4]) end
+		for i = 1, 3 do parts[i] = lang_util.format(_(KIND_COUNTS[i]), { n = tostring(kinds[i]) }) end   -- i18n: ignore
+		if kinds[4] > 0 then parts[4] = lang_util.format(_(KIND_COUNTS[4]), { n = tostring(kinds[4]) }) end   -- i18n: ignore
 		snap.kinds = table.concat(parts, " · ")
 	end
 	return snap
@@ -467,8 +473,9 @@ local computePerson = perf:wrap("compute_person", function(person : integer, mod
 	-- the final destination: target building, "Home/Shop/Work, Town"
 	local target = sp.targetOrAtEntity as integer
 	local info = buildingInfo(target)
-	local kind = kindName(destinationIndex(sp))
-	local place = kind and (kind .. ", " .. townName(info.town)) or (entityName(target) or townName(info.town))
+	local kindIdx = destinationIndex(sp)
+	local place = kindIdx ~= nil and lang_util.format(_(KIND_PLACES[kindIdx + 1]), { town = townName(info.town) })   -- i18n: ignore
+		or (entityName(target) or townName(info.town))
 
 	local atV = comp(person, api.type.ComponentType.SIM_ENTITY_AT_VEHICLE) as Engine.Component.SimEntityAtVehicle
 	local atT = comp(person, api.type.ComponentType.SIM_ENTITY_AT_TERMINAL) as Engine.Component.SimEntityAtTerminal
@@ -509,7 +516,8 @@ local computePerson = perf:wrap("compute_person", function(person : integer, mod
 		snap.arrows[1] = { from = from, to = to, count = 1 }
 		snap.destinations, snap.passengers = 1, 1
 	elseif to ~= nil then
-		snap.note = (snap.note or "") .. " " .. _("(Own position unknown: no arrow.)")
+		snap.note = snap.note ~= nil and lang_util.format(_("{note} (Own position unknown: no arrow.)"), { note = snap.note })
+			or _("(Own position unknown: no arrow.)")
 	end
 	return snap
 end)

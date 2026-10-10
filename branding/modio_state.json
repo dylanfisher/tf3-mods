@@ -868,28 +868,28 @@
     "logo": {
       "file": "0.png",
       "sha": "98f5d2c6e69b0aac",
-      "remote": "0.1.png"
+      "remote": "0.2.png"
     },
     "images": [
       {
         "file": "1.png",
         "sha": "4b8837bf5efb3f54",
-        "remote": "1.1.png"
+        "remote": "1.png"
       },
       {
         "file": "2.png",
         "sha": "5ba757fad0021039",
-        "remote": "2.1.png"
+        "remote": "2.png"
       },
       {
         "file": "3.png",
         "sha": "7777a0ee4bc81c50",
-        "remote": "3.1.png"
+        "remote": "3.png"
       },
       {
         "file": "4.png",
         "sha": "ced62b8735715daf",
-        "remote": "4.1.png"
+        "remote": "4.png"
       }
     ],
     "synced": "2026-10-10",
@@ -903,8 +903,8 @@
         "61f1507c944398f3"
       ],
       "description": [
-        "7b8ef05bed233ada",
-        "87397ea879116f0e"
+        "bdd127669a99e35b",
+        "d396b44d539b000f"
       ]
     }
   },
