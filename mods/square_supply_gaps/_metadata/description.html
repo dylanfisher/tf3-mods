@@ -1,0 +1,42 @@
+<p>Find the town buildings your supply routes don't reach. Switch the gaps on and every town building that needs a cargo but isn't getting it gets a marker, so you can see exactly where a new truck stop would close the gap.</p>
+<p>Click the Gaps button in the top-left button ridge to open the panel, tick Show supply gaps and pick a cargo. The markers stay up while you place stops: put a stop on a line and the buildings it reaches lose their markers within about a second.</p>
+<h4>Features</h4>
+<ul>
+<li><strong>Arrow markers</strong> on town buildings that no stop delivering the cargo reaches.</li>
+<li><strong>Exclamation markers</strong> on buildings that a delivering stop reaches, but whose stock of the cargo has been empty for about 20 seconds.</li>
+<li><strong>Cargo picker</strong> with icons: All needed, or one cargo. Each row counts the buildings not reached, in range but empty, and all buildings that need it.</li>
+<li><strong>Area labels</strong> under each town name: the share of each district's buildings that get the cargo, as a percentage per district. They also show in the Cargo Flow layer.</li>
+<li><strong>Follows the camera</strong>: only the towns on screen are counted and marked, and the panel names them. Pan to another town and it updates.</li>
+<li><strong>Built to be light</strong>: it works once a second, only for the towns on screen, skips work when nothing changed, and spreads its reads over several seconds. While the markers are off it does no work.</li>
+<li><strong>Preview a stop</strong>: Count stops without a line treats a new cargo stop as delivering before it is on a line.</li>
+<li><strong>Remembered per save</strong>: a game saved with the markers on loads with them on; every other game starts with them off.</li>
+</ul>
+<h4>Options (in the panel)</h4>
+<ul>
+<li><strong>Show supply gaps</strong> (default Off, saved with the game): the markers and labels.</li>
+<li><strong>Only towns in view</strong> (default On): count and mark only the towns on screen. Untick for the whole map.</li>
+<li><strong>Include in-range but empty</strong> (default On): also mark buildings in range whose stock stays empty.</li>
+<li><strong>Area labels</strong> (default On): the district rows under town names.</li>
+<li><strong>Count stops without a line</strong> (default Off): treat cargo stops that no line serves yet as delivering, to preview a new stop's coverage.</li>
+</ul>
+<h4>Settings</h4>
+<ul>
+<li><strong>Debug: performance log</strong> (default Off): writes timing lines to the game's log file every 30 s. Only for tracking down slowdowns.</li>
+</ul>
+<h4>Notes</h4>
+<ul>
+<li>A stop added to or removed from a line shows on the next update, about a second. Other line changes, such as which cargo a line loads, can take up to about 10 seconds.</li>
+<li>At most 300 markers are shown, the ones nearest the centre of the screen.</li>
+<li>The options other than Show supply gaps last for the session; every game starts with their defaults.</li>
+<li>Reads the game state only and changes nothing in the simulation. The mod is cosmetic and keeps achievements enabled. It stores one on/off flag in the savegame: it can be added to existing saves, and removing it from a save shows the game's standard warning.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 2 (2026-10-10)</h4>
+<ul>
+<li>New: an optional performance log for troubleshooting (mod setting "Debug: performance log", Off by default).</li>
+</ul>
+<h4>Revision 1 (2026-10-09)</h4>
+<ul>
+<li>New: initial release.</li>
+</ul>

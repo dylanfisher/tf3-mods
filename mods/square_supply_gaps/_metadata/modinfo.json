@@ -1,0 +1,16 @@
+{
+    "name": "Supply Gap Overview",
+    "summary": "Find the town buildings your supply routes don't reach.",
+    "description": "Find the town buildings your supply routes don't reach: markers on every town building that needs a cargo and isn't getting it. Off by default; the Gaps button in the top-left button ridge opens the panel.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}
