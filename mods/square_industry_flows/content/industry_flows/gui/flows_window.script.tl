@@ -23,6 +23,18 @@
 -- LayerConfig. Closing the window pops the tool (tool_react_util.tl:16-25, :52-59), which clears the
 -- action (builtin.lua:1287-1305, setActionFn(nil) at :1300), so the arrows go away with the window.
 
+-- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state, the panel's first render, slow
+-- renders / clicks / view rebuilds (> 16 ms, at most one line per section per minute), and with the
+-- "Debug: performance log" mod setting a 30 s summary. Most timed sections run on the GUI thread
+-- (recipe renders, onClick / onValueChange handlers). The slow poll runs in a react onStepTimer
+-- callback (worker thread "Main Pool N", engine_react_util.tl useStepStateTimer) and is timed too:
+-- api.type.Clock is safe there (docs/findings.md "Timers and threads in GUI contexts"); it makes no
+-- api.gui call (the window visibility comes from react.onStep). "poll_shelved" counts the timer
+-- ticks skipped while the panel is shelved. Local counters only; nothing is saved.
+local sqperf = ug_require "square_industry_flows::/sqperf/square_industry_flows.lua" as SquareIndustryFlowsSqPerf
+local perf = sqperf.new({ mod = "square_industry_flows", ctx = "gui", paramKey = "sqperf_log", first = { "content_render" } })
+local perfInit = perf:start()
+
 local react = ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
 local cargo_react_util = ug_require "::/gui/main/cargo_react_util.tl" as CargoReactUtil
@@ -284,6 +296,10 @@ end
 --- arrows are not drawn (builtin.lua:1162-1194, only the top entry is the active owner), so the
 --- poll would be wasted. Own flag only (api/tealdef/api/gui.d.tl:404-407), not isVisibleRecursive:
 --- with the whole GUI hidden the tool stays on top and its arrows still show.
+--- GUI THREAD ONLY: called from react.onStep (Main Thread, docs/findings.md "Timers and threads in
+--- GUI contexts"; base reads byId visibility in onStep too: mission_framework_react.tl:947 and
+--- game_bar.tl:347 via engine_react_util.useStepState). Never from the onStepTimer poll: it runs on
+--- worker threads, where api.gui calls can hard-crash the game.
 local function panelVisible() : boolean
 	local ok, visible = pcall(api.gui.byId.isVisible, WINDOW_ID)
 	return not ok or visible ~= false
@@ -299,6 +315,10 @@ local function poll() : PanelData
 	lastWorld = world as IndustryFlowsWorld
 	return { types = model.groupTypes(lastWorld), view = buildView(lastWorld, getSession()) }
 end
+
+-- SQPERF section "poll_open": the panel's first poll, run by useStateLazy inside the first render
+-- (GUI thread), so it can be timed; the timer polls are only counted ("poll").
+local pollOnOpen = perf:wrap("poll_open", poll)
 
 -- Diagnostics for the in-game test: every industry type with its display name and count, logged once
 -- per session when the panel first opens (confirms the type keys and the localized names).
@@ -423,22 +443,43 @@ local function summaryRows(s : IndustryFlowsSummary) : {TreeNodeId}
 	return rows
 end
 
-local IndustryFlowsContent = react.RegisterRecipe("IndustryFlowsContent", function(payload : ToolReactUtil.ToolWindowParamPayload<IndustryFlowsToolParam>) : TreeNodeId
+-- SQPERF section "content_render" (its first call includes the first poll, via useStateLazy).
+local IndustryFlowsContent = react.RegisterRecipe("IndustryFlowsContent", perf:wrap("content_render", function(payload : ToolReactUtil.ToolWindowParamPayload<IndustryFlowsToolParam>) : TreeNodeId
 	-- UI state starts from (and is written back to) the session memory, so reopening restores it.
 	local uiState : ReactStateT<IndustryFlowsPanelState> = react.useStateLazy(function() : IndustryFlowsPanelState
 		return model.copyPanelState(getSession())
 	end)
-	local dataState : ReactStateT<PanelData> = react.useStateLazy(poll)
+	local dataState : ReactStateT<PanelData> = react.useStateLazy(pollOnOpen)
 
 	-- Slow poll for actual vs potential (src pattern: engine_react_util.tl:128-149
 	-- useStepStateTimer). It reads the session table, never a captured selection, so it always uses
 	-- the current choice; deepEquals skips re-renders of an unchanged poll. Types and view are
 	-- compared apart and an unchanged part keeps its old table: the LayerConfig and the action are
 	-- cached by view identity, so a poll that only changes the type list (an unrelated industry built
-	-- or removed) does not rebuild the arrows. No poll while shelved (panelVisible); the next tick
-	-- after the panel comes back refreshes it.
+	-- or removed) does not rebuild the arrows. No poll while shelved; the next tick after the panel
+	-- comes back refreshes it. The timer runs on worker threads ("Main Pool N"), so it makes no
+	-- api.gui call: react.onStep (Main Thread) copies the window's visibility into visibleRef every
+	-- frame and the timer only reads that plain Lua flag (base: construction.tl:4308-4311 keeps its
+	-- onStepTimer to refs and hands the byId visibility work to the main thread).
+	local visibleRef : ReactRefT<boolean> = react.useRef(true)
+	react.onStep(function()
+		local visible = panelVisible()
+		if visible ~= visibleRef:get() then
+			visibleRef:set(visible)
+			if perf.on then
+				-- Debug: performance log On only; the log's thread column shows where this ran
+				log.message("[IndustryFlows] panel visible=" .. tostring(visible) .. " (onStep)")
+			end
+		end
+	end)
 	react.onStepTimer(function()
-		if dataState:hasExpired() or not panelVisible() then return end
+		if dataState:hasExpired() then return end
+		if not visibleRef:get() then
+			perf:hit("poll_shelved") -- SQPERF count: ticks skipped while shelved
+			return
+		end
+		-- SQPERF section "poll": onStepTimer (worker thread); Clock is safe there (docs/findings.md)
+		local tPoll = perf:start()
 		local old = dataState:old()
 		local data = poll()
 		local sameTypes = old ~= nil and table_util.deepEquals(data.types, old.types)
@@ -449,6 +490,7 @@ local IndustryFlowsContent = react.RegisterRecipe("IndustryFlowsContent", functi
 				view = sameView and old.view or data.view,
 			})
 		end
+		perf:stop("poll", tPoll)
 	end, REFRESH_SECONDS)
 
 	react.onMount(function()
@@ -470,7 +512,10 @@ local IndustryFlowsContent = react.RegisterRecipe("IndustryFlowsContent", functi
 		uiState:set(newState)
 		if rebuild then
 			local old = dataState:old()
+			-- SQPERF section "rebuild_view": selection / toggle clicks (GUI thread handlers)
+			local tView = perf:start()
 			local view = buildView(lastWorld, newState)
+			perf:stop("rebuild_view", tView)
 			dataState:set({ types = old and old.types or {}, view = view })
 			logView(view)
 		end
@@ -506,7 +551,9 @@ local IndustryFlowsContent = react.RegisterRecipe("IndustryFlowsContent", functi
 	local cache = layerRef:get()
 	if cache.config == nil or cache.view ~= view then
 		cache.view = view
+		local tLayer = perf:start() -- SQPERF section "layer_config" (render, GUI thread)
 		cache.config = buildLayerConfig(view)
+		perf:stop("layer_config", tLayer)
 		cache.actionFn = nil
 	end
 	-- The HUD filter is still read every render, as before (it used to be read inside the action,
@@ -613,7 +660,7 @@ local IndustryFlowsContent = react.RegisterRecipe("IndustryFlowsContent", functi
 
 	-- The recipe sits in a Window's content: return a layout (memory "Recipe must return layout").
 	return vbox(rows, "flows-content")
-end)
+end))
 
 local IndustryFlowsWindow = react.RegisterWrapperRecipe("IndustryFlowsWindow", builtin.Window, function(param : ToolReactUtil.IToolWindowParam<IndustryFlowsToolParam>) : TreeNodeId
 	-- WindowParam: builtin.d.tl:1186-1210. The id must equal the tool's window id: shelve/unshelve
@@ -652,8 +699,8 @@ local function isOpen(toolStackApi : Builtin.ToolStackAPI) : boolean
 end
 
 --- Ridge button: open (push, replacing other tools like Statistics does, statistics.tl:690-693 and :701) or
---- close (pop) the panel.
-local function togglePanel()
+--- close (pop) the panel. SQPERF section "click_toggle" (onClick: GUI thread).
+local togglePanel = perf:wrap("click_toggle", function()
 	local toolStackApi = game_react_globals.getDefaultToolStackApi()
 	local wc = game_react_globals.getDefaultWindowContainer()
 	if toolStackApi == nil or wc == nil or wc:hasExpired() then
@@ -665,11 +712,11 @@ local function togglePanel()
 	else
 		toolStackApi.push(IndustryFlowsTool, nil, makeToolParam(), false)
 	end
-end
+end)
 
 --- A plugin recipe's root must be a layout (MainModButtonArea mounts plugins as BoxLayout children;
 --- base shape: game_bar_display_transported.tl:28).
-local IndustryFlowsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "IndustryFlowsRidgePlugin", function() : TreeNodeId
+local IndustryFlowsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "IndustryFlowsRidgePlugin", perf:wrap("ridge_render", function() : TreeNodeId
 	local isMapEditorRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean return api.gui.game.isMapEditor() end)
 	if isMapEditorRef:get() then
 		return nil
@@ -681,10 +728,12 @@ local IndustryFlowsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area
 			onClick = togglePanel,
 		},
 	})
-end)
+end))
 
 local result = {
 	IndustryFlowsRidgePlugin = IndustryFlowsRidgePlugin,
 }
+
+perf:phase("init", perfInit)
 
 return result
