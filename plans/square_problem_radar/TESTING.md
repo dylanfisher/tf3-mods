@@ -138,7 +138,7 @@ Use your biggest save (note vehicle, line and station counts in the report).
 - [ ] With 100+ problems, the list ends with `+N more (not listed)` and the tab count still includes them.
 - [ ] The badge/compact panel alone (window closed) should cost nothing noticeable (phase 6: it reads only the per-kind counts).
 - [ ] **Window idle:** with the window open on a tab with rows and nothing changing (game paused, smoothing holding), the rows must not flicker or lose hover/scroll position every second (perf review: an unchanged poll no longer re-renders).
-- [ ] **Save churn:** on a busy road network, the state should not be rewritten on every vehicles pass: stuck timers saved in `memory.stoppedSince` are only those ≥ 30 s (`for v, t in pairs(s.memory.stoppedSince) do ... end` all older than 30 s of game time). Save, reload: a vehicle standing ~1-2 min still gets its `veh_stuck` row on time (≤ 30 s late at most).
+- [ ] **Save churn:** stuck timers in `memory.stoppedSince` are only those ≥ 30 s (`for v, t in pairs(s.memory.stoppedSince) do ... end` all older than 30 s of game time); the younger ones are in `s.rt.young.stopped` (PERF_VMS fix: shared by every simulation Lua state, so the state is rewritten on vehicles passes where young timers come or go; quietly, the window does not re-read). Save, reload: a vehicle standing ~1-2 min still gets its `veh_stuck` row on time.
 - [ ] **Economy scans (Phase 7):** in a save ≥ 1 game year old, compare the 2.4 s stutter check with *Losing money* and *Low use* on (List) and both **Off**: no visible difference. Expected cost: one `calculateBalance` per profitable line and game month, 7 per losing line, at most 4 lines per 2.4 s pass.
 - [ ] Standing timers stay ≤ 500; the save grows by a few KB at most. Pending (smoothing) entries stay ≤ 200: `print(s.pending and #s.pending or 0)` in the console.
 
@@ -234,6 +234,18 @@ Defaults: both **List**; Losing money = Info when the 12-month balance is negati
 - [ ] **Adding the mod to an existing save (≥ 1 year old):** money rows appear within a minute or two (the money check needs no history of ours); *Low use* rows only after half a game year. No error, no toast burst.
 - [x] **Ridge / tier counts:** with a Critical economy row and no other Critical alert, the badge dot is **red** (the HUD reads `s.tierCounts`, since the economy kinds' tier varies per row). *(2026-10-07: passed: the badge dot is red with only economy rows Critical, `shots/05-all-economy.jpg`.)*
 - [ ] **Icons:** a *Losing money* row set to Notify shows the base coin-stack icon (`::/game_mechanics/finance/icons/symbol_coin_stack.tga`) in the toast; report if it renders badly (wrong size / blank) at notification size, and whether `api.util.formatMoney` text fits the metric column.
+
+## 12. Simulation Lua states (PERF_VMS fix, 2026-10-10)
+
+The game script runs in ~14 Lua states; ticks hop between them. Offline proof: `tests/square_problem_radar/test_multistate.lua`.
+Turn on **DEV SQPERF: all mods** (or the mod's *Debug: performance log*) for the `win_ms=` lines.
+
+- [ ] **No burst when added:** copy a save that never had the radar (or one saved after removing it: removal drops the `radar.gs` entity, §8), with lines without vehicles. Enable, load, play 5 game-minutes. `grep "\[ProblemRadar\]" stdout.txt`: `state initialised (…)` exactly once, **no** `notified` line. Console right after load: `print(s.rt and s.rt.prime and s.rt.prime.all)` → `true`, a few seconds later `nil`.
+- [ ] **No burst on switch:** with 3+ rows of a List kind (e.g. Overcrowded or Worn), set it to Notify in the window: no `notified` line; a new problem of that kind toasts later.
+- [ ] **Stuck delay:** `stuckMinRoad = 1` (console, §1). Make one road vehicle stand en route (e.g. block its road) and note the game time. Its row must appear **90-95 game s** later (1 min + 30 s smoothing + ≤ 2 passes); at 1× game seconds are real seconds. Console every few seconds: `s.rt.young.stopped[<id>]` (first 30 s) then `s.memory.stoppedSince[<id>]` must keep the **same** start value (it never restarts).
+- [ ] **Budget:** 10+ vehicles stuck at once: per 2 game-minutes at most 3 `notified 1`-style toasts plus one `+N more` summary (timestamps of the `notified` lines).
+- [ ] **Rotation:** with > 8 lines, `print(s.rt.lineCursor)` every few seconds walks up through the line ids and wraps (not stuck near the lowest ids).
+- [ ] **Write cost:** in the `ctx=gs` window lines compare `state_get n= ms=` with `state_set n= ms=`; `stateSet c=` all writes, `stateSetQuiet c=` the ones only bookkeeping changed (mostly lines and vehicles passes). Report both on the big save; `make perf` sums them.
 
 ## Report back
 

@@ -257,6 +257,9 @@ function checks.upgradeState(s : any) : ProblemRadarState, boolean
 			n.snoozed = checks.cleanSnoozed(t.snoozed)
 			n.seq = toInt(t.seq)
 		end
+		-- Shared engine bookkeeping (optional, lazy like pending; v6 only): kept as is, sanitised by
+		-- cleanRuntime where the engine reads it. Missing is valid and not a change.
+		if current and type(t.rt) == "table" then n.rt = t.rt end
 		-- v6 tier counts: kept when valid, else rebuilt from the alerts and kind counts.
 		local tc = t.tierCounts as {any}
 		if current and type(tc) == "table" and type(tc[1]) == "number" and type(tc[2]) == "number" and type(tc[3]) == "number" then
@@ -716,9 +719,9 @@ checks.sameTimerMap = sameMap
 
 -- Save churn (state:set serialises the whole state): on a busy network vehicles stop at junctions,
 -- signals and in short jams all the time, so the full stopped / blocked maps change on nearly every
--- vehicles pass. Only timers at least this old are saved in state.memory; younger ones live in the
--- engine script's module-local copy. After a load a vehicle that had stood less than this simply
--- starts its timer again (at most this much later; the smallest stuck threshold is 1 minute).
+-- vehicles pass. Only timers at least this old are kept in state.memory; younger ones go to
+-- state.rt.young (youngTimers). Both are shared by every simulation Lua state (PERF_VMS: the next
+-- vehicles pass usually runs in another one), so a timer keeps its start whichever state runs.
 checks.PERSIST_TIMER_AFTER_MS = 30 * 1000
 
 function checks.agedTimers(since : {integer : integer}, now : integer, minAge : integer, by? : {integer : integer}) : {integer : integer}, {integer : integer}
@@ -726,6 +729,18 @@ function checks.agedTimers(since : {integer : integer}, now : integer, minAge : 
 	local outBy : {integer : integer} = by ~= nil and {} or nil
 	for k, t in pairs(since or {}) do
 		if now - t >= minAge then
+			out[k] = t
+			if outBy ~= nil then outBy[k] = by[k] end
+		end
+	end
+	return out, outBy
+end
+
+function checks.youngTimers(since : {integer : integer}, now : integer, minAge : integer, by? : {integer : integer}) : {integer : integer}, {integer : integer}
+	local out : {integer : integer} = {}
+	local outBy : {integer : integer} = by ~= nil and {} or nil
+	for k, t in pairs(since or {}) do
+		if now - t < minAge then
 			out[k] = t
 			if outBy ~= nil then outBy[k] = by[k] end
 		end
@@ -1789,7 +1804,115 @@ function checks.merge(state : ProblemRadarState, group : string, fresh : {Proble
 		tierCounts = tierCounts,
 		snoozed = next(snoozed) ~= nil and snoozed or nil,
 		seq = s.seq,
+		rt = s.rt,
 	}, changed
+end
+
+---------------------------------------------------------------------------
+-- Shared engine bookkeeping (state.rt). The game script runs in ~14 simulation Lua states and each
+-- tick goes to whichever is free (plans/square_problem_radar/PERF_VMS.md); module-local values are
+-- per Lua state. What one scan must hand to the next (priming, toast budget, failure counts, rotation
+-- cursors, young stuck timers, ineligible marks) therefore lives in the state. The engine script
+-- reads it once per scan slot (the state:get it does anyway) and writes it only when it changed.
+
+local function intMap(m : any) : {integer : integer}
+	local out : {integer : integer} = {}
+	if type(m) ~= "table" then return out end
+	for k, v in pairs(m as {any : any}) do
+		local ki, vi = toInt(k), toInt(v)
+		if ki ~= nil and vi ~= nil then out[ki] = vi end
+	end
+	return out
+end
+
+local function boolSet(m : any) : {string : boolean}
+	local out : {string : boolean} = {}
+	if type(m) ~= "table" then return out end
+	for k, v in pairs(m as {any : any}) do
+		if type(k) == "string" and v == true then out[k as string] = true end
+	end
+	return out
+end
+
+function checks.cleanRuntime(raw : any) : ProblemRadarRuntime
+	local out : ProblemRadarRuntime = {}
+	if type(raw) ~= "table" then return out end
+	local r = raw as {string : any}
+	if type(r.prime) == "table" then
+		local p = r.prime as {string : any}
+		out.prime = { all = p.all == true, kinds = boolSet(p.kinds), seen = boolSet(p.seen) }
+	end
+	if type(r.budget) == "table" then
+		local b = r.budget as {string : any}
+		local ws = toInt(b.windowStart)
+		if ws ~= nil then
+			out.budget = { windowStart = ws, toasts = math.max(0, toInt(b.toasts) or 0),
+				summaries = math.max(0, toInt(b.summaries) or 0), pending = math.max(0, toInt(b.pending) or 0) }
+		end
+	end
+	if type(r.fails) == "table" then
+		local f : {string : integer} = {}
+		for k, v in pairs(r.fails as {any : any}) do
+			local n = toInt(v)
+			if type(k) == "string" and n ~= nil and n > 0 then f[k as string] = n end
+		end
+		out.fails = f
+	end
+	out.lineCursor = toInt(r.lineCursor)
+	out.econCursor = toInt(r.econCursor)
+	out.econGen = toInt(r.econGen)
+	if r.econOff == true then out.econOff = true end
+	if type(r.young) == "table" then
+		local y = r.young as {string : any}
+		local at = toInt(y.at)
+		if at ~= nil then
+			out.young = { at = at, stopped = intMap(y.stopped), blockedSince = intMap(y.blockedSince), blockedBy = intMap(y.blockedBy) }
+		end
+	end
+	if type(r.ineligible) == "table" then out.ineligible = intMap(r.ineligible) end
+	return out
+end
+
+function checks.packRuntime(rt : ProblemRadarRuntime) : ProblemRadarRuntime
+	if rt == nil then return nil end
+	local out : ProblemRadarRuntime = {}
+	local any = false
+	local p = rt.prime
+	if p ~= nil and (p.all == true or next(p.kinds or {}) ~= nil) then
+		out.prime = { all = p.all == true, kinds = p.kinds or {}, seen = p.seen or {} }
+		any = true
+	end
+	if rt.budget ~= nil then out.budget = rt.budget any = true end
+	if rt.fails ~= nil and next(rt.fails) ~= nil then out.fails = rt.fails any = true end
+	if rt.lineCursor ~= nil then out.lineCursor = rt.lineCursor any = true end
+	if rt.econCursor ~= nil then out.econCursor = rt.econCursor any = true end
+	if rt.econGen ~= nil then out.econGen = rt.econGen any = true end
+	if rt.econOff == true then out.econOff = true any = true end
+	local y = rt.young
+	if y ~= nil and y.at ~= nil and (next(y.stopped or {}) ~= nil or next(y.blockedSince or {}) ~= nil) then
+		out.young = { at = y.at, stopped = y.stopped or {}, blockedSince = y.blockedSince or {}, blockedBy = y.blockedBy or {} }
+		any = true
+	end
+	if rt.ineligible ~= nil and next(rt.ineligible) ~= nil then out.ineligible = rt.ineligible any = true end
+	return any and out or nil
+end
+
+-- Plain data (numbers, strings, booleans, nested tables) equal? Numbers compare by value, so a save's
+-- 5.0 equals 5.
+local function deepSame(a : any, b : any) : boolean
+	if type(a) ~= "table" or type(b) ~= "table" then return a == b end
+	local n = 0
+	for k, v in pairs(a as {any : any}) do
+		n = n + 1
+		if not deepSame(v, (b as {any : any})[k]) then return false end
+	end
+	for __ in pairs(b as {any : any}) do n = n - 1 end
+	return n == 0
+end
+
+function checks.sameRuntime(a : ProblemRadarRuntime, b : any) : boolean
+	if a == nil then return b == nil end
+	return deepSame(a, b)
 end
 
 ---------------------------------------------------------------------------

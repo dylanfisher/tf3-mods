@@ -283,7 +283,11 @@ test("engine: money re-checked at most once per game month per line; a pending r
 	eq(warnings(), {})
 end)
 
-test("engine: the saved averages are not rewritten on every pass", function()
+test("engine: the averages are shared after every sampled pass, quietly (the window's seq stays)", function()
+	-- PERF_VMS: the next lines pass usually runs in another simulation Lua state, so a pass that took
+	-- samples hands the averages on through the state (before: a monthly write, which lost the samples
+	-- of every Lua state but the writer). Those writes leave state.seq alone, so the window's poll
+	-- does not re-read the alerts for them (multi-state behaviour: test_multistate.lua).
 	clear_logs()
 	local script = loadScript()
 	local state = fakeState()
@@ -292,17 +296,14 @@ test("engine: the saved averages are not rewritten on every pass", function()
 	-- stays off); line_unprofitable off so only the averages can write
 	script.handleEvent(nil, state, "", "ProblemRadar", "ProblemRadar.setSetting", { notify = { line_unprofitable = "off" } })
 	linesPass(script, state, t0, 0)
-	local sets = state.sets
-	local month = YEAR // 12
-	local n = 0
+	local sets, seq = state.sets, state.value.seq
 	for i = 1, 40 do
 		world.usage[11] = { used = (i % 2 == 0) and 90 or 20, capacity = 100 }
 		linesPass(script, state, t0 + i * 2400, i)
-		n = i
+		eq(state.value.memory.useAvg[11][3], t0 + i * 2400, "this pass's sample is in the state")
 	end
-	eq(state.sets - sets, 0, "40 passes inside a month: no write")
-	linesPass(script, state, t0 + month, n + 1)
-	eq(state.sets - sets, 1, "the monthly write")
+	eq(state.sets - sets, 40, "one write per pass, no more")
+	eq(state.value.seq, seq, "quiet writes: the window's change counter stays")
 	world.usage[11] = { used = 50, capacity = 100 }
 	eq(warnings(), {})
 end)

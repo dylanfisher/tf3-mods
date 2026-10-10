@@ -97,12 +97,12 @@ global record ProblemRadarMemory
 	overloadSince : {integer : integer}
 	underusedSince : {integer : integer}
 	bunchingSince : {integer : integer}
-	-- v5: the rotating line cursor (v4 lineCursor) is no longer saved: it lives in a module-local
-	-- variable of radar.script.tl, so moving it does not rewrite the state.
+	-- v5: the rotating line cursor (v4 lineCursor) is no longer in memory (since PERF_VMS: state.rt).
 	-- v6 (Phase 7, line_low_use): line -> { average utilisation in basis points (0..10000), gameTime
-	-- (ms) tracking started, gameTime (ms) of the last sample }. The saved copy of the engine's live
-	-- averages (module-local, floats): written when a line starts / stops being tracked, or once per game
-	-- month (all entries together). Capped at radar_checks.MAX_USE_TRACKED.
+	-- (ms) tracking started, gameTime (ms) of the last sample }. The shared copy of the engine's
+	-- averages: rewritten on every lines pass that took a sample (all entries together), so the next
+	-- pass, in whichever simulation Lua state, continues from it (PERF_VMS). Capped at
+	-- radar_checks.MAX_USE_TRACKED.
 	useAvg : {integer : {integer}}
 end
 
@@ -142,9 +142,15 @@ global record ProblemRadarState
 	-- kindCounts and tierCounts, and never notified. Expired entries are dropped by radar_checks.merge
 	-- (for its group's kinds). At most radar_checks.MAX_SNOOZED.
 	snoozed : {string : ProblemRadarSnooze}
-	-- Change counter (optional, still v6): +1 on every state:set (radar.script.tl save), so the window's
-	-- poll reads one number and skips the full read while nothing changed. nil in older saves.
+	-- Change counter (optional, still v6): +1 on every state:set that changes what the window shows
+	-- (alerts, counts, snoozes, settings; radar.script.tl save), so the window's poll reads one number
+	-- and skips the full read while nothing changed. nil in older saves.
 	seq : integer
+	-- Shared engine bookkeeping (optional, still v6: nil in older saves and whenever all of it is empty;
+	-- radar_checks.cleanRuntime / packRuntime). The game script runs in ~14 simulation Lua states and
+	-- each tick goes to any one of them (plans/square_problem_radar/PERF_VMS.md), so values that must
+	-- carry from one scan to the next live here, not in module-local variables. Never shown.
+	rt : ProblemRadarRuntime
 end
 
 -- ======================================================================
@@ -322,7 +328,7 @@ global record ProblemRadarUnprofitableInput
 	networkCost : integer                         -- all eligible lines' yearly vehicle costs (> 0), nil if unknown
 end
 
---- Live (module-local) utilisation average of one line (line_low_use). Saved as
+--- Live utilisation average of one line (line_low_use; a per-Lua-state float cache). Saved as
 --- ProblemRadarMemory.useAvg { basis points, start, last }.
 global record ProblemRadarUseAvg
 	avg : number           -- 0..1, time-weighted, exponentially decayed (time constant 1 game year)
@@ -396,7 +402,7 @@ global record ProblemRadarChecks
 	--- stop has a recent departure of every vehicle.
 	headways : function(departures : {{integer}}, now : integer, intervalMs : integer, clumpMs : integer) : ProblemRadarHeadways
 	--- Line ids in scan order for the rotating cursor: ids after `cursor` ascending, then the rest (wrap).
-	--- The cursor is module-local in radar.script.tl (not saved since v5).
+	--- The cursor is state.rt.lineCursor (shared by the simulation Lua states; not in memory since v5).
 	lineRotation : function(ids : {integer}, cursor : integer) : {integer}
 	--- Phase 7 (perf review): the lines to check this pass, in lineRotation order: those never checked
 	--- (no checkedAt entry), checked at a later game time (a load), or at least `everyMs` ago; lines in
@@ -443,14 +449,24 @@ global record ProblemRadarChecks
 	updateBlocked : function(prevSince : {integer : integer}, prevBy : {integer : integer}, pairs : {{integer}}, now : integer, cap? : integer) : {integer : integer}, {integer : integer}, boolean
 	--- Whether two timer maps hold the same entries (`b` may be raw save data: values compared as integers).
 	sameTimerMap : function(a : {integer : integer}, b : any) : boolean
-	--- Timers younger than this stay out of the saved state.memory (module-local in the engine script).
+	--- Timers younger than this stay out of state.memory (they live in state.rt.young, which is
+	--- rewritten only while young timers come and go; memory changes only when a timer crosses this age).
 	PERSIST_TIMER_AFTER_MS : integer
 	--- The entries of `since` at least `minAge` old (the part that is saved), and `by` filtered to the same keys.
 	agedTimers : function(since : {integer : integer}, now : integer, minAge : integer, by? : {integer : integer}) : {integer : integer}, {integer : integer}
-	--- The saved timers plus the live (module-local) entries that the save lacks because they were
-	--- younger than `minAge` at `liveAt` (the game time the live maps were made). Older live entries
-	--- are ignored (dropped from the state); all of them when liveAt is nil or after `now` (a load).
+	--- The saved timers plus the young entries (state.rt.young) that the saved memory lacks because they
+	--- were younger than `minAge` at `liveAt` (the game time they were written). Older ones are
+	--- ignored (dropped from the state); all of them when liveAt is nil or after `now`.
 	withYoungTimers : function(saved : {integer : integer}, savedBy : {integer : integer}, live : {integer : integer}, liveBy : {integer : integer}, liveAt : integer, now : integer, minAge : integer) : {integer : integer}, {integer : integer}
+	--- The entries of `since` younger than `minAge` (the part agedTimers leaves out: state.rt.young), and
+	--- `by` filtered to the same keys.
+	youngTimers : function(since : {integer : integer}, now : integer, minAge : integer, by? : {integer : integer}) : {integer : integer}, {integer : integer}
+	--- state.rt from whatever the save holds: a fresh, sanitised table the engine script may modify.
+	cleanRuntime : function(raw : any) : ProblemRadarRuntime
+	--- `rt` without its empty / default parts (nil when nothing is left), as stored in state.rt.
+	packRuntime : function(rt : ProblemRadarRuntime) : ProblemRadarRuntime
+	--- Whether a packed runtime equals the stored one (`b` may be raw save data).
+	sameRuntime : function(a : ProblemRadarRuntime, b : any) : boolean
 	--- Root of a blocking chain (follows blockedBy; in a cycle, the lowest id of the cycle).
 	chainRoot : function(by : {integer : integer}, train : integer) : integer
 	--- "12m", "2h05m" for a duration in game ms (language-neutral metric).
@@ -550,13 +566,46 @@ global record ProblemRadarNotifyInput
 	                                     -- (not notified, no cooldown), so a snooze that ends toasts again
 end
 
---- Game-time toast budget (radar_notify.applyBudget). Transient: a module-local of the engine
---- script, never saved.
+--- Game-time toast budget (radar_notify.applyBudget). Kept in state.rt.budget (shared by every
+--- simulation Lua state), stored only when a toast or summary was sent or the pending count changed.
 global record ProblemRadarNotifyBudget
 	windowStart : integer                -- gameTime (ms) the current window started
 	toasts : integer                     -- toasts sent in this window
 	summaries : integer                  -- summary toasts sent in this window
 	pending : integer                    -- new problems not toasted yet, for the next summary
+end
+
+--- Notification priming (state.rt.prime; radar_notify.step silentAll / silentKinds). Requested when
+--- the mod is added to a save (no v5 notify maps) or kinds switch to "notify"; dropped by the notify
+--- step once every group was scanned after the request (`seen`).
+global record ProblemRadarPrime
+	all : boolean                        -- every new alert silently (the mod was just added)
+	kinds : {string : boolean}           -- these kinds silently (just switched to "notify")
+	seen : {string : boolean}            -- scan groups scanned since the request
+end
+
+--- Stuck / blocked timers younger than radar_checks.PERSIST_TIMER_AFTER_MS (state.rt.young): the
+--- part of the vehicles scan's timer maps that state.memory leaves out. `at` = gameTime (ms) of the
+--- scan that wrote them (kept while the maps are unchanged).
+global record ProblemRadarYoungTimers
+	at : integer
+	stopped : {integer : integer}
+	blockedSince : {integer : integer}
+	blockedBy : {integer : integer}
+end
+
+--- state.rt: engine bookkeeping that every simulation Lua state must see (a tick runs in any one of
+--- them). Every field is optional; packRuntime leaves out empty ones (nil = default).
+global record ProblemRadarRuntime
+	prime : ProblemRadarPrime                -- nil: not priming
+	budget : ProblemRadarNotifyBudget        -- nil: no toast sent in a window yet
+	fails : {string : integer}               -- consecutive failures per scan group / sub-scan (> 0 only)
+	lineCursor : integer                     -- line-quality rotation: the last line measured (nil = -1)
+	econCursor : integer                     -- line_unprofitable rotation: the last line checked (nil = -1)
+	econGen : integer                        -- +1 each time line_unprofitable is switched off (drops each Lua state's check times)
+	econOff : boolean                        -- line_unprofitable is off (true only)
+	young : ProblemRadarYoungTimers          -- nil: none
+	ineligible : {integer : integer}         -- standing vehicles found foreign / user-stopped -> gameTime marked
 end
 
 global record ProblemRadarNotifyResult
