@@ -60,8 +60,6 @@ local ACTION_POLL_S <const> = 0.25      -- the tool action picks up the card's l
 local TERMINALS_S <const> = 2.0         -- terminal list of the station card
 local MAX_ARROWS <const> = 30           -- most-used destinations drawn; the rest only counted
 local MAX_ROWS <const> = 12             -- destination rows listed in the card
-local FIRST_ROW_TERMINALS <const> = 6   -- terminal boxes on the station card's first row; more wrap
-local WRAP_ROW_TERMINALS <const> = 10   -- terminal boxes per wrapped row
 local TOOL_NAME <const> = "SquarePassengerDestinations"   -- react.RegisterTool names are global
 local TOOL_KEY <const> = "square_passenger_destinations"
 local ACTION_KEY <const> = "square_passenger_destinations"
@@ -902,48 +900,36 @@ local PaxDestStationPlugin = react.RegisterPluginRecipe(station_group_eow.Statio
 		if not sel[t.key] then allOn = false end
 	end
 
-	-- Compact card (the extension point mounts plugins above Terminals, station_group.tl:863-866): one row
-	-- "Destinations: [] All [] 1 [] 2 ... | [] Next stop"; beyond FIRST_ROW_TERMINALS the terminal boxes wrap.
-	local lines : {{TreeNodeId}} = {}
-	local cur : {TreeNodeId} = {
-		text(_("Destinations:"), "font-scale-body"),
-		gap(8),
-		checkBox(_("All"), allOn, function(on : boolean)
+	-- Compact card (the extension point mounts plugins above Terminals, station_group.tl:863-866):
+	-- "Destinations: [] All [] 1 [] 2 ... [] Next stop" in a FlowLayout, which wraps the items to the
+	-- window's width (base construction_desc_react_util.tl:970). Each item carries its trailing gap so a
+	-- wrapped row never starts with a spacer.
+	local items : {TreeNodeId} = {
+		hbox{ text(_("Destinations:"), "font-scale-body"), gap(8) },
+		hbox{ checkBox(_("All"), allOn, function(on : boolean)
 			local s : {string : boolean} = {}
 			if on then
 				for __, t in ipairs(list) do s[t.key] = true end
 			end
 			apply(s)
-		end, _("All terminals")),
+		end, _("All terminals")), gap(6) },
 	}
-	local inRow = 0
-	local limit = FIRST_ROW_TERMINALS
 	for __, t in ipairs(list) do
-		if inRow >= limit then
-			lines[#lines + 1] = cur
-			cur, inRow, limit = {}, 0, WRAP_ROW_TERMINALS
-		else
-			cur[#cur + 1] = gap(6)
-		end
-		cur[#cur + 1] = checkBox(tostring(t.display), sel[t.key] == true, function(on : boolean)
+		items[#items + 1] = hbox{ checkBox(tostring(t.display), sel[t.key] == true, function(on : boolean)
 			local s = copySet(selState:old())
 			s[t.key] = on or nil
 			apply(s)
-		end, lang_util.format(_("Terminal {n}"), { n = tostring(t.display) }))
-		inRow = inRow + 1
+		end, lang_util.format(_("Terminal {n}"), { n = tostring(t.display) })), gap(6) }
 	end
-	cur[#cur + 1] = gap(12)
-	cur[#cur + 1] = checkBox(_("Next stop"), modeState:old() == "next", function(on : boolean)
+	items[#items + 1] = hbox{ gap(6), checkBox(_("Next stop"), modeState:old() == "next", function(on : boolean)
 		local mode : Mode = on and "next" or "final"
 		box.mode = mode
 		modeState:set(mode)
 		box.snap = box.on and safe(function() : Snapshot return computeStation(group, box.selected, mode) end) or nil
 		snapState:set(box.snap)
-	end, _("Off: the building each passenger travels to (home, shop or work). On: the stop where they leave the current line."))
-	lines[#lines + 1] = cur
+	end, _("Off: the building each passenger travels to (home, shop or work). On: the stop where they leave the current line.")) }
 
-	local rows : {TreeNodeId} = {}
-	for __, l in ipairs(lines) do rows[#rows + 1] = hbox(l) end
+	local rows : {TreeNodeId} = { builtin.FlowLayout{ children = items } }
 	if box.on then
 		snapshotRows(snapState:old(), modeState:old(), rows)
 	end
