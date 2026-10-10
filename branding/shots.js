@@ -180,3 +180,28 @@ Square.slides('square_smart_lanes', [
   { title: 'Every lane, shown', sub: 'Coloured lines show each connection',
     media: { src: '01-ring-lanes.jpg', crop: [1600, 760, 1760, 1160] } },
 ]);
+Square.slides('square_better_bus_overlay', [
+  { title: 'See your lines', sub: 'Every line route stays on the map while you place a stop',
+    media: { layout: 'wipe', labels: ['Before', 'After'], darkChips: true, split: 0.42,
+             before: '07-lines-off.jpg', after: '06-lines-on.jpg',
+             crop: [307, 102, 3328, 1946], beforeCrop: [317, 325, 2862, 1674] } },
+  { title: 'Find the gaps', sub: 'Unserved buildings stand out; stops show who is waiting',
+    media: { layout: 'inset', at: 'bl', insetW: 520,
+             main: { src: '02-placing-waiting.jpg', crop: [1024, 160, 3328, 2000] },
+             inset: { src: '02-placing-waiting.jpg', crop: [2212, 873, 856, 570] } } },
+  { title: 'Spot unconnected stops', sub: 'A "No line" tag marks every stop no line serves yet',
+    media: { layout: 'inset', at: 'tr', insetW: 420,
+             main: { src: '08-no-line-placing.jpg', crop: [1024, 154, 3072, 1997] },
+             inset: { src: '08-no-line-placing.jpg', crop: [1830, 870, 330, 165] } } },
+  { title: 'Connect new stops fast', sub: 'While you build a line, the tags show where it should go next',
+    media: { layout: 'inset', at: 'br', insetW: 520,
+             main: { src: '10-no-line-editing.jpg', crop: [1613, 461, 1971, 1843] },
+             inset: { src: '10-no-line-editing.jpg', crop: [225, 1741, 1331, 307] } } },
+  { title: 'Busy stops at a glance', sub: 'Pins go from blue to red as passengers pile up',
+    media: { layout: 'inset', at: 'tr', insetW: 600,
+             main: { src: '03-lines-overview.jpg', crop: [1587, 60, 3440, 2500] },
+             inset: { src: '03-lines-overview.jpg', crop: [1941, 743, 1071, 550] } } },
+  { title: 'Red means crowded', sub: 'The same colours while you edit a line',
+    media: { src: '05-busy-closeup.jpg', crop: [1792, 230, 2560, 1920] } },
+]);
+

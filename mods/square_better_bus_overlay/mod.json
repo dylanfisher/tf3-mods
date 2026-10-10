@@ -1,0 +1,21 @@
+{
+    "modId": "square_better_bus_overlay",
+    "revision": 3,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "params": [
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        }
+    ]
+}

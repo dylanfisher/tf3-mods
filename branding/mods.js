@@ -197,6 +197,25 @@ Square.register({
 });
 
 // US State Names series: one line per state, same cover every time (cover.js stateCover, README "State series").
+Square.register({
+  id: 'square_better_bus_overlay', name: 'Better Bus Overlay', tagline: 'Lines, gaps and busy stops', accent: '#5B7CFA',
+  // Three line routes in line colours sweep across behind three stop pins (the game's HUD pin shape: rounded
+  // square with a pointer tail, a bus front knocked out) coloured quiet (the accent blue), busy yellow and crowded
+  // red: the Lines window busy scale.
+  glyph: S => {
+    const pin = (x, y, c) => `
+      <path d="M${x - 78} ${y - 150} h156 a26 26 0 0 1 26 26 v130 a26 26 0 0 1 -26 26 h-52 l-26 34 l-26 -34 h-52 a26 26 0 0 1 -26 -26 v-130 a26 26 0 0 1 26 -26 z" fill="${c}" class="sep"/>
+      <rect class="cut" x="${x - 40}" y="${y - 124}" width="80" height="100" rx="18"/>
+      <rect x="${x - 26}" y="${y - 112}" width="52" height="38" rx="6" fill="${c}"/>
+      <circle cx="${x - 20}" cy="${y - 46}" r="9" fill="${c}"/><circle cx="${x + 20}" cy="${y - 46}" r="9" fill="${c}"/>`;
+    return `
+    ${S.LINE_COLORS.slice(0, 3).map((c, i) => `<path d="M40 ${330 + i * 150} C 260 ${210 + i * 150}, 520 ${490 + i * 120}, 760 ${330 + i * 150}" fill="none" stroke="${c}" stroke-width="40" stroke-linecap="round" opacity=".5"/>`).join('')}
+    ${pin(180, 360, 'var(--acc)')}
+    ${pin(400, 560, '#F5C733')}
+    ${pin(620, 330, '#E34038')}`;
+  },
+});
+
 Square.stateCover({
   id: 'square_names_us_washington', state: 'Washington', flag: 'us_washington.svg', flagAspect: 1.6, accent: '#00843D',
 });
