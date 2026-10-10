@@ -3,7 +3,7 @@
 <h4>Features</h4>
 <ul>
 <li><strong>Your map</strong>: the terrain, water and towns of your save, with every industry shown by the icon of what it produces.</li>
-<li><strong>Roads and towns</strong>: tick <strong>Net</strong> to draw your streets, railway tracks and town buildings onto the map. It keeps itself up to date as you build or bulldoze, and costs nothing while switched off. Tick <strong>Hi-vis</strong> for bright, opaque colours (yellow streets, magenta tracks, orange towns) that stand out on any terrain.</li>
+<li><strong>Roads and towns</strong>: tick <strong>Net</strong> to draw your streets, railway tracks and town buildings onto the map. It keeps itself up to date as you build or bulldoze, redraws only what changed, and costs nothing while switched off. Tick <strong>Hi-vis</strong> for bright, opaque colours (yellow streets, magenta tracks, orange towns) that stand out on any terrain.</li>
 <li><strong>Camera box</strong>: shows where the camera is looking and follows it as you pan and zoom.</li>
 <li><strong>View direction arrow</strong>: an arrow in the camera box points the way the camera faces.</li>
 <li><strong>Click to jump</strong>: click anywhere on the map to move the camera there.</li>
@@ -27,6 +27,7 @@
 <h4>Revision 5 (2026-10-10)</h4>
 <ul>
 <li>New: the Net toggle draws streets, railway tracks and town buildings onto the map and keeps them up to date. Off by default.</li>
+<li>New: the network is built in small steps spread over many frames and drawn as separate strips, so only the parts of the map that changed are redrawn. Building or bulldozing doesn't make the game stutter, and switching Net off and on again shows the map instantly.</li>
 <li>New: the Hi-vis toggle draws the network in bright, opaque colours. Switching it is instant and doesn't read the map again.</li>
 <li>Changed: the S/L size button is now a magnifier icon in the window header, and the header no longer shows a "Map" title.</li>
 <li>Changed: the view direction arrow is now a slim white triangle.</li>
