@@ -205,3 +205,16 @@ Square.slides('square_better_bus_overlay', [
     media: { src: '05-busy-closeup.jpg', crop: [1792, 230, 2560, 1920] } },
 ]);
 
+Square.slides('square_blank_slate', [
+  { title: 'Pick Blank Slate', sub: 'In the generator list for every climate',
+    media: { layout: 'inset', at: 'bl', insetW: 940,
+             main: { src: '01-new-game.jpg', crop: [3540, 560, 1200, 1200] },
+             inset: { src: '01-new-game.jpg', crop: [384, 650, 2535, 300] } } },
+  { title: 'Flat as a pancake', sub: 'One level island: no hills, trees or rocks',
+    media: { src: '02-island-top-down.jpg', crop: [180, 50, 4900, 2560] } },
+  { title: 'Sea on every side', sub: 'A short beach down to deep water, all the way round',
+    media: { src: '03-coast.jpg', crop: [770, 385, 3840, 2175] } },
+  { title: 'Build anywhere', sub: 'Every tile sits at 5 m, right up to the beach',
+    media: { src: '04-town-on-coast.jpg', crop: [970, 460, 3120, 2100] } },
+]);
+

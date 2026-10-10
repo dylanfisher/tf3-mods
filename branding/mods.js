@@ -216,6 +216,17 @@ Square.register({
   },
 });
 
+Square.register({
+  id: 'square_blank_slate', name: 'Blank Slate: Empty Flat Test Map', tagline: 'A flat, empty island to test on', accent: '#7CF0B4',
+  // Top view of the generated map: an accent sea with two wave knock-outs around a blank ink island
+  // (the rounded-square plateau of the heightmap).
+  glyph: S => `
+    <rect class="acc" x="90" y="90" width="620" height="620" rx="80"/>
+    <rect class="ink sep" x="200" y="200" width="400" height="400" rx="60"/>
+    <path class="scut" d="M250 145 q30 -22 60 0 t60 0" fill="none" stroke-width="16" stroke-linecap="round"/>
+    <path class="scut" d="M430 655 q30 -22 60 0 t60 0" fill="none" stroke-width="16" stroke-linecap="round"/>`,
+});
+
 Square.stateCover({
   id: 'square_names_us_washington', state: 'Washington', flag: 'us_washington.svg', flagAspect: 1.6, accent: '#00843D',
 });
