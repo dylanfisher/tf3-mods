@@ -37,12 +37,12 @@ hx.TYPE_AB2 = 5
 hx.TYPE_DIAMOND = 6
 -- Quadrant kinds per type: SW / NE take "off" or "A", SE / NW "on" or "B"; missing = empty.
 hx.TYPES = {
-	{ name = "A4", quads = { sw = "A", se = "on", ne = "A", nw = "on" } },
-	{ name = "B4", quads = { sw = "off", se = "B", ne = "off", nw = "B" } },
-	{ name = "A2", quads = { sw = "A", ne = "A" } },
-	{ name = "B2", quads = { se = "B", nw = "B" } },
-	{ name = "AB2", quads = { sw = "A", nw = "B" } },
-	{ name = "Diamond", quads = { sw = "off", se = "on", ne = "off", nw = "on" } },
+	{ name = "A4", quads = { sw = "A", se = "on", ne = "A", nw = "on" } }, -- i18n: ignore (type code, not shown)
+	{ name = "B4", quads = { sw = "off", se = "B", ne = "off", nw = "B" } }, -- i18n: ignore (type code, not shown)
+	{ name = "A2", quads = { sw = "A", ne = "A" } }, -- i18n: ignore (type code, not shown)
+	{ name = "B2", quads = { se = "B", nw = "B" } }, -- i18n: ignore (type code, not shown)
+	{ name = "AB2", quads = { sw = "A", nw = "B" } }, -- i18n: ignore (type code, not shown)
+	{ name = "Diamond", quads = { sw = "off", se = "on", ne = "off", nw = "on" } }, -- i18n: ignore (type code, not shown)
 }
 hx.QUADS = { "sw", "se", "ne", "nw" }
 -- the canonical (SW) shape of each kind; SE / NW are mirror-reversed, NE / NW rotated

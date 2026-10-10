@@ -74,7 +74,7 @@ return toolbar({
 			name = _("Layout"),
 			tooltip = _("T: a side road on one side of the main road.\nX: side roads on both sides."),
 			uiType = "Button",
-			values = { _("T"), _("X") },
+			values = { "T", "X" }, -- shape codes, the same in every language
 			defaultIndex = channel.LAYOUT_T,
 		},
 		{

@@ -32,17 +32,13 @@ local function shapes(list)
 	return out
 end
 
--- Radius preset buttons (geom.RADIUS_PRESETS) and the tooltip's "XS 10 m, S 15 m, ..."
+-- Radius preset buttons (geom.RADIUS_PRESETS): size codes XS / S / M / L / XL, the same in every
+-- language (the tooltip explains them; it lists their radii as one translatable text, so
+-- tests/square_roundabouts/test_menu_labels.lua checks it against geom.RADII).
 local function presetNames(names)
 	local out = {}
-	for i = 1, #names do out[i] = _(names[i]) end
+	for i = 1, #names do out[i] = names[i] end
 	return out
-end
-
-local function presetList(names, presets, radii)
-	local out = {}
-	for i = 1, #presets do out[i] = _(names[i]) .. " " .. radii[presets[i]] .. " m" end
-	return table.concat(out, ", ")
 end
 
 -- Every param sits in the left toolbar (location "Toolbar", 2026-10-09: the menu's hover tooltip no
@@ -115,9 +111,7 @@ return toolbar({
 			-- Phase 7c3: presets on their own key (geom.RADIUS_PRESET_KEY), not the old slider's
 			key = geom.RADIUS_PRESET_KEY,
 			name = _("Radius"),
-			tooltip = _("Size of the roundabout, extra small to extra large:\nthe radius inside the ring road (the narrow side of\nan oval): ") ..
-				presetList(geom.RADIUS_PRESET_NAMES, geom.RADIUS_PRESETS, geom.RADII) ..
-				_(".\nXS: a mini roundabout with a flat island. The ring\ngrows if the chosen roads don't fit."),
+			tooltip = _("Size of the roundabout, extra small to extra large:\nthe radius inside the ring road (the narrow side of\nan oval): XS 10 m, S 15 m, M 20 m, L 35 m, XL 60 m.\nXS: a mini roundabout with a flat island. The ring\ngrows if the chosen roads don't fit."),
 			uiType = "Button",
 			displayMode = "Horizontal",
 			values = presetNames(geom.RADIUS_PRESET_NAMES),

@@ -17,21 +17,25 @@ local K = hx.PARAM_KEYS
 local menu = {}
 
 -- The entries: file stem (square_roundabouts_highway_<id>), menu name, order, the description's
--- entry sentence, the types (hx.TYPE_*) behind the Layout buttons (one type: no Layout row), the
--- button labels and the Layout tooltip.
+-- description, the types (hx.TYPE_*) behind the Layout buttons (one type: no Layout row), the
+-- button labels (type codes, the same in every language) and the Layout tooltip. name, description
+-- and layoutTip are translation keys (strings.json; `_(e.name)` below returns the key, the game
+-- translates it on display), each a whole text: never build them from parts.
+-- i18n: keys begin name description layoutTip
 menu.ENTRIES = {
 	{ id = "parclo", name = "Parclo", order = 6002,
 		types = { hx.TYPE_A4, hx.TYPE_B4 }, labels = { "A", "B" },
-		text = "A partial cloverleaf: ramps in all four quadrants, loops in two of them; the other ramps are straight and wrap around the loops.",
+		description = "A highway crossed by a road on another level, joined by one-way ramps. A partial cloverleaf: ramps in all four quadrants, loops in two of them; the other ramps are straight and wrap around the loops. Once built, everything is ordinary roads and bridges you can edit or connect.",
 		layoutTip = "A: loop on-ramps, in the quadrants before the cross\nroad. B: loop exits, in the quadrants after it.\nThe other ramps are straight." },
 	{ id = "parclo2", name = "Parclo, two quadrants", order = 6003,
 		types = { hx.TYPE_A2, hx.TYPE_B2, hx.TYPE_AB2 }, labels = { "A", "B", "AB" },
-		text = "A partial cloverleaf with ramps in two quadrants only: in each, a loop and a straight ramp wrapped around it.",
+		description = "A highway crossed by a road on another level, joined by one-way ramps. A partial cloverleaf with ramps in two quadrants only: in each, a loop and a straight ramp wrapped around it. Once built, everything is ordinary roads and bridges you can edit or connect.",
 		layoutTip = "A: the two quadrants before the cross road (loop\non-ramps). B: the two after it (loop exits).\nAB: both quadrants on one side of the highway." },
 	{ id = "diamond", name = "Diamond", order = 7001,
 		types = { hx.TYPE_DIAMOND },
-		text = "Four straight ramps, one per quadrant, no loops." },
+		description = "A highway crossed by a road on another level, joined by one-way ramps. Four straight ramps, one per quadrant, no loops. Once built, everything is ordinary roads and bridges you can edit or connect." },
 }
+-- i18n: keys end
 menu.BY_ID = {}
 for _, e in ipairs(menu.ENTRIES) do menu.BY_ID[e.id] = e end
 
@@ -39,12 +43,6 @@ local function metres(list)
 	local out = {}
 	for i = 1, #list do out[i] = tostring(list[i]) .. " m" end
 	return out
-end
-
-local function joined(list, unit)
-	local out = {}
-	for i = 1, #list do out[i] = tostring(list[i]) end
-	return table.concat(out, ", ", 1, #out - 1) .. " or " .. out[#out] .. unit
 end
 
 --- The .con.lua table of entry `id` (menu.ENTRIES); tr = the .con.lua's `_`.
@@ -56,14 +54,14 @@ function menu.data(id, tr)
 		_("Town, small"), _("Town, medium"), _("Town, large"),
 		_("Country, small"), _("Country, medium"), _("Country, large"),
 	}
+	-- the Scale tooltips name hx.LOOP_RADII / hx.TERMINAL_DISTANCES in one translatable text each
+	-- (tests/square_roundabouts/test_highway.lua checks the numbers)
 	local scaleTip, rampTip
 	if loops then
-		scaleTip = _("S, M, L: small, medium, large. Size of the whole\nfootprint (M about 1.6 x, L 2.5 x S): loop ramp radius\n") .. joined(hx.LOOP_RADII, " m,") ..
-			_("\nwith longer ramps and wider gaps to match.\nA minimum: grows if the roads don't fit.")
+		scaleTip = _("S, M, L: small, medium, large. Size of the whole\nfootprint (M about 1.6 x, L 2.5 x S): loop ramp radius\n25, 45 or 80 m, with longer ramps and wider gaps to match.\nA minimum: grows if the roads don't fit.")
 		rampTip = _("Extra length of the straight ramps along the highway\nover the shortest that wraps around the loop\n(short: +0, medium: +30, long: +60 m). Longer: gentler\nramps and a longer run beside the highway before\na ramp leaves or joins it. At Scale L, ramps\nstop at the longest the game accepts (the highway\nends at most about 460-480 m from the centre).")
 	else
-		scaleTip = _("S, M, L: small, medium, large. Size of the whole\nfootprint (M about 1.6 x, L 2.5 x S): the ramps meet\nthe cross road ") .. joined(hx.TERMINAL_DISTANCES, " m") ..
-			_(" beyond\nthe bridge and run 120, 192 or 300 m along the highway.\nA minimum: grows if the roads don't fit.")
+		scaleTip = _("S, M, L: small, medium, large. Size of the whole\nfootprint (M about 1.6 x, L 2.5 x S): the ramps meet\nthe cross road 0, 40 or 100 m beyond\nthe bridge and run 120, 192 or 300 m along the highway.\nA minimum: grows if the roads don't fit.")
 		rampTip = _("Extra length of the ramps along the highway over the\nScale's (short: +0, medium: +30, long: +60 m).\nLonger: gentler ramps.")
 	end
 	local con = {
@@ -77,9 +75,8 @@ function menu.data(id, tr)
 			fileName = "::/gui/construction/construction_desc_hud_icons.script@configureStreetConstructionHudIconsFn",
 		},
 		description = {
-			name = _(e.name),
-			description = _("A highway crossed by a road on another level, joined by one-way ramps. ") .. _(e.text) ..
-				_(" Once built, everything is ordinary roads and bridges you can edit or connect."),
+			name = _(e.name), -- i18n: ignore (keys marked in menu.ENTRIES)
+			description = _(e.description), -- i18n: ignore (keys marked in menu.ENTRIES)
 			-- menu icon square_roundabouts_highway_<id>@2x.tga (240x150) and hover preview
 			-- ..._preview@2x.tga (720x405), drawn from the entry's default build (first Layout) by
 			-- tools/render_icon_square_roundabouts.py (replace the previews with in-game captures later)
@@ -110,7 +107,7 @@ function menu.data(id, tr)
 				tooltip = _("Highway type, built as two one-way carriageways.\nS, M, L: small, medium, large highway\n(1, 2 or 3 lanes each way)."),
 				uiType = "Button",
 				displayMode = "Horizontal",
-				values = { _("S"), _("M"), _("L") },
+				values = { "S", "M", "L" }, -- size codes, the same in every language
 				defaultIndex = 2,
 			},
 			{
@@ -136,7 +133,7 @@ function menu.data(id, tr)
 				tooltip = scaleTip,
 				uiType = "Button",
 				displayMode = "Horizontal",
-				values = { _("S"), _("M"), _("L") },
+				values = { "S", "M", "L" }, -- size codes, the same in every language
 				defaultIndex = hx.DEFAULT_SIZE,
 			},
 			{
@@ -177,11 +174,11 @@ function menu.data(id, tr)
 	}
 	if #e.types > 1 then
 		local labels = {}
-		for i, l in ipairs(e.labels) do labels[i] = _(l) end
+		for i, l in ipairs(e.labels) do labels[i] = l end -- type codes, the same in every language
 		table.insert(con.params, 1, {
 			key = hx.LAYOUT_KEY,
 			name = _("Layout"),
-			tooltip = _(e.layoutTip),
+			tooltip = _(e.layoutTip), -- i18n: ignore (keys marked in menu.ENTRIES)
 			uiType = "Button",
 			displayMode = "Horizontal",
 			values = labels,
