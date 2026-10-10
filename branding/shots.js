@@ -218,3 +218,21 @@ Square.slides('square_blank_slate', [
     media: { src: '04-town-on-coast.jpg', crop: [970, 460, 3120, 2100] } },
 ]);
 
+Square.slides('square_passenger_destinations', [
+  { title: 'Where they\'re going', sub: 'Arrows from the stop to every destination',
+    media: { layout: 'inset', at: 'tl', insetW: 540,
+             main: { src: '01-station-arrows.jpg', crop: [461, 307, 3379, 2355] },
+             inset: { src: '01-station-arrows.jpg', crop: [3853, 38, 1178, 358] } } },
+  { title: 'One row in the window', sub: 'Tick a terminal, or all of them',
+    media: { layout: 'stack', labels: ['Off', 'On'],
+             // Same size, On framed 16 px lower: Off stops above the first terminal's text, On still shows the summary.
+             items: [{ src: '02-station-row.jpg', crop: [3853, 38, 1178, 324] },
+                     { src: '01-station-arrows.jpg', crop: [3853, 54, 1178, 324] }] } },
+  { title: 'Off until you ask', sub: 'Nothing on the map until you tick a box',
+    media: { layout: 'wipe', labels: ['Off', 'On'], split: 0.35,
+             before: '02-station-row.jpg', after: '01-station-arrows.jpg',
+             crop: [461, 307, 3379, 2355] } },
+  { title: 'Like arrows?', sub: 'Good news: about thirty more per bus stop',
+    media: { src: '01-station-arrows.jpg', crop: [768, 512, 1792, 1152] } },
+]);
+
