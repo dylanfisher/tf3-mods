@@ -15,6 +15,9 @@ plans/**/*.log
 plans/**/probe_*.csv
 tmp/
 
+# Mod Hub upload: the game cooks each mod into these (through the staging symlink) and deletes them after
+mods/*/.cooked_*/
+
 # Third-party code (other authors' mods): never pushed to this repo. Notes in plans/<id>/ stay tracked.
 # A separate private repo (git dir .forks-git/, same working tree) backs these paths up.
 .forks-git/
