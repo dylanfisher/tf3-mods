@@ -7,8 +7,10 @@ local CT = { LINE = 1, STATION_GROUP = 2, STATION = 3, TRANSPORT_NETWORK = 4, GA
 	TRANSPORT_VEHICLE = 7 }
 
 local clockUs, messages = 0, {}
--- os.clock drives the sweep interval: each update call moves it on by 5 s, so every call sweeps
-local realOs, osClock = os, 0
+-- os.time drives the sweep interval (optimized: real seconds, was os.clock): each update call moves it on by the
+-- interval (2 s), so every call sweeps
+local realOs, osClock, osTime = os, 0, 0
+local vehicleReads, lineVehicles = 0, {}
 
 local function world()
 	local comps = {}
@@ -30,6 +32,11 @@ local function world()
 				stopConfig = { load = {} } }
 		end
 		comps[id] = { [CT.LINE] = { reservationPriority = l % 3, stops = stops, vehicleInfo = { transportModes = { [1] = true } } } }
+		-- two vehicles per line that carry cargo type 1
+		lineVehicles[id] = { 5000 + 2 * l, 5001 + 2 * l }
+		for __, v in ipairs(lineVehicles[id]) do
+			comps[v] = { [CT.TRANSPORT_VEHICLE] = { config = { capacities = { 0, 10 } }, transportVehicleConfig = { vehicles = {} } } }
+		end
 	end
 	return comps, lines
 end
@@ -44,11 +51,14 @@ local function fakeApi(comps, lines)
 			NodeId = { new = function(e, i) return { entity = e, index = i } end },
 		},
 		engine = {
-			getComponent = function(e, t) return comps[e] and comps[e][t] end,
+			getComponent = function(e, t)
+				if t == CT.TRANSPORT_VEHICLE then vehicleReads = vehicleReads + 1 end
+				return comps[e] and comps[e][t]
+			end,
 			entityExists = function(e) return comps[e] ~= nil end,
 			system = {
 				lineSystem = { getLinesForPlayer = function() return lines end },
-				transportVehicleSystem = { getLineVehicles = function() return {} end },
+				transportVehicleSystem = { getLineVehicles = function(l) return lineVehicles[l] or {} end },
 				streetSystem = { getNode2StreetEdgeMap = function() return {} end },
 				streetConnectorSystem = { getConstructionEntityForStation = function() return 9 end },
 				transportNetworkSystem = { getTpNetData = function() return { getNodeData = function() return nil end } end },
@@ -60,7 +70,11 @@ local function fakeApi(comps, lines)
 			},
 			config = { getModParams = function() return { square_opt_zhenya_auto_assign_terminals = {} } end },
 		},
-		res = { cargoTypeRep = { getPassengerCargoTypeId = function() return 0 end } },
+		res = { cargoTypeRep = {
+			getPassengerCargoTypeId = function() return 0 end,
+			get = function() return { cargoClasses = {} } end,
+			getName = function(id) return "CARGO" .. id end,
+		} },
 	}
 end
 
@@ -77,11 +91,12 @@ end
 local function load(path)
 	reset_modules()
 	clockUs, messages = 0, {}
+	osClock, osTime, vehicleReads, lineVehicles = 0, 0, 0, {}
 	local comps, lines = world()
 	set_global("api", fakeApi(comps, lines))
 	set_global("require", ug_require)
-	osClock = 0
-	set_global("os", setmetatable({ clock = function() return osClock end }, { __index = realOs }))
+	set_global("os", setmetatable({ clock = function() return osClock end, time = function() return osTime end },
+		{ __index = realOs }))
 	set_global("debugPrint", function(...)
 		local parts = {}
 		for i = 1, select("#", ...) do parts[i] = tostring(select(i, ...)) end
@@ -99,7 +114,7 @@ end
 
 -- runs update until the state has no cursor left (or n ticks), returns the tick count
 local function tick(script, state)
-	osClock = osClock + 5
+	osClock, osTime = osClock + 2, osTime + 2
 	script.update({}, state, 1)
 end
 
@@ -159,5 +174,50 @@ test("a refresh request starts the pass over from the first line", function()
 	untilPassDone(script, state, 50)
 	s = state.data()
 	ok(s.force == nil, "request done after the pass")
+	noErrors()
+end)
+
+-- a second simulation VM: the same script loaded again (own module locals), same engine and state
+local function loadAnotherVm(path)
+	reset_modules()
+	set_global("data", nil)
+	ug_require(path)
+	return data()
+end
+
+test("the interval runs on real seconds (os.time), not on os.clock", function()
+	local script = load("square_opt_zhenya_auto_assign_terminals::/aat.script.lua")
+	local state = fakeState()
+	untilPassDone(script, state, 50)
+	local at = state.data().lastClock
+	-- CPU time races ahead (busy simulation threads), real time stands still: no new sweep
+	osClock = osClock + 100
+	script.update({}, state, 1)
+	eq(state.data().lastClock, at, "no sweep before the interval passed in real time")
+	osTime = osTime + 5
+	script.update({}, state, 1)
+	ok(state.data().lastClock > at, "sweeps once it did")
+	noErrors()
+end)
+
+test("line cargo is cached in the shared state, so other VMs reuse it", function()
+	local path = "square_opt_zhenya_auto_assign_terminals::/aat.script.lua"
+	local vmA, __, lines = load(path)
+	local state = fakeState()
+	untilPassDone(vmA, state, 50)
+	eq(vehicleReads, 2 * #lines, "first pass reads every vehicle once")
+	local s = state.data()
+	eq(s.cargo[tostring(lines[1])].c, "1", "cargo key stored")
+	local vmB = loadAnotherVm(path)
+	untilPassDone(vmB, state, 50)
+	eq(vehicleReads, 2 * #lines, "the other VM reads none")
+	-- a new vehicle on a line: only that line is read again
+	lineVehicles[lines[1]][3] = 5001 + 2 * lines[1]
+	untilPassDone(vmA, state, 50)
+	eq(vehicleReads, 2 * #lines + 3, "changed line read again")
+	-- after the time to live every line is read again
+	osTime = osTime + 60
+	untilPassDone(vmA, state, 50)
+	ok(vehicleReads >= 4 * #lines, "re-read after CARGO_TTL: " .. vehicleReads)
 	noErrors()
 end)
