@@ -1,0 +1,1166 @@
+{
+  "square_better_bus_overlay": {
+    "modioId": 6438695,
+    "logo": {
+      "file": "0.png",
+      "sha": "ad761149072d5b73",
+      "remote": "0.2.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "d423874668092905",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "92f475661f3b6cca",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "a9ee84a5502cae35",
+        "remote": "3.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "b7a4eec18c628738",
+        "remote": "4.png"
+      },
+      {
+        "file": "5.png",
+        "sha": "d45ea75e36b6d8f1",
+        "remote": "5.png"
+      },
+      {
+        "file": "6.png",
+        "sha": "a0195697196d39f3",
+        "remote": "6.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "7f6d218fe90879c1",
+        "7f6d218fe90879c1"
+      ],
+      "summary": [
+        "1809477493ef2e41",
+        "1809477493ef2e41"
+      ],
+      "description": [
+        "e1cb72ac2e8ec2db",
+        "e1cb72ac2e8ec2db"
+      ]
+    }
+  },
+  "square_better_minimap": {
+    "modioId": 6433435,
+    "logo": {
+      "file": "0.png",
+      "sha": "1f85ae3cb09864a1",
+      "remote": "0.8.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "a78c3aa9c96f5afb",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "f1a6cc9e0de0c5af",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "6cfb6027df9dec3d",
+        "remote": "3.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "dea8338c8ca05658",
+        "remote": "4.1.png"
+      },
+      {
+        "file": "5.png",
+        "sha": "2c446c4dbd763d12",
+        "remote": "5.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "a467417fdd8dac22",
+        "a467417fdd8dac22"
+      ],
+      "summary": [
+        "9b66908b70ca3a76",
+        "9b66908b70ca3a76"
+      ],
+      "description": [
+        "95a850a9f340e38e",
+        "95a850a9f340e38e"
+      ]
+    }
+  },
+  "square_bigger_line_dots": {
+    "modioId": 6433433,
+    "logo": {
+      "file": "0.png",
+      "sha": "3518463afd0c99d1",
+      "remote": "0.3.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "686041780ad8f00c",
+        "remote": "1.1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "2c72e4607e2a355d",
+        "remote": "2.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "79d97bf82dd0010c",
+        "79d97bf82dd0010c"
+      ],
+      "summary": [
+        "484d138ab18b19e2",
+        "484d138ab18b19e2"
+      ],
+      "description": [
+        "09d71690e7662aab",
+        "09d71690e7662aab"
+      ]
+    }
+  },
+  "square_blank_slate": {
+    "modioId": 6439422,
+    "logo": {
+      "file": "0.png",
+      "sha": "a06569402051e478",
+      "remote": "0.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "b7c991ee2e08b7ad",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "33e6539e5260d206",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "9dd3585e621ac593",
+        "remote": "3.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "21fdefa7ef2e0f21",
+        "remote": "4.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "cfb07aa8d6654a3e",
+        "cfb07aa8d6654a3e"
+      ],
+      "summary": [
+        "c40e15a371c6d7c2",
+        "c40e15a371c6d7c2"
+      ],
+      "description": [
+        "2519baa479d16984",
+        "2519baa479d16984"
+      ]
+    }
+  },
+  "square_bulk_bulldozer": {
+    "modioId": 6434884,
+    "logo": {
+      "file": "0.png",
+      "sha": "b9f3f92f818652aa",
+      "remote": "0.2.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "e9ef348a01c102b3",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "d3e925fe4dcf8398",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "9156f1376138c06b",
+        "remote": "3.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "54227eb07c815d9c",
+        "remote": "4.png"
+      },
+      {
+        "file": "5.png",
+        "sha": "7b5f11988d2a7cd1",
+        "remote": "5.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "3e7b9b35c33ccac1",
+        "3e7b9b35c33ccac1"
+      ],
+      "summary": [
+        "6fad0f556cdfda8b",
+        "6fad0f556cdfda8b"
+      ],
+      "description": [
+        "7b5ec530035c8c77",
+        "7b5ec530035c8c77"
+      ]
+    }
+  },
+  "square_full_refund": {
+    "modioId": 6436087,
+    "logo": {
+      "file": "0.png",
+      "sha": "23ee41024bb42342",
+      "remote": "0.2.png"
+    },
+    "images": [],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "e8384e9a297e40b7",
+        "e8384e9a297e40b7"
+      ],
+      "summary": [
+        "94d90851016e0709",
+        "94d90851016e0709"
+      ],
+      "description": [
+        "bc4fb19736c29441",
+        "bc4fb19736c29441"
+      ]
+    }
+  },
+  "square_industry_flows": {
+    "modioId": 6433431,
+    "logo": {
+      "file": "0.png",
+      "sha": "0019503b7af8a890",
+      "remote": "0.2.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "891113529f0e889c",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "c8516343064495fb",
+        "remote": "2.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "40a69bf623eb9a1a",
+        "40a69bf623eb9a1a"
+      ],
+      "summary": [
+        "f314a3ee940d3917",
+        "f314a3ee940d3917"
+      ],
+      "description": [
+        "56a160d16d54c54b",
+        "56a160d16d54c54b"
+      ]
+    }
+  },
+  "square_industry_production_label": {
+    "modioId": 6433429,
+    "logo": {
+      "file": "0.png",
+      "sha": "c41a5ea32d0e6a89",
+      "remote": "0.5.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "74cc763c1d083475",
+        "remote": "1.2.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "8bdbb9ddd2d8a306",
+        "remote": "2.1.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "0d7820c827e6bc83",
+        "remote": "3.1.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "f16fd0acea26f949",
+        "remote": "4.png"
+      },
+      {
+        "file": "5.png",
+        "sha": "1f8c14011052f0f3",
+        "remote": "5.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "4023338f3dd8e4af",
+        "4023338f3dd8e4af"
+      ],
+      "summary": [
+        "813e78da0f82f3c6",
+        "813e78da0f82f3c6"
+      ],
+      "description": [
+        "dc9b19e2c1933f89",
+        "dc9b19e2c1933f89"
+      ]
+    }
+  },
+  "square_line_revert": {
+    "modioId": 6436003,
+    "logo": {
+      "file": "0.png",
+      "sha": "80ae4da8deed1361",
+      "remote": "0.2.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "73eeb925f44e4da9",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "ec2d76318905497b",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "67218a7f48b8c14e",
+        "remote": "3.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "b6475b0d32b668bc",
+        "b6475b0d32b668bc"
+      ],
+      "summary": [
+        "1faafa8eb5642ff4",
+        "1faafa8eb5642ff4"
+      ],
+      "description": [
+        "dc631102dd5ade98",
+        "dc631102dd5ade98"
+      ]
+    }
+  },
+  "square_names_us_alaska": {
+    "modioId": 6436865,
+    "logo": {
+      "file": "0.png",
+      "sha": "d57eaec9511038d7",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "22a5e76885f03723",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "ee48ebd1b1f1744d",
+        "ee48ebd1b1f1744d"
+      ],
+      "summary": [
+        "a6d538efd35856ba",
+        "a6d538efd35856ba"
+      ],
+      "description": [
+        "8823fb46c6ffe571",
+        "8823fb46c6ffe571"
+      ]
+    }
+  },
+  "square_names_us_arizona": {
+    "modioId": 6436864,
+    "logo": {
+      "file": "0.png",
+      "sha": "c73766cb4f2b9ebe",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "57f7b748554d3f80",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "67f887ea54d4fe96",
+        "67f887ea54d4fe96"
+      ],
+      "summary": [
+        "3ae31edf6a742348",
+        "3ae31edf6a742348"
+      ],
+      "description": [
+        "ca14365b32313c1c",
+        "ca14365b32313c1c"
+      ]
+    }
+  },
+  "square_names_us_california": {
+    "modioId": 6436862,
+    "logo": {
+      "file": "0.png",
+      "sha": "358a7555841bd17b",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "a8461773c360a224",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "352298965cd21623",
+        "352298965cd21623"
+      ],
+      "summary": [
+        "cb010d12f151d9f1",
+        "cb010d12f151d9f1"
+      ],
+      "description": [
+        "ad0ff4002928ae2b",
+        "ad0ff4002928ae2b"
+      ]
+    }
+  },
+  "square_names_us_colorado": {
+    "modioId": 6436861,
+    "logo": {
+      "file": "0.png",
+      "sha": "948ba0951d28c076",
+      "remote": "0.3.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "cc761ada7708cc3f",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "84d2ae9ec3909aef",
+        "84d2ae9ec3909aef"
+      ],
+      "summary": [
+        "40975c81eb89fe2e",
+        "40975c81eb89fe2e"
+      ],
+      "description": [
+        "6440dfcdfb8a86f9",
+        "6440dfcdfb8a86f9"
+      ]
+    }
+  },
+  "square_names_us_florida": {
+    "modioId": 6436860,
+    "logo": {
+      "file": "0.png",
+      "sha": "2ee0cb4ded6a7e4d",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "bc1cc80aca3a3253",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "25b1ffc8d55589b9",
+        "25b1ffc8d55589b9"
+      ],
+      "summary": [
+        "67de7bbbdf4f3a01",
+        "67de7bbbdf4f3a01"
+      ],
+      "description": [
+        "0b59048eb1b08165",
+        "0b59048eb1b08165"
+      ]
+    }
+  },
+  "square_names_us_hawaii": {
+    "modioId": 6436858,
+    "logo": {
+      "file": "0.png",
+      "sha": "4dea3c13db00e887",
+      "remote": "0.3.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "f16b4a2da23b0891",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "6e9973c0f4b0ebf9",
+        "6e9973c0f4b0ebf9"
+      ],
+      "summary": [
+        "3ce49d4db01c45cc",
+        "3ce49d4db01c45cc"
+      ],
+      "description": [
+        "e835c3d8053a1db0",
+        "e835c3d8053a1db0"
+      ]
+    }
+  },
+  "square_names_us_minnesota": {
+    "modioId": 6436856,
+    "logo": {
+      "file": "0.png",
+      "sha": "f9d9ff8984ded36e",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "15f05e06629ba939",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "29ec2bbfee068bff",
+        "29ec2bbfee068bff"
+      ],
+      "summary": [
+        "0828ba1b6af577e0",
+        "0828ba1b6af577e0"
+      ],
+      "description": [
+        "30a829dd999e3bcf",
+        "30a829dd999e3bcf"
+      ]
+    }
+  },
+  "square_names_us_new_mexico": {
+    "modioId": 6436852,
+    "logo": {
+      "file": "0.png",
+      "sha": "1b2061868beccee1",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "e71bc07ced8e222c",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "aecafacc65ce5e91",
+        "aecafacc65ce5e91"
+      ],
+      "summary": [
+        "d11e5d7c6173b9c2",
+        "d11e5d7c6173b9c2"
+      ],
+      "description": [
+        "0fbbd3f57ea12421",
+        "0fbbd3f57ea12421"
+      ]
+    }
+  },
+  "square_names_us_new_york": {
+    "modioId": 6436851,
+    "logo": {
+      "file": "0.png",
+      "sha": "57e22430357539bd",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "5f4936407ffac6a6",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "6fbfcfb13cd3ad1b",
+        "6fbfcfb13cd3ad1b"
+      ],
+      "summary": [
+        "ceacb1a19c12d21c",
+        "ceacb1a19c12d21c"
+      ],
+      "description": [
+        "a4141148765b2ede",
+        "a4141148765b2ede"
+      ]
+    }
+  },
+  "square_names_us_oregon": {
+    "modioId": 6436850,
+    "logo": {
+      "file": "0.png",
+      "sha": "63a96c4d3bb6504c",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "e9f128bac69801e3",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "5f63016ba7bdaf88",
+        "5f63016ba7bdaf88"
+      ],
+      "summary": [
+        "5a8c51be97317009",
+        "5a8c51be97317009"
+      ],
+      "description": [
+        "d98dddcccb7c112a",
+        "d98dddcccb7c112a"
+      ]
+    }
+  },
+  "square_names_us_pennsylvania": {
+    "modioId": 6436849,
+    "logo": {
+      "file": "0.png",
+      "sha": "4d340ffaf306dafb",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "c667336baa6f6c2f",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "2c872191420cbcac",
+        "2c872191420cbcac"
+      ],
+      "summary": [
+        "9a50a9a81c98b8b0",
+        "9a50a9a81c98b8b0"
+      ],
+      "description": [
+        "6bd131e20723763d",
+        "6bd131e20723763d"
+      ]
+    }
+  },
+  "square_names_us_texas": {
+    "modioId": 6436846,
+    "logo": {
+      "file": "0.png",
+      "sha": "a783b5a1a625a69f",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "8e720c0813626f45",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "7e2ad6b419bdc2c5",
+        "7e2ad6b419bdc2c5"
+      ],
+      "summary": [
+        "923a82e7c4a8ed60",
+        "923a82e7c4a8ed60"
+      ],
+      "description": [
+        "3f1ce3021a8cdfe2",
+        "3f1ce3021a8cdfe2"
+      ]
+    }
+  },
+  "square_names_us_washington": {
+    "modioId": 6436366,
+    "logo": {
+      "file": "0.png",
+      "sha": "2683f57d87c87559",
+      "remote": "0.3.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "abf3ee75c0d9863e",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "48d45ff44841177a",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "6a81ae8aad85ff26",
+        "remote": "3.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "cff992a8111e3152",
+        "remote": "4.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "f83149626a2a3bfb",
+        "f83149626a2a3bfb"
+      ],
+      "summary": [
+        "7d5ecdcc758e7306",
+        "7d5ecdcc758e7306"
+      ],
+      "description": [
+        "b66a6205ad5c389a",
+        "b66a6205ad5c389a"
+      ]
+    }
+  },
+  "square_no_factory_passengers": {
+    "modioId": 6433427,
+    "logo": {
+      "file": "0.png",
+      "sha": "59a99098bdaadd9f",
+      "remote": "0.3.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "9d1a5832eeeb8408",
+        "remote": "1.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "7f925d14df16dbe4",
+        "7f925d14df16dbe4"
+      ],
+      "summary": [
+        "91cba1f7acf5e8bd",
+        "91cba1f7acf5e8bd"
+      ],
+      "description": [
+        "3f003c89bdca60d4",
+        "3f003c89bdca60d4"
+      ]
+    }
+  },
+  "square_one_way_roads": {
+    "modioId": 6434729,
+    "logo": {
+      "file": "0.png",
+      "sha": "63c6ce6b03bd4529",
+      "remote": "0.2.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "42e024d47a60e58f",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "10c13c97fa4ce60a",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "0848b3b9905432d7",
+        "remote": "3.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "69ec4ec894bf970d",
+        "69ec4ec894bf970d"
+      ],
+      "summary": [
+        "38762c9ee400d1e1",
+        "38762c9ee400d1e1"
+      ],
+      "description": [
+        "b4105ada70237600",
+        "b4105ada70237600"
+      ]
+    }
+  },
+  "square_passenger_destinations": {
+    "modioId": 6439426,
+    "logo": {
+      "file": "0.png",
+      "sha": "98f5d2c6e69b0aac",
+      "remote": "0.1.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "4b8837bf5efb3f54",
+        "remote": "1.1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "5ba757fad0021039",
+        "remote": "2.1.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "7777a0ee4bc81c50",
+        "remote": "3.1.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "ced62b8735715daf",
+        "remote": "4.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "2429ca6bde679f80",
+        "2429ca6bde679f80"
+      ],
+      "summary": [
+        "61f1507c944398f3",
+        "61f1507c944398f3"
+      ],
+      "description": [
+        "7b8ef05bed233ada",
+        "87397ea879116f0e"
+      ]
+    }
+  },
+  "square_problem_radar": {
+    "modioId": 6433425,
+    "logo": {
+      "file": "0.png",
+      "sha": "b1123b773ffc78b4",
+      "remote": "0.6.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "3967f8525b5b3f69",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "55d7d2c71095c19a",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "173ededa063b847f",
+        "remote": "3.2.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "4440f5ac7e368533",
+        "remote": "4.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "9c647efaa7835403",
+        "9c647efaa7835403"
+      ],
+      "summary": [
+        "612c94a853c27f15",
+        "612c94a853c27f15"
+      ],
+      "description": [
+        "6c819c51fbf6e482",
+        "6c819c51fbf6e482"
+      ]
+    }
+  },
+  "square_roundabouts": {
+    "modioId": 6436837,
+    "logo": {
+      "file": "0.png",
+      "sha": "0feb3b016468295b",
+      "remote": "0.2.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "67fc420137f878fe",
+        "remote": "1.1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "15ffee7bd70d861e",
+        "remote": "2.1.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "6de49d29a53c0d27",
+        "remote": "3.1.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "bcbbbc7f0e171731",
+        "remote": "4.1.png"
+      },
+      {
+        "file": "5.png",
+        "sha": "cf8bce4f3a592bfc",
+        "remote": "5.1.png"
+      },
+      {
+        "file": "6.png",
+        "sha": "176b210c4b007d5f",
+        "remote": "6.1.png"
+      },
+      {
+        "file": "7.png",
+        "sha": "f6298a6f8736e515",
+        "remote": "7.1.png"
+      },
+      {
+        "file": "8.png",
+        "sha": "5405099e733a1fa9",
+        "remote": "8.1.png"
+      },
+      {
+        "file": "9.png",
+        "sha": "19e250c094da2ec2",
+        "remote": "9.1.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "ae95cae5e5516cb4",
+        "ae95cae5e5516cb4"
+      ],
+      "summary": [
+        "12ce4b20d68417f4",
+        "12ce4b20d68417f4"
+      ],
+      "description": [
+        "99bafa5009044853",
+        "99bafa5009044853"
+      ]
+    }
+  },
+  "square_smart_lanes": {
+    "modioId": 6436842,
+    "logo": {
+      "file": "0.png",
+      "sha": "1fc691b6dd954cd0",
+      "remote": "0.4.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "bea91124aab88d8d",
+        "remote": "1.3.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "5561d1875bed87ea",
+        "remote": "2.3.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "c7a13bd1a828e2a5",
+        "remote": "3.3.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "9deb6417977da513",
+        "remote": "4.3.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "8ae4381c77fda96c",
+        "8ae4381c77fda96c"
+      ],
+      "summary": [
+        "63c6bc1e1573643b",
+        "63c6bc1e1573643b"
+      ],
+      "description": [
+        "2545f529622e9e22",
+        "2545f529622e9e22"
+      ]
+    }
+  },
+  "square_stress_test": {
+    "modioId": 6439728,
+    "text": {
+      "name": [
+        "7391cb289dbcc3a2",
+        "7391cb289dbcc3a2"
+      ],
+      "summary": [
+        "0f1f1a9ced06e31f",
+        "0f1f1a9ced06e31f"
+      ],
+      "description": [
+        "bb5bd27af8791a68",
+        "bb5bd27af8791a68"
+      ]
+    },
+    "logo": {
+      "file": "0.png",
+      "sha": "04fd3a49dd8bbfc0",
+      "remote": "0.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "51629c86d57cf911",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "e45af782e7f883e8",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "31d60b1c1e93b905",
+        "remote": "3.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "bc29cd8cde84ada1",
+        "remote": "4.png"
+      },
+      {
+        "file": "5.png",
+        "sha": "3ffe418b65b90965",
+        "remote": "5.png"
+      }
+    ],
+    "synced": "2026-10-10"
+  },
+  "square_supply_gaps": {
+    "modioId": 6438590,
+    "logo": {
+      "file": "0.png",
+      "sha": "e0f8f6cdd4d33da3",
+      "remote": "0.2.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "6fdb23263da21c3b",
+        "remote": "1.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "36eeda62425077eb",
+        "remote": "2.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "d48db57f5bd6a3f9",
+        "remote": "3.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "09849d14a28ec08a",
+        "remote": "4.png"
+      },
+      {
+        "file": "5.png",
+        "sha": "d8f3dc68d7d966ef",
+        "remote": "5.png"
+      }
+    ],
+    "synced": "2026-10-10",
+    "text": {
+      "name": [
+        "90644331e6ec2eb1",
+        "90644331e6ec2eb1"
+      ],
+      "summary": [
+        "6371aa8ecb01d277",
+        "6371aa8ecb01d277"
+      ],
+      "description": [
+        "310978593ffc0d49",
+        "310978593ffc0d49"
+      ]
+    }
+  }
+}
