@@ -1,5 +1,121 @@
 # Better Minimap: in-game test checklist (phase 2: window polish)
 
+## P6b. Header size button (2026-10-10): done
+
+Title hidden, own magnifier (24 UI px) readable in the header. Right-aligning it next to the pin failed twice (CSS
+stretch, explicit root width); per the user it stays at the left end of the header. Recheck only that the X still
+shows when unpinned.
+
+## P6. Network layer (phase 6, revision 5)
+
+Report every `[Minimap] net` line and any `[SQPERF]` lines (set "Debug: performance log" On for this round).
+**Round 1 result (2026-10-09):** colours RGBA and transparency OK; squares at the bottom-left and the network mirrored
+top-to-bottom against the town markers -> `NET_FLIP_ROWS = true`, `NET_CALIBRATE = false` (docs/findings.md "ImageView
+raw pixel data"). Round 2: skip Calibration, start at "Drawing and alignment" (town grids must sit on their town icons).
+**Round 2 result (2026-10-09, 4.4k edges / 4k buildings):** street-system fallback in use (BASE_EDGE can't be listed;
+the attempt is now skipped). First build: list ~4 ms, read 21-31 ms, raster 7-10 ms, encode 7-13 ms, sliced over 20-29
+frames (0.2-0.5 s wall). Updates (+1 edge, +/-1-2 buildings) show within one 5 s scan, encode ~8-10 ms over ~8 frames.
+Off/on releases and rebuilds cleanly. Rare SQPERF slow lines (1 per 15-240 calls, 19-38 ms) for net_list/net_encode,
+like rev_read's: likely GC pauses, not steady cost. `net_render` (table hand-off) never logged as slow.
+Still open: alignment after the row flip, frame rate on a big map with the perf log On.
+
+**Round 3 (2026-10-09): magnifier, Hi-vis, toggle stutter.** Perf log On. Report every `[Minimap] net` / `option:`
+line and the SQPERF sections `net_grid`, `net_handoff`, `net_encode`, `net_render`, counts `net_on_cold`,
+`net_on_cached`, `net_recolor`.
+- [ ] Size button shows a **magnifier icon** (light, ~14 px, no "S"/"L" text), tooltip "Toggle the map size: small /
+      large", click still switches S <-> L (`option: size=...`). A pink/empty square or a missing icon = the base
+      texture `::/gui/line_vehicle_mgmt/icons/inspector.tga` didn't load: report it.
+- [ ] First Net on: one `net: image hand-off: params userdata, checked (...)` line (or `... Lua table ... (reason)`:
+      paste it; the layer still works then, as before). Any engine `ImageView ... invalid pixel size` line or a
+      placeholder image instead of roads: report at once.
+- [ ] **Hi-vis** checkbox next to Net, greyed out while Net is off. Tick it with Net on: `option: hivis=true`,
+      `net: palette hi-vis (encode; ...)`, then `net: palette hi-vis drawn: encode X ms, hand-off Y ms over N frames`
+      within a fraction of a second. **No** `first build` / `update` line, no list/read. Colours: streets yellow,
+      tracks magenta, town buildings orange, all opaque; tunnels dashed. Do they stand out on grass, desert, water?
+      Untick: back to the normal colours the same way.
+- [ ] Hi-vis is remembered across a load (`settings: loaded ... hivis=true`); with Net off ticking it does nothing.
+- [ ] **Toggle off/on within 60 s**: off logs `net: off (toggled off): image vN + E edges, B buildings kept for 60 s`;
+      on logs `net: on (cached image vN, X s old, off for Y s) ... incremental rescan in 0.5 s, no first build`. The
+      network is there **at once**, no visible stutter, **no** `net: first build` (an `update` line only if
+      something changed meanwhile). Flick it several times quickly: still smooth?
+- [ ] Tick Hi-vis while Net is off (within 60 s), then Net on: cached image appears, then switches colour after the
+      rescan (one `update` line, no first build).
+- [ ] **Off for more than 60 s**: `net: released (off for 60 s): ...` about a minute after switching off (nothing else
+      logged while off). Net on again: `net: on (cold): ...` + a new first build (the old stutter, if any, is
+      expected only here).
+- [ ] Off costs nothing: with Net off, no `net_*` sections in the SQPERF summaries except `guard` as before; frame rate
+      the same as before revision 5.
+- [ ] S/L with Net on: picture back at the new size at once, no `first build`/`update`, `net_render` max small
+      (it no longer copies the 0.5-1 M entry table when the hand-off is `params userdata`).
+
+**P6 perf run (2026-10-09 network layer perf changes + 2026-10-10 strips; PERF_REVIEW.md "Network layer (2026-10-09)"
+and "Strips (2026-10-10)")**
+Run 1 (2026-10-10) lasted ~25 s, so no SQPERF summary was printed: they come **every 30 s**. Run **at least 3 minutes**.
+- [ ] Quit to the main menu, `make link`. Enable **Better Minimap** and the DEV mod **DEV SQPERF: all mods**.
+- [ ] Load "New Game - desert". Open the minimap with **Net** on and leave it open **at least 3 minutes** (watch for
+      several `[SQPERF]` summary lines). Pan the camera around (also across the map), and toggle **Net**, **Hi-vis**
+      and **S/L** a few times each (and **Ind** once or twice). Let the game run at speed so towns grow.
+- [ ] First Net on: `net: on (cold): image 512x512 px in 8 strips ...`, `net: image hand-off: params userdata, checked
+      (one Lua -> C++ copy per changed strip of 64 rows: X ms for strip 1 ...)`: X should be ~1 ms (was 8.2 for the
+      whole image). `net: first build took ... hand-off Y ms (params, 8 strips) ...`.
+- [ ] `net: update N: ... buildings +1 ... (K bands), hand-off Z ms (S strips)`: S is 1 (or 2 when an item crosses a
+      strip edge) and Z ~1 ms per strip. After a Net off/on within 60 s, an update re-encodes only its strip(s):
+      `(8 bands)` per changed strip, not 64.
+- [ ] Hi-vis switch: `net: palette ... drawn: ... hand-off ... (8 strips) over N frames`; the colours switch all at
+      once (never half the map in the old palette for more than a blink).
+- [ ] **Seams:** look closely at the picture at both S and L: no gap, no 1 px line, no offset where strips meet (at
+      1/8, 2/8, ... of the picture height for a square map). Roads crossing a seam stay continuous.
+- [ ] The picture must stay visible through Ind/Hi-vis/S-L toggles and new roads/buildings must still appear.
+- [ ] Clicks/drags on the map still work where the network is drawn (the strips are mouse-transparent).
+- [ ] Quit to the main menu, then `make perf ARGS='--last --mod square_better_minimap'`. Paste the report and fill the
+      "Run 2" table in PERF_REVIEW.md (`net_handoff` per strip, `net_strips_handed`, `net_publish`, `net_render`,
+      `net_render_strip`, `net_render_img`, `net_render_reused`, `net_render_built`, `net_list_*`, `net_flatten`,
+      `net_encode`, `net_bands`, `net_scan_empty`, and any `slow=` lines). Goal: no step section max over ~4 ms,
+      `net_render` max under 2 ms.
+
+**Calibration (first)**
+- [ ] Open the minimap, tick **Net** (log: `option: net=true`, then `net: on: image WxH px (RGBA), ...`). Within a few
+      seconds: `net: edges listed with getEntitiesWithComponent(BASE_EDGE)` **or** `net: BASE_EDGE can't be listed (...);
+      using the street system's node maps`, then two `net: first build ...` lines. Paste all of them.
+- [ ] Top-left corner of the map: four small squares. Report their colours left to right and which corner they are in.
+      Expected: **red, green, blue, half-transparent white, top-left**. Red/blue swapped -> NET_ORDER "BGRA"; at the
+      bottom-left -> NET_FLIP_ROWS; anything else (all black, grey, garbage) -> report with a screenshot.
+- [ ] Off the roads the map shows through (transparent background)? If the whole picture turns black or a colour,
+      alpha isn't honoured: report it.
+- [ ] Any `ImageView Cannot use image data with invalid pixel size` line in the log (engine, not `[Minimap]`), or
+      a placeholder/pink image instead of roads: report it.
+
+**Drawing and alignment**
+- [ ] Streets light (near white), tracks dark, town buildings muted grey-brown under the roads; tunnels dashed.
+- [ ] Roads line up with the terrain picture and the industry icons (an industry's access road ends at its icon).
+      Jump the camera onto a junction or station and compare with the camera dot. Any offset or mirroring?
+- [ ] Industry icons and the camera box are drawn **above** the network.
+
+**Updates**
+- [ ] Build a road (or track) somewhere visible: within ~5-10 s a `net: update 1: edges +N -0 ...` line and the
+      road appears. Bulldoze it: `edges +0 -N` and it disappears without leaving pixels (a crossing road stays drawn).
+- [ ] Let a town grow at high speed: occasional `buildings +a -b` updates; the frame rate stays smooth.
+- [ ] With nothing happening: no `net: update` lines (passes without changes are silent).
+
+**Performance**
+- [ ] Big map (many towns, long networks): open with Net on. Any hitch? Report the `first build` timing line (list,
+      diff, read, raster, encode, frames, wall) and the SQPERF `net_list`, `net_read`, `net_raster`, `net_encode`,
+      `net_render` sections (`make perf`).
+- [ ] Frame rate with Net on vs off (window open, game running at top speed).
+- [ ] Toggle **S/L** with Net on: the network re-appears at the new size at once, **no** new `net: first build` or
+      `net: update` line (S/L never re-rasterises; only `net_render` runs again).
+
+**Off = no cost**
+- [ ] Untick Net: `option: net=false` and `net: released (toggled off): ...`. Afterwards **no** `net:` lines and no
+      `net_*` sections in the next SQPERF summaries.
+- [ ] Net on, close the window with Map: no `net` work while hidden; after 60 s `net: released (window hidden for 60
+      s)`. Re-open: `net: on` + a new first build.
+- [ ] Reload the save with Net on: it is remembered (`settings: loaded ... net=true`) and builds again when the window opens.
+
+**Save safety**
+- [ ] Save, quit to menu, reload: no `[Minimap]` errors. Remove the mod and load that save: loads fine. Add the mod
+      to an old save: works (Net off until ticked).
+
 ## P3. Industry icons (phase 3)
 
 Run after section 0 passes (or together with it). Report every `[Minimap]` line.

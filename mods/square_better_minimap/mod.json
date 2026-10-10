@@ -1,6 +1,6 @@
 {
     "modId": "square_better_minimap",
-    "revision": 4,
+    "revision": 5,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -14,6 +14,17 @@
             "values": [
                 "On",
                 "Off"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Better Minimap writes how long its map builds, camera box updates and window renders took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
             ],
             "defaultIndex": 0
         }

@@ -63,6 +63,20 @@
 -- (react.d.tl:153-200, 342). Phase 1: getPosition returns 0..1 screen fractions, events pixels;
 -- minimap_geom.eventToFrac handles both.
 
+-- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state, slow calls, and with the
+-- "Debug: performance log" setting On a 30 s summary. Two instruments, local counters only,
+-- nothing saved:
+--   * perf (ctx gui): recipe renders and click handlers.
+--   * perfStep (ctx step): the work done in react.onStep callbacks (map build, industry read,
+--     revision check, camera read, position/fit polls, guard tick), kept apart so the log tells
+--     per-frame work from renders and its phase=first line covers the first map build.
+--   Both use SQPERF's default timer, api.type.Clock (one per Lua state), which is safe in render,
+--   onStep and onStepTimer (docs/findings.md "Timers and threads in GUI contexts"). The
+--   "[Minimap] ... built in" log lines keep their own os.clock helper (clock below).
+local sqperf = ug_require "square_better_minimap::/sqperf/square_better_minimap.lua" as SquareBetterMinimapSqPerf
+local perf = sqperf.new({ mod = "square_better_minimap", ctx = "gui", paramKey = "sqperf_log", first = { "hud_render" } })
+local perfInit = perf:start()
+
 local react = ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
 local main_mod_button_area = ug_require "::/gui/main/main_mod_button_area.tl" as MainModButtonArea
@@ -71,6 +85,8 @@ local table_util = ug_require "::/scripts/table_util.tl" as TableUtil
 local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 
 local geom = ug_require "square_better_minimap::/minimap/minimap_geom.tl" as SquareMinimapGeom
+local net = ug_require "square_better_minimap::/minimap/minimap_net.tl" as SquareMinimapNet
+local netscan = ug_require "square_better_minimap::/minimap/minimap_netscan.tl" as SquareMinimapNetScan
 
 local WINDOW_ID <const> = "squareminimap.window"
 local REV_CHECK_SECONDS <const> = 2.0    -- terrain/town/industry change check while the window is open
@@ -79,13 +95,14 @@ local POS_POLL_SECONDS <const> = 0.5     -- window position read (remembered for
 local FIT_POLL_SECONDS <const> = 1.0     -- picture vs window width check (log only)
 local CAM_BOX_MIN_PX <const> = 12      -- keeps the 2 px outline visible as a box when zoomed all the way in
 local CAM_MAX_DIST_FACTOR <const> = 4    -- footprint corners at most 4x the camera distance from the centre
--- View direction arrow in the camera box: the base block arrow with a shaft (white mask, tinted by
--- the stylesheet `color`), turned with ImageView.rotation (degrees, builtin.d.tl:816; base turns its
--- construction brush icon by any angle with it: construction_react_util.tl:884). Like the combobox
--- triangle it replaced, only the @2x file exists (gui.zip) and it loads by the plain name. The
--- triangle was too wide and flat: rotated, it read as a shapeless wedge with no clear tip.
-local ARROW_ICON <const> = "::/gui/construction/build_control/symbol_arrow_straight_up_20.tga"
-local ARROW_PX <const> = 18
+-- View direction arrow in the camera box: a slim white triangle with a faint dark halo (own icon,
+-- rendered by tools/render_icon_square_better_minimap.py; the game loads cam_arrow@2x.tga, 32x32),
+-- turned with ImageView.rotation (degrees, builtin.d.tl:816; base turns its construction brush icon
+-- by any angle with it: construction_react_util.tl:884). It replaced the base block arrow with a
+-- shaft (too heavy) and before that the combobox triangle (too wide and flat: rotated, it read as
+-- a shapeless wedge with no clear tip).
+local ARROW_ICON <const> = "square_better_minimap::/minimap/gui/cam_arrow.tga"
+local ARROW_PX <const> = 16
 -- Sign of ImageView.rotation: 1 if positive turns clockwise on screen. Not documented and the base
 -- game only uses symmetric turns (180), so this is the one value to flip if the arrow turns mirrored.
 local ARROW_ROT_SIGN <const> = 1
@@ -106,7 +123,18 @@ local MIN_WIDTHS : {integer} = { 180, 360 }
 -- ... and the long side never above the cap (wins over MIN_WIDTHS, so a 1:5 strip stays on screen;
 -- it gets a narrow band instead). Per step so strips still grow S < L; 1:2 maps fill exactly.
 local MAX_LONG : {integer} = { 360, 720 }
-local SIZE_LABELS : {string} = { "S", "L" }
+local SIZE_LABELS : {string} = { "S", "L" } -- log only; the button shows SIZE_ICON
+-- Size toggle icon: our own tight white magnifier mask (zoom@2x.tga, 48x48, rendered by
+-- tools/render_icon_square_better_minimap.py; loaded by the plain name like cam_arrow). The base
+-- magnifier (gui/line_vehicle_mgmt/icons/inspector@2x.tga) has its glyph in only the middle 40% of
+-- the image and read as a ~9 px dot at 22 UI px in game (2026-10-10). Tinted and sized in the
+-- stylesheet (ImageView!minimap-size-icon).
+local SIZE_ICON <const> = "square_better_minimap::/minimap/gui/zoom.tga"
+-- Where the size button sits: true = the window header (builtin.Window `header`, builtin.d.tl:1209;
+-- base use: the industry window's tab row, make_entity_window.tl:236), next to the pin; false = the
+-- control row under the map. In game (2026-10-10) the 14 px icon in the control row was too small
+-- to read, so it moved to the header (left end; no title) and grew (stylesheet R::MinimapSizeButton).
+local SIZE_BUTTON_IN_HEADER <const> = true
 local DEFAULT_SIZE <const> = 1 -- S: the minimap opens small
 
 local ORIENT : SquareMinimapOrient = geom.DEFAULT_ORIENT
@@ -134,6 +162,9 @@ end
 
 local clock : function() : number = (os ~= nil and os.clock ~= nil) and os.clock or function() : number return 0 end
 
+local perfStep = sqperf.new({ mod = "square_better_minimap", ctx = "step", paramKey = "sqperf_log",
+	first = { "map_gen", "industries_read" } })
+
 local function ms(t0 : number, t1 : number) : string
 	return string.format("%.1f ms", (t1 - t0) * 1000)
 end
@@ -144,6 +175,8 @@ end
 local record Session
 	withAssets : boolean
 	showIndustries : boolean
+	showNet : boolean  -- network layer (phase 6); default off
+	hiVis : boolean    -- network layer in the high-visibility palette; default off
 	sizeIdx : integer
 	pinned : boolean
 	posX : number      -- window anchor (top-right, CSS anchorPoint {1, 0}) in screen fractions
@@ -165,6 +198,8 @@ end
 local session : Session = {
 	withAssets = false,
 	showIndustries = true,
+	showNet = false,
+	hiVis = false,
 	sizeIdx = DEFAULT_SIZE,
 	pinned = false,
 	open = false,
@@ -195,14 +230,16 @@ local function currentPrefs() : SquareMinimapPrefs
 		pinned = session.pinned,
 		sizeIdx = session.sizeIdx,
 		showIndustries = session.showIndustries,
+		showNet = session.showNet,
+		hiVis = session.hiVis,
 		open = session.open and session.pinned,
 	}
 end
 
 local function prefsText(p : SquareMinimapPrefs) : string
-	return string.format("pos %s, pinned=%s, size=%s, industries=%s, open=%s",
+	return string.format("pos %s, pinned=%s, size=%s, industries=%s, net=%s, hivis=%s, open=%s",
 		p.posX ~= nil and string.format("%.4f,%.4f", p.posX, p.posY) or "(none)",
-		tostring(p.pinned), tostring(p.sizeIdx), tostring(p.showIndustries), tostring(p.open))
+		tostring(p.pinned), tostring(p.sizeIdx), tostring(p.showIndustries), tostring(p.showNet), tostring(p.hiVis), tostring(p.open))
 end
 
 --- Read the remembered settings into `session`, once. Never throws.
@@ -223,6 +260,8 @@ local function loadPrefs()
 	if p.pinned ~= nil then session.pinned = p.pinned end
 	if p.sizeIdx ~= nil then session.sizeIdx = p.sizeIdx end
 	if p.showIndustries ~= nil then session.showIndustries = p.showIndustries end
+	if p.showNet ~= nil then session.showNet = p.showNet end
+	if p.hiVis ~= nil then session.hiVis = p.hiVis end
 	session.open = p.open == true and session.pinned
 	savedPrefs = currentPrefs()
 	logm("settings: loaded " .. (rawOrErr ~= nil and prefsText(savedPrefs) or "nothing stored, defaults"))
@@ -235,7 +274,7 @@ local function writePrefs(p : SquareMinimapPrefs)
 		local t = (mm ~= nil and table_util.copy(mm) or {}) as {string : any}
 		t[PREFS_KEY] = {
 			posX = p.posX, posY = p.posY, pinned = p.pinned, sizeIdx = p.sizeIdx,
-			showIndustries = p.showIndustries, open = p.open,
+			showIndustries = p.showIndustries, showNet = p.showNet, hiVis = p.hiVis, open = p.open,
 		}
 		cfg.mainMenuState = t
 		api.util.setAppConfig(cfg, false)
@@ -422,8 +461,10 @@ local genCounter = 0
 --- Builds the GameMap + the terrain box. Never throws; nil on failure (logged once).
 local function buildMapData(reason : string) : MapData
 	local t0 = clock()
+	local tPerf = perfStep:start()
 	-- withIndustries = false: no generic preview markers; ours are drawn by MinimapMarkers.
 	local okMap, mapOrErr = pcall(api.engine.terrain.makeMapFromGame, true, true, false, session.withAssets)
+	perfStep:stop("map_gen", tPerf) -- also failed builds
 	local t1 = clock()
 	if not okMap or mapOrErr == nil then
 		warnOnce("makeMapFromGame", tostring(mapOrErr))
@@ -439,7 +480,9 @@ local function buildMapData(reason : string) : MapData
 	local box = geom.boxFromBounds(bb.min.x, bb.min.y, bb.max.x, bb.max.y)
 	genCounter = genCounter + 1
 	local t2 = clock()
+	tPerf = perfStep:start()
 	local ind = readIndustries()
+	perfStep:stop("industries_read", tPerf)
 	local t3 = clock()
 	local text = string.format("%d towns, %d industries, built in %s",
 		countList(map.towns), #ind.list, ms(t0, t1))
@@ -662,7 +705,7 @@ local record PreviewParam
 	h : integer
 end
 
-local MinimapPreview = react.RegisterRecipe("MinimapPreview", function(params : PreviewParam) : TreeNodeId
+local MinimapPreview = react.RegisterRecipe("MinimapPreview", perf:wrap("preview_render", function(params : PreviewParam) : TreeNodeId
 	-- map_editor.tl:2652-2662: the editor shows the component one step after mounting.
 	local readyState = react.useState(false) as ReactStateT<boolean>
 	react.onStep(function()
@@ -702,7 +745,7 @@ local MinimapPreview = react.RegisterRecipe("MinimapPreview", function(params : 
 			end,
 		},
 	})
-end)
+end))
 
 ---------------------------------------------------------------------------
 -- Industry markers (re-mounted with the preview; no polling, nothing per camera tick)
@@ -739,7 +782,7 @@ local function layerAt(key : string, left : integer, top : integer, w : integer,
 	}
 end
 
-local MinimapMarkers = react.RegisterRecipe("MinimapMarkers", function(params : MarkersParam) : TreeNodeId
+local MinimapMarkers = react.RegisterRecipe("MinimapMarkers", perf:wrap("markers_render", function(params : MarkersParam) : TreeNodeId
 	-- Layout cached per map generation + picture/marker size (pure data; nodes are made each render).
 	local layoutRef = react.useRef(nil) as ReactRefT<{SquareMinimapMarkerPx}>
 	local layoutKeyRef = react.useRef("") as ReactRefT<string>
@@ -779,7 +822,639 @@ local MinimapMarkers = react.RegisterRecipe("MinimapMarkers", function(params : 
 			},
 		},
 	})
-end)
+end))
+
+
+---------------------------------------------------------------------------
+-- Network layer (phase 6, plans/square_better_minimap/PLAN.md): streets, tracks and town
+-- buildings drawn into one RGBA image (builtin.ImageView{ data, size }, builtin.d.tl:799-816)
+-- laid over the preview, under the industry icons. Toggled with the "Net" checkbox; default off.
+--
+-- OFF = NO COST: the layer recipe (MinimapNetLayer) is only mounted while the toggle is on, so
+-- off means no onStep, no timer, no engine read, no ImageView. Toggling off PARKS the finished
+-- image, grid and entity caches (netPark; the Lua encode buffers are dropped) for NET_OFF_KEEP_SECONDS:
+-- toggling on again within that time shows the cached image at once and runs only an incremental
+-- rescan (no grid allocation, no first build, no burst of garbage). The release check piggybacks on
+-- the plugin's guard tick (one comparison per 0.25 s, netCheckParked). While on but the window is
+-- hidden, nothing is read (checked once a second), and after NET_HIDDEN_RELEASE_SECONDS hidden the
+-- caches are dropped (re-opening rebuilds). Unmounting the window or an error drops them at once.
+--
+-- HI-VIS: a second palette (net.COLORS_HIVIS). The grid stores layer counts, not colours, so a
+-- switch only re-encodes (time-sliced like any encode, net.recolorAction); nothing is re-read.
+--
+-- STRIPS: the image is shown as horizontal strips of 64 rows (net STRIPS, net.STRIP_BANDS), each
+-- its own ImageView with its own buffer and params userdata. The one Lua -> C++ copy of a whole
+-- 512x512 image took 7.9-8.2 ms in ONE frame (stdout.txt 2026-10-10), for every update; now only
+-- the strips whose bands changed are handed off, one strip (~1 ms) per frame, and published
+-- together (one version bump: the picture never shows half-old strips). Placement: strip rows
+-- r0 .. r1 - 1 sit at round(r0 * h / H) .. round(r1 * h / H) UI px (net.stripPlacement).
+--
+-- IMAGE HAND-OFF: react.lua makeUserdata copies a `data` table into the C++ params on EVERY
+-- builtin.ImageView{ data = ... } node (0.5-1 M Lua values per copy). Instead, each finished strip is
+-- copied once into an ImageView params userdata (api.gui.react.params.builtin.ImageView.new(), the
+-- class makeUserdata uses); a new node passes that userdata, which makeUserdata hands to
+-- class.new(ud), a C++ copy, and the strip's Lua buffer is reused by the next encode (only its
+-- changed bands are rewritten). No Vector<integer> constructor is exposed to Lua (type.d.tl:29-37 has no global; the
+-- base game only passes engine-made image_native vectors, savegame_react_util.tl:85-95), so
+-- data_native can't be built directly. The first image checks the userdata path (copy keeps size +
+-- byte count); if anything fails it falls back to the table.
+--
+-- RE-RENDERS: every render of MinimapContent (a toggle, S/L, a map rebuild) re-renders the canvas
+-- and with it this layer (SQPERF 2026-10-09: net_render n = canvas_render n). Each strip is a
+-- MinimapNetStrip recipe whose root carries a localKey per strip version and picture size
+-- (net.stripKey); a render with an unchanged key returns the old node
+-- (react.findOldChildByLocalKey, the base game's construction menu cache,
+-- construction.tl:3031-3044), so no ImageView is rebuilt and no pixels are copied. Camera moves
+-- never reach this layer (the overlay has its own state).
+--
+-- DATA (main thread only: react.onStep, never onStepTimer; docs/findings.md "Timers and threads"):
+--   * edges: getEntitiesWithComponent(BASE_EDGE) throws "Cannot loop over this component type" in
+--     game (2026-10-09, docs/findings.md), so the street system's node maps are used:
+--     streetSystem.getNode2StreetEdgeMap / getNode2TrackEdgeMap (engine/system.d.tl:302-304; each
+--     edge at both its nodes, de-duplicated). Per new edge: BASE_EDGE (position/tangent 0/1, type:
+--     engine.d.tl:99-131); kind from the map; BaseEdgeType.TUNNEL = dashed.
+--   * town buildings: townBuildingSystem.getTown2BuildingMap() (engine/system.d.tl:122; base
+--     town.tl:432) + BOUNDING_VOLUME bbox (as square_supply_gaps' sg_gather.tl positionOf).
+--   The scheduler is minimap_netscan.tl (pure; see its header): three list calls in three frames,
+--   everything else sliced to NET_BUDGET_MS per frame (api.type.Clock), changed bands re-encoded,
+--   each changed strip's hand-off in a frame of its own, scans backing off while nothing changes.
+--
+-- IMAGE: NET_LONG px on the long side whatever the S/L size (Stretch-scaled to the picture), so a
+-- size change re-mounts the image but never re-rasterises. Same world -> picture mapping as the
+-- industry markers (geom.worldToFrac with ORIENT). Pixel format: 4 bytes per pixel, see
+-- minimap_net.tl IMAGE DATA; NET_ORDER / NET_FLIP_ROWS are the constants to flip if the in-game
+-- calibration patch (NET_CALIBRATE) shows other colours or sits at the bottom.
+
+-- Long side of the network image in pixels (S picture 200-360, L 560-720 UI px).
+local NET_LONG <const> = 512
+local NET_BUDGET_MS <const> = 2.0          -- work per frame (list calls and the hand-off: one per frame)
+local NET_HIDDEN_RELEASE_SECONDS <const> = 60.0
+local NET_OFF_KEEP_SECONDS <const> = 60.0  -- caches kept after the toggle goes off (instant re-enable)
+local NET_RESUME_DELAY_MS <const> = 500.0  -- re-enabled from the kept caches: rescan starts after this
+-- Byte order of a pixel ("RGBA", "BGRA", "ARGB" or "ABGR") and whether the first row is the
+-- bottom one. Undocumented: NET_CALIBRATE paints red, green, blue and 50% white squares (left to
+-- right) at the top-left corner of the map. Red and blue swapped -> "BGRA"; squares at the
+-- bottom-left -> NET_FLIP_ROWS = true; wrong colours everywhere -> try "ARGB" / "ABGR".
+local NET_ORDER <const> = "RGBA"
+local NET_FLIP_ROWS <const> = true -- in game 2026-10-09: the first row is drawn at the bottom
+local NET_CALIBRATE <const> = false -- in game 2026-10-09: RGBA confirmed, transparency works
+local NET_LOG_UPDATES <const> = 5  -- update passes logged in full per state
+-- Colours per layer: net.COLORS_NORMAL / net.COLORS_HIVIS (minimap_net.tl), picked by session.hiVis.
+
+-- Wall clock in ms for the frame budget (api.type.Clock, microseconds: type.d.tl:1860-1866; safe
+-- on the main thread, docs/findings.md "Timers and threads in GUI contexts").
+local netClockObj : Clock = nil
+local netClockTried = false
+local function nowMs() : number
+	if not netClockTried then
+		netClockTried = true
+		local ok, cOrErr = pcall(api.type.Clock.new)
+		if ok then netClockObj = cOrErr as Clock end
+	end
+	if netClockObj ~= nil then return netClockObj:getTime() / 1000 end
+	return clock() * 1000
+end
+
+-- ImageView params userdata (api.gui.react.params.builtin.ImageView; react.lua makeUserdata). Only
+-- the fields assigned or read here; the engine class is untyped in the tealdefs.
+local record NetParamsUd
+	data : {integer}
+	size : Vec2i
+	scaling : any
+	data_native : Vector<integer>
+end
+
+local record NetParamsClass
+	new : function(...: any) : NetParamsUd
+end
+
+local type NetState = SquareMinimapNetState
+
+local netState : NetState = nil
+-- "streetSystem": in game (2026-10-09) getEntitiesWithComponent(BASE_EDGE) throws "Cannot loop over this
+-- component type" (docs/findings.md). Set it to nil to re-test the component listing (netListStreets).
+local netEdgeMode : string = "streetSystem"
+local netNextCheckMs : number = 0   -- no state yet (hidden window): next look
+local netFailed = false             -- a Lua error in the step: stopped until toggled off and on
+local netRenderSeq = 0              -- bumped on every image change; the layer's re-render trigger
+
+local netHandoff : string = nil      -- image hand-off: nil = not tried yet, "params" (userdata) or "table"
+
+local function netRelease(why : string)
+	if netState == nil then return end
+	logm(string.format("net: released (%s): %d edges, %d buildings cached", why, netState.edgeCount, netState.buildingCount))
+	netState = nil
+	netRenderSeq = netRenderSeq + 1
+end
+
+--- An engine map as a plain Lua table of arrays (the scheduler resumes it with next()). The maps
+--- are expected to be tables already (then returned as is); anything else is copied with pairs.
+local function netPlainMap(m : any) : {any : {integer}}
+	if m == nil then return nil end
+	if type(m) == "table" then
+		local _k, v = next(m as {any : any})
+		if v == nil or type(v) == "table" then return m as {any : {integer}} end
+	end
+	local copy : {any : {integer}} = {}
+	for k, arr in pairs(m as {any : any}) do
+		local ids : {integer} = {}
+		for __, e in ipairs(arr as {integer}) do ids[#ids + 1] = e end
+		copy[k] = ids
+	end
+	return copy
+end
+
+local function netCallMap(getter : function() : any, what : string) : {any : {integer}}
+	local ok, mapOrErr = pcall(getter)
+	if not ok or mapOrErr == nil then
+		warnOnce("net " .. what, tostring(mapOrErr))
+		return nil
+	end
+	return netPlainMap(mapOrErr)
+end
+
+--- Street edges (node -> edges); nil if the listing failed (the scan is then skipped, nothing is removed).
+local function netListStreets() : {any : {integer}}
+	if netEdgeMode ~= "streetSystem" then
+		-- Re-test path only: every edge as one list, kind unknown (read as BASE_EDGE_STREET presence).
+		local ok, listOrErr = pcall(api.engine.getEntitiesWithComponent, api.type.ComponentType.BASE_EDGE)
+		if ok and listOrErr ~= nil then
+			if netEdgeMode == nil then
+				netEdgeMode = "component"
+				logm("net: edges listed with getEntitiesWithComponent(BASE_EDGE)")
+			end
+			return { [0] = listOrErr as {integer} }
+		end
+		netEdgeMode = "streetSystem"
+		logm("net: BASE_EDGE can't be listed (" .. tostring(listOrErr) .. "); using the street system's node maps")
+	end
+	return netCallMap(api.engine.system.streetSystem.getNode2StreetEdgeMap as (function() : any), "street edge map")
+end
+
+local function netListTracks() : {any : {integer}}
+	if netEdgeMode == "component" then return {} end -- already in the component list
+	return netCallMap(api.engine.system.streetSystem.getNode2TrackEdgeMap as (function() : any), "track edge map")
+end
+
+local function netListBuildings() : {any : {integer}}
+	return netCallMap(api.engine.system.townBuildingSystem.getTown2BuildingMap as (function() : any), "building list")
+end
+
+--- One edge -> cached item in image pixels. Throws on API errors (called through pcall).
+local function netReadEdgeRaw(st : NetState, e : integer, kind : integer) : SquareMinimapNetItem
+	local CT = api.type.ComponentType
+	local be = api.engine.getComponent(e, CT.BASE_EDGE) as Engine.Component.BaseEdge
+	if be == nil or be.position0 == nil or be.position1 == nil or be.tangent0 == nil or be.tangent1 == nil then
+		return { seen = st.stamp, kind = net.KIND_NONE }
+	end
+	if kind == nil or kind == net.KIND_NONE then
+		kind = api.engine.getComponent(e, CT.BASE_EDGE_STREET) ~= nil and net.KIND_STREET or net.KIND_TRACK
+	end
+	local p0, p1, t0, t1 = be.position0, be.position1, be.tangent0, be.tangent1
+	return {
+		seen = st.stamp,
+		kind = kind,
+		dashed = be.type == api.type.enum.BaseEdgeType.TUNNEL,
+		pts = net.hermitePolyline(st.xf, p0.x, p0.y, t0.x, t0.y, p1.x, p1.y, t1.x, t1.y),
+	}
+end
+
+--- One town building -> its bounding box as a pixel rect. Throws on API errors.
+local function netReadBuildingRaw(st : NetState, b : integer) : SquareMinimapNetItem
+	local bv = api.engine.getComponent(b, api.type.ComponentType.BOUNDING_VOLUME) as Engine.Component.BoundingVolume
+	if bv == nil or bv.bbox == nil then return { seen = st.stamp, kind = net.KIND_NONE } end
+	local mn, mx = bv.bbox.min, bv.bbox.max
+	local x0, y0, x1, y1 = net.rectFromBounds(st.xf, mn.x, mn.y, mx.x, mx.y)
+	return { seen = st.stamp, kind = net.KIND_TOWN, x0 = x0, y0 = y0, x1 = x1, y1 = y1 }
+end
+
+local function netReadFailed(st : NetState, what : string, err : any) : SquareMinimapNetItem
+	st.stats.readFailed = st.stats.readFailed + 1
+	warnOnce("net " .. what .. " read", tostring(err))
+	return { seen = st.stamp, kind = net.KIND_NONE }
+end
+
+local function netReadEdge(st : NetState, e : integer, kind : integer) : SquareMinimapNetItem
+	local ok, itOrErr = pcall(netReadEdgeRaw, st, e, kind)
+	if ok then return itOrErr as SquareMinimapNetItem end
+	return netReadFailed(st, "edge", itOrErr)
+end
+
+local function netReadBuilding(st : NetState, b : integer) : SquareMinimapNetItem
+	local ok, itOrErr = pcall(netReadBuildingRaw, st, b)
+	if ok then return itOrErr as SquareMinimapNetItem end
+	return netReadFailed(st, "building", itOrErr)
+end
+
+local function netLogPass(st : NetState, published : boolean)
+	local s = st.stats
+	local wall = nowMs() - s.startMs
+	if st.recolor then
+		logm(string.format("net: palette %s drawn: encode %.1f ms (%d bands), hand-off %.1f ms (%d strips) over %d frames (%.0f ms wall), no re-read",
+			st.hiVis and "hi-vis" or "normal", s.encodeMs, s.bands, s.handoffMs, s.stripsHanded, s.frames, wall))
+		return
+	end
+	if st.passes == 1 and published then
+		logm(string.format("net: first build: %d edges (%d streets, %d tracks, %d tunnels, %d without geometry) via %s, %d town buildings (%d without box), %d read failures",
+			st.edgeCount, s.streets, s.tracks, s.tunnels, s.noGeom, tostring(netEdgeMode), st.buildingCount, s.noBox, s.readFailed))
+		logm(string.format("net: first build took list %.1f ms, flatten %.1f ms, sweep %.1f ms, read %.1f ms, raster %.1f ms, encode %.1f ms (%d bands), hand-off %.1f ms (%s, %d strips) over %d frames (%.0f ms wall); image %dx%d %s%s%s, next scan in %.0f s",
+			s.listMs, s.flattenMs, s.sweepMs, s.readMs, s.rasterMs, s.encodeMs, s.bands, s.handoffMs, tostring(netHandoff), s.stripsHanded, s.frames, wall, st.w, st.h, NET_ORDER,
+			NET_FLIP_ROWS and " rows flipped" or "", NET_CALIBRATE and ", CALIBRATION patch on" or "", st.scanSeconds))
+		return
+	end
+	if st.updatesLogged >= NET_LOG_UPDATES then return end
+	st.updatesLogged = st.updatesLogged + 1
+	logm(string.format("net: update %d%s: edges +%d -%d, buildings +%d -%d (now %d / %d); list %.1f ms, flatten %.1f ms, sweep %.1f ms, read %.1f ms, raster %.1f ms, encode %.1f ms (%d bands), hand-off %.1f ms (%d strips), %d frames, next scan in %.0f s%s",
+		st.updatesLogged, published and "" or " (no visible change)", #(st.addE or {}), #(st.remE or {}), #(st.addB or {}), #(st.remB or {}), st.edgeCount, st.buildingCount,
+		s.listMs, s.flattenMs, s.sweepMs, s.readMs, s.rasterMs, s.encodeMs, s.bands, s.handoffMs, s.stripsHanded, s.frames, st.scanSeconds,
+		st.updatesLogged == NET_LOG_UPDATES and " (further updates not logged)" or ""))
+end
+
+local function netParamsClass() : NetParamsClass
+	local r = (api.gui as {string : any})["react"] as {string : any}
+	local p = r ~= nil and r["params"] as {string : any} or nil
+	local b = p ~= nil and p["builtin"] as {string : any} or nil
+	return b ~= nil and b["ImageView"] as NetParamsClass or nil
+end
+
+--- Strip s's finished bytes -> an ImageView params userdata (one Lua -> C++ copy of the strip, see
+--- IMAGE HAND-OFF), or nil when that path isn't usable (the strip then keeps its Lua table).
+local function netMakeParams(st : NetState, s : integer, out : {integer}, rows : integer) : NetParamsUd
+	if netHandoff == "table" then return nil end
+	local first = netHandoff == nil
+	local ok, udOrErr = pcall(function() : NetParamsUd
+		local cls = netParamsClass()
+		if cls == nil or cls.new == nil then error("api.gui.react.params.builtin.ImageView not found") end
+		-- Two userdata per strip, alternating: the one of the shown version stays untouched until the
+		-- publish swaps the staged one in (every mounted ImageView holds its own copy anyway, made by
+		-- class.new(ud) at render; a node built in between, e.g. on S/L, still gets the old bytes).
+		local ud = (st.spareParams[s] as NetParamsUd) or cls.new()
+		st.spareParams[s] = nil
+		ud.data = out
+		ud.size = api.type.Vec2i.new(st.w, rows)
+		ud.scaling = builtin.type.ImageViewScaling.Stretch
+		if first then
+			-- What a render does with it: react.lua makeUserdata -> class.new(userdata). The copy must
+			-- keep the size and every byte, else the engine would show its placeholder image.
+			local copy = cls.new(ud)
+			if copy == nil or copy.size == nil or copy.size.x ~= st.w or copy.size.y ~= rows then
+				error("the params copy lost the size")
+			end
+			local n = copy.data_native ~= nil and copy.data_native:size() or -1
+			if n ~= #out then error(string.format("the params copy holds %d bytes, expected %d", n, #out)) end
+		end
+		return ud
+	end)
+	if not ok then
+		netHandoff = "table"
+		logm("net: image hand-off: Lua table, copied on every new image node (params userdata not usable: " .. tostring(udOrErr) .. ")")
+		return nil
+	end
+	if first then netHandoff = "params" end
+	return udOrErr as NetParamsUd
+end
+
+--- io.handoff: strip s's finished buffer -> st.staged[s] (not shown until netPublish). False if the
+--- buffer is wrong (the strip is encoded whole again next time).
+local function netHandoffStrip(st : NetState, s : integer) : boolean
+	local t0 = nowMs()
+	local tPerf = perfStep:start()
+	local out = st.bufs[s]
+	local r0, r1 = net.stripRange(st.h, s)
+	-- Never hand the engine a buffer of the wrong length (it infers bytes per pixel from it).
+	if out == nil or #out ~= net.expectedLength(st.w, r1 - r0) then
+		warnOnce("net image", string.format("strip %d buffer has %d values, expected %d; not shown", s,
+			out ~= nil and #out or -1, net.expectedLength(st.w, r1 - r0)))
+		st.bufs[s] = nil -- start this strip's next encode on a fresh buffer
+		perfStep:stop("net_handoff", tPerf)
+		return false
+	end
+	local first = netHandoff == nil
+	local strip : SquareMinimapNetStrip = { r0 = r0, r1 = r1 }
+	local ud = netMakeParams(st, s, out, r1 - r0)
+	if ud ~= nil then
+		strip.params = ud -- the bytes live in C++ now: the next encode rewrites only changed bands of out
+	else
+		strip.data = out -- the image owns the table; the strip's next encode starts a new one
+		st.bufs[s] = nil
+	end
+	st.staged[s] = strip
+	perfStep:stop("net_handoff", tPerf)
+	local dt = nowMs() - t0
+	st.stats.handoffMs = st.stats.handoffMs + dt
+	if first and netHandoff == "params" then
+		logm(string.format("net: image hand-off: params userdata, checked (one Lua -> C++ copy per changed strip of %d rows: %.1f ms for strip %d incl. the check; new nodes copy it in C++)",
+			r1 - r0, dt, s))
+	end
+	return true
+end
+
+--- io.publish: every staged strip -> the shown image (a new version, all strips at once). The
+--- strips that didn't change keep their node (same version in their localKey).
+local function netPublish(st : NetState) : boolean
+	if st.staged == nil or next(st.staged) == nil then return false end
+	st.version = st.version + 1
+	local old = st.image
+	local strips : {SquareMinimapNetStrip} = {}
+	for s = 1, st.strips do
+		local staged = st.staged[s]
+		if staged ~= nil then
+			staged.version = st.version
+			strips[s] = staged
+			local prev = old ~= nil and old.strips[s] or nil
+			if prev ~= nil and prev.params ~= nil then st.spareParams[s] = prev.params end
+		elseif old ~= nil then
+			strips[s] = old.strips[s]
+		end
+	end
+	st.image = { strips = strips, w = st.w, h = st.h, version = st.version, atMs = nowMs() }
+	netRenderSeq = netRenderSeq + 1
+	return true
+end
+
+local netIo : SquareMinimapNetIo = {
+	now = nowMs,
+	listStreets = netListStreets,
+	listTracks = netListTracks,
+	listBuildings = netListBuildings,
+	readEdge = netReadEdge,
+	readBuilding = netReadBuilding,
+	handoff = netHandoffStrip,
+	publish = netPublish,
+	passDone = netLogPass,
+	perf = perfStep as SquareMinimapNetPerf,
+	flipRows = NET_FLIP_ROWS,
+	calibrate = NET_CALIBRATE and function(st : NetState)
+		-- Into the top strip (always fully encoded while calibrating), squares sized from the picture.
+		local r0, r1 = net.stripRange(st.h, 1)
+		if st.bufs[1] ~= nil then
+			net.paintCalibration(st.bufs[1], st.w, r1 - r0, NET_ORDER, NET_FLIP_ROWS, math.min(st.w, st.h))
+		end
+	end or nil,
+}
+
+--- Applies session.hiVis to a state: new palette, then re-encode only (net.recolorAction).
+local function netApplyPalette(st : NetState, now : number)
+	st.hiVis = session.hiVis
+	st.palette = net.paletteFor(st.hiVis, NET_ORDER)
+	local action = net.recolorAction(st.phase, st.image ~= nil)
+	if action == "encode" then
+		st.stats = netscan.newStats(now)
+		st.recolor = true
+		netscan.startEncode(st, true)
+	elseif action == "restart" then
+		netscan.startEncode(st, true)
+	elseif action == "dirty" then
+		st.dirty = true -- the pass's encode sees the palette change (startEncode: bufHiVis) and does every band
+	end
+	perfStep:count("net_recolor")
+	logm(string.format("net: palette %s (%s; re-encode only, nothing re-read)", st.hiVis and "hi-vis" or "normal", action))
+end
+
+--- Net toggled off: keep image, grid and entity caches for NET_OFF_KEEP_SECONDS (released by
+--- netCheckParked), abort a running pass. No layer = no per-frame work.
+local function netPark(why : string)
+	local st = netState
+	if st == nil then return end
+	if st.image == nil then
+		netRelease(why .. ", nothing drawn yet")
+		return
+	end
+	local now = nowMs()
+	if st.phase ~= "idle" then
+		-- Items read so far stay cached and drawn (consistent); the next pass re-lists, and dirty
+		-- makes it encode.
+		if st.phase == "encode" or st.phase == "handoff" then st.dirty = true end -- the shown image is older than the grid
+		netscan.endScan(st, now)
+	end
+	-- The Lua encode buffers (~1 M values, ~16 MB) are KEPT while parked and freed with the rest after
+	-- NET_OFF_KEEP_SECONDS. In game (2026-10-10, run 2) dropping them made the first encodes after a
+	-- re-enable build fresh 128K-entry tables while the GC swept the old ones: 21-37 ms per pass
+	-- instead of 6.7, and a 10.1 ms net_encode step (PERF_REVIEW.md "Run 2").
+	st.recolor = false
+	st.parkedSinceMs = now
+	logm(string.format("net: off (%s): image v%d + %d edges, %d buildings kept for %.0f s (encode buffers kept; %s hand-off)",
+		why, st.image.version, st.edgeCount, st.buildingCount, NET_OFF_KEEP_SECONDS, tostring(netHandoff)))
+end
+
+--- From the plugin's guard tick: frees parked caches once NET_OFF_KEEP_SECONDS have passed.
+local function netCheckParked()
+	local st = netState
+	if st == nil or st.parkedSinceMs == nil then return end
+	if net.parkExpired(st.parkedSinceMs, nowMs(), NET_OFF_KEEP_SECONDS) then
+		netRelease(string.format("off for %.0f s", NET_OFF_KEEP_SECONDS))
+	end
+end
+
+--- The layer's per-frame step (react.onStep, main thread). Returns true when the image changed
+--- (published or released). Idle: one Clock read and a comparison per frame.
+local function netStep(box : SquareMinimapBox) : boolean
+	if netFailed then return false end
+	local now = nowMs()
+	local st = netState
+	if st ~= nil and st.parkedSinceMs ~= nil then
+		-- Toggled on again with the caches kept: the layer already rendered the cached image; only an
+		-- incremental rescan runs (a pending palette change is drawn by that pass's encode).
+		perfStep:count("net_on_cached")
+		logm(string.format("net: on (cached image v%d, %.0f s old, off for %.1f s): %d edges, %d buildings kept; incremental rescan in %.1f s, no first build",
+			st.image.version, (now - st.image.atMs) / 1000, (now - st.parkedSinceMs) / 1000, st.edgeCount, st.buildingCount,
+			NET_RESUME_DELAY_MS / 1000))
+		st.parkedSinceMs = nil
+		st.hiddenSinceMs = nil
+		st.scanSeconds = st.baseSeconds -- back-off reset on toggle-on
+		netscan.startScan(st, now)
+		-- Not in the frames right after the toggle (render + mount): the list calls wait a moment.
+		st.waitUntilMs = now + NET_RESUME_DELAY_MS
+		return false
+	end
+	if st == nil then
+		if now < netNextCheckMs then return false end
+	elseif now < st.waitUntilMs then
+		return false
+	end
+	if not isShown() then
+		-- Paused: no engine reads. Look again in a second; a long-hidden window frees the caches.
+		netNextCheckMs = now + 1000
+		if st ~= nil then
+			st.waitUntilMs = now + 1000
+			if st.hiddenSinceMs == nil then st.hiddenSinceMs = now end
+			if now - st.hiddenSinceMs >= NET_HIDDEN_RELEASE_SECONDS * 1000 then
+				netRelease(string.format("window hidden for %.0f s", NET_HIDDEN_RELEASE_SECONDS))
+				return true
+			end
+		end
+		return false
+	end
+	if st ~= nil and (st.minX ~= box.minX or st.minY ~= box.minY or st.maxX ~= box.maxX or st.maxY ~= box.maxY) then
+		netRelease("map extent changed")
+		st = nil
+	end
+	if st == nil then
+		local t0 = nowMs()
+		local tPerf = perfStep:start()
+		st = netscan.newState(box, ORIENT, NET_LONG, session.hiVis, NET_ORDER)
+		perfStep:stop("net_grid", tPerf)
+		netState = st
+		perfStep:count("net_on_cold")
+		logm(string.format("net: on (cold): image %dx%d px in %d strips (%s%s, %s), grid in %.1f ms; budget %.1f ms/frame, scan every %.0f s or more (up to %.0f s while nothing changes)%s",
+			st.w, st.h, st.strips, NET_ORDER, NET_FLIP_ROWS and ", rows flipped" or "", st.hiVis and "hi-vis" or "normal palette", nowMs() - t0, NET_BUDGET_MS,
+			netscan.SCAN_SECONDS, netscan.BACKOFF_MAX_SECONDS,
+			NET_CALIBRATE and "; CALIBRATION patch on: expect red, green, blue, half-white squares at the map's top-left" or ""))
+		return false -- the grid allocation was this frame's work
+	end
+	if st.hiddenSinceMs ~= nil then
+		-- Shown again after a pause: scan now, from the base interval.
+		st.hiddenSinceMs = nil
+		st.scanSeconds = st.baseSeconds
+	end
+	st.waitUntilMs = 0
+	if st.hiVis ~= session.hiVis then netApplyPalette(st, now) end
+	if st.phase == "idle" then netscan.startScan(st, now) end
+	return netscan.run(st, netIo, NET_BUDGET_MS)
+end
+
+local record NetLayerParam
+	box : SquareMinimapBox
+	w : integer
+	h : integer
+end
+
+local findOldChild = (react as {string : any})["findOldChildByLocalKey"] as function(string) : TreeNodeId
+
+--- The params userdata path failed at render: from now on every strip is a Lua table. Every strip
+--- is encoded again (whole, into new buffers) and handed off as a table.
+local function netParamsFailed(err : any)
+	if netHandoff == "table" then return end
+	warnOnce("net image params", tostring(err))
+	netHandoff = "table"
+	local st = netState
+	if st == nil then return end
+	st.bufs, st.spareParams = {}, {}
+	for s = 1, st.strips do st.pending[s] = true end
+	-- The shown strips' userdata can't be drawn: show nothing until the table image is published.
+	if st.image ~= nil then
+		for _, strip in ipairs(st.image.strips) do strip.params = nil end
+	end
+	if st.parkedSinceMs == nil and net.recolorAction(st.phase, true) == "encode" then
+		st.stats = netscan.newStats(nowMs())
+		st.recolor = true
+		netscan.startEncode(st, true)
+		st.waitUntilMs = 0
+	else
+		st.dirty = true
+	end
+end
+
+local record NetStripParam
+	strip : SquareMinimapNetStrip
+	key : string   -- net.stripKey: strip, its version, picture size, mode
+	imageW : integer
+	w : integer    -- UI px
+	h : integer
+end
+
+-- One strip of the network image (net STRIPS), its own recipe so the reuse below works at a
+-- recipe root exactly like the base game's (construction.tl:3031-3044): while the strip's version
+-- and the picture size are unchanged, the old node is returned (no ImageView, no pixel copy). A
+-- 1-strip update therefore builds 1 ImageView; the other strips are untouched.
+local MinimapNetStrip = react.RegisterRecipe("MinimapNetStrip", perf:wrap("net_render_strip", function(params : NetStripParam) : TreeNodeId
+	react.setMouseTransparent(true)
+	if findOldChild ~= nil then
+		local old = findOldChild(params.key)
+		if old ~= nil then
+			perf:count("net_render_reused")
+			return old
+		end
+	end
+	local tPerf = perf:start()
+	local strip = params.strip
+	local node : TreeNodeId = nil
+	if strip.params ~= nil then
+		-- Userdata hand-off (IMAGE HAND-OFF): makeUserdata copies the params in C++. meta can't ride
+		-- on a userdata, so the size goes on a WithComponentParams wrapper (what react.lua does with
+		-- meta.styleSheet itself, react.lua:362-373; base use: entity_window_util.tl:404).
+		local ud = strip.params as NetParamsUd
+		local ok, nodeOrErr = pcall(function() : TreeNodeId
+			return builtin.ImageView(ud as Builtin.ImageViewParam)
+		end)
+		if ok then
+			node = builtin.WithComponentParams{
+				styleSheet = styleutil.makeStyle{ size = { params.w, params.h } },
+				item = nodeOrErr as TreeNodeId,
+			}
+		else
+			netParamsFailed(nodeOrErr)
+		end
+	elseif strip.data ~= nil then
+		node = builtin.ImageView{
+			meta = { styleSheet = styleutil.makeStyle{ size = { params.w, params.h } } },
+			data = strip.data,
+			size = api.type.Vec2i.new(params.imageW, strip.r1 - strip.r0),
+			scaling = builtin.type.ImageViewScaling.Stretch,
+			-- no mouseTransparent: ImageView has no such field; layerAt's Component is mouse-transparent
+		}
+	end
+	perf:count("net_render_built")
+	perf:stop("net_render_img", tPerf)
+	return builtin.BoxLayout{
+		meta = { class = boxClass(nil), localKey = params.key },
+		orientation = builtin.type.Orientation.Vertical,
+		children = { node },
+	}
+end))
+
+-- Mounted only while the Net toggle is on (MinimapCanvas). Re-mounted with the preview (gen/size
+-- key) to stay above it; the caches live in netState, so a re-mount never re-reads or re-draws.
+-- Builds a few small layout nodes per render; the strips' ImageViews only when their version or
+-- the picture size changed (MinimapNetStrip).
+local MinimapNetLayer = react.RegisterRecipe("MinimapNetLayer", perf:wrap("net_render", function(params : NetLayerParam) : TreeNodeId
+	local paramsRef = react.useRef(params) as ReactRefT<NetLayerParam>
+	paramsRef:set(params)
+	local seqState = react.useState(netRenderSeq) as ReactStateT<integer>
+	react.onStep(function()
+		local ok, changedOrErr = pcall(netStep, paramsRef:get().box)
+		if not ok then
+			warnOnce("net step", tostring(changedOrErr))
+			netFailed = true
+			netRelease("error")
+		end
+		if seqState:old() ~= netRenderSeq then seqState:set(netRenderSeq) end
+	end)
+	local tPerf = perf:start()
+	local img = netState ~= nil and netState.image or nil
+	local children : {TreeNodeId} = {}
+	if img ~= nil then
+		-- Strip s at rows r0 .. r1 - 1 of the image, stretched to its share of the picture: rounded
+		-- edges, so the strips tile it without gaps (net.stripPlacement; a seam is <= 0.5 px off).
+		for s = 1, #img.strips do
+			local strip = img.strips[s]
+			if strip ~= nil and (strip.params ~= nil or strip.data ~= nil) then
+				local top, hpx = net.stripPlacement(strip.r0, strip.r1, img.h, params.h)
+				if hpx > 0 then
+					local key = net.stripKey(s, strip.version, params.w, params.h, strip.params ~= nil and "params" or "table")
+					-- New key per strip version: a changed strip is created with its data, never updated in place.
+					children[#children + 1] = layerAt("flc_" .. key, 0, top, params.w, hpx, params.w, params.h,
+						MinimapNetStrip{ strip = strip, key = key, imageW = img.w, w = params.w, h = hpx })
+				end
+			end
+		end
+	end
+	local root = builtin.BoxLayout{
+		meta = { class = boxClass(nil), localKey = string.format("minimap_net_%dx%d", params.w, params.h) },
+		orientation = builtin.type.Orientation.Horizontal,
+		children = {
+			builtin.Component{
+				meta = { styleSheet = styleutil.makeStyle{ size = { params.w, params.h } } },
+				mouseTransparent = true,
+				layout = builtin.FloatingLayout{
+					children = children,
+				},
+			},
+		},
+	}
+	perf:stop("net_render_tree", tPerf)
+	return root
+end))
 
 ---------------------------------------------------------------------------
 -- Mod settings (mod.json "params", chosen in the mod selection when a game is started or loaded;
@@ -818,7 +1493,7 @@ end
 
 local overlayUpdatesLogged = 0 -- first few box moves per overlay mount, for the in-game test
 
-local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", function(params : OverlayParam) : TreeNodeId
+local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", perf:wrap("overlay_render", function(params : OverlayParam) : TreeNodeId
 	-- The poll reads the latest params through a ref (the step closure is created once).
 	local paramsRef = react.useRef(params) as ReactRefT<OverlayParam>
 	paramsRef:set(params)
@@ -836,7 +1511,9 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", function(params : 
 		if not camDue() then return end
 		if not isShown() then return end -- hidden window: no camera reads
 		local p = paramsRef:get()
+		local tPerf = perfStep:start()
 		local ok, vOrErr = pcall(readCamView, p.box)
+		perfStep:stop("cam_read", tPerf)
 		if not ok then
 			warnOnce("readCamView", tostring(vOrErr))
 			return
@@ -854,6 +1531,7 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", function(params : 
 				logm(string.format("camera box -> %d,%d %dx%d (map %dx%d)", px.boxCX, px.boxCY, px.boxW, px.boxH, p.w, p.h))
 			end
 			camState:set(px)
+			perfStep:count("cam_moves")
 		end
 	end)
 	react.setMouseTransparent(true)
@@ -887,7 +1565,7 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", function(params : 
 					styleSheet = styleutil.makeStyle{ size = { ARROW_PX, ARROW_PX } },
 				},
 				path = ARROW_ICON,
-				scaling = builtin.type.ImageViewScaling.AutoFit, -- 20 UI px icon into ARROW_PX, as the markers
+				scaling = builtin.type.ImageViewScaling.AutoFit, -- 16 UI px icon (32 px @2x) at ARROW_PX: 1:1
 				-- no mouseTransparent: ImageView has no such field (crashes in makeUserdata); the
 				-- layerAt wrapper Component is already mouse-transparent
 				rotation = ARROW_ROT_SIGN * cam.arrowDeg,
@@ -905,7 +1583,7 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", function(params : 
 			},
 		},
 	})
-end)
+end))
 
 ---------------------------------------------------------------------------
 -- Canvas: preview + overlay + click-to-jump
@@ -916,6 +1594,7 @@ local record CanvasParam
 	h : integer
 	markerSize : integer
 	showIndustries : boolean
+	showNet : boolean
 end
 
 local lastWindowFracW : number = 0 -- 0 = unknown; window content width (screen fraction) from the position poll; fit log
@@ -932,7 +1611,7 @@ local anchorDX : number = nil   -- window anchor minus content top-right (screen
 local anchorDY : number = nil
 local windowMoved = false       -- moved since creation (offset can no longer be measured)
 
-local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", function(params : CanvasParam) : TreeNodeId
+local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", perf:wrap("canvas_render", function(params : CanvasParam) : TreeNodeId
 	local selfRef = react.useSelfRef()
 	local pressedRef = react.useRef(false) as ReactRefT<boolean>
 	local paramsRef = react.useRef(params) as ReactRefT<CanvasParam>
@@ -945,6 +1624,7 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", function(params : Ca
 	react.onStep(function()
 		if not fitDue() then return end
 		if not isShown() then return end
+		local tPerf = perfStep:start()
 		local ok, err = pcall(function() : any
 			local node = selfRef:get()
 			if node == nil then return nil end
@@ -965,12 +1645,14 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", function(params : Ca
 				p.w, p.h, r - l, b - t, winW, gap, gapPx, gapPx > 12 and " -> EMPTY BAND, raise MIN_WIDTHS" or ""))
 			return nil
 		end)
+		perfStep:stop("fit_poll", tPerf)
 		if not ok then warnOnce("fit check", tostring(err)) end
 	end)
 
 	local function clickAt(ex : integer, ey : integer)
 		local p = paramsRef:get()
 		if p.data == nil then return end
+		local tPerf = perf:start() -- onMouseEvent: GUI thread
 		local ok, err = pcall(function() : any
 			local node = selfRef:get()
 			local p0 = node:getPosition(0, 0)
@@ -984,6 +1666,7 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", function(params : Ca
 			jumpTo(wx, wy)
 			return nil
 		end)
+		perf:stop("click_jump", tPerf)
 		if not ok then
 			warnOnce("click", tostring(err))
 		end
@@ -1028,6 +1711,16 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", function(params : Ca
 			item = MinimapPreview{ data = params.data, w = params.w, h = params.h },
 		},
 	}
+	if params.data ~= nil and params.showNet then
+		-- Network layer over the preview, under the industry icons. Same re-mount key scheme as the
+		-- markers (a fixed key would leave it below a re-mounted preview); nothing is re-drawn.
+		children[#children + 1] = builtin.FloatingLayoutChild{
+			h = -1,
+			v = -1,
+			localKey = "minimap_net_" .. tostring(gen) .. "_" .. tostring(params.w),
+			item = MinimapNetLayer{ box = params.data.box, w = params.w, h = params.h },
+		}
+	end
 	if params.data ~= nil and params.data.industries ~= nil and params.showIndustries then
 		-- Between the preview and the camera overlay; re-mounted with them (same key scheme).
 		children[#children + 1] = builtin.FloatingLayoutChild{
@@ -1050,34 +1743,50 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", function(params : Ca
 	return builtin.FloatingLayout{
 		children = children,
 	}
-end)
+end))
 
 ---------------------------------------------------------------------------
 -- Window content
 
-local function checkBox(label : string, tooltip : string, value : boolean, onChange : function(boolean)) : TreeNodeId
+local function checkBox(label : string, tooltip : string, value : boolean, onChange : function(boolean), enabled ?: boolean) : TreeNodeId
 	return builtin.CheckBox{
-		meta = { tooltip = tooltip },
+		meta = { tooltip = tooltip, enabled = enabled ~= false },
 		value = value and 1 or 0,
 		label = label,
 		onValueChange = function(v : integer) onChange(v == 1) end,
 	}
 end
 
-local function smallButton(label : string, tooltip : string, onClick : function()) : TreeNodeId
-	return builtin.Button{
-		meta = { class = "minimap-small-button", tooltip = tooltip },
-		content = text(label, "font-scale-annotation"),
-		onClick = onClick,
-	}
-end
+-- The size toggle lives in MinimapContent's state; the button may render in the window header
+-- (another recipe), so MinimapContent publishes its handler here on every render.
+local cycleSizeFn : function()
 
-local MinimapContent = react.RegisterRecipe("MinimapContent", function() : TreeNodeId
+-- The button stays at the left of the header. Right-aligning it next to the pin failed in game
+-- (2026-10-10): CSS gravity -1 on the header root and an explicit root width (picture width - 56)
+-- both left it at the left; the header container has no stylesheet name to target.
+
+--- The size toggle button, as its own recipe so one stylesheet rule sizes it in the header or in
+--- the control row. Root is a BoxLayout (a custom recipe must return a layout).
+local MinimapSizeButton = react.RegisterRecipe("MinimapSizeButton", function() : TreeNodeId
+	return hbox({
+		builtin.Button{
+			meta = { class = "minimap-size-button", tooltip = _("Toggle the map size: small / large") },
+			content = builtin.ImageView{ meta = { class = "minimap-size-icon" }, path = SIZE_ICON },
+			onClick = function()
+				if cycleSizeFn ~= nil then cycleSizeFn() end
+			end,
+		},
+	})
+end)
+
+local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content_render", function() : TreeNodeId
 	local selfRef = react.useSelfRef()
 	local posDue = useMainThreadTick(POS_POLL_SECONDS)
 	local lastPosRef = react.useRef("") as ReactRefT<string>
 	local dataState = react.useState(nil) as ReactStateT<MapData>
 	local industriesState = react.useState(session.showIndustries) as ReactStateT<boolean>
+	local netOnState = react.useState(session.showNet) as ReactStateT<boolean>
+	local hiVisState = react.useState(session.hiVis) as ReactStateT<boolean>
 	local sizeState = react.useState(session.sizeIdx) as ReactStateT<integer>
 	local revsRef = react.useRef(nil) as ReactRefT<RevState>
 	local startedRef = react.useRef(false) as ReactRefT<boolean>
@@ -1089,7 +1798,9 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", function() : TreeN
 	end
 
 	local function readRevs() : RevState
+		local tPerf = perfStep:start()
 		local ok, revsOrErr = pcall(readRevState)
+		perfStep:stop("rev_read", tPerf)
 		if not ok then
 			warnOnce("readRevState", tostring(revsOrErr))
 			return nil
@@ -1120,6 +1831,7 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", function() : TreeN
 	react.onStep(function()
 		if not posDue() then return end
 		if not isShown() then return end -- a hidden window reports no useful position
+		local tPerf = perfStep:start()
 		local ok, errOrNil = pcall(function() : any
 			local node = selfRef:get()
 			if node == nil then return nil end
@@ -1156,6 +1868,7 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", function() : TreeN
 			logm(string.format("position: saved %s -> anchor %.4f,%.4f", raw, x, y))
 			return nil
 		end)
+		perfStep:stop("pos_poll", tPerf)
 		if not ok then
 			warnOnce("window position", tostring(errOrNil))
 		end
@@ -1178,6 +1891,28 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", function() : TreeN
 		logm("option: industries=" .. tostring(v))
 	end
 
+	local function setNet(v : boolean)
+		if v == session.showNet then return end
+		session.showNet = v
+		netOnState:set(v)
+		logm("option: net=" .. tostring(v))
+		if v then
+			netFailed = false
+			netNextCheckMs = 0
+		else
+			netPark("toggled off")
+		end
+	end
+
+	local function setHiVis(v : boolean)
+		if v == session.hiVis then return end
+		session.hiVis = v
+		hiVisState:set(v)
+		logm("option: hivis=" .. tostring(v))
+		-- Applied by the layer's next step (re-encode only). Parked or off: on the next switch-on.
+		if netState ~= nil and netState.parkedSinceMs == nil then netState.waitUntilMs = 0 end
+	end
+
 	local function cycleSize()
 		local nextIdx = sizeIdx % #SIZES + 1
 		session.sizeIdx = nextIdx
@@ -1187,14 +1922,20 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", function() : TreeN
 		logm(string.format("option: size=%s (%dx%d px)", SIZE_LABELS[nextIdx], nw, nh))
 	end
 
+	cycleSizeFn = cycleSize
+	local controls : {TreeNodeId} = {
+		checkBox(_("Ind"), _("Show industries with the icon of what they produce"), industriesState:old(), setIndustries),
+		checkBox(_("Net"), _("Show roads, tracks and town buildings on the map"), netOnState:old(), setNet),
+		checkBox(_("Hi-vis"), _("Draw the network in bright, opaque colours (needs Net)"), hiVisState:old(), setHiVis, netOnState:old()),
+	}
+	if not SIZE_BUTTON_IN_HEADER then controls[#controls + 1] = MinimapSizeButton() end
+
 	return vbox({
-		MinimapCanvas{ data = data, w = w, h = h, markerSize = MARKER_PX[stepIdx] or MARKER_PX[DEFAULT_SIZE], showIndustries = industriesState:old() },
-		hbox({
-			checkBox(_("Ind"), _("Show industries with the icon of what they produce"), industriesState:old(), setIndustries),
-			smallButton(SIZE_LABELS[sizeIdx] or "S", _("Map size: small / large"), cycleSize),
-		}, "minimap-controls"),
+		MinimapCanvas{ data = data, w = w, h = h, markerSize = MARKER_PX[stepIdx] or MARKER_PX[DEFAULT_SIZE],
+			showIndustries = industriesState:old(), showNet = netOnState:old() },
+		hbox(controls, "minimap-controls"),
 	}, "minimap-root")
-end)
+end))
 
 ---------------------------------------------------------------------------
 -- Window + ridge button
@@ -1246,7 +1987,7 @@ local function onWindowClose()
 	hideWindow("closed")
 end
 
-MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, function(params : MinimapWindowParam) : TreeNodeId
+MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, perf:wrap("window_render", function(params : MinimapWindowParam) : TreeNodeId
 	local pinnedState = react.useState(session.pinned) as ReactStateT<boolean>
 
 	react.onMount(function()
@@ -1256,6 +1997,7 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, fun
 	react.onUnmount(function()
 		windowMounted = false
 		logm("window unmounted")
+		netRelease("window unmounted")
 	end)
 
 	local function setPinned(pin : boolean)
@@ -1278,7 +2020,9 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, fun
 	local pinned = pinnedState:old()
 	local winParams : Builtin.WindowParam = {
 		id = WINDOW_ID,
-		title = _("Map"), -- short: at size S the title bar sets the window's minimum width
+		-- No title (2026-10-10, user): the header holds only the size button and the pin. emptyNameAllowed
+		-- defaults to true (builtin.d.tl:1207).
+		title = "",
 		-- Pinned: no X and not closable, so the engine's close-topmost-window (ESC) has nothing to
 		-- close (the context help window is the base precedent for pinned + conditional closable:
 		-- context_helper_react.tl:862-875). Close a pinned minimap with the Map button, or unpin.
@@ -1293,6 +2037,7 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, fun
 		initialY = params.initialY,
 		onClose = onWindowClose,
 		content = MinimapContent(),
+		header = SIZE_BUTTON_IN_HEADER and MinimapSizeButton() or nil,
 	}
 	-- Undocumented in builtin.d.tl but used by both base pinnable windows (view_manager.tl:318-322,
 	-- music_player.tl:278-280): a window the player moved counts as pinned.
@@ -1302,7 +2047,7 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, fun
 		setPinned(true)
 	end
 	return builtin.Window(winParams)
-end)
+end))
 
 local function showWindow(wa : Builtin.WindowAPI)
 	hiddenByUs = false
@@ -1346,11 +2091,43 @@ local function toggleWindow()
 	wa.moveSingletonWindowToFront(MinimapWindow)
 end
 
+--- The Map button's onClick (GUI thread), timed. Not used for the guard's re-open, which runs in
+--- onStep and is timed there as part of perfStep's "guard" section.
+local toggleWindowClick = perf:wrap("click_toggle", toggleWindow)
+
 local GUARD_SECONDS <const> = 0.25
 local REOPEN_MAX_TRIES <const> = 40 -- x GUARD_SECONDS: wait up to 10 s for the window container after a load
 local reopenTries = 0               -- module state: re-open once per GUI load, not per plugin re-mount
 
-local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "MinimapHudPlugin", function() : TreeNodeId
+--- The plugin's guard tick (onStep, every GUARD_SECONDS): settings load/save, re-open of a pinned
+--- window after a load, re-show of a pinned window something else hid.
+local function guardTick()
+	loadPrefs()
+	maintainPrefs()
+	netCheckParked() -- frees a switched-off network layer's kept caches after NET_OFF_KEEP_SECONDS
+	-- Re-open a window that was pinned and open when the settings were last written (e.g.
+	-- before loading this save), once the window container exists.
+	if session.open and not windowMounted and reopenTries < REOPEN_MAX_TRIES then
+		reopenTries = reopenTries + 1
+		if game_react_globals.getDefaultWindowApi() ~= nil then
+			reopenTries = REOPEN_MAX_TRIES
+			logm("settings: re-opening the pinned minimap")
+			toggleWindow()
+		end
+		return
+	end
+	if not windowMounted or hiddenByUs or not session.pinned then return end
+	if isShown() then return end
+	local ok, err = setWindowVisible(true)
+	if ok then
+		logm("pinned window was hidden by something else (ESC?); shown again")
+	else
+		warnOnce("re-show pinned window", tostring(err))
+	end
+end
+
+-- SQPERF section "hud_render" (first: the first render after a load).
+local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "MinimapHudPlugin", perf:wrap("hud_render", function() : TreeNodeId
 	-- Hooks first, unconditionally (same order as square_problem_radar's plugin).
 	local isMapEditorRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean return api.gui.game.isMapEditor() end)
 	local guardDue = useMainThreadTick(GUARD_SECONDS)
@@ -1360,27 +2137,9 @@ local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainMod
 	react.onStep(function()
 		if not guardDue() then return end
 		if isMapEditorRef:get() then return end
-		loadPrefs()
-		maintainPrefs()
-		-- Re-open a window that was pinned and open when the settings were last written (e.g.
-		-- before loading this save), once the window container exists.
-		if session.open and not windowMounted and reopenTries < REOPEN_MAX_TRIES then
-			reopenTries = reopenTries + 1
-			if game_react_globals.getDefaultWindowApi() ~= nil then
-				reopenTries = REOPEN_MAX_TRIES
-				logm("settings: re-opening the pinned minimap")
-				toggleWindow()
-			end
-			return
-		end
-		if not windowMounted or hiddenByUs or not session.pinned then return end
-		if isShown() then return end
-		local ok, err = setWindowVisible(true)
-		if ok then
-			logm("pinned window was hidden by something else (ESC?); shown again")
-		else
-			warnOnce("re-show pinned window", tostring(err))
-		end
+		local tPerf = perfStep:start()
+		guardTick()
+		perfStep:stop("guard", tPerf)
 	end)
 	if isMapEditorRef:get() then
 		return nil
@@ -1392,14 +2151,16 @@ local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainMod
 			builtin.Button{
 				meta = { class = "minimap-hud-button", tooltip = _("Show or hide the minimap") },
 				content = text(_("Map")),
-				onClick = toggleWindow,
+				onClick = toggleWindowClick,
 			},
 		},
 	}
-end)
+end))
 
 local result = {
 	MinimapHudPlugin = MinimapHudPlugin,
 }
+
+perf:phase("init", perfInit)
 
 return result

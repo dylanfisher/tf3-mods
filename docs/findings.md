@@ -201,3 +201,24 @@ Found with the probe `square_roundabouts_lanes_probe` (log lines `[SQRB-LANES]`,
   Exists: The Mod is not enabled, mod = '<id>'" when the ID isn't a known mod, even inside a `pcall` and even when the path is built at runtime (`id .. "::/..."`), so it probably runs the script.
   Trigger: a probe calling `ug_require("square_no_such_mod::/…")`. `make validate` doesn't catch this.
   Remove probes that name made-up mods before uploading.
+
+## ImageView raw pixel data (2026-10-09)
+
+`builtin.ImageView{ data = {...}, size = api.type.Vec2i.new(w, h) }` draws a raw image. Verified in game (square_better_minimap network layer, calibration squares + road layer vs town markers):
+
+- One Lua integer per **byte**. The data length must be exactly `w*h*3` or `w*h*4`. The binary checks `bytes / (w*h)` and accepts only 3 or 4 ("only 3 or 4 is supported"). Otherwise it logs an error and shows a default image; it doesn't crash.
+- Channel order **RGBA**, and alpha works: alpha 0 is fully transparent over whatever is underneath.
+- Rows are **bottom-up**: the first row of the data is drawn at the bottom of the image. Write rows in reverse for a top-down raster.
+- Related (same mod): `api.engine.getEntitiesWithComponent(BASE_EDGE)` throws "Cannot loop over this component type". List
+  every edge with `api.engine.system.streetSystem.getNode2StreetEdgeMap()` / `getNode2TrackEdgeMap()` (each edge appears
+  under both of its nodes, so de-duplicate).
+
+## Window `header` slot (2026-10-10)
+
+`builtin.Window{ header = <node> }` (builtin.d.tl:1209) puts the node at the **left** of the title bar, before the
+title, in the dark title tab (square_better_minimap size button). An empty title plus
+`Window#<id> Window::Title { visibility = "none" }` removes the title text cleanly. In game, two attempts to
+right-align the header next to the pin both left it at the left: `gravity = { -1, 0 }` on the header recipe's root, and
+an explicit root `size` (picture width - 56 UI px) with the button at `gravity = { 1, 0 }`. The header container has no
+stylesheet name in the base CSS (only `Window::TitleBar`, `TitleLayout`, `Title`, `Icon`, `Content`, `Close`, `Locate`).
+The pin sits in its own notch outside the title tab.
