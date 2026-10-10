@@ -18,8 +18,9 @@
 -- params change. So the modifier always attaches the script, the params only carry the kind
 -- ({kind = "industry"} / {kind = "warehouse"}), and production_label.script.tl reads the settings live
 -- from api.engine.config.getModParams() each time a HUD icon is mounted. runFn still reads its
--- allModParams[modId] (1-based value index, values {"On", "Off"}: 1 = On, 2 = Off;
--- docs/wiki/modding/general/modscripts.md "Mod Params" and "runScript"), but only for the log line.
+-- allModParams[modId] (3rd argument: runFn(captureParams, settings, allModParams), docs/findings.md
+-- "Script function signatures"; 1-based value index, values {"On", "Off"}: 1 = On, 2 = Off), but only
+-- for the log line.
 --
 -- Warehouses (PLAN "Warehouse rates (2026-10-07)", option showWarehouse): the base warehouse
 -- construction (.cache/game/base/content/warehouses/warehouse.con.lua) has no isIndustry and no
@@ -34,6 +35,23 @@
 -- industry and warehouse gets the script, whatever the settings: the HUD decides what to draw.
 --
 -- Plain Lua that runs in the game: pre-5.3 only (no math.tointeger, //, bitwise ops, utf8.*).
+
+-- SQPERF (plans/sqperf/README.md): this file loads in ~50 Lua states per game load (every "Load Game
+-- Pool" / "Sim Pool" worker, docs/findings.md), and the loadConstruction modifier runs once per
+-- construction resource in whichever state loads it. Logged: the file's load time (phase=init), each
+-- modifier call slower than 50 ms (slow=load_construction), and the modifier's running total per Lua
+-- state per load as a level 1 line (phase=load_construction ms=<total so far>) each time that total
+-- reaches 5 ms, then 10, 20, 40, ... (there is no end-of-loading hook per state; postRunFn runs in one
+-- state only), so a total under 5 ms logs nothing. With the "Debug: performance log" setting On, a
+-- 30 s summary of load_construction calls too. The level 3 gate is runFn's allModParams (no
+-- getModParams call in the loading states). Nothing is saved.
+local sqperf = ug_require "square_industry_production_label::/sqperf/square_industry_production_label.lua"
+local perfDebug = false
+local perf = sqperf.new({ mod = "square_industry_production_label", ctx = "run", gate = function() return perfDebug end })
+local perfInit = perf:start()
+-- Per Lua state, reset by runFn on every load: the modifier's total ms and the next total to log at.
+local modifierMs = 0
+local modifierNextLogMs = sqperf.INIT_LOG_MS
 
 local MOD_ID = "square_industry_production_label"
 local HUD_ICON_FN = MOD_ID .. "::/production_label/production_label.script@hudIconFn"
@@ -128,14 +146,34 @@ local function constructionModifier(fileName, data)
 	return data
 end
 
+--- constructionModifier timed as SQPERF section "load_construction", plus the per-state running total
+--- (phase=load_construction at 5, 10, 20, ... ms). Same arguments and return value; an error passes
+--- through unchanged (that call is then not timed).
+local function timedConstructionModifier(fileName, data)
+	local t = perf:start()
+	local out = constructionModifier(fileName, data)
+	modifierMs = modifierMs + perf:stop("load_construction", t)
+	if modifierMs >= modifierNextLogMs then
+		perf:phase("load_construction", perf:start() - modifierMs)
+		modifierNextLogMs = modifierMs * 2
+	end
+	return out
+end
+
 function data()
 	return {
-		runFn = function(configDict, allModParams)
+		-- The game calls runFn(captureParams, settings, allModParams) (docs/findings.md "Script function
+		-- signatures"; base base/base_mod.lua:8): allModParams is the 3rd argument, [modId].<key> a 1-based
+		-- value index. It feeds the SQPERF gate (sqperf.debugOn: own sqperf_log == 2, values {"Off", "On"},
+		-- or the DEV master switch square_sqperf_all active) and the log line, nothing else.
+		runFn = function(_captureParams, _settings, allModParams)
+			perfDebug = sqperf.debugOn(allModParams, MOD_ID)
+			modifierMs, modifierNextLogMs = 0, sqperf.INIT_LOG_MS
 			-- No "register once" guard: the game resets its modifier table on every load while this
 			-- file stays cached, so a guard skipped registration on later loads. Base base_mod.lua
 			-- and the official mods register unconditionally; the modifier itself is idempotent.
 			-- Always registered: the settings only decide what the HUD draws (read there, live).
-			addModifier("loadConstruction", constructionModifier)
+			addModifier("loadConstruction", timedConstructionModifier)
 			local options = readOptions(allModParams)
 			log.message("square_industry_production_label: loadConstruction modifier registered (settings at load: production "
 				.. onOff(options.showProduction) .. ", pickup " .. onOff(options.showPickup)
@@ -143,3 +181,5 @@ function data()
 		end,
 	}
 end
+
+perf:phase("init", perfInit)

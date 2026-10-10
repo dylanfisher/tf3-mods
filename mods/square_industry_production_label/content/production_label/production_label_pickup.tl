@@ -9,7 +9,8 @@
 -- every ProductionLabelHudIcon in the GUI Lua state shares `pickup.cache`. Whichever label first finds
 -- it stale rebuilds it from inside its existing 2 s useStepStateTimer read, at most every
 -- REFRESH_INTERVAL real seconds and never while the simulation is paused (GAME_TIME.updateCount
--- unchanged, api/tealdef/api/engine.d.tl:425-436). Per label per refresh: one table lookup.
+-- unchanged, api/tealdef/api/engine.d.tl:425-436). Per label per refresh: one table lookup. Rebuilds
+-- after the first are sliced over several frames (`tick`, SLICE_* below).
 --
 -- `aggregate` is pure (fed by an adapter, unit-tested in tests/square_industry_production_label/
 -- test_pickup.lua); every engine call is in `engineAdapter`.
@@ -34,10 +35,24 @@ pickup.LEGACY_UNLOAD_ONLY = 3
 pickup.DEBUG = false
 pickup.DEBUG_LOOKUPS = 5
 
+-- Sliced rebuilds (PERF_REVIEW.md 2026-10-10). In game a rebuild took 9 ms on average and up to 27 ms
+-- in one HUD step (desert save, 250 lines). After the first build (done at once: the labels have no
+-- rates yet) a rebuild runs in slices of about SLICE_BUDGET_MS, at most one slice per SLICE_GAP_MS
+-- (all labels' timer reads of one frame run back to back, so the gap is what spreads the slices over
+-- frames). The old rates stay in use until the new ones are complete. A build still running after
+-- BUILD_MAX_MS (e.g. no label polled for a while) finishes in the next slice, so its reads span at most
+-- that long. Milliseconds from pickup.nowMs (production_label.script.tl sets the api.type.Clock timer,
+-- safe on the HUD worker threads; default os.clock for tests).
+pickup.SLICE_BUDGET_MS = 4.0
+pickup.SLICE_GAP_MS = 100.0
+pickup.BUILD_MAX_MS = 3000.0
+pickup.nowMs = function() : number return os.clock() * 1000 end
+
 local LOG_PREFIX <const> = "square_industry_production_label: pickup "
 
 function pickup.newCache() : SquareProductionLabelPickupCache
-	return { rates = {}, builtAt = nil, builtUpdateCount = nil, building = false, builds = 0, errorLogged = false }
+	return { rates = {}, builtAt = nil, builtUpdateCount = nil, building = false, builds = 0, errorLogged = false,
+		pending = nil, pendingStartMs = nil, sliceAtMs = nil }
 end
 
 pickup.cache = pickup.newCache()
@@ -55,125 +70,176 @@ local function loadsCargo(load : {boolean}, passenger : integer) : boolean
 	return false
 end
 
+-- One rebuild as a resumable job (PERF_REVIEW.md 2026-10-10): `newBuild` reads the line-stops map,
+-- `step` works through the station groups and then the per-line sums, and returns false when
+-- `overBudget()` says to stop (checked after each group / each summed StockList, so every call makes
+-- progress). `aggregate` = newBuild + one step without a budget. The in-game lookup slices a rebuild
+-- over several frames (`tick`); the result is the same as one pass (served is a set per line; sums
+-- are per StockList), only read a little later.
+
+function pickup.newBuild(a : SquareProductionLabelPickupAdapter) : SquareProductionLabelPickupBuild
+	local b : SquareProductionLabelPickupBuild = {
+		adapter = a,
+		stats = { stationGroups = 0, lines = 0, cargoStops = 0, stockLists = 0, stopIndexMismatches = 0 },
+		passenger = a.passengerCargoType(),
+		groups = {},
+		gi = 1,
+		stopsOf = {},
+		outputsOf = {},
+		producersOf = {},
+		served = {},
+		servedKeys = nil,
+		si = 1,
+		rateOf = {},
+		result = {},
+		done = false,
+	}
+	-- (stationGroup, lineStops) pairs, so a sliced build walks a fixed list.
+	for stationGroup, lineStops in pairs(a.lineStopsMap() or {} as {integer : {{integer, integer}}}) do
+		b.groups[#b.groups + 1] = { stationGroup = stationGroup, lineStops = lineStops }
+	end
+	return b
+end
+
+local NONE : {any} = {}
+
+-- Per group: the flat (stockList, output cargo) pairs in its reach, built once per rebuild from
+-- reach x outputs. Most catchables (town buildings) produce nothing, so every stop at the group walks
+-- only the few producing pairs instead of the whole reach (PERF_REVIEW.md 2026-10-08).
+local function producers(b : SquareProductionLabelPickupBuild, stationGroup : integer) : {{integer, integer}}
+	local pairsList = b.producersOf[stationGroup]
+	if pairsList ~= nil then return pairsList end
+	pairsList = {}
+	local reach = b.adapter.reachableStockLists(stationGroup) or NONE as {integer}
+	for __, stockList in ipairs(reach) do
+		local outputs = b.outputsOf[stockList]
+		if outputs == nil then
+			outputs = b.adapter.outputCargoTypes(stockList) or NONE as {integer}
+			b.outputsOf[stockList] = outputs
+		end
+		for __, cargo in ipairs(outputs) do
+			pairsList[#pairsList + 1] = { stockList, cargo }
+		end
+	end
+	b.producersOf[stationGroup] = pairsList
+	return pairsList
+end
+
+-- served[stockList][cargo][line] = true: a set, so each line counts once per (stockList, cargo)
+-- however often it stops at the group (or at several terminals of it).
+local function consider(b : SquareProductionLabelPickupBuild, line : integer, stationGroup : integer, stop : SquareProductionLabelPickupStop)
+	if stop.loadMode == pickup.LEGACY_UNLOAD_ONLY then return end
+	local load = stop.load
+	if load == nil or not loadsCargo(load, b.passenger) then return end
+	if b.adapter.terminalCargoLoad(stationGroup, stop.station, stop.terminal) == false then return end
+	b.stats.cargoStops = b.stats.cargoStops + 1
+	local served = b.served
+	for __, pair in ipairs(producers(b, stationGroup)) do
+		local stockList, cargo = pair[1], pair[2]
+		if load[cargo + 1] == true then
+			local byCargo = served[stockList]
+			if byCargo == nil then
+				byCargo = {}
+				served[stockList] = byCargo
+			end
+			local lines = byCargo[cargo]
+			if lines == nil then
+				lines = {}
+				byCargo[cargo] = lines
+			end
+			lines[line] = true
+		end
+	end
+end
+
+local function scanGroup(b : SquareProductionLabelPickupBuild, stationGroup : integer, lineStops : {{integer, integer}})
+	local stats = b.stats
+	if #lineStops > 0 then
+		stats.stationGroups = stats.stationGroups + 1
+	end
+	for __, pair in ipairs(lineStops) do
+		local line, stopIndex0 = pair[1], pair[2]
+		local stops = b.stopsOf[line]
+		if stops == nil then
+			stops = b.adapter.lineStops(line) or NONE as {SquareProductionLabelPickupStop}
+			b.stopsOf[line] = stops
+			stats.lines = stats.lines + 1
+		end
+		-- The pair's index is 0-based like getLineStopsForTerminal's stopIndex0
+		-- (station_group.tl:695-702). On a mismatch, every stop of the line at this group is used.
+		local stop = stopIndex0 ~= nil and stops[stopIndex0 + 1] or nil
+		if stop ~= nil and stop.stationGroup == stationGroup then
+			consider(b, line, stationGroup, stop)
+		else
+			stats.stopIndexMismatches = stats.stopIndexMismatches + 1
+			for __, s in ipairs(stops) do
+				if s.stationGroup == stationGroup then
+					consider(b, line, stationGroup, s)
+				end
+			end
+		end
+	end
+end
+
+-- Sum for one StockList: calcLineStationThroughput at most once per line per rebuild, and only for
+-- lines that serve something.
+local function sumStockList(b : SquareProductionLabelPickupBuild, stockList : integer)
+	local out : {integer : integer} = {}
+	local any = false
+	for cargo, lines in pairs(b.served[stockList]) do
+		local sum = 0.0
+		for line, __ in pairs(lines) do
+			local rate = b.rateOf[line]
+			if rate == nil then
+				local r = b.adapter.lineRate(line)
+				-- NaN / negative / non-number count as 0.
+				rate = (type(r) == "number" and r == r and r > 0 and r < math.huge) and r or 0
+				b.rateOf[line] = rate
+			end
+			sum = sum + rate
+		end
+		local rounded = math.floor(sum + 0.5)
+		if rounded > 0 then
+			out[cargo] = rounded
+			any = true
+		end
+	end
+	if any then
+		b.result[stockList] = out
+		b.stats.stockLists = b.stats.stockLists + 1
+	end
+end
+
+function pickup.step(b : SquareProductionLabelPickupBuild, overBudget? : function() : boolean) : boolean
+	if b.done then return true end
+	local groups = b.groups
+	while b.gi <= #groups do
+		local g = groups[b.gi]
+		b.gi = b.gi + 1
+		scanGroup(b, g.stationGroup, g.lineStops)
+		if overBudget ~= nil and b.gi <= #groups and overBudget() then return false end
+	end
+	if b.servedKeys == nil then
+		local keys : {integer} = {}
+		for stockList, __ in pairs(b.served) do keys[#keys + 1] = stockList end
+		b.servedKeys = keys
+		if overBudget ~= nil and #keys > 0 and overBudget() then return false end
+	end
+	local keys = b.servedKeys
+	while b.si <= #keys do
+		local stockList = keys[b.si]
+		b.si = b.si + 1
+		sumStockList(b, stockList)
+		if overBudget ~= nil and b.si <= #keys and overBudget() then return false end
+	end
+	b.done = true
+	return true
+end
+
 function pickup.aggregate(a : SquareProductionLabelPickupAdapter) : {integer : {integer : integer}}, SquareProductionLabelPickupStats
-	local stats : SquareProductionLabelPickupStats = { stationGroups = 0, lines = 0, cargoStops = 0, stockLists = 0, stopIndexMismatches = 0 }
-	local passenger = a.passengerCargoType()
-	local map = a.lineStopsMap() or {}
-
-	-- Per-rebuild memos: each line's stops and rate, each group's reach and each StockList's outputs
-	-- are read at most once.
-	local NONE : {any} = {}
-	local stopsOf : {integer : {SquareProductionLabelPickupStop}} = {}
-	local outputsOf : {integer : {integer}} = {}
-	-- Per group: the flat (stockList, output cargo) pairs in its reach, built once from reach x outputs.
-	-- Most catchables (town buildings) produce nothing, so every stop at the group walks only the few
-	-- producing pairs instead of the whole reach (PERF_REVIEW.md 2026-10-08).
-	local producersOf : {integer : {{integer, integer}}} = {}
-
-	local function producers(stationGroup : integer) : {{integer, integer}}
-		local pairsList = producersOf[stationGroup]
-		if pairsList ~= nil then return pairsList end
-		pairsList = {}
-		local reach = a.reachableStockLists(stationGroup) or NONE as {integer}
-		for __, stockList in ipairs(reach) do
-			local outputs = outputsOf[stockList]
-			if outputs == nil then
-				outputs = a.outputCargoTypes(stockList) or NONE as {integer}
-				outputsOf[stockList] = outputs
-			end
-			for __, cargo in ipairs(outputs) do
-				pairsList[#pairsList + 1] = { stockList, cargo }
-			end
-		end
-		producersOf[stationGroup] = pairsList
-		return pairsList
-	end
-	-- served[stockList][cargo][line] = true: a set, so each line counts once per (stockList, cargo)
-	-- however often it stops at the group (or at several terminals of it).
-	local served : {integer : {integer : {integer : boolean}}} = {}
-
-	local function consider(line : integer, stationGroup : integer, stop : SquareProductionLabelPickupStop)
-		if stop.loadMode == pickup.LEGACY_UNLOAD_ONLY then return end
-		local load = stop.load
-		if load == nil or not loadsCargo(load, passenger) then return end
-		if a.terminalCargoLoad(stationGroup, stop.station, stop.terminal) == false then return end
-		stats.cargoStops = stats.cargoStops + 1
-		for __, pair in ipairs(producers(stationGroup)) do
-			local stockList, cargo = pair[1], pair[2]
-			if load[cargo + 1] == true then
-				local byCargo = served[stockList]
-				if byCargo == nil then
-					byCargo = {}
-					served[stockList] = byCargo
-				end
-				local lines = byCargo[cargo]
-				if lines == nil then
-					lines = {}
-					byCargo[cargo] = lines
-				end
-				lines[line] = true
-			end
-		end
-	end
-
-	for stationGroup, lineStops in pairs(map) do
-		if #lineStops > 0 then
-			stats.stationGroups = stats.stationGroups + 1
-		end
-		for __, pair in ipairs(lineStops) do
-			local line, stopIndex0 = pair[1], pair[2]
-			local stops = stopsOf[line]
-			if stops == nil then
-				stops = a.lineStops(line) or NONE as {SquareProductionLabelPickupStop}
-				stopsOf[line] = stops
-				stats.lines = stats.lines + 1
-			end
-			-- The pair's index is 0-based like getLineStopsForTerminal's stopIndex0
-			-- (station_group.tl:695-702). On a mismatch, every stop of the line at this group is used.
-			local stop = stopIndex0 ~= nil and stops[stopIndex0 + 1] or nil
-			if stop ~= nil and stop.stationGroup == stationGroup then
-				consider(line, stationGroup, stop)
-			else
-				stats.stopIndexMismatches = stats.stopIndexMismatches + 1
-				for __, s in ipairs(stops) do
-					if s.stationGroup == stationGroup then
-						consider(line, stationGroup, s)
-					end
-				end
-			end
-		end
-	end
-
-	-- Sum: calcLineStationThroughput at most once per line, and only for lines that serve something.
-	local rateOf : {integer : number} = {}
-	local result : {integer : {integer : integer}} = {}
-	for stockList, byCargo in pairs(served) do
-		local out : {integer : integer} = {}
-		local any = false
-		for cargo, lines in pairs(byCargo) do
-			local sum = 0.0
-			for line, __ in pairs(lines) do
-				local rate = rateOf[line]
-				if rate == nil then
-					local r = a.lineRate(line)
-					-- NaN / negative / non-number count as 0.
-					rate = (type(r) == "number" and r == r and r > 0 and r < math.huge) and r or 0
-					rateOf[line] = rate
-				end
-				sum = sum + rate
-			end
-			local rounded = math.floor(sum + 0.5)
-			if rounded > 0 then
-				out[cargo] = rounded
-				any = true
-			end
-		end
-		if any then
-			result[stockList] = out
-			stats.stockLists = stats.stockLists + 1
-		end
-	end
-	return result, stats
+	local b = pickup.newBuild(a)
+	pickup.step(b)
+	return b.result, b.stats
 end
 
 -- staleness / refresh -------------------------------------------------------------
@@ -213,6 +279,65 @@ function pickup.refresh(cache : SquareProductionLabelPickupCache, adapter : Squa
 	cache.rates = rates as {integer : {integer : integer}}
 	cache.builds = cache.builds + 1
 	return true, stats as SquareProductionLabelPickupStats
+end
+
+local function buildFailed(cache : SquareProductionLabelPickupCache, err : any)
+	cache.pending = nil
+	cache.building = false
+	if not cache.errorLogged then
+		cache.errorLogged = true
+		log.warning(LOG_PREFIX .. "rebuild failed, keeping the last rates: " .. tostring(err))
+	end
+end
+
+function pickup.tick(cache : SquareProductionLabelPickupCache, makeAdapter : function() : SquareProductionLabelPickupAdapter, now : number, getUpdateCount : function() : integer, nowMs : function() : number) : boolean, SquareProductionLabelPickupStats, boolean
+	local b = cache.pending
+	if b == nil then
+		if not pickup.isStale(cache, now, getUpdateCount) then return false, nil, false end
+		if cache.builtAt == nil then
+			-- First build: at once, as before (no rates to show in the meantime).
+			local built, stats = pickup.refresh(cache, makeAdapter(), now, getUpdateCount)
+			return built, stats, true
+		end
+		-- Stamp the interval at the start (a failed start counts too, like refresh).
+		cache.builtAt = now
+		local okCount, updateCount = pcall(getUpdateCount)
+		cache.builtUpdateCount = okCount and updateCount as integer or nil
+		local okNew, nb = pcall(function() : SquareProductionLabelPickupBuild return pickup.newBuild(makeAdapter()) end)
+		if not okNew then
+			buildFailed(cache, nb)
+			return false, nil, true
+		end
+		b = nb as SquareProductionLabelPickupBuild
+		cache.pending = b
+		cache.building = true
+		cache.pendingStartMs = nowMs()
+		cache.sliceAtMs = nil
+	else
+		local last = cache.sliceAtMs
+		local t = nowMs()
+		if last ~= nil and t >= last and t - last < pickup.SLICE_GAP_MS then return false, nil, false end
+	end
+	local t0 = nowMs()
+	local started = cache.pendingStartMs
+	local finishNow = started == nil or t0 < started or t0 - started >= pickup.BUILD_MAX_MS
+	local overBudget : function() : boolean = nil
+	if not finishNow then
+		local budget = pickup.SLICE_BUDGET_MS
+		overBudget = function() : boolean return nowMs() - t0 >= budget end
+	end
+	local ok, done = pcall(pickup.step, b, overBudget)
+	cache.sliceAtMs = nowMs()
+	if not ok then
+		buildFailed(cache, done)
+		return false, nil, true
+	end
+	if not done then return false, nil, true end
+	cache.pending = nil
+	cache.building = false
+	cache.rates = b.result
+	cache.builds = cache.builds + 1
+	return true, b.stats, true
 end
 
 -- engine adapter ------------------------------------------------------------------
@@ -365,19 +490,29 @@ end
 
 local function lookup(entity : integer) : {integer : integer}
 	local cache = pickup.cache
-	local now = os.time()
-	if pickup.isStale(cache, now, readUpdateCount) then
-		local adapter = pickup.engineAdapter()
-		local t0 = os.clock()
-		local built, stats = pickup.refresh(cache, adapter, now, readUpdateCount)
-		if built and pickup.DEBUG and cache.builds == 1 then
-			local ms = (os.clock() - t0) * 1000
-			log.message(LOG_PREFIX .. "cache built in " .. string.format("%.1f", ms) .. " ms: "
-				.. tostring(stats.stationGroups) .. " station groups, " .. tostring(stats.lines) .. " lines, "
-				.. tostring(stats.cargoStops) .. " cargo stops, " .. tostring(stats.stockLists) .. " industries with pickup, "
-				.. tostring(stats.stopIndexMismatches) .. " stopIndex mismatches, "
-				.. tostring(adapter.fallbackStations) .. " fallback stations")
-		end
+	-- Cheap checks first: a pending build only slices once per SLICE_GAP_MS, and isStale reads only
+	-- os.time until the interval has passed. SQPERF section "pickup_rebuild" = one slice (or the whole
+	-- first build); counter pickup_built = completed rebuilds (HUD worker thread; Clock is safe there).
+	local perf = pickup.perf as SquareIndustryProductionLabelSqPerfInst
+	local tPerf = perf ~= nil and perf:start() or 0
+	local t0 = pickup.DEBUG and os.clock() or 0
+	local adapter : SquareProductionLabelPickupAdapter = nil
+	local function makeAdapter() : SquareProductionLabelPickupAdapter
+		adapter = pickup.engineAdapter()
+		return adapter
+	end
+	local built, stats, worked = pickup.tick(cache, makeAdapter, os.time(), readUpdateCount, pickup.nowMs)
+	if worked and perf ~= nil then
+		perf:stop("pickup_rebuild", tPerf)
+		if built then perf:count("pickup_built") end
+	end
+	if built and pickup.DEBUG and cache.builds == 1 and adapter ~= nil then
+		local ms = (os.clock() - t0) * 1000
+		log.message(LOG_PREFIX .. "cache built in " .. string.format("%.1f", ms) .. " ms: "
+			.. tostring(stats.stationGroups) .. " station groups, " .. tostring(stats.lines) .. " lines, "
+			.. tostring(stats.cargoStops) .. " cargo stops, " .. tostring(stats.stockLists) .. " industries with pickup, "
+			.. tostring(stats.stopIndexMismatches) .. " stopIndex mismatches, "
+			.. tostring(adapter.fallbackStations) .. " fallback stations")
 	end
 	local rates = cache.rates[entity]
 	if pickup.DEBUG and debugLookups < pickup.DEBUG_LOOKUPS then

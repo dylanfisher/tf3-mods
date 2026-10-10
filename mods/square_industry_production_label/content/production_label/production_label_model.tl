@@ -149,6 +149,22 @@ function model.pickupEntries(view : SquareProductionLabelView) : {SquareProducti
 	return out
 end
 
+-- The read cache (production_label_readcache.tl) keeps the view without pickup, shared by every label
+-- of that industry; each label adds its pickup rates here. Entries are copied, never changed in place.
+function model.withPickup(view : SquareProductionLabelView, pickupRates : any) : SquareProductionLabelView
+	if view == nil or pickupRates == nil then return view end
+	local entries : {SquareProductionLabelEntry} = {}
+	for i, e in ipairs(view.entries) do
+		entries[i] = {
+			cargoType = e.cargoType,
+			value = e.value,
+			producing = e.producing,
+			pickup = model.pickupValue(pickupRates, e.cargoType),
+		}
+	end
+	return { entries = entries }
+end
+
 -- Options (PLAN "Options", "Settings read live (2026-10-07)"): the mod's own entry of
 -- api.engine.config.getModParams(), read by production_label.script.tl when a HUD icon is mounted.
 -- Each value is the 1-based index of the chosen mod.json value ({"On", "Off"}): 2 = Off. Anything else

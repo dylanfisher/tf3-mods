@@ -69,8 +69,14 @@ local MOD_ID = "square_industry_production_label"
 local allModParams
 local getModParamsError
 
+-- SQPERF timer: a fake api.type.Clock (microseconds) that only moves when a test moves it.
+local clockUs = 1e9
+
 set_global("api", {
-	type = { ComponentType = { STOCK_LIST = 1 } },
+	type = {
+		ComponentType = { STOCK_LIST = 1 },
+		Clock = { new = function() return { getTime = function() return clockUs end } end },
+	},
 	res = {
 		cargoTypeRep = {
 			getAll = function()
@@ -106,8 +112,19 @@ set_global("api", {
 })
 
 local pickup = ug_require "square_industry_production_label::/production_label/production_label_pickup.tl"
+local readcache = ug_require "square_industry_production_label::/production_label/production_label_readcache.tl"
 local script = ug_require "square_industry_production_label::/production_label/production_label.script.tl"
 local realRatesFor = pickup.ratesFor
+
+-- SQPERF: the instrument's first timed call opens its first window, which reads the "Debug:
+-- performance log" gate through getModParams (as does the phase=first check below 5 ms). One render
+-- here, so the tests below count only the label's own settings reads.
+calls = { ratesFor = 0, engineReads = 0, timers = 0, cargoTypeReads = 0, logReads = {}, modParamReads = 0 }
+allModParams = {}
+warehouseLogs = {}
+pickup.ratesFor = function() return nil end
+script.hudIconFn({ kind = "industry" }, { entity = ENTITY }, {})
+pickup.ratesFor = realRatesFor
 
 before_each(function()
 	calls = { ratesFor = 0, engineReads = 0, timers = 0, cargoTypeReads = 0, logReads = {}, modParamReads = 0 }
@@ -118,6 +135,7 @@ before_each(function()
 		itemsLoaded = { [COAL] = 90, [GOODS] = 0, [FISH] = 0, [PASSENGERS] = 999 },
 	}
 	pickup.cache = pickup.newCache()
+	readcache.reset() -- every test reads afresh (the fake clock does not move between tests)
 	pickup.ratesFor = function(entity)
 		calls.ratesFor = calls.ratesFor + 1
 		eq(entity, ENTITY)
@@ -322,4 +340,42 @@ test("industry captureParams still render the industry label", function()
 	eq(rowLabels(render(INDUSTRY)), { { "34", "20" }, { "112" } })
 	eq(calls.cargoTypeReads, 0)
 	eq(#calls.logReads, 0)
+end)
+
+local function sqperfLines(pattern)
+	local out = {}
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("[SQPERF]", 1, true) and (pattern == nil or e.msg:find(pattern, 1, true)) then out[#out + 1] = e.msg end
+	end
+	return out
+end
+
+test("SQPERF: Debug log On gives a 30 s summary of the HUD sections; Off logs nothing", function()
+	local before = #sqperfLines()
+	-- Off (no setting): a window boundary passes, nothing is logged.
+	clockUs = clockUs + 31e6
+	render(INDUSTRY)
+	eq(#sqperfLines(), before)
+	-- On: the next boundary reads the gate, the one after logs the window.
+	allModParams = { [MOD_ID] = { sqperf_log = 2 } }
+	clockUs = clockUs + 31e6
+	render(INDUSTRY)
+	render({ kind = "warehouse" })
+	clockUs = clockUs + 31e6
+	render(INDUSTRY)
+	local lines = sqperfLines("win_ms=")
+	eq(#lines, 1)
+	for _, sec in ipairs({ "hud_icon_fn n=2 ms=", "industry_render n=1 ms=", "read_industry n=1 ms=",
+		"warehouse_render n=1 ms=", "read_warehouse n=1 ms=" }) do
+		ok(lines[1]:find(sec, 1, true), sec .. " in " .. lines[1])
+	end
+	ok(lines[1]:find("mod=square_industry_production_label ctx=hud", 1, true), lines[1])
+	-- Back to Off for the other tests in this process.
+	allModParams = {}
+	clockUs = clockUs + 31e6
+	render(INDUSTRY)
+	eq(#sqperfLines("win_ms="), 2) -- the On window that just closed; none after
+	clockUs = clockUs + 31e6
+	render(INDUSTRY)
+	eq(#sqperfLines("win_ms="), 2)
 end)

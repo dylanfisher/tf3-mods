@@ -1,1 +1,2 @@
 require "production_label.production_label_types"
+require "sqperf.square_industry_production_label_types"

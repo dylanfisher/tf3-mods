@@ -400,3 +400,30 @@ test("incoming / outgoing styles: white text, no shippingState, own classes", fu
 	eq(model.STYLE_INCOMING, { labelFontColor = "Default", entryClass = "production-label-entry, production-label-incoming" })
 	eq(model.STYLE_OUTGOING, { labelFontColor = "Default", entryClass = "production-label-entry, production-label-outgoing" })
 end)
+
+-- withPickup (read cache, PERF_REVIEW.md 2026-10-10) ---------------------------------------------
+
+test("withPickup(view(pds, cd, nil), rates) equals view(pds, cd, rates) for representative inputs", function()
+	local cases = {
+		{ { { cargoTypeId = 7, total = 34 } }, { [7] = { produceFrequency = 30 } }, { [7] = 112 } },
+		{ { { cargoTypeId = 9, total = 175, actual = 112.4 } }, { [9] = { produceFrequency = 112 } }, nil },
+		{ { { cargoTypeId = 3, total = 20 }, { cargoTypeId = 17, total = 12.5 } }, { [3] = { produceFrequency = 8 } }, { [3] = 40.6, [17] = 0 } },
+		{ { { cargoTypeId = 13, total = 60, actual = 45 }, { cargoTypeId = 11, total = 30 }, { cargoTypeId = 13, total = 99 } }, {}, { [13] = 7, [11] = 0.4, [15] = 50 } },
+		{ { { cargoTypeId = 5, total = 10 } }, nil, { [5] = -3 } },
+		{ { { cargoTypeId = 5, total = 10 } }, nil, "malformed" },
+		{ { { cargoTypeId = 5, total = 0 } }, nil, { [5] = 9 } },
+	}
+	for i, c in ipairs(cases) do
+		eq(model.withPickup(model.view(c[1], c[2], nil), c[3]), model.view(c[1], c[2], c[3]), "case " .. i)
+	end
+end)
+
+test("withPickup: nil view stays nil; nil rates return the shared view itself; the base is never changed", function()
+	eq(model.withPickup(nil, { [7] = 1 }), nil)
+	local base = model.view({ { cargoTypeId = 7, total = 34 } }, {}, nil)
+	ok(model.withPickup(base, nil) == base)
+	local with = model.withPickup(base, { [7] = 112 })
+	eq(with.entries[1].pickup, 112)
+	eq(base.entries[1].pickup, nil)
+	ok(with.entries[1] ~= base.entries[1])
+end)

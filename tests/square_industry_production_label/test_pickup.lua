@@ -63,6 +63,7 @@ end
 before_each(function()
 	pickup.REFRESH_INTERVAL = 15
 	pickup.LEGACY_UNLOAD_ONLY = 3
+	pickup.SLICE_BUDGET_MS, pickup.SLICE_GAP_MS, pickup.BUILD_MAX_MS = 4, 100, 3000
 end)
 
 -- aggregate -----------------------------------------------------------------------
@@ -210,6 +211,168 @@ test("fractional rates are summed, then rounded", function()
 	local rates = pickup.aggregate((adapter(w)))
 	eq(rates[200], { [GRAIN] = 1 })
 	eq(rates[300], nil) -- 0.3 rounds to 0
+end)
+
+-- sliced rebuild (newBuild / step / tick, PERF_REVIEW.md 2026-10-10) ------------------------------
+
+-- A bigger world: n groups, each with its own producer and a shared town catchable, lines that load
+-- at several groups (dedupe across slices), unload-only stops and stopIndex mismatches.
+local function bigWorld(n)
+	local w = { map = {}, lines = {}, rates = {}, reach = {}, outputs = {}, cargoLoad = {} }
+	for g = 1, n do
+		local line = 1000 + (g % 7)
+		local line2 = 2000 + g
+		w.map[g] = { { line, g - 1 }, { line2, 5 } } -- line2's index is wrong on purpose (fallback)
+		w.reach[g] = { 100 + g, 99, 100 + ((g + 1) % n) + 1 }
+		w.outputs[100 + g] = (g % 3 == 0) and { FISH, GRAIN } or { (g % 2 == 0) and COAL or GRAIN }
+		w.outputs[99] = {}
+		w.lines[line2] = { stop(g, (g % 4 == 0) and loads() or loads(FISH, GRAIN, COAL)) }
+		w.rates[line2] = g * 1.25
+	end
+	for l = 0, 6 do
+		local stops = {}
+		for g = 1, n do stops[g] = stop(g, loads(GRAIN, COAL), { loadMode = (g % 5 == 0) and 3 or 0 }) end
+		w.lines[1000 + l] = stops
+		w.rates[1000 + l] = 10 + l
+	end
+	return w
+end
+
+test("step: a build sliced after every unit gives the same rates and stats as one pass", function()
+	for _, n in ipairs({ 1, 2, 5, 40 }) do
+		local w = bigWorld(n)
+		local whole, wholeStats = pickup.aggregate((adapter(w)))
+		ok(next(whole) ~= nil, "non-trivial world")
+		local b = pickup.newBuild((adapter(w)))
+		local steps = 0
+		while not pickup.step(b, function() return true end) do steps = steps + 1 end
+		eq(b.result, whole, "n=" .. n)
+		eq(b.stats, wholeStats, "n=" .. n)
+		ok(n == 1 or steps > 0, "sliced at all")
+		ok(pickup.step(b), "done stays done")
+	end
+end)
+
+test("step: memoised reads stay once per rebuild across slices", function()
+	local a, calls = adapter(bigWorld(20))
+	local b = pickup.newBuild(a)
+	while not pickup.step(b, function() return true end) do end
+	for _, n in pairs(calls.lineStops) do eq(n, 1) end
+	for _, n in pairs(calls.lineRate) do eq(n, 1) end
+	for _, n in pairs(calls.reach) do eq(n, 1) end
+	for _, n in pairs(calls.outputs) do eq(n, 1) end
+	eq(calls.map, 1)
+end)
+
+-- tick driver with a fake ms clock and a fixed updateCount
+local function ucount(value)
+	return { fn = function() return value end }
+end
+
+local function msClock()
+	local c = { t = 0 }
+	c.fn = function() return c.t end
+	return c
+end
+
+local function tickWorld(w, cache, now, uc, clock)
+	return pickup.tick(cache, function() return (adapter(w)) end, now, uc, clock.fn)
+end
+
+test("tick: first build at once; a later rebuild is sliced, old rates served until it is complete", function()
+	local clock = msClock()
+	local c = pickup.newCache()
+	local w1 = bigWorld(30)
+	local built, stats, worked = tickWorld(w1, c, 0, ucount(1).fn, clock)
+	ok(built and worked and stats ~= nil)
+	local first = pickup.aggregate((adapter(w1)))
+	eq(c.rates, first)
+	-- Next interval, network changed. Every budget check reports over budget: one unit per slice.
+	local w2 = bigWorld(31)
+	local expected = pickup.aggregate((adapter(w2)))
+	pickup.SLICE_BUDGET_MS = 0
+	built, _, worked = tickWorld(w2, c, 15, ucount(2).fn, clock)
+	ok(worked and not built and c.pending ~= nil)
+	eq(c.rates, first) -- old rates still served
+	-- Within the gap: no work.
+	clock.t = 50
+	built, _, worked = tickWorld(w2, c, 15, ucount(2).fn, clock)
+	eq(worked, false)
+	local slices = 1
+	while c.pending ~= nil do
+		clock.t = clock.t + 100
+		built, _, worked = tickWorld(w2, c, 16, ucount(2).fn, clock)
+		ok(worked)
+		slices = slices + 1
+		ok(slices < 500, "finishes")
+	end
+	ok(built)
+	ok(slices > 2, "really sliced: " .. slices)
+	eq(c.rates, expected)
+	eq(c.builds, 2)
+	eq(c.building, false)
+	pickup.SLICE_BUDGET_MS = 4
+end)
+
+test("tick: a pending build older than BUILD_MAX_MS finishes in its next slice", function()
+	local clock = msClock()
+	local c = pickup.newCache()
+	tickWorld(bigWorld(10), c, 0, ucount(1).fn, clock)
+	pickup.SLICE_BUDGET_MS = 0
+	tickWorld(bigWorld(10), c, 15, ucount(2).fn, clock)
+	ok(c.pending ~= nil)
+	clock.t = pickup.BUILD_MAX_MS
+	local built = tickWorld(bigWorld(10), c, 15, ucount(2).fn, clock)
+	ok(built)
+	eq(c.pending, nil)
+	pickup.SLICE_BUDGET_MS = 4
+end)
+
+test("tick: an error in a slice keeps the last rates, logs once, and waits for the next interval", function()
+	clear_logs()
+	local clock = msClock()
+	local c = pickup.newCache()
+	local w = bigWorld(5)
+	tickWorld(w, c, 0, ucount(1).fn, clock)
+	local good = c.rates
+	local bad = bigWorld(5)
+	bad.reach = setmetatable({}, { __index = function() error("boom") end })
+	local built, _, worked = tickWorld(bad, c, 15, ucount(2).fn, clock)
+	ok(worked and not built)
+	eq(c.pending, nil); eq(c.building, false)
+	ok(c.rates == good)
+	eq((tickWorld(bad, c, 16, ucount(3).fn, clock)), false) -- not stale yet
+	tickWorld(bad, c, 30, ucount(4).fn, clock)
+	local n = 0
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("rebuild failed", 1, true) then n = n + 1 end
+	end
+	eq(n, 1)
+end)
+
+test("tick: paused (updateCount unchanged) starts no rebuild", function()
+	local clock = msClock()
+	local c = pickup.newCache()
+	tickWorld(bigWorld(5), c, 0, ucount(1).fn, clock)
+	local built, _, worked = tickWorld(bigWorld(5), c, 100, ucount(1).fn, clock)
+	eq(built, false); eq(worked, false); eq(c.pending, nil)
+end)
+
+test("micro-benchmark: sliced vs whole rebuild of a 300-group world (informational)", function()
+	local w = bigWorld(300)
+	local t0 = os.clock()
+	local whole = pickup.aggregate((adapter(w)))
+	local wholeMs = (os.clock() - t0) * 1000
+	local b = pickup.newBuild((adapter(w)))
+	local maxMs, slices = 0, 0
+	repeat
+		local s0 = os.clock()
+		local done = pickup.step(b, function() return (os.clock() - s0) * 1000 >= 0.5 end)
+		maxMs = math.max(maxMs, (os.clock() - s0) * 1000)
+		slices = slices + 1
+	until done
+	eq(b.result, whole)
+	print(string.format("whole %.2f ms; sliced (0.5 ms budget) %d slices, max %.2f ms", wholeMs, slices, maxMs))
 end)
 
 -- isStale -----------------------------------------------------------------------
@@ -369,6 +532,26 @@ test("ratesFor: engine adapter end to end, shared cache, one rebuild per interva
 	t.comps.LINE[10].stops[1].stopConfig.load = loads(GRAIN)
 	eq(p.ratesFor(100), nil)
 	eq(t.mapCalls, 2)
+end)
+
+test("ratesFor: SQPERF section pickup_rebuild timed once per rebuild (one slice here), never per plain lookup", function()
+	local t = fakeApi({ rates = { [10] = 112 }, catchables = { [1001] = { 100 } }, construction = {} })
+	set_global("api", t.api); set_global("os", t.os)
+	local p = freshModule()
+	p.DEBUG = false
+	local stops, counts = {}, {}
+	p.perf = {
+		start = function() return 5 end,
+		stop = function(_self, name, t0) stops[#stops + 1] = name .. "@" .. tostring(t0); return 0 end,
+		count = function(_self, name) counts[name] = (counts[name] or 0) + 1 end,
+	}
+	eq(p.ratesFor(100), { [FISH] = 112 })
+	eq(p.ratesFor(555), nil)
+	eq(stops, { "pickup_rebuild@5" })
+	t.now, t.updateCount = 16, 2
+	eq(p.ratesFor(100), { [FISH] = 112 })
+	eq(stops, { "pickup_rebuild@5", "pickup_rebuild@5" })
+	eq(counts, { pickup_built = 2 })
 end)
 
 test("ratesFor: built-in industry station (no catchables) found through the construction", function()

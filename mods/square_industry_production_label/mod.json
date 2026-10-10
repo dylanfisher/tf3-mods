@@ -41,6 +41,17 @@
                 "Off"
             ],
             "defaultIndex": 0
+        },
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Industry Production Label writes how long its map labels took to read the industries, warehouses and lines and to draw to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
         }
     ]
 }
