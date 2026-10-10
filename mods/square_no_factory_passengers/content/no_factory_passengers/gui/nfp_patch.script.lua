@@ -17,6 +17,16 @@
 -- From this mod, "/gui/..." would resolve into this mod, so the "::/" form is required (as in
 -- zhenya_auto_assign_terminals gui/aat_eow.script.lua, which wraps line_util.makeNewStop).
 
+-- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state, every wrapped autoLoadConfig call
+-- (section "auto_load_config": the base function plus the fix) and the fix alone ("fix_line"), both on
+-- the GUI thread (line editor). Calls over 16 ms are logged (at most one line per section per minute);
+-- with the "Debug: performance log" mod setting On, a 30 s summary, and the per-stop "passengers OFF"
+-- lines (before: logged on every edit of a factory line). Local counters only; nothing is saved.
+local MOD_ID = "square_no_factory_passengers"
+local sqperf = ug_require "square_no_factory_passengers::/sqperf/square_no_factory_passengers.lua"
+local perf = sqperf.new({ mod = MOD_ID, ctx = "gui", paramKey = "sqperf_log" })
+local perfInit = perf:start()
+
 local line_util = ug_require "::/gui/line_vehicle_mgmt/line_util.tl"
 local cargo_util = ug_require "::/gui/main/cargo_util.tl"
 local logic = ug_require "square_no_factory_passengers::/no_factory_passengers/nfp_logic.lua"
@@ -85,15 +95,23 @@ local function fixLine(line)
 		return
 	end
 	local clear, industry = logic.decideLine(groups, catchables, isIndustry, isHome)
+	-- Per-stop log lines only with the "Debug: performance log" setting On (read once per edit, and
+	-- only when a stop is cleared).
+	local verbose = nil
 	for __, s in ipairs(stops) do
 		local i = groupIndex[s.group]
 		if clear[i] then
 			s.load[paxIndex] = false
 			s.cfg.load = s.load
-			log.message(PREFIX .. "stop " .. tostring(s.number) .. " group " .. tostring(s.group) .. ": "
-				.. (industry[i] and "industry in reach, no town buildings"
-					or "no town buildings, line serves an industry-only stop")
-				.. " -> passengers OFF")
+			if verbose == nil then
+				verbose = sqperf.readParam(MOD_ID, "sqperf_log")
+			end
+			if verbose then
+				log.message(PREFIX .. "stop " .. tostring(s.number) .. " group " .. tostring(s.group) .. ": "
+					.. (industry[i] and "industry in reach, no town buildings"
+						or "no town buildings, line serves an industry-only stop")
+					.. " -> passengers OFF")
+			end
 		end
 	end
 end
@@ -109,13 +127,17 @@ local function install(target)
 		return false
 	end
 	target.autoLoadConfig = function(line, ...)
+		local tPerf = perf:start() -- SQPERF section "auto_load_config" (GUI thread)
 		local result = original(line, ...)
 		if line then
+			local tFix = perf:start() -- SQPERF section "fix_line" (failed fixes count too)
 			local ok, err = pcall(fixLine, line)
+			perf:stop("fix_line", tFix)
 			if not ok then
 				warnOnce("fix", "passenger fix failed: " .. tostring(err))
 			end
 		end
+		perf:stop("auto_load_config", tPerf)
 		return result
 	end
 	target[MARKER] = true
@@ -129,6 +151,8 @@ local function doReplace(_replacementApi)
 		log.message(PREFIX .. "installed (line_util.autoLoadConfig wrapped)")
 	end
 end
+
+perf:phase("init", perfInit)
 
 -- .script.lua resources expose their exports through data()
 function data()
