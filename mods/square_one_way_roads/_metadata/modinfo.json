@@ -2,6 +2,56 @@
     "name": "Early One-way Roads",
     "summary": "One-way old town, large town and country roads, unlocked with their two-way twin.",
     "description": "Adds one-way versions of every basic road that lacks one, unlocked in the same years as the two-way road.",
+    "localization": {
+        "ru": {
+            "name": "Ранние односторонние дороги",
+            "summary": "Односторонние старые городские, широкие и проселочные дороги, доступные вместе с двусторонними."
+        },
+        "de": {
+            "name": "Frühe Einbahnstrassen",
+            "summary": "Einbahnvarianten alter, grosser Stadt- und Landstrassen, verfügbar ab ihrem Zweirichtungs-Pendant."
+        },
+        "fr": {
+            "name": "Sens uniques d'époque",
+            "summary": "Rues anciennes, grandes rues et routes de campagne à sens unique, débloquées avec leur jumelle."
+        },
+        "es": {
+            "name": "Sentido único temprano",
+            "summary": "Calles antiguas, grandes y carreteras rurales de sentido único, junto a su versión de doble sentido."
+        },
+        "it": {
+            "name": "Sensi unici d'epoca",
+            "summary": "Strade antiche, grandi ed extraurbane a senso unico, sbloccate insieme alla versione a doppio senso."
+        },
+        "nl": {
+            "name": "Vroege eenrichtingswegen",
+            "summary": "Oude en grote stads- en autowegen met eenrichtingsverkeer, samen met hun tweerichtingsversie."
+        },
+        "pl": {
+            "name": "Wczesne drogi jednokierunkowe",
+            "summary": "Jednokierunkowe stare i szerokie ulice oraz szosy, dostępne razem z ich dwukierunkową wersją."
+        },
+        "pt_BR": {
+            "name": "Mão única antecipada",
+            "summary": "Ruas antigas, grandes e vias rurais de mão única, liberadas junto com a versão de mão dupla."
+        },
+        "ja": {
+            "name": "初期の一方通行道路",
+            "summary": "旧市街・大型の街道と田舎道の一方通行版。対応する双方向道路と同時に解放されます。"
+        },
+        "ko": {
+            "name": "초기 일방통행 도로",
+            "summary": "옛 거리, 대형 거리, 시골 도로의 일방통행 버전. 양방향 도로와 같은 시기에 해금됩니다."
+        },
+        "zh_CN": {
+            "name": "早期单向道路",
+            "summary": "旧式城镇、大型街道和乡村公路的单向版本，与对应的双向道路同时解锁。"
+        },
+        "zh_TW": {
+            "name": "早期單行道",
+            "summary": "舊式城鎮、大型街道與鄉村道路的單向版本，與對應的雙向道路同時解鎖。"
+        }
+    },
     "authors": [
         {
             "name": "square",
