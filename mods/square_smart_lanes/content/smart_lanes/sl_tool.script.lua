@@ -14,6 +14,17 @@
 -- All logic (picking, apply, reset, re-reads) is in sl_toolcore.lua, tested offline.
 --
 -- Exports through data() like every .script.lua of this mod (memory: `return M` alone fails in game).
+--
+-- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state; sections get_definition,
+-- action_render (tool recipe), world_render (actionFn), step (react.onStep, Main Thread), hover /
+-- select (Selector), apply_node / apply_ring / reset (toolbar buttons), status_render,
+-- badge_render. The PROBE diagnostics (hover, nodeviewer, oneway) are logged only with
+-- "Debug: performance log" On (probeOn below); TOOL / PICK / APPLY / WRITE / VERIFY / RESET / ERROR
+-- lines stay (one per player action).
+
+local sqperf = ug_require "square_smart_lanes::/sqperf/square_smart_lanes.lua"
+local perf = sqperf.new({ mod = "square_smart_lanes", ctx = "gui", paramKey = "sqperf_log", first = { "action_render" } })
+local perfInit = perf:start()
 
 local react = ug_require "::/gui/main/react.lua"
 local builtin = ug_require "::/gui/main/builtin.lua"
@@ -50,9 +61,20 @@ local function T(s)
 	return s
 end
 
-local function out(kind, fields)
+local function emit(kind, fields)
 	local text = Rules.line(kind, fields)
 	pcall(function() log.message(text) end)
+end
+
+-- PROBE lines (Phase 2 spike diagnostics, ~100 per short session) only with the debug setting On:
+-- perf.on is the instrument's level 3 gate, read at its first stop and then every 30 s.
+local function probeOn()
+	return perf.on == true
+end
+
+local function out(kind, fields)
+	if string.find(kind, "PROBE", 1, true) == 1 and not probeOn() then return end
+	emit(kind, fields)
 end
 
 -- File-scope state of this Lua state (the recipe's). Reset when the tool is closed.
@@ -175,7 +197,7 @@ local function patchCrossingToolArrows()
 		end)
 		return res
 	end
-	out("PROBE", { { "oneway", "patched" } })
+	if sqperf.readParam(Rules.MOD_ID, "sqperf_log") then emit("PROBE", { { "oneway", "patched" } }) end
 end
 pcall(patchCrossingToolArrows)
 
@@ -223,7 +245,7 @@ local function nodeViewer(c)
 	return nil
 end
 
-local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", function(param)
+local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", perf:wrap("action_render", function(param)
 	-- hooks first, in a fixed order
 	local versionState = react.useState(0)
 	local refSeen = react.useRef(-1)
@@ -268,7 +290,9 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", function(param
 	end)
 	local function act(what, fn)
 		if not refParam:get().isActive then return end
+		local tAct = perf:start()
 		local ok, e = pcall(fn)
+		perf:stop(what, tAct)
 		if not ok then out("ERROR", { { "where", what }, { "err", e } }) end
 		sync()
 	end
@@ -286,6 +310,7 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", function(param
 	end)
 
 	react.onStep(function()
+		local tStep = perf:start()
 		local prm = refParam:get()
 		local active = prm.isActive == true
 		if active ~= refWasActive:get() then
@@ -300,6 +325,7 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", function(param
 		local ok, e = pcall(core().step)
 		if not ok then out("ERROR", { { "where", "step" }, { "err", e } }) end
 		sync()
+		perf:stop("step", tStep)
 	end)
 
 	-- Right click: clears the selection (in game only PressedOutside and Clicked of button 2 reach
@@ -326,6 +352,7 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", function(param
 	end
 
 	local actionFn = function()
+		local tWorld = perf:start()
 		local _v = versionState:old() -- re-render on changes
 		local c = core()
 		local children = {
@@ -334,11 +361,15 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", function(param
 					return isStreetThing(entity)
 				end,
 				onHover = function(entity, _i, _d)
+					local tHover = perf:start()
 					c.onHover(entity, cursor())
+					perf:stop("hover", tHover)
 				end,
 				onSelect = function(entity, _i, _d)
+					local tSelect = perf:start()
 					c.select(entity, cursor())
 					sync()
+					perf:stop("select", tSelect)
 					return true -- swallow the click: no entity window
 				end,
 				onProcessMouseEvent = onMouse,
@@ -388,7 +419,7 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", function(param
 			}
 		end
 
-		return builtin.ActionDescriptor{
+		local desc = builtin.ActionDescriptor{
 			tool = "smart-lanes-tool",
 			crosshair = false,
 			terrainCirclePolicy = "Never",
@@ -403,6 +434,8 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", function(param
 			end,
 			children = children,
 		}
+		perf:stop("world_render", tWorld)
+		return desc
 	end
 
 	react.setForceFocusable(true)
@@ -419,7 +452,7 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", function(param
 		end))
 	end
 	return nil
-end)
+end))
 
 -- Hover texts of the two grey read-only boxes (also the params' own tooltips).
 local STATUS_TIP = T("Selection: the junction or roundabout you clicked, and the result\nof the last Apply or Reset. Right-click or Esc clears the selection.")
@@ -428,7 +461,7 @@ local BADGE_TIP = T("Current lanes: what the selected junction or roundabout has
 -- Toolbar status chip: content of a disabled one-value Button (bulk_bulldozer.script.tl:1105-1140).
 -- Returns a BoxLayout (a recipe child must be a layout) and re-renders itself from g.status /
 -- EV_STATUS (the menu re-renders a param only when its value or definition changes).
-local SmartLanesStatus = react.RegisterRecipe("SmartLanesStatus", function(_param)
+local SmartLanesStatus = react.RegisterRecipe("SmartLanesStatus", perf:wrap("status_render", function(_param)
 	local textState = react.useState({ head = g.status.head, detail = g.status.detail })
 	local refSeen = react.useRef(g.status.version)
 	local function take(head, detail)
@@ -459,7 +492,7 @@ local SmartLanesStatus = react.RegisterRecipe("SmartLanesStatus", function(_para
 			builtin.TextView{ meta = { class = "font-scale-annotation", tooltip = tip }, text = t.detail },
 		},
 	}
-end)
+end))
 
 -- Lane status badge: content of a second disabled one-value Button, the SmartLanesStatus pattern
 -- (returns a BoxLayout, re-renders itself from g.badge / EV_BADGE). Colour from the game's global
@@ -467,7 +500,7 @@ end)
 -- meta.class = "font-scale-body, positive" in line_react_util.tl:630 / vehicle_react_util.tl:424).
 -- Unverified in game: builtin.css.lua:268-275 greys TextViews of disabled buttons; which rule
 -- wins there is unknown (worst case the badge is grey like the status chip).
-local SmartLanesBadge = react.RegisterRecipe("SmartLanesBadge", function(_param)
+local SmartLanesBadge = react.RegisterRecipe("SmartLanesBadge", perf:wrap("badge_render", function(_param)
 	local badgeState = react.useState({ label = g.badge.label, class = g.badge.class })
 	local refSeen = react.useRef(g.badge.version)
 	local function take(label, class)
@@ -499,7 +532,7 @@ local SmartLanesBadge = react.RegisterRecipe("SmartLanesBadge", function(_param)
 			builtin.TextView{ meta = { class = class, tooltip = tip }, text = text },
 		},
 	}
-end)
+end))
 
 -- Label in a BoxLayout so the bar's 50 px TextView rule (construction.css.lua:820-823) does not
 -- clip it (bulk_bulldozer.script.tl:1141-1150).
@@ -549,7 +582,7 @@ local function actionButton(key, label, tooltip, event, group, which)
 end
 
 local M = {
-	getDefinition = function(constructionDefinition, _repository, _params)
+	getDefinition = perf:wrap("get_definition", function(constructionDefinition, _repository, _params)
 		local params = {
 			actionButton(KEY_APPLY_NODE, T("Apply to junction"),
 				T("Set smart lanes on the selected junction only:\nlanes matched one to one, and an exit-only outer lane\nwhere every exit of the roundabout has two or more lanes.\nOn a slip-lane junction: lanes matched one to one, no crossings.\nGreyed out when the junction already has smart lanes."), EV_APPLY_NODE, GROUP_APPLY, "applyNode"),
@@ -621,9 +654,11 @@ local M = {
 				},
 			},
 		}
-	end,
+	end),
 }
 
 function data()
 	return M
 end
+
+perf:phase("init", perfInit)
