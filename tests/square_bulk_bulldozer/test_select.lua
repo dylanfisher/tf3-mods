@@ -312,6 +312,15 @@ test("describe: counts per kind and per skip reason", function()
 		"Selected: 2 roads, 1 tracks (+1 signals/stops)",
 		"Skipped: 1 filtered, 1 industry, 1 HQ",
 	})
+	-- Tooltip lines (translated through _()): only the skip reasons and the cap note.
+	eq(sel.skipLines(s), { "Skipped: 1 filtered, 1 industry, 1 HQ" })
+	eq(sel.skipLines(sel.newStroke()), {})
+end)
+
+test("skipLines: cap note", function()
+	local s = sel.newStroke()
+	for i = 1, sel.STROKE_CAP + 1 do sel.add(s, sel.classify(edge({ entity = 20000 + i }), allOn(), CTX)) end
+	eq(sel.skipLines(s), { string.format("Limit of %d reached", sel.STROKE_CAP) })
 end)
 
 test("constants: origin-only construction hits", function()

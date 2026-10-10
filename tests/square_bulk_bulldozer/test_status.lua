@@ -29,10 +29,52 @@ test("clip: short unchanged, long cut with ..., never inside a UTF-8 sequence", 
 	eq(status.clip("abc", 10), "abc")
 	eq(status.clip("abcdefghij", 8), "abcde...")
 	eq(status.clip(nil, 8), "")
-	-- "·" is 2 bytes (C2 B7): a cut that would split it backs off before it.
+	-- "·" is 2 bytes (C2 B7) but one column: it is kept whole.
 	local s = "1234·6789"   -- bytes: 1234 C2 B7 6789
-	eq(status.clip(s, 8), "1234...")
+	eq(status.clip(s, 8), "1234·...")
 	eq(status.clip("ab", 2), "ab")
+end)
+
+test("width: Latin/Cyrillic 1 column per character, CJK and Hangul 2", function()
+	eq(status.width("abc"), 3)
+	eq(status.width("Дороги"), 6)
+	eq(status.width("1·2"), 3)
+	eq(status.width("道路"), 4)
+	eq(status.width("도로"), 4)
+	eq(status.width(nil), 0)
+end)
+
+test("clip: counts columns, not bytes (Cyrillic, CJK)", function()
+	local ru = string.rep("ж", 40)
+	local c = status.clip(ru, 36)
+	eq(status.width(c), 36)
+	eq(c, string.rep("ж", 33) .. "...")
+	eq(status.clip(string.rep("ж", 36), 36), string.rep("ж", 36))
+	-- 2-column glyphs: 33 columns budget -> 16 glyphs (32 columns), never half a glyph.
+	eq(status.clip(string.rep("道", 20), 36), string.rep("道", 16) .. "...")
+	eq(status.clip(string.rep("道", 18), 36), string.rep("道", 18))
+end)
+
+test("lines/resultLines go through _(): translated formats and reason labels", function()
+	local saved = _
+	local tr = {
+		["%d roads"] = "дороги: %d", ["%d selected"] = "Выбрано: %d", ["Nothing bulldozed"] = "Ничего не снесено",
+		["not enough money"] = "недостаточно денег", ["Bulldozed %d"] = "Снесено: %d", ["%d skipped"] = "пропущено: %d",
+		["not yours"] = "не ваше",
+	}
+	_ = function(k) return tr[k] or k end
+	local okRun, err = pcall(function()
+		eq(status.lines(input({ phase = "selected", count = 3, kindCounts = { road = 3 } })),
+			{ head = "Выбрано: 3", detail = "дороги: 3" })
+		eq(status.resultLines({ requested = 4, removed = 0, skipped = 4, reasons = {}, commands = 0, refused = "not enough money" }),
+			{ head = "Ничего не снесено", detail = "недостаточно денег" })
+		-- Known reasons are translated, the game's own messages pass through.
+		eq(status.resultLines({ requested = 5, removed = 2, skipped = 3, commands = 3,
+			reasons = { ["not yours"] = 2, ["Vehicle in the way"] = 1 } }),
+			{ head = "Снесено: 2 · пропущено: 3", detail = "не ваше, Vehicle in the way" })
+	end)
+	_ = saved
+	if not okRun then error(err, 0) end
 end)
 
 test("lines: nothing selected", function()
@@ -69,8 +111,8 @@ end)
 test("lines: every line fits MAX_CHARS", function()
 	local t = status.lines(input({ phase = "selected", count = 399, cost = "$123,456,789,012,345,678",
 		kindCounts = { road = 200, track = 100, asset = 99 }, objects = 50, capped = true }))
-	ok(#t.head <= status.MAX_CHARS, t.head)
-	ok(#t.detail <= status.MAX_CHARS, t.detail)
+	ok(status.width(t.head) <= status.MAX_CHARS, t.head)
+	ok(status.width(t.detail) <= status.MAX_CHARS, t.detail)
 end)
 
 test("resultLines: refused, clean, skipped with top reasons", function()

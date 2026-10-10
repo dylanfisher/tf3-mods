@@ -2,6 +2,56 @@
     "name": "Bulk Bulldozer",
     "summary": "A bulldoze brush: paint over roads, tracks and assets, then remove them all in one go.",
     "description": "A bulldoze brush: paint over roads, tracks and assets, then remove them all in one go. Select with a 5 to 200 m brush, check the red highlight and cost, then press Bulldoze.",
+    "localization": {
+        "ru": {
+            "name": "Массовый снос",
+            "summary": "Кисть сноса: закрасьте дороги, пути и объекты, а затем снесите всё разом."
+        },
+        "de": {
+            "name": "Massen-Abriss",
+            "summary": "Ein Abrisspinsel: Strassen, Gleise und Assets übermalen und alles auf einmal entfernen."
+        },
+        "fr": {
+            "name": "Démolition en masse",
+            "summary": "Un pinceau de démolition : peignez routes, voies et éléments, puis démolissez tout d'un coup."
+        },
+        "es": {
+            "name": "Demolición masiva",
+            "summary": "Un pincel de demolición: pinta sobre carreteras, vías y recursos y elimínalos todos de una vez."
+        },
+        "it": {
+            "name": "Demolizione di massa",
+            "summary": "Un pennello di demolizione: dipingi su strade, binari e asset, poi rimuovili tutti in una volta."
+        },
+        "nl": {
+            "name": "Bulksloper",
+            "summary": "Een sloopkwast: schilder over wegen, sporen en objecten en verwijder ze allemaal in één keer."
+        },
+        "pl": {
+            "name": "Masowa rozbiórka",
+            "summary": "Pędzel wyburzania: zamaluj drogi, tory i obiekty, a potem usuń je wszystkie naraz."
+        },
+        "pt_BR": {
+            "name": "Demolição em massa",
+            "summary": "Um pincel de demolição: pinte sobre vias, trilhos e ativos e remova tudo de uma só vez."
+        },
+        "ja": {
+            "name": "一括撤去",
+            "summary": "撤去ブラシ：道路、線路、アセットをペイントして、まとめて一度に撤去します。"
+        },
+        "ko": {
+            "name": "일괄 철거",
+            "summary": "철거 브러시: 도로, 선로, 자산 위를 칠한 다음 한 번에 모두 철거합니다."
+        },
+        "zh_CN": {
+            "name": "批量拆除",
+            "summary": "拆除笔刷：在道路、轨道和资产上涂抹，然后一次性全部拆除。"
+        },
+        "zh_TW": {
+            "name": "批次拆除",
+            "summary": "拆除筆刷：在道路、軌道和資產上塗抹，然後一次全部拆除。"
+        }
+    },
     "authors": [
         {
             "name": "square",
