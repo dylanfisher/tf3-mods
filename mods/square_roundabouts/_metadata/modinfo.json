@@ -1,7 +1,7 @@
 {
-    "name": "Better Roundabouts",
-    "summary": "Roundabouts, hamburger and Magic Roundabouts, channelized junctions and roundabout interchanges.",
-    "description": "Configurable roundabouts: arms, radius, round or oval, mini sizes, splitter islands, a road or tram line through the centre (hamburger roundabouts with a wider road, experimental traffic lights), tram tracks, centre islands, plus a Magic Roundabout, a Channelized Junction with slip lanes and a Roundabout Interchange with a highway. Once built, everything is ordinary editable roads.",
+    "name": "Roundabouts & Interchanges",
+    "summary": "Roundabouts, Magic Roundabout, channelized junctions, parclo, diamond and roundabout interchanges.",
+    "description": "Configurable roundabouts: arms, radius, round or oval, mini sizes, splitter islands, a road or tram line through the centre (hamburger roundabouts with a wider road, experimental traffic lights), tram tracks, centre islands, plus a Magic Roundabout, a Channelized Junction with slip lanes and a Roundabout Interchange with a highway. Three highway interchanges between a highway and a road: Parclo, Parclo two quadrants and Diamond, road over or highway over, three highway sizes and three scales. Once built, everything is ordinary editable roads.",
     "authors": [
         {
             "name": "square",

@@ -446,6 +446,52 @@ Phase 5g radii no sweep placed yet). `channel` is empty since Phase 5g (no combo
    slider 8 m: builds 20 m (was 25 m, refused); 1 lane, Y, town large arms, Through road Town medium:
    35 m (was 30 m, refused). Places.
 
+## 16. Phase 7: Highway Interchanges (INTERCHANGES.md, "Phase 7b" to "Phase 7f notes")
+Three menu entries next to the base interchanges: **Parclo** (Layout [A][B] = A4 / B4), **Parclo, two
+quadrants** (Layout [A][B][AB] = A2 / B2 / AB2) and **Diamond**. Every entry of this mod has its settings
+in the left panel (`location = "Toolbar"`, so the menu tooltip no longer pops up over them) with labels of
+at most 6 characters: Highway [S][M][L], On top [Road][Hwy], Cross road (dropdown), Scale [S][M][L], Ramp
+length [Short][Medium][Long], Arm length [30 m][45 m][60 m], Traffic side [Right][Left]. Scale sets the whole
+footprint (about 1 / 1.6 / 2.5 x; parclo loops 25 / 45 / 80 m). At Scale L the ramps are capped so the
+highway ends stay within about 480 m of the centre (460 m with the highway on top); there Short / Medium /
+Long build the same. Placement is engine-verified by the probe (p7_hx_scale + p7_hx_scale_verify, p7_presets,
+at the builder's exact 0 deg transform), so this section is about the look, the menu and **traffic**.
+
+### 16A. Menu and look (done 2026-10-09 unless noted)
+1. Every icon of this mod carries the cover pictogram badge in the top-right corner; each entry has its own
+   hover preview (the three highway previews are drawn placeholders until captures exist).
+2. Every settings row fits the left panel, nothing cut off (5-button rows: Radius XS-XL, Magic Size).
+3. Scale S / M / L clearly different on Parclo A and the Diamond, both levels; each places at 0 deg.
+4. Left-hand traffic mirrored (loops turn left). 1965 save: steel bridges; 2020: concrete.
+
+### 16B. Traffic test (2026-10-09: user ran traffic on the placed entries, "looks fine"; loop speeds not measured)
+Setup, about 10 minutes, one save, 2020, flat open area, no towns needed:
+1. Place **Parclo, Layout A** with defaults (medium highway, road on top, Scale S) at rotation 0.
+2. Extend all four loose ends about 200 m with the same road (highway ends: highway; cross road arms:
+   Town, medium) and put a **bus/truck stop** at each end: **W** and **E** on the highway ends (a short
+   town road off each highway end works if stops can't go on the highway), **N** and **S** on the arms.
+   Add one road vehicle depot near N.
+3. Make **four bus lines**, two buses each: **W-N, W-S, E-N, E-S**. Together their round trips use every
+   off-ramp and on-ramp exactly once each way (all 8 movements of a four-ramp parclo).
+4. Run at fast speed for 2-3 in-game months, then check:
+   - every line runs (no "no path", no vehicle stuck or turning round at a terminal);
+   - each vehicle takes the ramp you expect: follow one bus per line once through the interchange;
+   - **loop speed**: click a bus on a loop and note the speed shown (the base cloverleaf's loops are
+     24-31 m, ours 25 m at Scale S). Repeat once with Scale M (45 m) and L (80 m) if anything looks slow;
+   - merges: buses join the highway from the on-ramps without stopping dead at the gore;
+   - the cross-road terminals: no U-turns, no queue that never clears.
+5. Swap in one **truck** per line (or a truck line W-N) to check trucks climb the 8 m ramps at a sensible
+   speed.
+6. Repeat steps 1-4 quickly with **Diamond** (same four lines) and **Parclo, two quadrants, Layout AB**,
+   and once with **Left** traffic on Parclo A (the game's traffic side must be left-hand for that save).
+Report: per entry, lines OK / which movement failed, the loop speeds, anything stuck.
+
+### 16C. Editing and removal
+1. Everything is ordinary roads after placement: connect the ends; drag a loop node once (does the game
+   refuse to edit a curve under the template's 44 m `minCurveRadius`?).
+2. Removal of the mod from a save with an interchange: roads stay (severityRemove Warning; islands of the
+   roundabout entries may go). Quit to the main menu first (removing a staging mod in game asserts).
+
 ## Phase 6a lane probe (PHASE6.md; DEV ONLY mod `square_roundabouts_lanes_probe`, never upload)
 Goal: one round that answers PHASE6.md Q1-Q3. The probe only logs, except in part B.
 

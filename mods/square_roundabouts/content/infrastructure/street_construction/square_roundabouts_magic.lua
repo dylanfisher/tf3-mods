@@ -38,8 +38,8 @@ magic.SIZES = {
 	{ radius = 20, distance = 76 },
 	{ radius = 35, distance = 121 },
 }
-magic.DEFAULT_SIZE = 3
-magic.SIZE_NAMES = { "Compact", "Small", "Medium", "Large", "Very large" }
+magic.DEFAULT_SIZE = 1 -- XS (2026-10-09, user: size menus default to the smallest; was 3 = M)
+magic.SIZE_NAMES = { "XS", "S", "M", "L", "XL" } -- button labels (2026-10-09: were Compact / Small / Medium / Large / Huge)
 
 -- shares the main entry's keys for the params both have (same meaning, same values)
 local K = geom.PARAM_KEYS

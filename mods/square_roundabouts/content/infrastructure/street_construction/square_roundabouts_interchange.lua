@@ -18,6 +18,7 @@
 
 local DIR = "square_roundabouts::/infrastructure/street_construction/"
 local geom = ug_require(DIR .. "square_roundabouts_geometry.lua")
+local ramps = ug_require(DIR .. "square_roundabouts_ramps.lua")
 local S = geom.shapes
 
 local ix = {}
@@ -34,45 +35,34 @@ ix.LAYOUT_PEANUT = 3
 ix.LEVEL_RING_OVER = 1
 ix.LEVEL_HIGHWAY_OVER = 2
 
--- Base highway templates (one-way carriageways, yearFrom 1940); half width = lanes + shoulders
--- (laneConfigs: 2+5+2, 4+5+5+4, 4+5+5+5+4 m).
-local STREET = "::/infrastructure/street/"
-ix.HIGHWAYS = {
-	{ template = STREET .. "highway/highway_new_small.street_template", halfWidth = 4.5 },
-	{ template = STREET .. "highway/highway_new_medium.street_template", halfWidth = 9 },
-	{ template = STREET .. "highway/highway_new_large.street_template", halfWidth = 11.5 },
-}
-ix.DEFAULT_HIGHWAY = 2
--- Slip roads: the base interchanges' slip template (one-way, one lane).
-ix.RAMP = { template = STREET .. "highway/highway_new_small.street_template", halfWidth = 4.5 }
--- Kerb-to-kerb gap between the carriageways: the base diamond's (centres +-13.5 m, large highway
--- half width 11.5 m; base sc.lua:293-298). Carriageway centres at +-(half width + MEDIAN / 2).
-ix.MEDIAN = 4
--- A slip road joins its carriageway at a node this far outside the carriageway node, with the same
--- tag and a tangent parallel to the highway: the base diamond's entranceExitOffset (sc.lua:333).
-ix.MERGE_OFFSET = 4
--- The slip road's gore edge (ix.rampEdges): it leaves the carriageway's band (GORE_GAP clear) over
--- GORE_RUN along the highway, or GORE_SLOPE x the lateral distance for wide highways (a turn of
--- about 30 degrees at most, as the base diamond's slip roads).
-ix.GORE_GAP = 1
-ix.GORE_RUN = 30
-ix.GORE_SLOPE = 2.5
--- Height of the upper level (base diamond bridgeHeight, sc.lua:331): ramps rise 0 -> 8 m.
-ix.HEIGHT = 8
--- Bridge type by year (PHASE5.md 5a: steel from 1940, concrete, the base interchanges' bridge,
--- from 1970; concrete when the year is missing).
-ix.BRIDGE_STEEL = "::/infrastructure/bridge/steel.bridge"
-ix.BRIDGE_CONCRETE = "::/infrastructure/bridge/concrete.bridge"
-ix.CONCRETE_FROM = 1970
--- Plan gap between the highway's outer kerb and the kerb of an upper-level road that is not a
--- bridge (it stands on an embankment), and between a lower-level road and the highway bridge's
--- end. 8 m: about the toe of an 8 m embankment.
-ix.CLEAR = 8
+-- Highway frame constants, shared with the other highway entries (square_roundabouts_ramps.lua,
+-- Phase 7a): the same tables, re-exported (templates, MEDIAN 4, MERGE_OFFSET 4, GORE_GAP 1,
+-- GORE_RUN 30, GORE_SLOPE 2.5, HEIGHT 8, steel / concrete bridges with CONCRETE_FROM 1970, CLEAR 8).
+ix.HIGHWAYS = ramps.HIGHWAYS
+ix.DEFAULT_HIGHWAY = ramps.DEFAULT_HIGHWAY
+ix.RAMP = ramps.RAMP
+ix.MEDIAN = ramps.MEDIAN
+ix.MERGE_OFFSET = ramps.MERGE_OFFSET
+ix.GORE_GAP = ramps.GORE_GAP
+ix.GORE_RUN = ramps.GORE_RUN
+ix.GORE_SLOPE = ramps.GORE_SLOPE
+ix.HEIGHT = ramps.HEIGHT
+ix.BRIDGE_STEEL = ramps.BRIDGE_STEEL
+ix.BRIDGE_CONCRETE = ramps.BRIDGE_CONCRETE
+ix.CONCRETE_FROM = ramps.CONCRETE_FROM
+ix.CLEAR = ramps.CLEAR
 -- Radius slider (inside the ring road, like the main entry): a minimum. The rings grow until the
 -- layout fits (ix.plan), up to GROW_RADII.
 ix.RADII = { 15, 20, 25, 30, 35, 40, 45, 50, 55, 60 }
 ix.DEFAULT_RADIUS = 2 -- 20 m
 ix.GROW_RADII = { 70, 80, 90, 100, 110, 120 }
+-- Phase 7c3: the menu's Radius is a button row of presets (as geom.RADIUS_PRESETS): Small / Medium /
+-- Large / Huge = ix.RADII indices (15 / 20 / 30 / 45 m), own key ix.RADIUS_PRESET_KEY; ix.readParams
+-- falls back to the full-range index key sqrb_ix_radius (tests, goldens, the DEV probe).
+ix.RADIUS_PRESETS = { 1, 2, 4, 7 }
+ix.RADIUS_PRESET_NAMES = { "S", "M", "L", "XL" } -- 2026-10-09: were Small / Medium / Large / Huge
+ix.DEFAULT_RADIUS_PRESET = 1 -- S 15 m (2026-10-09, user: size menus default to the smallest; was 2 = M)
+ix.RADIUS_PRESET_KEY = "sqrb_ix_radius_size"
 -- "Arm length": the cross road beyond the ring's outer kerb and the highway beyond the outer slip
 -- road nodes.
 ix.ARM_LENGTHS = { 30, 40, 50, 60 }
@@ -147,15 +137,15 @@ function ix.readParams(params)
 		-- dev overrides (geom.readDev): only ixClear, ixGamma, ixGoreRun, ixWaistGap apply here
 		dev = geom.readDev(params),
 	}
+	if params[ix.RADIUS_PRESET_KEY] ~= nil then
+		spec.radiusIndex = ix.RADIUS_PRESETS[index(params[ix.RADIUS_PRESET_KEY], #ix.RADIUS_PRESETS, ix.DEFAULT_RADIUS_PRESET)]
+	end
 	spec.radius = ix.RADII[spec.radiusIndex]
 	return spec
 end
 
---- Bridge type for the year (nil: concrete, as the base interchanges).
-function ix.bridgeType(year)
-	if year and year < ix.CONCRETE_FROM then return ix.BRIDGE_STEEL end
-	return ix.BRIDGE_CONCRETE
-end
+--- Bridge type for the year (nil: concrete, as the base interchanges): ramps.bridgeType.
+ix.bridgeType = ramps.bridgeType
 
 --- A tunable of a spec: the module constant, or the DEV-ONLY probe's override (geom.readDev).
 local function tuned(spec, name, default)
@@ -173,20 +163,13 @@ function ix.alphaMax(spec)
 end
 
 --- Cross-section numbers of a spec.
+-- The highway part is ramps.frame (highway, hwH, c, hwRamp, corr, clear, yClear); the ring and
+-- cross road add hwR, offset, hwX.
 function ix.frame(spec)
-	local hwy = ix.HIGHWAYS[spec.highway]
-	local f = {
-		highway = hwy,
-		hwH = hwy.halfWidth,
-		c = hwy.halfWidth + ix.MEDIAN / 2,               -- carriageway centre
-		hwR = geom.RING_HALF_WIDTH[spec.lanes],
-		offset = geom.RING_OFFSET[spec.lanes],
-		hwX = geom.ARM_HALF_WIDTH[spec.cross],
-		hwRamp = ix.RAMP.halfWidth,
-	}
-	f.corr = f.c + f.hwH        -- the highway's outer kerb
-	f.clear = tuned(spec, "ixClear", ix.CLEAR)
-	f.yClear = f.corr + f.clear
+	local f = ramps.frame(spec.highway, tuned(spec, "ixClear", ix.CLEAR))
+	f.hwR = geom.RING_HALF_WIDTH[spec.lanes]
+	f.offset = geom.RING_OFFSET[spec.lanes]
+	f.hwX = geom.ARM_HALF_WIDTH[spec.cross]
 	return f
 end
 
@@ -306,30 +289,11 @@ end
 --         carriageway stays level with it (the base diamond's ramps are 1.6-3.1 m up where they
 --         clear the carriageway; a single Hermite edge was up to 7.8 m up there on the peanut).
 -- Returns the edges in driving order and the carriageway tag; each edge has .part "gore" / "climb".
+-- (ramps.gore + ramps.slipEdges, Phase 7a.)
 function ix.rampEdges(lay, n, zRing, zHw)
-	local f = lay.f
-	local io, cw = n.slip.io, n.slip.cw
-	local sgn = cw == "s" and -1 or 1           -- carriageway side (y)
-	local head = cw == "s" and { 1, 0, 0 } or { -1, 0, 0 }
-	-- off-ramps leave the carriageway before the junction, on-ramps join it after
-	local before = (io == "in") == (cw == "s") and -1 or 1
-	local tag = "sqrb_ix_" .. cw .. (before < 0 and "_w" or "_e")
-	local m = { before * lay.xm, sgn * (f.c + ix.MERGE_OFFSET), zHw }
-	local lateral = f.hwH + f.hwRamp + ix.GORE_GAP - ix.MERGE_OFFSET
-	local run = math.max(tuned(lay.spec, "ixGoreRun", ix.GORE_RUN), ix.GORE_SLOPE * lateral)
-	-- G: towards the ring node along the highway
-	local g = { m[1] - before * run, sgn * (f.c + f.hwH + f.hwRamp + ix.GORE_GAP), zHw }
-	local p = { n.pos[1], n.pos[2], zRing }
-	local d = ix.slipDir(n.t, lay.gamma, io)
-	local gore, climb
-	if io == "in" then
-		gore, climb = S.curveEdge(m, head, g, head, tag, nil), S.curveEdge(g, head, p, d, nil, n.tag)
-	else
-		gore, climb = S.curveEdge(g, head, m, head, nil, tag), S.curveEdge(p, d, g, head, n.tag, nil)
-	end
-	gore.part, climb.part = "gore", "climb"
-	if io == "in" then return { gore, climb }, tag end
-	return { climb, gore }, tag
+	local gore = ramps.gore(lay.f, n.slip.cw, n.slip.io, lay.xm, tuned(lay.spec, "ixGoreRun", ix.GORE_RUN), "sqrb_ix_", zHw)
+	local edges = ramps.slipEdges(gore, { n.pos[1], n.pos[2], zRing }, ix.slipDir(n.t, lay.gamma, n.slip.io), n.tag)
+	return edges, gore.tag
 end
 
 --- Fit at one radius: every ring arc keeps JUNCTION_PLAN outside its junctions (arms, link and
@@ -404,29 +368,8 @@ function ix.plan(spec)
 	return lay
 end
 
-local function list(role, entry, halfWidth, edges, bridge)
-	return {
-		role = role, template = entry.template, halfWidth = halfWidth, edges = edges,
-		edgeType = bridge and "BRIDGE" or nil, edgeTypeName = bridge,
-	}
-end
-
---- Half of the highway bridge (highway over the ring level): the largest |x| at which a ring-level
--- road (rings, link, waist) comes within CLEAR of the highway in plan, plus CLEAR, rounded up to 1 m.
-local function highwayBridgeHalf(f, edges)
-	local xb = 0
-	for _, x in ipairs(edges) do
-		local e, hw = x.e, x.hw
-		local n = math.max(8, math.ceil(S.edgeLength(e) / 1.0))
-		for k = 0, n do
-			local p = S.hermite(e, k / n)
-			if math.abs(p[2]) < f.corr + hw + f.clear then
-				xb = math.max(xb, math.abs(p[1]) + hw + f.clear)
-			end
-		end
-	end
-	return math.ceil(xb)
-end
+local list = ramps.list
+local highwayBridgeHalf = ramps.highwayBridgeHalf
 
 --- Rings, link / waist, arms, slip roads, highway and islands for a spec from readParams. Returns {
 --   lists = {{role, template, halfWidth, edges, edgeType?, edgeTypeName?}}
@@ -513,9 +456,8 @@ function ix.build(spec)
 	end
 
 	-- carriageways: south eastbound (+x), north westbound (-x), straight
-	local hwN, hwB = {}, {}
+	local cwNodes = {}
 	for _, cw in ipairs({ "s", "n" }) do
-		local y = cw == "s" and -f.c or f.c
 		local xs = { -xm - L, -xm, xm, xm + L }
 		local tags = { false, "sqrb_ix_" .. cw .. "_w", "sqrb_ix_" .. cw .. "_e", false }
 		local bridged = {}
@@ -524,20 +466,9 @@ function ix.build(spec)
 			tags = { false, tags[2], "sqrb_ix_" .. cw .. "_bw", "sqrb_ix_" .. cw .. "_be", tags[3], false }
 			bridged[3] = true
 		end
-		local pts = {}
-		for i, x in ipairs(xs) do pts[i] = { pos = { x, y, zHw }, tag = tags[i] or nil } end
-		if cw == "n" then
-			local rev = {}
-			for i = #pts, 1, -1 do rev[#rev + 1] = pts[i] end
-			pts = rev
-		end
-		for i = 1, #pts - 1 do
-			local e = S.straightEdge(pts[i].pos, pts[i + 1].pos, pts[i].tag, pts[i + 1].tag)
-			e.cw = cw
-			local seg = cw == "s" and i or (#pts - i)
-			if bridged[seg] then hwB[#hwB + 1] = e else hwN[#hwN + 1] = e end
-		end
+		cwNodes[cw] = { xs = xs, tags = tags, bridged = bridged }
 	end
+	local hwN, hwB = ramps.carriageways(f, cwNodes, zHw)
 
 	local ringEntry = { template = geom.RING_TEMPLATES[spec.lanes] }
 	local crossEntry = { template = geom.ARM_TEMPLATES[spec.cross] }

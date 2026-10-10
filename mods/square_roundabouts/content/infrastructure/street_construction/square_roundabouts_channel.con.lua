@@ -20,8 +20,16 @@ local ROADS = {
 	_("Country, small"), _("Country, medium"), _("Country, large"),
 }
 
+-- Every param sits in the left toolbar (location "Toolbar", 2026-10-09: the menu's hover tooltip no
+-- longer covers the settings there). Its buttons fit about 6 characters: button rows have at most 5
+-- labels of at most 6 characters (tested), longer choices are ComboBoxes, tooltips explain them.
+local function toolbar(con)
+	for _, p in ipairs(con.params) do p.location = "Toolbar" end
+	return con
+end
+
 function data()
-return {
+return toolbar({
 	configureLayerScript = {
 		fileName = "::/gui/construction/construction_desc_layers.script@configureDefaultLayerFn",
 		params = {
@@ -89,7 +97,7 @@ return {
 			key = K.slips,
 			name = _("Slip lanes"),
 			tooltip = _("One-way lanes that bypass the junction across a corner.\nNear-side corners: the short turns (right turns in\nright-hand traffic, left turns in left-hand traffic).\nAll turns off the main road: every turn from the main road\nonto the side road. Wider roads set the lanes further out,\nat a steeper angle (wide roads: a wider one-way road)."),
-			uiType = "Button",
+			uiType = "ComboBox",
 			values = { _("Near-side corners"), _("All turns off the main road"), _("None") },
 			defaultIndex = channel.SLIPS_NEAR,
 		},
@@ -105,16 +113,17 @@ return {
 			key = K.armLength,
 			name = _("Arm length"),
 			tooltip = _("How far each road runs on beyond the junction's\noutermost node (slip lane or splitter)."),
-			uiType = "Slider",
+			uiType = "Button",
+			displayMode = "Horizontal",
 			values = metres(channel.ARM_LENGTHS),
 			defaultIndex = channel.DEFAULT_ARM_LENGTH,
 		},
 		{
 			key = K.direction,
 			name = _("Traffic side"),
-			tooltip = _("Which side the slip lanes and splitter lanes are built for."),
+			tooltip = _("Which side the slip lanes and splitter lanes are built for.\nRight: right-hand traffic. Left: left-hand traffic."),
 			uiType = "Button",
-			values = { _("Right-hand traffic"), _("Left-hand traffic") },
+			values = { _("Right"), _("Left") },
 			defaultIndex = 1,
 		},
 		{
@@ -130,5 +139,5 @@ return {
 		fileName = "square_roundabouts_channel.script@updateFn",
 		params = {},
 	},
-}
+})
 end

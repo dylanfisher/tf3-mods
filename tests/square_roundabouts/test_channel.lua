@@ -95,6 +95,10 @@ test(".con.lua: params, script, icon, availability; script exports only updateFn
 	eq(order, { K.layout, K.main, K.side, K.slips, K.splitter, K.armLength, K.direction, K.island }, "UI order")
 	eq(#byKey[K.main].values, #geom.ARM_TEMPLATES); eq(#byKey[K.side].values, #geom.ARM_TEMPLATES)
 	eq(#byKey[K.armLength].values, #ch.ARM_LENGTHS); eq(#byKey[K.island].values, #ch.ISLAND_KINDS)
+	-- Phase 7c3: Arm length is a row of buttons (was a slider), same key and indices; no slider left
+	eq(byKey[K.armLength].uiType, "Button"); eq(byKey[K.armLength].displayMode, "Horizontal")
+	eq(byKey[K.armLength].values, { "30 m", "40 m", "50 m", "60 m" })
+	for _, p in ipairs(con.params) do ok(p.uiType ~= "Slider", p.key .. " is no slider") end
 	eq(#byKey[K.slips].values, 3); eq(#byKey[K.layout].values, 2)
 	local d = {}
 	for _, p in ipairs(con.params) do d[p.key] = p.defaultIndex or 1 end

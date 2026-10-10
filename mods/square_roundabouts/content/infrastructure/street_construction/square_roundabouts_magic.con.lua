@@ -11,14 +11,22 @@ local K = magic.PARAM_KEYS
 
 local function sizes()
 	local out = {}
-	for i, sz in ipairs(magic.SIZES) do
-		out[i] = string.format("%s (%d m)", _(magic.SIZE_NAMES[i]), sz.radius)
+	for i = 1, #magic.SIZES do
+		out[i] = _(magic.SIZE_NAMES[i])
 	end
 	return out
 end
 
+-- Every param sits in the left toolbar (location "Toolbar", 2026-10-09: the menu's hover tooltip no
+-- longer covers the settings there). Its buttons fit about 6 characters: button rows have at most 5
+-- labels of at most 6 characters (tested), longer choices are ComboBoxes, tooltips explain them.
+local function toolbar(con)
+	for _, p in ipairs(con.params) do p.location = "Toolbar" end
+	return con
+end
+
 function data()
-return {
+return toolbar({
 	configureLayerScript = {
 		fileName = "::/gui/construction/construction_desc_layers.script@configureDefaultLayerFn",
 		params = {
@@ -59,10 +67,11 @@ return {
 		{
 			key = K.size,
 			name = _("Size"),
-			tooltip = _("Size of the whole layout: the mini roundabouts\n(8 to 35 m radius) and the central ring between them.\nIt grows if the arm road doesn't fit."),
-			uiType = "Slider",
+			tooltip = _("Size of the whole layout, extra small to extra large:\nthe mini roundabouts (XS 8 m, S 10 m, M 12 m, L 20 m,\nXL 35 m radius) and the central ring between them.\nIt grows if the arm road doesn't fit."),
+			uiType = "Button",
+			displayMode = "Horizontal",
 			values = sizes(),
-			defaultIndex = magic.DEFAULT_SIZE,
+			defaultIndex = magic.DEFAULT_SIZE, -- XS, the smallest (user 2026-10-09)
 		},
 		{
 			key = K.armType,
@@ -78,7 +87,7 @@ return {
 		{
 			key = K.lanes,
 			name = _("Mini roundabout lanes"),
-			tooltip = _("Lanes on each one-way mini roundabout.\n2 lanes need size Large or bigger: smaller sizes grow to Large.\nThe central ring keeps one lane each way."),
+			tooltip = _("Lanes on each one-way mini roundabout.\n2 lanes need size L or bigger: smaller sizes grow to L.\nThe central ring keeps one lane each way."),
 			uiType = "Button",
 			values = { "1", "2" },
 			defaultIndex = 1,
@@ -86,9 +95,9 @@ return {
 		{
 			key = K.direction,
 			name = _("Direction"),
-			tooltip = _("Direction of the mini roundabouts.\nThe central ring is two-way: its inner lane runs the other way."),
+			tooltip = _("Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way."),
 			uiType = "Button",
-			values = { _("Counterclockwise"), _("Clockwise") },
+			values = { _("CCW"), _("CW") },
 			tooltips = { _("Right-hand traffic"), _("Left-hand traffic") },
 			defaultIndex = 1,
 		},
@@ -105,5 +114,5 @@ return {
 		fileName = "square_roundabouts_magic.script@updateFn",
 		params = {},
 	},
-}
+})
 end

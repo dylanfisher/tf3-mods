@@ -47,7 +47,8 @@ end)
 
 test("no .con.lua param uses a dev key", function()
 	for _, file in ipairs({ "square_roundabouts.con.lua", "square_roundabouts_magic.con.lua",
-		"square_roundabouts_channel.con.lua", "square_roundabouts_interchange.con.lua" }) do
+		"square_roundabouts_channel.con.lua", "square_roundabouts_interchange.con.lua", "square_roundabouts_highway_parclo.con.lua",
+		"square_roundabouts_highway_parclo2.con.lua", "square_roundabouts_highway_diamond.con.lua" }) do
 		ug_require(DIR .. file)
 		for _, p in ipairs(data().params) do ok(p.key:find("dev", 1, true) == nil, file .. ": " .. p.key) end
 	end
@@ -237,4 +238,70 @@ test("dev channel / interchange: absent = shipped build; each override changes i
 	local p0 = ixBuild({ layout = 3 })
 	ok(ixBuild({ layout = 3 }, { ixWaistGap = 2 }).beta < p0.beta, "ixWaistGap")
 	eq(ixBuild({ layout = 3 }, { radius = 40, chSlipAngle = 30 }).D, p0.D, "other entries' dev keys do nothing here")
+end)
+
+-- Phase 7d: Highway Interchange tunables (the probe's p7_hx_search subset)
+test("dev highway: absent = shipped build; each override changes its part only", function()
+	local hx = ug_require(DIR .. "square_roundabouts_highway.lua")
+	local ramps = ug_require(DIR .. "square_roundabouts_ramps.lua")
+	local ix = ug_require(DIR .. "square_roundabouts_interchange.lua")
+	local function hxBuild(over, dev)
+		local p = {}
+		for k, v in pairs(over or {}) do p[hx.PARAM_KEYS[k]] = v end
+		for k, v in pairs(dev or {}) do p[D[k]] = v end
+		return hx.build(hx.readParams(p))
+	end
+	local function same(a, b, what)
+		for _, k in ipairs({ "size", "R", "Ro", "dx", "xm", "xmMin", "yTi", "yTo", "yb", "xb" }) do eq(a[k], b[k], what .. " " .. k) end
+		eq(#a.ramps, #b.ramps, what .. " ramps")
+		for i, e in ipairs(a.ramps) do
+			eq(e.p0, b.ramps[i].p0, what .. " ramp " .. i)
+			eq(e.t1, b.ramps[i].t1, what .. " ramp " .. i)
+		end
+	end
+	eq(hx.readParams({}).dev, nil)
+	for _, name in ipairs({ "hxClear", "hxGoreRun", "hxTermGap", "hxLoopRadius" }) do
+		eq(D[name]:sub(1, 12), "sqrb_dev_hx_", name)
+	end
+	-- 7c2: the fix-up's hxTagJoints / hxVariant keys are gone
+	eq(D.hxTagJoints, nil); eq(D.hxVariant, nil)
+	-- the shipped values as overrides build the same layout (parclo A4 at Scale Small = 25 m loops, diamond)
+	local a0 = hxBuild({ size = 1 })
+	same(hxBuild({ size = 1 }, { hxClear = ramps.CLEAR, hxGoreRun = ramps.GORE_RUN, hxTermGap = hx.TERM_GAP, hxLoopRadius = 25 }), a0, "A4 shipped")
+	local d0 = hxBuild({ type = hx.TYPE_DIAMOND })
+	same(hxBuild({ type = hx.TYPE_DIAMOND }, { hxClear = ramps.CLEAR, hxGoreRun = ramps.GORE_RUN, hxTermGap = 20, hxLoopRadius = 40 }), d0,
+		"diamond: no loops, so no terminal gap or loop radius")
+	-- hxTermGap: inner to outer terminal and loop to wrapped diagonal
+	local tg = hxBuild({ size = 1 }, { hxTermGap = 20 })
+	eq(tg.Ro - tg.R, 20); eq(tg.yTo - tg.yTi, 20); eq(tg.R, a0.R); eq(tg.yTi, a0.yTi)
+	ok(tg.xmMin < a0.xmMin, "hxTermGap: a smaller gap, a shorter wrapped diagonal")
+	-- hxClear: the frame's clearance
+	local cl = hxBuild({ size = 1 }, { hxClear = 6 })
+	eq(cl.frame.clear, 6); eq(a0.frame.clear, ramps.CLEAR)
+	ok(cl.dx <= a0.dx and cl.xmMin < a0.xmMin, "hxClear: tighter loop stub / diagonal")
+	local dc = hxBuild({ type = hx.TYPE_DIAMOND }, { hxClear = 4 })
+	ok(dc.yTo < d0.yTo, "hxClear moves the diamond's terminals in")
+	-- hxGoreRun: the level gore (small highway: the run is not set by the gore slope)
+	local s0 = hxBuild({ highway = 1, size = 1 })
+	local gr = hxBuild({ highway = 1, size = 1 }, { hxGoreRun = 20 })
+	eq(gr.frame.goreRun, 20)
+	ok(gr.frame.run < s0.frame.run, "hxGoreRun shortens the gore run")
+	-- hxLoopRadius: exact loop radius for every parclo (no slider, no growth); the diamond ignores it
+	for t = 1, 5 do
+		for _, r in ipairs({ 20, 22.5, 30 }) do
+			local b = hxBuild({ type = t, size = 3 }, { hxLoopRadius = r })
+			eq(b.R, r, "type " .. t); eq(b.size, r, "type " .. t)
+		end
+	end
+	eq(hxBuild({ type = hx.TYPE_DIAMOND }, { hxLoopRadius = 20 }).yTo, d0.yTo)
+	-- other entries' dev keys do nothing here, and these do nothing there
+	same(hxBuild({ size = 1 }, { ixClear = 2, ixGoreRun = 10, radius = 40 }), a0, "ix keys on hx")
+	local function ixBuild(dev)
+		local p = {}
+		for k, v in pairs(dev or {}) do p[D[k]] = v end
+		return ix.build(ix.readParams(p))
+	end
+	local x0 = ixBuild()
+	local x1 = ixBuild({ hxClear = 2, hxGoreRun = 10, hxTermGap = 15, hxLoopRadius = 20 })
+	eq(x1.D, x0.D); eq(x1.radius, x0.radius); eq(#x1.ramps, #x0.ramps)
 end)
