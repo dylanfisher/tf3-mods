@@ -1,0 +1,34 @@
+--- a/content/aat.script.lua	2026-10-10 10:10:02
++++ b/content/aat.script.lua	2026-10-10 10:10:02
+@@ -596,7 +596,12 @@
+ 	return table.concat(out, "|")
+ end
+ 
+-local clock = os and os.clock
++-- os.clock is process CPU time on macOS and Linux (all threads together), so there it runs several times faster
++-- than real time. Budgets use the engine's clock (per Lua state, fine within one call); the interval uses os.time,
++-- real seconds that every simulation state shares.
++local okClock, engineClock = pcall(function() return api.type.Clock.new() end)
++local clock = okClock and engineClock and function() return engineClock:getTime() / 1e6 end or (os and os.clock)
++local realTime = os and os.time
+ local BATCH_MS = 8 -- reassigning stops after this much work in one tick, the rest follows in the next ticks
+ 
+ local MAX_CHANGES = 500
+@@ -1148,7 +1153,7 @@
+ local subscribed, lastSeen = false, -math.huge -- per VM, seconds
+ 
+ local function timing()
+-	return clock and clock() or gameTime() / 1000, options().interval * (clock and 1 or speedup())
++	return realTime and realTime() or gameTime() / 1000, options().interval * (realTime and 1 or speedup())
+ end
+ 
+ -- First run in a game that has lines: nothing is assigned until the player chose in the GUI (event "intro")
+@@ -1195,7 +1200,7 @@
+ 		state:subscribeToEvent("intro")
+ 	end
+ 	-- real seconds, also while paused (stations are often set up then); without a clock game time, not paused
+-	if not clock and (not dt or dt <= 0) then return end
++	if not realTime and (not dt or dt <= 0) then return end
+ 	local now, interval = timing()
+ 	if now - lastSeen < interval and now >= lastSeen then return end
+ 	local s = loadState(state)

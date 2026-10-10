@@ -40,13 +40,19 @@ tick 39.7 → 9.8 ms, sweep cost 27.4 → 13.0 ms per real second, vehicles read
   The same spot evicts `cargoCache` entries of deleted lines.
 - **C. One LINE component read per sweep call** [3]. `comps[l]` is filled in the priority-sort loop and reused by the
   main loop (`local comp = comps[lineId]`) and by `spreadLoad`'s `mains` count (`local c = comps[l]`).
-- **D. lineCargo cache** [3]. The original `lineCargo(lineId)` body is now `readLineCargo(lineId, vehicles)`. It takes
-  the vehicle list instead of reading it. The new `lineCargo(lineId)` reads `getLineVehicles` and keys
-  `cargoCache[lineId]` (per VM) on the vehicle id list. An entry expires after `CARGO_TTL + lineId % CARGO_SPREAD` ms
-  (30 s + up to 15 s, spread per line, no per-sweep refresh cap). If upstream changes `lineCargo`'s body, merge it into
-  `readLineCargo`.
+- **D. lineCargo cache, shared by the VMs** [3]. The original `lineCargo(lineId)` body is now
+  `readLineCargo(lineId, vehicles)`. It takes the vehicle list instead of reading it. The new `lineCargo(lineId, s)`
+  (called as `pcall(lineCargo, lineId, s)` in `sweep`) reads `getLineVehicles` and keeps
+  `s.cargo[lkey] = { v, at, c }` in the saved state: `v` is a numeric hash of the vehicle ids (count and two sums,
+  no strings), `at` is `s.lastClock` (os.time seconds, see O), `c` is the cargo key (`"P1,5"`) or false; `cargoFromKey`
+  rebuilds `{ pax, cargo, key }` from it. An entry expires after `CARGO_TTL + lineId % CARGO_SPREAD` s (30 s + up to
+  15 s, spread per line). Entries of deleted lines go in the once-per-pass clean-up (B). If upstream changes
+  `lineCargo`'s body, merge it into `readLineCargo`; if the result gains fields beyond `pax`/`cargo`/`key`,
+  `cargoFromKey` must rebuild them too.
   *Behaviour:* a changed load config on existing vehicles shows up within about 30–45 s. New or removed vehicles show
-  up at once.
+  up at once. The state grows by about 40 bytes per line.
+  *History:* rev 1 kept the cache per VM (module local, keyed on the id string). Run 1 measured only 53% hits: the
+  simulation VMs take turns sweeping, so each VM missed every line once per TTL (2026-10-10).
 - **E. Fingerprinted terminal tags in the signature** [2]. In `sweep`, `tags(group)` caches
   `params.fingerprint(net.groupTags(group))` instead of the raw tag list, which made stored signatures (`s.checked`,
   `s.retry[].sig`) long. Only compared for equality.
@@ -60,11 +66,22 @@ tick 39.7 → 9.8 ms, sweep cost 27.4 → 13.0 ms per real second, vehicles read
   `lineKind(modes)` and the signature suffix (`table.concat(modes, ",")`).
 - **H. describeSets only with debug logging** [6]. In `assignStop`'s candidate loop, `local debugOn = options().debugLog`
   makes the two `dropped[...]` strings skip `describeSets(x)` when it's off.
-- **I. Build handler reads only the stations it needs** [2]. In `handleEvent` `onPostBuildProposal`,
-  `state:get_native():findPath({ "stations", g })` per new group replaces a full `state:get()`, which is still the
-  fallback when the pcall fails.
-  *Behaviour:* `get_native`/`findPath` are typed in the API but not verified in game. If they throw, the fallback keeps
-  behaviour identical, but the saving is lost.
+- **I. Removed (2026-10-10), the build handler is upstream's again.** It tried `state:get_native():findPath({ "stations", g })`
+  per new group in place of a full `state:get()`. In game, every call threw `gamescript_util.cpp:385` "Assertion 'false'
+  failed" on the Simulation Thread. The pcall fallback kept behaviour correct, but each build event logged a fatal error
+  and could write a crash dump. Don't reintroduce it; see `docs/findings.md` "Game-script `get_native` asserts".
+
+- **O. Sweep interval on real seconds (os.time)** (2026-10-10). Above `BATCH_MS`: `clock` is now the engine wall
+  clock (`wallClock`, seconds; `os.clock` fallback) and only used for debug timings; the new `realTime = os.time`
+  (falls back to `clock`) drives `timing()` and the `not realTime and dt` check in `update`. Upstream timed the
+  interval with `os.clock`, which is process CPU time on macOS (all threads together), so a 2 s interval passed in
+  well under 2 real seconds: run 1 measured ~1.7–1.8 sweep ticks/s and 0.82 passes/s instead of one pass per 2 s.
+  `s.lastClock`, settle times (`SETTLE_S`, `SETTLE_MAX`) and `INVERT_S` all use the same clock, so they are now real
+  seconds at 1 s resolution: a settling line sweeps about every 1 s instead of 0.5 s.
+  *Behaviour:* sweeps at the configured interval in real time (fewer than before on macOS); `s.lastClock` from an
+  older save is far in the past, so the first update sweeps at once. On Windows `os.clock` is wall time, so upstream is
+  right there; this is a macOS/Linux fix. **Not measured in game yet**: the cause of the 1.7×/s is inferred from
+  `os.clock`'s known behaviour (`docs/findings.md` "Timers and threads in GUI contexts").
 
 **`content/aat_net.lua`**
 
@@ -97,17 +114,30 @@ tick 39.7 → 9.8 ms, sweep cost 27.4 → 13.0 ms per real second, vehicles read
   `checkLht` when the state says `intro == "done"`. `hasChoice(group)` is memoised for `CHOICE_S` = 1 s in
   `choiceMemo`.
 
+- **P. One state read and one LINE read shared by all pollers** (2026-10-10). `readState()` keeps its result for
+  `SHARE_S` = 0.1 s in `stateMemo`, and the new `lineComp(line)` keeps LINE components for the same window in
+  `lineMemo` (replaced each window, so it never grows). `lineProblem`, `AatStopRefreshButton`, `AatStopCard` and
+  `AatLinePlugin` call `lineComp` in place of `getComponent(..., LINE)`. Each card and button polls on its own 0.25 s
+  timer (M); the line manager's stop list has a refresh button per stop, each of which read the state and the line
+  itself, so 20 stops meant ~80 state copies/s. `hasChoice`'s memo (N) uses the same `shareNow()` wall clock in place of
+  `os.clock`. Callers only read the shared tables, so keep it that way.
+  *Behaviour:* what a card shows can be up to 0.1 s older (on top of M's 0.25 s).
+
 ## Open questions
 
 - **22 vs 24 initial line updates.** On the same unsaved save, the original sent 22 line updates (250 lines assigned)
   in its first pass, and the optimized code sent 24 (253). See PERFTEST.md, run 1. It's unknown whether the 2 extra come
   from a behaviour difference (e.g. A's multi-tick pass or E's re-check) or from timing (retries, builds during the
   run). Compare the assigned terminals of both runs line by line before trusting the fork with a big save.
-- **Sweeps run ~1.7×/s across the simulation VMs** instead of once per `interval` (2 s). Each VM seems to sweep on
-  its own: `lastSeen` is VM-local, and `s.lastClock` is only read after `loadState`. Not fixed in the fork, and
-  upstream has the same behaviour. It's the next candidate.
+- **Sweeps ran ~1.7×/s across the simulation VMs** instead of once per `interval` (2 s). Likely cause, fixed in O:
+  `os.clock` is CPU time. Confirm in game (a perf run should show ~0.4–0.5 passes/s). Parallel VMs may still sweep
+  twice in one step now and then (`docs/findings.md`, hitch probe: "more than one game-script pause per period").
 - **Not done from the audit:** a dirty flag so `runSweep` only calls `state:set(s)` when something changed [2]. Every
-  sweep tick still writes the full state.
+  sweep tick still writes the full state. Low priority: run 1 measured `stateSet` at 0.3 ms/s.
+- **Next candidate: per-tick fixed cost of a multi-tick pass.** Every tick of a pass re-reads all LINE components,
+  sorts them and calls `getLineProblems`, even when it resumes at the cursor. Unmeasured; either read LINE components
+  lazily from the cursor on (keeping the sorted order in `s.cursor`), or raise `BATCH_MS` now that the hitch probe
+  showed game-script pauses don't delay frames (`docs/findings.md`, 2026-10-10).
 - Run 1 measured about 1 min per mode with unmatched routines. A second, matched run would firm up the numbers.
 
 ## Merge log
