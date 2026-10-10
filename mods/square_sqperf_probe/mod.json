@@ -1,0 +1,26 @@
+{
+    "modId": "square_sqperf_probe",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "runScript": {
+        "fileName": "square_sqperf_probe::/mod.script@runFn"
+    },
+    "params": [
+        {
+            "key": "probe_stage",
+            "name": "Probe contexts",
+            "tooltip": "DEV ONLY. Which contexts create and read an api.type.Clock.\nIf the game crashes, switch to one context at a time.",
+            "uiType": "Button",
+            "values": [
+                "HUD icon + onStep",
+                "HUD icon only",
+                "onStep only",
+                "Off"
+            ],
+            "defaultIndex": 0
+        }
+    ]
+}

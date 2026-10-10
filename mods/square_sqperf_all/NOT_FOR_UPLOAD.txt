@@ -1,0 +1,13 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_sqperf_all is the SQPERF master switch (plans/sqperf/README.md "Master switch"). It has no
+scripts and no params. The engine's mod params table (api.engine.config.getModParams(), runFn's
+allModParams) has an entry for every active mod, even one without params, and every SQPERF mod's
+debug gate (sqperf.debugOn in tools/sqperf/sqperf.lua) is: its own "Debug: performance log" param
+On, OR an entry "square_sqperf_all" in that table. So enabling this mod turns on level 3 (30 s
+summaries) and every debug-gated log line of every SQPERF mod at once, without touching their
+settings.
+
+Never publish it to mod.io (Mod Hub > My Mods would offer it because `make link` puts it in the
+staging area). When done: disable it in the game's mod list (quit to the main menu first before
+removing its staging link; see docs/findings.md).

@@ -236,3 +236,10 @@ Square.stateCover({
 Square.stateCover({
   id: 'square_names_us_hawaii', state: 'Hawaii', flag: 'us_hawaii.svg', flagAspect: 2.0, accent: '#D63384',
 });
+Square.devCover({
+  id: 'square_sqperf_all', name: 'DEV SQPERF: all mods', group: 'perf', tagline: 'Perf log on for every mod',
+  titleLines: ['DEV SQPERF:', 'all mods'],  // the automatic wrap leaves "mods" alone on line 2
+});
+Square.devCover({
+  id: 'square_sqperf_probe', name: 'DEV SQPERF Probe', group: 'perf', tagline: 'Clock timing in HUD scripts',
+});

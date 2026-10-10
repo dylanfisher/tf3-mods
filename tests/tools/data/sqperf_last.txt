@@ -1,0 +1,28 @@
+[2026-10-10 04:00:56Z - MESSAGE  - Main Thread      - Main           ]  Loading config from file sub-arctic
+[2026-10-10 04:00:56Z - MESSAGE  - Main Thread      - Main           ]+ Active mods:
+    |   square_problem_radar (rev. 4) (Problem Radar)
+    | mod params:
+    |   square_problem_radar: { 
+    | sqperf_log = 1,
+    | }
+[2026-10-10 04:00:56Z - MESSAGE  - Load Game Pool 2 - Main           ]  Loading game from file sub-arctic
+[2026-10-10 04:01:00Z - MESSAGE  - Sim Pool 1       - Main           ]  [SQPERF] mod=square_problem_radar ctx=gs vm=b5c240 phase=init ms=6.1 timer=clock
+[2026-10-10 04:01:02Z - WARNING  - Main Thread      - Main           ]  push() default tool
+[2026-10-10 04:01:02Z - MESSAGE  - Main Thread      - Main           ]  [SQPERF] mod=square_problem_radar ctx=gui vm=d66d00 phase=init ms=12.0 timer=clock
+[2026-10-10 04:01:05Z - MESSAGE  - Main Thread      - Main           ]  Game is ready
+[2026-10-10 04:01:05Z - MESSAGE  - Main Thread      - Main           ]  Init game took: 9.5 s
+[2026-10-10 04:01:30Z - MESSAGE  - Simulation Threa - Main           ]  [SQPERF] mod=square_problem_radar ctx=gs vm=db39c0 slow=scan_lines max=70.0 over=1/40
+[2026-10-10 04:16:30Z - MESSAGE  - Main Thread      - Main           ]  Loading config from file New Game - desert
+[2026-10-10 04:16:30Z - MESSAGE  - Main Thread      - Main           ]+ Active mods:
+    |   square_names_us_new_york (rev. 4) (New York Towns & Streets)
+    | mod params:
+    |   square_names_us_new_york: { 
+    | stationNames = 1,
+    | }
+[2026-10-10 04:16:30Z - MESSAGE  - Load Game Pool 1 - Main           ]  Loading game from file New Game - desert
+[2026-10-10 04:16:36Z - WARNING  - Main Thread      - Main           ]  push() default tool
+[2026-10-10 04:16:38Z - MESSAGE  - Main Thread      - Main           ]  Game is ready
+[2026-10-10 04:16:38Z - MESSAGE  - Main Thread      - Main           ]  Init game took: 7.9 s
+[2026-10-10 04:20:48Z - MESSAGE  - Main Thread      - Main           ]  Loading config from file Blank Slate
+    | mod params:
+[2026-10-10 04:20:48Z - MESSAGE  - Load Game Pool 2 - Main           ]  Loading game from file Blank Slate

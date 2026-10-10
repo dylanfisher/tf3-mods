@@ -1,0 +1,16 @@
+{
+    "name": "DEV SQPERF: all mods",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Turns on the SQPERF debug performance log of every square mod.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Master switch for the SQPERF performance instrumentation: while it is enabled, every square mod with SQPERF logs as if its own \"Debug: performance log\" setting were On (30 s summaries and debug-gated lines in stdout.txt). It has no scripts and changes nothing in the game. See plans/sqperf/README.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}
