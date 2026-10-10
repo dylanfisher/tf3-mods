@@ -2,6 +2,56 @@
     "name": "Full Refund Window",
     "summary": "Bulldoze within the refund window and get every cent back.",
     "description": "Bulldoze within the refund window and get every cent back. Roads, tracks, stations and depots built in the last 60 s (or up to 10 min) are refunded in full instead of 75 %.",
+    "localization": {
+        "ru": {
+            "name": "Полный возврат при сносе",
+            "summary": "Снесите постройку в пределах окна возврата и получите все деньги обратно."
+        },
+        "de": {
+            "name": "Volle Rückerstattung",
+            "summary": "Innerhalb der Erstattungsfrist abreissen und jeden Cent zurückbekommen."
+        },
+        "fr": {
+            "name": "Remboursement intégral",
+            "summary": "Démolissez dans le délai de remboursement et récupérez chaque centime."
+        },
+        "es": {
+            "name": "Reembolso total",
+            "summary": "Demuele dentro del plazo de reembolso y recupera hasta el último céntimo."
+        },
+        "it": {
+            "name": "Rimborso completo",
+            "summary": "Demolisci entro la finestra di rimborso e riavrai ogni centesimo."
+        },
+        "nl": {
+            "name": "Volledige terugbetaling",
+            "summary": "Sloop binnen de terugbetaaltermijn en krijg elke cent terug."
+        },
+        "pl": {
+            "name": "Pełny zwrot kosztów",
+            "summary": "Wyburz w oknie zwrotu i odzyskaj każdy grosz."
+        },
+        "pt_BR": {
+            "name": "Reembolso total",
+            "summary": "Demola dentro do prazo de reembolso e receba cada centavo de volta."
+        },
+        "ja": {
+            "name": "全額返金",
+            "summary": "返金期間内に撤去すれば、建設費が全額戻ります。"
+        },
+        "ko": {
+            "name": "전액 환불",
+            "summary": "환불 기간 내에 철거하면 건설비를 전액 돌려받습니다."
+        },
+        "zh_CN": {
+            "name": "全额退款",
+            "summary": "在退款时限内拆除，即可拿回每一分钱。"
+        },
+        "zh_TW": {
+            "name": "全額退款",
+            "summary": "在退款時限內拆除，即可拿回每一分錢。"
+        }
+    },
     "authors": [
         {
             "name": "square",
