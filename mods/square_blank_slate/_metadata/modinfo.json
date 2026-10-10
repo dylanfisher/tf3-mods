@@ -2,6 +2,56 @@
     "name": "Blank Slate: Empty Flat Test Map",
     "summary": "A terrain generator for a flat, empty island with sea on every side. No hills, trees or rocks.",
     "description": "A terrain generator for a flat, empty island with sea on every side. Pick Blank Slate in the Map Editor to get a clean test map with no towns, industries, trees or rocks.",
+    "localization": {
+        "ru": {
+            "name": "Чистый лист: пустая карта",
+            "summary": "Генератор рельефа: плоский пустой остров, со всех сторон море. Без холмов, деревьев и камней."
+        },
+        "de": {
+            "name": "Leeres Blatt: flache Testkarte",
+            "summary": "Geländegenerator für eine flache, leere Insel mit Meer ringsum. Keine Hügel, Bäume oder Felsen."
+        },
+        "fr": {
+            "name": "Table rase : carte test plate",
+            "summary": "Générateur de terrain : une île plate et vide entourée de mer. Ni collines, ni arbres, ni rochers."
+        },
+        "es": {
+            "name": "Hoja en blanco: mapa de prueba",
+            "summary": "Generador de terreno: una isla plana y vacía rodeada de mar. Sin colinas, árboles ni rocas."
+        },
+        "it": {
+            "name": "Tabula rasa: mappa di prova",
+            "summary": "Generatore di terreno: un'isola piatta e vuota circondata dal mare. Niente colline, alberi o rocce."
+        },
+        "nl": {
+            "name": "Schone lei: vlakke testkaart",
+            "summary": "Terreingenerator voor een vlak, leeg eiland met zee rondom. Geen heuvels, bomen of rotsen."
+        },
+        "pl": {
+            "name": "Czysta karta: mapa testowa",
+            "summary": "Generator terenu: płaska, pusta wyspa otoczona morzem. Bez wzgórz, drzew i skał."
+        },
+        "pt_BR": {
+            "name": "Tela em branco: mapa de teste",
+            "summary": "Gerador de terreno: uma ilha plana e vazia cercada de mar. Sem colinas, árvores ou rochas."
+        },
+        "ja": {
+            "name": "白紙マップ：平らなテストマップ",
+            "summary": "四方を海に囲まれた、平らで何もない島を作る地形ジェネレーター。丘も木も岩もありません。"
+        },
+        "ko": {
+            "name": "빈 지도: 평평한 테스트 맵",
+            "summary": "사방이 바다로 둘러싸인 평평하고 텅 빈 섬을 만드는 지형 생성기. 언덕, 나무, 바위가 없습니다."
+        },
+        "zh_CN": {
+            "name": "空白地图：平坦的测试地图",
+            "summary": "地形生成器：四面环海的平坦空岛。没有丘陵、树木和岩石。"
+        },
+        "zh_TW": {
+            "name": "空白地圖：平坦的測試地圖",
+            "summary": "地形產生器：四面環海的平坦空島。沒有丘陵、樹木與岩石。"
+        }
+    },
     "authors": [
         {
             "name": "square",
