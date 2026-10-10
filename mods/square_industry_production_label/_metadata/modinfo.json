@@ -2,6 +2,56 @@
     "name": "Industry Production Label",
     "summary": "Production and line pickup rate on industry labels, cargo in/out per year on warehouses.",
     "description": "See each industry's production and your lines' pickup rate, and each warehouse's incoming and outgoing cargo per year, right on their map labels. Every pill can be switched off in the mod settings.",
+    "localization": {
+        "ru": {
+            "name": "Метки производства предприятий",
+            "summary": "Производство и вывоз линиями на метках предприятий, приход и отгрузка грузов за год на складах."
+        },
+        "de": {
+            "name": "Industrie-Produktionslabel",
+            "summary": "Produktion und Abholrate auf Industrielabels, ein- und ausgehende Fracht pro Jahr bei Lagern."
+        },
+        "fr": {
+            "name": "Étiquette de production",
+            "summary": "Production et enlèvement par vos lignes sur les industries, flux annuels sur les entrepôts."
+        },
+        "es": {
+            "name": "Etiqueta de producción",
+            "summary": "Producción y recogida de tus líneas en las industrias, carga entrante/saliente anual en almacenes."
+        },
+        "it": {
+            "name": "Etichetta di produzione",
+            "summary": "Produzione e ritiro delle linee sulle industrie, merci in entrata/uscita all'anno sui magazzini."
+        },
+        "nl": {
+            "name": "Productielabel industrie",
+            "summary": "Productie en ophaaltempo op industrielabels, inkomende/uitgaande vracht per jaar bij magazijnen."
+        },
+        "pl": {
+            "name": "Etykieta produkcji przemysłu",
+            "summary": "Produkcja i odbiór przez linie na etykietach przemysłu, przepływy roczne towarów w magazynach."
+        },
+        "pt_BR": {
+            "name": "Rótulo de produção industrial",
+            "summary": "Produção e coleta das linhas nas indústrias, carga de entrada/saída por ano nos armazéns."
+        },
+        "ja": {
+            "name": "産業生産量ラベル",
+            "summary": "産業ラベルに生産量と路線の集荷量、倉庫ラベルに年間の入出荷量を表示します。"
+        },
+        "ko": {
+            "name": "산업 생산량 라벨",
+            "summary": "산업 라벨에 생산량과 노선 수거율, 창고 라벨에 연간 입출고 화물을 표시합니다."
+        },
+        "zh_CN": {
+            "name": "工业产量标签",
+            "summary": "在工业标签上显示产量和线路运走量，在仓库标签上显示每年进出货量。"
+        },
+        "zh_TW": {
+            "name": "工業產量標籤",
+            "summary": "在工業標籤上顯示產量與路線運走量，在倉庫標籤上顯示每年進出貨量。"
+        }
+    },
     "authors": [
         {
             "name": "square",
