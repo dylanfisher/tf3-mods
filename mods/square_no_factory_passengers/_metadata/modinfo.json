@@ -2,6 +2,56 @@
     "name": "No Factory Passengers",
     "summary": "The line editor no longer turns on passenger loading at stations that only serve an industry.",
     "description": "The line editor no longer turns on passenger loading at stops whose station only serves an industry. On a factory line, docks and other stops without homes in reach are left off too. Stations that also reach homes keep passengers.",
+    "localization": {
+        "ru": {
+            "name": "Без пассажиров у заводов",
+            "summary": "Редактор маршрутов больше не включает посадку пассажиров на станциях, обслуживающих лишь завод."
+        },
+        "de": {
+            "name": "Keine Fabrik-Passagiere",
+            "summary": "Der Linieneditor aktiviert keine Passagiere mehr an Stationen, die nur eine Industrie bedienen."
+        },
+        "fr": {
+            "name": "Pas de passagers à l'usine",
+            "summary": "L'éditeur de lignes n'active plus les passagers aux gares qui ne desservent qu'une industrie."
+        },
+        "es": {
+            "name": "Sin pasajeros en fábricas",
+            "summary": "El editor de líneas ya no activa pasajeros en estaciones que solo dan servicio a una industria."
+        },
+        "it": {
+            "name": "Niente passeggeri in fabbrica",
+            "summary": "L'editor linee non attiva più i passeggeri nelle stazioni che servono solo un'industria."
+        },
+        "nl": {
+            "name": "Geen fabrieksreizigers",
+            "summary": "De lijneditor zet geen reizigers meer aan bij stations die alleen een industrie bedienen."
+        },
+        "pl": {
+            "name": "Bez pasażerów w fabrykach",
+            "summary": "Edytor linii nie włącza już pasażerów na stacjach obsługujących tylko zakład przemysłowy."
+        },
+        "pt_BR": {
+            "name": "Sem passageiros em fábricas",
+            "summary": "O editor de linhas não ativa mais passageiros em estações que só atendem uma indústria."
+        },
+        "ja": {
+            "name": "工場で旅客なし",
+            "summary": "路線エディターが、産業施設だけに接する駅で旅客の乗降をオンにしなくなります。"
+        },
+        "ko": {
+            "name": "공장 승객 없음",
+            "summary": "노선 편집기가 산업 시설만 연결된 역에서 더 이상 승객 탑승을 켜지 않습니다."
+        },
+        "zh_CN": {
+            "name": "工厂不载客",
+            "summary": "线路编辑器不再在只服务工业的车站开启乘客装载。"
+        },
+        "zh_TW": {
+            "name": "工廠不載客",
+            "summary": "路線編輯器不再於只服務工業的車站開啟乘客裝載。"
+        }
+    },
     "authors": [
         {
             "name": "square",
