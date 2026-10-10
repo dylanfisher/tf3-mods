@@ -2,6 +2,56 @@
     "name": "Bigger Line Dots",
     "summary": "Enlarges the coloured line dots shown above stations and stops on the map.",
     "description": "Makes the coloured line dots above stations and stops on the map bigger (12 px instead of 7 px). Cosmetic, safe to add to or remove from any save.",
+    "localization": {
+        "ru": {
+            "name": "Крупные точки линий",
+            "summary": "Увеличивает цветные точки линий над станциями и остановками на карте."
+        },
+        "de": {
+            "name": "Grössere Linienpunkte",
+            "summary": "Vergrössert die farbigen Linienpunkte über Bahnhöfen und Haltestellen auf der Karte."
+        },
+        "fr": {
+            "name": "Points de ligne agrandis",
+            "summary": "Agrandit les points de couleur des lignes affichés au-dessus des gares et arrêts sur la carte."
+        },
+        "es": {
+            "name": "Puntos de línea más grandes",
+            "summary": "Agranda los puntos de color de las líneas sobre las estaciones y paradas en el mapa."
+        },
+        "it": {
+            "name": "Punti linea più grandi",
+            "summary": "Ingrandisce i punti colorati delle linee sopra stazioni e fermate sulla mappa."
+        },
+        "nl": {
+            "name": "Grotere lijnstippen",
+            "summary": "Vergroot de gekleurde lijnstippen boven stations en haltes op de kaart."
+        },
+        "pl": {
+            "name": "Większe kropki linii",
+            "summary": "Powiększa kolorowe kropki linii wyświetlane nad stacjami i przystankami na mapie."
+        },
+        "pt_BR": {
+            "name": "Pontos de linha maiores",
+            "summary": "Aumenta os pontos coloridos das linhas exibidos sobre estações e paradas no mapa."
+        },
+        "ja": {
+            "name": "路線ドット拡大",
+            "summary": "マップ上の駅や停留所の上に表示される路線の色付きドットを大きくします。"
+        },
+        "ko": {
+            "name": "더 큰 노선 점",
+            "summary": "지도에서 역과 정류장 위에 표시되는 색깔 노선 점을 크게 만듭니다."
+        },
+        "zh_CN": {
+            "name": "更大的线路圆点",
+            "summary": "放大地图上车站和站点上方显示的彩色线路圆点。"
+        },
+        "zh_TW": {
+            "name": "更大的路線圓點",
+            "summary": "放大地圖上車站與站點上方顯示的彩色路線圓點。"
+        }
+    },
     "authors": [
         {
             "name": "square",
