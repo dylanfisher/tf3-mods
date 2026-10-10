@@ -236,6 +236,14 @@ Square.stateCover({
 Square.stateCover({
   id: 'square_names_us_hawaii', state: 'Hawaii', flag: 'us_hawaii.svg', flagAspect: 2.0, accent: '#D63384',
 });
+Square.forkCover({
+  id: 'square_opt_zhenya_auto_assign_terminals', name: 'SQ Opt: Auto Assign Terminals',
+});
+
+// DEV mods (test harnesses and probes, NOT_FOR_UPLOAD.txt): grey field instead of the teal, shared flask. README "DEV mods".
+Square.devCover({
+  id: 'square_aat_perftest', name: 'DEV AAT Perf Test', group: 'perf', tagline: 'Timed original vs optimized',
+});
 Square.devCover({
   id: 'square_sqperf_all', name: 'DEV SQPERF: all mods', group: 'perf', tagline: 'Perf log on for every mod',
   titleLines: ['DEV SQPERF:', 'all mods'],  // the automatic wrap leaves "mods" alone on line 2
