@@ -89,6 +89,10 @@ global record SquareProductionLabelModel
 	view : function(productionDatas : any, cargoData : any, pickupRates? : any) : SquareProductionLabelView
 	--- The entries of a view that have a pickup rate, in order (fresh table; empty for nil).
 	pickupEntries : function(view : SquareProductionLabelView) : {SquareProductionLabelEntry}
+	--- The view with each entry's pickup set from pickupRates (as model.view would); `view` itself
+	--- (shared, never changed) when pickupRates is nil. model.view(pds, cd, rates) equals
+	--- model.withPickup(model.view(pds, cd, nil), rates).
+	withPickup : function(view : SquareProductionLabelView, pickupRates : any) : SquareProductionLabelView
 	--- Options from the mod's own getModParams() entry ({showProduction, showPickup, showWarehouse},
 	--- 1-based value index): 2 = off, anything else (incl. a missing or malformed table) = on.
 	--- Always a fresh table.
@@ -170,6 +174,31 @@ global record SquareProductionLabelPickupStats
 	stopIndexMismatches : integer
 end
 
+--- One station group of a rebuild: its entry of getStationGroup2LineStopsMap().
+global record SquareProductionLabelPickupGroup
+	stationGroup : integer
+	lineStops : {{integer, integer}}
+end
+
+--- A rebuild in progress (pickup.newBuild / pickup.step): the scan position, the per-rebuild memos
+--- and the partial result. Opaque outside the pickup module.
+global record SquareProductionLabelPickupBuild
+	adapter : SquareProductionLabelPickupAdapter
+	stats : SquareProductionLabelPickupStats
+	passenger : integer
+	groups : {SquareProductionLabelPickupGroup}
+	gi : integer
+	stopsOf : {integer : {SquareProductionLabelPickupStop}}
+	outputsOf : {integer : {integer}}
+	producersOf : {integer : {{integer, integer}}}
+	served : {integer : {integer : {integer : boolean}}}
+	servedKeys : {integer}
+	si : integer
+	rateOf : {integer : number}
+	result : {integer : {integer : integer}}
+	done : boolean
+end
+
 --- The shared cache: stockList entity -> {cargoTypeId -> rounded rate > 0}.
 global record SquareProductionLabelPickupCache
 	rates : {integer : {integer : integer}}
@@ -178,6 +207,10 @@ global record SquareProductionLabelPickupCache
 	building : boolean
 	builds : integer
 	errorLogged : boolean
+	--- Sliced rebuild in progress (nil when none), its start and its last slice (pickup.nowMs ms).
+	pending : SquareProductionLabelPickupBuild
+	pendingStartMs : number
+	sliceAtMs : number
 end
 
 global record SquareProductionLabelPickup
@@ -185,17 +218,37 @@ global record SquareProductionLabelPickup
 	REFRESH_INTERVAL : number
 	--- Engine.Component.Line.LoadMode.LEGACY_UNLOAD_ONLY as a number (declaration order, unverified).
 	LEGACY_UNLOAD_ONLY : integer
+	--- Sliced rebuilds: work per slice (ms), minimum time between slices (ms), and the age (ms) after
+	--- which a pending rebuild finishes in its next slice.
+	SLICE_BUDGET_MS : number
+	SLICE_GAP_MS : number
+	BUILD_MAX_MS : number
+	--- Millisecond timer for the slices (set to the api.type.Clock timer by production_label.script.tl).
+	nowMs : function() : number
 	--- One-shot debug log of the first rebuild and the first label lookups.
 	DEBUG : boolean
 	--- Number of label lookups logged when DEBUG is on.
 	DEBUG_LOOKUPS : integer
 	--- The module-wide cache shared by every label.
 	cache : SquareProductionLabelPickupCache
+	--- SQPERF instrument (a SquareIndustryProductionLabelSqPerfInst; typed any because this file
+	--- loads before the sqperf types) set by production_label.script.tl for section "pickup_rebuild".
+	--- nil when unset (tests): no timing.
+	perf : any
 	--- A fresh, never-built cache.
 	newCache : function() : SquareProductionLabelPickupCache
 	--- Pure: stockList -> {cargo -> rate} from the adapter's reads, each line counted once per
 	--- (stockList, cargo), plus counts.
 	aggregate : function(adapter : SquareProductionLabelPickupAdapter) : {integer : {integer : integer}}, SquareProductionLabelPickupStats
+	--- A resumable rebuild: reads the line-stops map now; the rest happens in step.
+	newBuild : function(adapter : SquareProductionLabelPickupAdapter) : SquareProductionLabelPickupBuild
+	--- Continue a rebuild until done (true) or until overBudget() returns true after a unit of work
+	--- (false). Without overBudget it runs to the end. The result equals aggregate's.
+	step : function(build : SquareProductionLabelPickupBuild, overBudget? : function() : boolean) : boolean
+	--- In-game driver: the first build at once (refresh), later ones sliced (one slice per
+	--- SLICE_GAP_MS). Returns built (a rebuild completed: rates swapped), its stats, and whether
+	--- any rebuild work ran in this call.
+	tick : function(cache : SquareProductionLabelPickupCache, makeAdapter : function() : SquareProductionLabelPickupAdapter, now : number, getUpdateCount : function() : integer, nowMs : function() : number) : boolean, SquareProductionLabelPickupStats, boolean
 	--- Whether a rebuild is due at `now`; getUpdateCount is only called once the interval passed.
 	--- Paused (updateCount unchanged): not due, and the interval restarts at `now`.
 	isStale : function(cache : SquareProductionLabelPickupCache, now : number, getUpdateCount : function() : integer) : boolean
@@ -206,6 +259,39 @@ global record SquareProductionLabelPickup
 	--- In game: {cargo -> rate} for a label's STOCK_LIST entity, refreshing the shared cache when
 	--- stale. Never errors; nil when there is no pickup.
 	ratesFor : function(entity : integer) : {integer : integer}
+end
+
+-- ======================================================================
+-- from production_label_readcache.tl (per-entity read cache shared by every HUD label; pure)
+-- Module: ug_require "square_industry_production_label::/production_label/production_label_readcache.tl" as SquareProductionLabelReadCache
+
+global record SquareProductionLabelReadCacheEntry
+	at : number
+	value : any
+end
+
+--- One cache: entity -> its last read and when (ms).
+global record SquareProductionLabelReadCacheInst
+	entries : {integer : SquareProductionLabelReadCacheEntry}
+	ttlMs : number
+	sweptAt : number
+end
+
+global record SquareProductionLabelReadCache
+	--- Max age (ms) of a cached read (below the labels' 2 s poll).
+	TTL_MS : number
+	--- Expired entries are dropped at most once per SWEEP_MS (ms).
+	SWEEP_MS : number
+	new : function(ttlMs? : number) : SquareProductionLabelReadCacheInst
+	--- found, value (a cached nil counts as found) when the entry is younger than ttlMs at `now`.
+	get : function(c : SquareProductionLabelReadCacheInst, key : integer, now : number) : boolean, any
+	--- Store a read at `now`; true when the key was not cached before.
+	put : function(c : SquareProductionLabelReadCacheInst, key : integer, now : number, value : any) : boolean
+	--- The industry and warehouse caches of the HUD state.
+	industry : SquareProductionLabelReadCacheInst
+	warehouse : SquareProductionLabelReadCacheInst
+	--- Fresh empty industry and warehouse caches (tests).
+	reset : function()
 end
 
 recordDef = false

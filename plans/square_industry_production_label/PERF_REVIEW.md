@@ -1,5 +1,53 @@
 # Industry Production Label: performance review
 
+## 2026-10-10: shared read cache, sliced pickup rebuild
+
+### Evidence (SQPERF, desert save, 107 industries, 250 lines, 175 s, ctx=hud)
+
+`read_industry` 23 204 calls (133/s over the session, ~220/s in the windows with labels on screen), 7.5 ms/s,
+max 27 ms; `industry_render` 2116, `hud_icon_fn` 2437 (mount/re-render rate ~14/s); `pickup_rebuild` 11 calls,
+avg 9.4 ms, max 27 ms. All `ctx=hud` lines carry one `vm=` id while the thread column moves over
+"Main Pool 1..10": **one Lua state** for every HUD label of a load, called from varying worker threads.
+
+### Root cause
+
+Each label polls with `useStepStateTimer(readView, 2.0)`, plus one read per mount (`useStateLazy`). At 2 s a
+single label per industry would be ~54 reads/s for 107 industries; the windows show ~220/s with only ~5
+renders/s, so the reads are timer-driven and come to ~4 reads per industry per 2 s. The engine runs a
+separate `HudIconMasterGame` (and with it our recipe and its timer) per HUD icon instance; base
+`hud_icon_toolbox.tl:340-356` mounts the custom recipe for every icon of the first subconstruction,
+independent of `params.index`, and the HUD may keep icons mounted beyond the visible ones (both unverified).
+Which of these multiplies it is not visible from Lua, but every extra poller reads the **same entity** and each did
+the full read (1 + 2 per output STOCK_LIST conversions, `GetIndustryBoost`, base `getStockListInputOutputData`
+twice per output). Base polls its own stock pill per icon at 0.5 s with no cache; we already poll 4x slower.
+
+### Changes
+
+| Where | Change |
+|---|---|
+| `content/production_label/production_label_readcache.tl` (new) | Per-entity cache `{at, value}`, TTL 1.5 s, sweep of expired entries every 30 s. Plain module table: one Lua state, the engine runs one callback at a time in it and get/put never yield, so no torn entries. |
+| `production_label.script.tl` `readIndustry` / `readWarehouse` | Labels read through the cache; the cached industry view has no pickup, each label adds its own (`model.withPickup`), so pickup-on/off labels share a read. Errors are not cached (each label still fails and warns once, as before). Clock: `api.type.Clock` (worker-thread safe), fallback `os.time`. |
+| `production_label_model.tl` `model.withPickup` | Copies entries with `pickupValue`; equals `model.view(pds, cd, rates)`. |
+| `production_label_pickup.tl` `newBuild` / `step` / `tick` | Rebuild as a resumable job. The first build runs at once (as before); later rebuilds run in ~4 ms slices, at most one per 100 ms (all labels' timer reads of a frame run back to back, so the gap spreads slices over frames), old rates served until the new set is complete, a build older than 3 s finishes in its next slice. Same result as one pass (tested). |
+| SQPERF | `read_industry` / `read_warehouse` now time only the engine reads behind the cache; counters `read_cache_hit`, `read_cache_hit_wh`, `read_cache_new`; `pickup_rebuild` = one slice, counter `pickup_built` = completed rebuilds. |
+
+Staleness introduced: a label may show a read up to 1.5 s old (TTL) at its poll, below the 2 s poll
+interval. Pickup: a rebuild completes up to ~1 s later than before (vs its 15 s interval).
+
+### Expected in game
+
+`read_industry` n drops to about one per industry per ~1.5-2 s of labels on screen (from ~4): ~55/s instead
+of ~220/s in busy windows, ms/s from ~7.5 to ~2. `read_cache_hit` ≈ the old read count minus the new one.
+`pickup_rebuild` max from 27 ms to ~4-8 ms (n rises, one per slice; `pickup_built` ≈ old n).
+
+### In-game check list
+
+- [ ] DEV "SQPERF: all mods" on, desert save, 5 min over industry clusters and warehouses, `make perf ARGS=--last`.
+- [ ] Production numbers still tick (a processor's Current Production changes within ~2-4 s of the window's).
+- [ ] Start a line loading at an industry: the pickup pill appears within ~15 s, as before.
+- [ ] Warehouse in/out pills update as before.
+
+
 ## 2026-10-08
 
 ### Changes

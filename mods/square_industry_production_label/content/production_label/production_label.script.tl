@@ -11,7 +11,9 @@
 -- (base industry_util, the same calls as the industry window) + one STOCK_LIST read + one lookup in
 -- the shared pickup-rate cache (production_label_pickup.tl, rebuilt there at most every 15 s). No
 -- commands, no game script, no saved state. Refreshed every REFRESH_INTERVAL s, not every frame
--- (PLAN "Recipe", "Pickup rate pill").
+-- (PLAN "Recipe", "Pickup rate pill"). The engine part is shared per entity through
+-- production_label_readcache.tl: one read per industry / warehouse per readcache.TTL_MS (1.5 s) for
+-- all labels of it (PERF_REVIEW.md 2026-10-10).
 --
 -- Options (mod settings, PLAN "Options", "Settings read live (2026-10-07)"): read live by readSettings()
 -- from api.engine.config.getModParams() each time hudIconFn is called (once per HUD icon mount, not per
@@ -31,6 +33,19 @@
 -- type (incoming "itemsUnloaded", outgoing "itemsLoaded"), the same calls the base stock pill makes per
 -- stored cargo (cargo_util.tl:238-239). Industries are unchanged.
 
+-- SQPERF (plans/sqperf/README.md): load time of this HUD Lua state, the first industry read (it
+-- includes the first pickup-cache rebuild), slow calls (> 16 ms, at most one line per section per
+-- minute) and, with the "Debug: performance log" mod setting, a 30 s summary. hudIconFn, the recipe
+-- renders and the useStepStateTimer reads (first in render, then react.onStepTimer) all run on worker
+-- threads ("Main Pool N"); api.type.Clock is safe there (docs/findings.md "Timers and threads in GUI
+-- contexts"). Local counters only; nothing is saved. read_industry / read_warehouse time only the
+-- engine reads behind the shared read cache; cache hits are counted (read_cache_hit, read_cache_hit_wh,
+-- read_cache_new = industries cached for the first time or again after expiring), pickup_rebuild is
+-- one slice of a pickup rebuild and pickup_built counts completed rebuilds.
+local sqperf = ug_require "square_industry_production_label::/sqperf/square_industry_production_label.lua" as SquareIndustryProductionLabelSqPerf
+local perf = sqperf.new({ mod = "square_industry_production_label", ctx = "hud", paramKey = "sqperf_log", first = { "read_industry" } })
+local perfInit = perf:start()
+
 local react = ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
 local engine_react_util = ug_require "::/gui/main/engine_react_util.tl" as EngineReactUtil
@@ -41,6 +56,22 @@ local lang_util = ug_require "::/scripts/lang_util.tl" as LangUtil
 
 local model = ug_require "square_industry_production_label::/production_label/production_label_model.tl" as SquareProductionLabelModel
 local pickup = ug_require "square_industry_production_label::/production_label/production_label_pickup.tl" as SquareProductionLabelPickup
+local readcache = ug_require "square_industry_production_label::/production_label/production_label_readcache.tl" as SquareProductionLabelReadCache
+pickup.perf = perf -- SQPERF section "pickup_rebuild", counter "pickup_built"
+
+-- Millisecond wall clock for the read cache and the sliced pickup rebuild: api.type.Clock (safe on the
+-- HUD worker threads, docs/findings.md "Timers and threads in GUI contexts"; never getApplicationTime,
+-- GUI-thread only). Fallback os.time (1 s steps: a cached read is then at most ~2 s old).
+local nowMs : function() : number
+do
+	local ok, clock = pcall(function() : Clock return api.type.Clock.new() end)
+	if ok and clock ~= nil and pcall(function() : integer return clock:getTime() end) then
+		nowMs = function() : number return clock:getTime() / 1000 end
+	else
+		nowMs = function() : number return os.time() * 1000 end
+	end
+end
+pickup.nowMs = nowMs
 
 local STOCK_LIST = api.type.ComponentType.STOCK_LIST
 
@@ -60,12 +91,12 @@ local record ProductionLabelParam
 	showPickup : boolean
 end
 
---- Engine read for one industry entity (the STOCK_LIST subconstruction). Output i of
+--- Engine read for one industry entity (the STOCK_LIST subconstruction), without pickup rates (the
+--- shared read cache keeps this part; readIndustry adds each label's pickup). Output i of
 --- getStockListInputOutputData(entity, false, false, 0) (0 = no limit, industry_util.tl:170, 265-294)
 --- is the `index` getIndustryProductionData looks up (it calls the same function with maxNum = index,
 --- industry_util.tl:313-317), so each output cargo gets the window's `total` and `actual`.
---- The pickup cache is only touched when showPickup is set (option off: no lookup, no rebuild).
-local function readView(entity : Engine.Entity, showPickup : boolean) : SquareProductionLabelView
+local function readView(entity : Engine.Entity) : SquareProductionLabelView
 	if entity == nil or entity < 0 or not api.engine.entityExists(entity) then
 		return nil
 	end
@@ -81,12 +112,35 @@ local function readView(entity : Engine.Entity, showPickup : boolean) : SquarePr
 			productionDatas[#productionDatas + 1] = pd
 		end
 	end
-	-- Pickup rates ride along in the same state (entry.pickup), so no second timer is needed.
-	local pickupRates : {integer : integer} = nil
-	if showPickup then
-		pickupRates = pickup.ratesFor(entity)
+	return model.view(productionDatas, stockList.cargoData, nil)
+end
+
+--- What a label's timer reads (PERF_REVIEW.md 2026-10-10): the industry part from the shared per-entity
+--- read cache (one engine read per entity per readcache.TTL_MS, whichever label asks first; SQPERF
+--- section "read_industry" = those engine reads, counters "read_cache_hit" / "read_cache_new"), then
+--- this label's pickup rates. Pickup rates ride along in the same state (entry.pickup), so no second
+--- timer is needed; the pickup cache is only touched when showPickup is set (option off: no lookup,
+--- no rebuild) and the industry has a view. An engine-read error is raised to the caller (not cached).
+local function readIndustry(entity : Engine.Entity, showPickup : boolean) : SquareProductionLabelView
+	local cache = readcache.industry
+	local now = nowMs()
+	local found, cached = readcache.get(cache, entity, now)
+	local view : SquareProductionLabelView
+	if found then
+		perf:count("read_cache_hit")
+		view = cached as SquareProductionLabelView
+	else
+		local tPerf = perf:start() -- SQPERF section "read_industry" (failed reads count too)
+		local ok, res = pcall(readView, entity)
+		perf:stop("read_industry", tPerf)
+		if not ok then error(res, 0) end
+		view = res as SquareProductionLabelView
+		if readcache.put(cache, entity, now, view) then perf:count("read_cache_new") end
 	end
-	return model.view(productionDatas, stockList.cargoData, pickupRates)
+	if showPickup and view ~= nil then
+		return model.withPickup(view, pickup.ratesFor(entity))
+	end
+	return view
 end
 
 --- One pill, built like the stock pill: makeContentLabelIndictator with labelMode "HudIconMain"
@@ -138,7 +192,26 @@ local function readWarehouseView(entity : Engine.Entity) : SquareProductionLabel
 	return model.warehouseView(rates)
 end
 
-local ProductionLabelHudIcon = react.RegisterRecipe("ProductionLabelHudIcon", function(param : ProductionLabelParam) : TreeNodeId
+--- A warehouse label's timer read through the shared read cache (as readIndustry; SQPERF section
+--- "read_warehouse" = engine reads, counter "read_cache_hit_wh"). Errors are raised, not cached.
+local function readWarehouse(entity : Engine.Entity) : SquareProductionLabelWarehouseView
+	local cache = readcache.warehouse
+	local now = nowMs()
+	local found, cached = readcache.get(cache, entity, now)
+	if found then
+		perf:count("read_cache_hit_wh")
+		return cached as SquareProductionLabelWarehouseView
+	end
+	local tPerf = perf:start() -- SQPERF section "read_warehouse" (failed reads count too)
+	local ok, res = pcall(readWarehouseView, entity)
+	perf:stop("read_warehouse", tPerf)
+	if not ok then error(res, 0) end
+	readcache.put(cache, entity, now, res)
+	return res as SquareProductionLabelWarehouseView
+end
+
+-- SQPERF section "industry_render" (the recipe's own function; its first call includes the first read).
+local ProductionLabelHudIcon = react.RegisterRecipe("ProductionLabelHudIcon", perf:wrap("industry_render", function(param : ProductionLabelParam) : TreeNodeId
 	-- Set by the first failed read. That industry then shows no label and is not read again, so a
 	-- deterministic error is logged once instead of silently repeating every REFRESH_INTERVAL.
 	local failed = react.useRef(false)
@@ -147,7 +220,7 @@ local ProductionLabelHudIcon = react.RegisterRecipe("ProductionLabelHudIcon", fu
 			return nil
 		end
 		-- A malformed (modded) industry must never break the HUD: no label instead of an error.
-		local ok, view = pcall(readView, param.entity, param.showPickup)
+		local ok, view = pcall(readIndustry, param.entity, param.showPickup)
 		if not ok then
 			failed:set(true)
 			log.warning("square_industry_production_label: no label for entity " .. tostring(param.entity) .. ": " .. tostring(view))
@@ -200,20 +273,21 @@ local ProductionLabelHudIcon = react.RegisterRecipe("ProductionLabelHudIcon", fu
 		orientation = builtin.type.Orientation.Vertical,
 		children = rows,
 	}
-end)
+end))
 
 local record WarehouseLabelParam
 	entity : Engine.Entity
 end
 
-local ProductionLabelWarehouseHudIcon = react.RegisterRecipe("ProductionLabelWarehouseHudIcon", function(param : WarehouseLabelParam) : TreeNodeId
+-- SQPERF section "warehouse_render".
+local ProductionLabelWarehouseHudIcon = react.RegisterRecipe("ProductionLabelWarehouseHudIcon", perf:wrap("warehouse_render", function(param : WarehouseLabelParam) : TreeNodeId
 	-- Same failure handling as ProductionLabelHudIcon: first error logged once, then no label.
 	local failed = react.useRef(false)
 	local state = engine_react_util.useStepStateTimer(function() : SquareProductionLabelWarehouseView
 		if failed:get() then
 			return nil
 		end
-		local ok, view = pcall(readWarehouseView, param.entity)
+		local ok, view = pcall(readWarehouse, param.entity)
 		if not ok then
 			failed:set(true)
 			log.warning("square_industry_production_label: no warehouse label for entity " .. tostring(param.entity) .. ": " .. tostring(view))
@@ -255,7 +329,7 @@ local ProductionLabelWarehouseHudIcon = react.RegisterRecipe("ProductionLabelWar
 		orientation = builtin.type.Orientation.Vertical,
 		children = rows,
 	}
-end)
+end))
 
 local MOD_ID <const> = "square_industry_production_label"
 
@@ -292,8 +366,11 @@ local function emptyLayout() : TreeNodeId
 	}
 end
 
+perf:phase("init", perfInit)
+
 return {
-	hudIconFn = function(captureParams : any, params : Builtin.HudIconParam, _userParam : HudIconToolbox.HudIconMasterUserParam) : TreeNodeId
+	-- SQPERF section "hud_icon_fn" (once per HUD icon mount; includes the settings read).
+	hudIconFn = perf:wrap("hud_icon_fn", function(captureParams : any, params : Builtin.HudIconParam, _userParam : HudIconToolbox.HudIconMasterUserParam) : TreeNodeId
 		local options = readSettings()
 		if model.kind(captureParams) == model.WAREHOUSE_KIND then
 			if not options.showWarehouse then
@@ -305,5 +382,5 @@ return {
 			return emptyLayout()
 		end
 		return ProductionLabelHudIcon{ entity = params.entity, showProduction = options.showProduction, showPickup = options.showPickup }
-	end,
+	end),
 }
