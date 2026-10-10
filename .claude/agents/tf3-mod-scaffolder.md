@@ -25,8 +25,9 @@ You scaffold new TF3 mods in this hub.
    - For anything else, find the closest base-game file in `.cache/game/base/content/` using `docs/game/MANIFEST.txt`.
 
    Mirror the base game's folder structure under `content/`. If the starter content references binary assets you can't create (meshes, DDS textures), leave clear TODO notes and list them for the user.
-4. Run `make validate MOD=mods/<modId>` and fix any errors.
-5. Unless the caller said not to, run `make link` so the mod appears in the game's staging area.
+4. Make the mod translatable from the start (CLAUDE.md "Translations"): every user-visible string through `_()` (English text as the key), mod.json param name/tooltip/values in English, a `strings.json` with all 12 non-English languages (`make i18n MOD=mods/<modId> ARGS='--missing ru'` lists what each needs, `--fix-format` writes the layout), and a `localization` block with name and summary for each language in `_metadata/modinfo.json`. Gate: `make i18n MOD=mods/<modId> ARGS='--check --lint-modinfo'`.
+5. Run `make validate MOD=mods/<modId>` and fix any errors.
+6. Unless the caller said not to, run `make link` so the mod appears in the game's staging area.
 
 ## Output
 

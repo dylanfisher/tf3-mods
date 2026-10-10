@@ -22,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from hubconfig import MODS_DIR, WIKI_DIR, is_text_resource  # noqa: E402
+from i18n import summary_line as translation_summary  # noqa: E402
 from sqperf_sync import check_mod as check_sqperf  # noqa: E402
 
 MAX_MOD_BYTES = 500 * 1024 * 1024
@@ -287,6 +288,9 @@ def validate(mod: Path, tags: set[str] | None) -> Report:
     if strings.exists():
         load_json(strings, report)
     check_files(mod, report)
+    translations = translation_summary(mod)  # strings.json coverage (tools/i18n.py); skips DEV/probe/fork mods
+    if translations:
+        report.warn(translations)
     for problem in check_sqperf(mod):  # SQPERF copies match tools/sqperf/ (plans/sqperf/README.md)
         report.error(f"sqperf: {problem}")
     return report

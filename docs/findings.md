@@ -523,7 +523,7 @@ Sixth run (2026-10-10 07:40–07:45Z, build 40420, a 53k-person map, Traffic tab
   so a future crash entity can be matched against stdout.txt.
 - **Unrelated(?)**: at 06:32:24Z, during a save load (no `[SQST]` line nearby), the Simulation Thread hit
   `gamescript_util.cpp:385` "Assertion 'false' failed", logged as a fatal-error exception, but the game kept
-  running. Not traced to any mod; unexplained.
+  running. Later traced to `state:get_native()` in the SQ Opt AAT fork; see "Game-script `get_native` asserts".
 
 ## ImageView raw pixel data (2026-10-09)
 
@@ -545,3 +545,100 @@ right-align the header next to the pin both left it at the left: `gravity = { -1
 an explicit root `size` (picture width - 56 UI px) with the button at `gravity = { 1, 0 }`. The header container has no
 stylesheet name in the base CSS (only `Window::TitleBar`, `TitleLayout`, `Title`, `Icon`, `Content`, `Close`, `Locate`).
 The pin sits in its own notch outside the title tab.
+
+## Game-script pauses don't stall rendering (2026-10-10)
+
+Probe `square_hitch_probe` (`[HITCH]` lines, report `plans/hitch_probe/hitch_report.py`, steps in its README), a big
+save at 1x, camera panning, ~60 fps.
+
+- **A long game-script `update` does not delay rendered frames.** Busy-waiting 40 ms in `update` gave 0 of 13 pauses
+  a slow frame, 100 ms gave 0 of 8 (worst frame of that level 50 ms). The control, a 40 ms busy-wait in the GUI's
+  `react.onStep`, hit 6 of 6. The tester felt no difference either. `update` runs on `Sim Pool N` / `Simulation Thread`
+  threads beside the `Main Thread`. So a slow sweep costs simulation time, not frames; per-frame GUI work is what
+  players feel.
+- **`GAME_TIME.tickCount` is not per frame**, despite its doc comment ("once per frame"): read from the GUI, it moved by
+  4 once per simulation step, about every 200 ms (~20/s), with ~12-18 frames sharing a value.
+- Game-script `update` ran in more than one simulation Lua state within the same 40-tick period (10 periods paused
+  twice although the period was stored in the shared state), so a "once per interval" guard in a module local or even
+  in the state can fire more than once.
+
+## Game-script `get_native` asserts (2026-10-10)
+
+- **`state:get_native():findPath({...})` in a game script's `handleEvent` throws a fatal assertion in game**:
+  `gamescript_util.cpp:385` "Assertion 'false' failed" on the Simulation Thread (exception type "Fatal error"). The
+  game keeps running when the call is wrapped in `pcall`, but every call logs the fatal error, and the first one wrote
+  a crash dump (`crash_dump/*.dmp`, same second). The binary places that file in `GameScriptTableHelper` /
+  `SyncTableBack`, the native state accessors (`get_native`, `set_native`; `gamescript.d.tl:42`).
+- Evidence: `square_opt_zhenya_auto_assign_terminals` rev 1 called it per new station group in
+  `onPostBuildProposal`. It was the only script among 21 active mods that used `get_native`. A save with it active
+  logged 10 asserts 2–7 s apart (16:55:32Z–16:56:40Z) during a construction session; earlier unexplained cases
+  (02:55Z, 06:32Z) all date from after the fork was linked. Not yet confirmed by a game run without the fork. Which
+  call asserts (`get_native` or `findPath`, and whether only for missing paths) isn't isolated.
+- Use `state:get()` in game scripts. The GUI-side `gameScript.state_native:find(key)` / `findPath(...):asTable()`
+  (used by the base game, `industry_productivity_util.tl:11`) runs on the Main Thread, and no assert came from it in
+  the same log.
+
+## Wrapping rows in a GUI plugin: `builtin.FlowLayout` (2026-10-10)
+
+- **`builtin.FlowLayout{ children = {...} }` wraps its children onto new rows to fit the available width**, also inside
+  an entity-window plugin's `ContentCard` (`extraChildrenPermanent`). Its only field is `children`
+  (`base/tealdef/scripts/builtin.d.tl:683`); the base game uses it for sparse construction-menu toggle buttons
+  (`construction_desc_react_util.tl:970`, `builtin.lua:817`).
+- Use it instead of splitting a horizontal `BoxLayout` into rows after a fixed item count: the window width varies (a
+  port's station window is narrower than the counts assumed), and wider labels (two-digit numbers) overflow sooner.
+  Items past the edge of a `BoxLayout` are silently cut off.
+- Spacing: keep each item's gap inside the item (`BoxLayout{ item, gap }` with a fixed-width styled `Component` as the
+  gap), so a wrapped row never starts with a bare spacer.
+- Evidence: `square_passenger_destinations` rev 3. The station card's "Destinations: [] All [] 1 … [] Next stop" row
+  (fixed 6 + 10 per row) was cut off in a port window; as one FlowLayout it wrapped correctly in game.
+
+## 200 locals per function, also in a `.tl` file's main chunk (2026-10-10)
+
+- A `.tl` script whose top level declares more than 200 `local`s fails to load in game with "too many local variables
+  (limit is 200) in main function", and a GUI plugin in it takes the whole UI down ("Script component root failed",
+  crash dump). Teal's type check passes such a file; `make check` now also compiles the generated Lua and reports it
+  (`generated Lua: too many local variables ...`).
+- Evidence: `square_better_minimap` `minimap_hud.script.tl` with 213 top-level locals crashed on load at 17:33:15Z
+  (`MinimapHudPlugin`). Fix: group constants and helpers into tables.
+
+## Translations: `strings.json` and `_()` (research 2026-10-10, in-game checks pending)
+
+From game files and published mods, not yet tested in game. Replace each "pending" line with the in-game result.
+
+**Verified in game (2026-10-10, square_better_minimap rev 6 from the staging area, game language Russian):**
+`_()` in a GUI react script (HUD plugin recipes, a Window's content, CheckBox labels, a TextInputField
+placeholder, Button text) shows the mod's `strings.json` `ru` text: "Пром / Фильтр / Сеть / Ярко", "Карта",
+"Фильтр предприятий", "Показаны все типы". Cyrillic renders in all of them. Industry names from the game arrive
+in Russian (and are longer: "Лесозаготовительное предприятие", so rows sized for English names clip; cut them
+to fit). The Mod Hub "My Mods" page for that staging mod still showed the English name "Better Minimap" with the
+`localization.ru` block present. Pending: whether the mod browser / mod list for subscribed mods uses it.
+
+- `_` is a global (`api/tealdef/main.d.tl:9`, `global _ : function(string) : string`), implemented in
+  `base/content/base/mod.lua:154-184`. It translates immediately only where the engine sets `_getTextNow`;
+  everywhere else it returns the key unchanged and the engine translates the string when it displays it
+  (resource files: `.con.lua` name/description/params, road and street `.lua`, `.names.lua`). So in resource
+  files `_()` must wrap the whole displayed string: never `string.format`, concatenate or compare its result.
+  GUI scripts translate immediately: the base game does `string.format(_("%.0f%%"), v)`
+  (`base/content/gui/menu/settings_page.tl:88`), and community GUI scripts with a `ru` strings.json use `_()`
+  the same way (zhenya_auto_assign_terminals `aat_eow.script.lua:73-80`).
+- Used in published mods in: GUI `.script.lua/.tl` and the plain `.lua` modules they load, `.css.lua`
+  (move_it `move_it.css.lua:20`), `.con.lua` (incl. param name/tooltip/values), `.names.lua`, `.clima.lua`,
+  `.eco.lua`, `.mu.lua`, `.module.lua`, base-game HUD scripts. **Never seen** in a game script (`.gs.lua`)
+  or in mod.script `runFn`. Pending: does `_()` translate there, and in `hudIconScript`?
+- `strings.json` language keys are the short codes `en ru de fr es it nl pl pt_BR ja ko zh_CN zh_TW`
+  (exactly the game's 13 locales in `base/content/locale/*.lang.lua`; community mods use the same keys).
+  Fallback (wiki): language, then `en`, then the key itself. Pending: whether `pt_BR`/`zh_TW` fall back to
+  `pt`/`zh` (irrelevant as long as every mod ships all 13 keys).
+- mod.json param `name`, `tooltip` and each `values` entry are looked up in strings.json
+  (zhenya_doubleclick_to_edit uses id keys, the wiki's param-filter example plain English text).
+- `modinfo.json` `localization.<lang>.{name,summary,description}`: name ≤ 32 chars, summary ≤ 100, no line
+  breaks. The wiki warns the Hub concatenates the languages into the uploaded mod.io description; we
+  localize only `name` and `summary` (description.html stays English). `tools/modio_sync.py` ignores
+  `localization`. Pending: what the first Hub upload with a `localization` block sends to mod.io
+  (check with `make modio ARGS=--diff`).
+- Fonts: every locale has a Noto Sans CJK `unicodeFontMap` fallback, so Cyrillic and CJK should render in GUI
+  text. Pending: CJK and Cyrillic in HUD (`hudIconScript`) text, whose font lacks some glyphs (▲).
+- Named placeholders: the game's own convention is `{name}` plus `lang_util.format(s, {name = v})`
+  (`base/tealdef/scripts/lang_util.d.tl:5`); plurals exist (`nGetText`) but no strings.json plural form is
+  documented, so we avoid them.
+- Pending: whether `strings.json` changes in the staging area apply live or need a game restart.

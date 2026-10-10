@@ -38,7 +38,7 @@ Every mod ships under the creator name **square** (modId `square_<name>`, modinf
 
 - **Canvas**: 1920×1080. The diagonal runs at 45°, from (1540, 0) to (460, 1080), with a 16 px teal stripe 70 px to its right.
 - **Family teal** `#2FA48F` with a soft white-to-black sheen on the title side. The pictogram side is dark `#18202a`.
-- **Title**: top-left (first baseline at y=200, x=108), Overpass 800, 130 px, colour `#0f1d1b`. **Tagline**: Overpass 600, 74 px, 75 % opacity, 120 px below the last title line. Both wrap to the room left of the diagonal at each line (estimated per character in `cover.js`), so short names stay on one line; a tagline that doesn't fit splits into two with the longer half on top (first space past the middle).
+- **Title**: top-left (first baseline at y=200, x=108), Overpass 800, 130 px, colour `#0f1d1b`. **Tagline**: Overpass 600, 74 px, 75 % opacity, 120 px below the last title line. Both wrap to the room left of the diagonal at each line (estimated per character in `cover.js`), so short names stay on one line; a tagline that doesn't fit splits into two with the longer half on top (first space past the middle). A `\n` in the tagline forces the break there instead (Better Minimap).
 - **No creator logo**: covers and slides carry no "square" mark. The shared teal, diagonal and type are the family signal.
 - **Pictogram**: 640 px, on the dark side.
 
@@ -135,6 +135,7 @@ Every mod ships its description as `_metadata/description.html`. When that file 
   3. `<h4>Settings</h4>` when `mod.json` has `params`: each option by its exact in-game name, and its default.
   4. `<h4>Notes</h4>` for caveats and save compatibility ("reads the game state only, safe to add to or remove from existing saves" where true).
   5. `<hr>` then `<h2>Changelog</h2>`. Each revision gets an `<h4>` (`Revision N`, plus the upload date as `YYYY-MM-DD`) and a `<ul>` of changes, **newest first**. Start each item with New, Changed or Fixed.
+- The description is English only: mod.io holds one description per mod. Translated name and summary go in modinfo's `localization` block (CLAUDE.md "Translations"). Name settings by their English in-game text.
 - Keep modinfo's `description` as a short plain-text fallback (the summary plus one sentence). The `summary` stays ≤100 characters on a single line.
 - `make validate` warns when `description.html` is missing, has no Changelog heading, has no entry for the current `revision`, has text outside `<p>`/heading/`<li>` blocks, uses `<h2>` for anything but the Changelog, uses `<h1>`/`<h3>`, or uses tags the game doesn't render.
 

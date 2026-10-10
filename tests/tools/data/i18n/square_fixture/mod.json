@@ -1,0 +1,14 @@
+{
+    "modId": "square_fixture",
+    "revision": 1,
+    "params": [
+        {
+            "key": "mode",
+            "name": "Display mode",
+            "tooltip": "How %s is shown",
+            "uiType": "Button",
+            "values": ["Off", "On"],
+            "defaultIndex": 0
+        }
+    ]
+}

@@ -1,7 +1,7 @@
 # TF3 mod hub. All tools are stdlib/PEP 723 scripts run through uv.
 UV := uv run --quiet
 
-.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal covers shots state-towns state-mod state-mods names-browser flags gate test-tools probe-report probe-split hx-dump fork-new fork-status fork-merge fork-finish fork-abort sqperf-sync perf modio modio-status
+.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal covers shots state-towns state-mod state-mods names-browser flags gate test-tools probe-report probe-split hx-dump fork-new fork-status fork-merge fork-finish fork-abort forks-save forks-push sqperf-sync perf modio modio-status i18n
 
 help:
 	@echo "make docs        Re-sync all local docs (wiki + game files)"
@@ -13,6 +13,8 @@ help:
 	@echo "make fork-merge FORK=<forkId> [ARGS='--from DIR']  Three-way merge newer upstream into the fork"
 	@echo "make fork-finish FORK=<forkId>    After resolving conflicts: adopt the new upstream base"
 	@echo "make fork-abort FORK=<forkId>     Restore the fork from its pre-merge backup"
+	@echo "make forks-save [MSG='...']       Commit the fork paths to the private backup repo (.forks-git)"
+	@echo "make forks-push                   Push the private backup repo"
 	@echo "make new-mod ID=square_name NAME='Display Name' [ARGS='--script --tag \"Script Mod\"']"
 	@echo "make link        Symlink mods/* into the game's staging_area"
 	@echo "make unlink      Remove those symlinks"
@@ -24,6 +26,7 @@ help:
 	@echo "make shots       Render gallery slides from plans/<id>/shots/ -> mods/<id>/_metadata/1.png... (all, or MOD=mods/<id>)"
 	@echo "make modio [MOD=mods/<id>] [ARGS='--diff --apply --only gallery --force --prune-tags']  Dry-run/sync mod.io text, tags, logo, gallery"
 	@echo "make modio-status [MOD=mods/<id>] [ARGS=--verbose]  Which mods changed since their live mod.io upload (need a Hub update)"
+	@echo "make i18n [MOD=mods/<id>] [ARGS='--check --json --missing ru --fix-format --lint-modinfo -v']  strings.json translation report (keys, missing, placeholders)"
 	@echo "make teal        Generate tlconfig.lua for VS Code Teal autocompletion"
 	@echo "make sqperf-sync [MOD=mods/<id>] [ARGS=--check]  Copy tools/sqperf/ into mods using SQPERF (MOD: add it there)"
 	@echo "make perf [LOG=path]  Per-mod [SQPERF] report from the latest stdout.txt (or LOG)"
@@ -67,6 +70,19 @@ fork-abort:
 	@test -n "$(FORK)" || (echo "usage: make fork-abort FORK=<forkId>"; exit 1)
 	$(UV) tools/fork_mod.py abort $(FORK)
 
+# Private backup of the gitignored third-party paths: a second repo with git dir .forks-git/ and this working tree.
+FORKS_GIT := git --git-dir=.forks-git
+FORK_PATHS := ':(glob)mods/square_opt_*/**' mods/square_aat_perftest forks ':(glob)plans/*/original/**'
+
+forks-save:
+	@test -d .forks-git || (echo "no .forks-git/ (see CLAUDE.md, Forks)"; exit 1)
+	$(FORKS_GIT) add -A -f -- $(FORK_PATHS)
+	@if $(FORKS_GIT) diff --cached --quiet; then echo "forks: nothing to save"; \
+	else $(FORKS_GIT) commit -q -m "$(or $(MSG),Fork backup $$(date +%Y-%m-%d))" && $(FORKS_GIT) log --oneline -1; fi
+
+forks-push:
+	$(FORKS_GIT) push
+
 new-mod:
 	@test -n "$(ID)" -a -n "$(NAME)" || (echo "usage: make new-mod ID=square_name NAME='Display Name'"; exit 1)
 	$(UV) tools/new_mod.py $(ID) --name "$(NAME)" $(ARGS)
@@ -79,6 +95,9 @@ unlink:
 
 validate:
 	$(UV) tools/validate_mod.py $(MOD)
+
+i18n:
+	$(UV) tools/i18n.py $(ARGS) $(MOD)
 
 check:
 	$(UV) tools/tl_check.py $(ARGS) $(MOD) $(PATHS)
