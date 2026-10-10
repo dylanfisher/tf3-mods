@@ -268,4 +268,33 @@ function sel.describe(s : BulkBulldozerStroke) : {string}
 	return lines
 end
 
+-- Display formats per skip reason (translated at use time; GUI script).
+local function reasonFormats() : {string : string}
+	return {
+		filtered = _("%d filtered"),
+		underground = _("%d underground"),
+		industry = _("%d industry"),
+		hq = _("%d HQ"),
+		part = _("%d part of a construction"),
+		foreign = _("%d other player"),
+		not_player = _("%d not yours"),
+		gone = _("%d gone"),
+	}
+end
+
+function sel.skipLines(s : BulkBulldozerStroke) : {string}
+	local lines : {string} = {}
+	local formats = reasonFormats()
+	local skipped : {string} = {}
+	for _i, r in ipairs(sel.REASONS) do
+		local n = s.reasonCounts[r]
+		if n ~= nil and n > 0 then skipped[#skipped + 1] = string.format(formats[r], n) end
+	end
+	if #skipped > 0 then lines[#lines + 1] = string.format(_("Skipped: %s"), table.concat(skipped, ", ")) end
+	if s.capped then
+		lines[#lines + 1] = string.format(_("Limit of %d reached"), sel.STROKE_CAP)
+	end
+	return lines
+end
+
 return sel

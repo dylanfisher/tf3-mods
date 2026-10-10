@@ -234,8 +234,7 @@ local record StatusEvent
 end
 -- File-scope state outlives the recipe (the module stays loaded across unmounts), so the action
 -- recipe resets it on mount and unmount (resetStatus) and the chip never shows a stale selection.
-local STATUS_IDLE : BulkBulldozerStatusText = { head = "Nothing selected", detail = "Paint with the left mouse button" }
-local g_status : StatusEvent = { head = STATUS_IDLE.head, detail = STATUS_IDLE.detail, version = 0 }
+local g_status : StatusEvent = { head = status.idle().head, detail = status.idle().detail, version = 0 }
 
 local function publishStatus(t : BulkBulldozerStatusText)
 	g_status = { head = t.head, detail = t.detail, version = g_status.version + 1 }
@@ -243,7 +242,7 @@ local function publishStatus(t : BulkBulldozerStatusText)
 end
 
 local function resetStatus()
-	publishStatus(STATUS_IDLE)
+	publishStatus(status.idle())
 end
 
 local function newSelection(phase : string) : Selection
@@ -701,7 +700,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 		perf:stop("commit", tPerf)
 		if not ok then
 			logMsg("commit failed: " .. tostring(err))
-			refResult:set({ text = { head = "Bulldozing failed", detail = "See the game log" }, untilAt = os.clock() + RESULT_SECONDS })
+			refResult:set({ text = { head = _("Bulldozing failed"), detail = _("See the game log") }, untilAt = os.clock() + RESULT_SECONDS })
 			refJob:set(job + 1)
 			resetToIdle()
 		end
@@ -734,7 +733,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 		local s = refSel:get()
 		if s == nil or s.phase == PHASE_IDLE or sel.count(s.stroke) == 0 then
 			logMsg("bulldoze button: nothing selected")
-			refResult:set({ text = { head = "Nothing selected", detail = "Paint over objects first" }, untilAt = os.clock() + RESULT_SECONDS })
+			refResult:set({ text = { head = _("Nothing selected"), detail = _("Paint over objects first") }, untilAt = os.clock() + RESULT_SECONDS })
 			bump()
 			return
 		end
@@ -946,7 +945,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 		if s ~= nil and s.phase == PHASE_COMMITTING and now - (s.commitAt or now) > COMMIT_TIMEOUT then
 			logMsg(string.format("commit: no final callback after %d s, giving up waiting", math.floor(COMMIT_TIMEOUT)))
 			refJob:set(refJob:get() + 1)
-			refResult:set({ text = { head = "No answer from the game", detail = "Check what was removed" }, untilAt = now + RESULT_SECONDS })
+			refResult:set({ text = { head = _("No answer from the game"), detail = _("Check what was removed") }, untilAt = now + RESULT_SECONDS })
 			resetToIdle()
 		end
 		-- Drop the result line when it expires.
@@ -1066,24 +1065,20 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 	local function tooltipText(s : Selection, r : number) : string
 		local lines : {string} = { string.format("r = %d m", math.floor(r)) }
 		if s ~= nil and s.phase == PHASE_PAINTING and s.erasing then
-			lines[#lines + 1] = "Removing from the selection"
+			lines[#lines + 1] = _("Removing from the selection")
 		elseif s ~= nil and (s.phase == PHASE_PAINTING or s.phase == PHASE_SELECTED) then
-			lines[#lines + 1] = "Shift + paint removes from the selection"
-			lines[#lines + 1] = "Right-click clears the selection"
+			lines[#lines + 1] = _("Shift + paint removes from the selection")
+			lines[#lines + 1] = _("Right-click clears the selection")
 		end
 		if s ~= nil and s.phase ~= PHASE_COMMITTING then
 			-- Skip reasons stay here (small, for checking the filters); the kept counts are in the chip.
-			for _, l in ipairs(sel.describe(s.stroke)) do
-				if string.sub(l, 1, 8) == "Skipped:" or string.sub(l, 1, 6) == "Limit " then
-					lines[#lines + 1] = l
-				end
-			end
-			if s.truncated then lines[#lines + 1] = "Too many objects here, some were ignored" end
+			for _i, l in ipairs(sel.skipLines(s.stroke)) do lines[#lines + 1] = l end
+			if s.truncated then lines[#lines + 1] = _("Too many objects here, some were ignored") end
 			if DEBUG_OCTREE and s.phase == PHASE_IDLE and s.rawEdges ~= nil then
 				lines[#lines + 1] = string.format("octree at r: %d edges · %d constructions", s.rawEdges, s.rawCons)
 			end
 			if s.preview ~= nil and #s.preview.errors > 0 and s.phase ~= PHASE_IDLE then
-				lines[#lines + 1] = "Game says: " .. s.preview.errors[1]
+				lines[#lines + 1] = string.format(_("Game says: %s"), s.preview.errors[1])
 			end
 		end
 		return table.concat(lines, "\n")

@@ -8,46 +8,99 @@ local status : BulkBulldozerStatus = {}
 -- The bar is 314 UI px wide with 8 px padding (construction.css.lua:723-727) and the button adds
 -- 8 px padding per side (builtin.css.lua:140-145), so ~280 px for text: about 36 body-font
 -- characters. Longer lines are clipped here (with "...") rather than cut by the engine.
+-- Width is counted per character, CJK / Hangul / full-width glyphs as 2 (status.width), so
+-- translated lines clip at the same pixel width as English ones.
 -- Unverified in game: tune after the first look at the chip.
 status.MAX_CHARS = 36
 status.MAX_KIND_PARTS = 3
 
--- Display order and short labels (singular, plural).
+-- Display order. Translated at use time (GUI script: _() translates when called).
 local KIND_ORDER : {string} = { "road", "track", "station", "asset", "town_building" }
-local KIND_LABEL : {string : {string}} = {
-	road = { "road", "roads" },
-	track = { "track", "tracks" },
-	station = { "station", "stations" },
-	asset = { "asset", "assets" },
-	town_building = { "building", "buildings" },
-}
+local function kindFormats() : {string : {string}}
+	return {
+		road = { _("%d road"), _("%d roads") },
+		track = { _("%d track"), _("%d tracks") },
+		station = { _("%d station"), _("%d stations") },
+		asset = { _("%d asset"), _("%d assets") },
+		town_building = { _("%d building"), _("%d buildings") },
+	}
+end
 
-local function counted(n : integer, label : {string}) : string
-	return string.format("%d %s", n, n == 1 and label[1] or label[2])
+local function counted(n : integer, formats : {string}) : string
+	return string.format(n == 1 and formats[1] or formats[2], n)
+end
+
+-- Display width of the UTF-8 character that starts with byte b (and its byte length):
+-- ASCII, Latin, Cyrillic and general punctuation (U+0000-U+2FFF) count 1, everything from
+-- U+3000 (CJK, kana, Hangul, full-width forms) counts 2.
+local function charInfo(b : integer) : integer, integer
+	if b < 0x80 then return 1, 1 end
+	if b < 0xE0 then return 2, 1 end
+	if b < 0xE3 then return 3, 1 end
+	if b < 0xF0 then return 3, 2 end
+	return 4, 2
+end
+
+function status.width(s : string) : integer
+	if s == nil then return 0 end
+	local w, i = 0, 1
+	while i <= #s do
+		local len, cw = charInfo(string.byte(s, i))
+		w = w + cw
+		i = i + len
+	end
+	return w
 end
 
 function status.clip(s : string, n : integer) : string
 	if s == nil then return "" end
-	if #s <= n then return s end
-	local cut = n - 3
-	if cut < 0 then cut = 0 end
-	-- Never cut inside a UTF-8 sequence: back off over continuation bytes (0x80-0xBF).
-	while cut > 0 do
-		local b = string.byte(s, cut + 1)
-		if b == nil or b < 0x80 or b >= 0xC0 then break end
-		cut = cut - 1
+	if status.width(s) <= n then return s end
+	-- Keep whole characters up to n - 3 columns, then "...". Never cut inside a UTF-8 sequence.
+	local budget = n - 3
+	local w, i = 0, 1
+	while i <= #s do
+		local len, cw = charInfo(string.byte(s, i))
+		if w + cw > budget then break end
+		w = w + cw
+		i = i + len
 	end
-	return string.sub(s, 1, cut) .. "..."
+	return string.sub(s, 1, i - 1) .. "..."
+end
+
+-- Skip reasons and refusals: the commit stores them as English text (also used in the log), or
+-- as the game's own (already translated) error message. Known ones are translated for display.
+local function reasonLabels() : {string : string}
+	return {
+		["gone"] = _("gone"),
+		["other player"] = _("other player"),
+		["part of a construction"] = _("part of a construction"),
+		["industry"] = _("industry"),
+		["HQ"] = _("HQ"),
+		["not yours"] = _("not yours"),
+		["filtered"] = _("filtered"),
+		["underground"] = _("underground"),
+		["not enough money"] = _("not enough money"),
+		["nothing left to remove"] = _("nothing left to remove"),
+		["script error"] = _("script error"),
+		["command limit reached"] = _("command limit reached"),
+		["refused by the game"] = _("refused by the game"),
+	}
+end
+
+function status.reasonLabel(reason : string) : string
+	if reason == nil then return "" end
+	return reasonLabels()[reason] or reason
 end
 
 function status.kindSummary(kindCounts : {string : integer}, objects : integer) : string
 	local parts : {string} = {}
-	for _, k in ipairs(KIND_ORDER) do
+	local formats = kindFormats()
+	for _i, k in ipairs(KIND_ORDER) do
 		local n = kindCounts ~= nil and kindCounts[k] or nil
-		if n ~= nil and n > 0 then parts[#parts + 1] = counted(n, KIND_LABEL[k]) end
+		if n ~= nil and n > 0 then parts[#parts + 1] = counted(n, formats[k]) end
 	end
 	if objects ~= nil and objects > 0 then
-		parts[#parts + 1] = counted(objects, { "signal/stop", "signals/stops" })
+		parts[#parts + 1] = counted(objects, { _("%d signal/stop"), _("%d signals/stops") })
 	end
 	if #parts > status.MAX_KIND_PARTS then
 		local shown : {string} = {}
@@ -61,17 +114,22 @@ local function text(head : string, detail : string) : BulkBulldozerStatusText
 	return { head = status.clip(head, status.MAX_CHARS), detail = status.clip(detail, status.MAX_CHARS) }
 end
 
-local HINT_PAINT <const> = "Paint with the left mouse button"
+local function hintPaint() : string
+	return _("Paint with the left mouse button")
+end
+
+function status.idle() : BulkBulldozerStatusText
+	return text(_("Nothing selected"), hintPaint())
+end
 
 function status.lines(v : BulkBulldozerStatusInput) : BulkBulldozerStatusText
 	local n = v.count or 0
 	local kinds = status.kindSummary(v.kindCounts, v.objects)
 	if v.phase == "committing" then
-		return text(string.format("Bulldozing %d...", n), kinds)
+		return text(string.format(_("Bulldozing %d..."), n), kinds)
 	end
 	if n > 0 and (v.phase == "painting" or v.phase == "selected") then
-		local head = string.format("%d selected", n)
-		if v.capped then head = head .. " (max)" end
+		local head = string.format(v.capped and _("%d selected (max)") or _("%d selected"), n)
 		if v.cost ~= nil then head = head .. " · " .. v.cost end
 		return text(head, kinds)
 	end
@@ -79,18 +137,19 @@ function status.lines(v : BulkBulldozerStatusInput) : BulkBulldozerStatusText
 		return text(v.result.head, v.result.detail)
 	end
 	if v.phase == "idle" and n > 0 then
-		return text("Nothing selected", "Brush: " .. kinds)
+		return text(_("Nothing selected"), string.format(_("Brush: %s"), kinds))
 	end
-	return text("Nothing selected", HINT_PAINT)
+	return status.idle()
 end
 
 function status.resultLines(r : BulkBulldozerCommitResult) : BulkBulldozerStatusText
 	if r.removed == 0 and r.refused ~= nil then
-		return text("Nothing bulldozed", r.refused)
+		return text(_("Nothing bulldozed"), status.reasonLabel(r.refused))
 	end
-	local head = string.format("Bulldozed %d", r.removed)
-	if r.skipped <= 0 then return text(head, HINT_PAINT) end
-	head = head .. string.format(" · %d skipped", r.skipped)
+	local head = string.format(_("Bulldozed %d"), r.removed)
+	if r.skipped <= 0 then return text(head, hintPaint()) end
+	local skipped = string.format(_("%d skipped"), r.skipped)
+	head = head .. " · " .. skipped
 	local keys : {string} = {}
 	for k in pairs(r.reasons or {}) do keys[#keys + 1] = k end
 	table.sort(keys, function(a : string, b : string) : boolean
@@ -98,8 +157,8 @@ function status.resultLines(r : BulkBulldozerCommitResult) : BulkBulldozerStatus
 		return a < b
 	end)
 	local top : {string} = {}
-	for i = 1, math.min(2, #keys) do top[#top + 1] = keys[i] end
-	return text(head, #top > 0 and table.concat(top, ", ") or "See the game log")
+	for i = 1, math.min(2, #keys) do top[#top + 1] = status.reasonLabel(keys[i]) end
+	return text(head, #top > 0 and table.concat(top, ", ") or _("See the game log"))
 end
 
 function status.oneLine(t : BulkBulldozerStatusText) : string

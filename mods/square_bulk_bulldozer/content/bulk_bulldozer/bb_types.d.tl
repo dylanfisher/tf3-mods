@@ -189,8 +189,11 @@ global record BulkBulldozerSelect
 	count : function(s : BulkBulldozerStroke) : integer
 	--- Kept entities (for highlightedEntities), in add order.
 	entities : function(s : BulkBulldozerStroke) : {integer}
-	--- Tooltip lines: kept per kind (+ edge objects), skipped per reason, cap note.
+	--- Log lines (English, also compared for change detection): kept per kind (+ edge objects),
+	--- skipped per reason, cap note.
 	describe : function(s : BulkBulldozerStroke) : {string}
+	--- Translated tooltip lines: skipped per reason, cap note (none when nothing was skipped).
+	skipLines : function(s : BulkBulldozerStroke) : {string}
 end
 
 --- Per-stroke cache of descriptors and industry protection (bb_gather). Plain tables.
@@ -338,8 +341,15 @@ global record BulkBulldozerStatus
 
 	--- "8 roads · 3 tracks · 1 asset" (+ signals/stops), at most MAX_KIND_PARTS parts.
 	kindSummary : function(kindCounts : {string : integer}, objects : integer) : string
-	--- Clip s to at most n bytes (UTF-8 safe), appending "..." when clipped.
+	--- Display width of s: 1 per character, 2 per CJK / Hangul / full-width character (U+3000 and up).
+	width : function(s : string) : integer
+	--- Clip s to at most n display columns (status.width; UTF-8 safe), appending "..." when clipped.
 	clip : function(s : string, n : integer) : string
+	--- Translated display text of a skip reason / refusal (English text from bb_commit); unknown
+	--- reasons (the game's own error messages) are returned unchanged.
+	reasonLabel : function(reason : string) : string
+	--- The chip text with nothing selected (translated).
+	idle : function() : BulkBulldozerStatusText
 	--- The chip text for the current state.
 	lines : function(v : BulkBulldozerStatusInput) : BulkBulldozerStatusText
 	--- The chip text for a finished commit.
