@@ -1,0 +1,13 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_hitch_probe answers one question: does a long game-script update (like Auto Assign Terminals'
+sweep, ~40 ms on 250 lines) show up as a slow rendered frame, or does only the simulation stall?
+
+A button in the top-left mod area cycles levels: off, game script 20/40/100 ms, GUI 40 ms (a control
+that must hitch). The chosen side busy-waits about every 2 s (every 40 GAME_TIME.tickCount ticks). The GUI logs
+every frame time and the game script every pause as [HITCH] lines in stdout.txt; both carry the
+tickCount, so plans/hitch_probe/hitch_report.py can line them up. How to run it: plans/hitch_probe/README.md.
+
+Never publish it to mod.io (Mod Hub > My Mods would offer it because `make link` puts it in the
+staging area). Use a copy of a save: the level is kept in the game script state. When done: disable
+it in the game's mod list (quit to the main menu first before removing its staging link).
