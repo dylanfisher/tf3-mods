@@ -344,11 +344,11 @@ local function snoozeHandler(id : string) : function()
 	return h
 end
 
-local SNOOZE_LABELS : {integer : string} = { [1] = "1 month", [6] = "6 months", [12] = "1 year", [60] = "5 years" }
+local SNOOZE_LABELS : {integer : string} = { [1] = "1 month", [6] = "6 months", [12] = "1 year", [60] = "5 years" } -- i18n: keys
 
 local function monthsText(months : integer) : string
 	local preset = SNOOZE_LABELS[months]
-	if preset ~= nil then return _(preset) end
+	if preset ~= nil then return _(preset) end -- i18n: ignore
 	return lang_util.format(_("{n} months"), { n = tostring(months) })
 end
 
@@ -381,7 +381,7 @@ local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
 	local tip = row.tip
 	if tip == nil then
 		tip = row.detail
-		if row.metric ~= "" then tip = tip .. " (" .. row.metric .. ")" end
+		if row.metric ~= "" then tip = lang_util.format(_("{text} ({context})"), { text = tip, context = row.metric }) end
 	end
 	local snoozed = row.snoozedUntil ~= nil
 	local metric = snoozed and untilText(row.snoozedUntil) or row.metric
@@ -483,44 +483,65 @@ end
 --     day/month/year with step 1.0, town_eow.script.tl:1065-1074 with math.floor). Integer thresholds.
 -- Every change sends only the changed key; the engine validates it (radar_settings.apply / reset).
 
-local HUD_MODE_LABELS : {string : string} = { badge = "Badge", compact = "Compact panel" }
-local LEVEL_LABELS : {string : string} = { off = "Off", passive = "List", notify = "Notify" }
+local HUD_MODE_LABELS : {string : string} = { badge = "Badge", compact = "Compact panel" } -- i18n: keys
+local LEVEL_LABELS : {string : string} = { off = "Off", passive = "List", notify = "Notify" } -- i18n: keys
 
-local NUMBER_GROUPS : {{string}} = {
-	-- { group title, key, label, key, label, ... }
+-- One group per heading: its title, an optional hint under the heading (where the numbers only make
+-- sense together) and its number settings (key, label). Texts are translated when rendered.
+local record NumberRow
+	key : string
+	label : string
+end
+local record NumberGroup
+	title : string
+	hint : string
+	rows : {NumberRow}
+end
+
+-- i18n: keys begin title hint label
+local NUMBER_GROUPS : {NumberGroup} = {
 	-- Smoothing applies to every alert kind (radar_checks.merge); 0 = list / clear on the next scan.
-	{ "Timing",
-		"smoothSec", "Smoothing: problems must persist / linger (game seconds)",
-		"snoozeMonths", "Snooze length: Zz on a row hides its alert for (game months)" },
-	{ "Stuck vehicles (game minutes standing)",
-		"stuckMinRoad", "Road vehicles", "stuckMinTram", "Trams", "stuckMinRail", "Trains (also waiting behind a train)",
-		"stuckMinWater", "Ships", "stuckMinAir", "Aircraft" },
-	{ "Lines",
-		"lineOverloadFactor", "Over capacity: waiting at a stop, in vehicle loads",
-		"lineUnderusedPct", "Underused: utilisation below",
-		"lineClumpPct", "Bunching: vehicles closer than, of the interval",
-		"lineGapPct", "Bunching: a gap longer than, of the interval",
-		"lineSustainMin", "Line problems must last (game minutes)" },
-	{ "Fleet",
-		"wornPct", "Worn: condition at or below",
-		"idleDepotDays", "Idle in depot for at least (days)" },
+	{ title = "Timing", rows = {
+		{ key = "smoothSec", label = "Smoothing: problems must persist / linger (game seconds)" },
+		{ key = "snoozeMonths", label = "Snooze length: Zz on a row hides its alert for (game months)" },
+	} },
+	{ title = "Stuck vehicles (game minutes standing)", rows = {
+		{ key = "stuckMinRoad", label = "Road vehicles" },
+		{ key = "stuckMinTram", label = "Trams" },
+		{ key = "stuckMinRail", label = "Trains (also waiting behind a train)" },
+		{ key = "stuckMinWater", label = "Ships" },
+		{ key = "stuckMinAir", label = "Aircraft" },
+	} },
+	{ title = "Lines", rows = {
+		{ key = "lineOverloadFactor", label = "Over capacity: waiting at a stop, in vehicle loads" },
+		{ key = "lineUnderusedPct", label = "Underused: utilisation below" },
+		{ key = "lineClumpPct", label = "Bunching: vehicles closer than, of the interval" },
+		{ key = "lineGapPct", label = "Bunching: a gap longer than, of the interval" },
+		{ key = "lineSustainMin", label = "Line problems must last (game minutes)" },
+	} },
+	{ title = "Fleet", rows = {
+		{ key = "wornPct", label = "Worn: condition at or below" },
+		{ key = "idleDepotDays", label = "Idle in depot for at least (days)" },
+	} },
 	-- Phase 7: line_unprofitable tiers by cost coverage + size of the loss, line_low_use by its yearly average.
-	{ "Economy",
-		"econLossWarnPct", "Losing money: poor when income covers less than, of vehicle costs",
-		"econLossCritPct", "Losing money: very poor when income covers less than",
-		"econLossSharePct", "Losing money: a big loss is at least, of all lines' vehicle costs (3× = very big)",
-		"econLowUsePct", "Low use: yearly average utilisation below (Warning at half, Critical at a quarter)" },
+	{ title = "Economy",
+		hint = "Losing money is a Warning when its coverage is poor or the loss is big, and Critical when both count: a very poor coverage with a big loss, or a poor coverage with a very big loss. Within a severity, bigger losses come first.",
+		rows = {
+			{ key = "econLossWarnPct", label = "Losing money: poor when income covers less than, of vehicle costs" },
+			{ key = "econLossCritPct", label = "Losing money: very poor when income covers less than" },
+			{ key = "econLossSharePct", label = "Losing money: a big loss is at least, of all lines' vehicle costs (3× = very big)" },
+			{ key = "econLowUsePct", label = "Low use: yearly average utilisation below (Warning at half, Critical at a quarter)" },
+		} },
 }
+-- i18n: keys end
 
--- A hint under a group's heading, where the numbers only make sense together.
-local GROUP_HINTS : {string : string} = {
-	Economy = "Losing money is a Warning when its coverage is poor or the loss is big, and Critical when both count: a very poor coverage with a big loss, or a poor coverage with a very big loss. Within a severity, bigger losses come first.",
-}
-
-local UNIT_LABELS : {string : string} = { min = "min", days = "days", ["%"] = "%", x = "×", s = "s", months = "months" }
+-- Unit words (translated) and unit symbols (shown as they are).
+local UNIT_LABELS : {string : string} = { min = "min", days = "days", s = "s", months = "months" } -- i18n: keys
+local UNIT_SYMBOLS : {string : string} = { ["%"] = "%", x = "×" }
 
 local function rangeText(num : ProblemRadarNumberSetting) : string
-	local unit = _(UNIT_LABELS[num.unit] or num.unit)
+	local word = UNIT_LABELS[num.unit]
+	local unit = word ~= nil and _(word) or (UNIT_SYMBOLS[num.unit] or num.unit) -- i18n: ignore
 	return lang_util.format(_("{min}-{max} {unit} (default {default})"),
 		{ min = tostring(num.min), max = tostring(num.max), unit = unit, default = tostring(num.default) })
 end
@@ -529,7 +550,7 @@ local function numberRow(settings : ProblemRadarSettings, key : string, label : 
 	local num = radar_settings.NUMBERS[key]
 	local current = (settings as {string : integer})[key] or num.default
 	return hbox({
-		text(_(label), "font-scale-annotation, radar-set-label"),
+		text(_(label), "font-scale-annotation, radar-set-label"), -- i18n: ignore (NUMBER_GROUPS)
 		builtin.DoubleSpinBox{
 			meta = { class = "radar-set-spin" },
 			min = num.min,
@@ -545,7 +566,7 @@ local function numberRow(settings : ProblemRadarSettings, key : string, label : 
 					sendEvent(EV_SET_SETTING, { [key] = v })
 				end
 			end,
-			virtualKeyboardTitle = _(label),
+			virtualKeyboardTitle = _(label), -- i18n: ignore (NUMBER_GROUPS)
 			virtualKeyboardDescription = rangeText(num),
 		},
 		text(rangeText(num), "font-scale-annotation, radar-set-range"),
@@ -560,7 +581,7 @@ local function levelRow(settings : ProblemRadarSettings, kind : string) : TreeNo
 	local buttons : {Builtin.ToggleButtonGroupChildParam} = {}
 	local selected = -1
 	for i, l in ipairs(radar_settings.NOTIFY_LEVELS) do
-		buttons[i] = { content = text(_(LEVEL_LABELS[l] or l), "font-scale-annotation") }
+		buttons[i] = { content = text(_(LEVEL_LABELS[l] or l), "font-scale-annotation") } -- i18n: ignore
 		if l == level then selected = i end
 	end
 	return hbox({
@@ -584,7 +605,7 @@ local function generalSection(settings : ProblemRadarSettings) : {TreeNodeId}
 	local buttons : {Builtin.ToggleButtonGroupChildParam} = {}
 	local selected = -1
 	for i, mode in ipairs(radar_settings.HUD_MODES) do
-		buttons[i] = { content = text(_(HUD_MODE_LABELS[mode] or mode), "font-scale-annotation") }
+		buttons[i] = { content = text(_(HUD_MODE_LABELS[mode] or mode), "font-scale-annotation") } -- i18n: ignore
 		if mode == settings.hudMode then selected = i end
 	end
 	return {
@@ -634,12 +655,12 @@ local ProblemRadarSettingsPage = react.RegisterRecipe("ProblemRadarSettingsPage"
 
 	local right : {TreeNodeId} = {}
 	for __, group in ipairs(NUMBER_GROUPS) do
-		right[#right + 1] = text(_(group[1]), "font-scale-body, radar-section")
-		if GROUP_HINTS[group[1]] ~= nil then
-			right[#right + 1] = text(_(GROUP_HINTS[group[1]]), "font-scale-annotation, radar-hint")
+		right[#right + 1] = text(_(group.title), "font-scale-body, radar-section") -- i18n: ignore
+		if group.hint ~= nil then
+			right[#right + 1] = text(_(group.hint), "font-scale-annotation, radar-hint") -- i18n: ignore
 		end
-		for i = 2, #group - 1, 2 do
-			right[#right + 1] = numberRow(settings, group[i], group[i + 1])
+		for __, r in ipairs(group.rows) do
+			right[#right + 1] = numberRow(settings, r.key, r.label)
 		end
 	end
 	right[#right + 1] = text(_("Settings are saved with this savegame. You can also mute \"Problem Radar\" in the game's notification log filter."),
@@ -676,6 +697,7 @@ end))
 -- .cache/game/base/content/gui/entity_window/town/town.tl:1295-1310, indicator class from
 -- .cache/game/base/content/mission/mission_framework/mission_framework_react.tl:759.
 
+-- i18n: keys begin
 local TAB_LABELS : {string : string} = {
 	all = "All ({n})",
 	vehicles = "Vehicles ({n})",
@@ -685,6 +707,7 @@ local TAB_LABELS : {string : string} = {
 	economy = "Economy ({n})",
 	snoozed = "Snoozed ({n})",
 }
+-- i18n: keys end
 
 local function tabChild(key : string, label : string, item : TreeNodeId, footer? : TreeNodeId) : TreeNodeId
 	return builtin.TabWidgetChild{
@@ -751,13 +774,13 @@ local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", perf:wra
 	snoozeMonths = view.settings.snoozeMonths
 	local tabs : {TreeNodeId} = {}
 	for __, key in ipairs(hud_model.TABS) do
-		local label = lang_util.format(_(TAB_LABELS[key]), { n = tostring(view.tabCounts[key] or 0) })
+		local label = lang_util.format(_(TAB_LABELS[key]), { n = tostring(view.tabCounts[key] or 0) }) -- i18n: ignore
 		local on = key == selected
 		tabs[#tabs + 1] = tabChild(key, label, on and alertList(view, key) or vbox({}), on and snoozeFooter(view.settings) or nil)
 	end
 	local sz = hud_model.SNOOZED_TAB
 	local szOn = selected == sz
-	tabs[#tabs + 1] = tabChild(sz, lang_util.format(_(TAB_LABELS[sz]), { n = tostring(view.tabCounts[sz] or 0) }),
+	tabs[#tabs + 1] = tabChild(sz, lang_util.format(_(TAB_LABELS[sz]), { n = tostring(view.tabCounts[sz] or 0) }), -- i18n: ignore
 		szOn and alertList(view, sz) or vbox({}), szOn and snoozedFooter(view.tabCounts[sz] or 0) or nil)
 	tabs[#tabs + 1] = tabChild("settings", _("Settings"), selected == "settings" and ProblemRadarSettingsPage() or vbox({}))
 	return vbox({

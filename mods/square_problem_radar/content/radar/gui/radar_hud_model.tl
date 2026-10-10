@@ -65,8 +65,10 @@ end
 
 ---------------------------------------------------------------------------
 -- Texts. Each table maps a code to an untranslated string; _() is applied when used, so the
--- base game's own translations apply wherever the wording is identical.
+-- base game's own translations apply wherever the wording is identical. The `-- i18n: keys` blocks
+-- let tools/i18n.py extract the table texts as strings.json keys.
 
+-- i18n: keys begin
 local KIND_LABELS : {string : string} = {
 	veh_blocked = "Blocked",
 	veh_nopath = "No path",
@@ -87,13 +89,17 @@ local KIND_LABELS : {string : string} = {
 	line_unprofitable = "Losing money",
 	line_low_use = "Low use",
 }
+-- i18n: keys end
 
+-- i18n: keys begin
 local TYPE_LABELS : {string : string} = {
 	Train = "Train", Tram = "Tram", Bus = "Bus", Truck = "Truck", Ship = "Ship",
 	Airplane = "Airplane", Helicopter = "Helicopter", Line = "Line", Station = "Station",
 }
+-- i18n: keys end
 
 -- vehicle_warning.script.tl short texts
+-- i18n: keys begin
 local VEHICLE_PROBLEMS : {string : string} = {
 	NoPathElectric = "No Electrified Path",
 	NoPathShip = "No Path for Big Ships",
@@ -101,8 +107,10 @@ local VEHICLE_PROBLEMS : {string : string} = {
 	NoPathGeneric = "No Path at All",
 	NoPath = "No path",
 }
+-- i18n: keys end
 
 -- Failure.Reason (manager_window.tl:5409-5421 texts; NoRail/NoRoad from line_util.getRelaxationText)
+-- i18n: keys begin
 local FAILURE_REASONS : {string : string} = {
 	NoElectric = "Missing electric tracks.",
 	NoTram = "Missing tram tracks.",
@@ -113,8 +121,10 @@ local FAILURE_REASONS : {string : string} = {
 	NoRail = "Missing train tracks",
 	NoRoad = "Missing road",
 }
+-- i18n: keys end
 
 -- line_warning.script.tl short texts
+-- i18n: keys begin
 local LINE_PROBLEMS : {string : string} = {
 	ZERO_OR_ONE_STATION = "Line Contains Too Few Stations",
 	DOUBLE_STATIONS = "A Station Appears Consecutively Twice",
@@ -122,8 +132,10 @@ local LINE_PROBLEMS : {string : string} = {
 	NO_PATH = "Could Not Connect Stations",
 	BAD_ALTERNATIVE_TERMINAL = "Could Not Connect Alternative Terminals",
 }
+-- i18n: keys end
 
 -- line_util.getRelaxationText
+-- i18n: keys begin
 local RELAXATIONS : {string : string} = {
 	Catenary = "Missing catenaries",
 	TramLanes = "Missing tram lane",
@@ -131,7 +143,9 @@ local RELAXATIONS : {string : string} = {
 	Train = "Missing train tracks",
 	Road = "Missing road",
 }
+-- i18n: keys end
 
+-- i18n: keys begin
 local LINE_ISSUES : {string : string} = {
 	NowhereToLoad = "Cargo cannot be loaded anywhere",
 	NowhereToUnload = "Cargo cannot be unloaded anywhere",
@@ -139,8 +153,10 @@ local LINE_ISSUES : {string : string} = {
 	VehicleUseless = "Some vehicles cannot transport the configured cargo",
 	LineCargoConfig = "The line isn't configured to load any cargo.",
 }
+-- i18n: keys end
 
 -- line_station_warning.script.tl short texts
+-- i18n: keys begin
 local STATION_PROBLEMS : {string : string} = {
 	StopUseless = "Stop Not Compatible With Current Vehicles",
 	PassengerStopUseless = "Passenger Stop Incompatible With Cargo Vehicles",
@@ -149,21 +165,46 @@ local STATION_PROBLEMS : {string : string} = {
 	CargoTypeUnloadUseless = "Configured Cargo Type Cannot Be Unloaded at Stop",
 	CargoTypeLoadUseless = "Configured Cargo Type Cannot Be Loaded at Stop",
 }
+-- i18n: keys end
 
 local function tr(map : {string : string}, code : string, fallback : string) : string
 	local s = map[code]
-	return _(s or fallback)
+	return _(s or fallback) -- i18n: ignore (keys: the tables above + the literal fallbacks)
 end
 
 local function withReason(text : string, reason : string) : string
 	if reason == nil then return text end
-	return text .. ": " .. reason
+	return fill(_("{text}: {reason}"), { text = text, reason = reason })
 end
 
 -- veh_stuck codes are carrier names; the text is the same for all (the type column names the vehicle).
 local function withNextStop(text : string, stop : string) : string
 	if stop == nil then return text end
-	return text .. ", " .. fill(_("next stop {stop}"), { stop = stop })
+	return fill(_("{text}, next stop {stop}"), { text = text, stop = stop })
+end
+
+--- The engine's metric texts carry English unit letters ("12m", "1h05m +2", "31d", "3 veh · 42"; they
+--- are saved and compared, so they stay as they are): shown through _() templates, the stored
+--- value is untouched. Anything else (numbers, "%", "×", "/") is returned unchanged.
+function model.metricText(kind : string, metric : string) : string
+	if metric == nil or metric == "" then return metric end
+	if kind == "veh_stuck" or kind == "train_blocked_by" then
+		local h, m, rest = metric:match("^(%d+)h(%d+)m(.*)$")
+		if h ~= nil then
+			return fill(_("{h}h{m}m"), { h = h, m = m }) .. rest
+		end
+		local mm, rest2 = metric:match("^(%d+)m(.*)$")
+		if mm ~= nil then
+			return fill(_("{m}m"), { m = mm }) .. rest2
+		end
+	elseif kind == "fleet_idle_depot" then
+		local d = metric:match("^(%d+)d$")
+		if d ~= nil then return fill(_("{n}d"), { n = d }) end
+	elseif kind == "line_cargo_not_unloaded" then
+		local n, c = metric:match("^(%d+) veh · (%d+)$")
+		if n ~= nil then return fill(_("{n} veh · {cargo}"), { n = n, cargo = c }) end
+	end
+	return metric
 end
 
 --- Split a Phase 4 packed arg ("3|420|Central") into at most `n` parts; the last part keeps any
@@ -216,17 +257,17 @@ function model.detailText(kind : string, code : string, extra : string, metric? 
 		return _("Trains Are Blocking Each Other")
 	elseif kind == "veh_nopath" then
 		local reason = FAILURE_REASONS[extra]
-		return withReason(tr(VEHICLE_PROBLEMS, code, "No path"), reason and _(reason) or nil)
+		return withReason(tr(VEHICLE_PROBLEMS, code, "No path"), reason and _(reason) or nil) -- i18n: keys; i18n: ignore
 	elseif kind == "line_broken" then
 		local reason = RELAXATIONS[extra]
-		return withReason(tr(LINE_PROBLEMS, code, "Unknown Line Issue Occured"), reason and _(reason) or nil)
+		return withReason(tr(LINE_PROBLEMS, code, "Unknown Line Issue Occured"), reason and _(reason) or nil) -- i18n: keys; i18n: ignore
 	elseif kind == "line_no_vehicles" then
 		if extra ~= nil then
 			return fill(_("No vehicles on this line ({n} stops)"), { n = extra })
 		end
 		return _("No vehicles on this line")
 	elseif kind == "line_cargo_issue" then
-		return withReason(tr(LINE_ISSUES, code, "Line Is Misconfigured"), extra)
+		return withReason(tr(LINE_ISSUES, code, "Line Is Misconfigured"), extra) -- i18n: keys
 	elseif kind == "line_cargo_not_unloaded" then
 		-- arg "<vehicles>|<cargo>" (metric "3 veh · 42"); base types/cargo_rtc_warning.script.tl wording
 		local p = extra ~= nil and split(extra, 2) or {}
@@ -240,12 +281,12 @@ function model.detailText(kind : string, code : string, extra : string, metric? 
 	elseif kind == "station_overcrowded" then
 		return _("Overcrowded, passengers will be leaving")
 	elseif kind == "station_useless" then
-		return tr(STATION_PROBLEMS, code, "Unkown Station Stop Issue Occured")
+		return tr(STATION_PROBLEMS, code, "Unkown Station Stop Issue Occured") -- i18n: keys
 	elseif kind == "fleet_worn" then
 		return _("Vehicle Condition Is Not Good")
 	elseif kind == "veh_stuck" then
 		-- metric "12m" (radar_checks.formatMinutes); arg = next stop name
-		local base = metric ~= nil and fill(_("Standing {time}"), { time = metric }) or _("Vehicle Has Been Stuck for a While")
+		local base = metric ~= nil and fill(_("Standing {time}"), { time = model.metricText(kind, metric) }) or _("Vehicle Has Been Stuck for a While")
 		return withNextStop(base, extra)
 	elseif kind == "train_blocked_by" then
 		if code == "WaitingForPath" then
@@ -324,15 +365,15 @@ end
 ---------------------------------------------------------------------------
 -- Labels + notification texts (Phase 5: the Settings tab and notify/radar_notification.script.tl).
 
-local TIER_NAMES : {integer : string} = { [1] = "Critical", [2] = "Warning", [3] = "Info" }
+local TIER_NAMES : {integer : string} = { [1] = "Critical", [2] = "Warning", [3] = "Info" } -- i18n: keys
 
 function model.kindLabel(kind : string) : string
 	local l = KIND_LABELS[kind]
-	return l ~= nil and _(l) or (kind or "")
+	return l ~= nil and _(l) or (kind or "") -- i18n: ignore
 end
 
 function model.tierLabel(tier : integer) : string
-	return _(TIER_NAMES[tier] or "Info")
+	return _(TIER_NAMES[tier] or "Info") -- i18n: ignore
 end
 
 function model.kindTierLabel(kind : string) : string
@@ -404,10 +445,10 @@ function model.notificationText(p : any) : string, string, string
 	local entity = toInt(t.entity)
 	if label == "" and entity ~= nil then label = "#" .. tostring(entity) end
 	local title = model.kindLabel(kind)
-	if label ~= "" then title = title .. ": " .. label end
+	if label ~= "" then title = fill(_("{kind}: {name}"), { kind = title, name = label }) end
 	local description = model.tipText(kind, optStr(t.arg)) or model.detailText(kind, optStr(t.code), optStr(t.arg), optStr(t.metric))
 	local context = toStr(t.context)
-	if context ~= "" then description = description .. " (" .. context .. ")" end
+	if context ~= "" then description = fill(_("{text} ({context})"), { text = description, context = context }) end
 	return title, description, iconFor(kind, toStr(t.etype), tier)
 end
 
@@ -465,7 +506,7 @@ end
 function model.decorate(row : ProblemRadarHudRow) : ProblemRadarHudRow
 	local etype = row.etype or ""
 	row.kindLabel = model.kindLabel(row.kind)
-	row.typeLabel = TYPE_LABELS[etype] ~= nil and _(TYPE_LABELS[etype]) or etype
+	row.typeLabel = TYPE_LABELS[etype] ~= nil and _(TYPE_LABELS[etype]) or etype -- i18n: ignore
 	if row.gone then
 		-- A snooze whose problem is not detected right now: only the snapshot is known.
 		row.detail = _("Not detected right now")
@@ -475,7 +516,11 @@ function model.decorate(row : ProblemRadarHudRow) : ProblemRadarHudRow
 	row.tip = model.tipText(row.kind, row.arg)
 	-- line_unprofitable: the engine's metric is the raw 12-month balance; shown as money.
 	local balance = row.kind == "line_unprofitable" and tonumber(row.metric) or nil
-	if balance ~= nil then row.metric = model.formatMoney(math.floor(balance)) end
+	if balance ~= nil then
+		row.metric = model.formatMoney(math.floor(balance))
+	else
+		row.metric = model.metricText(row.kind, row.metric)
+	end
 	return row
 end
 

@@ -748,6 +748,8 @@ global record ProblemRadarHudModel
 	detailText : function(kind : string, code : string, arg : string, metric? : string) : string
 	--- line_unprofitable: the full sentence behind the short detail (row tooltip, notification); nil otherwise.
 	tipText : function(kind : string, arg : string) : string
+	-- The engine's metric with its unit letters translated for display ("12m", "31d", "3 veh · 42").
+	metricText : function(kind : string, metric : string) : string
 	--- Translated severity of a kind for the Settings table: "Warning", or "Info to Critical" for a
 	--- kind whose tier scales (maxTier).
 	kindTierLabel : function(kind : string) : string
