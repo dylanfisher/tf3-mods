@@ -236,3 +236,16 @@ Square.slides('square_passenger_destinations', [
     media: { src: '01-station-arrows.jpg', crop: [768, 512, 1792, 1152] } },
 ]);
 
+Square.slides('square_stress_test', [
+  // Captures 2026-10-10. The window is x 1741-3379, y 481-2394; HUD below y 2630, Debug button top left.
+  { title: 'A city under load', sub: 'Turn a free game into a dense benchmark map',
+    media: { src: '01-dense-city.jpg', crop: [998, 102, 2663, 2378] } },
+  { title: 'Grow and spawn towns', sub: 'Up to x100, with ten build-out passes',
+    media: { src: '02-towns-tab.jpg', crop: [1560, 400, 2000, 2120] } },
+  { title: 'Fill the roads', sub: 'Vehicles, auto bus lines and a traffic clear',
+    media: { src: '04-traffic-tab.jpg', crop: [1560, 400, 2000, 2120] } },
+  { title: 'Money, year and speed', sub: 'Town ratings and notifications too',
+    media: { src: '03-game-tab.jpg', crop: [1560, 400, 2000, 2120] } },
+  { title: 'Towers in every block', sub: 'Benchmark mods on the busiest map you can',
+    media: { src: '06-closeup.jpg', crop: [973, 154, 2611, 2304] } },
+]);

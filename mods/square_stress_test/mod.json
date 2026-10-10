@@ -1,0 +1,98 @@
+{
+    "modId": "square_stress_test",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "Warning",
+    "visible": true,
+    "cosmetic": false,
+    "preRunScript": {
+        "fileName": "square_stress_test::mod.script@preRunFn"
+    },
+    "runScript": {
+        "fileName": "square_stress_test::mod.script@runFn"
+    },
+    "postRunScript": {
+        "fileName": "square_stress_test::mod.script@postRunFn"
+    },
+    "params": [
+        {
+            "key": "no_costs",
+            "name": "No costs",
+            "tooltip": "On: building and vehicles cost nothing (the game's own noCosts setting, as in the official No Costs mod). Applied when the game loads.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sandbox",
+            "name": "Sandbox mode",
+            "tooltip": "On: the game's sandbox mode (town editor, industry menus), as in the official Sandbox mod. Applied when the game loads.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "vehicles_no_expire",
+            "name": "Vehicles never expire",
+            "tooltip": "On: no vehicle model goes out of production (as in the official 'No end year for vehicles' mod).",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "no_emissions",
+            "name": "No noise and pollution",
+            "tooltip": "On: vehicles emit no noise or pollution, the game stops updating the emissions of industries, stations, depots and warehouses (existing ones keep their current value, new industries start at zero), and noise and pollution no longer lower town ratings (towns given their own sensitivity in the town editor keep it). Applied when the game loads.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sim_recompute",
+            "name": "Sim person trip recalculation",
+            "tooltip": "How often town residents re-pick their destinations (x1 = game default). Higher = more trips and more simulation load.",
+            "uiType": "Button",
+            "values": [
+                "x1",
+                "x2",
+                "x5"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "town_develop",
+            "name": "Town development interval",
+            "tooltip": "How often towns grow. Default = the game's own interval (60); Fast = 15; Very fast = 5.",
+            "uiType": "Button",
+            "values": [
+                "Default",
+                "Fast",
+                "Very fast"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "show_probe_tab",
+            "name": "Show probe tab (developers)",
+            "tooltip": "On: adds the Probe tab with the in-game experiments the tool was built from. Each button changes your save. For mod developers only.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        }
+    ]
+}
