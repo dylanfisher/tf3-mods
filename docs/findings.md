@@ -79,6 +79,9 @@ and patching base GUI modules from a GUI script (the dots are built by a local f
   locally deleted in restricted mod management mode", then Assertion `inAddMods && "cannot remove mods
   in game"`). Edits to files in existing mods are fine. Quit to the main menu (or close the game) before
   `make unlink`, deleting a mod folder, or switching to a git branch that lacks a mod.
+- **Adding a staging mod while the game runs is fine** (2026-10-09): `make link` added
+  `square_opt_zhenya_auto_assign_terminals` with the game open; stdout showed "new ModHubMod was installed and
+  will be added to filesystem …" and no assertion. Whether a save was loaded at the time isn't known.
 
 ### Game-script event subscriptions are saved (2026-10-08)
 
@@ -201,6 +204,326 @@ Found with the probe `square_roundabouts_lanes_probe` (log lines `[SQRB-LANES]`,
   Exists: The Mod is not enabled, mod = '<id>'" when the ID isn't a known mod, even inside a `pcall` and even when the path is built at runtime (`id .. "::/..."`), so it probably runs the script.
   Trigger: a probe calling `ug_require("square_no_such_mod::/…")`. `make validate` doesn't catch this.
   Remove probes that name made-up mods before uploading.
+- **`VisibilityThresholds.OfComponent.scale` doesn't shrink HUD icons** (2026-10-09, `square_better_bus_overlay`):
+  documented as "Scale multiplier for hud icon" (`base/tealdef/scripts/builtin.d.tl:484`), and base fills it
+  from `hud_gui_config.gres.lua` `renderDistances` (all 1.0). Setting the STATION_GROUP entry to 0.7 in the
+  stop tool's `HudIconManagerConfig` (log `scale station 1 -> 0.7`) left the stop icons and their tags the same
+  size in game. Probably a render-distance factor. To make a HUD tag smaller, build a smaller tag instead.
+
+## Camera zoom limit (2026-10-09)
+
+Found with the probe `square_zoom_probe` (log lines `[ZPROBE]`, game stdout.txt). `BaseConfig` has no camera
+distance field, so the GUI camera API is the only route past the zoom-out limit.
+
+- **`api.gui.camera.setCameraData` accepts a distance past the limit, but the camera eases back.** Vanilla max
+  distance about 4137 m (pitch 0.95). Setting 20000 read back 20000 immediately, then 18834 (frame 1), 17793 (2),
+  16301 (5), 8210 (30), and the vanilla max after about a second. x1.5 and x3 behaved the same.
+- **`setManualCamera(center, distance)` and `focusPosition(pos, distance)` don't change the distance** (read-back
+  ratio 1.00, both calls from a button `onClick`).
+- **The far plane follows the camera distance automatically**: `getNearFar()` went 7200 → 17549 at 18.8 km and
+  back to 7200 near the limit. A pushed camera doesn't need a larger `viewNearFar` in `baseConfig.settings`.
+- **Construction template entries reach `getActionParams` without `menuCategory`** (2026-10-09,
+  `square_better_bus_overlay`): `construction_react_util.tl:1074-1097` builds template definitions with
+  `menuCategory = template.menuCategory`, but the definition passed to the `getActionParams` wrapper had
+  `menuCategory == nil` for the street station (log `menu=nil … modular_terminal.con template=0`). Read it from the
+  resource instead: `api.res.constructionRep.findAndGet(definition.resName).constructionTemplates_native:at(
+  definition.constructionTemplate + 1).menuCategory` (template index is zero based). Its `categories` /
+  `filterCategories` are native vectors: `ipairs` sees nothing, use `:size()` / `:at(i)`.
+- **Recolouring a stop's HUD pin** (2026-10-09, `square_better_bus_overlay`): `builtin.UseDefaultHudIcon` is engine-drawn,
+  takes no colour, and no stylesheet reaches it. Wrapping the `builtin.UseDefaultHudIcon` module field (checked by
+  `react.getCurrentRecipeName() == "HudStationWithLineStops"`) and returning a copy works: the mask
+  `::/gui/hud/icons/hud_background.tga` in an ImageView (Stretch) tinted by CSS `color` at **29x38 UI px**, with
+  `::/gui/hud/icons/vehicle_bus_front_32.tga` at 20x20 stacked on top (two full-size FloatingLayoutChild layers,
+  padding 5/4/13/5), matches the vanilla pin in the Lines window. As a nine-patch background at the mask's natural
+  40x52 it came out ~40 % too big. Line dots and terminal numbers stay the base ones.
+- **Station HUD icons switch from group to per-terminal when zoomed in** (2026-10-09, `square_better_bus_overlay`):
+  a hud icon master is called with `param.index == -1` (one icon per station group) from afar, but close to the camera
+  with `index >= 0`, one icon per terminal (in the Lines window these carry the terminal number,
+  `manager_hud_util.tl:546-557`). A replacement that checked only `index == -1` showed when zoomed out and vanished
+  zoomed in; handle both.
+- **A HUD tag next to the stop icon gets stretched** (2026-10-09): `!hud-icon-main > BoxLayout` (gravity {-1, 0},
+  `gui_react_util.css.lua:54-57`) stretches a tag placed beside `UseDefaultHudIcon` in a horizontal BoxLayout to the
+  icon's height. Replace the icon with the tag inside `BoxLayout{ class = "station-icon-layout" }` instead, as
+  free play does (`hud_icon_toolbox.tl:112-142`).
+- **The camera controller eases toward its own hidden target distance, which mods can't set.** After a push, the
+  camera eased back to the last scroll-wheel distance (2771 m, below the 4137 m max), not to the limit. Re-applying
+  the distance every `react.onStep` (via `react.enqueueJoin`) held it on average, but the controller had already
+  pulled it back 4–16% before each reset, so the view visibly jittered. "Continuous Zoom" (`zoomPrecise`) was
+  tried and didn't stop the ease-back. No camera limit exists in the API, `BaseConfig` or `settings.lua`.
+  **Result: a "zoom out further" mod isn't feasible with the current API; idea scrapped.**
+
+## Highway street templates and interchange placement (2026-10-09)
+
+Found with the probe `square_roundabouts_probe` (runs p7_hx_all / p7_hx_search, logs in
+`plans/square_roundabouts/probe_p7_hx_*.log`; read via `api.res.streetTemplateRep`, GUI thread). Details:
+`plans/square_roundabouts/INTERCHANGES.md` "Phase 7e notes".
+
+- **Base highway templates** (`highway_new_small` / `_medium` / `_large`, ids 37 / 35 / 33 in this build):
+  `maxSlope = maxSlopeShape = 0.4`, `maxSlopeBuild = 0.2`, `minCurveRadius = 44`, `minCurveRadiusBuild = 60`,
+  `speedCoeffs` empty (curve speed for streets is engine-internal), lane speeds 27.78 m/s (small) and
+  33.33 m/s (medium, large), `country = true`.
+- **Those radius limits apply to the player's drag tool, not to constructions**: a construction's 25 m loops
+  of `highway_new_small` placed (every highway, both levels), as do the base cloverleaf's 24-31 m loops.
+- **A junction node on a large highway needs more than 10.5 m of plain edge to the next bridge end.**
+  Highway over road (highway on a bridge over the cross road), a slip road joining `highway_new_large`
+  10.5 m from the bridge's end: "Construction Not Possible" (65 of 65 combos); 17.5 m and 32.5 m placed.
+  On `highway_new_medium` / `_small` 10 m placed. The limit between 10.5 and 17.5 m is not measured. Inferred:
+  every refused layout had that 10.5 m piece, every placed large-highway one 17.5 m or more, and none of the
+  searched tunables (clearance, gore run, terminal gap, loop radius 20-30 m) changed it; p7_verify confirms.
+- **A construction whose edges reach about 485 m from its origin is refused** (2026-10-09, probe `p7_hx_scale`,
+  `plans/square_roundabouts/probe_p7_hx_scale.log`, flat test map, origin 0 / 0, rotation 0). Of 1080 parclo
+  builds every one with an edge end at |x| <= 481.25 m placed ("Highway over road", highway on an 8 m
+  embankment: up to 462.5 m) and every one at |x| >= 486.25 m was refused (190 of 190), with mixed messages:
+  "Construction Not Possible", "Too Much Incline" + "Construction Not Possible", or "Collision" (coll = 1,
+  no buildings). Edge length (557 m single edges placed), gradient and |y| (<= 325 m tested) did not separate
+  them. Inferred, not measured: whether the limit is per construction (radius or box around the origin) or
+  the test map's buildable area (only one position was used); the exact value lies in 481.25-486.25 m
+  (462.5-486.25 m for an elevated end). `square_roundabouts` keeps every highway build within the measured
+  maxima (`hx.MAX_REACH`); p7_hx_scale_verify checks it.
+
+## Negative zero in construction geometry (2026-10-09)
+
+Found while fixing "Highway Interchange" in `square_roundabouts` (Phase 7e fix-up; logs
+`plans/square_roundabouts/probe_p7_*.log`, notes in `plans/square_roundabouts/INTERCHANGES.md`).
+Confirmed in game by the user on 2026-10-09: with the fix the layout is green at 0°, and the old build is red.
+
+- **A `-0` in an edge's position or tangent can make a construction "Construction Not Possible" at exactly 0°
+  rotation, with no other reason, no collision and no Lua error.** Symptom: red at Rotation 0°, green after
+  rotating a few degrees, on any flat spot. In our case exactly one ramp had tangents `(+x, -0, -0)`; its point
+  mirror with `+0` placed fine.
+- **Why only at 0°:** the construction builder's placement transform at 0° is `1/-0/0/0/0/1/…` (sin = `-0`), so
+  `(-0)(+x) + (-0)` stays `-0` in world space. Any other rotation, and a transform built from
+  `Mat4f.new(Vec4f…)` with `+0`, turns it into `+0`.
+- **A script probe can't reproduce it:** `api.engine.util.proposal.makeProposalData` with a
+  `+0` identity transform placed every combination (thousands of calls, every context) while the UI refused
+  the same file, params and position. Copy the builder's exact transform (it carries the `-0`) to reproduce,
+  or test in the UI.
+- **Fix:** before returning from `updateFn`, normalise every zero coordinate in `edgeLists` (positions and
+  tangents) to `+0` (`if v == 0 then v = 0 end` turns `-0` into `+0`). Mirroring code (`-x`, `x * -1`, `-0`
+  literals) is where `-0` comes from. `square_roundabouts_highway.lua` `hx.positiveZeros` is the reference, and
+  `tests/square_roundabouts` forbids `-0` in the highway output. Print with `%a` or `%.17g` to spot it:
+  `%.2f` hides the sign only sometimes (`-0.00`).
+- **A world `-0` in a tangent's x placed** (2026-10-09, probe `p7_presets`, `plans/square_roundabouts/probe_p7_presets.log`,
+  88 / 88 placed at the builder's exact 0° transform): the Channelized Junction's X layout, left-hand traffic,
+  has side-road tangents `(-0, -y)`, world `(-0, …)` at 0°, and all 6 combos placed. The refused highway case
+  had the `-0` in the tangent's **y** (`(+x, -0, -0)`). Which components (or which edges) matter is unclear, so
+  normalise every zero anyway.
+- **Fastest diagnosis when the probe and the UI disagree:** add temporary DEV params to the `.con.lua` that
+  drop or swap parts of the layout (all, no ramps, only one ramp, …) and toggle them in the UI at a red spot.
+  This found the cause in three rounds after many probe rounds didn't.
+- **Probe artifact to avoid:** a `makeProposalData` for a `.con` called from inside the builder's own
+  `guiHandleEvent` callback (`builder.proposalCreate`) for that same file is refused anywhere on the map. Don't
+  use replays made there as evidence.
+
+## Drawing arrows from an entity-window plugin (2026-10-09)
+
+Found with `square_passenger_destinations` rev 1 (user's game test, 2026-10-09). Notes: `plans/square_passenger_destinations/PLAN.md`.
+
+- **An entity-window plugin can draw map layers by stacking its own tool.** EOW plugins get `gameCtx.toolStack`. Pushing a
+  window-less `react.RegisterTool{ push = function(ctx, p) ctx.setActionFn(actionFn, key) end, … }` with
+  `allowStacking = true` makes its `ActionDescriptor` (e.g. `selector_react_util.makeDefaultSelectorAction(gameCtx,
+  layerConfig, true)` with a `cargoFlowRenderableConfig`) the active one, and the arrows draw while the window is open.
+- **Pushing shelves the entity window, which hides it** unless it is pinned (`EntityDetailsTool.shelve`,
+  `gui/entity_window/view_manager.tl` ~404-415). The push handler runs after the shelve (`builtin.lua` push:
+  `shelveNonTop`, then `pushHandler`), so `api.gui.byId.setVisible("temp.view.entity_<keyEntity>", true)` there brings
+  it back. In game the station window stayed open with the arrows drawn. Popping the tool un-shelves the window tool.
+
+## Mod terrain generators for base climates (2026-10-09)
+
+Found with `square_blank_slate` rev 1 (user's game test, 2026-10-09; screenshots in `plans/square_blank_slate/shots/`).
+
+- **A mod `.gen.lua` joins a base climate's generator list** with an absolute climate id:
+  `climate = "::/climates/temperate/temperate.clima"` (the base files' relative `"temperate.clima"` would resolve inside
+  the mod). Its tree's `climate` field uses the same form. No `_content.json` or other registration is needed: the file
+  sits in `content/<dir>/` and `nodeTree` names the tree without folder or extension. It showed up as a "Generator"
+  option in New Game, with an empty Terrain section because `params = { }`.
+- **A heightmap PNG works as the whole terrain.** A `texture_map` node with `minHeight`/`maxHeight` `constant_number`
+  inputs and `tex = "<modId>::/<dir>/<file>.png"` (16-bit grayscale, 1024 px) feeding `height_map_output` gave the exact
+  shape, stretched over the map. Sea level is 0 m, so anything below 0 is water.
+- **No trees or rocks:** an `assets_output` whose `assets` and `forest` inputs are a constant 0 `constant_map`, with
+  mappings that only use other values, placed nothing. A minimal tree (`biome0` = 1, `biome1..4` and `forest_mask` = 0,
+  a `Biomes` `output_biomes` of 0) ran fine on temperate with green grass ground and a sandy shore.
+- **Towns and industries still appear** in New Game (25 towns, 9 industries on Medium): the menu's own sampler places
+  them after the generator, whatever the tree outputs. The Map Editor's Generate heightmap turns them off.
+
+## Timers and threads in GUI contexts (2026-10-10)
+
+Probe `square_sqperf_probe` (log lines `[SQPERF-PROBE]`, game stdout.txt), "New Game - desert", build 40420.
+`api.type.Clock.new()` and `:getTime()` worked in every GUI context, with no crash or error:
+
+| Context | Thread column in stdout.txt |
+|---|---|
+| recipe render (GUI script) | Main Thread |
+| `react.onStep` | Main Thread |
+| `react.onStepTimer` | Main Pool N (worker threads, a different one per tick) |
+| `hudIconScript` function and its recipe render | Main Pool N |
+
+- Cost on the Main Thread (20 000 calls): `getTime` 0.07 µs, `os.clock` 1.0 µs. SQPERF's `wrap` adds 0.28 µs per
+  call and `hit` 0.03 µs. Use Clock, not `os.clock` (which is also process CPU time over all threads on macOS).
+- So the onStep/onStepTimer split matters: in this probe `react.onStep` ran on the Main Thread, while
+  `onStepTimer` and HUD icon scripts ran on worker threads. GUI-thread-only calls (`api.gui.*`,
+  `getApplicationTime`) belong in onStep or render, or behind `react.enqueueJoin` from onStepTimer.
+  The earlier square_supply_gaps crash ("Main Pool 10") is consistent with a worker-thread callback.
+
+## Stress Test probes (2026-10-10)
+
+First in-game run of `square_stress_test`'s Probe tab (plans/square_stress_test/TESTING.md), a running free game
+(not the map editor), build 40420. Evidence: `[SQST]` / `[SQST-PROBE]` lines in stdout.txt. All commands were sent
+from the GUI state's `react.onStep` (Main Thread) through `api.cmd.sendCommand`.
+
+- **Create a town in a running game (`town_create`): works.** `api.engine.mapgen.createTowns(seed, { one Map.Town })`
+  then `api.cmd.makeTownCreateCmd` on its `toAdd`. `toRemove` came back as **all existing towns** (3 of 3): createTowns
+  treats its input as the whole town list. The probe ignored it and no town was lost. Callback after 655 ms; the new
+  town had `initialLandUseCapacities` {100,100,100}, `sizeFactors` {1,1,1}, 58 buildings, person capacities {97,93,93}.
+- **Bigger towns (`town_create_big`): accepted.** Overwriting the TownInfo's `initialLandUseCapacities` with
+  {1600,1600,1600} before `makeTownCreateCmd` was kept as given. Callback after 3962 ms; 580 buildings, person
+  capacities {1537,1561,1416}.
+- **Grow a town (`town_grow_x10`): works, almost at once.** `makeTownUpdateSizeCmd` with `sizeFactors` {10,10,10} and
+  `updateAllBuildings = true`: callback after 2700 ms, `sizeFactors` read back {10,10,10} (not clamped), buildings
+  58 → 343 within 5 s and 345 at 30 s; person capacities {97,93,93} → {836,878,974}.
+- **Year jump:** `makeGameSetDateCmd(Date.new(2100, 1, 1))` → `success=true`, `getYear()` 2100 at once.
+- **Money top-up:** the keep-balance loop (`makeJournalBookAssetCmd`, player `ACCOUNT` balance read) worked; the balance
+  showed 204M on screen.
+- **`api.engine.getEntitiesWithComponent(BASE_EDGE_STREET)` throws "Cannot loop over this component type".** `BASE_EDGE`
+  throws the same (square_better_minimap, 2026-10-09). To list every edge, use
+  `api.engine.system.streetSystem.getNode2StreetEdgeMap()` / `getNode2TrackEdgeMap()` (each edge appears under both of
+  its nodes, so de-duplicate). Not every
+  component type can be listed this way; `TOWN` works. Base GUI code only lists `TOWN`, `INDUSTRY`, `VEHICLE_DEPOT`,
+  `TRANSPORT_VEHICLE`, `WAREHOUSE` and `STATION_GROUP` with it. Count street edges with
+  `api.engine.util.octree.findEntitiesInCircle(pos, r, BASE_EDGE)` filtered by a `BASE_EDGE_STREET` component instead
+  (that made probes 3a/3b fail; fixed, not re-run yet).
+
+Second run (2026-10-10, build 40420, same setup):
+
+- **Big growth factors (`town_grow` with {100,100,100}, `updateAllBuildings = true`) on Tacoma** (initCaps {233,314,244}):
+  callback 3956 ms; buildings 499 → 816 within 5 s (818–821 at 30 s); person capacities {1347,2033,1742} →
+  {4415,6958,7522}, about 19k capacity. The factor is **not clamped**, but the **building count plateaus** (probably
+  street space) while the person capacity per building keeps rising.
+- **`makeTownDevelopAtCmd(pos, true, true)` is not a useful generator.** 9 calls on a 150 m grid all returned success,
+  but street edges +0 and buildings +0 (Tacoma 155 → 155, Vancouver 23 → 23 edges). The single-call run showed
+  buildings +344, but a ×10 growth of the same town ran at the same time, so that number is not DevelopAt's. It adds no
+  streets; the Stress Test has no "Develop now" button.
+- **Town creation must be serialized.** `town_create_big` clicked several times quickly: all succeeded, but the
+  callbacks slowed to 10–12 s and the before/after town-set diff reported the same "new" town for two creations (a race
+  in the probe). One `makeTownCreateCmd` in flight at a time, the next after the callback.
+- **Speed 8 sticks:** `makeGameSetSpeedCmd(8)` → `GAME_SPEED.speedup` 8 after 15 s, while
+  `getEstimatedMaximumGameSpeed()` said 23. Speed 16 not tested yet.
+- **Journal booking of 1e9 works** (balance 204M → 1.204B). 3e9 (32-bit overflow) not tested yet.
+- **Emissions (`emissions_zero`) unresolved:** `makeEntitySetEmissionsCmd(e, 0, 0, r, r)` on 10 of 5180
+  `EMISSION_EMITTER` entities (that type *is* iterable with `getEntitiesWithComponent`): read-back zero = 0/10 after 2 s
+  and 0/9 after 30 s, with `missionEmissionsScriptFactor` = 1; the restore command reported failure. Either the command
+  doesn't take effect or the read-back reads a different field.
+- **Not run yet:** probes 4 (street from scratch), 5 (buy vehicles: the test save had no line), 6b (speed 16),
+  6d (3e9 booking), 7 (runtime `baseConfig.noCosts`).
+
+Third run (2026-10-10 06:15–06:26Z, build 40420, Towns and Traffic tabs; user: "it looks like it's working well"):
+
+- **Spawn spread over the map** (bounds -4096..4096): 5 + 8 medium towns created serially, 1.3–2.0 s each,
+  `initialLandUseCapacities` 400 kept, 175–250 buildings each. `makeTownCreateCmd`'s `resultEntities` came back
+  **empty** (results=0); the new town is found by diffing the town list.
+- **Placement was too strict:** Huge (3200, spacing 2500 m) near the camera placed 0 of 1 (16 candidates: near=12,
+  edge=4), so Huge is still untested; after ~16 towns the coarse spread grid had 0 valid spots for Small (near=16).
+  Fixed afterwards by relaxation steps (wider ring, 70 %, 50 % of the spacing, finer grid; never below 800 m).
+- **`makeTownConnectWithIndustriesCmd`** with `getDefaultTownConnections`' `{{0,1}}` (0-based) and `keep = true`:
+  success, ~0.8 s each.
+- **Grow: one `makeTownUpdateSizeCmd` builds only ~250–350 buildings, and re-sending it keeps building.** Callbacks
+  0.4–8 s per town, longer for bigger towns. With the SAME factor (1000, already capped) and
+  `updateAllBuildings = true`, Town 10 went 889 → 1193 → 1494 → 1732 → 2065 → 2314 over 5 calls (~4 s each). The
+  factor isn't the limit (this replaces the second run's "plateau" reading); hence the Grow form's build-out passes.
+- **Freeze/unfreeze** 19 towns (`makeTownSetDevelopmentActiveCmd`): ~100 ms.
+- **Hide notifications:** success with 29 type names from `getNotificationType2Label`, so `notification_util`
+  resolves from a mod GUI script.
+- **Add vehicles:** 25 buses on one line from depot 11332 (`findBestLineAndDepotForVehicle`), `makeVehicleSetLineCmd`
+  true for all 25, ~0.6 s per vehicle, 0 failures; balance 193.1M → 104.4M (price check fine). Lines with no vehicle
+  were skipped correctly.
+- **Speed 16** was sent; no read-back logged (still unconfirmed).
+
+Fourth run (2026-10-10 06:42–06:44Z, build 40420, Probe tab probes 4 and 9, Towns tab):
+
+- **Street from scratch (`street_from_scratch`, probe 4 variant A): works.** A `SimpleProposal` street edge (`type` 0,
+  `typeIndex` -1, `streetEdge` copied from a reference edge, template `country_new_small.street_template`) sent with
+  `makeWorldBuildProposalCmd`: `success=true`, `critical=false`, no messages, cost ~36.6k, street edges +1. Worked 3 of 3
+  times. Auto bus lines can build their own streets; stops and depot are still open (probe 10).
+- **`SIM_PERSON` is iterable** with `getEntitiesWithComponent` (9a census: 693 persons, `scanMs=1`). By `lastMoveMode`:
+  DRIVE=79, WALK=614. Persons driving right now (DRIVE + `MOVE_PATH`, no `SIM_PERSON_AT_VEHICLE`) = 63, and **all 63 have
+  a `LAND_VEHICLE` component**: a private car is a `SIM_PERSON` with `LAND_VEHICLE` + `MOVE_PATH`, not an entity of its
+  own. `LAND_VEHICLE` itself is **not** iterable. `lastMoveMode` 1 = DRIVE. `SIM_PERSON` fields: cargoType,
+  destinations{3}, moveModes{3}, travelTimes, targetOrAtEntity, lastNonResType, lastMoveMode, walkSpeed, modelIdPerson,
+  colorConfigPerson, modelIdCar, colorConfigCar, lastDestinationUpdate, landUse2ReachableWalkDrive,
+  landUse2ReachableLines, pickupTime, happiness.
+- **`api.cmd.debug.makeSimPersonSetStateCmd` works from a GUI script in a normal (release) game.**
+  - State **2 (jump home)**: all 5 picked drivers were at their home building with no `MOVE_PATH` after 2 s; the car
+    disappears from the road. Repeated 4×5 with the same result. By +15 s, 1–4 of the 5 were driving again (they start
+    their next trip), so clearing traffic for good means repeating it.
+  - State 1 (new path): no visible effect (still driving).
+  - State 0: the command failed (callback `success=false`).
+- **`PERSON_CAPACITY.pathfindingPreference`** on town buildings (9d): `destinationWeight=1`, `disallowedMoveModes={}`.
+  Read-only: no command writes it.
+- **Spawn Huge (3200)**: `initialLandUseCapacities` {3200,3200,3200} kept, 716 buildings, person capacities
+  {1972,2605,2688}, 5.5 s.
+
+Fifth run (2026-10-10 07:05–07:07Z, build 40420, Traffic tab Clear traffic, Probe tab probes 10a–10d):
+
+- **Clear traffic works at scale.** One click scanned 11,096 `SIM_PERSON`s and found 285 drivers: 285 sent, 285 ok,
+  333 ms wall (spread over frames). A second click right after found 64 drivers, 54 ok (the other 10 had changed state
+  in between). **Keep cleared every 5 s** finds 205–349 drivers again each cycle (traffic regenerates within 5 s),
+  382–394 ms per cycle, ok ≈ sent.
+- **Bus stops by script work (10a/10b).** Variant A (the replacement edge's `comp.objects` holds the stop with the temp id
+  `-400000000 + index`, `STOP_RIGHT`) succeeded on all 6 stops, cost ~39–42k each, one new `STATION_GROUP` per stop
+  (found by diffing the list). Stops on edges 31–88 m long worked. Variant B was never needed.
+- **Road depot (10c): placement often collides.** With the depot's free entrance node 22 m off the street centre
+  (construction origin ~57 m from the edge middle), the build often came back `messages={Collision}` on both sides,
+  once `critical` "Construction Not Possible" (the transform has no `-0` entries: every one goes through `z0`;
+  cause unknown, maybe terrain). It succeeded 2 of 5 times.
+- **A construction build's `resultEntities[1][1]` is not the construction.** The log said
+  "construction=10438 has no CONSTRUCTION component" while `VEHICLE_DEPOT` went 0→2 (new 11468, 11587). Find a new
+  depot by diffing the `VEHICLE_DEPOT` list and map it to its construction with
+  `streetConnectorSystem.getConstructionEntityForDepot`. The probe stopped there, so the entrance connection is
+  still untested. `cmd road_depot_here:build failed` lines next to a success are the refused tries of the other side.
+- **10d found no depot**: "depot=nil (none)" although 11468/11587 existed. The fallback (nearest road depot within
+  1500 m of the camera) filtered on `VehicleDepot.carrier == ROAD` and read the position through
+  `construction.transf:getTransl()`; one of the two failed. Base code derives a depot's carrier from its
+  `transportModes` (`gui/line_vehicle_mgmt/vehicle_util.tl:54-75`). The lookup now accepts either and falls back to the
+  depot's `BOUNDING_VOLUME`, and logs per depot what it saw (not re-run yet).
+- Fixed afterwards (not run yet): 10c walks candidate spots (along the edge at 0.5/0.25/0.75, both sides, entrance
+  30/45/60 m off) over the 3 nearest edges, pre-checks each with `api.engine.util.proposal.makeProposalData` (depot and a
+  stand-in stub street) and sends only clean spots; the new depot comes from the `VEHICLE_DEPOT` diff.
+
+Sixth run (2026-10-10 07:40–07:45Z, build 40420, a 53k-person map, Traffic tab):
+
+- **Auto bus lines in a dense town (SQST Town 6): the depot search failed every time**:
+  `depot: edges=4 spots=72 tried=72 pre={Collision=72} sent=0 | no spot left` (the 4 outermost town edges, 3 gaps x
+  3 params x 2 sides each, all refused by the `makeProposalData` pre-check). The stops and the line had been built
+  **before** the depot step, so each failed try left an empty line with 2 stops behind (SQST Bus 3, 6, 9, 12) and
+  spent the stop money. Fixed afterwards: the depot comes first (nothing is built without one), searched in rings
+  outward from the centre with more gaps, any player road depot within 2 km counts, and a line left with no bus is
+  destroyed again (not re-run yet).
+- **Once a depot existed (151591, built by the user), 2 runs of 4 lines x 10 buses all worked**:
+  `findBestDepotForLine` found 151591, 40 buses each run, ~6 s per line (11–14 s while Keep traffic cleared ran),
+  2 stops 301–440 m apart on built-up edges.
+- **Line names skipped by 3** (SQST Bus 3, 6, 9, 12, 15, 18): one counter was shared by the 2 stop names and the line
+  name. Fixed: a counter of its own, continuing after the highest existing "SQST Bus N".
+- **Three quick clicks queued 3 batches** (3 "bus_lines: 1 towns x 4 lines" plans). The buttons now refuse while the
+  same kind of job is queued or running (bus lines / their removal; add / sell vehicles).
+- **Remove added bus lines works**: 40 sold, 8 lines deleted, 0 failures (`makeLineDestroyCmd` after the buses are
+  sold). **Ignore town emissions** (Game tab town ratings): 13 towns, 26 events ok. **Add vehicles 10**: 10/10
+  bought. **Keep traffic cleared on 53.8k persons**: 2.4k–12k drivers per 5 s cycle, 1.1–3.8 s wall per cycle,
+  0 skipped cycles.
+- **Crash at 07:45:22Z, unexplained.** In the same second as the 3rd batch's "bus_lines 4/4 ... ok" and its summary
+  (12 lines and 120 buses this session; 40 buses sold and 8 lines destroyed at 07:41:59), the Simulation Thread hit
+  `Engine.h:323 GetComponentDataIndex` "Assertion it != components.end()" for entity 152444, component type 73 =
+  TransportVehicle. 152444 then had TpNetLink, BoundingVolume, LotList and TerrainAlignmentList, which looks like
+  a street stop / edge object, near the ids of the stops just built (station groups ~1525xx–1530xx). Suspected:
+  something still referenced a sold bus's id after the id was reused, or a vehicle on an edge our stop proposal
+  replaced; not proven, and no `[SQST]` line named 152444. Guards added afterwards: every vehicle or line id is
+  re-checked (TRANSPORT_VEHICLE / LINE component, PLAYER_OWNED) right before its command, removal waits until the
+  sold buses are gone and never deletes a line that still lists vehicles, stop edges with moving sim persons
+  (`getSimPersonsMovingForTransportNetwork`, untested on street edges) and edges near our stops or depot gates
+  come last, and every bought bus id and every stop's station group and result entities are logged (`rt.detail`)
+  so a future crash entity can be matched against stdout.txt.
+- **Unrelated(?)**: at 06:32:24Z, during a save load (no `[SQST]` line nearby), the Simulation Thread hit
+  `gamescript_util.cpp:385` "Assertion 'false' failed", logged as a fatal-error exception, but the game kept
+  running. Not traced to any mod; unexplained.
 
 ## ImageView raw pixel data (2026-10-09)
 
