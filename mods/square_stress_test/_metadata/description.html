@@ -1,0 +1,39 @@
+<p>Stress Test Debug Tool turns a free game into a dense, busy map in minutes: big towns, lots of vehicles, heavy traffic, fast time. It is made for performance-testing mods (and the game) under load.</p>
+<p><strong>Warning: this tool changes your save (towns, vehicles, money, date). Use a copy of a save, for testing only. Never use it on a save you care about.</strong></p>
+<h4>Features</h4>
+<p>A "Debug" button in the top-left button row opens the window. Each section works like a form: pick the options, then press its green button. Actions run one after another from a queue (shown at the top of the window, with "Clear queue" to drop what is waiting); pressing a button again while its batch is still queued or running does nothing. Every action writes an [SQST] line to the window's log and to stdout.txt.</p>
+<ul>
+<li><strong>Game</strong>: add 10M or 100M, keep the balance above 50M (checked every 2 s), jump to any year from 1850 to 2150, set the game speed up to 16x, and hide all notifications (on by default).</li>
+<li><strong>Game: town ratings</strong>: make every town ignore noise and pollution (sets their rating sensitivity to zero, as the town editor does), or restore the default sensitivities.</li>
+<li><strong>Towns</strong>: grow all towns or the one nearest the camera (x2 to x100) with 1 to 10 build-out passes for denser towns; spawn 1 to 25 new towns (Small to Huge) near the camera or spread over the map, optionally connected by road to their nearest town; freeze or unfreeze town development; a readout of towns, capacity and buildings.</li>
+<li><strong>Traffic: add vehicles</strong>: buy 1 to 25 copies of each line's first vehicle for all your lines (at the line's depot, one at a time; stops when the money runs out), and sell the vehicles added this session.</li>
+<li><strong>Traffic: clear traffic</strong>: send every car driver home at once (uses one of the game's debug commands; your own vehicles are never touched). Drivers start new trips after a few seconds, so "Keep traffic cleared" repeats it every 2, 5 or 10 seconds.</li>
+<li><strong>Traffic: auto bus lines</strong>: for the town nearest the camera, the 5 nearest or all towns (up to 25), 1, 2 or 4 lines per town. Each town first gets a road depot (one of yours nearby, or a new one built and connected to the streets; a town where none fits is skipped with nothing built), then two bus stops 300-800 m apart on its streets, a line between them and 2, 5 or 10 of the newest buses. "Remove added bus lines" sells those buses, waits until they are gone, then deletes the lines made this session.</li>
+<li><strong>Traffic: readout</strong>: lines, vehicles, sim persons and cars driving at the last clear.</li>
+<li><strong>Probe tab</strong> (opt-in, see Settings): the in-game experiments the tool was built from, for mod developers. Every probe button changes your save.</li>
+</ul>
+<h4>Settings</h4>
+<p>Load-time settings in the mod's options (applied when the game loads, all off or default to start with, so the game is unchanged until you pick them):</p>
+<ul>
+<li><strong>No costs</strong> (default Off): building and vehicles cost nothing, as in the official No Costs mod.</li>
+<li><strong>Sandbox mode</strong> (default Off): the game's sandbox mode, as in the official Sandbox mod.</li>
+<li><strong>Vehicles never expire</strong> (default Off): no vehicle model goes out of production.</li>
+<li><strong>No noise and pollution</strong> (default Off): vehicles emit no noise or pollution, the game stops updating the emissions of industries, stations, depots and warehouses (existing ones keep their current value), new industries start at zero, and noise and pollution no longer lower town ratings (towns given their own sensitivity in the town editor or the Game tab keep it).</li>
+<li><strong>Sim person trip recalculation</strong> (default x1): x2 or x5 makes residents pick new destinations more often, for more trips and more simulation load.</li>
+<li><strong>Town development interval</strong> (default Default): Fast or Very fast makes towns grow more often.</li>
+<li><strong>Show probe tab (developers)</strong> (default Off): adds the Probe tab with the in-game experiments the tool was built from.</li>
+</ul>
+<h4>Notes</h4>
+<ul>
+<li>Hidden notifications and the town rating sensitivities are stored in the save: uncheck "Hide all notifications" and press "Restore defaults" before removing the mod.</li>
+<li>Stops and depots built by auto bus lines stay when the lines are removed; bulldoze them by hand if needed.</li>
+<li>Added vehicles and bus lines are remembered for this session only: after a reload the remove buttons no longer know them.</li>
+<li>All settings take effect when the save is loaded, so changing one needs a reload. "No noise and pollution" stores nothing in the save: turn it off (or remove the mod) and reload, and vehicles, the emissions script and the default town ratings are back to normal.</li>
+<li>Look for [SQST] lines in stdout.txt (in the game's crash_dump folder) for what each action did and how long it took.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 1 (2026-10-10)</h4>
+<ul>
+<li>Initial release.</li>
+</ul>

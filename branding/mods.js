@@ -253,6 +253,33 @@ Square.register({
   },
 });
 
+Square.register({
+  id: 'square_stress_test', name: 'Stress Test Debug Tool', tagline: 'A dense, busy city to benchmark', accent: '#F048D8',
+  // A load gauge with its needle pegged in the accent red zone, over a dense city skyline: the game
+  // under maximum load.
+  glyph: S => {
+    const cx = 400, cy = 330, r = 240;
+    const pt = (deg, rr) => [cx + rr * Math.cos(deg * Math.PI / 180), cy - rr * Math.sin(deg * Math.PI / 180)];
+    const f = ([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`;
+    const arc = (a0, a1, cls, w = 72) => `<path class="${cls}" d="M${f(pt(a0, r))} A${r} ${r} 0 0 1 ${f(pt(a1, r))}" stroke-width="${w}" stroke-linecap="round"/>`;
+    const n = 18;  // needle angle: pegged inside the red zone
+    const needle = `M${f(pt(n + 90, 40))} L${f(pt(n, 196))} L${f(pt(n - 90, 40))} Z`;
+    const bars = [[110, 170], [196, 250], [282, 190], [368, 280], [454, 220], [540, 270], [626, 200]];
+    const towers = bars.map(([x, h]) => `<rect class="ink" x="${x}" y="${700 - h}" width="64" height="${h}" rx="12"/>
+      ${Array.from({ length: Math.floor((h - 30) / 64) }, (_, i) =>
+        `<rect class="cut" x="${x + 20}" y="${700 - h + 26 + i * 64}" width="24" height="32" rx="7"/>`).join('')}`).join('');
+    return `
+    ${towers}
+    ${S.ground(80, 640, 700)}
+    ${arc(180, 60, 'sink')}
+    ${arc(40, 0, 'scut', 108)}${arc(40, 0, 'sacc')}
+    <path class="ink" d="${needle}" stroke="var(--ink)" stroke-width="28" stroke-linejoin="round"/>
+    <circle class="ink" cx="${cx}" cy="${cy}" r="60"/>
+    <circle class="cut" cx="${cx}" cy="${cy}" r="20"/>`;
+  },
+});
+
+// US State Names series: one line per state, same cover every time (cover.js stateCover, README "State series").
 Square.stateCover({
   id: 'square_names_us_washington', state: 'Washington', flag: 'us_washington.svg', flagAspect: 1.6, accent: '#00843D',
 });

@@ -1,0 +1,17 @@
+{
+    "name": "Stress Test Debug Tool",
+    "summary": "Dev tool: turn a free game into a dense, busy benchmark map. Changes your save; use a copy.",
+    "description": "Dev tool for performance-testing mods: turn a free game into a dense, busy benchmark map in minutes (grow and spawn towns, add vehicles and bus lines, clear traffic, money, year and speed controls). For testing only: it changes your save, so use a copy.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod",
+        "Misc"
+    ],
+    "dependencies": [],
+    "url": ""
+}
