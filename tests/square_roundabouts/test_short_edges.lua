@@ -11,10 +11,9 @@ local geom = ug_require(DIR .. "square_roundabouts_geometry.lua")
 local magic = ug_require(DIR .. "square_roundabouts_magic.lua")
 local channel = ug_require(DIR .. "square_roundabouts_channel.lua")
 local interchange = ug_require(DIR .. "square_roundabouts_interchange.lua")
+local highway = ug_require(DIR .. "square_roundabouts_highway.lua")
 local K = geom.PARAM_KEYS
 local MK = magic.PARAM_KEYS
-local CK = channel.PARAM_KEYS
-local IK = interchange.PARAM_KEYS
 
 local here = debug.getinfo(1, "S").source:match("^@(.*/)") or "tests/square_roundabouts/"
 local checks = loadfile(here .. "checks.lua", "t", _ENV)()
@@ -87,28 +86,24 @@ local function magicSweep(fn)
 end
 
 -- Channelized junction: every value of every param (Islands None / Paved: Grass has the same roads).
+-- The grid lives in golden.lua (shared with test_entries_unchanged_channel.lua).
 local function channelSweep(fn)
-	each({
-		[CK.layout] = { 1, 2 }, [CK.main] = range(#geom.ARM_TEMPLATES), [CK.side] = range(#geom.ARM_TEMPLATES),
-		[CK.slips] = { 1, 2, 3 }, [CK.splitter] = { 1, 2 }, [CK.armLength] = range(#channel.ARM_LENGTHS),
-		[CK.direction] = { 1, 2 }, [CK.island] = { 1, 3 },
-	}, fn)
+	G.channelSweep(channel, geom, fn)
 end
 
 -- Roundabout interchange: every layout x highway x level x lanes x traffic side, the extreme
--- radii, four cross roads, the shortest and longest slip roads, Centre island None / Fountain.
+-- radii, four cross roads, the shortest and longest slip roads, Centre island None / Fountain
+-- (golden.lua G.interchangeSweep, shared with test_entries_unchanged_interchange.lua).
 -- params.year = 1969 (steel bridges, the 1940 type; concrete is checked in test_interchange.lua):
 -- with the year missing the updateFn builds concrete bridges (1970), as the base interchanges do.
 local function interchangeSweep(fn)
-	each({
-		[IK.layout] = { 1, 2, 3 }, [IK.highway] = range(#interchange.HIGHWAYS), [IK.level] = { 1, 2 },
-		[IK.lanes] = { 1, 2, 3 }, [IK.direction] = { 1, 2 }, [IK.radius] = { 1, #interchange.RADII },
-		[IK.cross] = { 1, 3, 4, 6 }, [IK.slipLength] = { 1, #interchange.SLIP_LENGTHS },
-		[IK.armLength] = { 1 }, [IK.island] = { 1, 4 },
-	}, function(p)
-		p.year = 1969
-		fn(p)
-	end)
+	G.interchangeSweep(interchange, 1969, fn)
+end
+
+-- Highway Interchange (Phases 7b / 7c / 7c2): every type x highway x level x side x Scale, four cross
+-- roads, the extreme ramp lengths (golden.lua G.highwaySweep), params.year = 1969 (steel bridges).
+local function highwaySweep(fn)
+	G.highwaySweep(highway, 1969, fn)
 end
 
 local ENTRIES = {
@@ -116,12 +111,13 @@ local ENTRIES = {
 	{ name = "magic", con = "square_roundabouts_magic.con.lua", script = "square_roundabouts_magic.script.lua", sweep = magicSweep },
 	{ name = "channel", con = "square_roundabouts_channel.con.lua", script = "square_roundabouts_channel.script.lua", sweep = channelSweep },
 	{ name = "interchange", con = "square_roundabouts_interchange.con.lua", script = "square_roundabouts_interchange.script.lua", sweep = interchangeSweep },
+	{ name = "highway", con = "square_roundabouts_highway_parclo.con.lua", script = "square_roundabouts_highway.script.lua", sweep = highwaySweep },
 }
 
 for _, entry in ipairs(ENTRIES) do
 	test(entry.name .. ": no edge under 1 m, no nodes within 0.5 m; yearFrom = latest template year", function()
-		local yearFrom = loadData(entry.con).availability.yearFrom
-		local updateFn = loadData(entry.script).updateFn
+		local yearFrom = entry.yearFrom or loadData(entry.con).availability.yearFrom
+		local updateFn = entry.updateFn or loadData(entry.script).updateFn
 		local latest, builds, seen, stats = 0, 0, {}, {}
 		entry.sweep(function(p)
 			local res = updateFn({}, p)

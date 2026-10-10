@@ -16,13 +16,34 @@ local function metres(list)
 	return out
 end
 
+-- Radius preset buttons (Phase 7c3, ix.RADIUS_PRESETS) and the tooltip's "S 15 m, ..."
+local function presetNames()
+	local out = {}
+	for i = 1, #ix.RADIUS_PRESET_NAMES do out[i] = _(ix.RADIUS_PRESET_NAMES[i]) end
+	return out
+end
+
+local function presets()
+	local out = {}
+	for i, ri in ipairs(ix.RADIUS_PRESETS) do out[i] = _(ix.RADIUS_PRESET_NAMES[i]) .. " " .. ix.RADII[ri] .. " m" end
+	return table.concat(out, ", ")
+end
+
 local ROADS = {
 	_("Town, small"), _("Town, medium"), _("Town, large"),
 	_("Country, small"), _("Country, medium"), _("Country, large"),
 }
 
+-- Every param sits in the left toolbar (location "Toolbar", 2026-10-09: the menu's hover tooltip no
+-- longer covers the settings there). Its buttons fit about 6 characters: button rows have at most 5
+-- labels of at most 6 characters (tested), longer choices are ComboBoxes, tooltips explain them.
+local function toolbar(con)
+	for _, p in ipairs(con.params) do p.location = "Toolbar" end
+	return con
+end
+
 function data()
-return {
+return toolbar({
 	configureLayerScript = {
 		fileName = "::/gui/construction/construction_desc_layers.script@configureDefaultLayerFn",
 		params = {
@@ -65,24 +86,24 @@ return {
 			key = K.layout,
 			name = _("Layout"),
 			tooltip = _("Two-bridge ring: one ring around the highway,\ncrossing it on two bridges.\nDumbbell: a ring on each side, joined by a two-way bridge.\nPeanut: one one-way loop with a lobe on each side;\nits narrow waist is two one-way bridges."),
-			uiType = "Button",
+			uiType = "ComboBox",
 			values = { _("Two-bridge ring"), _("Dumbbell"), _("Peanut") },
 			defaultIndex = ix.LAYOUT_TWO_BRIDGE,
 		},
 		{
 			key = K.highway,
 			name = _("Highway"),
-			tooltip = _("Highway type, built as two one-way carriageways\n(1, 2 or 3 lanes each way)."),
+			tooltip = _("Highway type, built as two one-way carriageways.\nS, M, L: small, medium, large highway\n(1, 2 or 3 lanes each way)."),
 			uiType = "Button",
-			values = { _("Small"), _("Medium"), _("Large") },
+			values = { _("S"), _("M"), _("L") },
 			defaultIndex = ix.DEFAULT_HIGHWAY,
 		},
 		{
 			key = K.level,
-			name = _("Level"),
-			tooltip = _("Ring over highway: the highway at ground level, the\nroundabout 8 m up, on bridges where it crosses.\nHighway over ring: the roundabout at ground level,\nthe highway 8 m up, on a bridge across it.\nThe slip roads climb the 8 m."),
+			name = _("On top"),
+			tooltip = _("Which one crosses over the other.\nRing: the roundabout 8 m up, on bridges where it\ncrosses, the highway at ground level.\nHwy: the highway 8 m up, on a bridge across the\nroundabout at ground level.\nThe slip roads climb the 8 m."),
 			uiType = "Button",
-			values = { _("Ring over highway"), _("Highway over ring") },
+			values = { _("Ring"), _("Hwy") },
 			defaultIndex = ix.LEVEL_RING_OVER,
 		},
 		{
@@ -94,12 +115,15 @@ return {
 			defaultIndex = 2,
 		},
 		{
-			key = K.radius,
+			-- Phase 7c3: presets on their own key (ix.RADIUS_PRESET_KEY), not the old slider's
+			key = ix.RADIUS_PRESET_KEY,
 			name = _("Radius"),
-			tooltip = _("Radius inside the ring road (each ring or lobe).\nA minimum: the rings grow if the roads don't fit.\nThe two-bridge ring must span the highway, so it\nstarts at 25-40 m (with 4 lanes: 35-55 m)."),
-			uiType = "Slider",
-			values = metres(ix.RADII),
-			defaultIndex = ix.DEFAULT_RADIUS,
+			tooltip = _("Radius inside the ring road (each ring or lobe),\nsmall to extra large: ") .. presets() ..
+				_(".\nA minimum: the rings grow if the roads don't fit.\nThe two-bridge ring must span the highway, so it\nstarts at 25-40 m (with 4 lanes: 35-55 m)."),
+			uiType = "Button",
+			displayMode = "Horizontal",
+			values = presetNames(),
+			defaultIndex = ix.DEFAULT_RADIUS_PRESET, -- S, the smallest (user 2026-10-09)
 		},
 		{
 			key = K.cross,
@@ -113,7 +137,8 @@ return {
 			key = K.slipLength,
 			name = _("Slip road length"),
 			tooltip = _("Distance along the highway from a slip road's ring\nnode to where it joins the highway. Shorter is steeper\n(120 m: at most 9 % on average; the base diamond\ngoes up to 10.5 %)."),
-			uiType = "Slider",
+			uiType = "Button",
+			displayMode = "Horizontal",
 			values = metres(ix.SLIP_LENGTHS),
 			defaultIndex = ix.DEFAULT_SLIP_LENGTH,
 		},
@@ -121,16 +146,17 @@ return {
 			key = K.armLength,
 			name = _("Arm length"),
 			tooltip = _("How far the cross road runs on beyond the ring,\nand the highway beyond the slip roads."),
-			uiType = "Slider",
+			uiType = "Button",
+			displayMode = "Horizontal",
 			values = metres(ix.ARM_LENGTHS),
 			defaultIndex = ix.DEFAULT_ARM_LENGTH,
 		},
 		{
 			key = K.direction,
 			name = _("Traffic side"),
-			tooltip = _("Right-hand traffic: rings counterclockwise.\nLeft-hand traffic: everything mirrored, rings clockwise."),
+			tooltip = _("Right: right-hand traffic, rings counterclockwise.\nLeft: left-hand traffic, everything mirrored,\nrings clockwise."),
 			uiType = "Button",
-			values = { _("Right-hand traffic"), _("Left-hand traffic") },
+			values = { _("Right"), _("Left") },
 			defaultIndex = 1,
 		},
 		{
@@ -146,5 +172,5 @@ return {
 		fileName = "square_roundabouts_interchange.script@updateFn",
 		params = {},
 	},
-}
+})
 end

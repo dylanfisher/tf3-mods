@@ -131,7 +131,7 @@ test("magic: the size grows only as far as the arm road needs", function()
 	-- even the compact layout
 	local need = { [3] = 4, [6] = 4 }
 	for armType = 1, #geom.ARM_TEMPLATES do
-		eq(magic.build(magic.readParams({ [K.armType] = armType })).size, need[armType] or 3, "arm " .. armType)
+		eq(magic.build(magic.readParams({ sqrb_magic_size = 3, [K.armType] = armType })).size, need[armType] or 3, "arm " .. armType)
 		eq(magic.build(magic.readParams({ sqrb_magic_size = 4, [K.armType] = armType })).size, 4)
 		eq(magic.build(magic.readParams({ sqrb_magic_size = 5, [K.armType] = armType })).size, 5)
 	end

@@ -109,6 +109,16 @@ geom.RADII = { 8, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60 }
 geom.GROW_RADII = { 70, 80, 90, 100 }
 geom.DEFAULT_RADIUS = 5 -- 20 m
 geom.MINI_RADIUS_BELOW = 15
+-- Phase 7c3 (user: size settings as button rows like the base interchanges, not sliders): the menu
+-- shows five Radius presets, Mini / Small / Medium / Large / Huge = geom.RADII indices (10 / 15 / 20 /
+-- 35 / 60 m; Medium = the 20 m default), under their own key (geom.RADIUS_PRESET_KEY), so a slider
+-- index saved under sqrb_radius never reads as a preset. Each preset builds exactly what its radius
+-- built before (same radiusIndex, same growth). geom.readParams: the preset key when present, else
+-- the full-range index key sqrb_radius (tests, goldens, the DEV probe's replay keys), else 20 m.
+geom.RADIUS_PRESETS = { 2, 4, 5, 8, 13 }
+geom.RADIUS_PRESET_NAMES = { "XS", "S", "M", "L", "XL" } -- 2026-10-09: were Mini / Small / Medium / Large / Huge
+geom.DEFAULT_RADIUS_PRESET = 1 -- XS 10 m (2026-10-09, user: size menus default to the smallest; was 3 = M)
+geom.RADIUS_PRESET_KEY = "sqrb_radius_size"
 -- "Shape" param: 1 = round, then ovals (length : width). Ratio 1 is a circle.
 geom.SHAPE_RATIOS = { 1, 1.25, 1.5, 1.75, 2.0 }
 geom.SHAPE_ROUND = 1
@@ -313,7 +323,11 @@ function geom.readParams(params, keys)
 	spec.shape = index(params[k.shape], #geom.SHAPE_RATIOS, geom.SHAPE_ROUND)
 	spec.ovalRatio = geom.SHAPE_RATIOS[spec.shape]
 	spec.lanes = index(params[k.lanes], #geom.RING_TEMPLATES, 2)
-	spec.radiusIndex = index(params[k.radius], #geom.RADII, geom.DEFAULT_RADIUS)
+	if params[geom.RADIUS_PRESET_KEY] ~= nil then
+		spec.radiusIndex = geom.RADIUS_PRESETS[index(params[geom.RADIUS_PRESET_KEY], #geom.RADIUS_PRESETS, geom.DEFAULT_RADIUS_PRESET)]
+	else
+		spec.radiusIndex = index(params[k.radius], #geom.RADII, geom.DEFAULT_RADIUS)
+	end
 	spec.radius = geom.RADII[spec.radiusIndex]
 	spec.mini = spec.radius < geom.MINI_RADIUS_BELOW
 	spec.layout = index(params[k.arms], #geom.ARM_LAYOUTS, 3)
@@ -362,6 +376,13 @@ end
 --   chSlip        channel: slip lane template, ch.SLIP_TEMPLATES index (one-way xsmall, small, medium)
 --   ixAlphaMax    interchange: two-bridge ring, largest slip node angle off the highway axis
 --                 (degrees; ix.ALPHA_MAX_LANES)
+-- Phase 7d (Highway Interchange, square_roundabouts_highway.lua; read by hx.frame / hx.layout / hx.plan):
+--   hxClear       highway: plan gap between the highway kerb and non-bridge roads (m; ramps.CLEAR)
+--   hxGoreRun     highway: shortest level gore along a carriageway (m; ramps.GORE_RUN)
+--   hxTermGap     highway: parclo, inner (loop) to outer (diagonal) terminal centreline gap, also
+--                 the loop to wrapped diagonal gap (m; hx.TERM_GAP)
+--   hxLoopRadius  highway: parclo, exact loop centreline radius (m): replaces the Size slider and
+--                 its growth (the plan still grows the ramp length)
 geom.DEV_KEYS = {
 	radius = "sqrb_dev_radius",
 	magicSize = "sqrb_dev_magic_size",
@@ -383,6 +404,10 @@ geom.DEV_KEYS = {
 	ixWaistGap = "sqrb_dev_ix_waist_gap",
 	chSlip = "sqrb_dev_ch_slip",
 	ixAlphaMax = "sqrb_dev_ix_alpha_max",
+	hxClear = "sqrb_dev_hx_clear",
+	hxGoreRun = "sqrb_dev_hx_gore_run",
+	hxTermGap = "sqrb_dev_hx_term_gap",
+	hxLoopRadius = "sqrb_dev_hx_loop_radius",
 }
 -- accepted range per override {min, max, integer?}
 geom.DEV_RANGES = {
@@ -406,6 +431,10 @@ geom.DEV_RANGES = {
 	ixWaistGap = { 0, 30 },
 	chSlip = { 1, 3, true },
 	ixAlphaMax = { 20, 70 },
+	hxClear = { 0, 30 },
+	hxGoreRun = { 5, 120 },
+	hxTermGap = { 10, 80 },
+	hxLoopRadius = { 10, 120 },
 }
 
 --- The dev overrides present in params (geom.DEV_KEYS), or nil if there are none.

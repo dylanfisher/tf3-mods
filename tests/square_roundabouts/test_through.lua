@@ -327,7 +327,7 @@ test("through roads: ring growth uses the through road's half width; fits withou
 	ok(build({ centre = 4, radius = 1, throughRoad = 4, lanes = 1 }).radius > build({ centre = 4, radius = 1, lanes = 1 }).radius)
 end)
 
-test("through roads: tags, edge lengths, engine model, overlaps, short edges", function()
+test("through roads: tags, edge lengths, engine model", function()
 	-- the engine model (slow with wide roads) at the smallest slider radius: the tightest rings
 	sweep(function(over)
 		local b = build(over)
@@ -336,6 +336,10 @@ test("through roads: tags, edge lengths, engine model, overlaps, short edges", f
 		checks.report(checks.lengths(b.lists, geom.MIN_EDGE), name)
 		if over.radius == 1 and not judged(b) then checks.report(checks.engineModel(b.lists, b.halfWidth), name) end
 	end)
+end)
+
+-- (split from the test above so the runner can shard them; same grids and checks)
+test("through roads: overlaps on the tightest rings", function()
 	-- overlaps (slow) on a smaller grid: the smallest slider radius (the tightest rings)
 	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = { 1, 3 }, radius = { 1 },
 		splitter = { 1, 2 }, armType = { 1, 3 }, throughRoad = THROUGH_ROADS, centre = { 4 } }, function(over)
@@ -343,6 +347,9 @@ test("through roads: tags, edge lengths, engine model, overlaps, short edges", f
 		local b = build(over)
 		if not judged(b) then checks.report(checks.overlaps(b.lists, 0.5, nil, overlapLimit), label(over)) end
 	end)
+end)
+
+test("through roads: tram tracks and clockwise: tags, engine model", function()
 	-- tram tracks and clockwise on a smaller grid (tram templates have the plain widths and
 	-- clockwise mirrors the ring: the engine model only)
 	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = { 1, 3, 6 }, radius = { 1, geom.DEFAULT_RADIUS },
@@ -419,8 +426,8 @@ test(".con.lua: Road + traffic lights appended, Through road after Through the c
 	for i, p in ipairs(con.params) do byKey[p.key] = p; pos[p.key] = i end
 	local c = byKey[K.centre]
 	eq(c.values, { "Nothing", "Road", "Tram line", "Road + traffic lights" })
-	eq(#c.tooltips, #c.values)
-	ok(c.tooltips[4]:find("Experimental", 1, true) ~= nil, "lights marked experimental")
+	eq(c.uiType, "ComboBox")
+	ok(c.tooltip:find("(experimental)", 1, true) ~= nil, "lights marked experimental")
 	local t = byKey[K.throughRoad]
 	eq(pos[K.throughRoad], pos[K.centre] + 1)
 	eq(t.uiType, "ComboBox")

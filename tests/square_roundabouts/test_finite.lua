@@ -40,15 +40,18 @@ local function problems(res)
 	return bad
 end
 
--- The full sweep is 28,080 builds per case (several minutes in all). By default every STRIDE-th
+-- The full sweep is 28,080 builds per case (5,616 per shape) (several minutes in all). By default every STRIDE-th
 -- combination runs, from a different start per case; 7 is prime to every dimension's size, so
 -- each value of each param still comes up. SQRB_FULL=1 runs every combination.
 local STRIDE = (os.getenv and os.getenv("SQRB_FULL")) and 1 or 7
 
-local function sweep(fixed, start)
+-- One test per case x shape (so the runner can shard the full sweep); n counts as if the shapes ran
+-- in one loop, so the default STRIDE picks the same combinations as a single sweep would.
+local PER_SHAPE = 3 * #geom.RADII * 6 * 2 * 6 * 2
+local function sweep(fixed, start, shape)
 	local fails = {}
-	local n = 0
-	for shape = 1, #geom.SHAPE_RATIOS do
+	local n = (shape - 1) * PER_SHAPE
+	do
 	for lanes = 1, 3 do
 	for radius = 1, #geom.RADII do
 	for arms = 1, 6 do
@@ -77,10 +80,12 @@ for i, case in ipairs({
 	{ "tram line through", { centre = 3 } },
 	{ "tram line through + tram tracks", { centre = 3, tram = 2 } },
 }) do
-	test("finite, non-degenerate result: " .. case[1], function()
-		local fails = sweep(case[2], i)
-		eq(#fails, 0, table.concat(fails, "\n"))
-	end)
+	for shape = 1, #geom.SHAPE_RATIOS do
+		test(("finite, non-degenerate result: %s, shape %d"):format(case[1], shape), function()
+			local fails = sweep(case[2], i, shape)
+			eq(#fails, 0, table.concat(fails, "\n"))
+		end)
+	end
 end
 
 -- Regression (in-game crash 2026-10-07, transition_util.cpp:128 CompCurveHandleDistance): a

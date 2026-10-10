@@ -33,8 +33,8 @@ test("readParams: defaults", function()
 	eq(magic.readParams({ sqrb_magic_lanes = 3 }).lanes, 1, "out of range: 1 lane")
 	eq(magic.readParams({ sqrb_magic_size = 9, sqrb_arm_type = 0 }).size, magic.DEFAULT_SIZE)
 	eq(magic.readParams({ sqrb_magic_size = 1 }).size, 1)
-	-- the default is the original layout: 12 m satellites 52 m out
-	eq(magic.SIZES[magic.DEFAULT_SIZE].radius, 12); eq(magic.SIZES[magic.DEFAULT_SIZE].distance, 52)
+	-- the default is the smallest, XS (2026-10-09; was the original layout, M: 12 m satellites 52 m out)
+	eq(magic.DEFAULT_SIZE, 1); eq(magic.SIZES[magic.DEFAULT_SIZE].radius, 8); eq(magic.SIZES[magic.DEFAULT_SIZE].distance, 40)
 end)
 
 test("five satellites, five links, five arms; base templates", function()

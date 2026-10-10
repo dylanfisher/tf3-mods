@@ -119,6 +119,12 @@ Square.slides('square_bulk_bulldozer', [
 ]);
 
 Square.slides('square_roundabouts', [
+  // 'Find it' slide moved to the front: every slide number shifted, so delete all mod.io gallery
+  // media before the next update (README "Gallery slides").
+  { title: 'Find it in the Road menu', sub: 'Same tab as the game\'s own roundabout',
+    media: { layout: 'inset', at: 'tr', insetW: 460,
+             main: { src: '10-settings-main.jpg', crop: [980, 1600, 3160, 1200] },
+             inset: { src: '10-settings-main.jpg', crop: [1372, 2408, 340, 212] } } },
   { title: 'Magic Roundabout', sub: 'Five mini roundabouts on a two-way ring',
     media: { src: '03-magic-closeup.jpg', crop: [320, 120, 4480, 2520] } },
   { title: 'Round, oval or mini', sub: 'Any size, up to six arms, one to four lanes',

@@ -8,6 +8,7 @@
 local DIR = "square_roundabouts::/infrastructure/street_construction/"
 local geom = ug_require(DIR .. "square_roundabouts_geometry.lua")
 local magic = ug_require(DIR .. "square_roundabouts_magic.lua")
+local hx = ug_require(DIR .. "square_roundabouts_highway.lua")
 
 local here = debug.getinfo(1, "S").source:match("^@(.*/)") or "tests/square_roundabouts/"
 local V = loadfile(here .. "verdicts.lua", "t", _ENV)()
@@ -123,6 +124,40 @@ test("synthetic: interchange replay (Phase 5g: a radius an accepted sweep row or
 	eq({ run({ accepted40 }) }, { 0, 0 }, "unchanged accepted row")
 end)
 
+test("synthetic: highway replay (Phase 7e: a refused layout still shipped, a new layout, a later placement)", function()
+	local layout = { size = 25, xm = 175.5, yTi = 80.5, yTo = 110.5 }
+	local fakeHx = {
+		PARAM_KEYS = setmetatable({}, { __index = function(_, k) return k end }),
+		readParams = function(p) return p end,
+		build = function() return layout end,
+	}
+	local key = "h:1,3,2,2,1,1,1,1,2"
+	local refused = { entry = "highway", key = key, ok = "false", effSize = "25", xm = "175.50", term = "80.5/110.5" }
+	local function run(rows)
+		local problems, gaps = V.hx(fakeHx, rows)
+		return #problems, #gaps
+	end
+	eq({ run({ refused }) }, { 1, 0 }, "ships the refused layout")
+	layout = { size = 25, xm = 182.5, yTi = 80.5, yTo = 110.5 }
+	eq({ run({ refused }) }, { 0, 1 }, "a new layout no row placed: gap")
+	eq({ run({ refused, { entry = "highway", key = key, ok = "true", effSize = "25", xm = "182.50", term = "80.5/110.5" } }) }, { 0, 0 },
+		"p7_verify placed it")
+	eq({ run({ { entry = "highway", key = key, ok = "true", effSize = "25", xm = "182.50", term = "80.5/110.5" } }) }, { 0, 0 }, "unchanged accepted row")
+	local p = V.hxParams(hx, "h:6,3,2,4,1,2,3,2,1")
+	eq(p, { [hx.PARAM_KEYS.type] = 6, [hx.PARAM_KEYS.highway] = 3, [hx.PARAM_KEYS.level] = 2, [hx.PARAM_KEYS.cross] = 4,
+		[hx.PARAM_KEYS.size] = 1, [hx.PARAM_KEYS.rampLength] = 2, [hx.PARAM_KEYS.armLength] = 3,
+		[hx.PARAM_KEYS.direction] = 2, year = 1969 })
+	-- pre-7c2 keys (7c's sliders): same metres -> today's index, retired values -> nil
+	local lp = V.hxParams(hx, "h:1,3,2,4,3,4,4,2,1", true) -- 45 m loops, +60 m ramps, 60 m arms
+	eq({ lp[hx.PARAM_KEYS.size], lp[hx.PARAM_KEYS.rampLength], lp[hx.PARAM_KEYS.armLength] }, { 2, 3, 3 })
+	-- Phase 7c3: diamond terminals 0 / 40 / 100 m, so 7c's 30 m is retired; 0 m still maps
+	eq(V.hxParams(hx, "h:6,3,2,4,3,1,1,2,1", true), nil, "diamond 30 m terminals retired")
+	eq(V.hxParams(hx, "h:6,3,2,4,1,1,1,2,1", true)[hx.PARAM_KEYS.size], 1, "diamond 0 m terminals")
+	eq(V.hxParams(hx, "h:1,3,2,4,2,1,1,2,1", true), nil, "35 m loops retired")
+	eq(V.hxParams(hx, "h:1,3,2,4,1,2,1,2,1", true), nil, "+20 m ramps retired")
+	eq(V.hxParams(hx, "h:1,3,2,4,1,1,2,2,1", true), nil, "40 m arms retired")
+end)
+
 test("synthetic: CSV reader (quotes, empty fields)", function()
 	local path = os.tmpname()
 	local f = assert(io.open(path, "w"))
@@ -136,47 +171,70 @@ test("synthetic: CSV reader (quotes, empty fields)", function()
 	eq(V.readCsv(path), nil)
 end)
 
-test("engine verdicts: every rejected combo now ships an accepted layout, or a documented gap", function()
-	ok(V.readCsv(PLANS .. "probe_search.csv") ~= nil, "plans/square_roundabouts/probe_search.csv is missing")
-	ok(V.readCsv(PLANS .. "probe_p5_all.csv") ~= nil, "plans/square_roundabouts/probe_p5_all.csv is missing")
-	-- the Phase 4 searches and sweep, the Phase 5e runs (p5_search: p5_hamburger_radius; p5_all:
-	-- the hamburger sweep), the Phase 5f runs once they exist
-	local all = V.loadAll(PLANS)
-	local jobs, trials, sweep = all.jobs, all.trials, all.sweep
-	local problems, gaps = {}, {}
-	local function add(p, g)
-		for _, x in ipairs(p or {}) do problems[#problems + 1] = x end
-		for _, x in ipairs(g or {}) do gaps[#gaps + 1] = x end
-	end
-	add(V.radius(geom, magic, jobs))
+-- One test per group of replay stages (each loads the CSVs, about 0.7 s), so the runner can shard
+-- them: radius ~17 s, sweep ~12 s, channel ~14 s, the rest ~1 s. Gap counts print per test.
+local CH = DIR .. "square_roundabouts_channel.lua"
+local IX = DIR .. "square_roundabouts_interchange.lua"
+local function verdictTest(what, run)
+	test("engine verdicts: every rejected combo now ships an accepted layout, or a documented gap (" .. what .. ")", function()
+		ok(V.readCsv(PLANS .. "probe_search.csv") ~= nil, "plans/square_roundabouts/probe_search.csv is missing")
+		ok(V.readCsv(PLANS .. "probe_p5_all.csv") ~= nil, "plans/square_roundabouts/probe_p5_all.csv is missing")
+		-- the Phase 4 searches and sweep, the Phase 5e runs (p5_search: p5_hamburger_radius; p5_all:
+		-- the hamburger sweep), the Phase 5f runs once they exist
+		local all = V.loadAll(PLANS)
+		local problems, gaps = {}, {}
+		local function add(p, g)
+			for _, x in ipairs(p or {}) do problems[#problems + 1] = x end
+			for _, x in ipairs(g or {}) do gaps[#gaps + 1] = x end
+		end
+		run(add, all.jobs, all.trials, all.sweep)
+		local shown = {}
+		for i = 1, math.min(8, #problems) do shown[i] = problems[i] end
+		ok(#problems == 0, #problems .. " verdicts disagree: " .. table.concat(shown, "; "))
+		local byCat, example = {}, {}
+		for _, g in ipairs(gaps) do
+			ok(V.GAPS[g[1]] ~= nil, "undocumented gap category " .. tostring(g[1]))
+			byCat[g[1]] = (byCat[g[1]] or 0) + 1
+			example[g[1]] = example[g[1]] or g[2]
+		end
+		local cats = {}
+		for c in pairs(byCat) do cats[#cats + 1] = c end
+		table.sort(cats)
+		for _, c in ipairs(cats) do
+			print(string.format("    known gap %-11s %4d  (e.g. %s)", c, byCat[c], example[c]))
+		end
+	end)
+end
+
+verdictTest("radius", function(add, jobs) add(V.radius(geom, magic, jobs)) end)
+verdictTest("sweep", function(add, jobs, trials, sweep) add(V.sweep(geom, magic, sweep, jobs, trials)) end)
+-- Phase 5f: the Channelized Junction and the Roundabout Interchange (p5_all, p5_search, p5f_*)
+verdictTest("channel", function(add, _, trials, sweep) add(V.channel(geom, ug_require(CH), sweep, trials)) end)
+verdictTest("magic, splitter, tram, through, interchange, 4b", function(add, jobs, trials, sweep)
 	add(V.magicSize(magic, jobs))
 	add(V.splitter(geom, trials))
 	add(V.tram(geom, magic, trials))
-	add(V.sweep(geom, magic, sweep, jobs, trials))
 	add(V.through(geom, jobs))
-	-- Phase 5f: the Channelized Junction and the Roundabout Interchange (p5_all, p5_search, p5f_*)
-	local ch = ug_require(DIR .. "square_roundabouts_channel.lua")
-	local ix = ug_require(DIR .. "square_roundabouts_interchange.lua")
-	add(V.channel(geom, ch, sweep, trials))
-	add(V.interchange(geom, ix, sweep, trials))
+	add(V.interchange(geom, ug_require(IX), sweep, trials))
 	-- the verification sweep of the tuned geometry, once it has run (PROBE.md "Phase 4b runs")
 	local final = V.readCsv(PLANS .. "probe_results_4b.csv")
 	if final then add(V.final(geom, magic, final)) end
-	local shown = {}
-	for i = 1, math.min(8, #problems) do shown[i] = problems[i] end
-	ok(#problems == 0, #problems .. " verdicts disagree: " .. table.concat(shown, "; "))
-	local byCat, example = {}, {}
-	for _, g in ipairs(gaps) do
-		ok(V.GAPS[g[1]] ~= nil, "undocumented gap category " .. tostring(g[1]))
-		byCat[g[1]] = (byCat[g[1]] or 0) + 1
-		example[g[1]] = example[g[1]] or g[2]
+end)
+
+-- Phase 7e: the Highway Interchange (p7_hx_all, p7_verify once it exists)
+verdictTest("highway", function(add)
+	local rows = {}
+	for _, name in ipairs(V.HX_FILES) do
+		for _, r in ipairs(V.readCsv(PLANS .. name) or {}) do rows[#rows + 1] = r end
 	end
-	local cats = {}
-	for c in pairs(byCat) do cats[#cats + 1] = c end
-	table.sort(cats)
-	for _, c in ipairs(cats) do
-		print(string.format("    known gap %-11s %4d  (e.g. %s)", c, byCat[c], example[c]))
+	ok(#rows >= 912, "probe_p7_hx_all.csv rows: " .. #rows)
+	-- recorded before Phase 7c2: replayed where the values still ship (V.hxParams legacy)
+	add(V.hx(hx, rows, true))
+	local now = {}
+	for _, name in ipairs(V.HX_FILES_7C2) do
+		for _, r in ipairs(V.readCsv(PLANS .. name) or {}) do now[#now + 1] = r end
 	end
+	add(V.hx(hx, now))
 end)
 
 test("offline model vs engine: the engine-fitted checks agree with a sample of the probe verdicts", function()

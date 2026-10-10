@@ -226,9 +226,30 @@ test(".con.lua: params, script, icon, availability; script exports only updateFn
 		ok((p.defaultIndex or 1) >= 1 and (p.defaultIndex or 1) <= #p.values, p.key .. " default in range")
 		eq(p.checkEnabledScript, nil, p.key .. " has no checkEnabledScript")
 	end
-	eq(order, { K.layout, K.highway, K.level, K.lanes, K.radius, K.cross, K.slipLength, K.armLength, K.direction, K.island }, "UI order")
+	-- Phase 7c3: Radius is a row of presets on ix.RADIUS_PRESET_KEY (the slider key K.radius stays the
+	-- full-range index for tests, goldens and the probe); no slider left
+	local RP = ix.RADIUS_PRESET_KEY
+	eq(order, { K.layout, K.highway, K.level, K.lanes, RP, K.cross, K.slipLength, K.armLength, K.direction, K.island }, "UI order")
 	eq(#byKey[K.layout].values, 3); eq(#byKey[K.highway].values, #ix.HIGHWAYS); eq(#byKey[K.level].values, 2)
-	eq(#byKey[K.lanes].values, #geom.RING_TEMPLATES); eq(#byKey[K.radius].values, #ix.RADII)
+	eq(#byKey[K.lanes].values, #geom.RING_TEMPLATES)
+	eq(byKey[RP].values, { "S", "M", "L", "XL" }); eq(byKey[RP].defaultIndex, ix.DEFAULT_RADIUS_PRESET)
+	local radii = {}
+	for i, ri in ipairs(ix.RADIUS_PRESETS) do radii[i] = ix.RADII[ri] end
+	eq(radii, { 15, 20, 30, 45 })
+	for i, ri in ipairs(ix.RADIUS_PRESETS) do
+		eq(ix.readParams({ [RP] = i }), ix.readParams({ [K.radius] = ri }), "preset " .. i)
+		eq(ix.readParams({ [RP] = i, [K.radius] = 10 }).radiusIndex, ri, "preset key first")
+	end
+	for _, p in ipairs(con.params) do
+		ok(p.uiType ~= "Slider", p.key .. " is no slider")
+		if p.displayMode == "Horizontal" then
+			ok(#p.values <= 5, p.key)
+			local chars = 0
+			for _, v in ipairs(p.values) do chars = chars + #v end
+			ok(chars <= 30, p.key .. ": short labels")
+		end
+	end
+	eq(byKey[K.slipLength].uiType, "Button"); eq(byKey[K.armLength].uiType, "Button")
 	eq(#byKey[K.cross].values, #geom.ARM_TEMPLATES); eq(#byKey[K.slipLength].values, #ix.SLIP_LENGTHS)
 	eq(#byKey[K.armLength].values, #ix.ARM_LENGTHS); eq(#byKey[K.island].values, 5)
 	-- shared keys keep the main entry's values and meaning
@@ -238,7 +259,13 @@ test(".con.lua: params, script, icon, availability; script exports only updateFn
 	end
 	local d = {}
 	for _, p in ipairs(con.params) do d[p.key] = p.defaultIndex or 1 end
-	eq(ix.readParams(d), ix.readParams({}), "con defaults = readParams fallbacks")
+	-- 2026-10-09 (user: size menus default to the smallest): the Radius button row defaults to S (15 m);
+	-- readParams' full-range fallback without any radius key (ix.DEFAULT_RADIUS, 20 m) is unchanged
+	eq(d[ix.RADIUS_PRESET_KEY], 1, "Radius menu default = S, the smallest")
+	local got, want = ix.readParams(d), ix.readParams({})
+	eq(got.radius, 15); eq(got.radiusIndex, 1)
+	got.radius, got.radiusIndex, want.radius, want.radiusIndex = nil, nil, nil, nil
+	eq(got, want, "con defaults = readParams fallbacks (radius aside)")
 
 	local script = loadData("square_roundabouts_interchange.script.lua")
 	local keys = {}

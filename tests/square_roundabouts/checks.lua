@@ -6,6 +6,28 @@
 
 local checks = {}
 
+--- 3D dot product (geom.shapes.dot is plan-only: it ignores z; shapes.len / norm / dist are 3D).
+function checks.dot3(p, q) return p[1] * q[1] + p[2] * q[2] + (p[3] or 0) * (q[3] or 0) end
+
+--- A test-only view of geom.shapes whose `dot` fails loudly where plan-only and 3D disagree
+-- (both vectors have a z component, e.g. two climbing tangents: S.dot(S.norm(t0), S.norm(t1))
+-- is then < 1 for parallel tangents). Say what is meant instead: S.pdot (plan, the mod's
+-- S.dot) or S.dot3. Mod code keeps the plain module; only the test's local S changes:
+--   local S = checks.strictShapes(geom.shapes)
+function checks.strictShapes(shapes)
+	local strict = setmetatable({}, { __index = shapes })
+	strict.pdot = shapes.dot
+	strict.dot3 = checks.dot3
+	function strict.dot(p, q)
+		if (p[3] or 0) * (q[3] or 0) ~= 0 then
+			error("S.dot ignores z but both vectors have one (" .. tostring(p[3]) .. ", " .. tostring(q[3])
+				.. "): use S.dot3 (3D) or S.pdot (plan)", 2)
+		end
+		return shapes.dot(p, q)
+	end
+	return strict
+end
+
 local function sub(p, q) return { p[1] - q[1], p[2] - q[2], (p[3] or 0) - (q[3] or 0) } end
 local function len(v) return math.sqrt(v[1] * v[1] + v[2] * v[2] + (v[3] or 0) * (v[3] or 0)) end
 local function dist(p, q) return len(sub(p, q)) end
@@ -28,11 +50,20 @@ end
 checks.hermite = hermite
 
 function checks.edgeLength(e)
-	local total, prev = 0, e.p0
+	-- hermite() positions and dist() inline (same arithmetic, no tables): 64 chords
+	local p0, t0, p1, t1 = e.p0, e.t0, e.p1, e.t1
+	local ax, ay, az = p0[1], p0[2], p0[3]
+	local total = 0
 	for k = 1, 64 do
-		local p = hermite(e, k / 64)
-		total = total + dist(prev, p)
-		prev = p
+		local s = k / 64
+		local s2, s3 = s * s, s * s * s
+		local h00, h10, h01, h11 = 2 * s3 - 3 * s2 + 1, s3 - 2 * s2 + s, -2 * s3 + 3 * s2, s3 - s2
+		local x = h00 * p0[1] + h10 * t0[1] + h01 * p1[1] + h11 * t1[1]
+		local y = h00 * p0[2] + h10 * t0[2] + h01 * p1[2] + h11 * t1[2]
+		local z = h00 * p0[3] + h10 * t0[3] + h01 * p1[3] + h11 * t1[3]
+		local dx, dy, dz = ax - x, ay - y, (az or 0) - z
+		total = total + math.sqrt(dx * dx + dy * dy + dz * dz)
+		ax, ay, az = x, y, z
 	end
 	return total
 end
@@ -89,8 +120,8 @@ function checks.lengths(lists, min)
 	return problems
 end
 
-local function samples(x, spacing)
-	local n = math.max(4, math.ceil(checks.edgeLength(x.e) / spacing))
+local function samples(x, spacing, length)
+	local n = math.max(4, math.ceil((length or checks.edgeLength(x.e)) / spacing))
 	local pts = {}
 	for k = 0, n do
 		local p, d = hermite(x.e, k / n)
@@ -117,27 +148,83 @@ end
 
 --- Distance from point q to the road footprint of edge A (a band of half width hwA that ends
 -- square at the edge's end nodes), from A's samples.
-local function footprintDist(A, q)
-	-- coarse pass over every 8th sample, then refine around the best one (edges are smooth and
-	-- shorter than their curvature radius, so the distance along them is unimodal enough)
-	local pts = A.pts
-	local best, bk = math.huge, 1
-	for k = 1, #pts, 4 do
-		local d = dist2(pts[k].p, q)
-		if d < best then best, bk = d, k end
+-- Boxes of runs of 16 samples (cached on the edge record): {minx, miny, maxx, maxy, first, last}.
+-- A run starts at a sample index = 1 (mod 4), so it holds whole steps of the coarse pass below.
+local function sampleRuns(A)
+	if A.runs then return A.runs end
+	local pts, runs = A.pts, {}
+	for c = 1, #pts, 16 do
+		local last = math.min(c + 15, #pts)
+		local b = { math.huge, math.huge, -math.huge, -math.huge, c, last }
+		for k = c, last do
+			local p = pts[k].p
+			if p[1] < b[1] then b[1] = p[1] end
+			if p[2] < b[2] then b[2] = p[2] end
+			if p[1] > b[3] then b[3] = p[1] end
+			if p[2] > b[4] then b[4] = p[2] end
+		end
+		runs[#runs + 1] = b
 	end
+	A.runs = runs
+	return runs
+end
+
+-- squared plan distance from (x, y) to a run's box (a lower bound for any sample in it)
+local function boxDist2(b, x, y)
+	local dx = b[1] - x
+	if dx < 0 then dx = x - b[3]; if dx < 0 then dx = 0 end end
+	local dy = b[2] - y
+	if dy < 0 then dy = y - b[4]; if dy < 0 then dy = 0 end end
+	return dx * dx + dy * dy
+end
+
+local function footprintDist(A, q, hint)
+	-- coarse pass over every 4th sample, then refine around the best one (edges are smooth and
+	-- shorter than their curvature radius, so the distance along them is unimodal enough).
+	-- A run whose box is no closer than the best so far cannot improve it (same result as
+	-- scanning every coarse sample: only strictly smaller distances replace the best).
+	-- (squared distances inline: the same order as dist2, so the same samples win)
+	local pts = A.pts
+	local qx, qy = q[1], q[2]
+	local best, bk = math.huge, 1
+	local runs = sampleRuns(A)
+	-- hint: a coarse sample index (from a nearby query). Its distance bounds the coarse minimum, so
+	-- runs farther than it are skipped too; the scan order and the strict "<" are unchanged, so the
+	-- first coarse sample at the minimum still wins.
+	local bound = math.huge
+	if hint then
+		local p = pts[hint].p
+		local dx, dy = p[1] - qx, p[2] - qy
+		bound = dx * dx + dy * dy
+	end
+	for ri = 1, #runs do
+		local r = runs[ri]
+		local rb = boxDist2(r, qx, qy)
+		if rb < best and rb <= bound then
+			for k = r[5], r[6], 4 do
+				local p = pts[k].p
+				local dx, dy = p[1] - qx, p[2] - qy
+				local d = dx * dx + dy * dy
+				if d < best then best, bk = d, k end
+			end
+		end
+	end
+	local coarse = bk
 	local lo, hi = math.max(1, bk - 4), math.min(#pts, bk + 4)
 	for k = lo, hi do
-		local d = dist2(pts[k].p, q)
+		local p = pts[k].p
+		local dx, dy = p[1] - qx, p[2] - qy
+		local d = dx * dx + dy * dy
 		if d < best then best, bk = d, k end
 	end
+	best = math.sqrt(best)
 	local s = A.pts[bk]
-	local along = dot(sub(q, s.p), s.t)
+	local along = (qx - s.p[1]) * s.t[1] + (qy - s.p[2]) * s.t[2]
 	if (bk == 1 and along < 0) or (bk == #A.pts and along > 0) then
 		local n = { -s.t[2], s.t[1], 0 }
-		return segDist(q, { s.p[1] - n[1] * A.hw, s.p[2] - n[2] * A.hw, 0 }, { s.p[1] + n[1] * A.hw, s.p[2] + n[2] * A.hw, 0 })
+		return segDist(q, { s.p[1] - n[1] * A.hw, s.p[2] - n[2] * A.hw, 0 }, { s.p[1] + n[1] * A.hw, s.p[2] + n[2] * A.hw, 0 }), coarse
 	end
-	return best - A.hw
+	return best - A.hw, coarse
 end
 checks.footprintDist = footprintDist
 
@@ -145,12 +232,26 @@ checks.footprintDist = footprintDist
 -- of radius hwQ around s decides first (cheap); a hit is confirmed on the cross-section segment,
 -- so a band does not poke out behind its own end node.
 local function bandHits(P, Q, s, margin)
-	if footprintDist(P, s.p) >= Q.hw + margin - 1e-6 then return false end
+	-- fast reject (same verdict): P.box is P's samples padded by P.hw + margin, and P's band lies
+	-- within P.hw of its samples, so a point more than Q.hw outside that box is clear of it
+	local b, pad, x, y = P.box, Q.hw + 1e-3, s.p[1], s.p[2]
+	if x < b[1] - pad or x > b[3] + pad or y < b[2] - pad or y > b[4] + pad then return false end
+	-- the same bound per run of P's samples (P's box is loose around curved or diagonal edges)
+	local reach, near = P.hw + Q.hw + margin + 1e-3, false
+	reach = reach * reach
+	for _, r in ipairs(sampleRuns(P)) do
+		if boxDist2(r, x, y) < reach then near = true; break end
+	end
+	if not near then return false end
+	local d0, hint = footprintDist(P, s.p)
+	if d0 >= Q.hw + margin - 1e-6 then return false end
+	-- the centre is one of the cross-section points below (k = 0): the verdict is "any point hits"
+	if d0 < margin - 1e-6 then return true end
 	local n = { -s.t[2], s.t[1], 0 }
 	local steps = math.max(2, math.ceil(Q.hw))
 	for k = -steps, steps do
 		local o = Q.hw * k / steps
-		if footprintDist(P, { s.p[1] + n[1] * o, s.p[2] + n[2] * o, 0 }) < margin - 1e-6 then return true end
+		if footprintDist(P, { s.p[1] + n[1] * o, s.p[2] + n[2] * o, 0 }, hint) < margin - 1e-6 then return true end
 	end
 	return false
 end
@@ -175,7 +276,8 @@ function checks.overlaps(lists, margin, skip, maxJunction)
 	local problems = {}
 	local xs = checks.edges(lists)
 	for _, x in ipairs(xs) do
-		x.pts = samples(x, 1.0)
+		x.length = checks.edgeLength(x.e)
+		x.pts = samples(x, 1.0, x.length)
 		x.box = bbox(x.pts, x.hw + margin)
 	end
 	for i = 1, #xs do
@@ -198,7 +300,7 @@ function checks.overlaps(lists, margin, skip, maxJunction)
 					local lo, hi = 1, n
 					if shared0 then while lo <= n and flags[lo] do lo = lo + 1 end end
 					if shared1 then while hi >= 1 and flags[hi] do hi = hi - 1 end end
-					local step = checks.edgeLength(Q.e) / (n - 1)
+					local step = Q.length / (n - 1)
 					local lim = limit(P, Q)
 					if (lo - 1) * step > lim or (n - hi) * step > lim then
 						bad = string.format("%s / %s junction stretch longer than %.1f m", P.name, Q.name, lim)
@@ -294,13 +396,18 @@ end
 function checks.shortEdges(res, minLen, minGap, stats)
 	minLen, minGap = minLen or 1.0, minGap or 0.5
 	stats = stats or {}
-	local problems, nodes = {}, {}
+	local problems, nodes, byTag = {}, {}, {}
 	local function node(entry)
 		local p, tag = entry[1], entry[3]
-		for _, n in ipairs(nodes) do
-			if n.tag == tag and dist(n.p, p) < 1e-6 then return end
+		-- the duplicates of a node carry its tag: search that tag's nodes only
+		local same = byTag[tag or false]
+		if not same then same = {}; byTag[tag or false] = same end
+		for _, n in ipairs(same) do
+			if dist(n.p, p) < 1e-6 then return end
 		end
-		nodes[#nodes + 1] = { p = p, tag = tag }
+		local n = { p = p, tag = tag, i = #nodes + 1 }
+		nodes[#nodes + 1] = n
+		same[#same + 1] = n
 	end
 	for li, el in ipairs(res.edgeLists or {}) do
 		local type = el.params and el.params.type or "?"
@@ -316,17 +423,29 @@ function checks.shortEdges(res, minLen, minGap, stats)
 			node(a); node(b)
 		end
 	end
+	-- every pair closer than max(closest so far, minGap), by a sweep over x: the same closest
+	-- distance and the same problem pairs as checking every pair (listed in x order)
+	table.sort(nodes, function(a, b) return a.p[1] < b.p[1] end)
+	local best = math.huge
 	for i = 1, #nodes do
-		for j = i + 1, #nodes do
-			local A, B = nodes[i], nodes[j]
-			local d = dist(A.p, B.p)
-			if not (A.tag and A.tag == B.tag) then stats.gap = math.min(stats.gap or math.huge, d) end
-			if d < minGap and not (A.tag and A.tag == B.tag) then
-				problems[#problems + 1] = string.format("nodes %.2f m apart at (%.1f, %.1f, %.1f), tags %s / %s",
-					d, A.p[1], A.p[2], A.p[3] or 0, tostring(A.tag), tostring(B.tag))
+		local A = nodes[i]
+		local j = i + 1
+		while j <= #nodes and nodes[j].p[1] - A.p[1] < math.max(best, minGap) do
+			local B = nodes[j]
+			if not (A.tag and A.tag == B.tag) then
+				local d = dist(A.p, B.p)
+				if d < best then best = d end
+				if d < minGap then
+					local P, Q = A, B
+					if Q.i < P.i then P, Q = Q, P end -- named in insertion order, as before
+					problems[#problems + 1] = string.format("nodes %.2f m apart at (%.1f, %.1f, %.1f), tags %s / %s",
+						d, P.p[1], P.p[2], P.p[3] or 0, tostring(P.tag), tostring(Q.tag))
+				end
 			end
+			j = j + 1
 		end
 	end
+	if best < math.huge then stats.gap = math.min(stats.gap or math.huge, best) end
 	return problems
 end
 
@@ -390,6 +509,35 @@ function checks.latestYear(res, seen)
 	return latest, problems
 end
 
+--- Negative zeros in a construction result (docs/findings.md "Negative zero in construction geometry",
+-- 2026-10-09). The UI builder's 0-degree transf is (cos, sin) = (1, -0): a tangent (+x, -0) or (-0, -y)
+-- stays -0 in world space, and the engine refused a layout for exactly that at Rotation 0 only. A +0
+-- identity transf (every script probe) and the goldens (G.serialize prints -0 as 0) hide it.
+-- res = the updateFn result ({edgeLists = {{edges = {{p, t}, ...}}}}). Returns problems (world -0
+-- tangent components, the refusal pattern), the world count and the raw count (any -0 in a position
+-- or tangent; common and harmless in released entries, e.g. tangent z = -0).
+function checks.isNeg0(v) return v == 0 and 1 / v < 0 end
+function checks.negativeZeros(res)
+	local problems, raw = {}, 0
+	local z = 0.0
+	local c, s = 1.0, -z -- the builder's transf at 0 degrees (sin = -0, computed at run time)
+	for li, el in ipairs(res.edgeLists or {}) do
+		local type = el.params and el.params.type or "?"
+		for i, pt in ipairs(el.edges or {}) do
+			for _, v in ipairs({ pt[1], pt[2] }) do
+				for k = 1, 3 do if checks.isNeg0(v[k]) then raw = raw + 1 end end
+			end
+			local t = pt[2]
+			local wx, wy = c * t[1] - s * t[2], s * t[1] + c * t[2]
+			if checks.isNeg0(wx) or checks.isNeg0(wy) then
+				problems[#problems + 1] = string.format("edgeList %d (%s) entry %d tangent (%.17g, %.17g) -> world (%s, %s) at 0 deg",
+					li, type, i, t[1], t[2], checks.isNeg0(wx) and "-0" or "ok", checks.isNeg0(wy) and "-0" or "ok")
+			end
+		end
+	end
+	return problems, #problems, raw
+end
+
 function checks.report(problems, what)
 	if #problems > 0 then
 		local shown = {}
@@ -437,14 +585,44 @@ end
 
 local function cross2(a, b) return a[1] * b[2] - a[2] * b[1] end
 
+-- Bounding boxes of runs of CHUNK segments of a kerb polyline (cached on it): kerbCrossing skips
+-- a pair of runs whose boxes are apart, which skips only segment pairs the per-pair test skips too.
+local CHUNK = 16
+local function chunks(k)
+	if k.chunks then return k.chunks end
+	local out = {}
+	for c = 1, #k - 1, CHUNK do
+		local last = math.min(c + CHUNK, #k)
+		local b = { math.huge, math.huge, -math.huge, -math.huge, c, last - 1 }
+		for i = c, last do
+			local p = k[i].p
+			if p[1] < b[1] then b[1] = p[1] end
+			if p[2] < b[2] then b[2] = p[2] end
+			if p[1] > b[3] then b[3] = p[1] end
+			if p[2] > b[4] then b[4] = p[2] end
+		end
+		out[#out + 1] = b
+	end
+	k.chunks = out
+	return out
+end
+
 --- First crossing of two kerb polylines (smallest positive cut sum). Returns dA, dB or nil.
 local function kerbCrossing(ka, kb)
 	local best, bestA, bestB
-	for i = 1, #ka - 1 do
+	local cb = chunks(kb)
+	for _, ca in ipairs(chunks(ka)) do
+	-- the runs of kb whose boxes meet this run of ka
+	local near = {}
+	for _, c in ipairs(cb) do
+		if not (c[3] < ca[1] or c[1] > ca[3] or c[4] < ca[2] or c[2] > ca[4]) then near[#near + 1] = c end
+	end
+	for i = ca[5], #near > 0 and ca[6] or 0 do
 		local p, r = ka[i].p, sub(ka[i + 1].p, ka[i].p)
 		local minx, maxx = math.min(ka[i].p[1], ka[i + 1].p[1]), math.max(ka[i].p[1], ka[i + 1].p[1])
 		local miny, maxy = math.min(ka[i].p[2], ka[i + 1].p[2]), math.max(ka[i].p[2], ka[i + 1].p[2])
-		for j = 1, #kb - 1 do
+		for _, c in ipairs(near) do
+		for j = c[5], c[6] do
 			local q = kb[j].p
 			local q2 = kb[j + 1].p
 			if not (math.max(q[1], q2[1]) < minx or math.min(q[1], q2[1]) > maxx or math.max(q[2], q2[2]) < miny or math.min(q[2], q2[2]) > maxy) then
@@ -463,6 +641,8 @@ local function kerbCrossing(ka, kb)
 				end
 			end
 		end
+		end
+	end
 	end
 	return bestA, bestB
 end
@@ -472,6 +652,16 @@ end
 function checks.junctions(lists)
 	local xs = checks.edges(lists)
 	local nodes = {}
+	-- each road end's two kerbs, built once (a road end meets a neighbour on each side)
+	local kerbs = {}
+	local function kerbOf(x, atStart, side, back)
+		local byX = kerbs[x] or {}
+		kerbs[x] = byX
+		local key = (atStart and "s" or "e") .. side .. ":" .. back
+		local k = byX[key]
+		if not k then k = kerb(x, atStart, side, back); byX[key] = k end
+		return k
+	end
 	local function nodeAt(p)
 		for _, n in ipairs(nodes) do if dist(n.pos, p) < 1e-6 then return n end end
 		local n = { pos = p, ends = {} }
@@ -503,8 +693,8 @@ function checks.junctions(lists)
 				if i == #n.ends then gap = gap + 2 * math.pi end
 				if gap < math.pi - 1e-3 then
 					local back = 3 * maxHw
-					local ka = kerb(A.x, A.atStart, 1, back)
-					local kb = kerb(B.x, B.atStart, -1, back)
+					local ka = kerbOf(A.x, A.atStart, 1, back)
+					local kb = kerbOf(B.x, B.atStart, -1, back)
 					local dA, dB = kerbCrossing(ka, kb)
 					if dA then
 						for _, pr in ipairs({ { A, dA }, { B, dB } }) do
@@ -581,7 +771,8 @@ checks.ENGINE = {
 
 local TRAM_ONLY = "tram/tram_new.street_template"
 
---- Problems of a layout under the engine-fitted model (empty = the model expects it to place).
+--- Problems of a layout under the engine-fitted model (empty = the model expects it to place),
+-- and checks.junctions' edge records (free lengths), so a test need not run the model twice.
 -- ringHalfWidth: the ring road's half width (tram stub length beyond it).
 function checks.engineModel(lists, ringHalfWidth)
 	local E = checks.ENGINE
@@ -629,7 +820,7 @@ function checks.engineModel(lists, ringHalfWidth)
 			problems[#problems + 1] = string.format("neck: legs of half width %.1f fork from a neck of %.1f", legHw, neckHw)
 		end
 	end
-	return problems
+	return problems, xs
 end
 
 return checks

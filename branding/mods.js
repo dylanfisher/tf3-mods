@@ -99,7 +99,7 @@ Square.register({
 });
 
 Square.register({
-  id: 'square_roundabouts', name: 'Better Roundabouts', tagline: 'Rings, junctions, interchanges', accent: '#E8833A',
+  id: 'square_roundabouts', name: 'Roundabouts & Interchanges', tagline: 'Rings, junctions, interchanges', accent: '#E8833A',
   // Top view of the Magic Roundabout entry: five mini rings (knocked-out islands) on a central
   // ring, one arm each, around an accent centre island. Stands for the whole family of shapes.
   glyph: S => {

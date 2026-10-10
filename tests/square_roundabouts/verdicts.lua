@@ -156,6 +156,7 @@ V.GAPS = {
 	final = "rejected by the Phase 4b verification sweep (probe_results_4b.csv) and still shipped as swept: the next tuning round",
 	channel = "Channelized Junction: no slip lane angle / template accepted yet for the layout, main road, side road and splitter; ships ch.FALLBACK (unverified; none since p5f_search, Phase 5g)",
 	interchange = "Roundabout Interchange, two-bridge ring with 4 lanes: ships a radius no sweep or search accepted for the combo (alpha <= 45 deg since Phase 5g; probe p5g_verify)",
+	hx = "Highway Interchange: ships a layout (effective Size, ramp length xm, terminals) no sweep row placed yet (Phase 7e: hx.BRIDGE_PIECE for the large highway, highway over road, 25 / 35 m loops; probe p7_verify)",
 	through = "through road other than the arm road (Phase 5c) on a pattern p5_hamburger_radius did not search (splitter, ovals, tram tracks, other arm roads): the arm-road pattern's engine radius is only a floor and geom.plan decides",
 }
 
@@ -718,6 +719,97 @@ function V.interchange(geom, ix, sweep, trials)
 			elseif not (r.ok == "true" and swept == b.radius) and not verified then
 				gaps[#gaps + 1] = { "interchange", r.key .. ": " .. (r.ok == "true" and "accepted" or "rejected") .. " at "
 					.. tostring(swept) .. " m, ships " .. b.radius .. " m" }
+			end
+		end
+	end
+	return problems, gaps
+end
+
+-- Highway Interchange replay (Phase 7e) ---------------------------------------------------------
+
+local HX_ORDER = { "type", "highway", "level", "cross", "size", "rampLength", "armLength", "direction" }
+--- The Highway Interchange's sweep files (p7_hx_all, then the p7_verify run once it exists). Both
+-- were recorded before Phase 7c2, with 7c's slider values (V.HX_LEGACY); later runs (the 7c2 button
+-- values) go in V.HX_FILES_7C2.
+V.HX_FILES = { "probe_p7_hx_all.csv", "probe_p7_verify.csv" }
+V.HX_FILES_7C2 = { "probe_p7_hx_scale.csv", "probe_p7_hx_scale_verify.csv" }
+-- 7c's values per index of the params 7c2 changed (INTERCHANGES.md "Phase 7c2 notes"): Size (loop
+-- radius / diamond terminal distance), Ramp length extra, Arm length (m).
+V.HX_LEGACY = {
+	loop = { 25, 35, 45, 60 }, terminal = { 0, 15, 30, 50 }, rampLength = { 0, 20, 40, 60 }, armLength = { 30, 40, 50, 60 },
+}
+
+local function indexOf(list, v)
+	for i, x in ipairs(list) do if x == v then return i end end
+	return nil
+end
+
+--- Params of a highway (h:) replay key: probe_grid.lua HIGHWAY_AXES order; the 9th value is the
+-- year (1 = 1969, 2 = 2020). legacy = a pre-7c2 key (V.HX_FILES): its Size, Ramp length and Arm length
+-- indices are translated to today's (same value in metres); nil when one of its values is no
+-- longer shipped (35 / 60 m loops, 15 / 50 m terminals, +20 / +40 m ramps, 40 / 50 m arms).
+function V.hxParams(hx, key, legacy)
+	local _, idx = V.parseKey(key)
+	local p = {}
+	for i, name in ipairs(HX_ORDER) do
+		local v = idx[i]
+		if v and legacy then
+			local old, new
+			if name == "size" then
+				local diamond = idx[1] == hx.TYPE_DIAMOND
+				old, new = V.HX_LEGACY[diamond and "terminal" or "loop"], diamond and hx.TERMINAL_DISTANCES or hx.LOOP_RADII
+			elseif name == "rampLength" then
+				old, new = V.HX_LEGACY.rampLength, hx.RAMP_EXTRAS
+			elseif name == "armLength" then
+				old, new = V.HX_LEGACY.armLength, hx.ARM_LENGTHS
+			end
+			if old then
+				v = old[v] and indexOf(new, old[v])
+				if not v then return nil end
+			end
+		end
+		if v then p[hx.PARAM_KEYS[name]] = v end
+	end
+	if idx[9] then p.year = idx[9] == 1 and 1969 or 2020 end
+	return p
+end
+
+--- The layout fields the probe logs for a highway build (probe_geom.lua geomInfo.highway):
+-- effective Size, xm (2 decimals), terminals yTi / yTo (1 decimal).
+function V.hxLayout(b)
+	local function m(v) return v and string.format("%.1f", v) or "-" end
+	return string.format("%g|%.2f|%s/%s", b.size, b.xm, m(b.yTi), m(b.yTo))
+end
+local function rowLayout(r)
+	return string.format("%g|%.2f|%s", tonumber(r.effSize) or -1, tonumber(r.xm) or -1, tostring(r.term))
+end
+
+--- Highway Interchange: every combo a sweep row covers ships a layout the engine placed for it:
+-- the swept one (accepted rows, unchanged), or one an accepted row of the same key placed (a later
+-- sweep: p7_verify). A refused layout still shipped is a problem; a layout no row placed is gap "hx".
+-- Layouts compare by the fields the probe logs (V.hxLayout: Size, xm, terminals; hx.BRIDGE_PIECE moves
+-- xm with the loop).
+function V.hx(hx, sweep, legacy)
+	local problems, gaps = {}, {}
+	local accepted = {}
+	for _, r in ipairs(sweep or {}) do
+		if r.entry == "highway" and r.ok == "true" then
+			accepted[r.key] = accepted[r.key] or {}
+			accepted[r.key][rowLayout(r)] = true
+		end
+	end
+	local seen = {}
+	for _, r in ipairs(sweep or {}) do
+		local params = r.entry == "highway" and V.hxParams(hx, r.key, legacy)
+		if params and not seen[r.key .. "@" .. r.ok] then
+			seen[r.key .. "@" .. r.ok] = true
+			local b = hx.build(hx.readParams(params))
+			local mine, swept = V.hxLayout(b), rowLayout(r)
+			local verified = accepted[r.key] and accepted[r.key][mine]
+			if r.ok ~= "true" and swept == mine and not verified then
+				problems[#problems + 1] = r.key .. ": ships " .. mine .. ", which the engine refused"
+			elseif not verified then
+				gaps[#gaps + 1] = { "hx", r.key .. ": " .. (r.ok == "true" and "placed" or "refused") .. " at " .. swept .. ", ships " .. mine }
 			end
 		end
 	end

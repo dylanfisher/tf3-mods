@@ -124,17 +124,49 @@ test(".con.lua: params, script references and availability", function()
 		-- the base params panel does not refresh "Disabled" live, and "Hidden" breaks it
 		eq(p.checkEnabledScript, nil, p.key .. " has no checkEnabledScript")
 	end
-	for _, key in pairs(K) do ok(byKey[key] ~= nil, "param " .. key) end
+	-- Phase 7c3: the radius slider (K.radius, full-range index: tests, goldens, the probe) is a row
+	-- of presets on geom.RADIUS_PRESET_KEY; every other key is a menu param
+	for name, key in pairs(K) do ok(byKey[key] ~= nil or name == "radius", "param " .. key) end
+	eq(byKey[K.radius], nil, "no radius slider")
+	local RP = geom.RADIUS_PRESET_KEY
+	eq(byKey[RP].values, { "XS", "S", "M", "L", "XL" })
+	eq(byKey[RP].defaultIndex, geom.DEFAULT_RADIUS_PRESET)
+	eq(geom.RADII[geom.RADIUS_PRESETS[geom.DEFAULT_RADIUS_PRESET]], 10, "XS = the 10 m default (2026-10-09: smallest; was M, 20 m)")
+	local radii = {}
+	for i, ri in ipairs(geom.RADIUS_PRESETS) do radii[i] = geom.RADII[ri] end
+	eq(radii, { 10, 15, 20, 35, 60 })
+	ok(geom.RADII[geom.RADIUS_PRESETS[1]] < geom.MINI_RADIUS_BELOW, "Mini is a mini roundabout")
+	-- a preset builds exactly what its radius index builds; the preset key wins over the old one
+	for i, ri in ipairs(geom.RADIUS_PRESETS) do
+		eq(geom.readParams({ [RP] = i }), geom.readParams({ [K.radius] = ri }), "preset " .. i)
+		eq(geom.readParams({ [RP] = i, [K.radius] = 1 }).radiusIndex, ri, "preset key first")
+	end
+	-- no slider left: every size setting is a row of buttons (Phase 7c3), at most 5 short labels
+	for _, p in ipairs(con.params) do
+		ok(p.uiType ~= "Slider", p.key .. " is no slider")
+		if p.displayMode == "Horizontal" then
+			ok(#p.values <= 5, p.key .. ": at most 5 buttons")
+			local chars = 0
+			for _, v in ipairs(p.values) do chars = chars + #v end
+			ok(chars <= 30, p.key .. ": short labels")
+		end
+	end
+	eq(byKey[K.shape].uiType, "Button"); eq(byKey[K.shape].values, { "Round", "1.25:1", "1.5:1", "1.75:1", "2:1" })
 	eq(#byKey[K.shape].values, #geom.SHAPE_RATIOS)
-	eq(#byKey[K.radius].values, #geom.RADII)
 	eq(#byKey[K.arms].values, #geom.ARM_LAYOUTS)
 	eq(#byKey[K.armType].values, #geom.ARM_TEMPLATES)
 	eq(byKey.sqrb_arm_length, nil, "no arm length param (fixed length)")
-	eq(byKey[K.radius].name, "Radius")
+	eq(byKey[RP].name, "Radius")
 	-- the defaults match readParams' fallbacks
 	local d = {}
 	for _, p in ipairs(con.params) do d[p.key] = p.defaultIndex or 1 end
-	eq(geom.readParams(d), geom.readParams({}))
+	-- 2026-10-09 (user: size menus default to the smallest): the Radius button row defaults to XS
+	-- (10 m, a mini roundabout); readParams' fallback without any radius key (geom.DEFAULT_RADIUS,
+	-- 20 m) is unchanged
+	local got, want = geom.readParams(d), geom.readParams({})
+	eq(got.radius, 10); eq(got.radiusIndex, geom.RADIUS_PRESETS[1]); eq(got.mini, true)
+	for _, f in ipairs({ "radius", "radiusIndex", "mini" }) do got[f], want[f] = nil, nil end
+	eq(got, want, "the defaults match readParams' fallbacks (radius aside)")
 	eq(byKey[K.island].values[byKey[K.island].defaultIndex], "None", "centre island defaults to None")
 end)
 
@@ -203,7 +235,7 @@ test(".con.lua: Phase 3 params", function()
 	for _, p in ipairs(con.params) do byKey[p.key] = p end
 	eq(#byKey[K.splitter].values, 2); eq(#byKey[K.centre].values, 4); eq(#byKey[K.tram].values, 2); eq(#byKey[K.signals].values, 2)
 	ok(byKey[K.signals].tooltip:find("Experimental", 1, true) ~= nil, "signals marked experimental")
-	ok(byKey[K.signals].values[2]:find("experimental", 1, true) ~= nil)
+	eq(byKey[K.signals].values, { "Off", "On" })
 	-- Tram tracks lost the "experimental" label in Phase 4 (the engine probe: On is no worse than Off)
 	ok(byKey[K.tram].tooltip:lower():find("experimental", 1, true) == nil, "tram tracks not experimental")
 	eq(byKey[K.tram].values, { "Off", "On" })
@@ -228,7 +260,10 @@ test("magic: con.lua, script and params", function()
 	eq(n, 5, "only size, arm road, mini roundabout lanes, direction, island")
 	local size
 	for _, p in ipairs(con.params) do if p.key == magic.PARAM_KEYS.size then size = p end end
-	eq(size.uiType, "Slider"); eq(#size.values, #magic.SIZES); eq(size.defaultIndex, magic.DEFAULT_SIZE)
+	-- Phase 7c3: a row of five buttons (was a slider), same key and indices
+	eq(size.uiType, "Button"); eq(size.displayMode, "Horizontal"); eq(#size.values, #magic.SIZES); eq(size.defaultIndex, magic.DEFAULT_SIZE)
+	eq(size.values, { "XS", "S", "M", "L", "XL" })
+	for _, p in ipairs(con.params) do ok(p.uiType ~= "Slider", p.key .. " is no slider") end
 	eq(con.params[1].key, magic.PARAM_KEYS.size, "size first")
 	local d = {}
 	for _, p in ipairs(con.params) do d[p.key] = p.defaultIndex or 1 end

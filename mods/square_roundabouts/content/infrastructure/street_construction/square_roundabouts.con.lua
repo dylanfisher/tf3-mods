@@ -9,12 +9,6 @@ local geom = ug_require "square_roundabouts::/infrastructure/street_construction
 
 local K = geom.PARAM_KEYS
 
-local function metres(list, suffix)
-	local out = {}
-	for i = 1, #list do out[i] = tostring(list[i]) .. (suffix or " m") end
-	return out
-end
-
 -- Arm road names, in geom.ARM_TEMPLATES order (Arm road and Through road)
 local function armRoads()
 	return {
@@ -29,16 +23,38 @@ local function throughRoads()
 	return out
 end
 
+-- Phase 7c3: button labels (a row like the base interchanges'): Round, then the oval ratios
 local function shapes(list)
 	local out = {}
 	for i = 1, #list do
-		out[i] = list[i] == 1 and _("Round") or string.format(_("Oval %.2f : 1"), list[i])
+		out[i] = list[i] == 1 and _("Round") or (string.format("%g", list[i]) .. ":1")
 	end
 	return out
 end
 
+-- Radius preset buttons (geom.RADIUS_PRESETS) and the tooltip's "XS 10 m, S 15 m, ..."
+local function presetNames(names)
+	local out = {}
+	for i = 1, #names do out[i] = _(names[i]) end
+	return out
+end
+
+local function presetList(names, presets, radii)
+	local out = {}
+	for i = 1, #presets do out[i] = _(names[i]) .. " " .. radii[presets[i]] .. " m" end
+	return table.concat(out, ", ")
+end
+
+-- Every param sits in the left toolbar (location "Toolbar", 2026-10-09: the menu's hover tooltip no
+-- longer covers the settings there). Its buttons fit about 6 characters: button rows have at most 5
+-- labels of at most 6 characters (tested), longer choices are ComboBoxes, tooltips explain them.
+local function toolbar(con)
+	for _, p in ipairs(con.params) do p.location = "Toolbar" end
+	return con
+end
+
 function data()
-return {
+return toolbar({
 	configureLayerScript = {
 		fileName = "::/gui/construction/construction_desc_layers.script@configureDefaultLayerFn",
 		params = {
@@ -82,7 +98,8 @@ return {
 			key = K.shape,
 			name = _("Shape"),
 			tooltip = _("Round, or an oval stretched along its length (length : width)"),
-			uiType = "Slider",
+			uiType = "Button",
+			displayMode = "Horizontal",
 			values = shapes(geom.SHAPE_RATIOS),
 			defaultIndex = geom.SHAPE_ROUND,
 		},
@@ -95,17 +112,22 @@ return {
 			defaultIndex = 2,
 		},
 		{
-			key = K.radius,
+			-- Phase 7c3: presets on their own key (geom.RADIUS_PRESET_KEY), not the old slider's
+			key = geom.RADIUS_PRESET_KEY,
 			name = _("Radius"),
-			tooltip = _("Size of the roundabout: the radius inside the ring road\n(the narrow side of an oval). Below 15 m: a mini roundabout\nwith a flat island. The ring grows if the chosen roads\ndon't fit."),
-			uiType = "Slider",
-			values = metres(geom.RADII),
-			defaultIndex = geom.DEFAULT_RADIUS,
+			tooltip = _("Size of the roundabout, extra small to extra large:\nthe radius inside the ring road (the narrow side of\nan oval): ") ..
+				presetList(geom.RADIUS_PRESET_NAMES, geom.RADIUS_PRESETS, geom.RADII) ..
+				_(".\nXS: a mini roundabout with a flat island. The ring\ngrows if the chosen roads don't fit."),
+			uiType = "Button",
+			displayMode = "Horizontal",
+			values = presetNames(geom.RADIUS_PRESET_NAMES),
+			defaultIndex = geom.DEFAULT_RADIUS_PRESET, -- XS, the smallest (user 2026-10-09)
 		},
 		{
 			key = K.arms,
 			name = _("Arms"),
-			uiType = "Button",
+			tooltip = _("Number of approach roads. 3 (T): a T junction,\n3 (Y): three evenly spaced. None: just the ring."),
+			uiType = "ComboBox",
 			values = { _("3 (T)"), _("3 (Y)"), "4", "5", "6", _("None") },
 			defaultIndex = 3,
 		},
@@ -129,15 +151,9 @@ return {
 			key = K.centre,
 			name = _("Through the centre"),
 			tooltip = _("A straight road or tram line across the island,\nbetween two opposite arms.\nLayouts without opposite arms get one extra arm.\nTram line: tracks run only along that straight line\n(its two arms and across), not on the ring.\nRoad + traffic lights (experimental): lights where\nthe road crosses the ring (from 1950)."),
-			uiType = "Button",
+			uiType = "ComboBox",
 			-- appended values only: saved indices keep their meaning
 			values = { _("Nothing"), _("Road"), _("Tram line"), _("Road + traffic lights") },
-			tooltips = {
-				_("No road through the island"),
-				_("A road straight across the island"),
-				_("Tram tracks straight across the island"),
-				_("Experimental: a road across the island with traffic lights\nwhere it crosses the ring (from 1950). The two crossings ask\nin two different ways, to find out which one the game uses."),
-			},
 			defaultIndex = geom.CENTRE_NONE,
 		},
 		{
@@ -159,8 +175,9 @@ return {
 		{
 			key = K.direction,
 			name = _("Direction"),
+			tooltip = _("CCW: counterclockwise, for right-hand traffic.\nCW: clockwise, for left-hand traffic."),
 			uiType = "Button",
-			values = { _("Counterclockwise"), _("Clockwise") },
+			values = { _("CCW"), _("CW") },
 			tooltips = { _("Right-hand traffic"), _("Left-hand traffic") },
 			defaultIndex = 1,
 		},
@@ -175,9 +192,9 @@ return {
 		{
 			key = K.signals,
 			name = _("Traffic lights"),
-			tooltip = _("Experimental: traffic lights where traffic enters the ring\n(from 1950). Odd and even arms ask in two different ways,\nto find out which one the game uses."),
+			tooltip = _("Experimental. On: traffic lights where traffic enters\nthe ring (from 1950). Odd and even arms ask in two different ways,\nto find out which one the game uses."),
 			uiType = "Button",
-			values = { _("Off"), _("Entries (experimental)") },
+			values = { _("Off"), _("On") },
 			defaultIndex = geom.SIGNALS_OFF,
 		},
 	},
@@ -185,5 +202,5 @@ return {
 		fileName = "square_roundabouts.script@updateFn",
 		params = {},
 	},
-}
+})
 end

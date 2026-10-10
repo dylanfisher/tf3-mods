@@ -450,15 +450,208 @@ right-hand traffic; the interchange at the 15 m slider, town medium cross road, 
    (`test_engine_verdicts.lua`: gap `interchange` should drop to 0; any refused combo is a problem
    to fix). Disable the probe afterwards.
 
+## Phase 7 runs (Highway Interchange, Phase 7d)
+
+### What they ask
+A fifth entry, `highway` (replay tag `h:`, Highway Interchange, `square_roundabouts_highway.con`):
+axes in `.con.lua` order (type A4 / B4 / A2 / B2 / AB2 / diamond, highway small / medium / large,
+level road_over / hw_over, cross road, size compact / standard / large / vlarge = loop radius
+25 / 35 / 45 / 60 m or diamond terminal distance 0 / 15 / 30 / 50 m, ramp = extra length over the
+shortest ramp 0 / 20 / 40 / 60 m, armlen, dir), then the pseudo axis **year** (1969 steel,
+2020 concrete), as for `x:`. `smoke` also places the highway default (Parclo A4) once.
+
+| subset | combos / jobs | engine calls | runtime (the Roundabout Interchange took ~20 ms per call) |
+|---|---|---|---|
+| **p7_hx_all** | 912 combos: type x highway x level x size x cross road {town medium, town large, country large} x year {1969, 2020} at the shortest ramps (864); +60 m ramps at the defaults (36); left-hand traffic (12) | 912 | **~20-60 s** |
+| **p7_hx_search** | 66 jobs at Size Compact, cross road town medium, 2020: diamond x highway x level, grid hxClear {8, 6} x hxGoreRun {30, 20} (6 x 4); parclos x highway x level, grid hxTermGap {30, 20, 40} x hxClear {8, 6} x hxGoreRun {30, 20} (30 x 12); parclos x highway x level, hxLoopRadius {25, 20, 22.5, 30} at the shipped 30 m terminal gap (30 x 4, `fixed="hxTermGap=30"`). Shipped values first, every candidate tried | 504 | **~10-30 s** |
+| **p7_hx_scale** (7d2) | every type x Scale x highway x level x cross road {town medium, country large} x side x year at the builder's 0 degree transf (864); Scale Large, country large, 2020, both sides: +60 m ramps x 30 / 60 m arms and 60 m arms at the shortest ramps (216); rotations 90 / 180 on the medium highway (144, R lines carry `rot`). INTERCHANGES.md "Phase 7d2 notes" | 1224 | **~20-60 s** |
+| **p7_presets** (7d2) | the released entries' button rows at 0 degrees, both sides, with the preset keys: main radius 10 / 15 / 20 / 35 / 60 m x lanes (30), interchange 15 / 20 / 30 / 45 m x layout (24), Channelized Junction layout x slips x splitter (24, incl. X left-hand), Magic sizes (10) | 88 | **~5 s** |
+
+**Dev overrides** (`geom.DEV_KEYS`, read by `hx.readParams` via `geom.readDev`; test_dev "dev highway"):
+
+| override | param | meaning (shipped value) |
+|---|---|---|
+| hxClear | `sqrb_dev_hx_clear` | plan gap highway kerb <-> non-bridge roads (ramps.CLEAR 8 m) |
+| hxGoreRun | `sqrb_dev_hx_gore_run` | shortest level gore along a carriageway (ramps.GORE_RUN 30 m) |
+| hxTermGap | `sqrb_dev_hx_term_gap` | parclo: inner to outer terminal, and loop to wrapped diagonal (hx.TERM_GAP 30 m) |
+| hxLoopRadius | `sqrb_dev_hx_loop_radius` | parclo: exact loop radius, replaces Size and its growth (25-60 m by Size) |
+
+The plan's `hxLoopJoin` / `hxRampX` are not implemented in `hx` (Phase 7b notes), so they are not searched.
+
+**New log fields** (R and T lines, highway rows; `-` for other entries): `effSize` = built Size
+value (m), `effR` = loop radius (parclos), `xm` = the diagonal ramps' carriageway node |x| (ramp
+length along the highway, m), `term` = `yTi/yTo` terminal distances from the highway axis (m; the
+diamond has `-/yTo`), `bridge` = steel / concrete, `forced`, `edges`. START gains `highway=` (the
+resolved construction; `-` = an older Better Roundabouts). Once per run, before START, one INFO
+line per highway street template (R3 / R4), read only from `api.res.streetTemplateRep`:
+`INFO street template ::/infrastructure/street/highway/highway_new_small.street_template id N: maxSlope= maxSlopeShape= maxSlopeBuild= minCurveRadius= minCurveRadiusBuild= speedCoeffs=a/b/c laneSpeeds=... country=`
+(then medium and large).
+
+### Steps for you
+1. `make link`; TF3 with the flat test map as before (flat, empty, centre on land, year 2020,
+   right-hand traffic). Enable **Better Roundabouts** (this build, with the Highway Interchange
+   entry) and **DEV Roundabouts Probe**. Probe settings: Run the probe **On**, Subset
+   **p7_hx_all**, Start delay **15 s**, Combos per update **8**, Position **0 / 0**, Proposal
+   context **None**, Log placeable combos **On**.
+2. Load, pause, wait for `[SQRB_PROBE] END subset=p7_hx_all` (~20-60 s after the 15 s delay).
+   Check the START line shows `highway=square_roundabouts::/...highway.con` (not `-`) and that the
+   three `INFO street template ...` lines are there. Then
+   `cp ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt plans/square_roundabouts/probe_p7_hx_all.log`
+3. Reload with Subset **p7_hx_search** (same settings), wait for END (~10-30 s) and the line
+   `INFO dev override check (...): overrides reach the updateFn`, then copy stdout.txt to
+   `plans/square_roundabouts/probe_p7_hx_search.log`.
+4. Parse (or just send the two logs):
+   `uv run tools/parse_probe.py --stdout plans/square_roundabouts/probe_p7_hx_all.log` ->
+   `probe_p7_hx_all.md/.csv` (sections "highway": fail rate per axis, type x highway / level /
+   size / cross road, bridge type by year), and
+   `uv run tools/parse_probe.py --stdout plans/square_roundabouts/probe_p7_hx_search.log --fresh` ->
+   `probe_p7_hx_search.md`, `probe_p7_hx_search_jobs.csv`, `probe_p7_hx_search_trials.csv` ("Grid
+   searches: highway": acceptance per candidate and per base combo).
+5. Disable the probe afterwards (never upload it).
+
+### Phase 7e: p7_verify (after the tuning pass)
+The 7e pass changed one thing (INTERCHANGES.md "Phase 7e notes"): on the **large highway, highway
+over road**, the parclos' loop carriageway node now keeps 17.5 m (`hx.BRIDGE_PIECE`) of plain
+carriageway to the highway bridge's end, not 10.5 m, so 25 / 35 m loops build the 45 m loop's
+carriageway, gores and bridge ends (placed in p7_hx_all). Nothing else builds differently.
+
+| subset | combos | runtime |
+|---|---|---|
+| **p7_verify** | 160: parclos (A4, B4, A2, B2, AB2) x large highway x highway over road x Size Compact / Standard x every cross road (6) x year {1969, 2020} at the shortest ramps (120); +20 / +40 / +60 m ramps (30); left-hand traffic (10). Includes all 65 combos p7_hx_all refused | **~5-15 s** (plus the 15 s start delay) |
+
+1. `make link`. TF3, the flat test map (flat, empty, centre on land, year 2020, right-hand traffic).
+   Enable Better Roundabouts (this build) + DEV Roundabouts Probe. Probe settings as for p7_hx_all
+   (Run the probe **On**, Subset **p7_verify**, Start delay **15 s**, Combos per update **8**,
+   Position **0 / 0**, Proposal context **None**, Log placeable combos **On**).
+2. Load, pause, wait for `[SQRB_PROBE] END subset=p7_verify`, then
+   `cp ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt plans/square_roundabouts/probe_p7_verify.log`
+3. `make probe-report` (parses every p7 log present, writes `probe_p7_verify.md/.csv`); then
+   `make test MOD=mods/square_roundabouts ARGS="-f engine_verdicts -k highway"`: the 65 "known gap hx"
+   lines disappear when the engine placed the new layouts (a refusal there is a problem: send the log).
+4. Disable the probe afterwards.
+
+## Phase 7e fix-up: p7_spot (one real spot, rotations x contexts)
+Why: in game a parclo was refused at Rotation 0 and placed at 350 on the same spot; every earlier run used
+world 0 / 0, the identity transf and context None (INTERCHANGES.md "Phase 7e fix-up: placement in game").
+1. `make link`. Load **the save with the failing spot** (not the flat test map); enable DEV Roundabouts Probe for
+   it (cosmetic, severity None: nothing is saved). Probe settings: Run the probe **On**, Subset **p7_spot**,
+   Start delay **30 s**, Combos per update **8**, Position **Camera centre**, Log placeable combos **On**
+   (Proposal context is ignored: p7_spot sweeps its own contexts).
+2. Load, pause, and within the 30 s centre the view on the spot: the point where the interchange's centre (the
+   highway / cross road crossing) was when it was refused. Close the construction menu; keep the camera still
+   until `[SQRB_PROBE] END subset=p7_spot` (~5-10 s after the delay). The `INFO position source camera` line
+   shows the position used.
+3. `grep SQRB_PROBE ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_p7_spot.log`
+4. Optional: `uv run tools/parse_probe.py --stdout plans/square_roundabouts/probe_p7_spot.log --out-md
+   plans/square_roundabouts/probe_p7_spot.md --out-csv plans/square_roundabouts/probe_p7_spot.csv`;
+   the D lines: `grep " D " plans/square_roundabouts/probe_p7_spot.log`.
+5. Disable the probe afterwards.
+
+## Phase 7e fix-up: p7_spot2 and the construction tool watcher (W lines)
+p7_spot (camera 411.20 / -514.26, the user's failing spot, costs match the UI's) placed **all 106** calls,
+including B4 at 0 degrees in every context, while the UI refused B4 there at 0 degrees. So makeProposalData
+on a SimpleProposal does not reproduce the UI builder. Two additions:
+- **Watcher** (every subset, while "Run the probe" is On): `probe.gs.lua` registers `guiHandleEventScript`;
+  the engine-side `update` calls `state:subscribeToAllEvents()` once (needed for guiHandleEvent at all, see
+  memory "GS gui events need subscribe"; this puts an event subscription into the save's game-script
+  state, harmless for a DEV mod). On `builder.proposalCreate` / `builder.apply` with a square_roundabouts
+  construction it logs one **W** line per change: the UI's transf (16 values), every param the builder passed
+  (height, rotation, ... ), the UI's errorState / collisions (classified) / cost, the street proposal's
+  added / removed segments and nodes, frozen nodes / edges, and four replays through makeProposalData:
+  `replayUi` / `replayUiFull` (the UI's params and transf, context none / full) and `replayCore` /
+  `replayCoreFull` (only sqrb_* + year + seed). Capped at 300 lines.
+  Reading: UI fails but replayUi ok -> the builder does something beyond the proposal (snapping, its own
+  checks); replayUi fails but replayCore ok -> a builder param (height / rotation / ...) changes the result;
+  both fail -> reproduced: bisect the transf against p7_spot's.
+- **p7_spot2**: B4 at 0 degrees, origin shifted 0-8 m in 0.5 m steps on x and y, contexts none / full (578
+  calls, ~20-40 s).
+- **Settings in a loaded save**: in the coordinator's run a *new* param (Position) kept its mod.json default in
+  an existing save; it changed only after editing the default. The spot subsets therefore place at the camera
+  centre whenever Position is X / Y (`engine.positionSource`); the Position default is X / Y again.
+
+Steps:
+1. `make link`. Load the save with the failing spot, probe enabled: Run **On**, Subset **p7_spot2** (if the
+   subset will not change in that save, any subset works for the watcher), Start delay **30 s**.
+2. During the delay centre the view on the failing spot and keep it still until `END subset=p7_spot2`.
+3. Then open Highway Interchange with the failing settings (B4, Small, Road over highway, Country large,
+   Compact, Shortest, 30 m), hover the spot at Rotation 0 until it is red, then rotate to 350 (green); a
+   few seconds each, and click nothing.
+4. `grep SQRB_PROBE ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_p7_spot2.log`
+   (`grep " W "` for the watcher, `grep " D "` for the sweep).
+
+## Phase 7e fix-up round 3: p7_watch + the watcher's bisect
+The watcher's replays reproduce the UI refusal (INTERCHANGES.md "Fix-up round 3"). At the first refused UI
+proposal it now bisects at that exact transf (`grid.BISECT`, 180 calls, `START subset=bisect` ... `END`,
+R + D lines with `rot0` / `dz`).
+1. `make link`. Load the save, probe On, Subset **p7_watch** (or any subset: the watcher runs in all of them).
+2. After `END subset=p7_watch` (about 20 s after loading), open Highway Interchange, set the settings that fail
+   (or keep the defaults, which fail there), hover a spot until it is red for about 1 s, then press Esc and wait
+   about 10-20 s for `END subset=bisect` (the game may stutter).
+3. `grep SQRB_PROBE ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_p7_bisect.log`
+
+## Phase 7e fix-up round 4: watcher triage (X lines)
+Same run as round 3 (Subset **p7_watch**): open Highway Interchange, hover a refused spot for about 1 s,
+**then also hover a spot where it turns green** (rotate if needed), then Esc and wait for `END subset=bisect`.
+`grep SQRB_PROBE .../stdout.txt > plans/square_roundabouts/probe_p7_triage.log`; `grep " X "` gives the triage
+lines (INTERCHANGES.md "Fix-up round 4" says how to read them).
+
+## Phase 7e fix-up round 5: G / Y lines
+Round 4's X lines are an artifact (replays inside the builder's event); the triage is off. Run as round 3
+(Subset **p7_watch**): after `END subset=p7_watch` open Highway Interchange, hover until red for about 1 s,
+if possible also find a green spot, Esc, wait for `END subset=bisect`.
+`grep SQRB_PROBE .../stdout.txt > plans/square_roundabouts/probe_p7_diff.log`; `grep " [GY] "` for the result.
+- `G n= kind=summary uiSegs= ourEdges= uiOnly= oursOnly= newNodes="id@x/y/z|..."`, then `G kind=ui a= b= info=` per
+  UI segment matching no edge of ours and `G kind=ours a= b= info="role:ramp:part"` per edge of ours the UI lacks
+  (construction coordinates, 0.5 m tolerance).
+- `Y n= uiProposal= uiProposalFull= ours= oursFull=` (from guiUpdate, outside the event).
+
+## Phase 7e fix-up round 6: p7_seed + Y lines
+1. `make link`. Load the save, probe On, Subset **p7_seed**, Start delay 15 s. Wait for `END subset=p7_seed`
+   (~20-40 s; it places at the camera centre).
+2. Open Highway Interchange (defaults), hover until red for about 1 s, Esc, wait 5 s (the Y lines come from the
+   next frames).
+3. `grep SQRB_PROBE ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_p7_seed.log`
+- `Y n= seed= ours= oursFull= seed1= seed1Full= tagged= taggedFull=` (our SimpleProposal at the UI's transf / params;
+  seed1 = seed 1; tagged = dev hxTagJoints = 1).
+- R lines of p7_seed carry `seed` and `tag` (place fields).
+
+## Phase 7e fix-up round 7: copy con, interchange watcher, two-pass Y
+1. `make link`. Load the save; in the mod settings the probe On, Subset **p7_watch**. Wait for `END subset=p7_watch`.
+2. Open **Highway Interchange** (defaults): hover until red for about 1 s, then keep the mouse still for 3 s; Esc.
+3. Open **Roundabout Interchange** (defaults): hover about 1 s, keep still 3 s; Esc. Wait 5 s.
+4. `grep SQRB_PROBE ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_p7_copy.log`
+- `Y n= pass= file= seed= ours= oursFull= probeParams= copy= other= tagged=` (pass 1 = next frame, 2 = about 2 s later).
+- The menu shows "DEV Probe: Highway Interchange copy (NOT FOR UPLOAD)" (order 3098): the copy; don't use it.
+
+## Phase 7e fix-up round 8: [SQRB_FP] fingerprints
+Same run as round 7 (p7_watch, hover Highway Interchange about 1 s + 3 s still, Esc, hover Roundabout Interchange,
+Esc, wait 5 s), but copy both prefixes:
+`grep -E "SQRB_PROBE|SQRB_FP" ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_p7_fp.log`
+The `[SQRB_FP]` lines come from the main mod's highway updateFn (temporary, remove before release).
+
+## Phase 7e fix-up round 9: variant sweep (variantsA / variantsB)
+1. `make link`. Load the save, probe On, Subset **p7_watch**; wait for `END subset=p7_watch`.
+2. Open **Roundabout Interchange** (it places fine), move the mouse once over open ground, then keep it still until
+   `END subset=variantsA` (about 3-5 s; console or tail of stdout.txt).
+3. Esc (close the tool), wait about 15 s for `END subset=variantsB`.
+4. `grep -E "SQRB_PROBE|SQRB_FP" ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_p7_variants.log`
+
 ## Log format
 One line per event, all prefixed `[SQRB_PROBE]`:
 - `INFO ...` / `ERROR ...`: setup notes (settings, resolved construction names, global params, fallbacks).
-- `START subset= total= x= y= z= context= player= main= magic= geometry=`
-- `R n= total= entry= <axes> ok= critical= nmsg= msgs="a|b" warnings="" infos="" coll= bld= added= cost= effR= effSize= forced= fork= a= b= rs= setback= bridge= edges= geomErr="" mode= upd="" err="" ms= key=`
+- `START subset= total= x= y= z= pos= context= player= main= magic= geometry=`
+- `D key= rot= ctx= dx= dy= ox= oy= oz= ok= critical= msgs= warnings= infos= coll= collIds="id:kind|..." bld= bldIds= autoRm= hmods= cut= fill= cost= nodes= offMap= water= terrMin= terrMax= fillMax= cutMax= nodeErr=`
+  (p7_spot only, one per call: collisions classified, `-n:new` = an entity of the proposal itself; terrain under
+  the build's nodes relative to the origin; fillMax / cutMax = node above / below terrain, m)
+- `W n= event= src= file= transf="16 values" ok= critical= msgs= warnings= infos= coll= collIds= bld= cost= addedSegs= removedSegs= addedNodes= removedNodes= frozenNodes= frozenEdges= replayUi= replayUiFull= replayCore= replayCoreFull= params="k=v,..."`
+  (construction tool watcher: the UI builder's own proposal for a square_roundabouts construction, logged when it changes)
+- `X n= uiOk= cloverFile= same= same2= far3000= far600= b4small= interchange= roundabout= cloverleaf=` (watcher triage
+  while the tool is active: "ok cost=..", "fail <messages> coll=..", "error: ..", "-" = construction not found)
+- `R n= total= entry= <axes> ok= critical= nmsg= msgs="a|b" warnings="" infos="" coll= bld= added= cost= effR= effSize= forced= fork= a= b= rs= setback= bridge= xm= term= edges= geomErr="" mode= upd="" err="" ms= key=`
   (`-` = not available; axes are labels such as `arm=town_l arms=6 splitter=on`; `key` replays the
-  combo: `m:`, `g:`, `c:` or `x:` and the param indices in the axis order of `probe_grid.lua`
+  combo: `m:`, `g:`, `c:`, `x:` or `h:` and the param indices in the axis order of `probe_grid.lua`
   (.con.lua order, appended axes last); `ms` is CPU time via os.clock)
-- `T n= total= entry= <axes> kind= fixed="" cand= ncand= label="" devRadius= devMagicSize= ... devTramStub= devChSlipAngle= ... devIxWaistGap= ok= critical= nmsg= msgs="" coll= cost= effR= effSize= offline= forced= fork= rs= setback= bridge= edges= sane= geomErr="" mode= upd="" err="" ms= key=`
+- `T n= total= entry= <axes> kind= fixed="" cand= ncand= label="" devRadius= devMagicSize= ... devTramStub= devChSlipAngle= ... devIxWaistGap= ok= critical= nmsg= msgs="" coll= cost= effR= effSize= offline= forced= fork= rs= setback= bridge= xm= term= edges= sane= geomErr="" mode= upd="" err="" ms= key=`
   one engine call of a search job (`dev*` = the candidate's overrides, `-` = not set;
   `offline` = the geometry's own plan accepted the exact layout)
 - `S n= total= entry= <axes> kind= fixed="" first= ncand= tried= accepted= found= best="" dev*= acceptedList="a|b" rejected="a|b" skipped="" shipR= shipSize= id="" key=`
