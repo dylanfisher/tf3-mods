@@ -1,0 +1,8 @@
+{
+    "name": "Fixture",
+    "summary": "Fixture mod for the i18n tests.",
+    "localization": {
+        "de": { "name": "Fixture", "summary": "Testmod." },
+        "fr": { "name": "A name that is far too long for the game", "summary": "Line\nbreak" }
+    }
+}

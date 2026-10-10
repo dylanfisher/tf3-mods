@@ -15,8 +15,10 @@ module names), and that mod's content/ and tealdef/ dirs on the module path.
 With no PATH, every mod in mods/ is checked. A tealdef/ copy of a content/ .d.tl
 (official mod layout) must match its original byte for byte.
 
-.tl files (not .d.tl) get a full type check; .d.tl files are checked when they
-load as definitions; .lua files get a load() syntax check only.
+.tl files (not .d.tl) get a full type check, and their generated Lua is compiled
+with load() (catches compiler limits such as 200 locals per function, which the
+type check misses); .d.tl files are checked when they load as definitions; .lua
+files get a load() syntax check only.
 -W also prints Teal warnings (unused variables etc.); they never fail the check.
 
 Pre-5.3 lint: TF3's in-game Lua is older than 5.3 (math.tointeger is nil there; no
@@ -367,6 +369,12 @@ def check_group(
                 code, tl_diags = teal.gen(env, src, name, warnings)
                 diags += tl_diags
                 if code is not None:
+                    # Compile the generated Lua too: Teal's checker misses Lua compiler limits the
+                    # game then fails on at load ("too many local variables (limit is 200)").
+                    diags += [
+                        Diag(d.file, d.line, d.col, f"generated Lua: {d.msg}", d.kind)
+                        for d in teal.lua_syntax(code, name)
+                    ]
                     # math.maxinteger/mininteger in game-target output only appear in
                     # Teal's compat polyfill (`math.maxinteger or math.pow(2, 53)`).
                     diags += lint_lua53(name, code, src, skip=TEAL_POLYFILLED)

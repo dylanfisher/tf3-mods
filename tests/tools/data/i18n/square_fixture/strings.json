@@ -1,0 +1,5 @@
+{
+  "de": {"Stale key": "Alt", "Filter": "Filter", "{n} vehicles": "{n} Fahrzeuge", "%d of %s": "%s von %d", "On": ""},
+  "en": {"Filter": "Filter", "SQ_ID_KEY": "Id text"},
+  "ru": {"{n} vehicles": "{count} машин", "Filter": "Фильтр"}
+}

@@ -64,6 +64,7 @@
   // A tagline that doesn't fit on one line splits into two with the longer half on top:
   // at the first space past the middle, or the last space that still fits if that one doesn't.
   function splitTagline(text, max) {
+    if (text.includes('\n')) return text.split('\n');  // a manual break wins over the estimate
     if (text.length <= max) return [text];
     const spaces = [...text].map((c, i) => c === ' ' ? i : -1).filter(i => i > 0);
     const fits = spaces.filter(i => i <= max);

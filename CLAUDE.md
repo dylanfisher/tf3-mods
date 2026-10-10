@@ -17,6 +17,7 @@ docs/findings.md         in-game verified facts that override the wiki (hand-wri
 tools/                   sync + mod tooling (Python, run via `uv run` / make)
 mods/square_opt_<id>/    local "SQ Opt" forks of other authors' mods (gitignored, never uploaded)
 forks/<forkId>/          fork upstream snapshots and merge workspace (gitignored)
+.forks-git/              git dir of the private fork backup repo (same working tree; see "Forks")
 plans/<modId>/           design plans and research per mod (never shipped)
 tests/<modId>/           offline unit tests for mod scripts (test_*.lua/.tl), run by tests/run_tests.py
 branding/                "square" cover house style: cover.js (renderer), mods.js (per-mod entries), index.html (gallery)
@@ -29,8 +30,10 @@ branding/                "square" cover house style: cover.js (renderer), mods.j
 - `make subscribed`: copy the mod.io mods you're subscribed to into `.cache/subscribed/<modId>/` (reference only; never link them into staging, since a staging copy overrides the subscribed one).
 - `make new-mod ID=square_modname NAME='Display Name' ARGS='--script --tag "Script Mod"'`
 - `make fork-new UP=<upstreamModId>`, `make fork-status`, `make fork-merge FORK=<forkId>`, `make fork-finish FORK=…`, `make fork-abort FORK=…`: local forks of subscribed mods (see "Forks of other authors' mods").
+- `make forks-save [MSG='...']`, `make forks-push`: commit / push the fork paths to the private backup repo (`.forks-git/`).
 - `make link` / `make unlink`: symlink `mods/*` into `staging_area`.
 - `make validate [MOD=mods/<id>]`: pre-flight checks against wiki rules.
+- `make i18n [MOD=mods/<id>] [ARGS='--check --lint-modinfo | -v | --missing ru | --fix-format']`: translation report: every `_("...")` key and mod.json param text vs each language in `strings.json`, placeholder mismatches, untranslatable `_()` calls and sentence building, untranslated literals (`-- i18n: keys` / `-- i18n: ignore` markers in `tools/i18n.py`). `--missing LANG` prints the keys a language lacks, `--fix-format` writes the canonical layout. See "Translations".
 - `make check [MOD=mods/<id>|PATHS='file/dir ...'] [ARGS=--allow-lua53]`: offline Teal type-check, Lua syntax-check and pre-5.3 lint (Lua 5.3+ constructs fail; the flag skips the lint) with the game's tl.lua.
 - `make test [MOD=mods/<id>] [ARGS="-f FILE -k TEXT -j N"]`: run `tests/<modId>/test_*` against the mod's transpiled modules in parallel processes; slow files are split into shards using the per-test times of earlier runs (`.cache/test_timings.json`). `-f` picks test files by name, `-k` tests by name (harness docs in `tests/run_tests.py`). `SQRB_FULL=1 make test MOD=mods/square_roundabouts` also runs the exhaustive roundabout sweep (a few minutes longer).
 - `make covers [MOD=mods/<id>] [ARGS=--no-text]`: render the house-style cover to `mods/<id>/_metadata/0.png` with headless Chrome.
@@ -63,6 +66,7 @@ Use `rg` (or `grep -r`) on these paths. `.cache` is gitignored, so pass `--no-ig
 - Script functions are referenced as `<modId>::<file>@<fn>` (e.g. `mod.script@runFn`), and the file lives in `content/`. Scripts are Teal (`.tl`) or Lua.
 - Some wiki pages carry a "Wip: not yet adapted for TF3" banner, and some text still says "Transport Fever 2". Treat those pages with caution and confirm against game files.
 - Script functions take `captureParams` first: `runFn(captureParams, settings, allModParams)`; the wiki omits it. Param values are 1-based option indices. See `docs/findings.md`.
+- Rows of items that may overflow (checkboxes, buttons) go in `builtin.FlowLayout{ children = ... }`, which wraps to the window width; never split rows by a fixed count. See `docs/findings.md`.
 - A mod.json param can't change a stylesheet: `.css.lua` only has `api.gui`/`api.type`, runs in its own Lua state, and no channel from the scripts reaches it (6 tried). Ship variant mods for style options. See `docs/findings.md`.
 - Construction geometry must never contain `-0` (mirroring code makes it): at exactly 0° rotation the builder's transform keeps it and the layout is silently refused ("Construction Not Possible", fine at 1°). Normalise zeros to `+0` before returning from `updateFn`. Script probes can't reproduce it. See `docs/findings.md` "Negative zero".
 - Upload: Mod Hub → My Mods publishes from the staging area to mod.io and validates on upload. Bump `revision` with every update. Text, tags, logo and gallery changes that need no new modfile go through `make modio` instead (mod.io API; Steam auth isn't usable outside the game, so it uses a mod.io personal access token). Step by step: "Releasing updates" below.
@@ -75,6 +79,35 @@ Use `rg` (or `grep -r`) on these paths. `.cache` is gitignored, so pass `--no-ig
 - After `make docs`, `git diff --stat docs/` shows what changed upstream or in a game update.
 - Every mod has a `_metadata/description.html` with a **Changelog** section (newest revision first). Add an entry with every `revision` bump. Headings: `<h2>` only for the Changelog title, `<h4>` for everything else (sections and revision entries). Format and template: `branding/README.md` "Mod description".
 - Mods follow `docs/wiki/modding/general/guidelines.md`: no whitespace or special characters in names, lowercase preferred, UTF-8 without BOM, DDS textures with mipmaps, WAV at 16-bit/48 kHz, at most 500 MB.
+
+## Translations
+
+Every published mod supports all 13 game languages (`base/content/locale/*.lang.lua`): en (source and fallback),
+ru, de, fr, es, it, nl, pl, pt_BR, ja, ko, zh_CN, zh_TW. **New mods ship translated, and every new or changed
+user-visible string goes into every language in the same change.** DEV/probe mods and SQ Opt forks are exempt.
+Mechanics and open in-game checks: `docs/findings.md` "Translations".
+
+- `strings.json` in the mod root: `{ "en": {...}, "ru": {...}, ... }`. Keys are the English text itself
+  (`_("Filter")`, mod.json `"name": "View direction arrow"`); `en` holds only id-style keys (square_one_way_roads'
+  `SQUARE_OWR_*`). Changing an English string changes its key: update every language.
+- Wrap every displayed literal in `_()`: labels, tooltips, titles, status texts, construction/road names, and
+  mod.json param `name`/`tooltip`/`values`. One format string per sentence (`string.format(_("%d of %d buildings"), a, b)`),
+  never `_("of") .. n`. Placeholders keep the same set and order in every language; use `{name}` placeholders when
+  translations need another order.
+- Format, concatenate or compare `_()` results only in GUI/HUD script code. In resource files (`.con.lua`, road
+  `.lua`, `.names.lua`) `_()` returns the key and the engine translates at display time. Never save or compare a
+  translated string.
+- Stays English: log lines (`[Minimap]`, SQPERF), ids, `description.html` (mod.io has one description per mod),
+  and names the game supplies (industries, cargo, towns, lines, vehicles), which arrive localized.
+- `_metadata/modinfo.json` gets `"localization": { "<lang>": { "name", "summary" } }` for the 12 other languages
+  (name ≤ 32, summary ≤ 100). No localized `description`: the Hub would concatenate it into the mod.io description.
+- Style: match the game's own wording where it has a term (`base/strings/<lang>/LC_MESSAGES/base.mo`). German writes
+  "ss", never "ß" (the game does: "Strasse"). ja/zh use full-width punctuation (`、`/`，` `：` `（）`), ko ASCII.
+  Shared texts (On/Off, "Debug: performance log" and its SQPERF tooltip) reuse an existing mod's wording.
+- Layouts must fit longer text (de/ru/fr ~40% longer, CJK glyphs wide): size from the translated string, or wrap.
+- Translations are AI-written. Native-speaker corrections from players are welcome: apply them to `strings.json`.
+- Gate: `make i18n MOD=mods/<id> ARGS='--check --lint-modinfo'`. `make validate` warns about missing translations.
+- State Names mods: translations live in the generator (`tools/gen_state_mod.py`, `templates/state_names/`).
 
 ## Releasing updates
 
@@ -103,8 +136,13 @@ To improve someone else's mod locally (e.g. performance) and keep taking the aut
   is the merge checklist.
 - Updates: `make subscribed` + `make fork-status`. For UPDATE AVAILABLE, use the `tf3-fork-merger` agent: three-way merge
   against the upstream snapshot in `forks/<forkId>/base/`, conflict resolution, a FORK.md check, `make fork-finish`.
-- Third-party code stays local. `mods/square_opt_*`, `forks/`, `plans/*/original/` and `mods/square_aat_perftest/` are
-  gitignored, and only `plans/<forkId>/` notes are committed. Never upload a fork; send improvements to the author.
+- Third-party code stays out of this repo. `mods/square_opt_*`, `forks/`, `plans/*/original/` and `mods/square_aat_perftest/`
+  are gitignored, and only `plans/<forkId>/` notes are committed. Never upload a fork to mod.io; send improvements to the author.
+- Those paths are backed up in a separate **private** repo (`git@github.com:dylanfisher/tf3-mods-private.git`): its git dir
+  is `.forks-git/` (gitignored here), its working tree is this directory (`core.worktree = ..`), and it tracks only
+  those paths. Plain `git` commands still mean the main repo; pass `--git-dir=.forks-git` for the backup. Save with
+  `make forks-save [MSG='...']` (adds with `-f`, since the main `.gitignore` ignores those paths; a new kind of
+  third-party path goes into `FORK_PATHS` in the Makefile), then `make forks-push`. Only when the user asks.
 - Measuring a change: build a DEV harness with both implementations behind a param and identical timers.
   `mods/square_aat_perftest` with `plans/zhenya_auto_assign_terminals/PERFTEST.md` and `perf_report.py` is the example.
 
