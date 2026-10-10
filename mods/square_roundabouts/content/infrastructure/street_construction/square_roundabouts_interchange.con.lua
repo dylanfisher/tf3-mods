@@ -16,17 +16,13 @@ local function metres(list)
 	return out
 end
 
--- Radius preset buttons (Phase 7c3, ix.RADIUS_PRESETS) and the tooltip's "S 15 m, ..."
+-- Radius preset buttons (Phase 7c3, ix.RADIUS_PRESETS): size codes S / M / L / XL, the same in every
+-- language. The tooltip lists their radii as one translatable text (tests/square_roundabouts/
+-- test_menu_labels.lua checks it against ix.RADII).
 local function presetNames()
 	local out = {}
-	for i = 1, #ix.RADIUS_PRESET_NAMES do out[i] = _(ix.RADIUS_PRESET_NAMES[i]) end
+	for i = 1, #ix.RADIUS_PRESET_NAMES do out[i] = ix.RADIUS_PRESET_NAMES[i] end
 	return out
-end
-
-local function presets()
-	local out = {}
-	for i, ri in ipairs(ix.RADIUS_PRESETS) do out[i] = _(ix.RADIUS_PRESET_NAMES[i]) .. " " .. ix.RADII[ri] .. " m" end
-	return table.concat(out, ", ")
 end
 
 local ROADS = {
@@ -95,7 +91,7 @@ return toolbar({
 			name = _("Highway"),
 			tooltip = _("Highway type, built as two one-way carriageways.\nS, M, L: small, medium, large highway\n(1, 2 or 3 lanes each way)."),
 			uiType = "Button",
-			values = { _("S"), _("M"), _("L") },
+			values = { "S", "M", "L" }, -- size codes, the same in every language
 			defaultIndex = ix.DEFAULT_HIGHWAY,
 		},
 		{
@@ -118,8 +114,7 @@ return toolbar({
 			-- Phase 7c3: presets on their own key (ix.RADIUS_PRESET_KEY), not the old slider's
 			key = ix.RADIUS_PRESET_KEY,
 			name = _("Radius"),
-			tooltip = _("Radius inside the ring road (each ring or lobe),\nsmall to extra large: ") .. presets() ..
-				_(".\nA minimum: the rings grow if the roads don't fit.\nThe two-bridge ring must span the highway, so it\nstarts at 25-40 m (with 4 lanes: 35-55 m)."),
+			tooltip = _("Radius inside the ring road (each ring or lobe),\nsmall to extra large: S 15 m, M 20 m, L 30 m, XL 45 m.\nA minimum: the rings grow if the roads don't fit.\nThe two-bridge ring must span the highway, so it\nstarts at 25-40 m (with 4 lanes: 35-55 m)."),
 			uiType = "Button",
 			displayMode = "Horizontal",
 			values = presetNames(),

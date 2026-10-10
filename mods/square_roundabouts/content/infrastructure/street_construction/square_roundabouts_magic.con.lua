@@ -9,10 +9,11 @@ local magic = ug_require "square_roundabouts::/infrastructure/street_constructio
 
 local K = magic.PARAM_KEYS
 
+-- Size codes XS / S / M / L / XL, the same in every language (the tooltip explains them)
 local function sizes()
 	local out = {}
 	for i = 1, #magic.SIZES do
-		out[i] = _(magic.SIZE_NAMES[i])
+		out[i] = magic.SIZE_NAMES[i]
 	end
 	return out
 end

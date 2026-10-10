@@ -2,6 +2,56 @@
     "name": "Roundabouts & Interchanges",
     "summary": "Roundabouts, Magic Roundabout, channelized junctions, parclo, diamond and roundabout interchanges.",
     "description": "Configurable roundabouts: arms, radius, round or oval, mini sizes, splitter islands, a road or tram line through the centre (hamburger roundabouts with a wider road, experimental traffic lights), tram tracks, centre islands, plus a Magic Roundabout, a Channelized Junction with slip lanes and a Roundabout Interchange with a highway. Three highway interchanges between a highway and a road: Parclo, Parclo two quadrants and Diamond, road over or highway over, three highway sizes and three scales. Once built, everything is ordinary editable roads.",
+    "localization": {
+        "ru": {
+            "name": "Кольца и развязки",
+            "summary": "Кольцевые развязки, Magic Roundabout, перекрёстки с островками, развязки parclo, ромб и с кольцом."
+        },
+        "de": {
+            "name": "Kreisverkehre & Anschlüsse",
+            "summary": "Kreisverkehre, Magic Roundabout, kanalisierte Kreuzungen, Parclo-, Rauten- und Kreisel-Anschlüsse."
+        },
+        "fr": {
+            "name": "Ronds-points et échangeurs",
+            "summary": "Giratoires, Magic Roundabout, carrefours canalisés, échangeurs parclo, losange et à giratoire."
+        },
+        "es": {
+            "name": "Rotondas y enlaces",
+            "summary": "Rotondas, Magic Roundabout, cruces canalizados, enlaces parclo, de diamante y con rotonda."
+        },
+        "it": {
+            "name": "Rotatorie e svincoli",
+            "summary": "Rotatorie, Magic Roundabout, incroci canalizzati, svincoli parclo, a diamante e a rotatoria."
+        },
+        "nl": {
+            "name": "Rotondes en knooppunten",
+            "summary": "Rotondes, Magic Roundabout, gekanaliseerde kruisingen, parclo-, ruit- en rotonde-aansluitingen."
+        },
+        "pl": {
+            "name": "Ronda i węzły",
+            "summary": "Ronda, Magic Roundabout, skrzyżowania skanalizowane, węzły parclo, romb i z rondem."
+        },
+        "pt_BR": {
+            "name": "Rotatórias e trevos",
+            "summary": "Rotatórias, Magic Roundabout, cruzamentos canalizados, trevos parclo, diamante e com rotatória."
+        },
+        "ja": {
+            "name": "ラウンドアバウトとインターチェンジ",
+            "summary": "ラウンドアバウト、Magic Roundabout、導流島付き交差点、Parclo・ダイヤモンド型・ラウンドアバウト型IC。"
+        },
+        "ko": {
+            "name": "회전교차로 및 인터체인지",
+            "summary": "회전교차로, Magic Roundabout, 도류화 교차로, Parclo, 다이아몬드형 및 회전교차로 인터체인지."
+        },
+        "zh_CN": {
+            "name": "环岛与立交",
+            "summary": "环岛、Magic Roundabout、渠化路口、Parclo、菱形和环岛立交。"
+        },
+        "zh_TW": {
+            "name": "圓環與交流道",
+            "summary": "圓環、Magic Roundabout、渠化路口、Parclo、菱形和圓環交流道。"
+        }
+    },
     "authors": [
         {
             "name": "square",
