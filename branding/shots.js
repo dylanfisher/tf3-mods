@@ -1,4 +1,4 @@
-// Gallery slides per mod: _metadata/1.png, 2.png, ... in slide order.
+// Gallery slides per mod: _metadata/1-<hash>.png, 2-<hash>.png, ... in slide order.
 // Captures live in plans/<modId>/shots/ (never shipped); crop = [x, y, w, h] in capture pixels
 // (5120x2880 Retina full-screen). Layouts (see slide.js):
 //   single  { src, crop }

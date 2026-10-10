@@ -37,7 +37,7 @@ branding/                "square" cover house style: cover.js (renderer), mods.j
 - `make check [MOD=mods/<id>|PATHS='file/dir ...'] [ARGS=--allow-lua53]`: offline Teal type-check, Lua syntax-check and pre-5.3 lint (Lua 5.3+ constructs fail; the flag skips the lint) with the game's tl.lua.
 - `make test [MOD=mods/<id>] [ARGS="-f FILE -k TEXT -j N"]`: run `tests/<modId>/test_*` against the mod's transpiled modules in parallel processes; slow files are split into shards using the per-test times of earlier runs (`.cache/test_timings.json`). `-f` picks test files by name, `-k` tests by name (harness docs in `tests/run_tests.py`). `SQRB_FULL=1 make test MOD=mods/square_roundabouts` also runs the exhaustive roundabout sweep (a few minutes longer).
 - `make covers [MOD=mods/<id>] [ARGS=--no-text]`: render the house-style cover to `mods/<id>/_metadata/0.png` with headless Chrome.
-- `make shots [MOD=mods/<id>]`: render gallery slides (`_metadata/1.png`, `2.png`, …) from the captures in `plans/<id>/shots/`, as defined in `branding/shots.js`.
+- `make shots [MOD=mods/<id>]`: render gallery slides (`_metadata/1-<hash>.png`, `2-<hash>.png`, …, named by content hash so a Hub upload keeps mod.io's gallery intact) from the captures in `plans/<id>/shots/`, as defined in `branding/shots.js`.
 - `make modio [MOD=mods/<id>] [ARGS='--diff --apply --only text,tags,logo,gallery --force --prune-tags']`: compare each published mod's mod.io profile (name, summary, description, tags, `0.png` logo, `1.png`… gallery) with the repo and, with `--apply`, update it through the mod.io API. Dry run by default. Needs `MODIO_TOKEN` in `.hub.env`. Never touches the modfile (the Mod Hub cooks it and writes the metadata the game reads). Sync state lives in `branding/modio_state.json`. `MODIO_TOKEN` is a 1Password `op://` reference, so **never run `make modio` or any `op` command yourself**: ask the user to run it (`! make modio ...`) and paste the output; they approve the 1Password prompt.
 - `make modio-status [MOD=mods/<id>] [ARGS=--verbose]`: download each published mod's live modfile (cached in `.cache/modio/modfiles/`) and compare it with `mods/<id>/`: live vs local `revision` and the changed files, i.e. which mods need a Hub update and which changed without a revision bump. `_metadata` images and texts are profile changes (`make modio`), listed only with `--verbose`. Same token rule as `make modio`.
 - `make teal`: write `tlconfig.lua` for VS Code Teal autocompletion.
@@ -116,10 +116,11 @@ The user runs every `make modio*` command (1Password prompt); Claude asks for th
 1. **Before:** `make modio-status` lists which mods differ from their live upload. "Needs a Hub update": ready.
    "Changed, revision not bumped": bump `revision` in `mod.json` and add a Changelog entry to `description.html` first.
 2. **Upload** those mods in game: Mod Hub → My Mods.
-3. **After (required):** a Hub update does not update the mod.io description (new changelog entries stay
-   local) and re-sends the slides as re-encoded copies. `make modio ARGS=--diff` shows what differs,
-   `make modio ARGS=--apply` pushes the description and restores the original slides, and `make modio-status` should now say
-   "Up to date". A fresh upload shows as "Uploaded, waiting for mod.io" until mod.io's scan makes it live.
+3. **After:** `make modio ARGS=--diff` should say "in sync" (`--verify` also compares the slide bytes). The Hub
+   sends the description and keeps slides named `N-<hash>.png` intact, but an older stale description or `N.png`
+   slides need `make modio ARGS=--apply`. `make modio-status` should now say "Up to date". A fresh upload shows as
+   "Uploaded, waiting for mod.io" until mod.io's scan makes it live. See `docs/findings.md` "Mod Hub uploads and the
+   mod.io gallery".
 
 Changes to slides, the cover or the description alone need no Hub upload: just `make modio ARGS=--apply`.
 

@@ -634,11 +634,27 @@ to fit). The Mod Hub "My Mods" page for that staging mod still showed the Englis
 - `modinfo.json` `localization.<lang>.{name,summary,description}`: name ≤ 32 chars, summary ≤ 100, no line
   breaks. The wiki warns the Hub concatenates the languages into the uploaded mod.io description; we
   localize only `name` and `summary` (description.html stays English). `tools/modio_sync.py` ignores
-  `localization`. Pending: what the first Hub upload with a `localization` block sends to mod.io
-  (check with `make modio ARGS=--diff`).
+  `localization`. A Hub upload with a `localization` block (name + summary only) did not concatenate anything:
+  Blank Slate rev 3's mod.io description matched `description.html` exactly (2026-10-10, see "Mod Hub uploads
+  and the mod.io gallery").
 - Fonts: every locale has a Noto Sans CJK `unicodeFontMap` fallback, so Cyrillic and CJK should render in GUI
   text. Pending: CJK and Cyrillic in HUD (`hudIconScript`) text, whose font lacks some glyphs (▲).
 - Named placeholders: the game's own convention is `{name}` plus `lang_util.format(s, {name = v})`
   (`base/tealdef/scripts/lang_util.d.tl:5`); plurals exist (`nGetText`) but no strings.json plural form is
   documented, so we avoid them.
 - Pending: whether `strings.json` changes in the staging area apply live or need a game restart.
+
+## Mod Hub uploads and the mod.io gallery (2026-10-10)
+
+- A Hub update uploads every slide in `_metadata/`, whatever its name: `N.png` and `N-<hash>.png` both show up
+  on the upload screen and on mod.io.
+- With slides named `N.png`, a Hub update left the mod.io gallery wrong: it added new numbers next to old ones
+  (Problem Radar rev 2 showed the settings slide twice) and the stored files were not byte-identical to the local
+  slides. `make modio ARGS=--apply` fixed it by replacing the gallery as `N-<hash>.png` (`tools/modio_sync.py`).
+- With local slides named `N-<hash>.png`, the name `make modio` uploads them under, a Hub update left the gallery
+  exactly as it was: Blank Slate rev 3 (renamed slides, Hub upload) then gave "in sync" in
+  `make modio ARGS='--diff --verify'`, which downloads mod.io's originals and compares bytes. So `make shots` now
+  writes `N-<hash>.png` (first 8 hex digits of the sha256 of the file), and `modio_sync.py` reads both forms.
+- The same Hub upload sent the new `description.html` (rev 3 changelog entry) to mod.io. Earlier Hub updates
+  seemed to leave the description old; the cause is unknown (maybe a description edited while the game was
+  running, or mod.io's scan delay). Check with `make modio ARGS=--diff` after an upload.

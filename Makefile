@@ -23,7 +23,7 @@ help:
 	@echo "make test        Run offline unit tests in tests/<modId>/ (all, or MOD=mods/<id>; ARGS="-f FILE -k TEXT")"
 	@echo "make gate MOD=mods/<id> [MOD2=mods/<id>]  check + validate + test, one summary line each (end-of-phase gate)"
 	@echo "make covers      Render square-style covers -> mods/<id>/_metadata/0.png (all, or MOD=mods/<id>; ARGS=--no-text)"
-	@echo "make shots       Render gallery slides from plans/<id>/shots/ -> mods/<id>/_metadata/1.png... (all, or MOD=mods/<id>)"
+	@echo "make shots       Render gallery slides from plans/<id>/shots/ -> mods/<id>/_metadata/1-<hash>.png... (all, or MOD=mods/<id>)"
 	@echo "make modio [MOD=mods/<id>] [ARGS='--diff --apply --only gallery --force --prune-tags']  Dry-run/sync mod.io text, tags, logo, gallery"
 	@echo "make modio-status [MOD=mods/<id>] [ARGS=--verbose]  Which mods changed since their live mod.io upload (need a Hub update)"
 	@echo "make i18n [MOD=mods/<id>] [ARGS='--check --json --missing ru --fix-format --lint-modinfo -v']  strings.json translation report (keys, missing, placeholders)"

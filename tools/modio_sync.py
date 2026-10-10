@@ -73,12 +73,20 @@ class Local:
     text: dict[str, str]
     tags: list[str]
     logo: Path | None
-    images: list[Path]  # 1.png, 2.png, ... in order
+    images: list[Path]  # 1-<hash>.png (or 1.png), 2-..., ... in order
+
+
+SLIDE_RE = re.compile(r"^(\d+)(?:-[0-9a-f]{8})?$")  # N.png, or N-<hash>.png as make shots writes them
+
+
+def slide_name(path: Path) -> str:
+    """The N.png a local slide stands for: 1.png and 1-0a1b2c3d.png both give 1.png."""
+    return f"{int(SLIDE_RE.match(path.stem).group(1))}.png"
 
 
 def gallery_files(meta: Path) -> list[Path]:
-    numbered = [p for p in meta.glob("*.png") if p.stem.isdigit() and int(p.stem) >= 1]
-    return sorted(numbered, key=lambda p: int(p.stem))
+    numbered = [p for p in meta.glob("*.png") if SLIDE_RE.match(p.stem) and slide_name(p) != "0.png"]
+    return sorted(numbered, key=lambda p: int(slide_name(p)[:-4]))
 
 
 def load_local(mod_dir: Path) -> Local | None:
@@ -260,7 +268,8 @@ def base_name(remote_filename: str) -> str:
 def upload_name(path: Path) -> str:
     """N-<content hash>.png: a changed image gets a new name, so a new URL. Re-using "1.png" kept serving the old
     picture from caches (Better Minimap, 2026-10-10)."""
-    return f"{path.stem}-{sha(path.read_bytes())[:8]}{path.suffix}"
+    stem = slide_name(path)[:-4] if SLIDE_RE.match(path.stem) else path.stem
+    return f"{stem}-{sha(path.read_bytes())[:8]}{path.suffix}"
 
 
 def remote_matches(entries: list[tuple[Path, str, str]], recorded: list[dict] | None, fetch) -> bool:
@@ -297,7 +306,7 @@ def make_plan(local: Local, remote: dict, state: dict, parts: set[str], force: b
     if "gallery" in parts:
         images = (remote.get("media") or {}).get("images", [])
         names = [base_name(i["filename"]) for i in images]
-        wanted = [p.name for p in local.images]
+        wanted = [slide_name(p) for p in local.images]
         if force:
             plan.gallery = True
         elif not wanted and names and set(names) == {"0.png"}:
@@ -337,7 +346,7 @@ def apply_plan(api: Api, local: Local, plan: Plan, prune_tags: bool) -> None:
                 api.form("DELETE", f"{mod}/media", [("images[]", i["filename"]) for i in current])
         # Uploads may land out of order; put them back in 1, 2, 3 order.
         names = [i["filename"] for i in (api.get(mod).get("media") or {}).get("images", [])]
-        wanted = [p.name for p in local.images]
+        wanted = [slide_name(p) for p in local.images]
         by_base = {base_name(n): n for n in names}
         if [base_name(n) for n in names] != wanted and sorted(by_base) == sorted(wanted) and len(by_base) == len(names):
             api.form("PUT", f"{mod}/media/reorder", [("images[]", by_base[w]) for w in wanted])
@@ -353,9 +362,9 @@ def record_state(local: Local, remote: dict, parts: set[str], state: dict) -> di
         entry["logo"] = {"file": local.logo.name, "sha": sha(local.logo.read_bytes()), "remote": remote["logo"]["filename"]}
     if "gallery" in parts:
         images = (remote.get("media") or {}).get("images", [])
-        if [base_name(i["filename"]) for i in images] == [p.name for p in local.images]:
+        if [base_name(i["filename"]) for i in images] == [slide_name(p) for p in local.images]:
             entry["images"] = [
-                {"file": p.name, "sha": sha(p.read_bytes()), "remote": i["filename"]} for p, i in zip(local.images, images)
+                {"file": slide_name(p), "sha": sha(p.read_bytes()), "remote": i["filename"]} for p, i in zip(local.images, images)
             ]
     if {k: v for k, v in entry.items() if k != "synced"} != {k: v for k, v in state.items() if k != "synced"}:
         entry["synced"] = datetime.date.today().isoformat()
@@ -597,6 +606,8 @@ def main() -> None:
     ap.add_argument("--apply", action="store_true", help="make the changes (default: dry run)")
     ap.add_argument("--only", default=",".join(PARTS), help=f"comma list of {','.join(PARTS)}")
     ap.add_argument("--force", action="store_true", help="re-upload logo and gallery even if they look in sync")
+    ap.add_argument("--verify", action="store_true",
+                    help="compare logo and gallery bytes with mod.io's originals instead of trusting the sync record")
     ap.add_argument("--diff", action="store_true", help="show a line diff (mod.io -> local) for changed text fields")
     ap.add_argument("--release", action="store_true",
                     help="instead: compare each mod with its live upload and list the ones needing a Hub update")
@@ -648,7 +659,8 @@ def main() -> None:
             entry = state.get(loc.mod_id, {})
             if entry.get("modioId") not in (None, loc.modio_id):
                 entry = {}
-            plan = make_plan(loc, remote, entry, parts, args.force, api.download)
+            plan = make_plan(loc, remote, {k: v for k, v in entry.items() if k not in ("logo", "images")} if args.verify else entry,
+                             parts, args.force, api.download)
             if plan.empty(args.prune_tags):
                 print(f"{loc.mod_id} ({loc.modio_id}): in sync")
                 state[loc.mod_id] = record_state(loc, remote, parts, entry)
