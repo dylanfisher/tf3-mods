@@ -56,11 +56,6 @@ local GROUP_BADGE = "sqrl_tool_badge" -- lane status badge in its own row under 
 local MENU_ORDER = 1250
 local RMB_CLICK_MAX_PX = 16 -- a right click that moved further is a camera drag
 
-local function T(s)
-	if _ ~= nil then return _(s) end
-	return s
-end
-
 local function emit(kind, fields)
 	local text = Rules.line(kind, fields)
 	pcall(function() log.message(text) end)
@@ -81,8 +76,8 @@ end
 local g = {
 	core = nil,
 	layout = "turbo", -- the one layout the tool applies ("Smart lanes", sl_rules.LAYOUTS)
-	status = { head = "Nothing selected", detail = "Layout: Matched lanes", version = 0 },
-	badge = { label = Pick.BADGE_NONE.label, class = nil, version = 0 }, -- lane status badge
+	status = { head = Pick.status(nil).head, detail = Pick.status(nil).detail, version = 0 },
+	badge = { key = "none", label = Pick.badgeNone().label, class = nil, version = 0 }, -- lane status badge
 	nvKey = nil,       -- selection the NodeViewer probe line was logged for
 	activations = 0,
 }
@@ -100,8 +95,8 @@ end
 
 local function publishBadge(b)
 	if b == nil then return end
-	if b.label == g.badge.label and b.class == g.badge.class then return end
-	g.badge = { label = b.label, class = b.class, version = g.badge.version + 1 }
+	if b.key == g.badge.key and b.label == g.badge.label and b.class == g.badge.class then return end
+	g.badge = { key = b.key, label = b.label, class = b.class, version = g.badge.version + 1 }
 	pcall(api.gui.fireReactEvent, EV_BADGE, g.badge)
 end
 
@@ -409,9 +404,9 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", perf:wrap("act
 
 		if c.hover ~= nil then
 			local text = Pick.describe(c.hover) .. "\n" .. Pick.detail(c.hover)
-			if c.hover.badge ~= nil then text = text .. "\nLanes: " .. c.hover.badge.label end
+			if c.hover.badge ~= nil then text = text .. "\n" .. string.format(_("Lanes: %s"), c.hover.badge.label) end
 			if c.sel == nil or Pick.targetKey(c.sel) ~= Pick.targetKey(c.hover) then
-				text = text .. "\nClick to select"
+				text = text .. "\n" .. _("Click to select")
 			end
 			children[#children + 1] = builtin.ActionTooltip{
 				recipe = constructionUi.SimpleTooltipRecipe,
@@ -455,8 +450,8 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", perf:wrap("act
 end))
 
 -- Hover texts of the two grey read-only boxes (also the params' own tooltips).
-local STATUS_TIP = T("Selection: the junction or roundabout you clicked, and the result\nof the last Apply or Reset. Right-click or Esc clears the selection.")
-local BADGE_TIP = T("Current lanes: what the selected junction or roundabout has now.\nSmart lanes: what Apply sets.\nGame default: the game's own lane connections.\nCustom lanes: anything else (Crossing Tool, older settings).\nCustom: a slip-lane junction without the rule.\nNot handled: the tool has no rule for this junction.")
+local STATUS_TIP = _("Selection: the junction or roundabout you clicked, and the result\nof the last Apply or Reset. Right-click or Esc clears the selection.")
+local BADGE_TIP = _("Current lanes: what the selected junction or roundabout has now.\nSmart lanes: what Apply sets.\nGame default: the game's own lane connections.\nCustom lanes: anything else (Crossing Tool, older settings).\nCustom: a slip-lane junction without the rule.\nNot handled: the tool has no rule for this junction.")
 
 -- Toolbar status chip: content of a disabled one-value Button (bulk_bulldozer.script.tl:1105-1140).
 -- Returns a BoxLayout (a recipe child must be a layout) and re-renders itself from g.status /
@@ -501,30 +496,30 @@ end))
 -- Unverified in game: builtin.css.lua:268-275 greys TextViews of disabled buttons; which rule
 -- wins there is unknown (worst case the badge is grey like the status chip).
 local SmartLanesBadge = react.RegisterRecipe("SmartLanesBadge", perf:wrap("badge_render", function(_param)
-	local badgeState = react.useState({ label = g.badge.label, class = g.badge.class })
+	local badgeState = react.useState({ key = g.badge.key, label = g.badge.label, class = g.badge.class })
 	local refSeen = react.useRef(g.badge.version)
-	local function take(label, class)
+	local function take(key, label, class)
 		if label == nil then return end
 		local old = badgeState:old()
-		if old == nil or old.label ~= label or old.class ~= class then
-			badgeState:set({ label = label, class = class })
+		if old == nil or old.key ~= key or old.label ~= label or old.class ~= class then
+			badgeState:set({ key = key, label = label, class = class })
 		end
 	end
 	react.onEvent(EV_BADGE, function(_name, payload)
-		if payload ~= nil then take(payload.label, payload.class) end
+		if payload ~= nil then take(payload.key, payload.label, payload.class) end
 	end)
 	react.onStep(function()
 		if g.badge.version ~= refSeen:get() then
 			refSeen:set(g.badge.version)
-			take(g.badge.label, g.badge.class)
+			take(g.badge.key, g.badge.label, g.badge.class)
 		end
 	end)
 	local b = badgeState:old()
 	local class = "font-scale-body"
 	if b.class ~= nil then class = class .. ", " .. b.class end
 	-- "Current lanes: <state>" so it reads as a readout, not a button (user, 2026-10-08)
-	local text = (b.label == nil or b.label == "Lane status") and "Current lanes: select a junction"
-		or ("Current lanes: " .. b.label)
+	local text = (b.label == nil or b.key == "none") and _("Current lanes: select a junction")
+		or string.format(_("Current lanes: %s"), b.label)
 	local tip = BADGE_TIP .. "\n\n" .. text
 	return builtin.BoxLayout{
 		orientation = builtin.type.Orientation.Vertical,
@@ -584,20 +579,20 @@ end
 local M = {
 	getDefinition = perf:wrap("get_definition", function(constructionDefinition, _repository, _params)
 		local params = {
-			actionButton(KEY_APPLY_NODE, T("Apply to junction"),
-				T("Set smart lanes on the selected junction only:\nlanes matched one to one, and an exit-only outer lane\nwhere every exit of the roundabout has two or more lanes.\nOn a slip-lane junction: lanes matched one to one, no crossings.\nGreyed out when the junction already has smart lanes."), EV_APPLY_NODE, GROUP_APPLY, "applyNode"),
-			actionButton(KEY_APPLY_RING, T("Apply to roundabout"),
-				T("Set smart lanes on every junction of the selected roundabout.\nGreyed out when all of them already have smart lanes."), EV_APPLY_RING, GROUP_APPLY, "applyRing"),
-			actionButton(KEY_RESET, T("Reset"),
-				T("Back to the game's own lane connections for the selected junction (or the whole roundabout when a roundabout is selected).\nOn a slip-lane junction: back to the lanes it had before your first Apply there.\nGreyed out when there is nothing to reset."), EV_RESET, GROUP_RESET, "reset"),
+			actionButton(KEY_APPLY_NODE, _("Apply to junction"),
+				_("Set smart lanes on the selected junction only:\nlanes matched one to one, and an exit-only outer lane\nwhere every exit of the roundabout has two or more lanes.\nOn a slip-lane junction: lanes matched one to one, no crossings.\nGreyed out when the junction already has smart lanes."), EV_APPLY_NODE, GROUP_APPLY, "applyNode"),
+			actionButton(KEY_APPLY_RING, _("Apply to roundabout"),
+				_("Set smart lanes on every junction of the selected roundabout.\nGreyed out when all of them already have smart lanes."), EV_APPLY_RING, GROUP_APPLY, "applyRing"),
+			actionButton(KEY_RESET, _("Reset"),
+				_("Back to the game's own lane connections for the selected junction (or the whole roundabout when a roundabout is selected).\nOn a slip-lane junction: back to the lanes it had before your first Apply there.\nGreyed out when there is nothing to reset."), EV_RESET, GROUP_RESET, "reset"),
 			{
 				-- status chip: a disabled one-value Button whose content is SmartLanesStatus. Its
 				-- checkEnabledFn runs on every activation and change and nudges the recipe to sync
 				-- (bulk_bulldozer.script.tl:1166-1174, 1300-1303).
 				key = KEY_STATUS,
-				name = T("Selection"),
+				name = _("Selection"),
 				tooltip = STATUS_TIP,
-				values = { T("Selection") },
+				values = { _("Selection") },
 				defaultIndex = 1,
 				hideLabel = true,
 				uiType = api.type.enum.ScriptParamType.Button,
@@ -614,9 +609,9 @@ local M = {
 			{
 				-- lane status badge: what lanes the selection has now (sl_pick.badge)
 				key = KEY_BADGE,
-				name = T("Lane status"),
+				name = _("Lane status"),
 				tooltip = BADGE_TIP,
-				values = { T("Lane status") },
+				values = { _("Lane status") },
 				defaultIndex = 1,
 				hideLabel = true,
 				group = GROUP_BADGE,
@@ -634,8 +629,8 @@ local M = {
 		}
 		return {
 			resName = constructionDefinition,
-			name = T("Smart Lanes"),
-			description = T("Set the lane connections of a roundabout or a slip-lane junction: click a junction or a roundabout and press Apply. Reset brings back the game's own connections. Right-click or Esc clears the selection."),
+			name = _("Smart Lanes"),
+			description = _("Set the lane connections of a roundabout or a slip-lane junction: click a junction or a roundabout and press Apply. Reset brings back the game's own connections. Right-click or Esc clears the selection."),
 			-- own icons next to this file; the game loads the @2x files (sl_tool@2x.tga 240x150,
 			-- sl_tool_preview@2x.tga 720x405, the sizes of the Crossing Tool's lane_control icons),
 			-- rendered by tools/render_icon_square_smart_lanes.py

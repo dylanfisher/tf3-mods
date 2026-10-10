@@ -29,6 +29,13 @@ Core.REFRESH_FRAMES = 30    -- frames between re-reads of the selection (counts,
 Core.HOVER_STALE_FRAMES = 10 -- frames without onHover after which the hover highlight goes
 Core.BADGE_CACHE_MAX = 64   -- lane status badge cache entries (cleared when full)
 
+-- Display name of a layout (Rules.LAYOUT_NAMES stays English: the game script and the log use it).
+-- Translated when called (the tool's GUI Lua state).
+local function layoutText(layout)
+	local names = { matched = _("Matched lanes"), turbo = _("Smart lanes"), game = _("Game default") }
+	return names[layout] or tostring(layout)
+end
+
 --- api: game api (or fake); out(kind, fields): log; clock(): seconds (os.clock in game).
 function Core.new(api, out, clock)
 	local W = Write.new(api, out)
@@ -288,7 +295,7 @@ function Core.new(api, out, clock)
 				return nodeTarget(world, n), info
 			end
 		end
-		local _, b = Ring.travel(s)
+		local _a, b = Ring.travel(s)
 		if b then
 			local ring = Ring.ringThrough(world, b)
 			if ring and ring.segSet[entity] then return ringTarget(world, ring), info end
@@ -392,7 +399,7 @@ function Core.new(api, out, clock)
 		end
 		if t == nil then
 			C.sel = nil
-			setResult("The selected junction is gone")
+			setResult(_("The selected junction is gone"))
 			return
 		end
 		local changed = t.sig == nil or t.sig ~= s.sig
@@ -417,13 +424,13 @@ function Core.new(api, out, clock)
 				scheduleVerify(src, node, expect, "slip")
 				setResult(done)
 			else
-				setResult("The game refused the change (see log)")
+				setResult(_("The game refused the change (see log)"))
 			end
 		end)
 		if sent == 0 then
-			setResult("Could not build the change (see log)")
+			setResult(_("Could not build the change (see log)"))
 		elseif not answered then
-			setResult("Applying...")
+			setResult(_("Applying..."))
 		end
 		return C.result
 	end
@@ -432,7 +439,7 @@ function Core.new(api, out, clock)
 	function C.applySlip(scope, layout)
 		local s = C.sel
 		if scope == "ring" then
-			setResult("Not a roundabout: use Apply to junction")
+			setResult(_("Not a roundabout: use Apply to junction"))
 			return C.result
 		end
 		local world = W.makeWorld()
@@ -441,40 +448,40 @@ function Core.new(api, out, clock)
 			local snap = C.snapshots[s.node]
 			if snap == nil then
 				out("RESET", { { "mode", "unavailable" }, { "kind", "slip" }, { "node", s.node } })
-				setResult("Reset not available here (no Apply yet)")
+				setResult(_("Reset not available here (no Apply yet)"))
 				return C.result
 			end
 			out("RESET", { { "mode", "snapshot" }, { "kind", "slip" }, { "node", s.node }, { "conns", #snap } })
 			if Rules.connsText(snap) == Rules.connsText(cur) then
-				setResult("Already as before Apply")
+				setResult(_("Already as before Apply"))
 				return C.result
 			end
-			return writeSlip(s.node, snap, "reset", "Lanes restored as before Apply")
+			return writeSlip(s.node, snap, "reset", _("Lanes restored as before Apply"))
 		end
 		local r = Slip.plan(world, s.node, function() return cur end)
 		if r.status == "none" or r.status == "skip" then
-			setResult("Not a slip-lane junction any more; select it again")
+			setResult(_("Not a slip-lane junction any more; select it again"))
 			return C.result
 		end
 		if r.status == "same" then
-			setResult("Smart lanes already set")
+			setResult(_("Smart lanes already set"))
 			return C.result
 		end
 		if C.snapshots[s.node] == nil then C.snapshots[s.node] = cur end
 		local fields = { { "src", "tool" } }
 		for _, f in ipairs(Slip.logFields(r)) do fields[#fields + 1] = f end
 		out("APPLY", fields)
-		return writeSlip(s.node, r.conns, "tool", "Smart lanes applied to the slip junction")
+		return writeSlip(s.node, r.conns, "tool", _("Smart lanes applied to the slip junction"))
 	end
 
 	--- The current ring of the selection, re-found in a fresh world (nil, reason when none).
 	local function liveRing(world)
 		local s = C.sel
-		if s == nil then return nil, "Select a junction or a roundabout first" end
-		if s.ring == nil then return nil, "Not a roundabout junction: not handled yet" end
+		if s == nil then return nil, _("Select a junction or a roundabout first") end
+		if s.ring == nil then return nil, _("Not a roundabout junction: not handled yet") end
 		local start = s.kind == "node" and s.node or s.ring.nodes[1]
 		local ring = Ring.ringThrough(world, start)
-		if ring == nil then return nil, "The roundabout changed; select it again" end
+		if ring == nil then return nil, _("The roundabout changed; select it again") end
 		return ring
 	end
 
@@ -483,11 +490,11 @@ function Core.new(api, out, clock)
 	function C.apply(scope, layout)
 		local s = C.sel
 		if s == nil then
-			setResult("Select a junction or a roundabout first")
+			setResult(_("Select a junction or a roundabout first"))
 			return C.result
 		end
 		if scope == "node" and s ~= nil and s.kind ~= "node" then
-			setResult("Click near a junction to pick it, or use Apply to roundabout")
+			setResult(_("Click near a junction to pick it, or use Apply to roundabout"))
 			return C.result
 		end
 		if s.kind == "node" and s.ring == nil and s.slip ~= nil then return C.applySlip(scope, layout) end
@@ -520,14 +527,16 @@ function Core.new(api, out, clock)
 				out("SKIP", { { "src", "tool" }, { "ring", ring.key }, { "node", r.node }, { "reason", r.reason } })
 			end
 		end
-		local name = Rules.LAYOUT_NAMES[layout] or layout
-		local note = ""
-		if layout == "turbo" and not plan.turbo then note = " (no exit-only lane: " .. tostring(plan.turboReason) .. ")" end
+		local name = layoutText(layout)
+		-- turboReason is an internal id (sl_rules), shown as it is
+		local why = (layout == "turbo" and not plan.turbo) and tostring(plan.turboReason) or nil
 		if #items == 0 then
 			if skipped > 0 and same == 0 then
-				setResult("Left alone: this junction type is not handled yet")
+				setResult(_("Left alone: this junction type is not handled yet"))
+			elseif why ~= nil then
+				setResult(string.format(_("%s already set (no exit-only lane: %s)"), name, why))
 			else
-				setResult(name .. " already set" .. note)
+				setResult(string.format(_("%s already set"), name))
 			end
 			return C.result
 		end
@@ -540,15 +549,22 @@ function Core.new(api, out, clock)
 			out("WRITE", { { "src", "tool" }, { "ring", key }, { "nodes", nodes }, { "success", success } })
 			if success then
 				scheduleVerify("tool", key, expect)
-				setResult(name .. " applied to " .. #items .. (#items == 1 and " junction" or " junctions") .. note)
+				local fmt
+				if why ~= nil then
+					fmt = #items == 1 and _("%s applied to %d junction (no exit-only lane: %s)")
+						or _("%s applied to %d junctions (no exit-only lane: %s)")
+				else
+					fmt = #items == 1 and _("%s applied to %d junction") or _("%s applied to %d junctions")
+				end
+				setResult(string.format(fmt, name, #items, why))
 			else
-				setResult("The game refused the change (see log)")
+				setResult(_("The game refused the change (see log)"))
 			end
 		end)
 		if sent == 0 then
-			setResult("Could not build the change (see log)")
+			setResult(_("Could not build the change (see log)"))
 		elseif not answered then
-			setResult("Applying " .. name .. "...")
+			setResult(string.format(_("Applying %s..."), name))
 		end
 		return C.result
 	end
@@ -699,15 +715,15 @@ function Core.new(api, out, clock)
 		return { applyNode = can.applyNode == true, applyRing = can.applyRing == true, reset = can.reset == true }
 	end
 
-	--- Lane status badge of the selection: sl_pick.badge result, or Pick.BADGE_NONE.
+	--- Lane status badge of the selection: sl_pick.badge result, or Pick.badgeNone().
 	function C.badge()
-		if C.sel == nil then return Pick.BADGE_NONE end
-		return C.sel.badge or Pick.BADGE_NONE
+		if C.sel == nil then return Pick.badgeNone() end
+		return C.sel.badge or Pick.badgeNone()
 	end
 
 	--- Toolbar status chip for the shown layout.
 	function C.status(layout)
-		return Pick.status(C.sel, Rules.LAYOUT_NAMES[layout] or tostring(layout), C.result)
+		return Pick.status(C.sel, layoutText(layout), C.result)
 	end
 
 	return C

@@ -66,8 +66,19 @@ function P.targetKey(t)
 	return tostring(t.kind)
 end
 
+-- Display texts go through _() when they are built (this module runs in the tool's GUI Lua state,
+-- where _() translates at once; the tests fake it). Singular / plural pairs are whole format strings.
 local function plural(n, one, many)
-	return tostring(n) .. " " .. (n == 1 and one or many)
+	return string.format(n == 1 and one or many, n)
+end
+
+local function lanesText(n) return plural(n, _("%d lane"), _("%d lanes")) end
+local function armsText(n) return plural(n, _("%d arm"), _("%d arms")) end
+
+-- Slip-lane shapes (sl_slip ids) for display; unknown ids are shown as they are.
+local function shapeText(shape)
+	local labels = { diverge = _("diverge"), merge = _("merge"), ["diverge+merge"] = _("diverge+merge") }
+	return labels[shape] or tostring(shape)
 end
 
 --- One-line description of a pick target (the cursor tooltip and the status head).
@@ -75,39 +86,38 @@ end
 --      nodeKind = "arm" | "plain" | "skip" (on a ring) | "slip", exits, entries,
 --      slipShape ("diverge" | "merge" | "diverge+merge"), slipLanes, slipSummary, slipReason }
 function P.describe(t)
-	if t == nil then return "Nothing selected" end
+	if t == nil then return _("Nothing selected") end
 	if t.kind == "ring" then
-		return string.format("Roundabout %s: %s, %s", tostring(t.ringKey), plural(t.ringLanes or 0, "lane", "lanes"),
-			plural(t.junctions or 0, "arm", "arms"))
+		return string.format(_("Roundabout %s: %s, %s"), tostring(t.ringKey), lanesText(t.ringLanes or 0),
+			armsText(t.junctions or 0))
 	end
 	if t.ringKey == nil and t.slipShape ~= nil then
-		return string.format("Slip-lane junction: %s, %s", t.slipShape, plural(t.slipLanes or 0, "lane", "lanes"))
+		return string.format(_("Slip-lane junction: %s, %s"), shapeText(t.slipShape), lanesText(t.slipLanes or 0))
 	end
-	local s = "Junction " .. tostring(t.node)
 	if t.ringKey ~= nil then
-		s = s .. string.format(" on roundabout %s (%s, %s)", tostring(t.ringKey),
-			plural(t.ringLanes or 0, "lane", "lanes"), plural(t.junctions or 0, "arm", "arms"))
-	else
-		s = s .. " (" .. plural(t.roads or 0, "road", "roads") .. ", not a roundabout)"
+		return string.format(_("Junction %s on roundabout %s (%s, %s)"), tostring(t.node), tostring(t.ringKey),
+			lanesText(t.ringLanes or 0), armsText(t.junctions or 0))
 	end
-	return s
+	return string.format(_("Junction %s (%s, not a roundabout)"), tostring(t.node),
+		plural(t.roads or 0, _("%d road"), _("%d roads")))
 end
 
 --- Second line: connections at the junction, exits / entries when on a ring.
 function P.detail(t)
-	if t == nil then return "Click a junction, or a roundabout between its junctions" end
-	if t.kind == "ring" then return "Apply to roundabout or Reset; click near a junction to pick one" end
-	local parts = { plural(t.conns or 0, "lane connection", "lane connections") }
+	if t == nil then return _("Click a junction, or a roundabout between its junctions") end
+	if t.kind == "ring" then return _("Apply to roundabout or Reset; click near a junction to pick one") end
+	local parts = { plural(t.conns or 0, _("%d lane connection"), _("%d lane connections")) }
 	if t.ringKey ~= nil and t.nodeKind == "arm" then
-		parts[#parts + 1] = string.format("%d exit, %d entry lanes", t.exits or 0, t.entries or 0)
+		parts[#parts + 1] = string.format(_("%d exit, %d entry lanes"), t.exits or 0, t.entries or 0)
 	elseif t.ringKey ~= nil and t.nodeKind == "skip" then
-		parts[#parts + 1] = "left alone (" .. tostring(t.reason) .. ")"
+		-- the reason is an internal id (sl_ring), shown as it is
+		parts[#parts + 1] = string.format(_("left alone (%s)"), tostring(t.reason))
 	elseif t.ringKey == nil and t.slipShape ~= nil then
-		table.insert(parts, 1, t.slipSummary or t.slipShape)
+		table.insert(parts, 1, t.slipSummary or shapeText(t.slipShape))
 	elseif t.ringKey == nil and t.slipReason ~= nil then
-		parts[#parts + 1] = "not handled (" .. tostring(t.slipReason) .. ")"
+		parts[#parts + 1] = string.format(_("not handled (%s)"), tostring(t.slipReason))
 	elseif t.ringKey == nil then
-		parts[#parts + 1] = "not handled yet"
+		parts[#parts + 1] = _("not handled yet")
 	end
 	return table.concat(parts, ", ")
 end
@@ -123,7 +133,7 @@ function P.status(sel, _layoutName, result)
 	elseif sel ~= nil then
 		detail = P.detail(sel)
 	else
-		detail = "Click a junction or a roundabout"
+		detail = _("Click a junction or a roundabout")
 	end
 	return { head = head, detail = detail }
 end
@@ -138,30 +148,32 @@ end
 function P.badge(info)
 	local total = info and info.total or 0
 	if info == nil or info.kind == "na" or total <= 0 then
-		return { key = "na", label = "Not handled", class = nil }
+		return { key = "na", label = _("Not handled"), class = nil }
 	end
 	local smart, default = info.smart or 0, info.default
 	if smart >= total then
 		if default ~= nil and default >= total then
-			return { key = "smart", label = "Smart lanes (= game default)", class = "positive" }
+			return { key = "smart", label = _("Smart lanes (= game default)"), class = "positive" }
 		end
-		return { key = "smart", label = "Smart lanes", class = "positive" }
+		return { key = "smart", label = _("Smart lanes"), class = "positive" }
 	end
 	if default ~= nil and default >= total then
-		return { key = "default", label = "Game default", class = nil }
+		return { key = "default", label = _("Game default"), class = nil }
 	end
 	if smart > 0 and total > 1 then
-		return { key = "partial", label = string.format("Smart lanes on %d of %d junctions", smart, total), class = "warning" }
+		return { key = "partial", label = string.format(_("Smart lanes on %d of %d junctions"), smart, total), class = "warning" }
 	end
 	if info.kind == "slip" then
 		-- no engine-default model at slip nodes: never claim "changed by hand" there
-		return { key = "custom", label = "Custom", class = nil }
+		return { key = "custom", label = _("Custom"), class = nil }
 	end
-	return { key = "custom", label = "Custom lanes", class = "warning" }
+	return { key = "custom", label = _("Custom lanes"), class = "warning" }
 end
 
--- Badge chip text with nothing selected.
-P.BADGE_NONE = { key = "none", label = "Lane status", class = nil }
+-- Badge chip with nothing selected (translated when called).
+function P.badgeNone()
+	return { key = "none", label = _("Lane status"), class = nil }
+end
 
 --- Rate limiter for log lines: true when `key` differs from the last logged key and at least
 -- `gap` seconds passed since the last true. A refused change is not remembered, so the caller's
