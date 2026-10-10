@@ -74,3 +74,18 @@ test("Phase 5e entries: entry column, their axes, set-back / bridge fields, repl
 	local _, h = H.parseLine(grid.resultLine(1, 1, m, { ok = true }))
 	eq(h.centre, "lights"); eq(h.through, "country_l"); eq(h.key, "m:1,2,5,3,1,4,1,1,1,1,1,7")
 end)
+
+test("Phase 7d highway entry: axes, ramp length and terminal fields, replay key", function()
+	local c = grid.expand({ { entry = "highway", type = { "diamond" }, level = { "hw_over" }, year = { "1969" } } })[1]
+	local _, f, order = H.parseLine(grid.resultLine(1, 1, c, { ok = true,
+		geom = { effSize = 15, forced = false, bridge = "steel", xm = 120, term = "-/49.5", edges = 31 } }))
+	eq(f.entry, "highway"); eq(f.type, "diamond"); eq(f.highway, "medium"); eq(f.level, "hw_over"); eq(f.cross, "town_m")
+	eq(f.size, "medium"); eq(f.ramp, "0"); eq(f.armlen, "30"); eq(f.dir, "rht"); eq(f.year, "1969")
+	eq(f.effSize, "15"); eq(f.xm, "120"); eq(f.term, "-/49.5"); eq(f.bridge, "steel"); eq(f.edges, "31")
+	eq(f.key, "h:6,2,2,2,2,1,1,1,1")
+	eq(order[#order], "key")
+	local j = grid.expand("p7_hx_search")[1]
+	local _, t = H.parseLine(grid.trialLine(1, 1, j, 1, { ok = false, messages = { "m" }, geom = { xm = 130, term = "-/38.0" } }))
+	eq(t.devHxClear, "8"); eq(t.devHxGoreRun, "30"); eq(t.devHxTermGap, "-"); eq(t.devHxLoopRadius, "-")
+	eq(t.xm, "130"); eq(t.term, "-/38.0"); eq(t.kind, "grid")
+end)
