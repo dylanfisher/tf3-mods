@@ -21,6 +21,7 @@ config.KEYS = {
 	y = "sqrb_probe_y",
 	context = "sqrb_probe_context",
 	logOk = "sqrb_probe_log_ok",
+	pos = "sqrb_probe_pos",
 }
 
 -- value lists by key (index = mod param value), and the default index (mod.json defaultIndex + 1)
@@ -33,6 +34,10 @@ config.VALUES = {
 	y = { -4000, -2000, -1000, -500, 0, 500, 1000, 2000, 4000 },
 	context = { "none", "player" },
 	logOk = { true, false },
+	-- where the probe places (Phase 7e fix-up): the X / Y settings, the camera's look-at point
+	-- (api.gui.camera.getCameraData, gui.d.tl:434) or the mouse's last terrain point
+	-- (api.gui.mouse.getTerrainPosition, gui.d.tl:262), read once when the probe starts
+	pos = { "setting", "camera", "mouse" },
 }
 config.DEFAULTS = {
 	run = 2,
@@ -43,6 +48,7 @@ config.DEFAULTS = {
 	y = 5,
 	context = 1,
 	logOk = 1,
+	pos = 1,
 }
 
 -- Not in the mod params (edit here if needed) ------------------------------------------------
@@ -74,8 +80,8 @@ end
 
 --- One line describing the settings (for the START line).
 function config.describe(cfg)
-	return string.format("subset=%s delay=%ds batch=%d x=%d y=%d context=%s logOk=%s",
-		tostring(cfg.subset), cfg.delay, cfg.batch, cfg.x, cfg.y, tostring(cfg.context), tostring(cfg.logOk))
+	return string.format("subset=%s delay=%ds batch=%d x=%d y=%d pos=%s context=%s logOk=%s",
+		tostring(cfg.subset), cfg.delay, cfg.batch, cfg.x, cfg.y, tostring(cfg.pos), tostring(cfg.context), tostring(cfg.logOk))
 end
 
 return config

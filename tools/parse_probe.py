@@ -30,10 +30,11 @@ files, so it never overwrites the data the tuning generator and test_engine_verd
   sweeps    plans/square_roundabouts/probe_<subset>.md / .csv
   searches  plans/square_roundabouts/probe_<subset>.md, probe_<subset>_jobs.csv, probe_<subset>_trials.csv
 Entries: main (m:), magic (g:), channel (c:, Channelized Junction), interchange (x:, Roundabout
-Interchange); every row carries its `entry` and `key`.
+Interchange), highway (h:, Highway Interchange, Phase 7d); every row carries its `entry` and `key`.
 
 Usage:
-  uv run tools/parse_probe.py [--stdout PATH] [--run N] [--out-md PATH] [--out-csv PATH] [--fresh]
+  uv run tools/parse_probe.py [--stdout PATH] [--run N] [--out-md PATH] [--out-csv PATH] [--fresh] [--summary]
+  make probe-report [LOGS='a.log b.log']   both Phase 7 logs at once, --summary, --fresh for *search* logs
 
 --stdout defaults to <TF3 userdata>/crash_dump/stdout.txt (tools/hubconfig.py). --run picks a
 run by number (1 = first in the file, -1 = last, the default); --list shows the runs.
@@ -64,10 +65,12 @@ AXES = {
     "magic": ["size", "arm", "dir", "island", "lanes"],  # lanes: appended later (see magic_lanes)
     "channel": ["layout", "main", "side", "slips", "splitter", "armlen", "dir", "island"],
     "interchange": ["layout", "highway", "level", "lanes", "radius", "cross", "slip", "armlen", "dir", "island", "year"],
+    "highway": ["type", "highway", "level", "cross", "size", "ramp", "armlen", "dir", "year"],
 }
 ENTRIES = list(AXES)
 GEOM = {"main": ["effR", "fork", "forced"], "magic": ["effSize", "rs"], "channel": ["setback", "cost"],
-        "interchange": ["effR", "forced", "bridge", "cost"]}
+        "interchange": ["effR", "forced", "bridge", "cost"],
+        "highway": ["effSize", "xm", "term", "forced", "bridge", "edges", "cost"]}
 # subsets whose output goes to the historic file names (see the module doc)
 LEGACY_SWEEPS = {"splitter6", "magic", "main_cw", "main", "all"}
 MAX_ROWS_PER_GROUP = 60
@@ -309,6 +312,12 @@ def report(run: Run, run_no: int, n_runs: int, source: Path) -> str:
             out += ["", "### Layout x highway (fails/combos)", ""] + pivot(er, "layout", "highway")
             out += ["", "### Layout x level (fails/combos)", ""] + pivot(er, "layout", "level")
             out += year_check(er)
+        if entry == "highway":
+            out += ["", "### Type x highway (fails/combos)", ""] + pivot(er, "type", "highway")
+            out += ["", "### Type x level (fails/combos)", ""] + pivot(er, "type", "level")
+            out += ["", "### Type x size (fails/combos)", ""] + pivot(er, "type", "size")
+            out += ["", "### Type x cross road (fails/combos)", ""] + pivot(er, "type", "cross")
+            out += year_check(er)
 
     out += ["", "## Failing combos by reason", "",
             f"Up to {MAX_ROWS_PER_GROUP} rows per reason; every row is in `probe_results.csv`. "
@@ -355,7 +364,9 @@ DEV_FIELDS = ["devRadius", "devMagicSize", "devMagicRadius", "devMagicDistance",
               "devSpread", "devLeg", "devNeck", "devNeckType", "devTramStub",
               # Phase 5e (grid searches of the Channelized Junction / Roundabout Interchange)
               "devChSlipAngle", "devChCornerGap", "devChSlipFree", "devIxClear", "devIxGamma", "devIxGoreRun", "devIxWaistGap",
-              "devChSlip", "devIxAlphaMax"]
+              "devChSlip", "devIxAlphaMax",
+              # Phase 7d (Highway Interchange)
+              "devHxClear", "devHxGoreRun", "devHxTermGap", "devHxLoopRadius"]
 
 
 def canon_key(key: str) -> str:
@@ -572,12 +583,71 @@ def search_report(jobs: list[dict[str, str]], trials: list[dict[str, str]], sour
             out.append("")
             ej = [j for j in by_kind.get("grid", []) if j.get("entry") == entry]
             axes = [a for a in AXES.get(entry, []) if len({j.get(a) for j in ej}) > 1]
-            cols = axes + ["accepted", "ncand"]
+            # fixed: separate jobs on one base combo (Phase 7d: the loop radius jobs)
+            cols = axes + (["fixed"] if any(j.get("fixed") for j in ej) else []) + ["accepted", "ncand"]
             out += [f"#### {entry}: accepted candidates per base combo", ""]
             out += md_table(cols + ["accepted list"], [[j.get(c, "") for c in cols] + [
                 ", ".join(split_list(j.get("acceptedList"))) or "none"] for j in ej[:MAX_ROWS_PER_GROUP * 3]])
             out.append("")
     return "\n".join(out).rstrip() + "\n"
+
+
+def summary(run: Run) -> list[str]:
+    """Short console digest of one run (--summary): ERROR / street template notes, refusals by
+    reason and type, fail rates per axis value, minimal always-fail conditions, and for grid
+    searches the acceptance per candidate (per type) and the jobs nothing was accepted for."""
+    out: list[str] = []
+    for n in run.notes:
+        if n.startswith("ERROR") or "street template" in n or "dev override" in n:
+            out.append(f"  {n}")
+    rows = run.rows
+    for entry in ENTRIES:
+        er = [r for r in rows if r.get("entry") == entry]
+        if not er:
+            continue
+        ef = [r for r in er if failed(r)]
+        out.append(f"  {entry}: {len(ef)}/{len(er)} refused")
+        first = "type" if entry == "highway" else AXES[entry][0]
+        by_reason: dict[str, Counter] = defaultdict(Counter)
+        for r in ef:
+            by_reason[reason(r)][r.get(first, "-")] += 1
+        for g, c in sorted(by_reason.items(), key=lambda kv: -sum(kv[1].values()))[:8]:
+            out.append(f"    {sum(c.values()):4d} {g[:70]}  [{first}: " + ", ".join(f"{k} {v}" for k, v in c.most_common()) + "]")
+        # rot: placed rows only (p7_spot, p7_hx_scale's 90 / 180 block); "-" = the 0 degree transf
+        rot = ["rot"] if any("rot" in r for r in er) else []
+        for axis in AXES[entry] + rot:
+            vals: dict[str, list[int]] = {}
+            for r in er:
+                v = vals.setdefault(r.get(axis, "-"), [0, 0])
+                v[0] += 1
+                v[1] += failed(r)
+            if len(vals) > 1 and any(f for _, f in vals.values()):
+                out.append(f"    {axis}: " + ", ".join(f"{v} {f}/{n}" for v, (n, f) in vals.items()))
+        conds = always_fail(er, AXES[entry]) if ef else []
+        if conds:
+            out.append("    always refused: " + "; ".join(f"{c} ({n})" for c, n in conds[:10])
+                       + (f"; ... {len(conds) - 10} more" if len(conds) > 10 else ""))
+    grid = [t for t in run.trials if t.get("kind") == "grid"]
+    if grid:
+        per: dict[tuple, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0, 0]))
+        for t in grid:
+            first = "type" if t.get("entry") == "highway" else AXES.get(t.get("entry", ""), ["-"])[0]
+            c = per[(t.get("entry", "?"), t.get(first, "-"), t.get("fixed") or "")][t.get("label", "?")]
+            c[0] += 1
+            c[1] += t.get("ok") == "true"
+            c[2] = int(t.get("cand") or 0)
+        out.append(f"  search: {len(run.searches)} jobs, {len(grid)} engine calls; accepted/tried per candidate (shipped first)")
+        for (entry, typ, fixed), cands in per.items():
+            out.append(f"    {entry} {typ}{' ' + fixed if fixed else ''}: " + ", ".join(
+                f"[{lab}] {c[1]}/{c[0]}" for lab, c in sorted(cands.items(), key=lambda kv: kv[1][2])))
+        rej = Counter(t.get("msgs") or "-" for t in grid if t.get("ok") != "true")
+        if rej:
+            out.append("    rejections: " + ", ".join(f"{m} {n}" for m, n in rej.most_common(6)))
+    none = [j for j in run.searches if j.get("found") != "true" and not j.get("skipped")]
+    if none:
+        out.append(f"  jobs with nothing accepted ({len(none)}): " + ", ".join(j.get("id") or j.get("key", "?") for j in none[:12])
+                   + (" ..." if len(none) > 12 else ""))
+    return out
 
 
 def write_csv(rows: list[dict[str, str]], path: Path) -> None:
@@ -616,6 +686,7 @@ def main() -> None:
     ap.add_argument("--search-csv", type=Path, help="search jobs (default by subset)")
     ap.add_argument("--trials-csv", type=Path, help="search engine calls (default by subset)")
     ap.add_argument("--fresh", action="store_true", help="search CSVs: drop rows from earlier runs")
+    ap.add_argument("--summary", action="store_true", help="also print a short digest (refusals by reason/type/axis, search acceptance)")
     args = ap.parse_args()
 
     source = args.stdout or userdata() / "crash_dump" / "stdout.txt"
@@ -667,6 +738,8 @@ def main() -> None:
               f"{'' if run.end else ' (unfinished)'}; files now hold {len(jobs)} jobs, {len(trials)} calls")
         for p in (args.search_md, args.search_csv, args.trials_csv):
             print(f"wrote {rel(p)}")
+    if args.summary:
+        print("\n".join(summary(run)))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 -- DEV ONLY (never upload): what the Roundabouts geometry chose for a combo (effective radius,
 -- forced layout, splitter fork bump; Magic: effective size; channel: slip set-backs; interchange:
--- radius and bridge type), to correlate with the engine verdict.
+-- radius and bridge type; highway: size, loop radius, ramp length, terminals, bridge type), to
+-- correlate with the engine verdict.
 -- Pure: takes the square_roundabouts geometry modules as arguments (probe.script.lua passes the
 -- real ones via ug_require, the tests pass them too). Never raises: errors go into info.error.
 
@@ -137,10 +138,78 @@ function geomInfo.interchange(ix, params)
 	return { error = tostring(res) }
 end
 
+--- Highway Interchange (Phase 7d): hx = square_roundabouts_highway.lua's module. effSize = the
+-- built Size value (parclo loop radius or diamond terminal distance, m; a dev hxLoopRadius or
+-- growth shows here), effR = the loop radius (parclos only), xm = the diagonal ramps' carriageway
+-- node |x| (ramp length along the highway, m), term = "yTi/yTo" terminal distances from the highway
+-- axis (m; the diamond has no inner terminal: "-/yTo"), bridge = "steel" / "concrete".
+-- Phase 7c2: built as the per-type entry builds it (its captureParams.type = the combo's sqrb_hx_type).
+function geomInfo.hxSpec(hx, params)
+	if hx.specFor then return hx.specFor({ type = params[hx.PARAM_KEYS.type] }, params) end
+	return hx.readParams(params)
+end
+
+function geomInfo.highway(hx, params)
+	if not hx then return { error = "highway module unavailable" } end
+	local ok, res = pcall(function()
+		local built = hx.build(geomInfo.hxSpec(hx, params))
+		local bad = geomInfo.insane(built.lists)
+		local function m(v) return v and string.format("%.1f", v) or "-" end
+		return {
+			effSize = built.size,
+			effR = built.R,
+			forced = built.forced == true,
+			xm = round2(built.xm),
+			term = m(built.yTi) .. "/" .. m(built.yTo),
+			bridge = tostring(built.bridge):match("([%w_]+)%.bridge$") or tostring(built.bridge),
+			lists = #built.lists,
+			edges = countEdges(built.lists),
+			sane = bad == nil,
+			insane = bad,
+		}
+	end)
+	if ok then return res end
+	return { error = tostring(res) }
+end
+
+--- p7_spot (Phase 7e fix-up): the unique edge end points {x, y, z} (construction frame) of a
+-- highway / interchange build, or nil + error text. Pure.
+function geomInfo.nodes(entry, modules, params)
+	local mod = entry == "highway" and modules.highway or entry == "interchange" and modules.interchange or nil
+	if not mod then return nil, "no nodes for entry " .. tostring(entry) end
+	local ok, res = pcall(function()
+		local built = mod.build(entry == "highway" and geomInfo.hxSpec(mod, params) or mod.readParams(params))
+		local out, seen = {}, {}
+		for _, l in ipairs(built.lists) do
+			for _, e in ipairs(l.edges) do
+				for _, p in ipairs({ e.p0, e.p1 }) do
+					local k = string.format("%.3f,%.3f,%.3f", p[1], p[2], p[3])
+					if not seen[k] then
+						seen[k] = true
+						out[#out + 1] = { p[1], p[2], p[3] }
+					end
+				end
+			end
+		end
+		return out
+	end)
+	if ok then return res end
+	return nil, tostring(res)
+end
+
+--- A construction-frame point p {x, y, z} in world coordinates for an origin {x, y, z} and a
+-- rotation of deg degrees about z (counter-clockwise; the transf rows of engine:transfFor). Pure.
+function geomInfo.toWorld(origin, deg, p)
+	local a = math.rad(deg or 0)
+	local c, s = math.cos(a), math.sin(a)
+	return origin[1] + c * p[1] - s * p[2], origin[2] + s * p[1] + c * p[2], origin[3] + (p[3] or 0)
+end
+
 function geomInfo.forEntry(entry, modules, params)
 	if entry == "magic" then return geomInfo.magic(modules.magic, params) end
 	if entry == "channel" then return geomInfo.channel(modules.channel, params) end
 	if entry == "interchange" then return geomInfo.interchange(modules.interchange, params) end
+	if entry == "highway" then return geomInfo.highway(modules.highway, params) end
 	return geomInfo.main(modules.geom, params)
 end
 

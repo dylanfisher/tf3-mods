@@ -379,3 +379,212 @@ test("Phase 5f searches: the 81 channel combos nothing was accepted for, the 4-l
 	end
 	eq(ch, 81); eq(ix, 6)
 end)
+
+-- Phase 7d: the Highway Interchange search -------------------------------------------------------
+test("Phase 7d search p7_hx_search: jobs, grid candidates (shipped first), engine-call bound", function()
+	local jobs = grid.expand("p7_hx_search")
+	eq(#jobs, 6 + 30 + 30)
+	eq(grid.size("p7_hx_search"), 66)
+	eq(grid.maxCalls(jobs), 6 * 4 + 30 * 12 + 30 * 4)
+	eq(grid.maxCalls(jobs), 504)
+	local ids, kinds = {}, { diamond = 0, gap = 0, loop = 0 }
+	for _, j in ipairs(jobs) do
+		ok(not ids[j.id], j.id)
+		ids[j.id] = true
+		eq(j.entry, "highway"); eq(j.search.kind, "grid"); eq(j.search.first, false)
+		local l = grid.labelsByKey(j.entry, j)
+		eq(l.size, "small"); eq(l.cross, "town_m"); eq(l.ramp, "0"); eq(l.dir, "rht"); eq(l.year, "2020")
+		local c1 = j.search.cands[1].dev
+		if l.type == "diamond" then
+			kinds.diamond = kinds.diamond + 1
+			eq(c1, { hxClear = 8, hxGoreRun = 30 })
+			eq(#j.search.cands, 4)
+		elseif j.search.fixedLabel == "" then
+			kinds.gap = kinds.gap + 1
+			eq(c1, { hxTermGap = 30, hxClear = 8, hxGoreRun = 30 })
+			eq(j.search.cands[1].label, "hxClear=8 hxGoreRun=30 hxTermGap=30")
+			eq(#j.search.cands, 12)
+		else
+			kinds.loop = kinds.loop + 1
+			eq(j.search.fixedLabel, "hxTermGap=30")
+			eq(c1, { hxTermGap = 30, hxLoopRadius = 25 })
+			eq(j.search.cands[3].label, "hxLoopRadius=22.50")
+			eq(#j.search.cands, 4)
+		end
+	end
+	eq(kinds, { diamond = 6, gap = 30, loop = 30 })
+end)
+
+test("Phase 7d: dev params reach the highway geometry, every candidate stays sane", function()
+	local hx = rb.highway
+	for _, j in ipairs(grid.expand("p7_hx_search")) do
+		local ship = geomInfo.forEntry(j.entry, rb, j.params)
+		for _, c in ipairs(j.search.cands) do
+			local p = grid.withDev(j.params, c.dev)
+			eq(rb.geom.readDev(p), c.dev, j.id .. " " .. c.label)
+			local spec = hx.readParams(p)
+			eq(spec.dev, c.dev)
+			local b = hx.build(spec)
+			local g = geomInfo.forEntry(j.entry, rb, p)
+			ok(g.error == nil, j.id .. " " .. c.label .. ": " .. tostring(g.error))
+			ok(g.sane, j.id .. " " .. c.label .. ": " .. tostring(g.insane))
+			ok(not b.forced, j.id .. " " .. c.label .. ": forced")
+			eq(b.frame.clear, c.dev.hxClear or 8)
+			if c.dev.hxGoreRun then eq(b.frame.goreRun, c.dev.hxGoreRun) end
+			if hx.hasLoops(spec) then
+				eq(b.Ro - b.R, c.dev.hxTermGap or hx.TERM_GAP, j.id .. " " .. c.label)
+				eq(b.R, c.dev.hxLoopRadius or 25, j.id .. " " .. c.label)
+				eq(g.effR, b.R)
+			end
+		end
+		-- the shipped candidate builds exactly the shipped layout
+		local g1 = geomInfo.forEntry(j.entry, rb, grid.withDev(j.params, j.search.cands[1].dev))
+		eq(g1.xm, ship.xm, j.id); eq(g1.term, ship.term, j.id); eq(g1.edges, ship.edges, j.id)
+	end
+end)
+
+test("engine: highway template INFO line (R3), read only, never raises", function()
+	local names = engineMod.templateNames(rb.ramps)
+	ok(names[1]:find("highway_new_small.street_template", 1, true), names[1])
+	eq(#names, 3)
+	eq(engineMod.templateNames(nil)[1], "::/infrastructure/street/highway/highway_new_small.street_template")
+	local tpl = {
+		maxSlope = 0.1, maxSlopeShape = 0.12, maxSlopeBuild = 0.1, minCurveRadius = 30, minCurveRadiusBuild = 50,
+		speedCoeffs = { 0.85, 0.6, 1 }, laneConfigs = { { speed = 5 }, { speed = 33.3333 }, { speed = 5 } }, country = true,
+	}
+	local text = engineMod.describeTemplate("x.street_template", 7, tpl)
+	eq(text, "street template x.street_template id 7: maxSlope=0.1 maxSlopeShape=0.12 maxSlopeBuild=0.1 "
+		.. "minCurveRadius=30 minCurveRadiusBuild=50 speedCoeffs=0.85/0.6/1 laneSpeeds=5/33.33/5 country=true")
+	ok(engineMod.describeTemplate("y", -1, nil):find("not found", 1, true))
+	ok(engineMod.describeTemplate("z", 3, {}):find("maxSlope=- ", 1, true))
+	-- logTemplates with a stubbed repository: one INFO line per template, errors caught
+	local logs = {}
+	local e = engineMod.new({}, function(l) logs[#logs + 1] = l end)
+	e.modules.ramps = rb.ramps
+	local saved = api
+	api = { res = { streetTemplateRep = {
+		find = function(n) if n:find("large", 1, true) then error("boom") end return n:find("small", 1, true) and 4 or -1 end,
+		get = function(id) return tpl end,
+	} } }
+	local okCall, err = pcall(function() e:logTemplates() end)
+	api = saved
+	ok(okCall, tostring(err))
+	eq(#logs, 3)
+	ok(logs[1]:find("INFO street template ::/infrastructure/street/highway/highway_new_small.street_template id 4: maxSlope=0.1 ", 1, true), logs[1])
+	ok(logs[2]:find("not found", 1, true), logs[2])
+	ok(logs[3]:find("error: ", 1, true) and logs[3]:find("not found", 1, true), logs[3])
+end)
+
+-- Phase 7e fix-up (p7_spot): evaluate with a place uses its own transf and context, and logs one D
+-- line with classified collisions and the terrain under the nodes (stubbed api).
+test("p7_spot: place transf, context per place, D line", function()
+	local logs = {}
+	local e = engineMod.new({ context = "none", pos = "camera", x = 0, y = 0 }, function(l) logs[#logs + 1] = l end)
+	e.modules = rb
+	-- the per-type entries (Phase 7c2) as resolved
+	for _, f in ipairs(grid.ENTRIES.highway.files) do e.files[f] = "square_roundabouts::/" .. f end
+	-- the default file is cached under the entry name (engine:resolveFile); since 7c3 the A4 / B4
+	-- types share it (Parclo)
+	e.files.highway = "square_roundabouts::/" .. grid.ENTRIES.highway.file
+	e.player = 7
+	local made = {}
+	local function vec(...) return { ... } end
+	local saved = api
+	api = {
+		type = {
+			Vec2f = { new = function(x, y) return { x = x, y = y } end },
+			Vec4f = { new = vec },
+			Mat4f = { new = vec },
+			Context = { new = function() local c = {} made[#made + 1] = c return c end },
+			SimpleProposal = { new = function() return {} end, ConstructionEntity = { new = function() return {} end } },
+			ComponentType = { BASE_EDGE_STREET = "S", CONSTRUCTION = "C" },
+		},
+		gui = {
+			camera = { getCameraData = function() return { x = 1000.25, y = -500.5, z = 800 } end },
+			mouse = { hasTerrainPosition = function() return false end },
+		},
+		engine = {
+			terrain = {
+				getHeightAt = function(v) return 50 + v.x * 0.01 end, -- a 1 % slope along x
+				isOnWater = function() return false end,
+				isValidCoordinate = function() return true end,
+			},
+			entityExists = function(id) return id == 42 end,
+			getComponent = function(id, t) if t == "S" then return {} end return nil end,
+			util = { construction = { getConstructionResult = function() return {} end }, proposal = { makeProposalData = function(sp, ctx)
+				made.lastCtx, made.lastTransf = ctx, sp.constructionsToAdd[1].transf
+				return { errorState = { critical = false, messages = { "Construction Not Possible" } },
+					collisionInfo = { collisionEntities = { { entity = 42 }, { entity = -3 } }, buildingEntities = {} },
+					terrainPreviewHeightModCutFill = { { x = 1, y = 2 }, { x = 3, y = 4 } }, costs = 5 }
+			end } },
+		},
+	}
+	local okCall, err = pcall(function()
+		e:placement()
+		local combos = grid.expand("p7_spot")
+		local c = combos[1]
+		for _, k in ipairs(combos) do if k.place.rot == 90 and k.place.ctx == "terrain" then c = k break end end
+		return e:evaluate(c)
+	end)
+	api = saved
+	ok(okCall, tostring(err))
+	local r = err
+	eq(e.x, 1000.25); eq(e.y, -500.5)
+	ok(logs[1]:find("position source camera", 1, true), logs[1])
+	eq(r.ok, false)
+	ok(made.lastCtx and made.lastCtx.checkTerrainAlignment == true and made.lastCtx.player == 7, "terrain context")
+	eq(made.lastCtx.cleanupStreetGraph, nil)
+	local t = made.lastTransf
+	ok(math.abs(t[1][1]) < 1e-12 and t[1][2] == 1 and t[2][1] == -1, "90 degrees")
+	eq(t[4][1], 1000.25)
+	local d = logs[#logs]
+	local kind, f = H.parseLine(d)
+	eq(kind, "D")
+	eq(f.collIds, "42:street|-3:new"); eq(f.coll, "2"); eq(f.cut, "4.00"); eq(f.fill, "6.00"); eq(f.hmods, "2")
+	eq(f.rot, "90"); eq(f.ctx, "terrain"); eq(f.offMap, "0")
+	ok(tonumber(f.nodes) > 20, f.nodes)
+	-- rotated 90 degrees the highway runs along world y: no slope along it, the cross road's +-126.5 m
+	-- arms run along x: terrain within +-1.27 m (1 % slope); the arm ends at 8 m are fill
+	ok(tonumber(f.terrMax) <= 1.27 + 1e-6 and tonumber(f.terrMin) >= -1.27 - 1e-6, f.terrMin .. " " .. f.terrMax)
+	ok(tonumber(f.fillMax) > 6, f.fillMax)
+end)
+
+test("spot subsets place at the camera unless Position says Mouse", function()
+	eq(engineMod.positionSource({ pos = "setting", subset = "p7_spot2" }), "camera")
+	eq(engineMod.positionSource({ pos = "setting", subset = "p7_spot" }), "camera")
+	eq(engineMod.positionSource({ pos = "mouse", subset = "p7_spot2" }), "mouse")
+	eq(engineMod.positionSource({ pos = "setting", subset = "p7_verify" }), "setting")
+	-- Phase 7d2: the Scale and preset runs use the Position setting (flat map, 0 / 0)
+	eq(engineMod.positionSource({ pos = "setting", subset = "p7_hx_scale" }), "setting")
+	eq(engineMod.positionSource({ pos = "setting", subset = "p7_presets" }), "setting")
+end)
+
+-- 2026-10-09 (docs/findings.md "Negative zero in construction geometry"): the probe's 0-degree transf
+-- is the UI builder's 1/-0/0/0/0/1, not a +0 identity, so a -0 tangent is refused offline-reproducibly.
+test("engine.cosSin: Rotation 0 has sin = -0 like the builder; other angles as math.sin", function()
+	local function neg0(v) return v == 0 and 1 / v < 0 end
+	local c, s = engineMod.cosSin(0)
+	eq(c, 1); ok(neg0(s), "sin(0) = -0")
+	ok(not neg0(-s), "row 2 = +0")
+	c, s = engineMod.cosSin(90)
+	ok(math.abs(c) < 1e-12 and s == 1)
+	engineMod.BUILDER_ZERO = false
+	c, s = engineMod.cosSin(0)
+	engineMod.BUILDER_ZERO = true
+	ok(not neg0(s), "BUILDER_ZERO = false: the old +0 identity")
+end)
+
+-- Phase 7d2: p7_presets sends the preset key as the menu does; p7_hx_scale the entry's Layout index.
+test("engine:paramsFor: p7_presets preset keys, p7_hx_scale Layout per type", function()
+	local e = engineMod.new({ context = "none", pos = "setting", x = 0, y = 0 }, function() end)
+	for _, c in ipairs(grid.expand("p7_presets")) do
+		local p = e:paramsFor(c)
+		if c.entry == "main" then ok(p.sqrb_radius_size and p.sqrb_radius, c.key) end
+		if c.entry == "interchange" then ok(p.sqrb_ix_radius_size and p.sqrb_ix_radius, c.key) end
+	end
+	local hw = grid.ENTRIES.highway
+	for _, c in ipairs(grid.expand("p7_hx_scale")) do
+		local t = c.params[hw.fileAxis]
+		eq(e:paramsFor(c)[hw.layoutKey], hw.layouts[t], c.key)
+	end
+end)

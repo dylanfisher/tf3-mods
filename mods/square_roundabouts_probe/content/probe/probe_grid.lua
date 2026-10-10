@@ -3,7 +3,7 @@
 -- pre-5.3 Lua (no `//`, no 5.3 library calls).
 --
 -- Edit SUBSETS below to change what the probe asks the engine about. A subset is a list of
--- blocks; a block names the entry ("main", "magic", "channel" or "interchange") and, per axis, a
+-- blocks; a block names the entry ("main", "magic", "channel", "interchange" or "highway") and, per axis, a
 -- list of value labels or
 -- "*" (every value). Axes a block leaves out take the construction's default (same defaultIndex
 -- as the .con.lua). Blocks expand to their cartesian product (last axis varies fastest);
@@ -13,16 +13,22 @@ local grid = {}
 
 -- Axes in the order of their params in square_roundabouts.con.lua. `param` is the .con.lua key
 -- (geom.PARAM_KEYS), `labels` name the values 1..n in the order of the .con.lua `values`,
--- `default` is the .con.lua defaultIndex. Exceptions, appended last so the replay keys of older
+-- `default` is the .con.lua defaultIndex, except the size axes (main / interchange radius, magic
+-- size, highway scale): their menus default to the smallest since 2026-10-09, but these keep the old
+-- defaults so recorded subsets and replay keys expand as before. Exceptions, appended last so the replay keys of older
 -- runs keep their positions: Magic's lanes axis (the .con.lua shows it after the arm road) and the
 -- main entry's through road (Phase 5c; the .con.lua shows it after Through the centre). A key
 -- with one value fewer means the default (1 lane / Same as arms).
 -- `values` (optional): the param value per label instead of the index; `pseudo`: not a .con.lua
 -- param (the interchange's year, read by its updateFn as params.year).
+-- `menu` (Phase 7c3, the radius axes): the .con.lua shows a row of presets on another key instead
+-- of this full-range slider index ({key, presets = full index per button}); the probe keeps sending
+-- the full-range key (readParams uses it when the preset key is absent), so replay keys keep all
+-- 13 / 10 radii.
 grid.MAIN_AXES = {
 	{ key = "shape", param = "sqrb_shape", default = 1, labels = { "round", "oval1.25", "oval1.5", "oval1.75", "oval2" } },
 	{ key = "lanes", param = "sqrb_lanes", default = 2, labels = { "1", "2", "4" } },
-	{ key = "radius", param = "sqrb_radius", default = 5,
+	{ key = "radius", param = "sqrb_radius", default = 5, menu = { key = "sqrb_radius_size", presets = { 2, 4, 5, 8, 13 } },
 		labels = { "8", "10", "12", "15", "20", "25", "30", "35", "40", "45", "50", "55", "60" } },
 	{ key = "arms", param = "sqrb_arms", default = 3, labels = { "T", "Y", "4", "5", "6", "none" } },
 	{ key = "splitter", param = "sqrb_splitter", default = 1, labels = { "off", "on" } },
@@ -71,13 +77,33 @@ grid.INTERCHANGE_AXES = {
 	{ key = "highway", param = "sqrb_ix_highway", default = 2, labels = { "small", "medium", "large" } },
 	{ key = "level", param = "sqrb_ix_level", default = 1, labels = { "ring_over", "hw_over" } },
 	{ key = "lanes", param = "sqrb_lanes", default = 2, labels = { "1", "2", "4" } },
-	{ key = "radius", param = "sqrb_ix_radius", default = 2,
+	{ key = "radius", param = "sqrb_ix_radius", default = 2, menu = { key = "sqrb_ix_radius_size", presets = { 1, 2, 4, 7 } },
 		labels = { "15", "20", "25", "30", "35", "40", "45", "50", "55", "60" } },
 	{ key = "cross", param = "sqrb_ix_cross", default = 2, labels = ROADS },
 	{ key = "slip", param = "sqrb_ix_slip_length", default = 2, labels = { "120", "140", "160", "180" } },
 	{ key = "armlen", param = "sqrb_ix_arm_length", default = 1, labels = { "30", "40", "50", "60" } },
 	{ key = "dir", param = "sqrb_direction", default = 1, labels = { "rht", "lht" } },
 	{ key = "island", param = "sqrb_island", default = 1, labels = { "none", "grass", "trees", "fountain", "paved" } },
+	{ key = "year", param = "year", default = 2, labels = { "1969", "2020" }, values = { 1969, 2020 }, pseudo = true },
+}
+
+-- The Highway Interchange (Phase 7d; three menu entries since Phase 7c3,
+-- square_roundabouts_highway_<id>.con.lua: Parclo = A4 / B4, Parclo two quadrants = A2 / B2 / AB2,
+-- Diamond): the type picks the entry's file (ENTRIES.highway.files) and its Layout button
+-- (ENTRIES.highway.layouts -> hx.LAYOUT_KEY, sent by engine:paramsFor), and still rides in the params
+-- as sqrb_hx_type (the same type), so replay keys keep their format. Then the entries' params in .con.lua order, then the
+-- year (pseudo axis as for the interchange: ramps.bridgeType, steel before 1970). size = Scale: loop
+-- radius (parclos: hx.LOOP_RADII 25/45/80 m) or terminal distance (diamond: hx.TERMINAL_DISTANCES
+-- 0/40/100 m since 7c3, with footprints x 1 / 1.6 / 2.5); ramp = extra length over the type's shortest ramp (hx.RAMP_EXTRAS, m).
+grid.HIGHWAY_AXES = {
+	{ key = "type", param = "sqrb_hx_type", default = 1, labels = { "A4", "B4", "A2", "B2", "AB2", "diamond" } },
+	{ key = "highway", param = "sqrb_ix_highway", default = 2, labels = { "small", "medium", "large" } },
+	{ key = "level", param = "sqrb_hx_level", default = 1, labels = { "road_over", "hw_over" } },
+	{ key = "cross", param = "sqrb_ix_cross", default = 2, labels = ROADS },
+	{ key = "size", param = "sqrb_hx_scale", default = 2, labels = { "small", "medium", "large" } },
+	{ key = "ramp", param = "sqrb_hx_ramp", default = 1, labels = { "0", "30", "60" } },
+	{ key = "armlen", param = "sqrb_hx_arm_length", default = 1, labels = { "30", "45", "60" } },
+	{ key = "dir", param = "sqrb_direction", default = 1, labels = { "rht", "lht" } },
 	{ key = "year", param = "year", default = 2, labels = { "1969", "2020" }, values = { 1969, 2020 }, pseudo = true },
 }
 
@@ -102,9 +128,27 @@ grid.ENTRIES = {
 		file = "infrastructure/street_construction/square_roundabouts_interchange.con",
 		tag = "x",
 	},
+	highway = {
+		axes = grid.HIGHWAY_AXES,
+		-- the file per type (the "type" axis value, hx.TYPES order); `file` = the default (Parclo, A4)
+		file = "infrastructure/street_construction/square_roundabouts_highway_parclo.con",
+		files = {
+			"infrastructure/street_construction/square_roundabouts_highway_parclo.con",
+			"infrastructure/street_construction/square_roundabouts_highway_parclo.con",
+			"infrastructure/street_construction/square_roundabouts_highway_parclo2.con",
+			"infrastructure/street_construction/square_roundabouts_highway_parclo2.con",
+			"infrastructure/street_construction/square_roundabouts_highway_parclo2.con",
+			"infrastructure/street_construction/square_roundabouts_highway_diamond.con",
+		},
+		fileAxis = "sqrb_hx_type",
+		-- Phase 7c3: the entry's Layout button per type (hx.LAYOUT_KEY; nil = the entry has none)
+		layoutKey = "sqrb_hx_layout",
+		layouts = { 1, 2, 1, 2, 3, nil },
+		tag = "h",
+	},
 }
 -- Order the probe resolves the entries' constructions in (START line fields).
-grid.ENTRY_ORDER = { "main", "magic", "channel", "interchange" }
+grid.ENTRY_ORDER = { "main", "magic", "channel", "interchange", "highway" }
 grid.TARGET_MOD = "square_roundabouts"
 
 -- Centre values of the Phase 3-4 subsets (Road + traffic lights, Phase 5c, has the Road geometry
@@ -227,9 +271,15 @@ grid.DEV = {
 	-- Phase 5f: the channel's slip lane template, the two-bridge ring's largest slip node angle
 	chSlip = "sqrb_dev_ch_slip",
 	ixAlphaMax = "sqrb_dev_ix_alpha_max",
+	-- Phase 7d: Highway Interchange tunables (square_roundabouts_highway.lua)
+	hxClear = "sqrb_dev_hx_clear",
+	hxGoreRun = "sqrb_dev_hx_gore_run",
+	hxTermGap = "sqrb_dev_hx_term_gap",
+	hxLoopRadius = "sqrb_dev_hx_loop_radius",
 }
 grid.DEV_ORDER = { "radius", "magicSize", "magicRadius", "magicDistance", "split", "fork", "spread", "leg", "neck", "neckType", "tramStub",
-	"chSlipAngle", "chCornerGap", "chSlipFree", "ixClear", "ixGamma", "ixGoreRun", "ixWaistGap", "chSlip", "ixAlphaMax" }
+	"chSlipAngle", "chCornerGap", "chSlipFree", "ixClear", "ixGamma", "ixGoreRun", "ixWaistGap", "chSlip", "ixAlphaMax",
+	"hxClear", "hxGoreRun", "hxTermGap", "hxLoopRadius" }
 
 local MEDIUM_LARGE = { "town_m", "town_l", "country_m", "country_l" }
 -- Radius search over the main grid. Left out: splitter on with medium/large arms (100% fail at
@@ -402,6 +452,128 @@ local CH_G_EXTRA = { slips = { "near", "main" }, dir = "*" }
 local IX_G_VERIFY = { entry = "interchange", layout = { "two_bridge" }, highway = "*", level = "*", lanes = { "4" }, radius = { "15", "40" },
 	cross = { "town_m", "town_l", "country_l" }, slip = { "120", "140" }, year = "*" }
 
+-- Phase 7d subsets (PROBE.md "Phase 7 runs"): the Highway Interchange -------------------------
+-- Sweep: every type x highway x level x Scale x cross road {town medium, town large, country large}
+-- x year {1969 steel, 2020 concrete} at the shortest ramps (648); +60 m ramps at the defaults (36);
+-- left-hand traffic (12). Phase 7c2 values (Scale 25 / 45 / 80 m loops, 0 / 30 / 80 m terminals).
+local HX_TYPES_PARCLO = { "A4", "B4", "A2", "B2", "AB2" }
+local HX_ALL = { entry = "highway", type = "*", highway = "*", level = "*", size = "*", cross = { "town_m", "town_l", "country_l" }, year = "*" }
+local HX_RAMP = { entry = "highway", type = "*", highway = "*", level = "*", ramp = { "60" } }
+local HX_LHT = { entry = "highway", type = "*", level = "*", dir = { "lht" } }
+-- Phase 7e verification (PROBE.md "Phase 7 runs"): what hx.BRIDGE_PIECE changed, the parclos on the
+-- large highway, highway over road (7e: with 25 / 35 m loops, refused in p7_hx_all; since 7c2 Scale
+-- Small / Medium = 25 / 45 m loops): every cross road x year at the shortest ramps (120), +30 / +60 m
+-- ramps (20), left-hand traffic (10).
+local HX_V_BASE = { entry = "highway", type = HX_TYPES_PARCLO, highway = { "large" }, level = { "hw_over" }, size = { "small", "medium" } }
+local HX_V_ALL = sweepOf(HX_V_BASE, { cross = "*", year = "*" })
+local HX_V_RAMP = sweepOf(HX_V_BASE, { ramp = { "30", "60" } })
+local HX_V_LHT = sweepOf(HX_V_BASE, { dir = { "lht" } })
+-- Searches at Scale Small (25 m loops, the diamond's terminal at the bridge end), every candidate,
+-- shipped values first. Parclos: terminal gap (hx.TERM_GAP 30) x clearance (ramps.CLEAR 8) x level
+-- gore (ramps.GORE_RUN 30); the diamond has no loops, so no terminal gap. Loop radius: the exact
+-- radius below and above the 25 m Small value (R2: the engine's floor for highway_new_small
+-- loops); `fixed` hxTermGap = 30 (the shipped gap) keeps these jobs apart from the first block's
+-- (same base combo). hxLoopJoin / hxRampX from the plan are not implemented (Phase 7b notes).
+local HX_SEARCH_PARCLO = { entry = "highway", type = HX_TYPES_PARCLO, highway = "*", level = "*", size = { "small" },
+	search = { kind = "grid", values = { order = { "hxTermGap", "hxClear", "hxGoreRun" },
+		hxTermGap = { 30, 20, 40 }, hxClear = { 8, 6 }, hxGoreRun = { 30, 20 } } } }
+local HX_SEARCH_DIAMOND = { entry = "highway", type = { "diamond" }, highway = "*", level = "*", size = { "small" },
+	search = { kind = "grid", values = { order = { "hxClear", "hxGoreRun" }, hxClear = { 8, 6 }, hxGoreRun = { 30, 20 } } } }
+local HX_SEARCH_LOOP = { entry = "highway", type = HX_TYPES_PARCLO, highway = "*", level = "*", size = { "small" },
+	search = { kind = "grid", fixed = { { hxTermGap = 30 } }, values = { order = { "hxLoopRadius" }, hxLoopRadius = { 25, 20, 22.5, 30 } } } }
+
+-- Phase 7e fix-up (INTERCHANGES.md "Phase 7e fix-up: placement in game"): one spot of the real map
+-- (the "Position" setting: camera centre or mouse), each combo under several placements. A place =
+-- {rot (degrees about z), ctx (proposal context: none / player / terrain / full, engine:contextFor),
+-- dx, dy (m, shift of the origin)}. Combos keep their replay key; R lines add rot / ctx / dx / dy
+-- and the engine logs one D line (collisions, terrain under the nodes) per place.
+grid.SPOT_ROTS = { 0, 0.5, 1, 10, 90, 180, 350 }
+grid.SPOT_CONTEXTS = { "none", "player", "terrain", "full" }
+grid.SPOT_SHIFTS = { { 0.5, 0.5 }, { 20, 0 }, { 0, 20 } }
+local function spotPlaces()
+	local out = {}
+	for _, ctx in ipairs(grid.SPOT_CONTEXTS) do
+		for _, rot in ipairs(grid.SPOT_ROTS) do out[#out + 1] = { rot = rot, ctx = ctx, dx = 0, dy = 0 } end
+	end
+	for _, ctx in ipairs({ "none", "full" }) do
+		for _, s in ipairs(grid.SPOT_SHIFTS) do out[#out + 1] = { rot = 0, ctx = ctx, dx = s[1], dy = s[2] } end
+	end
+	return out
+end
+grid.SPOT_PLACES = spotPlaces()
+-- control: the Roundabout Interchange default, which places in game at 0 degrees
+grid.SPOT_CONTROL = {
+	{ rot = 0, ctx = "none", dx = 0, dy = 0 }, { rot = 0, ctx = "full", dx = 0, dy = 0 },
+	{ rot = 350, ctx = "none", dx = 0, dy = 0 }, { rot = 350, ctx = "full", dx = 0, dy = 0 },
+}
+local HX_SPOT = {
+	-- the 7e fix-up report: Parclo B4, small highway, road over highway, country large, 25 m loops (refused at 0, placed at 350)
+	{ entry = "highway", type = { "B4" }, highway = { "small" }, level = { "road_over" }, cross = { "country_l" }, size = { "small" }, places = grid.SPOT_PLACES },
+	{ entry = "highway", places = grid.SPOT_PLACES },                          -- the default (Parclo A4)
+	{ entry = "highway", type = { "diamond" }, places = grid.SPOT_PLACES },    -- the diamond with defaults
+	{ entry = "interchange", places = grid.SPOT_CONTROL },
+}
+
+-- p7_spot2 (Phase 7e fix-up, second run): the B4 combo at 0 degrees with the origin shifted 0-8 m
+-- in 0.5 m steps on x and y (grid-alignment test), contexts none and full: 17 x 17 x 2 = 578 calls.
+local function fineShifts()
+	local out = {}
+	for _, ctx in ipairs({ "none", "full" }) do
+		for i = 0, 16 do
+			for j = 0, 16 do out[#out + 1] = { rot = 0, ctx = ctx, dx = i / 2, dy = j / 2 } end
+		end
+	end
+	return out
+end
+grid.SPOT_FINE = fineShifts()
+local HX_SPOT2 = { { entry = "highway", type = { "B4" }, highway = { "small" }, level = { "road_over" }, cross = { "country_l" },
+	size = { "small" }, places = grid.SPOT_FINE } }
+
+-- Phase 7d2 (INTERCHANGES.md "Phase 7d2 notes"): the 7c3 Scale (Small / Medium / Large; Medium and
+-- Large never engine-probed) on the three entries. Every type (= the entries' Layout buttons: Parclo
+-- A4 / B4, Parclo two quadrants A2 / B2 / AB2, Diamond) x Scale x highway x level x cross road
+-- {town medium, country large} x traffic side x year {1969 steel, 2020 concrete} at the builder's
+-- exact 0 degree transf (engine.BUILDER_ZERO: sin = -0) (864); the Ramp length / Arm length extremes
+-- at Scale Large, country large, 2020, both sides: +60 m ramps x 30 / 60 m arms, and 60 m arms at
+-- the shortest ramps (216; the shortest ramps with 30 m arms are in the first block); rotations 90 and
+-- 180 (place, context none) on the medium highway, town medium, 2020 (144; their R lines carry rot).
+grid.HX_SCALE_ROTS = { 90, 180 }
+local function rotPlaces()
+	local out = {}
+	for _, rot in ipairs(grid.HX_SCALE_ROTS) do out[#out + 1] = { rot = rot, ctx = "none", dx = 0, dy = 0 } end
+	return out
+end
+local HX_SCALE = { entry = "highway", type = "*", highway = "*", level = "*", size = "*", cross = { "town_m", "country_l" }, dir = "*", year = "*" }
+local HX_SCALE_RAMP = { entry = "highway", type = "*", highway = "*", level = "*", size = { "large" }, cross = { "country_l" },
+	ramp = { "60" }, armlen = { "30", "60" }, dir = "*" }
+local HX_SCALE_ARM = { entry = "highway", type = "*", highway = "*", level = "*", size = { "large" }, cross = { "country_l" },
+	ramp = { "0" }, armlen = { "60" }, dir = "*" }
+local HX_SCALE_ROT = { entry = "highway", type = "*", highway = { "medium" }, level = "*", size = "*", dir = "*", places = rotPlaces() }
+
+-- Phase 7e2 (INTERCHANGES.md "Phase 7e2 notes"): every combo p7_hx_scale refused (190: all Scale
+-- Large parclos; hx.MAX_REACH now caps their ramp length), at the builder's 0 degree transf, plus 30
+-- capped / unprobed ones: town medium, +30 m ramps, 45 m arms, right-hand, 2020.
+local HX_SV_CORE = { entry = "highway", type = HX_TYPES_PARCLO, highway = { "large" }, level = { "hw_over" }, size = { "large" },
+	cross = { "town_m", "country_l" }, dir = "*", year = "*" }
+local HX_SV_RAMP = { entry = "highway", type = HX_TYPES_PARCLO, highway = "*", level = "*", size = { "large" }, cross = { "country_l" },
+	ramp = { "60" }, armlen = { "30", "60" }, dir = "*" }
+local HX_SV_ARM = { entry = "highway", type = HX_TYPES_PARCLO, highway = "*", level = { "hw_over" }, size = { "large" }, cross = { "country_l" },
+	ramp = { "0" }, armlen = { "60" }, dir = "*" }
+local HX_SV_MID = { entry = "highway", type = HX_TYPES_PARCLO, highway = "*", level = "*", size = { "large" }, cross = { "town_m" },
+	ramp = { "30" }, armlen = { "45" }, dir = { "rht" } }
+
+-- Phase 7d2: the released entries' 7c3 button rows at the builder's 0 degree transf, both traffic
+-- sides. `menu = true` also sends each radius axis's preset key (axis.menu: sqrb_radius_size /
+-- sqrb_ix_radius_size, the button's index), as the game's menu does; readParams then takes the preset
+-- (same radiusIndex). Main: Mini / Small / Medium / Large / Huge (10 / 15 / 20 / 35 / 60 m) x lanes x
+-- direction (30); Interchange: Small / Medium / Large / Huge (15 / 20 / 30 / 45 m) x layout x side (24);
+-- Channelized Junction: layout x slip lanes x splitter x side (24; X left-hand = the -0 side-road
+-- tangents, docs: Phase 7c3 runbook "-0"); Magic: every Size button x direction (10).
+local PRESET_MAIN = { entry = "main", radius = { "10", "15", "20", "35", "60" }, lanes = "*", dir = "*", menu = true }
+local PRESET_IX = { entry = "interchange", layout = "*", radius = { "15", "20", "30", "45" }, dir = "*", menu = true }
+local PRESET_CH = { entry = "channel", layout = "*", slips = "*", splitter = "*", dir = "*" }
+local PRESET_MAGIC = { entry = "magic", size = "*", dir = "*" }
+
 grid.SUBSETS = {
 	-- a handful of combos to check the probe itself works (about a minute)
 	smoke = {
@@ -414,6 +586,8 @@ grid.SUBSETS = {
 		{ entry = "main", arms = { "4" }, centre = { "lights" }, through = { "town_l" } },
 		{ entry = "channel" },
 		{ entry = "interchange" },
+		-- Phase 7d: the Highway Interchange default (Parclo A4)
+		{ entry = "highway" },
 	},
 	splitter6 = { SPLITTER6 },
 	main = { MAIN },
@@ -450,6 +624,20 @@ grid.SUBSETS = {
 	-- Phase 5g: verification sweep of what the 5g tuning pass changed
 	p5g_verify = { IX_G_VERIFY, sweepOf(CH_F_T_WIDE, CH_G_EXTRA), sweepOf(CH_F_T_TM, CH_G_EXTRA), sweepOf(CH_F_X_MAIN, CH_G_EXTRA),
 		sweepOf(CH_F_X_WIDE, CH_G_EXTRA), sweepOf(CH_F_X_TM, CH_G_EXTRA) },
+	-- Phase 7d (PROBE.md "Phase 7 runs"): the Highway Interchange sweep and its tunables search
+	p7_hx_all = { HX_ALL, HX_RAMP, HX_LHT },
+	p7_hx_search = { HX_SEARCH_DIAMOND, HX_SEARCH_PARCLO, HX_SEARCH_LOOP },
+	-- Phase 7e: verification sweep of what the 7e pass changed
+	p7_verify = { HX_V_ALL, HX_V_RAMP, HX_V_LHT },
+	-- Phase 7e fix-up: one real spot (Position: camera / mouse), rotations x proposal contexts
+	p7_spot = HX_SPOT,
+	p7_spot2 = HX_SPOT2,
+	-- Phase 7d2: Scale Medium / Large and the extremes on the three highway entries; the released
+	-- entries' button presets
+	p7_hx_scale = { HX_SCALE, HX_SCALE_RAMP, HX_SCALE_ARM, HX_SCALE_ROT },
+	p7_presets = { PRESET_MAIN, PRESET_IX, PRESET_CH, PRESET_MAGIC },
+	-- Phase 7e2: the refused p7_hx_scale combos with the reach cap, plus capped / unprobed ones
+	p7_hx_scale_verify = { HX_SV_CORE, HX_SV_RAMP, HX_SV_ARM, HX_SV_MID },
 }
 -- Order of the "Subset" mod param values (mod.json sqrb_probe_subset).
 grid.SUBSET_ORDER = {
@@ -459,6 +647,8 @@ grid.SUBSET_ORDER = {
 	"p5_all", "p5_channel", "p5_hamburger", "p5_interchange",
 	"p5_search", "p5_channel_search", "p5_hamburger_radius", "p5_interchange_search",
 	"p5f_all", "p5f_search", "p5g_verify",
+	"p7_hx_all", "p7_hx_search", "p7_verify", "p7_spot", "p7_spot2",
+	"p7_hx_scale", "p7_presets", "p7_hx_scale_verify",
 }
 
 local function indexOf(list, v)
@@ -516,7 +706,25 @@ function grid.combo(entry, indices)
 	}
 end
 
-local BLOCK_FIELDS = { entry = true, search = true, exclude = true }
+local BLOCK_FIELDS = { entry = true, search = true, exclude = true, places = true, menu = true }
+
+--- Phase 7d2 (`menu = true` blocks): adds each menu axis's preset key (axis.menu) to the combo's
+-- params, as the game's button row sends it: the button index of the axis value. The value must be
+-- one of the presets.
+local function addMenuKeys(combo)
+	for i, axis in ipairs(grid.ENTRIES[combo.entry].axes) do
+		if axis.menu then
+			local pos = nil
+			for j, full in ipairs(axis.menu.presets) do if full == combo.indices[i] then pos = j end end
+			if not pos then
+				error("probe grid: '" .. tostring(combo.labels[i]) .. "' is not a menu preset of axis '" .. axis.key .. "'")
+			end
+			combo.params[axis.menu.key] = pos
+		end
+	end
+	return combo
+end
+grid.addMenuKeys = addMenuKeys
 
 --- Whether a combo (labels by axis key) matches one exclude condition ({axis = {labels}}).
 local function matches(cond, byKey)
@@ -537,6 +745,12 @@ local function copy(t)
 	local out = {}
 	for k, v in pairs(t or {}) do out[k] = v end
 	return out
+end
+
+--- Short label of a place (grid.SPOT_PLACES): "r<rot>_<ctx>_<dx>_<dy>".
+function grid.placeLabel(p)
+	local b = grid.bare -- defined with the line format below
+	return "r" .. b(p.rot) .. "_" .. tostring(p.ctx) .. "_" .. b(p.dx or 0) .. "_" .. b(p.dy or 0)
 end
 
 --- Short text of a dev table in DEV_ORDER, e.g. "radius=20 fork=35" ("" for none).
@@ -701,9 +915,19 @@ local function expandBlock(block, out, seen)
 						out[#out + 1] = job
 					end
 				end
+			elseif block.places then
+				for _, place in ipairs(block.places) do
+					local id = combo.key .. "@" .. grid.placeLabel(place)
+					if not seen[id] then
+						seen[id] = true
+						local c = grid.combo(block.entry, indices)
+						c.place = copy(place)
+						out[#out + 1] = c
+					end
+				end
 			elseif not seen[combo.key] then
 				seen[combo.key] = true
-				out[#out + 1] = combo
+				out[#out + 1] = block.menu and addMenuKeys(combo) or combo
 			end
 		end
 		local i = n
@@ -735,7 +959,7 @@ function grid.size(subset)
 	local blocks = type(subset) == "string" and grid.SUBSETS[subset] or subset
 	local total = 0
 	for _, block in ipairs(blocks) do
-		if block.exclude or block.search then
+		if block.exclude or block.search or block.places then
 			total = total + #grid.expand({ block })
 		else
 			local e = grid.ENTRIES[block.entry]
@@ -805,13 +1029,17 @@ end
 --- Result line of one combo. r = {
 --   ok, critical, messages, warnings, infos, collisions, buildings, cost, added,
 --   mode ("proposal" | "result_only"), error (exception text), updateFn (text, if checked),
---   geom = {effR, forced, fork, a, b, effSize, rs, setback, bridge, edges, lists} (any subset), ms }
+--   geom = {effR, forced, fork, a, b, effSize, rs, setback, bridge, xm, term, edges, lists} (any subset), ms }
 function grid.resultLine(n, total, combo, r)
 	local e = grid.ENTRIES[combo.entry]
 	local fields = {
 		{ "n", n }, { "total", total }, { "entry", combo.entry },
 	}
 	for i, axis in ipairs(e.axes) do fields[#fields + 1] = { axis.key, combo.labels[i] } end
+	if combo.place then
+		local p = combo.place
+		for _, f in ipairs({ { "rot", p.rot }, { "ctx", p.ctx }, { "dx", p.dx }, { "dy", p.dy } }) do fields[#fields + 1] = f end
+	end
 	local g = r.geom or {}
 	local rest = {
 		{ "ok", r.ok == true },
@@ -833,6 +1061,8 @@ function grid.resultLine(n, total, combo, r)
 		{ "rs", g.rs },
 		{ "setback", g.setback },
 		{ "bridge", g.bridge },
+		{ "xm", g.xm },
+		{ "term", g.term },
 		{ "edges", g.edges },
 		{ "geomErr", g.error, "q" },
 		{ "mode", r.mode },
@@ -890,6 +1120,8 @@ function grid.trialLine(n, total, job, ci, r)
 		{ "rs", g.rs },
 		{ "setback", g.setback },
 		{ "bridge", g.bridge },
+		{ "xm", g.xm },
+		{ "term", g.term },
 		{ "edges", g.edges },
 		{ "sane", g.sane },
 		{ "geomErr", g.error, "q" },

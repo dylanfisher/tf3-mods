@@ -34,6 +34,8 @@ function H.loadRoundabouts()
 		magic = rbRequire(DIR .. "square_roundabouts_magic.lua"),
 		channel = rbRequire(DIR .. "square_roundabouts_channel.lua"),
 		interchange = rbRequire(DIR .. "square_roundabouts_interchange.lua"),
+		highway = rbRequire(DIR .. "square_roundabouts_highway.lua"),
+		ramps = rbRequire(DIR .. "square_roundabouts_ramps.lua"),
 	}
 end
 

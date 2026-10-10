@@ -15,15 +15,17 @@ test("defaults when the mod params are missing or bad", function()
 	eq(d.y, 0)
 	eq(d.context, "none")
 	eq(d.logOk, true)
+	eq(d.pos, "setting")
 	eq(config.fromModParams({ sqrb_probe_subset = 99, sqrb_probe_batch = 0, sqrb_probe_x = 1.5 }), d)
 end)
 
 test("1-based indices select values", function()
 	local c = config.fromModParams({
 		sqrb_probe_run = 1, sqrb_probe_subset = 5, sqrb_probe_delay = 4, sqrb_probe_batch = 5,
-		sqrb_probe_x = 1, sqrb_probe_y = 9, sqrb_probe_context = 2, sqrb_probe_log_ok = 2,
+		sqrb_probe_x = 1, sqrb_probe_y = 9, sqrb_probe_context = 2, sqrb_probe_log_ok = 2, sqrb_probe_pos = 2,
 	})
-	eq(c, { run = false, subset = "main", delay = 60, batch = 16, x = -4000, y = 4000, context = "player", logOk = false })
+	eq(c, { run = false, subset = "main", delay = 60, batch = 16, x = -4000, y = 4000, context = "player", logOk = false, pos = "camera" })
+	ok(config.describe(c):find("pos=camera", 1, true))
 	ok(config.describe(c):find("subset=main", 1, true))
 end)
 

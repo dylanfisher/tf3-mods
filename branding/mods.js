@@ -349,6 +349,9 @@ Square.devCover({
   id: 'square_aat_perftest', name: 'DEV AAT Perf Test', group: 'perf', tagline: 'Timed original vs optimized',
 });
 Square.devCover({
+  id: 'square_roundabouts_probe', name: 'DEV Roundabouts Probe', group: 'roundabouts',
+});
+Square.devCover({
   id: 'square_sqperf_all', name: 'DEV SQPERF: all mods', group: 'perf', tagline: 'Perf log on for every mod',
   titleLines: ['DEV SQPERF:', 'all mods'],  // the automatic wrap leaves "mods" alone on line 2
 });
