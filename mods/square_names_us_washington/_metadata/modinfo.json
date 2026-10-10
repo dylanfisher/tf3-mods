@@ -2,6 +2,56 @@
     "name": "Washington Towns & Streets",
     "summary": "Real Washington towns, plus real local names for the stops and stations you build.",
     "description": "Real Washington towns, plus real local names for the stops and stations you build. Adds the name set \"Washington (Towns & Streets)\" and renames new stops and stations in known Washington cities.",
+    "localization": {
+        "ru": {
+            "name": "Washington: города и улицы",
+            "summary": "Настоящие города штата Washington и местные названия для ваших остановок и станций."
+        },
+        "de": {
+            "name": "Washington: Orte & Strassen",
+            "summary": "Echte Orte aus Washington, dazu lokale Namen für selbst gebaute Haltestellen und Bahnhöfe."
+        },
+        "fr": {
+            "name": "Washington : villes et rues",
+            "summary": "Washington : vraies villes, et vrais noms locaux pour les arrêts et gares que vous construisez."
+        },
+        "es": {
+            "name": "Washington: pueblos y calles",
+            "summary": "Washington: pueblos reales y nombres locales para las paradas y estaciones que construyas."
+        },
+        "it": {
+            "name": "Washington: città e strade",
+            "summary": "Washington: città reali e veri nomi locali per le fermate e le stazioni che costruisci."
+        },
+        "nl": {
+            "name": "Washington: steden & straten",
+            "summary": "Washington: echte plaatsen, plus echte lokale namen voor de haltes en stations die je bouwt."
+        },
+        "pl": {
+            "name": "Washington: miasta i ulice",
+            "summary": "Washington: prawdziwe miejscowości i lokalne nazwy dla przystanków i stacji, które budujesz."
+        },
+        "pt_BR": {
+            "name": "Washington: cidades e ruas",
+            "summary": "Washington: cidades reais e nomes locais reais para as paradas e estações que você constrói."
+        },
+        "ja": {
+            "name": "Washingtonの町と通り",
+            "summary": "Washingtonの実在する町と、建設した停留所や駅に付く実在の地元の名前。"
+        },
+        "ko": {
+            "name": "Washington 도시와 거리",
+            "summary": "Washington의 실제 도시, 그리고 건설한 정류장과 역에 붙는 실제 지역 이름."
+        },
+        "zh_CN": {
+            "name": "Washington 城镇与街道",
+            "summary": "真实的Washington城镇，并为你建造的站点和车站提供真实的本地名称。"
+        },
+        "zh_TW": {
+            "name": "Washington 城鎮與街道",
+            "summary": "真實的Washington城鎮，並為你建造的站點和車站提供真實的在地名稱。"
+        }
+    },
     "authors": [
         {
             "name": "square",

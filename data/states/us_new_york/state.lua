@@ -4,7 +4,7 @@
 -- Weights per tag; 0 = top-up only (used when the weighted pools run dry). Unknown climates use the whole state.
 return {
 	key = "us_new_york",
-	name = "New York",
+	name = "New York", -- i18n: ignore (data: the state name, not UI text)
 	postal = "NY",
 	fips = "36",
 	modName = "New York Towns & Streets",
@@ -45,8 +45,9 @@ return {
 	regionalSets = {},
 	stationSuffix = nil,
 	notes = { "Not affiliated with the \"New York Names\" mod; all lists here are our own." },
-	revision = 4,
+	revision = 5,
 	changelog = {
+		{ rev = 5, date = "2026-10-10", items = { "New: translations into Russian, German, French, Spanish, Italian, Dutch, Polish, Portuguese (Brazil), Japanese, Korean and Chinese (Simplified and Traditional). The mod follows the game's language setting; town, street and station names stay as they are." } },
 		{ rev = 4, date = "2026-10-09", items = { "Clearer description: says up front that the mod renames the stops and stations you build, not just the default name lists." } },
 		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },
 		{ rev = 2, date = "2026-10-08", items = { "Faster: less work on every build and every frame, and a quicker street name check in big towns." } },

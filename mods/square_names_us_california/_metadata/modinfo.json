@@ -2,6 +2,56 @@
     "name": "California Towns & Streets",
     "summary": "Real California towns, plus real local names for the stops and stations you build.",
     "description": "Real California towns, plus real local names for the stops and stations you build. Adds the name set \"California (Towns & Streets)\" and renames new stops and stations in known California cities.",
+    "localization": {
+        "ru": {
+            "name": "California: города и улицы",
+            "summary": "Настоящие города штата California и местные названия для ваших остановок и станций."
+        },
+        "de": {
+            "name": "California: Orte & Strassen",
+            "summary": "Echte Orte aus California, dazu lokale Namen für selbst gebaute Haltestellen und Bahnhöfe."
+        },
+        "fr": {
+            "name": "California : villes et rues",
+            "summary": "California : vraies villes, et vrais noms locaux pour les arrêts et gares que vous construisez."
+        },
+        "es": {
+            "name": "California: pueblos y calles",
+            "summary": "California: pueblos reales y nombres locales para las paradas y estaciones que construyas."
+        },
+        "it": {
+            "name": "California: città e strade",
+            "summary": "California: città reali e veri nomi locali per le fermate e le stazioni che costruisci."
+        },
+        "nl": {
+            "name": "California: steden & straten",
+            "summary": "California: echte plaatsen, plus echte lokale namen voor de haltes en stations die je bouwt."
+        },
+        "pl": {
+            "name": "California: miasta i ulice",
+            "summary": "California: prawdziwe miejscowości i lokalne nazwy dla przystanków i stacji, które budujesz."
+        },
+        "pt_BR": {
+            "name": "California: cidades e ruas",
+            "summary": "California: cidades reais e nomes locais reais para as paradas e estações que você constrói."
+        },
+        "ja": {
+            "name": "Californiaの町と通り",
+            "summary": "Californiaの実在する町と、建設した停留所や駅に付く実在の地元の名前。"
+        },
+        "ko": {
+            "name": "California 도시와 거리",
+            "summary": "California의 실제 도시, 그리고 건설한 정류장과 역에 붙는 실제 지역 이름."
+        },
+        "zh_CN": {
+            "name": "California 城镇与街道",
+            "summary": "真实的California城镇，并为你建造的站点和车站提供真实的本地名称。"
+        },
+        "zh_TW": {
+            "name": "California 城鎮與街道",
+            "summary": "真實的California城鎮，並為你建造的站點和車站提供真實的在地名稱。"
+        }
+    },
     "authors": [
         {
             "name": "square",
