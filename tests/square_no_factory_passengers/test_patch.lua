@@ -51,6 +51,10 @@ local function loads(line)
 end
 
 local fakeLineUtil, patch, baseCalls, paxFetches, cargoFetches, componentReads
+-- What the faked getModParams returns for this mod (sqperf_log: 1 = Off, 2 = On), and the fake
+-- SQPERF Clock (microseconds; moves only when a test moves it).
+local MOD_ID = "square_no_factory_passengers"
+local myParams, clockUs
 
 before_each(function()
 	reset_modules()
@@ -59,9 +63,11 @@ before_each(function()
 	paxFetches = 0
 	cargoFetches = 0
 	componentReads = 0
+	myParams, clockUs = {}, 1e9
 	set_global("api", {
-		type = { ComponentType = CT },
+		type = { ComponentType = CT, Clock = { new = function() return { getTime = function() return clockUs end } end } },
 		engine = {
+			config = { getModParams = function() return { [MOD_ID] = myParams } end },
 			getComponent = function(e, t)
 				componentReads = componentReads + 1
 				if t == CT.STATION_GROUP then return world.groups[e] end
@@ -184,7 +190,16 @@ test("customFilters lines are skipped", function()
 	eq(loads(line), { { true, false } }, "manual filters untouched")
 end)
 
-test("one log line per cleared stop, none for kept stops", function()
+test("Debug log Off (default): no per-stop log lines", function()
+	clear_logs()
+	local line = { path = { via(100, { false }), via(200, { false }), via(300, { false }), via(700, { false }) } }
+	fakeLineUtil.autoLoadConfig(line)
+	eq(loads(line), { { false }, { true }, { true }, { false } })
+	eq(messages(), {})
+end)
+
+test("Debug log On: one log line per cleared stop, none for kept stops", function()
+	myParams = { sqperf_log = 2 }
 	clear_logs()
 	local line = { path = { via(100, { false }), via(200, { false }), via(300, { false }), via(700, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
@@ -214,4 +229,44 @@ test("errors in the fix are caught, logged once, and the base result stands", fu
 		if e.level == "warning" and e.msg:find("boom", 1, true) then n = n + 1 end
 	end
 	eq(n, 1)
+end)
+
+local function sqperfLines(pattern)
+	local out = {}
+	for _i, e in ipairs(log_entries()) do
+		if e.msg:find("[SQPERF]", 1, true) and (pattern == nil or e.msg:find(pattern, 1, true)) then out[#out + 1] = e.msg end
+	end
+	return out
+end
+
+test("SQPERF: Debug log On gives a 30 s summary of auto_load_config and fix_line", function()
+	myParams = { sqperf_log = 2 }
+	clear_logs()
+	local line = { path = { via(100, { false }), via(200, { false }) } }
+	fakeLineUtil.autoLoadConfig(line) -- first stop opens the window (gate read: On)
+	fakeLineUtil.autoLoadConfig({ customFilters = true, path = {} })
+	clockUs = clockUs + 31e6
+	fakeLineUtil.autoLoadConfig(line)
+	local lines = sqperfLines("win_ms=")
+	eq(#lines, 1)
+	ok(lines[1]:find("mod=square_no_factory_passengers ctx=gui", 1, true), lines[1])
+	ok(lines[1]:find("auto_load_config n=2 ms=", 1, true), lines[1])
+	ok(lines[1]:find("fix_line n=2 ms=", 1, true), lines[1])
+end)
+
+test("SQPERF: Debug log Off: no SQPERF lines from edits; a slow edit (> 16 ms) is logged", function()
+	clear_logs()
+	local line = { path = { via(200, { false }) } }
+	fakeLineUtil.autoLoadConfig(line)
+	clockUs = clockUs + 31e6
+	fakeLineUtil.autoLoadConfig(line)
+	eq(#sqperfLines(), 0)
+	-- 20 ms per catchables fetch: a passenger fetch, then (no homes) a cargo fetch = 40 ms
+	api.engine.system.catchmentAreaSystem.getStationCatchables = function()
+		clockUs = clockUs + 20000
+		return {}
+	end
+	fakeLineUtil.autoLoadConfig(line)
+	eq(#sqperfLines("slow=fix_line max=40.0 over=1/"), 1)
+	eq(#sqperfLines("slow=auto_load_config max=40.0 over=1/"), 1)
 end)

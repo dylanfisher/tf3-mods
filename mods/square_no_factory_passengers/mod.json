@@ -4,5 +4,18 @@
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
-    "cosmetic": false
+    "cosmetic": false,
+    "params": [
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, No Factory Passengers writes how long the line editor's automatic load settings took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus one line per stop it set to no passengers. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        }
+    ]
 }
