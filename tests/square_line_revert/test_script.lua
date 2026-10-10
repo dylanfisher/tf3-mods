@@ -7,6 +7,9 @@
 local AUTO_RENAME = "::/gui/line_vehicle_mgmt/icons/symbol_autorename.tga"
 
 local world, sent, feedbacks, recipeName, origToggleCalls, shift
+-- "Debug: performance log" (sqperf_log: 1 = Off, 2 = On; On by default here so the edit trace lines can be
+-- counted) and the fake SQPERF Clock (microseconds; moves only when a test moves it).
+local sqperfLog, clockUs
 local react, builtin, line_util, button_react_util, script
 
 local function stop(group, station)
@@ -61,8 +64,10 @@ before_each(function()
 	local Line = ctor("Line")
 	Line.Stop = ctor("Stop")
 	Line.StopConfig = ctor("StopConfig")
+	sqperfLog, clockUs = 2, 1e9
 	set_global("api", {
 		engine = {
+			config = { getModParams = function() return { square_line_revert = { sqperf_log = sqperfLog } } end },
 			entityExists = function(e) return world.lines[e] ~= nil or world.groups[e] ~= nil end,
 			getComponent = function(e, ct)
 				if ct == "LINE" then return world.lines[e] end
@@ -70,6 +75,7 @@ before_each(function()
 			end,
 		},
 		type = {
+			Clock = { new = function() return { getTime = function() return clockUs end } end },
 			ComponentType = { LINE = "LINE", STATION_GROUP = "STATION_GROUP" },
 			Line = Line, StationTerminal = ctor("StationTerminal"), Waypoint = ctor("Waypoint"),
 			EdgePos = ctor("EdgePos"), EdgeId = ctor("EdgeId"), Vec3f = ctor("Vec3f"),
@@ -719,4 +725,58 @@ test("one line read per step for both buttons; the tooltip diff is computed once
 	eq(diffs, 0)
 	core.diffSummary = diff
 	api.engine.getComponent = get
+end)
+
+-- SQPERF ----------------------------------------------------------------------------------------------------------
+
+local function sqperfLines(pattern)
+	local out = {}
+	for _i, e in ipairs(log_entries()) do
+		if e.msg:find("[SQPERF]", 1, true) and (pattern == nil or e.msg:find(pattern, 1, true)) then out[#out + 1] = e.msg end
+	end
+	return out
+end
+
+test("Debug log Off: no edit / session trace lines and no SQPERF lines; undo still works", function()
+	sqperfLog = 1
+	threeEdits()
+	eq(editLogs(), 0)
+	for _i, e in ipairs(log_entries()) do
+		ok(not e.msg:find("session line", 1, true), e.msg)
+	end
+	renderAPlus().onClick()
+	eq(#sent, 1)
+	clockUs = clockUs + 31e6
+	renderAPlus()
+	eq(#sqperfLines("win_ms="), 0)
+	eq(#sqperfLines("slow="), 0)
+end)
+
+test("Debug log On: the 30 s summary lists view, renders, clicks and both wrapped base functions", function()
+	threeEdits() -- its first descriptor call opens the window (not counted in it)
+	line_util.makeLineActionDescriptor(makeParams(1))
+	renderAPlus().onClick()
+	clockUs = clockUs + 31e6
+	renderAPlus()
+	local lines = sqperfLines("win_ms=")
+	eq(#lines, 1)
+	ok(lines[1]:find("mod=square_line_revert ctx=gui", 1, true), lines[1])
+	for _i, sec in ipairs({ "button_render n=", "click n=1 ms=", "descriptor n=1 ms=", "toggle_button n=", "view n=" }) do
+		ok(lines[1]:find(sec, 1, true), sec .. " in " .. lines[1])
+	end
+end)
+
+test("a slow view (> 16 ms) is logged, whatever the debug setting", function()
+	sqperfLog = 1
+	addGroups(10, 20)
+	world.lines[1] = lineComp({ 10, 20 })
+	line_util.makeLineActionDescriptor(makeParams(1))
+	renderAPlus()
+	local getComponent = api.engine.getComponent
+	api.engine.getComponent = function(e, ct)
+		clockUs = clockUs + 20000
+		return getComponent(e, ct)
+	end
+	renderAPlus()
+	eq(#sqperfLines("slow=view max=20.0 over=1/"), 1)
 end)

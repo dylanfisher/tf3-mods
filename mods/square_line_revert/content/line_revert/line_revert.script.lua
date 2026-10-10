@@ -21,6 +21,17 @@
 -- before a click can reach the editor. A session = (commonParams table, line entity): a different line or a new
 -- manager window starts a new one with a new history.
 
+-- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state and, all on the GUI thread, the view
+-- computed for the buttons every step ("view": line read, history observe, tooltips; react onStep via
+-- useStepState), the button renders ("button_render"), clicks ("click", including the undo/redo
+-- command), and the two wrapped base functions ("descriptor", "toggle_button", each including the
+-- base function). Calls over 16 ms are logged (at most one line per section per minute); with the
+-- "Debug: performance log" mod setting On, a 30 s summary, and the trace lines (session start, each
+-- recorded edit, the LoadMode check), which before were always logged. Local counters only.
+local sqperf = ug_require "square_line_revert::/sqperf/square_line_revert.lua"
+local perf = sqperf.new({ mod = "square_line_revert", ctx = "gui", paramKey = "sqperf_log" })
+local perfInit = perf:start()
+
 local react = ug_require "::/gui/main/react.lua"
 local builtin = ug_require "::/gui/main/builtin.lua"
 local engine_react_util = ug_require "::/gui/main/engine_react_util.tl"
@@ -39,6 +50,11 @@ local PREFIX = "[LineRevert] "
 
 local function say(msg)
 	if log and log.message then log.message(PREFIX .. msg) else print(PREFIX .. msg) end
+end
+
+-- Trace lines: only with the "Debug: performance log" setting On (the instrument's gate, re-read every 30 s).
+local function trace(msg)
+	if perf.on then say(msg) end
 end
 
 local warned = {}
@@ -82,7 +98,7 @@ local function logLoadModeOnce(comp)
 	local s = comp.stops and #comp.stops > 0 and comp.stops[1]
 	if s then
 		loggedLoadMode = true
-		say("loadMode type " .. type(s.loadMode) .. " value " .. tostring(s.loadMode))
+		trace("loadMode type " .. type(s.loadMode) .. " value " .. tostring(s.loadMode))
 	end
 end
 
@@ -96,7 +112,7 @@ local function ensureSession(params)
 	logLoadModeOnce(comp)
 	local snap = core.snapshot(comp)
 	session = { params = params, line = line, history = core.newHistory(snap) }
-	say("session line " .. tostring(line) .. " stops " .. #snap.stops)
+	trace("session line " .. tostring(line) .. " stops " .. #snap.stops)
 	return session
 end
 
@@ -105,7 +121,7 @@ end
 --- when it changed.
 local function observe(s, comp)
 	if core.observeLive(s.history, comp) then
-		say("edit " .. core.changeCount(s.history) .. " on line " .. tostring(s.line))
+		trace("edit " .. core.changeCount(s.history) .. " on line " .. tostring(s.line))
 	end
 end
 
@@ -190,7 +206,9 @@ end
 local shared = { view = nil, gen = 0, seen = 0 }
 
 local function safeView()
+	local tPerf = perf:start() -- SQPERF section "view" (failed calls count too)
 	local ok, v = pcall(computeView)
+	perf:stop("view", tPerf)
 	if not ok then
 		warnOnce("view", v)
 		return HIDDEN
@@ -335,7 +353,8 @@ end
 --- One recipe per button, both built here so they share the look: line_revert.css.lua scopes the same rules under
 --- both recipe names. `which` = "undo" or "redo" picks the half of the view and the click action.
 local function makeButtonRecipe(recipeName, which, icon)
-	return react.RegisterRecipe(recipeName, function(_p)
+	-- SQPERF section "button_render" (both buttons; the recipe's own function, its first call includes the first view)
+	return react.RegisterRecipe(recipeName, perf:wrap("button_render", function(_p)
 		local state = engine_react_util.useStepState(function()
 			return stepView(which)
 		end, nil, sameView)
@@ -359,6 +378,7 @@ local function makeButtonRecipe(recipeName, which, icon)
 						scaling = builtin.type.ImageViewScaling.AutoFit,
 					},
 					onClick = function()
+						local tPerf = perf:start() -- SQPERF section "click" (failed clicks count too)
 						local ok, err = pcall(function()
 							if which == "redo" then
 								send("redo")
@@ -370,11 +390,12 @@ local function makeButtonRecipe(recipeName, which, icon)
 							warnOnce(which, err)
 							feedback(managerParams, "Line Editor Undo: " .. which .. " failed (see log).", true)
 						end
+						perf:stop("click", tPerf)
 					end,
 				},
 			},
 		}
-	end)
+	end))
 end
 
 -- recipe names also used as CSS scopes in line_revert.css.lua
@@ -424,10 +445,13 @@ local function doReplace(_replacementApi)
 		return
 	end
 	origToggle, origDescriptor = toggle, descriptor
-	button_react_util.makeIconToggleButton = iconToggleButton
-	line_util.makeLineActionDescriptor = lineActionDescriptor
+	-- SQPERF sections "toggle_button" / "descriptor": same arguments and returns; errors pass through
+	button_react_util.makeIconToggleButton = perf:wrap("toggle_button", iconToggleButton)
+	line_util.makeLineActionDescriptor = perf:wrap("descriptor", lineActionDescriptor)
 	say("installed")
 end
+
+perf:phase("init", perfInit)
 
 -- .script.lua resources expose their exports through data(), not a return value (memory: script-lua-exports-via-data)
 function data()

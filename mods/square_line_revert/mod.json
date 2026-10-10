@@ -4,5 +4,18 @@
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
-    "cosmetic": true
+    "cosmetic": true,
+    "params": [
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Line Editor Undo writes how long its undo and redo buttons took to update and act to the game's log file (stdout.txt, lines starting with [SQPERF]), plus a line per recorded edit. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        }
+    ]
 }
