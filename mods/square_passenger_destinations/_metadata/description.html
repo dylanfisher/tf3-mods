@@ -1,0 +1,25 @@
+<p>See where passengers are really going. The station window and the person window get a small Passenger destinations section that draws the game's moving cargo arrows to the homes, shops and workplaces they are travelling to.</p>
+<p>If you liked the arrows on your industries, good news: there are now about thirty more per bus stop.</p>
+<h4>Features</h4>
+<ul>
+<li><strong>Station window</strong>: a single row above Terminals. Tick All or single terminal numbers. Arrows go from the station to the areas its waiting passengers are heading for (nearby destinations are grouped, busiest first). A summary under the row counts them per town and splits them into Home, Shop and Work.</li>
+<li><strong>Person window</strong>: tick Show destination (under Current Route). One arrow from the person, or their stop or vehicle, to the building they are going to, with a note such as "Riding Line 3, off at Main Street -> Work, Springfield".</li>
+<li><strong>Next stop</strong>: tick Next stop (station) or Next stop instead of final destination (person) to see the stop where they leave the current line instead.</li>
+<li><strong>Live</strong>: arrows and counts refresh every second while a toggle is on.</li>
+</ul>
+<h4>Notes</h4>
+<ul>
+<li>Arrows show while a toggle is on and clear when you untick it or close the window. At most 30 arrows are drawn per station; the rest are only counted.</li>
+<li>Workplaces in industries count as "Other" in the town list.</li>
+<li>Reads the game state only: it changes nothing in the simulation, stores nothing in the savegame, and can be added to or removed from existing saves.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 2 (2026-10-09)</h4>
+<ul>
+<li>Faster: the station window scans its waiting passengers once per refresh instead of twice, and reads less per passenger in final-destination mode. Less load at very busy stations while the arrows are on.</li>
+</ul>
+<h4>Revision 1 (2026-10-09)</h4>
+<ul>
+<li>New: first release, final-destination arrows in the station and person windows, with a next-stop option.</li>
+</ul>

@@ -1,0 +1,16 @@
+{
+    "name": "Passenger Destinations",
+    "summary": "Arrows from a station or person to the homes, shops and workplaces passengers travel to.",
+    "description": "Arrows from a station or person to the homes, shops and workplaces passengers travel to. Adds a card to the station and person windows.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

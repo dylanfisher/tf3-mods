@@ -227,6 +227,32 @@ Square.register({
     <path class="scut" d="M430 655 q30 -22 60 0 t60 0" fill="none" stroke-width="16" stroke-linecap="round"/>`,
 });
 
+Square.register({
+  id: 'square_passenger_destinations', name: 'Passenger Destinations', tagline: 'See where passengers are going', accent: '#FF8A65',
+  // A passenger on the left with three accent arrows fanning out to three small houses: where the
+  // people waiting at a stop are headed.
+  glyph: S => {
+    const ox = 290, oy = 420;
+    const house = (cx, cy) => `
+    <path class="ink" d="M${cx - 92} ${cy - 20} L${cx} ${cy - 100} L${cx + 92} ${cy - 20} Z" stroke="var(--ink)" stroke-width="26" stroke-linejoin="round"/>
+    <rect class="ink" x="${cx - 74}" y="${cy - 36}" width="148" height="126" rx="12"/>
+    <rect class="cut" x="${cx - 22}" y="${cy + 24}" width="44" height="66" rx="9"/>`;
+    const arrow = (tx, ty) => {
+      const a = Math.atan2(ty - oy, tx - ox), deg = a * 180 / Math.PI;
+      const ex = tx - 20 * Math.cos(a), ey = ty - 20 * Math.sin(a);
+      return `<path class="sacc" d="M${ox} ${oy} L${ex.toFixed(1)} ${ey.toFixed(1)}" stroke-width="44" stroke-linecap="round"/>
+    <g transform="rotate(${deg.toFixed(2)} ${tx} ${ty}) translate(${tx} ${ty}) scale(1.45) translate(${-tx} ${-ty})">${S.arrowHead(tx, ty)}</g>`;
+    };
+    return `
+    ${house(650, 130)}${house(690, 420)}${house(650, 710)}
+    ${arrow(488, 190)}${arrow(500, 420)}${arrow(488, 650)}
+    <rect class="ink sep" x="90" y="340" width="140" height="200" rx="58"/>
+    <rect class="ink" x="100" y="470" width="52" height="190" rx="26"/>
+    <rect class="ink" x="168" y="470" width="52" height="190" rx="26"/>
+    <circle class="ink sep" cx="160" cy="252" r="66"/>`;
+  },
+});
+
 Square.stateCover({
   id: 'square_names_us_washington', state: 'Washington', flag: 'us_washington.svg', flagAspect: 1.6, accent: '#00843D',
 });
