@@ -29,7 +29,16 @@
     .chip { position: absolute; font-weight: 800; font-size: 30px; line-height: 1; padding: 14px 20px 10px;
             border-radius: 12px; white-space: nowrap; }
     .chip.before { background: rgba(24,32,42,.88); color: #eef2f6; }
-    .chip.after { background: ${S.BRAND}; color: ${S.INK_ON_BRAND}; }`;
+    .chip.after { background: ${S.BRAND}; color: ${S.INK_ON_BRAND}; }
+    .table { position: absolute; border-radius: 18px; overflow: hidden; background: #222c38; color: #eef2f6;
+             box-shadow: 0 24px 70px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.07); }
+    .table table { width: 100%; border-collapse: collapse; }
+    .table th { background: ${S.BRAND}; color: ${S.INK_ON_BRAND}; font-weight: 800; font-size: 30px; text-align: left;
+                padding: 26px 32px 20px; }
+    .table td { font-size: 30px; line-height: 38px; padding: 22px 32px 18px; vertical-align: top;
+                border-top: 2px solid rgba(255,255,255,.07); }
+    .table td:first-child { font-weight: 600; opacity: .8; width: 52%; }
+    .table td:last-child { font-weight: 800; }`;
 
   const fit = (w, h, bw, bh) => Math.min(bw / w, bh / h);
 
@@ -39,6 +48,7 @@
     return `<div class="crop" style="left:${x}px;top:${y}px;width:${cw * s}px;height:${ch * s}px;${extra}">
       <img src="${m.src}" style="width:${(m.srcW || SRC_W) * s}px;left:${-cx * s}px;top:${-cy * s}px"></div>`;
   }
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const chip = (text, kind, x, y) => `<div class="chip ${kind}" style="left:${x}px;top:${y}px">${text}</div>`;
 
   // Media layouts. Each returns HTML positioned inside the 1920x1080 slide.
@@ -56,7 +66,9 @@
       const at = md.at || 'bl', o = 44;
       const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
       const ix = clamp(at[1] === 'l' ? mx - o : mx + w * s - iw * is + o, BOX.x - 40, W - 40 - iw * is);
-      const iy = clamp(at[0] === 't' ? my - o : my + h * s - ih * is + o, 40, H - 40 - ih * is);
+      // insetY (optional): centre the inset at this fraction of the slide height instead of the corner.
+      const iy = clamp(md.insetY != null ? H * md.insetY - ih * is / 2 : at[0] === 't' ? my - o : my + h * s - ih * is + o,
+        40, H - 40 - ih * is);
       return crop(md.main, s, mx, my) + crop(md.inset, is, ix, iy);
     },
     // Same camera, two states: "before" fills the top-left of a 45° diagonal, "after" the rest.
@@ -65,13 +77,15 @@
       const x = BOX.x + (BOX.w - w * s) / 2, y = BOX.y + (BOX.h - h * s) / 2, pw = w * s, ph = h * s;
       const c = (md.split ?? 0.5) * (pw + ph);  // points with x + y < c show "before"
       const poly = `polygon(0 0, ${c}px 0, ${c - ph}px 100%, 0 100%)`;
+      // beforeCrop (optional): a differently framed crop of "before", scaled to the same box, when the camera moved.
+      const bc = md.beforeCrop || md.crop, bs = pw / bc[2];
       return crop({ ...md, src: md.after }, s, x, y)
-        + crop({ ...md, src: md.before }, s, x, y, `clip-path:${poly};box-shadow:none`)
+        + crop({ ...md, src: md.before, crop: bc }, bs, x, y, `clip-path:${poly};box-shadow:none;height:${ph}px`)
         + `<div class="wipe-line" style="left:${x}px;top:${y}px;width:${pw}px;height:${ph}px;overflow:hidden;border-radius:18px">
              <svg width="${pw}" height="${ph}" style="position:absolute">
                <line x1="${c}" y1="0" x2="${c - ph}" y2="${ph}" stroke="${S.BRAND}" stroke-width="10"/></svg>
              <div class="chip before" style="left:24px;top:24px">${md.labels[0]}</div>
-             <div class="chip after" style="right:24px;bottom:24px">${md.labels[1]}</div></div>`;
+             <div class="chip ${md.darkChips ? 'before' : 'after'}" style="right:24px;bottom:24px">${md.labels[1]}</div></div>`;
     },
     // Two crops of the same UI stacked, each labelled (e.g. game default vs with the mod).
     stack(md) {
@@ -84,6 +98,12 @@
         y += lab + h * s + gap;
       });
       return out;
+    },
+    // A text table card (no capture), vertically centred in the box: head = [col1, col2], rows = [[a, b], ...].
+    table(md) {
+      const row = cells => `<tr>${cells.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`;
+      return `<div class="table" style="left:${BOX.x + 40}px;top:50%;transform:translateY(-50%);width:${BOX.w - 40}px">
+        <table><tr>${md.head.map(c => `<th>${esc(c)}</th>`).join('')}</tr>${md.rows.map(row).join('')}</table></div>`;
     },
   };
 

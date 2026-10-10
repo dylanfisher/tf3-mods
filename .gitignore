@@ -14,3 +14,10 @@ __pycache__/
 plans/**/*.log
 plans/**/probe_*.csv
 tmp/
+
+# Third-party code (other authors' mods): local only, never pushed. Notes in plans/<id>/ stay tracked.
+forks/
+mods/square_opt_*/
+mods/square_aat_perftest/
+plans/*/original/
+plans/*/*.log

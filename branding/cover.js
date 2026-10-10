@@ -6,6 +6,21 @@
   const DARK = '#18202a';   // right (pictogram) side
   const INK_ON_BRAND = '#0f1d1b';
   const LINE_COLORS = ['#E5554F', '#4FA3E0', '#3CC48A', '#F2B33D'];
+  // Local "SQ Opt" forks of other authors' mods (never uploaded): same layout, this colour instead of the teal,
+  // so a local override is obvious at a glance in the mod list.
+  const FORK = '#E2873B';
+  // DEV mods (test harnesses and probes, never uploaded): same layout, a neutral steel grey instead of the teal,
+  // so "not a real mod" reads at a glance. No accent and no state colour is grey.
+  const DEV = '#8E9BAE';
+  // DEV groups: DEV mods of one kind share a colour. The title field is a diagonal gradient from the group's
+  // unsaturated `from` (top left, behind the text) to its saturated `to` (bottom right); the stripe and the
+  // flask liquid use `to`. The shared layout and flask keep them one DEV family. Ungrouped DEV mods keep the grey.
+  const DEV_GROUPS = {
+    perf:        { from: '#8FA9C2', to: '#3F9BF0' },  // perf harnesses and SQPERF (blue)
+    roundabouts: { from: '#BFAE7E', to: '#E8C21E' },  // Roundabouts & Interchanges probes (yellow; away from the fork orange)
+    lines:       { from: '#AE9DC2', to: '#B66EF2' },  // line tools probes (violet)
+    names:       { from: '#95AE8B', to: '#6CCB45' },  // town and street names probes (green)
+  };
 
   // Pictogram CSS: glyphs use these classes and never hard-code the theme colours.
   //   ink  = main shape colour (white-ish), acc = the mod's accent, cut = the surface behind the glyph.
@@ -64,6 +79,7 @@
   function render(mod, opts = {}) {
     const o = { text: true, ...opts };
     const vars = `--ink:#eef2f6;--acc:${mod.accent};--cut:${DARK}`;
+    const field = mod.field || BRAND;
     const e = o.text ? 1540 : 1180;  // where the diagonal meets the top edge
     const ty = 200;  // first title baseline: top-left, ~110 px margin like the left edge
     const lines = mod.titleLines || wrap(mod.name, e, TITLE.x, ty, TITLE.lead, TITLE.ch);
@@ -73,9 +89,10 @@
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" style="${vars}">
       <defs>${DEFS}</defs><style>${SVG_CSS}</style>
       <rect width="1920" height="1080" fill="${DARK}"/>
-      <path d="M0 0 H${e} L${e - 1080} 1080 H0 Z" fill="${BRAND}"/>
+      ${mod.fieldFrom ? `<defs><linearGradient id="sqField" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${mod.fieldFrom}"/><stop offset="1" stop-color="${field}"/></linearGradient></defs>` : ''}
+      <path d="M0 0 H${e} L${e - 1080} 1080 H0 Z" fill="${mod.fieldFrom ? 'url(#sqField)' : field}"/>
       <path d="M0 0 H${e} L${e - 1080} 1080 H0 Z" fill="url(#sqSheen)"/>
-      <path d="M${e + 70} 0 L${e - 1010} 1080" stroke="${BRAND}" stroke-width="16"/>
+      <path d="M${e + 70} 0 L${e - 1010} 1080" stroke="${field}" stroke-width="16"/>
       ${glyph(mod, gx, 230, 640)}
       ${mod.overlay ? mod.overlay(Square, { ...o, dx: gx - 1230 }) : ''}
       ${o.text ? `
@@ -146,8 +163,38 @@
     });
   }
 
-  const Square = { BRAND, DARK, INK_ON_BRAND, LINE_COLORS, MODS: [], STICKER,
-                   factory, ground, arrowHead, render, stateCover, streetSign, defs: DEFS, css: SVG_CSS,
+  // ---------- Local forks (SQ Opt) ----------
+  // One call per fork in mods.js (`id: '…'` at the start of a line). The pictogram is a generic fork: one
+  // branch splits off the main line, next to an accent lightning bolt (optimized). Pass glyph to override it.
+  const forkGlyph = () => `
+    <rect class="ink" x="222" y="130" width="56" height="560" rx="28"/>
+    <path class="sink" d="M250 560 C 250 400, 540 420, 540 220" stroke-width="56" stroke-linecap="round"/>
+    <circle class="ink" cx="250" cy="130" r="62"/><circle class="ink" cx="250" cy="690" r="62"/>
+    <circle class="ink" cx="540" cy="190" r="62"/>
+    <path class="acc" d="M610 430 L470 640 H560 L515 800 L690 560 H595 L660 430 Z"/>`;
+  function forkCover({ id, name, tagline = 'Local copy, not for upload', accent = FORK, glyph = forkGlyph }) {
+    Square.register({ id, name, tagline, accent, glyph, field: FORK, series: 'fork' });
+  }
+
+  // ---------- DEV mods (test harnesses, probes) ----------
+  // One call per DEV mod in mods.js (`id: '…'` at the start of a line). The pictogram is a generic lab flask
+  // with accent liquid and two rising bubbles. Pass glyph to override it, tagline for a specific line.
+  const devGlyph = () => `
+    <path class="ink" d="M300 110 H500 V320 L680 640 Q712 700 650 700 H150 Q88 700 120 640 L300 320 Z"/>
+    <rect class="ink" x="250" y="70" width="300" height="70" rx="35"/>
+    <path class="cut" d="M352 190 H448 V334 L515 455 H285 L352 334 Z"/>
+    <path class="acc" d="M262 495 H538 L612 627 Q624 650 598 650 H202 Q176 650 188 627 Z"/>
+    <circle class="cut" cx="345" cy="580" r="26"/><circle class="cut" cx="440" cy="545" r="18"/>`;
+  function devCover({ id, name, group, tagline = 'Dev tool, not for upload', accent, glyph = devGlyph, titleLines }) {
+    if (group && !DEV_GROUPS[group]) throw new Error(`devCover ${id}: unknown group '${group}'`);
+    const g = group && DEV_GROUPS[group];
+    const field = g ? g.to : DEV;
+    Square.register({ id, name, tagline, accent: accent || field, glyph, titleLines, field, fieldFrom: g && g.from,
+                     series: 'dev', group });
+  }
+
+  const Square = { BRAND, FORK, DEV, DEV_GROUPS, DARK, INK_ON_BRAND, LINE_COLORS, MODS: [], STICKER,
+                   factory, ground, arrowHead, render, stateCover, forkCover, devCover, streetSign, defs: DEFS, css: SVG_CSS,
                    register(mod) { Square.MODS.push(mod); } };
   window.Square = Square;
 })();

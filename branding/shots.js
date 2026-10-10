@@ -3,8 +3,11 @@
 // (5120x2880 Retina full-screen). Layouts (see slide.js):
 //   single  { src, crop }
 //   inset   { main: {src, crop}, inset: {src, crop}, insetW, at: 'tl'|'tr'|'bl'|'br' }
-//   wipe    { before, after, crop, labels: [before, after] }  same camera, 45° split
+//   wipe    { before, after, crop, labels: [before, after], beforeCrop? }  same camera, 45° split
+//           (beforeCrop re-frames "before" when the camera moved a little between captures;
+//            split: share of the diagonal given to "before", default 0.5; darkChips: both labels dark)
 //   stack   { items: [{src, crop}, {src, crop}], labels }      same UI, two states
+//   table   { head: [col1, col2], rows: [[a, b], ...] }         text card, no capture
 // title: 2-4 words, sub: one short line. English only.
 
 Square.slides('square_bigger_line_dots', [

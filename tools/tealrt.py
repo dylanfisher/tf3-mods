@@ -27,7 +27,12 @@ from hubconfig import GAME_CACHE_DIR, game_install  # noqa: E402
 
 try:
     # Explicitly 5.4: the default lupa runtime is 5.5, which is not what the game runs.
-    from lupa.lua54 import LuaRuntime
+    import importlib
+    import os as _os
+
+    # TEALRT_LUA=52 runs the tests on Lua 5.2 (doubles only, like the game's pre-5.3 Lua): `-x` of a
+    # zero gives -0 there, while 5.4 integers hide it (e.g. the -0 scan in tests/square_roundabouts).
+    LuaRuntime = importlib.import_module("lupa.lua" + _os.environ.get("TEALRT_LUA", "54")).LuaRuntime
 except ImportError:  # pragma: no cover
     raise SystemExit("lupa with Lua 5.4 is required; run this script through `uv run`")
 
