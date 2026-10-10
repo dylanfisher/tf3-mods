@@ -12,6 +12,16 @@
 -- Everything runs inside one pcall per entry point: an error is logged once, never thrown at the engine.
 -- Lazy init only (works when added to an existing save); state is a small, self-pruning ledger.
 
+-- SQPERF (plans/sqperf/README.md): load time of this game-script Lua state (one per simulation
+-- worker), the first update (lazy subscription + first state read), calls slower than 50 ms (at most
+-- one line per section per minute) and, with the "Debug: performance log" mod setting On, a 30 s
+-- summary. Sections: "update" / "event" around the entry points' pcalls, "update_work" (the state
+-- read, settle and payout part of update), "on_pre" / "on_post" (a player build's pre / post event).
+-- Local counters only; nothing is saved.
+local sqperf = ug_require "square_full_refund::/sqperf/square_full_refund.lua" as SquareFullRefundSqPerf
+local perf = sqperf.new({ mod = "square_full_refund", ctx = "gs", paramKey = "sqperf_log", first = { "update" } })
+local perfInit = perf:start()
+
 local logic = ug_require "/refund/refund_logic.tl" as FullRefundLogic
 
 local MOD_ID <const> = "square_full_refund"
@@ -450,6 +460,10 @@ local function onPost(state : GameScriptState<FullRefundState>, proposal : api.t
 	end
 end
 
+-- SQPERF sections "on_pre" / "on_post" (inside handleEvent's pcall; an error passes through untimed).
+local timedOnPre = perf:wrap("on_pre", onPre)
+local timedOnPost = perf:wrap("on_post", onPost)
+
 local function handleApply(state : GameScriptState<FullRefundState>, name : string, param : any)
 	local p = param as {any}
 	if p == nil then return end
@@ -465,7 +479,7 @@ local function handleApply(state : GameScriptState<FullRefundState>, name : stri
 		pre and "pre" or "post", shape.kind, now, shape.numToAdd, shape.numToRemove, shape.addedSegs,
 		shape.removedSegs, shape.removedNodes, money(shape.costs), #shape.result, idList(shape.result),
 		money(getBalance()))) end
-	if pre then onPre(state, proposal, shape, now) else onPost(state, proposal, shape, now) end
+	if pre then timedOnPre(state, proposal, shape, now) else timedOnPost(state, proposal, shape, now) end
 end
 
 local function doUpdate(state : GameScriptState<FullRefundState>) : any
@@ -492,6 +506,7 @@ local function doUpdate(state : GameScriptState<FullRefundState>) : any
 		nextStateCheck = t + 1
 	end
 	updateWork = false
+	local tWork = perf:start() -- SQPERF section "update_work"
 	local s = state:get()
 	if s ~= nil and s.pending ~= nil and s.pending.await then
 		settle(s, getBalance(), "update")
@@ -506,6 +521,7 @@ local function doUpdate(state : GameScriptState<FullRefundState>) : any
 			probe("credited " .. money(amount) .. (BOOK_AS_BULLDOZER and " (Construction/Bulldozer)" or " (Other)"))
 		end
 	end
+	perf:stop("update_work", tWork)
 end
 
 local function doHandleEvent(state : GameScriptState<FullRefundState>, id : string, name : string, param : any) : any
@@ -516,14 +532,20 @@ end
 
 local script : GameScript<FullRefundState> = {
 	update = function(_userParams : table, state : GameScriptState<FullRefundState>, _dt : number) : any
+		local tPerf = perf:start() -- SQPERF section "update" (failed calls count too)
 		local ok, err = pcall(doUpdate, state)
+		perf:stop("update", tPerf)
 		if not ok then warnOnce("update", "update failed: " .. tostring(err)) end
 	end,
 
 	handleEvent = function(_userParams : table, state : GameScriptState<FullRefundState>, _src : string, id : string, name : string, param : any) : any
+		local tPerf = perf:start() -- SQPERF section "event"
 		local ok, err = pcall(doHandleEvent, state, id, name, param)
+		perf:stop("event", tPerf)
 		if not ok then warnOnce("handleEvent", "event '" .. tostring(name) .. "' failed: " .. tostring(err)) end
 	end,
 }
+
+perf:phase("init", perfInit)
 
 return script
