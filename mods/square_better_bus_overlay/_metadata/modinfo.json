@@ -1,0 +1,16 @@
+{
+    "name": "Better Bus Overlay",
+    "summary": "Shows your road and tram lines and unserved buildings while placing stops, bus lanes or crosswalks.",
+    "description": "Shows your bus, tram and truck lines and unserved buildings while you place stops, bus lanes or crosswalks. GUI only: stores nothing in the savegame.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}
