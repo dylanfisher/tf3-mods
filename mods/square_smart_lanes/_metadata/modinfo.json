@@ -2,6 +2,56 @@
     "name": "Smart Lanes",
     "summary": "Lane discipline on roundabouts: entries and exits matched lane by lane, set when you build.",
     "description": "Lane discipline on roundabouts. Right after you build a roundabout, Smart Lanes sets which lane may go where at its junctions (entries and exits matched lane by lane, exit-only outer lane), like the Crossing Tool would.",
+    "localization": {
+        "ru": {
+            "name": "Умные полосы",
+            "summary": "Порядок полос на кольцах: въезды и выезды соединяются полоса к полосе при постройке."
+        },
+        "de": {
+            "name": "Smarte Spuren",
+            "summary": "Spurdisziplin im Kreisverkehr: Ein- und Ausfahrten Spur für Spur verbunden, beim Bau gesetzt."
+        },
+        "fr": {
+            "name": "Voies intelligentes",
+            "summary": "Discipline de voie aux ronds-points : entrées et sorties reliées voie par voie, dès la construction."
+        },
+        "es": {
+            "name": "Carriles inteligentes",
+            "summary": "Disciplina de carril en rotondas: entradas y salidas emparejadas carril a carril al construir."
+        },
+        "it": {
+            "name": "Corsie intelligenti",
+            "summary": "Disciplina di corsia nelle rotonde: entrate e uscite abbinate corsia per corsia alla costruzione."
+        },
+        "nl": {
+            "name": "Slimme rijstroken",
+            "summary": "Rijstrookdiscipline op rotondes: in- en uitritten per rijstrook gekoppeld, direct bij het bouwen."
+        },
+        "pl": {
+            "name": "Inteligentne pasy",
+            "summary": "Porządek pasów na rondach: wjazdy i wyjazdy łączone pas do pasa już przy budowie."
+        },
+        "pt_BR": {
+            "name": "Faixas inteligentes",
+            "summary": "Disciplina de faixas em rotatórias: entradas e saídas pareadas faixa a faixa ao construir."
+        },
+        "ja": {
+            "name": "スマート車線",
+            "summary": "ラウンダバウトの車線規律：建設時に入口と出口を車線ごとに対応させます。"
+        },
+        "ko": {
+            "name": "스마트 차선",
+            "summary": "로터리 차선 규칙: 건설할 때 진입로와 출구를 차선별로 맞춥니다."
+        },
+        "zh_CN": {
+            "name": "智能车道",
+            "summary": "环岛车道规范：建造时即将入口和出口按车道一一对应。"
+        },
+        "zh_TW": {
+            "name": "智慧車道",
+            "summary": "圓環車道規範：建造時即將入口與出口依車道一一對應。"
+        }
+    },
     "authors": [
         {
             "name": "square",

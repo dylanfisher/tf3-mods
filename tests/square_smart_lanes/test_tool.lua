@@ -377,6 +377,30 @@ test("status chip text follows selection, layout and result", function()
 	eq(G.core.clear(), false)
 end)
 
+test("status and badge texts go through _(); the empty badge is told apart by key, not label", function()
+	local saved = _
+	local tr = {
+		["Nothing selected"] = "Ничего не выбрано", ["Lane status"] = "Полосы",
+		["Junction %s on roundabout %s (%s, %s)"] = "Перекрёсток %s на кольце %s (%s, %s)",
+		["%d lanes"] = "полос: %d", ["%d arms"] = "съездов: %d",
+		["Matched lanes"] = "Полосы по порядку", ["%s applied to %d junction"] = "%s: применено к %d перекрёстку",
+	}
+	_ = function(k) return tr[k] or k end
+	local okRun, err = pcall(function()
+		local G = makeGame()
+		eq(G.core.status("turbo").head, "Ничего не выбрано")
+		local none = G.core.badge()
+		eq(none.key, "none")
+		eq(none.label, "Полосы")
+		G.core.select(22768, nil)
+		ok(has(G.core.status("matched").head, "Перекрёсток 22768 на кольце"), G.core.status("matched").head)
+		G.core.apply("node", "matched")
+		ok(has(G.core.status("matched").detail, "Полосы по порядку: применено к 1 перекрёстку"), G.core.status("matched").detail)
+	end)
+	_ = saved
+	if not okRun then error(err, 0) end
+end)
+
 ---------------------------------------------------------------------------
 -- The tool script itself (getDefinition through data(), with stubbed GUI modules)
 
