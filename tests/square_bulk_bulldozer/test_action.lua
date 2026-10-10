@@ -312,3 +312,33 @@ test("highlight overlay: a growing selection only builds pieces for the new enti
 	eq(overlayCount(p.actionFn()), 6)
 	eq(made, 6, "only the new road's 2 pieces were made")
 end)
+
+-- SQPERF rollout: the per-event mouse log (Phase 1 spike) only with "Debug: performance log" On.
+local function mouseLogLines(debugOn)
+	local lines = {}
+	set_global("log", { message = function(m) lines[#lines + 1] = m end })
+	api.engine.config = { getModParams = function()
+		return { square_bulk_bulldozer = { sqperf_log = debugOn and 2 or 1 } }
+	end }
+	local p = render(newParam(true))
+	local onMouse = mouseHandler(p)
+	paintOne(onMouse)
+	set_global("log", nil)
+	local mouse, sqperf = 0, 0
+	for _, m in ipairs(lines) do
+		if string.find(m, "[BulkBulldozer] mouse ", 1, true) == 1 then mouse = mouse + 1 end
+		if string.find(m, "[SQPERF] mod=square_bulk_bulldozer ctx=gui", 1, true) == 1 then sqperf = sqperf + 1 end
+	end
+	return mouse, sqperf, lines
+end
+
+test("debug log: mouse events are not logged with the performance log Off", function()
+	local mouse = mouseLogLines(false)
+	eq(mouse, 0)
+end)
+
+test("debug log: mouse events are logged with the performance log On", function()
+	local mouse, sqperf = mouseLogLines(true)
+	eq(mouse, 2, "press + release")
+	ok(sqperf >= 1, "level 1 / level 3 SQPERF lines while On")
+end)
