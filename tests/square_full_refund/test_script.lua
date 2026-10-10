@@ -5,9 +5,11 @@ local W
 
 local function installApi()
 	W = { t = 0, balance = 10000000, params = { square_full_refund = { refundWindow = 120 } }, sent = {},
-		edges = {}, nodes = {} }
+		edges = {}, nodes = {}, clockUs = 1e9 }
 	set_global("api", {
 		type = {
+			-- SQPERF timer: microseconds that only move when a test moves W.clockUs.
+			Clock = { new = function() return { getTime = function() return W.clockUs end } end },
 			ComponentType = { GAME_TIME = "GAME_TIME", BASE_EDGE = "BASE_EDGE", BASE_NODE = "BASE_NODE" },
 			JournalEntry = {
 				new = function() return { category = {} } end,
@@ -438,5 +440,53 @@ test("perf: in the map editor getModParams is not called on every frame", functi
 	api.engine.config.getModParams = function() calls = calls + 1; return W.params end
 	for _ = 1, 200 do script.update({}, st, 0.0) end
 	eq(next(st.subs), nil)
-	ok(calls <= 2, "getModParams calls: " .. calls)
+	-- <= 2 by the mod, plus SQPERF's "Debug: performance log" gate: once when its first window opens
+	-- (first update) and once for the phase=first line, then only every 30 s.
+	ok(calls <= 4, "getModParams calls: " .. calls)
+	W.clockUs = W.clockUs + 31e6
+	local before = calls
+	for _ = 1, 200 do script.update({}, st, 0.0) end
+	ok(calls - before <= 3, "getModParams calls after 30 s: " .. (calls - before))
+end)
+
+local function sqperfLines(pattern)
+	local out = {}
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("[SQPERF]", 1, true) and (pattern == nil or e.msg:find(pattern, 1, true)) then out[#out + 1] = e.msg end
+	end
+	return out
+end
+
+test("SQPERF: Debug log On gives a 30 s summary of update, events and the build handlers", function()
+	W.params.square_full_refund.sqperf_log = 2
+	script.update({}, st, 0.0) -- first stop opens the window (gate read: On)
+	build({ 500 }, 1000)
+	W.t = 1000
+	bulldoze({ remove = { 500 } }, 750)
+	script.handleEvent({}, st, "", "other", "x", nil)
+	W.clockUs = W.clockUs + 31e6
+	script.update({}, st, 0.0)
+	local lines = sqperfLines("win_ms=")
+	eq(#lines, 1)
+	local line = lines[1]
+	ok(line:find("mod=square_full_refund ctx=gs", 1, true), line)
+	for _, sec in ipairs({ "event n=5 ms=", "on_pre n=2 ms=", "on_post n=2 ms=", "update n=", "update_work n=" }) do
+		ok(line:find(sec, 1, true), sec .. " in " .. line)
+	end
+	eq(#W.sent, 1)
+end)
+
+test("SQPERF: Debug log Off: no SQPERF lines; a slow update (> 50 ms) is logged once", function()
+	script.update({}, st, 0.0)
+	build({ 500 }, 1000)
+	W.clockUs = W.clockUs + 31e6
+	script.update({}, st, 0.0)
+	eq(#sqperfLines(), 0)
+	st.get = function(self) W.clockUs = W.clockUs + 60000; return self.value end
+	script.update({}, st, 0.0) -- the safety-net state read (one per os.time() second) may be skipped
+	W.clockUs = W.clockUs + 1
+	local prop = proposal({ remove = { 500 } })
+	fire("onPreBuildProposal", prop, 0, {})
+	ok(#sqperfLines("slow=on_pre max=60.0 over=1/") == 1, table.concat(sqperfLines(), "\n"))
+	ok(#sqperfLines("slow=event max=60.0 over=1/") == 1, table.concat(sqperfLines(), "\n"))
 end)

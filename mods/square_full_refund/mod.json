@@ -19,6 +19,17 @@
             ],
             "numbers": [60.0, 120.0, 300.0, 600.0],
             "defaultIndex": 0
+        },
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Full Refund writes how long its game script took to track your builds and bulldozing to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
         }
     ]
 }
