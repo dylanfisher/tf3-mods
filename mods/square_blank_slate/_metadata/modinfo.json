@@ -1,0 +1,20 @@
+{
+    "name": "Blank Slate: Empty Flat Test Map",
+    "summary": "A terrain generator for a flat, empty island with sea on every side. No hills, trees or rocks.",
+    "description": "A terrain generator for a flat, empty island with sea on every side. Pick Blank Slate in the Map Editor to get a clean test map with no towns, industries, trees or rocks.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Map",
+        "Temperate",
+        "Dry",
+        "Tropical",
+        "Subarctic"
+    ],
+    "dependencies": [],
+    "url": ""
+}
