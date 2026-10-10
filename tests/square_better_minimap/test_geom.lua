@@ -183,6 +183,32 @@ test("pictureSize: portrait maps are widened to the minimum width, aspect kept",
 	eq(wc, 360); eq(hc, 720)
 end)
 
+test("pictureSize: floorW beats maxLong up to absMaxLong", function()
+	local strip3 = geom.boxFromBounds(0, 0, 4096, 12288) -- 1:3, the reported case (S was 121 x 360)
+	local w, h = geom.pictureSize(strip3, 200, 180, 360, nil)
+	eq(w, 121); eq(h, 360) -- without a floor: narrower than the window (aspect from the 67 x 200 widget)
+	w, h = geom.pictureSize(strip3, 200, 180, 360, nil, 180, 720)
+	eq(w, 180); eq(h, 537)
+	local lw, lh = geom.pictureSize(strip3, 560, 360, 720, nil, 180, 720)
+	eq(lw, 240); eq(lh, 720) -- L: already above the floor, unchanged
+	ok(w < lw, "S < L")
+	-- 1:5: the screen limit wins, a band is left
+	local strip5 = geom.boxFromBounds(0, 0, 2048, 10240)
+	local w5, h5 = geom.pictureSize(strip5, 200, 180, 360, nil, 180, 720)
+	eq(w5, 144); eq(h5, 720)
+	-- the in-game values (FLOOR_W 120): 1:3 at S keeps 121 x 360, 1:5 grows to the floor
+	w, h = geom.pictureSize(strip3, 200, 180, 360, nil, 120, 720)
+	eq(w, 121); eq(h, 360)
+	w5, h5 = geom.pictureSize(strip5, 200, 180, 360, nil, 120, 720)
+	eq(w5, 120); eq(h5, 600)
+	-- 1:2 and landscape: no change
+	local tall = geom.boxFromBounds(0, 0, 4096, 8192)
+	local w2, h2 = geom.pictureSize(tall, 200, 180, 360, nil, 180, 720)
+	eq(w2, 180); eq(h2, 360)
+	local ww, wh = geom.pictureSize(geom.boxFromBounds(0, 0, 10240, 2048), 200, 180, 360, nil, 180, 720)
+	eq(ww, 200); eq(wh, 40)
+end)
+
 test("groundPoint: ray hits the plane", function()
 	-- eye 1000 m up at (0, -1000), looking at the centre (0, 0) on z = 0
 	local x, y, hit = geom.groundPoint(0, -1000, 1000, 0, 1000, -1000, 0, 0, 0, 4000)
@@ -285,4 +311,104 @@ test("clipBox inside, clipped left/top, clipped right/bottom", function()
 	assert(l == 0 and t == 0 and w == 30 and h == 15, "left/top")
 	l, t, w, h = geom.clipBox(230, 475, 40, 20, 240, 480)
 	assert(l == 210 and t == 465 and w == 30 and h == 15, "right/bottom")
+end)
+
+-- Phase 7: industry filter helpers.
+
+test("readPrefs keeps the filter string only", function()
+	eq(geom.readPrefs({ filterTypes = "a.con|b.con" }, 2, 0.06).filterTypes, "a.con|b.con")
+	eq(geom.readPrefs({ filterTypes = "" }, 2, 0.06).filterTypes, "")
+	eq(geom.readPrefs({ filterTypes = 5 }, 2, 0.06).filterTypes, nil)
+	eq(geom.readPrefs({}, 2, 0.06).filterTypes, nil)
+end)
+
+test("markerLayout carries the type key", function()
+	local box = geom.boxFromBounds(0, 0, 100, 100)
+	local l = geom.markerLayout({ { entity = 1, x = 50, y = 50, icon = "i", name = "n", typeKey = "farm.con" } },
+		box, geom.DEFAULT_ORIENT, 100, 100, 10)
+	eq(#l, 1); eq(l[1].typeKey, "farm.con")
+end)
+
+local function mk(entity, left, top, typeKey)
+	return { key = "k" .. entity, entity = entity, left = left, top = top, icon = "i", typeKey = typeKey }
+end
+
+test("hitMarker finds the marker under the point, with tolerance", function()
+	local ms = { mk(1, 10, 10, "a"), mk(2, 50, 50, "b") }
+	eq(geom.hitMarker(ms, 15, 15, 10, 2).entity, 1)
+	eq(geom.hitMarker(ms, 10, 10, 10, 0).entity, 1)  -- edge counts
+	eq(geom.hitMarker(ms, 21, 15, 10, 2).entity, 1)  -- inside the tolerance
+	eq(geom.hitMarker(ms, 23, 15, 10, 2), nil)        -- outside
+	eq(geom.hitMarker(ms, 55, 55, 10, 2).entity, 2)
+	eq(geom.hitMarker(ms, 35, 35, 10, 2), nil)
+	eq(geom.hitMarker(nil, 1, 1, 10, 2), nil)
+	eq(geom.hitMarker({}, 1, 1, 10, 2), nil)
+end)
+
+test("hitMarker picks the nearest centre of overlapping markers, ties to the one on top", function()
+	local ms = { mk(1, 10, 10, "a"), mk(2, 16, 10, "b") }
+	eq(geom.hitMarker(ms, 14, 15, 10, 0).entity, 1)  -- centre 15 vs 21
+	eq(geom.hitMarker(ms, 19, 15, 10, 0).entity, 2)
+	eq(geom.hitMarker(ms, 18, 15, 10, 0).entity, 2)  -- equal distance (3): the later (drawn on top) wins
+end)
+
+test("hitMarker skips markers that aren't visible", function()
+	local ms = { mk(1, 10, 10, "a"), mk(2, 12, 10, "b") }
+	local onlyA = function(m) return m.typeKey == "a" end
+	eq(geom.hitMarker(ms, 20, 15, 10, 0, onlyA).entity, 1)
+	eq(geom.hitMarker(ms, 21, 15, 10, 0, function() return false end), nil)
+end)
+
+test("controlRows: greedy rows by estimated width, hidden controls left out", function()
+	local function ids(rows)
+		local out = {}
+		for _, r in ipairs(rows) do out[#out + 1] = table.concat(r, " ") end
+		return table.concat(out, " / ")
+	end
+	local W = { ind = 47, filter = 68, net = 47, viz = 47 }
+	local all = { "ind", "filter", "net", "viz" }
+	eq(ids(geom.controlRows(235, all, W, 6, 8)), "ind filter net viz")
+	eq(ids(geom.controlRows(234, all, W, 6, 8)), "ind filter net / viz")
+	eq(ids(geom.controlRows(129, all, W, 6, 8)), "ind filter / net viz")
+	eq(ids(geom.controlRows(120, all, W, 6, 8)), "ind / filter / net viz")
+	eq(ids(geom.controlRows(120, { "ind", "net" }, W, 6, 8)), "ind net")
+	eq(ids(geom.controlRows(161, { "ind", "net", "viz" }, W, 6, 8)), "ind net viz")
+	eq(ids(geom.controlRows(160, { "ind", "net", "viz" }, W, 6, 8)), "ind net / viz")
+	eq(ids(geom.controlRows(40, { "ind", "net" }, W, 6, 8)), "ind / net")
+	eq(ids(geom.controlRows(200, {}, W, 6, 8)), "")
+end)
+
+test("textUnits / controlWidth: UTF-8 chars, CJK twice; fits the measured English widths", function()
+	eq(geom.textUnits(""), 0)
+	eq(geom.textUnits("Ind"), 3)
+	eq(geom.textUnits("Фильтр"), 6) -- Cyrillic: 2-byte, one unit each
+	eq(geom.textUnits("Ärger"), 5)
+	eq(geom.textUnits("産業"), 4) -- kana/ideographs: wide
+	eq(geom.textUnits("필터"), 4) -- Hangul: wide
+	eq(geom.textUnits("€5"), 2) -- 3-byte below U+3000: narrow
+	eq(geom.controlWidth("Ind"), 47)
+	eq(geom.controlWidth("Filter"), 68)
+	eq(geom.controlWidth(nil), 26)
+	-- Translated labels push controls onto a second row sooner.
+	local function ids(rows)
+		local out = {}
+		for _, r in ipairs(rows) do out[#out + 1] = table.concat(r, " ") end
+		return table.concat(out, " / ")
+	end
+	local ru = { ind = geom.controlWidth("Пром"), filter = geom.controlWidth("Фильтр"),
+		net = geom.controlWidth("Сеть"), viz = geom.controlWidth("Ярко") }
+	eq(ids(geom.controlRows(235, { "ind", "filter", "net", "viz" }, ru, 6, 8)), "ind filter net / viz")
+	eq(ids(geom.controlRows(256, { "ind", "filter", "net", "viz" }, ru, 6, 8)), "ind filter net viz")
+end)
+
+test("fitText: cuts at a UTF-8 boundary with '...', CJK counted twice", function()
+	eq(select(1, geom.fitText("Sawmill", 10)), "Sawmill")
+	eq(select(2, geom.fitText("Sawmill", 10)), false)
+	local s, cut = geom.fitText("Лесозаготовительное предприятие", 22)
+	eq(cut, true)
+	eq(s, "Лесозаготовительное...") -- trailing space dropped
+	eq(geom.textUnits(s) <= 22, true)
+	eq(select(1, geom.fitText("Завод по производству инструментов", 20)), "Завод по производ...")
+	eq(select(1, geom.fitText("食品加工工場", 9)), "食品加...") -- 3 wide chars = 6 units + 3
+	eq(select(1, geom.fitText("Ab", 2)), "Ab")
 end)

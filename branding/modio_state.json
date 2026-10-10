@@ -58,34 +58,39 @@
     "modioId": 6433435,
     "logo": {
       "file": "0.png",
-      "sha": "1f85ae3cb09864a1",
-      "remote": "0.8.png"
+      "sha": "754b7a595da0870b",
+      "remote": "0.10.png"
     },
     "images": [
       {
         "file": "1.png",
-        "sha": "a78c3aa9c96f5afb",
-        "remote": "1.png"
+        "sha": "a51b831506c73157",
+        "remote": "1.2.png"
       },
       {
         "file": "2.png",
-        "sha": "f1a6cc9e0de0c5af",
-        "remote": "2.png"
+        "sha": "a15200ab0ffc268b",
+        "remote": "2.2.png"
       },
       {
         "file": "3.png",
-        "sha": "6cfb6027df9dec3d",
-        "remote": "3.png"
+        "sha": "0d029ccb21112e48",
+        "remote": "3.2.png"
       },
       {
         "file": "4.png",
-        "sha": "dea8338c8ca05658",
-        "remote": "4.1.png"
+        "sha": "418325df117802d8",
+        "remote": "4.2.png"
       },
       {
         "file": "5.png",
-        "sha": "2c446c4dbd763d12",
-        "remote": "5.1.png"
+        "sha": "9f5306107125ba45",
+        "remote": "5.2.png"
+      },
+      {
+        "file": "6.png",
+        "sha": "c8b480890fdbb122",
+        "remote": "6.png"
       }
     ],
     "synced": "2026-10-10",
@@ -95,12 +100,12 @@
         "a467417fdd8dac22"
       ],
       "summary": [
-        "9b66908b70ca3a76",
-        "9b66908b70ca3a76"
+        "210657bba486806d",
+        "210657bba486806d"
       ],
       "description": [
-        "95a850a9f340e38e",
-        "95a850a9f340e38e"
+        "f7bd44aacbe610ec",
+        "f7bd44aacbe610ec"
       ]
     }
   },

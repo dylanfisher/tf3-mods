@@ -62,6 +62,13 @@
 -- CLICK: react.onMouseEvent + useSelfRef():containsPosition / getPosition(gravityX, gravityY)
 -- (react.d.tl:153-200, 342). Phase 1: getPosition returns 0..1 screen fractions, events pixels;
 -- minimap_geom.eventToFrac handles both.
+--
+-- INDUSTRY FILTER (phase 7, PLAN.md "Phase 7"; rules in minimap_filter.tl): a set of industry type
+-- keys (construction fileName, read in readIndustry), empty = all, remembered in the prefs. Shift
+-- (IA_PRECISION_MODE) + pointer over an icon fades the other types (MinimapMarkers hover state, set
+-- by the canvas through markersHoverFn; the layout cache and the other layers are untouched).
+-- Shift+click filters (filter.shiftClick) instead of jumping. The "Filter" checkbox (shown while Ind
+-- is on) opens and closes the filter window (MinimapFilterWindow) and shows whether it is open. Both go through setFilter, which re-renders its listeners.
 
 -- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state, slow calls, and with the
 -- "Debug: performance log" setting On a 30 s summary. Two instruments, local counters only,
@@ -87,6 +94,7 @@ local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 local geom = ug_require "square_better_minimap::/minimap/minimap_geom.tl" as SquareMinimapGeom
 local net = ug_require "square_better_minimap::/minimap/minimap_net.tl" as SquareMinimapNet
 local netscan = ug_require "square_better_minimap::/minimap/minimap_netscan.tl" as SquareMinimapNetScan
+local filter = ug_require "square_better_minimap::/minimap/minimap_filter.tl" as SquareMinimapFilter
 
 local WINDOW_ID <const> = "squareminimap.window"
 local REV_CHECK_SECONDS <const> = 2.0    -- terrain/town/industry change check while the window is open
@@ -123,6 +131,19 @@ local MIN_WIDTHS : {integer} = { 180, 360 }
 -- ... and the long side never above the cap (wins over MIN_WIDTHS, so a 1:5 strip stays on screen;
 -- it gets a narrow band instead). Per step so strips still grow S < L; 1:2 maps fill exactly.
 local MAX_LONG : {integer} = { 360, 720 }
+-- ... except that the picture is never narrower than the window itself can get. With one control
+-- row that was ~171 px (a 121 px picture clipped "Hi-vis", 2026-10-10); narrow pictures now get two
+-- rows (geom.controlRows), so the floor is the window frame + header alone (estimate: check
+-- the `fit:` log for EMPTY BAND). It wins over MAX_LONG up to ABS_MAX_LONG (two thirds of a
+-- 1080 UI px screen): a 1:3 strip at S stays 121x360; only strips that would pass 720 px get a band.
+local FLOOR_W <const> = 120
+-- Control row packing (geom.controlRows): estimated UI px per checkbox from its translated label
+-- (geom.controlWidth: one row "Ind Net Viz" measured ~155 px in the 2026-10-10 screenshot -> ~47 px per
+-- 3-letter label, "Filter" ~68 px), the row's spacing and its left + right padding (minimap-controls).
+-- Estimates: TESTING.md P7.
+local CONTROL_SPACING <const> = 6
+local CONTROL_PAD <const> = 8
+local ABS_MAX_LONG <const> = 720
 local SIZE_LABELS : {string} = { "S", "L" } -- log only; the button shows SIZE_ICON
 -- Size toggle icon: our own tight white magnifier mask (zoom@2x.tga, 48x48, rendered by
 -- tools/render_icon_square_better_minimap.py; loaded by the plain name like cam_arrow). The base
@@ -130,6 +151,9 @@ local SIZE_LABELS : {string} = { "S", "L" } -- log only; the button shows SIZE_I
 -- the image and read as a ~9 px dot at 22 UI px in game (2026-10-10). Tinted and sized in the
 -- stylesheet (ImageView!minimap-size-icon).
 local SIZE_ICON <const> = "square_better_minimap::/minimap/gui/zoom.tga"
+-- Top-bar button in the "Icon" style (mod.json hudButtonStyle): folded-map mask, map@2x.tga 48x48
+-- (tools/render_icon_square_better_minimap.py), shown at 24 UI px like the base layers icon.
+local HUD_ICON <const> = "square_better_minimap::/minimap/gui/map.tga"
 -- Where the size button sits: true = the window header (builtin.Window `header`, builtin.d.tl:1209;
 -- base use: the industry window's tab row, make_entity_window.tl:236), next to the pin; false = the
 -- control row under the map. In game (2026-10-10) the 14 px icon in the control row was too small
@@ -143,6 +167,16 @@ local ORIENT : SquareMinimapOrient = geom.DEFAULT_ORIENT
 local MARKER_PX : {integer} = { 12, 18 }
 -- Generic industry icon (base: industry_react_util.tl:715), for industries without a cargo icon.
 local FALLBACK_ICON <const> = "::/gui/entity_window/icons/building_industry.tga"
+-- Hit test tolerance around a marker (UI px) for the Shift hover / Shift+click (phase 7).
+local HIT_TOL_PX <const> = 2
+
+-- Industry filter window (phase 7): its own small window (builtin.Window, id below), next to the
+-- minimap. Chevron between input and output cargo icons, as Industry Flows' type rows
+-- (flows_window.script.tl CARGO_ARROW_ICON).
+local FILTER_WINDOW_ID <const> = "squareminimap.filter"
+local FILTER_SCROLL_ROWS <const> = 8   -- more matching types than this: the list scrolls (as Industry Flows)
+local FILTER_WINDOW_FRAC_W <const> = 0.17 -- estimated filter window width (screen fraction) for placing it
+local CARGO_ARROW_ICON <const> = "::/gui/builtin/combobox/arrow_right.tga"
 
 ---------------------------------------------------------------------------
 -- Logging
@@ -182,6 +216,8 @@ local record Session
 	posX : number      -- window anchor (top-right, CSS anchorPoint {1, 0}) in screen fractions
 	posY : number
 	open : boolean     -- the player has the window open (set by open/close actions only, not by unmounts)
+	filter : SquareMinimapFilterSel -- industry types shown (phase 7); empty = all
+	filterQuery : string            -- filter window search text (session only, not remembered)
 end
 
 -- Window lifecycle. The window is added once and then only hidden/shown by id (like the base
@@ -203,6 +239,8 @@ local session : Session = {
 	sizeIdx = DEFAULT_SIZE,
 	pinned = false,
 	open = false,
+	filter = {},
+	filterQuery = "",
 }
 
 ---------------------------------------------------------------------------
@@ -233,13 +271,15 @@ local function currentPrefs() : SquareMinimapPrefs
 		showNet = session.showNet,
 		hiVis = session.hiVis,
 		open = session.open and session.pinned,
+		filterTypes = filter.toPrefs(session.filter),
 	}
 end
 
 local function prefsText(p : SquareMinimapPrefs) : string
-	return string.format("pos %s, pinned=%s, size=%s, industries=%s, net=%s, hivis=%s, open=%s",
+	return string.format("pos %s, pinned=%s, size=%s, industries=%s, net=%s, hivis=%s, open=%s, filter=%s",
 		p.posX ~= nil and string.format("%.4f,%.4f", p.posX, p.posY) or "(none)",
-		tostring(p.pinned), tostring(p.sizeIdx), tostring(p.showIndustries), tostring(p.showNet), tostring(p.hiVis), tostring(p.open))
+		tostring(p.pinned), tostring(p.sizeIdx), tostring(p.showIndustries), tostring(p.showNet), tostring(p.hiVis), tostring(p.open),
+		(p.filterTypes == nil or p.filterTypes == "") and "all" or p.filterTypes)
 end
 
 --- Read the remembered settings into `session`, once. Never throws.
@@ -262,6 +302,7 @@ local function loadPrefs()
 	if p.showIndustries ~= nil then session.showIndustries = p.showIndustries end
 	if p.showNet ~= nil then session.showNet = p.showNet end
 	if p.hiVis ~= nil then session.hiVis = p.hiVis end
+	if p.filterTypes ~= nil then session.filter = filter.fromPrefs(p.filterTypes) end
 	session.open = p.open == true and session.pinned
 	savedPrefs = currentPrefs()
 	logm("settings: loaded " .. (rawOrErr ~= nil and prefsText(savedPrefs) or "nothing stored, defaults"))
@@ -275,6 +316,7 @@ local function writePrefs(p : SquareMinimapPrefs)
 		t[PREFS_KEY] = {
 			posX = p.posX, posY = p.posY, pinned = p.pinned, sizeIdx = p.sizeIdx,
 			showIndustries = p.showIndustries, showNet = p.showNet, hiVis = p.hiVis, open = p.open,
+			filterTypes = p.filterTypes,
 		}
 		cfg.mainMenuState = t
 		api.util.setAppConfig(cfg, false)
@@ -350,22 +392,26 @@ end
 -- Industries (main thread; read once per map build)
 
 local cargoIconCache : {integer : string} = {}
+local cargoNameCache : {integer : string} = {} -- filter search; "" when unknown
 
---- CargoType.icon (cargo_util.tl:436-439); "" when unknown. Cached: cargo resources don't change.
+--- CargoType.icon (cargo_util.tl:436-439) and .name (the base game shows it as is: cargo icon
+--- tooltips, cargo_react_util.tl:27-28); "" when unknown. Cached: cargo resources don't change.
 local function cargoIcon(cargoTypeId : integer) : string
 	local cached = cargoIconCache[cargoTypeId]
 	if cached ~= nil then return cached end
-	local ok, pOrErr = pcall(function() : string
-		local ct = api.res.cargoTypeRep.get(cargoTypeId as CargoTypeId)
-		return ct ~= nil and ct.icon or ""
+	local ok, ctOrErr = pcall(function() : CargoType
+		return api.res.cargoTypeRep.get(cargoTypeId as CargoTypeId)
 	end)
-	local path = ""
-	if ok and type(pOrErr) == "string" then
-		path = pOrErr as string
+	local path, name = "", ""
+	if ok and ctOrErr ~= nil then
+		local ct = ctOrErr as CargoType
+		if type(ct.icon) == "string" then path = ct.icon end
+		if type(ct.name) == "string" then name = ct.name end
 	elseif not ok then
-		warnOnce("cargo icon", tostring(pOrErr))
+		warnOnce("cargo icon", tostring(ctOrErr))
 	end
 	cargoIconCache[cargoTypeId] = path
+	cargoNameCache[cargoTypeId] = name
 	return path
 end
 
@@ -376,6 +422,47 @@ local function cargoIcons(ids : {CargoTypeId}) : {string}
 		out[#out + 1] = cargoIcon(ids[i] as integer)
 	end
 	return out
+end
+
+local function cargoIdList(ids : {CargoTypeId}) : {integer}
+	local out : {integer} = {}
+	if ids == nil then return out end
+	for i = 1, #ids do out[#out + 1] = ids[i] as integer end
+	return out
+end
+
+--- Industry type key (phase 7): the construction's fileName, found like Industry Flows' gather.typeOf
+--- (mods/square_industry_flows/content/industry_flows/flows_gather.tl; base hud_icon_toolbox.tl:242-245).
+--- "" when unknown. Throws on API errors.
+local function industryTypeOf(e : Engine.Entity) : string
+	local conEntity = api.engine.system.streetConnectorSystem.getConstructionEntityForSubconstruction(e)
+	if conEntity == nil or (conEntity as integer) < 0 then return "" end
+	local con = api.engine.getComponent(conEntity, api.type.ComponentType.CONSTRUCTION) as Engine.Component.Construction
+	if con == nil or con.fileName == nil then return "" end
+	return con.fileName as string
+end
+
+-- typeKey -> localized construction description.name (gather.typeName); misses cached too.
+local typeNameCache : {string : string} = {}
+local typeNameMissing : {string : boolean} = {}
+
+--- constructionRep.find + get (construction.tl:1236-1240), as Industry Flows' gather.typeName. nil when unknown.
+local function industryTypeName(typeKey : string) : string
+	if typeKey == nil or typeKey == "" then return nil end
+	if typeNameCache[typeKey] ~= nil or typeNameMissing[typeKey] then return typeNameCache[typeKey] end
+	local ok, name = pcall(function() : string
+		local id = api.res.constructionRep.find(typeKey)
+		if id == nil or id < 0 then return nil end
+		local desc = api.res.constructionRep.get(id)
+		if desc == nil or desc.description == nil then return nil end
+		return desc.description.name
+	end)
+	if ok and type(name) == "string" and name ~= "" then
+		typeNameCache[typeKey] = name as string
+	else
+		typeNameMissing[typeKey] = true
+	end
+	return typeNameCache[typeKey]
 end
 
 local record IndustryRead
@@ -393,6 +480,7 @@ local function readIndustry(e : Engine.Entity) : SquareMinimapIndustry, string
 	if bv == nil then return nil, nil end
 	local mn, mx = bv.bbox.min, bv.bbox.max
 	local outputs, inputs : {string}, {string} = {}, {}
+	local outIds, inIds : {integer}, {integer} = {}, {}
 	local okIo, ioErr = pcall(function() : any
 		local ind = api.engine.getComponent(e, api.type.ComponentType.INDUSTRY) as Engine.Component.Industry
 		local stockList = e
@@ -401,10 +489,19 @@ local function readIndustry(e : Engine.Entity) : SquareMinimapIndustry, string
 		if io ~= nil then
 			inputs = cargoIcons(io[1])
 			outputs = cargoIcons(io[2])
+			inIds = cargoIdList(io[1])
+			outIds = cargoIdList(io[2])
 		end
 		return nil
 	end)
 	if not okIo then warnOnce("industry cargo", tostring(ioErr)) end
+	local okType, typeOrErr = pcall(industryTypeOf, e)
+	local rawType = ""
+	if okType then
+		rawType = typeOrErr as string
+	else
+		warnOnce("industry type", tostring(typeOrErr))
+	end
 	local icon, source = geom.pickIcon(outputs, inputs, FALLBACK_ICON)
 	local okName, nameOrErr = pcall(api.engine.util.getEntityName, e)
 	local name : string = nil
@@ -415,6 +512,10 @@ local function readIndustry(e : Engine.Entity) : SquareMinimapIndustry, string
 		y = mn.y + 0.5 * (mx.y - mn.y),
 		icon = icon,
 		name = name,
+		typeKey = filter.normKey(rawType),
+		typeName = industryTypeName(rawType),
+		inputs = inIds,
+		outputs = outIds,
 	}, source
 end
 
@@ -653,6 +754,66 @@ local function jumpTo(wx : number, wy : number)
 end
 
 ---------------------------------------------------------------------------
+-- Industry filter state (phase 7; pure rules in minimap_filter.tl). One selection (session.filter,
+-- remembered in the prefs) shared by Shift+click on the map and the filter window. Recipes that
+-- show it register a re-render callback in filterListeners on every render (like cycleSizeFn);
+-- setFilter calls them. GUI thread only (click and widget handlers).
+
+local filterSeq = 0                                -- bumped on every selection change
+local filterListeners : {string : function(integer)} = {}
+local shownData : MapData = nil                    -- the map MinimapContent shows (set on its render)
+local typesCache : {SquareMinimapFilterType} = nil -- filter.groupTypes of typesCacheGen
+local typesCacheGen = -1
+
+--- Industry types of a map (grouped once per map generation).
+local function typesFor(data : MapData) : {SquareMinimapFilterType}
+	if data == nil then return {} end
+	if typesCacheGen ~= data.gen or typesCache == nil then
+		local ok, tOrErr = pcall(filter.groupTypes, data.industries, cargoNameCache, _("Other"))
+		if ok then
+			typesCache = tOrErr as {SquareMinimapFilterType}
+		else
+			warnOnce("industry types", tostring(tOrErr))
+			typesCache = {}
+		end
+		typesCacheGen = data.gen
+	end
+	return typesCache
+end
+
+local function setFilter(sel : SquareMinimapFilterSel, why : string)
+	if filter.same(sel, session.filter) then return end
+	session.filter = sel
+	filterSeq = filterSeq + 1
+	local types = typesFor(shownData)
+	local shown, total = filter.shownCount(types, sel)
+	logm(string.format("filter: %s -> %s (%d of %d types on the map shown)", why, filter.describe(sel), shown, total))
+	for __, fn in pairs(filterListeners) do
+		local ok, err = pcall(function() : any
+			fn(filterSeq)
+			return nil
+		end)
+		if not ok then warnOnce("filter listener", tostring(err)) end
+	end
+end
+
+--- Shift (IA_PRECISION_MODE, Shift by default; base construction_react_util.tl:1916) held. GUI thread.
+local function shiftHeld() : boolean
+	local ok, vOrErr = pcall(api.gui.inputAction.modifierOnlyActionIsActive, "IA_PRECISION_MODE")
+	if not ok then
+		warnOnce("shift read", tostring(vOrErr))
+		return false
+	end
+	return vOrErr == true
+end
+
+-- The marker layout the markers layer shows (published by MinimapMarkers), for the canvas's hit
+-- test, and the markers layer's hover setter (nil while it isn't mounted).
+local shownMarkers : {SquareMinimapMarkerPx} = nil
+local shownMarkerSize = 0
+local markersHoverFn : function(string) = nil
+
+---------------------------------------------------------------------------
 -- Widgets
 
 local function text(str : string, class? : string) : TreeNodeId
@@ -721,10 +882,24 @@ local MinimapPreview = react.RegisterRecipe("MinimapPreview", perf:wrap("preview
 		})
 	end
 	local data = params.data
+	-- Every content render (toggles, filter changes) re-renders this recipe; building the
+	-- MapPreviewComp params again cost ~4 ms (SQPERF 2026-10-10, 75 calls). While the map and the
+	-- size are unchanged the old node is returned (findOldChildByLocalKey, as MinimapNetStrip).
+	local reuseKey = string.format("pv_%d_%d_%d", data.gen, params.w, params.h)
+	local findOld = (react as {string : any})["findOldChildByLocalKey"] as function(string) : TreeNodeId
+	if findOld ~= nil then
+		local old = findOld(reuseKey)
+		if old ~= nil then
+			perf:count("preview_reused")
+			return old
+		end
+	end
 	local env = previewEnv(data.map)
 	local mountedAt = clock()
-	return vbox({
-		builtin.MapPreviewComp{
+	return builtin.BoxLayout{
+		meta = { class = boxClass(nil), localKey = reuseKey },
+		orientation = builtin.type.Orientation.Vertical,
+		children = { builtin.MapPreviewComp{
 			meta = { styleSheet = styleutil.makeStyle{ size = { params.w, params.h } } },
 			mapColoring = env.coloring,
 			showMapSize = false,
@@ -743,8 +918,8 @@ local MinimapPreview = react.RegisterRecipe("MinimapPreview", perf:wrap("preview
 			onTownConnectionsChanged = function(_c : {{integer, integer}})
 				-- Preview-local edit (map_editor.tl:2697-2707 writes it into its own copy); ignored.
 			end,
-		},
-	})
+		} },
+	}
 end))
 
 ---------------------------------------------------------------------------
@@ -755,6 +930,7 @@ local record MarkersParam
 	w : integer
 	h : integer
 	size : integer
+	filterSeq : integer -- re-render on a filter change (the selection itself is session.filter)
 end
 
 --- A full-picture layer (h = v = -1, which fills the parent: proven in game) whose padding
@@ -782,10 +958,88 @@ local function layerAt(key : string, left : integer, top : integer, w : integer,
 	}
 end
 
+local record MarkerIconsParam
+	key : string                        -- reuse key: layout key + filter sequence (+ hovered type)
+	layout : {SquareMinimapMarkerPx}
+	w : integer
+	h : integer
+	size : integer
+	hover : string                      -- Shift hover type: every other type's icons are faded; nil = none
+end
+
+-- One layer of industry icons. While its key is unchanged the old node is returned
+-- (react.findOldChildByLocalKey at the recipe root, as MinimapNetStrip), so canvas re-renders
+-- (toggles, S/L) and hover changes build no ImageViews.
+local MinimapMarkerIcons = react.RegisterRecipe("MinimapMarkerIcons", perf:wrap("marker_icons_render", function(params : MarkerIconsParam) : TreeNodeId
+	react.setMouseTransparent(true)
+	local findOld = (react as {string : any})["findOldChildByLocalKey"] as function(string) : TreeNodeId
+	if findOld ~= nil then
+		local old = findOld(params.key)
+		if old ~= nil then
+			perf:count("marker_icons_reused")
+			return old
+		end
+	end
+	perf:count("marker_icons_built")
+	local size = params.size
+	local sel = session.filter
+	local children : {TreeNodeId} = {}
+	for __, m in ipairs(params.layout) do
+		if filter.isVisible(m.typeKey, sel) then
+			local muted = params.hover ~= nil and m.typeKey ~= params.hover
+			children[#children + 1] = layerAt(m.key, m.left, m.top, size, size, params.w, params.h, builtin.ImageView{
+				meta = {
+					class = muted and "minimap-industry-icon, minimap-industry-muted" or "minimap-industry-icon",
+					tooltip = m.name,
+					styleSheet = styleutil.makeStyle{ size = { size, size } },
+				},
+				scaling = builtin.type.ImageViewScaling.AutoFit,
+				path = m.icon,
+			})
+		end
+	end
+	return builtin.BoxLayout{
+		meta = { class = boxClass(nil), localKey = params.key },
+		orientation = builtin.type.Orientation.Vertical,
+		children = {
+			builtin.Component{
+				meta = { styleSheet = styleutil.makeStyle{ size = { params.w, params.h } } },
+				mouseTransparent = true,
+				layout = builtin.FloatingLayout{ children = children },
+			},
+		},
+	}
+end))
+
 local MinimapMarkers = react.RegisterRecipe("MinimapMarkers", perf:wrap("markers_render", function(params : MarkersParam) : TreeNodeId
 	-- Layout cached per map generation + picture/marker size (pure data; nodes are made each render).
 	local layoutRef = react.useRef(nil) as ReactRefT<{SquareMinimapMarkerPx}>
 	local layoutKeyRef = react.useRef("") as ReactRefT<string>
+	-- Shift hover (phase 7): the type under the pointer while Shift is held; others are drawn faded.
+	-- Set by the canvas through markersHoverFn: only this recipe re-renders (same layout key, no
+	-- re-mount of the preview or the net layer).
+	local hoverState = react.useState(nil) as ReactStateT<string>
+	-- One setter per mount; the unmount only clears the module slots if they are still this
+	-- mount's (on a re-mount, gen/size key, the new layer renders before the old one unmounts).
+	-- The setter reads the state through a ref refreshed on every render (never a stale capture).
+	local hoverStateRef = react.useRef(hoverState) as ReactRefT<ReactStateT<string>>
+	hoverStateRef:set(hoverState)
+	local hoverFnRef = react.useRefLazy(function() : function(string)
+		return function(typeKey : string)
+			local st = hoverStateRef:get()
+			if st:old() ~= typeKey then
+				st:set(typeKey)
+				perf:count("hover_changes")
+			end
+		end
+	end) as ReactRefT<function(string)>
+	markersHoverFn = hoverFnRef:get()
+	react.onUnmount(function()
+		if markersHoverFn == hoverFnRef:get() then
+			markersHoverFn = nil
+			shownMarkers = nil
+		end
+	end)
 	local key = string.format("%d_%d_%d_%d", params.data.gen, params.w, params.h, params.size)
 	if layoutKeyRef:get() ~= key then
 		local ok, lOrErr = pcall(geom.markerLayout, params.data.industries, params.data.box, ORIENT, params.w, params.h, params.size)
@@ -799,26 +1053,25 @@ local MinimapMarkers = react.RegisterRecipe("MinimapMarkers", perf:wrap("markers
 		logm(string.format("industry markers gen %d: %d drawn (%dx%d px picture, %d px icons)",
 			params.data.gen, #layoutRef:get(), params.w, params.h, params.size))
 	end
-	local size = params.size
-	local children : {TreeNodeId} = {}
-	for __, m in ipairs(layoutRef:get()) do
-		children[#children + 1] = layerAt(m.key, m.left, m.top, size, size, params.w, params.h, builtin.ImageView{
-			meta = {
-				class = "minimap-industry-icon",
-				tooltip = m.name,
-				styleSheet = styleutil.makeStyle{ size = { size, size } },
-			},
-			scaling = builtin.type.ImageViewScaling.AutoFit,
-			path = m.icon,
-		})
-	end
+	shownMarkers, shownMarkerSize = layoutRef:get(), params.size
+	-- One icon layer, its node reused while layout, filter and hover are unchanged, so canvas
+	-- re-renders (toggles, S/L) build no icons. A hover change re-styles every icon (~2 ms, SQPERF
+	-- 2026-10-10). Tried instead (2026-10-10, both rejected in game): a dark layer over the map with
+	-- the hovered icons on top (covered map and network); swapping a normal and a faded cached layer
+	-- with api.gui.byId.setVisible (every icon flashed on each hover change).
+	local hover = hoverState:old()
+	local layers : {TreeNodeId} = {
+		builtin.FloatingLayoutChild{ h = -1, v = -1, localKey = "all",
+			item = MinimapMarkerIcons{ key = "mk_" .. key .. "_" .. tostring(filterSeq) .. "_" .. (hover or ""),
+				layout = layoutRef:get(), w = params.w, h = params.h, size = params.size, hover = hover } },
+	}
 	-- Same frame as the camera overlay: sized, mouse-transparent Component, builtin FloatingLayout.
 	return hbox({
 		builtin.Component{
 			meta = { styleSheet = styleutil.makeStyle{ size = { params.w, params.h } } },
 			mouseTransparent = true,
 			layout = builtin.FloatingLayout{
-				children = children,
+				children = layers,
 			},
 		},
 	})
@@ -885,6 +1138,22 @@ end))
 -- minimap_net.tl IMAGE DATA; NET_ORDER / NET_FLIP_ROWS are the constants to flip if the in-game
 -- calibration patch (NET_CALIBRATE) shows other colours or sits at the bottom.
 
+-- The network layer's private state lives in this do-block: Lua allows 200 locals per function and
+-- the main chunk passed that (in game 2026-10-10: "too many local variables"). Only these names
+-- are used outside it.
+local netState : SquareMinimapNetState = nil
+local netNextCheckMs : number = 0   -- no state yet (hidden window): next look
+local netFailed = false             -- a Lua error in the step: stopped until toggled off and on
+local netRelease : function(why : string)
+local netPark : function(why : string)
+local netCheckParked : function()
+local record NetLayerParam
+	box : SquareMinimapBox
+	w : integer
+	h : integer
+end
+local MinimapNetLayer : Recipe<NetLayerParam> -- assigned in the block
+do
 -- Long side of the network image in pixels (S picture 200-360, L 560-720 UI px).
 local NET_LONG <const> = 512
 local NET_BUDGET_MS <const> = 2.0          -- work per frame (list calls and the hand-off: one per frame)
@@ -930,17 +1199,14 @@ end
 
 local type NetState = SquareMinimapNetState
 
-local netState : NetState = nil
 -- "streetSystem": in game (2026-10-09) getEntitiesWithComponent(BASE_EDGE) throws "Cannot loop over this
 -- component type" (docs/findings.md). Set it to nil to re-test the component listing (netListStreets).
 local netEdgeMode : string = "streetSystem"
-local netNextCheckMs : number = 0   -- no state yet (hidden window): next look
-local netFailed = false             -- a Lua error in the step: stopped until toggled off and on
 local netRenderSeq = 0              -- bumped on every image change; the layer's re-render trigger
 
 local netHandoff : string = nil      -- image hand-off: nil = not tried yet, "params" (userdata) or "table"
 
-local function netRelease(why : string)
+netRelease = function(why : string)
 	if netState == nil then return end
 	logm(string.format("net: released (%s): %d edges, %d buildings cached", why, netState.edgeCount, netState.buildingCount))
 	netState = nil
@@ -1213,7 +1479,7 @@ end
 
 --- Net toggled off: keep image, grid and entity caches for NET_OFF_KEEP_SECONDS (released by
 --- netCheckParked), abort a running pass. No layer = no per-frame work.
-local function netPark(why : string)
+netPark = function(why : string)
 	local st = netState
 	if st == nil then return end
 	if st.image == nil then
@@ -1238,7 +1504,7 @@ local function netPark(why : string)
 end
 
 --- From the plugin's guard tick: frees parked caches once NET_OFF_KEEP_SECONDS have passed.
-local function netCheckParked()
+netCheckParked = function()
 	local st = netState
 	if st == nil or st.parkedSinceMs == nil then return end
 	if net.parkExpired(st.parkedSinceMs, nowMs(), NET_OFF_KEEP_SECONDS) then
@@ -1311,12 +1577,6 @@ local function netStep(box : SquareMinimapBox) : boolean
 	if st.hiVis ~= session.hiVis then netApplyPalette(st, now) end
 	if st.phase == "idle" then netscan.startScan(st, now) end
 	return netscan.run(st, netIo, NET_BUDGET_MS)
-end
-
-local record NetLayerParam
-	box : SquareMinimapBox
-	w : integer
-	h : integer
 end
 
 local findOldChild = (react as {string : any})["findOldChildByLocalKey"] as function(string) : TreeNodeId
@@ -1407,7 +1667,7 @@ end))
 -- key) to stay above it; the caches live in netState, so a re-mount never re-reads or re-draws.
 -- Builds a few small layout nodes per render; the strips' ImageViews only when their version or
 -- the picture size changed (MinimapNetStrip).
-local MinimapNetLayer = react.RegisterRecipe("MinimapNetLayer", perf:wrap("net_render", function(params : NetLayerParam) : TreeNodeId
+MinimapNetLayer = react.RegisterRecipe("MinimapNetLayer", perf:wrap("net_render", function(params : NetLayerParam) : TreeNodeId
 	local paramsRef = react.useRef(params) as ReactRefT<NetLayerParam>
 	paramsRef:set(params)
 	local seqState = react.useState(netRenderSeq) as ReactStateT<integer>
@@ -1455,6 +1715,7 @@ local MinimapNetLayer = react.RegisterRecipe("MinimapNetLayer", perf:wrap("net_r
 	perf:stop("net_render_tree", tPerf)
 	return root
 end))
+end -- network layer block
 
 ---------------------------------------------------------------------------
 -- Mod settings (mod.json "params", chosen in the mod selection when a game is started or loaded;
@@ -1465,18 +1726,22 @@ end))
 local MOD_ID <const> = "square_better_minimap"
 local showArrowCache : boolean = nil
 
---- mod.json showArrow: values { "On", "Off" } -> 1 = on. Missing/unreadable (older saves, errors) = on.
-local function showArrowSetting() : boolean
-	if showArrowCache ~= nil then return showArrowCache end
+--- This mod's raw mod.json param value (1-based option index), nil if missing or unreadable.
+local function modParam(key : string) : number
 	local ok, allOrErr = pcall(api.engine.config.getModParams)
 	if not ok then
 		warnOnce("mod params", tostring(allOrErr))
-		showArrowCache = true
-		return true
+		return nil
 	end
 	local all = allOrErr as {string : table}
 	local mine = all ~= nil and all[MOD_ID] as {string : number} or nil
-	local v = mine ~= nil and mine.showArrow or nil
+	return mine ~= nil and mine[key] or nil
+end
+
+--- mod.json showArrow: values { "On", "Off" } -> 1 = on. Missing/unreadable (older saves, errors) = on.
+local function showArrowSetting() : boolean
+	if showArrowCache ~= nil then return showArrowCache end
+	local v = modParam("showArrow")
 	showArrowCache = v ~= 2
 	logm(string.format("setting: showArrow=%s (raw %s)", tostring(showArrowCache), tostring(v)))
 	return showArrowCache
@@ -1595,6 +1860,8 @@ local record CanvasParam
 	markerSize : integer
 	showIndustries : boolean
 	showNet : boolean
+	bandW : integer -- width of the band the picture is centred in (= w unless a strip is narrower than MIN_WIDTHS)
+	filterSeq : integer -- passed on to the markers (re-render on a filter change)
 end
 
 local lastWindowFracW : number = 0 -- 0 = unknown; window content width (screen fraction) from the position poll; fit log
@@ -1641,40 +1908,142 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", perf:wrap("canvas_re
 			if key == fitLoggedRef:get() then return nil end
 			fitLoggedRef:set(key)
 			local gapPx = (r - l) > 0 and gap / (r - l) * p.w or 0
-			logm(string.format("fit: picture %dx%d px = %.4f x %.4f screen, window width %.4f, extra width %.4f (~%.0f UI px)%s",
-				p.w, p.h, r - l, b - t, winW, gap, gapPx, gapPx > 12 and " -> EMPTY BAND, raise MIN_WIDTHS" or ""))
+			-- The band of a narrow strip (bandW - w) is intended, not an empty band.
+			local bandPx = (p.bandW or p.w) - p.w
+			logm(string.format("fit: picture %dx%d px = %.4f x %.4f screen, window width %.4f, extra width %.4f (~%.0f UI px, band %d)%s",
+				p.w, p.h, r - l, b - t, winW, gap, gapPx, bandPx, gapPx - bandPx > 12 and " -> EMPTY BAND, raise MIN_WIDTHS" or ""))
 			return nil
 		end)
 		perfStep:stop("fit_poll", tPerf)
 		if not ok then warnOnce("fit check", tostring(err)) end
 	end)
 
+	--- Event position -> picture fraction (throws on API errors; GUI thread).
+	local function eventFrac(ex : integer, ey : integer) : number, number
+		local node = selfRef:get()
+		local p0 = node:getPosition(0, 0)
+		local p1 = node:getPosition(1, 1)
+		local screen = api.gui.camera.getSize()
+		local fx, fy = geom.eventToFrac(ex, ey, p0.x, p0.y, p1.x, p1.y, screen.x, screen.y)
+		return fx, fy
+	end
+
+	--- The industry marker drawn at a picture fraction (filtered-out ones don't count), or nil.
+	local function markerAtFrac(fx : number, fy : number) : SquareMinimapMarkerPx
+		local p = paramsRef:get()
+		if shownMarkers == nil or not p.showIndustries then return nil end
+		local sel = session.filter
+		return geom.hitMarker(shownMarkers, fx * p.w, fy * p.h, shownMarkerSize, HIT_TOL_PX,
+			function(m : SquareMinimapMarkerPx) : boolean return filter.isVisible(m.typeKey, sel) end)
+	end
+
 	local function clickAt(ex : integer, ey : integer)
 		local p = paramsRef:get()
 		if p.data == nil then return end
+		-- Shift+click with industries on (phase 7): filter, never jump.
+		local shift = p.showIndustries and shiftHeld()
 		local tPerf = perf:start() -- onMouseEvent: GUI thread
 		local ok, err = pcall(function() : any
-			local node = selfRef:get()
-			local p0 = node:getPosition(0, 0)
-			local p1 = node:getPosition(1, 1)
-			local screen = api.gui.camera.getSize()
-			local fx, fy = geom.eventToFrac(ex, ey, p0.x, p0.y, p1.x, p1.y, screen.x, screen.y)
+			local fx, fy = eventFrac(ex, ey)
 			if fx < -0.05 or fx > 1.05 or fy < -0.05 or fy > 1.05 then
+				return nil
+			end
+			if shift then
+				local m = markerAtFrac(fx, fy)
+				local sel, action = filter.shiftClick(session.filter, m ~= nil and m.typeKey or nil)
+				local why : string
+				if action == "only" then
+					why = "shift+click on " .. m.typeKey
+				elseif m ~= nil then
+					why = "shift+click on the only filtered type"
+				else
+					why = "shift+click on an empty spot"
+				end
+				setFilter(sel, why)
 				return nil
 			end
 			local wx, wy = geom.fracToWorld(geom.clamp(fx, 0, 1), geom.clamp(fy, 0, 1), p.data.box, ORIENT)
 			jumpTo(wx, wy)
 			return nil
 		end)
-		perf:stop("click_jump", tPerf)
+		perf:stop(shift and "click_filter" or "click_jump", tPerf)
 		if not ok then
 			warnOnce("click", tostring(err))
 		end
 	end
 
+	-- SHIFT HOVER (phase 7): the pointer over the canvas (event pixels; nil = not over it) and the
+	-- last Shift state. Moved/Entered/Exited events update the pointer; the step below polls Shift
+	-- only while the pointer is over the canvas, industries are on and the window is shown, so
+	-- pressing or releasing Shift without moving the mouse also updates the preview. The hovered
+	-- type goes to the markers layer only (markersHoverFn): nothing else re-renders.
+	local pointerRef = react.useRef(nil) as ReactRefT<{integer}>
+	local shiftRef = react.useRef(false) as ReactRefT<boolean>
+
+	local function updateHover()
+		local fn = markersHoverFn
+		if fn == nil then return end
+		local pt = pointerRef:get()
+		local typeKey : string = nil
+		if pt ~= nil and shiftRef:get() and paramsRef:get().showIndustries then
+			local tPerf = perf:start()
+			local ok, kOrErr = pcall(function() : string
+				local fx, fy = eventFrac(pt[1], pt[2])
+				local m = markerAtFrac(fx, fy)
+				return m ~= nil and m.typeKey or nil
+			end)
+			perf:stop("hover_hit", tPerf)
+			if ok then
+				typeKey = kOrErr as string
+			else
+				warnOnce("hover", tostring(kOrErr))
+			end
+		end
+		fn(typeKey)
+	end
+
+	react.onStep(function()
+		if pointerRef:get() == nil then return end -- not over the canvas: nothing polled
+		local tPerf = perfStep:start()
+		if not paramsRef:get().showIndustries or not isShown() then
+			pointerRef:set(nil)
+			shiftRef:set(false)
+			if markersHoverFn ~= nil then markersHoverFn(nil) end
+		else
+			local shift = shiftHeld()
+			if shift ~= shiftRef:get() then
+				shiftRef:set(shift)
+				perfStep:count("shift_changes")
+				updateHover()
+			end
+		end
+		perfStep:stop("shift_poll", tPerf)
+	end)
+
 	react.setMouseTransparent(false)
 	react.onMouseEvent(function(evt : Gui.Mouse.Event) : boolean
 		local T = api.gui.mouse.Event.Type
+		if evt.type == T.Moved or evt.type == T.Entered then
+			if paramsRef:get().showIndustries then
+				local node = selfRef:get()
+				local hadShift = shiftRef:get()
+				if node ~= nil and node:containsPosition(api.type.Vec2i.new(evt.x, evt.y)) then
+					pointerRef:set({ evt.x, evt.y })
+					shiftRef:set(shiftHeld())
+				else
+					pointerRef:set(nil)
+				end
+				-- Without Shift (before and now) a move costs only the Shift read above.
+				if hadShift or shiftRef:get() or pointerRef:get() == nil then updateHover() end
+			end
+			return false
+		elseif evt.type == T.Exited then
+			if pointerRef:get() ~= nil then
+				pointerRef:set(nil)
+				updateHover()
+			end
+			return false
+		end
 		if evt.button ~= 0 then return false end
 		if evt.type ~= T.Pressed and evt.type ~= T.Released and evt.type ~= T.Clicked then
 			return false
@@ -1727,7 +2096,7 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", perf:wrap("canvas_re
 			h = -1,
 			v = -1,
 			localKey = "minimap_markers_" .. tostring(gen) .. "_" .. tostring(params.w) .. "_" .. tostring(params.markerSize),
-			item = MinimapMarkers{ data = params.data, w = params.w, h = params.h, size = params.markerSize },
+			item = MinimapMarkers{ data = params.data, w = params.w, h = params.h, size = params.markerSize, filterSeq = params.filterSeq },
 		}
 	end
 	if params.data ~= nil then
@@ -1779,6 +2148,274 @@ local MinimapSizeButton = react.RegisterRecipe("MinimapSizeButton", function() :
 	})
 end)
 
+---------------------------------------------------------------------------
+-- Industry filter window (phase 7): a small movable window of its own (like Industry Flows' panel,
+-- mods/square_industry_flows/content/industry_flows/gui/flows_window.script.tl): search field,
+-- "Show all", one checkbox row per industry type on the map with its cargo icons (inputs > outputs)
+-- and its count. Same selection as Shift+click on the map (setFilter). Opened and closed with the
+-- "Filter" checkbox; added once with addSingletonWindow (like the minimap: builtin.d.tl:1216-1232) and
+-- then only hidden/shown by id, so it keeps the place the player dragged it to. Closed when the
+-- minimap hides or Ind is switched off; reopening the minimap doesn't reopen it.
+
+local filterWindowMounted = false
+local filterWindowListener : function(boolean) = nil -- MinimapContent's "Filter" checkbox state
+
+local function filterWindowChanged(open : boolean)
+	if filterWindowListener ~= nil then filterWindowListener(open) end
+end
+
+local function isFilterShown() : boolean
+	if not filterWindowMounted then return false end
+	local ok, vOrErr = pcall(api.gui.byId.isVisible, FILTER_WINDOW_ID)
+	return ok and vOrErr == true
+end
+
+local function setFilterWindowVisible(visible : boolean) : boolean, any
+	return pcall(function() : any
+		api.gui.byId.setVisible(FILTER_WINDOW_ID, visible)
+		return nil
+	end)
+end
+
+local record FilterWindowParam
+	onClose : function()
+	initialX : number -- top-right anchor (CSS anchorPoint {1, 0}), screen fractions, as the minimap
+	initialY : number
+end
+
+local MinimapFilterWindow : Recipe<FilterWindowParam> -- assigned below
+
+local function closeFilterWindow(why : string)
+	-- The checkbox unchecks even when the window is already gone (its X may hide it before onClose).
+	filterWindowChanged(false)
+	if not isFilterShown() then return end
+	local ok, err = setFilterWindowVisible(false)
+	if not ok then
+		warnOnce("hide filter window", tostring(err))
+		local wa = game_react_globals.getDefaultWindowApi()
+		if wa ~= nil then wa.removeAllWindows(MinimapFilterWindow) end
+	end
+	logm("filter window closed (" .. why .. ")")
+end
+
+--- Where a new filter window goes: left of the minimap (top edges level), or right of it when
+--- there is no room on the left. Estimates (FILTER_WINDOW_FRAC_W); see TESTING.md P7.
+local function filterWindowAnchor() : number, number
+	local mx, my = session.posX, session.posY
+	if mx == nil then mx, my = DEFAULT_ANCHOR_X, DEFAULT_ANCHOR_Y end
+	local mw = lastWindowFracW > 0 and lastWindowFracW or 0.2
+	local gap = 0.004
+	local x = mx - mw - gap
+	if x - FILTER_WINDOW_FRAC_W < 0 then
+		x = math.min(1.0, mx + FILTER_WINDOW_FRAC_W + gap)
+	end
+	return x, math.max(WINDOW_MIN_TOP, my)
+end
+
+local function openFilterWindow()
+	local wa = game_react_globals.getDefaultWindowApi()
+	if wa == nil then
+		warnOnce("filter window", "no window container")
+		return
+	end
+	if filterWindowMounted then
+		local ok, err = setFilterWindowVisible(true)
+		if not ok then warnOnce("show filter window", tostring(err)) end
+		wa.moveSingletonWindowToFront(MinimapFilterWindow)
+		filterWindowChanged(true)
+		logm("filter window shown again")
+		return
+	end
+	local x, y = filterWindowAnchor()
+	logm(string.format("filter window opened at anchor %.4f,%.4f", x, y))
+	wa.addSingletonWindow(MinimapFilterWindow, {
+		onClose = function() closeFilterWindow("closed") end,
+		initialX = x,
+		initialY = y,
+	})
+	filterWindowMounted = true -- also set by onMount; set here so a quick second click hides, not re-adds
+	wa.moveSingletonWindowToFront(MinimapFilterWindow)
+	filterWindowChanged(true)
+end
+
+--- The "Filter" checkbox (GUI thread).
+local setFilterWindowOpen = perf:wrap("click_filter_box", function(open : boolean)
+	if not open then
+		closeFilterWindow("Filter box")
+	elseif not isFilterShown() then
+		openFilterWindow()
+	end
+end) as function(boolean)
+
+--- Cargo icon as cargo_react_util.makeIcon(class, cargoType.icon, cargoType.name) (cargo_react_util.tl:15-24),
+--- from this file's cargo caches (filled by the industry read).
+local function filterCargoIcon(c : integer) : TreeNodeId
+	local path = cargoIcon(c)
+	return builtin.ImageView{
+		meta = { class = "text-icon-size-hack, minimap-filter-cargo", tooltip = cargoNameCache[c] },
+		path = path ~= "" and path or FALLBACK_ICON,
+	}
+end
+
+--- Inputs, a chevron, outputs (Industry Flows' cargoIcons).
+local function filterCargoIcons(t : SquareMinimapFilterType) : TreeNodeId
+	local icons : {TreeNodeId} = {}
+	for __, c in ipairs(t.inputs) do icons[#icons + 1] = filterCargoIcon(c) end
+	if #t.inputs > 0 and #t.outputs > 0 then
+		icons[#icons + 1] = builtin.ImageView{ meta = { class = "minimap-filter-cargo-arrow" }, path = CARGO_ARROW_ICON }
+	end
+	for __, c in ipairs(t.outputs) do icons[#icons + 1] = filterCargoIcon(c) end
+	return hbox(icons, "minimap-filter-cargos")
+end
+
+-- Name budget of a type row (the label does not shrink: a long game-translated name ran into the cargo
+-- icons in Russian, 2026-10-10 screenshot). From that screenshot: list content ~274 px (284 minus the
+-- scroll bar), box + gap ~22, cargo icon ~20 with spacing, arrow ~12, count ~8 per digit, 2 x 6 row
+-- spacing, ~7.5 px per letter (31 Cyrillic letters ~225 px). Cut names get "..." and the full name as tooltip.
+local FILTER_ROW_PX <const> = 274 - 22 - 2 * 6
+local FILTER_ICON_PX <const> = 20
+local FILTER_ARROW_PX <const> = 12
+local FILTER_DIGIT_PX <const> = 8
+
+local function filterNameUnits(t : SquareMinimapFilterType) : integer
+	local px = FILTER_ROW_PX - FILTER_ICON_PX * (#t.inputs + #t.outputs) - FILTER_DIGIT_PX * #tostring(t.count)
+	if #t.inputs > 0 and #t.outputs > 0 then px = px - FILTER_ARROW_PX end
+	return math.max(8, math.floor(px * 2 / 15))
+end
+
+--- One type row (Industry Flows' typeRow): controlled CheckBox labelled with the name (builtin.d.tl:1024-1031),
+--- cargo icons, the count on the map.
+local function filterTypeRow(t : SquareMinimapFilterType, selected : boolean, onToggle : function(string)) : TreeNodeId
+	local label, cut = geom.fitText(t.name, filterNameUnits(t))
+	return hbox({
+		builtin.CheckBox{
+			meta = { class = "minimap-filter-check", tooltip = cut and t.name or nil },
+			value = selected and 1 or 0,
+			onValueChange = function(__ : integer)
+				onToggle(t.key)
+			end,
+			label = label,
+		},
+		filterCargoIcons(t),
+		text(tostring(t.count), "font-scale-body, minimap-filter-count"),
+	}, "minimap-filter-row")
+end
+
+local MinimapFilterContent = react.RegisterRecipe("MinimapFilterContent", perf:wrap("filter_render", function() : TreeNodeId
+	local seqState = react.useState(filterSeq) as ReactStateT<integer>
+	local queryState = react.useState(session.filterQuery) as ReactStateT<string>
+	local genState = react.useState(shownData ~= nil and shownData.gen or 0) as ReactStateT<integer>
+	filterListeners.window = function(seq : integer)
+		if seqState:old() ~= seq then seqState:set(seq) end
+	end
+	react.onUnmount(function()
+		filterListeners.window = nil
+	end)
+	-- A map rebuild (new industries) re-renders the list: one integer comparison per frame.
+	react.onStep(function()
+		local g = shownData ~= nil and shownData.gen or 0
+		if genState:old() ~= g then genState:set(g) end
+	end)
+
+	local function withQuery(q : string)
+		if q == nil or q == queryState:old() then return end
+		session.filterQuery = q
+		queryState:set(q)
+	end
+	local function toggleType(key : string)
+		setFilter(filter.toggle(session.filter, key), "window toggle " .. key)
+	end
+
+	local sel = session.filter
+	local types = typesFor(shownData)
+	local query = queryState:old()
+	local rows : {TreeNodeId} = {}
+
+	-- Search: base search field as Industry Flows (statistics_react_util.tl:167-183: value + onTyping + onValueChange).
+	rows[#rows + 1] = builtin.TextInputField{
+		meta = { class = "font-scale-body, search, minimap-filter-search" },
+		placeholderText = _("Search industries or cargo..."),
+		value = query,
+		onTyping = withQuery,
+		onValueChange = withQuery,
+	}
+
+	local shown, total = filter.shownCount(types, sel)
+	local heading : string
+	if filter.isEmpty(sel) then
+		heading = _("Showing all industry types")
+	else
+		heading = string.format(_("Showing %d of %d types"), shown, total)
+	end
+	rows[#rows + 1] = hbox({
+		text(heading, "font-scale-body, minimap-filter-heading"),
+		builtin.Button{
+			meta = { class = "minimap-filter-all", tooltip = _("Show every industry type again"), enabled = not filter.isEmpty(sel) },
+			content = text(_("Show all"), "font-scale-annotation"),
+			onClick = function()
+				setFilter({}, "window show all")
+			end,
+		},
+	}, "minimap-filter-header")
+
+	local typeRows : {TreeNodeId} = {}
+	local onMap : {string : boolean} = {}
+	for __, t in ipairs(types) do onMap[t.key] = true end
+	for __, t in ipairs(filter.search(types, query)) do
+		typeRows[#typeRows + 1] = filterTypeRow(t, sel[t.key] == true, toggleType)
+	end
+	if #typeRows == 0 then
+		local empty = #types == 0 and _("No industries on the map.")
+			or string.format(_("No industry type matches \"%s\"."), query)
+		rows[#rows + 1] = text(empty, "font-scale-annotation, minimap-filter-hint")
+	elseif #typeRows > FILTER_SCROLL_ROWS then
+		-- ScrollArea content must be a Component, not a layout (memory "ScrollArea content is a
+		-- Component"; base: entity_window_util.tl:715-721). Height from the stylesheet.
+		rows[#rows + 1] = builtin.ScrollArea{
+			meta = { class = "minimap-filter-types" },
+			content = builtin.Component{
+				layout = vbox(typeRows, "minimap-filter-list"),
+			},
+			horizontalPolicy = builtin.type.ScrollBarPolicy.AlwaysOff,
+			verticalPolicy = builtin.type.ScrollBarPolicy.AsNeeded,
+		}
+	else
+		rows[#rows + 1] = vbox(typeRows, "minimap-filter-list")
+	end
+	local notOnMap = 0
+	for k, v in pairs(sel) do
+		if v and not onMap[k] then notOnMap = notOnMap + 1 end
+	end
+	if notOnMap > 0 then
+		rows[#rows + 1] = text(string.format(_("+%d selected, not on this map"), notOnMap), "font-scale-annotation, minimap-filter-hint")
+	end
+	rows[#rows + 1] = text(_("Shift+click an icon on the minimap: only its type. Again: all."), "font-scale-annotation, minimap-filter-hint")
+	-- A recipe in a Window's content returns a layout (memory "Recipe must return layout").
+	return vbox(rows, "minimap-filter-root")
+end))
+
+MinimapFilterWindow = react.RegisterWrapperRecipe("MinimapFilterWindow", builtin.Window, perf:wrap("filter_window_render", function(params : FilterWindowParam) : TreeNodeId
+	react.onMount(function()
+		filterWindowMounted = true
+	end)
+	react.onUnmount(function()
+		filterWindowMounted = false
+		logm("filter window unmounted")
+	end)
+	return builtin.Window{
+		id = FILTER_WINDOW_ID,
+		title = _("Industry filter"),
+		closable = true,
+		movable = true,
+		autoFocusOnBecomingVisible = false,
+		autoVisibilityOnFocusChange = false,
+		initialX = params.initialX,
+		initialY = params.initialY,
+		onClose = params.onClose,
+		content = MinimapFilterContent(),
+	}
+end))
+
 local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content_render", function() : TreeNodeId
 	local selfRef = react.useSelfRef()
 	local posDue = useMainThreadTick(POS_POLL_SECONDS)
@@ -1788,6 +2425,19 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 	local netOnState = react.useState(session.showNet) as ReactStateT<boolean>
 	local hiVisState = react.useState(session.hiVis) as ReactStateT<boolean>
 	local sizeState = react.useState(session.sizeIdx) as ReactStateT<integer>
+	-- Industry filter (phase 7): re-render (Filter tooltip, markers) on every selection change.
+	local filterSeqState = react.useState(filterSeq) as ReactStateT<integer>
+	filterListeners.content = function(seq : integer)
+		if filterSeqState:old() ~= seq then filterSeqState:set(seq) end
+	end
+	local filterOpenState = react.useState(isFilterShown()) as ReactStateT<boolean>
+	filterWindowListener = function(open : boolean)
+		if filterOpenState:old() ~= open then filterOpenState:set(open) end
+	end
+	react.onUnmount(function()
+		filterListeners.content = nil
+		filterWindowListener = nil
+	end)
 	local revsRef = react.useRef(nil) as ReactRefT<RevState>
 	local startedRef = react.useRef(false) as ReactRefT<boolean>
 	local revDue = useMainThreadTick(REV_CHECK_SECONDS)
@@ -1875,13 +2525,14 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 	end)
 
 	local data = dataState:old()
+	shownData = data
 	local sizeIdx = sizeState:old()
 	local stepIdx = SIZES[sizeIdx] ~= nil and sizeIdx or DEFAULT_SIZE
 	local longSide = SIZES[stepIdx]
 	local minW = MIN_WIDTHS[stepIdx]
 	local w, h = math.max(longSide, minW), longSide
 	if data ~= nil then
-		w, h = geom.pictureSize(data.box, longSide, minW, MAX_LONG[stepIdx], ORIENT)
+		w, h = geom.pictureSize(data.box, longSide, minW, MAX_LONG[stepIdx], ORIENT, FLOOR_W, ABS_MAX_LONG)
 	end
 
 	local function setIndustries(v : boolean)
@@ -1889,6 +2540,7 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 		session.showIndustries = v
 		industriesState:set(v)
 		logm("option: industries=" .. tostring(v))
+		if not v then closeFilterWindow("Ind off") end
 	end
 
 	local function setNet(v : boolean)
@@ -1918,23 +2570,77 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 		session.sizeIdx = nextIdx
 		sizeState:set(nextIdx)
 		local nw, nh = 0, 0
-		if data ~= nil then nw, nh = geom.pictureSize(data.box, SIZES[nextIdx], MIN_WIDTHS[nextIdx], MAX_LONG[nextIdx], ORIENT) end
+		if data ~= nil then nw, nh = geom.pictureSize(data.box, SIZES[nextIdx], MIN_WIDTHS[nextIdx], MAX_LONG[nextIdx], ORIENT, FLOOR_W, ABS_MAX_LONG) end
 		logm(string.format("option: size=%s (%dx%d px)", SIZE_LABELS[nextIdx], nw, nh))
 	end
 
 	cycleSizeFn = cycleSize
-	local controls : {TreeNodeId} = {
-		checkBox(_("Ind"), _("Show industries with the icon of what they produce"), industriesState:old(), setIndustries),
-		checkBox(_("Net"), _("Show roads, tracks and town buildings on the map"), netOnState:old(), setNet),
-		checkBox(_("Hi-vis"), _("Draw the network in bright, opaque colours (needs Net)"), hiVisState:old(), setHiVis, netOnState:old()),
-	}
-	if not SIZE_BUTTON_IN_HEADER then controls[#controls + 1] = MinimapSizeButton() end
 
-	return vbox({
-		MinimapCanvas{ data = data, w = w, h = h, markerSize = MARKER_PX[stepIdx] or MARKER_PX[DEFAULT_SIZE],
-			showIndustries = industriesState:old(), showNet = netOnState:old() },
-		hbox(controls, "minimap-controls"),
-	}, "minimap-root")
+	-- "Filter" (phase 7): only while Ind is on; checked while the filter window is open. The
+	-- tooltip says how many types the filter shows. "Viz" only while Net is on.
+	-- Translated labels (strings.json); their length sizes the control rows (geom.controlWidth).
+	local labels : {string : string} = { ind = _("Ind"), filter = _("Filter"), net = _("Net"), viz = _("Viz") }
+	local showFilter = industriesState:old()
+	local filterBox : TreeNodeId = nil
+	if showFilter then
+		local tip : string
+		if filter.isEmpty(session.filter) then
+			tip = _("Filter industries: show only some types. Tip: Shift+click an icon on the map to show only its type, Shift+click again to show all.")
+		else
+			local shown, total = filter.shownCount(typesFor(data), session.filter)
+			if shown == 0 then
+				tip = _("No selected industry type is on this map, so no industries are shown.")
+			else
+				tip = string.format(_("Filter active: showing %d of %d industry types. Shift+click the map to show all."), shown, total)
+			end
+		end
+		filterBox = checkBox(labels.filter, tip, filterOpenState:old(), setFilterWindowOpen)
+	end
+	local controlNodes : {string : TreeNodeId} = {
+		ind = checkBox(labels.ind, _("Show industries with the icon of what they produce"), industriesState:old(), setIndustries),
+		filter = filterBox,
+		net = checkBox(labels.net, _("Show roads, tracks and town buildings on the map"), netOnState:old(), setNet),
+	}
+	if netOnState:old() then
+		controlNodes.viz = checkBox(labels.viz, _("High visibility: draw the network in bright, opaque colours"),
+			hiVisState:old(), setHiVis)
+	end
+	local shownIds : {string} = {}
+	local controlW : {string : integer} = {}
+	for __, id in ipairs({ "ind", "filter", "net", "viz" }) do
+		if controlNodes[id] ~= nil then shownIds[#shownIds + 1] = id end
+		controlW[id] = geom.controlWidth(labels[id])
+	end
+	local rowIds = geom.controlRows(math.max(w, FLOOR_W), shownIds, controlW, CONTROL_SPACING, CONTROL_PAD)
+	local rows : {TreeNodeId} = {}
+	for i, ids in ipairs(rowIds) do
+		local items : {TreeNodeId} = {}
+		for __, id in ipairs(ids) do
+			if controlNodes[id] ~= nil then items[#items + 1] = controlNodes[id] end
+		end
+		if i == 1 and not SIZE_BUTTON_IN_HEADER then items[#items + 1] = MinimapSizeButton() end
+		rows[#rows + 1] = hbox(items, i == 1 and "minimap-controls" or "minimap-controls, minimap-controls-2")
+	end
+
+	local canvas = MinimapCanvas{ data = data, w = w, h = h, markerSize = MARKER_PX[stepIdx] or MARKER_PX[DEFAULT_SIZE],
+		showIndustries = industriesState:old(), showNet = netOnState:old(), bandW = math.max(w, FLOOR_W),
+		filterSeq = filterSeqState:old() }
+	if w < FLOOR_W then
+		-- Only strips whose long side would pass ABS_MAX_LONG (ABS_MAX_LONG beat FLOOR_W): the window
+		-- is wider than the picture, so a FLOOR_W-wide band centres it. The padding adds to the style size (a { minW, h } size made the window 60 px too
+		-- wide in game), so size = the picture. The canvas node stays w x h: clicks map as before.
+		local left = (FLOOR_W - w) // 2
+		local st = styleutil.makeStyle{ size = { w, h } }
+		st.padding = api.type.Vec4f.new(0, FLOOR_W - w - left, 0, left)
+		canvas = builtin.Component{
+			meta = { styleSheet = st },
+			layout = hbox({ canvas }),
+		}
+	end
+
+	local children : {TreeNodeId} = { canvas }
+	for __, r in ipairs(rows) do children[#children + 1] = r end
+	return vbox(children, "minimap-root")
 end))
 
 ---------------------------------------------------------------------------
@@ -1963,6 +2669,7 @@ end
 local function hideWindow(why : string)
 	hiddenByUs = true
 	session.open = false
+	closeFilterWindow("minimap hidden")
 	local ok, err = setWindowVisible(false)
 	if not ok then
 		warnOnce("hide window", tostring(err))
@@ -2105,6 +2812,11 @@ local function guardTick()
 	loadPrefs()
 	maintainPrefs()
 	netCheckParked() -- frees a switched-off network layer's kept caches after NET_OFF_KEEP_SECONDS
+	-- The filter window follows the minimap: closed when the minimap went away without hideWindow
+	-- (an engine close, an unmount) or industries are off. Nothing to do while it isn't mounted.
+	if filterWindowMounted and (not windowMounted or not session.showIndustries or not isShown()) then
+		closeFilterWindow("minimap hidden")
+	end
 	-- Re-open a window that was pinned and open when the settings were last written (e.g.
 	-- before loading this save), once the window container exists.
 	if session.open and not windowMounted and reopenTries < REOPEN_MAX_TRIES then
@@ -2130,6 +2842,12 @@ end
 local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "MinimapHudPlugin", perf:wrap("hud_render", function() : TreeNodeId
 	-- Hooks first, unconditionally (same order as square_problem_radar's plugin).
 	local isMapEditorRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean return api.gui.game.isMapEditor() end)
+	-- mod.json hudButtonStyle: { "Text", "Icon" }; read once per mount (mod params are fixed per game).
+	local hudIconRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean
+		local v = modParam("hudButtonStyle")
+		logm(string.format("setting: hudButtonStyle=%s (raw %s)", v == 2 and "icon" or "text", tostring(v)))
+		return v == 2
+	end)
 	local guardDue = useMainThreadTick(GUARD_SECONDS)
 	-- Fallback for the pinned case: if anything but us hid the pinned window (e.g. the engine's
 	-- ESC handling hides windows itself), show it again at once. Runs here because this button is
@@ -2145,15 +2863,24 @@ local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainMod
 		return nil
 	end
 	-- A plugin root must be a layout (MainModButtonArea mounts plugins as BoxLayout children).
+	local button : TreeNodeId
+	if hudIconRef:get() then
+		-- "Icon" style: map icon on the base's dark button tile (stylesheet minimap-hud-icon-button).
+		button = builtin.Button{
+			meta = { class = "minimap-hud-icon-button", tooltip = _("Show or hide the minimap") },
+			content = builtin.ImageView{ meta = { class = "minimap-hud-icon" }, path = HUD_ICON },
+			onClick = toggleWindowClick,
+		}
+	else
+		button = builtin.Button{
+			meta = { class = "minimap-hud-button", tooltip = _("Show or hide the minimap") },
+			content = text(_("Map")),
+			onClick = toggleWindowClick,
+		}
+	end
 	return builtin.BoxLayout{
 		orientation = builtin.type.Orientation.Horizontal,
-		children = {
-			builtin.Button{
-				meta = { class = "minimap-hud-button", tooltip = _("Show or hide the minimap") },
-				content = text(_("Map")),
-				onClick = toggleWindowClick,
-			},
-		},
+		children = { button },
 	}
 end))
 

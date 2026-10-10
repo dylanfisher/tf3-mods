@@ -145,7 +145,7 @@ function geom.sameCamPx(a : SquareMinimapCamPx, b : SquareMinimapCamPx) : boolea
 	return a.arrowDeg == b.arrowDeg
 end
 
-function geom.pictureSize(box : SquareMinimapBox, longSide : integer, minW : integer, maxLong : integer, orient : SquareMinimapOrient) : integer, integer
+function geom.pictureSize(box : SquareMinimapBox, longSide : integer, minW : integer, maxLong : integer, orient : SquareMinimapOrient, floorW ?: integer, absMaxLong ?: integer) : integer, integer
 	local w, h = geom.widgetSize(box, longSide, orient)
 	local aspect = h / w
 	-- Widen to the minimum width (the window can't get narrower than its title bar / control row,
@@ -162,6 +162,17 @@ function geom.pictureSize(box : SquareMinimapBox, longSide : integer, minW : int
 		else
 			h = maxLong
 			w = math.max(1, math.floor(maxLong / aspect + 0.5))
+		end
+	end
+	-- The window can't get narrower than floorW (frame + control row), so a narrower picture leaves
+	-- a band beside it. The floor beats maxLong (a 1:3 strip at S grows taller instead), but not
+	-- absMaxLong (the screen limit): only strips beyond that keep a band.
+	if floorW ~= nil and w < floorW then
+		w = floorW
+		h = math.max(1, math.floor(w * aspect + 0.5))
+		if absMaxLong ~= nil and absMaxLong > 0 and h > absMaxLong then
+			h = absMaxLong
+			w = math.max(1, math.floor(absMaxLong / aspect + 0.5))
 		end
 	end
 	return w, h
@@ -241,6 +252,8 @@ function geom.readPrefs(raw : any, nSizes : integer, minTop : number) : SquareMi
 	p.showNet = bool(t.showNet)
 	p.hiVis = bool(t.hiVis)
 	p.open = bool(t.open)
+	-- Industry filter (phase 7): kept as the stored string; minimap_filter.fromPrefs parses it.
+	if type(t.filterTypes) == "string" then p.filterTypes = t.filterTypes as string end
 	return p
 end
 
@@ -288,6 +301,7 @@ function geom.markerLayout(items : {SquareMinimapIndustry}, box : SquareMinimapB
 					top = top,
 					icon = it.icon,
 					name = it.name,
+					typeKey = it.typeKey,
 				}
 			end
 		end
@@ -298,6 +312,97 @@ function geom.markerLayout(items : {SquareMinimapIndustry}, box : SquareMinimapB
 		return a.entity < b.entity
 	end)
 	return out
+end
+
+function geom.hitMarker(markers : {SquareMinimapMarkerPx}, x : number, y : number, size : integer, tol : number,
+		visible ?: function(SquareMinimapMarkerPx) : boolean) : SquareMinimapMarkerPx
+	if markers == nil or x == nil or y == nil then return nil end
+	local t = tol or 0
+	local half = size / 2
+	local best : SquareMinimapMarkerPx = nil
+	local bestD = math.huge
+	for __, m in ipairs(markers) do
+		if x >= m.left - t and x <= m.left + size + t and y >= m.top - t and y <= m.top + size + t
+			and (visible == nil or visible(m)) then
+			local dx, dy = x - (m.left + half), y - (m.top + half)
+			local d = dx * dx + dy * dy
+			-- <= : on a tie the later marker wins (drawn on top, markerLayout order).
+			if d <= bestD then
+				best, bestD = m, d
+			end
+		end
+	end
+	return best
+end
+
+function geom.controlRows(w : integer, ids : {string}, widths : {string : integer}, spacing : integer, pad : integer) : {{string}}
+	local rows : {{string}} = {}
+	local row : {string} = {}
+	local used = pad
+	for __, id in ipairs(ids) do
+		local cw = widths[id] or 0
+		local need = #row == 0 and cw or spacing + cw
+		if #row > 0 and used + need > w then
+			rows[#rows + 1] = row
+			row, used = {}, pad
+			need = cw
+		end
+		row[#row + 1] = id
+		used = used + need
+	end
+	if #row > 0 then rows[#rows + 1] = row end
+	return rows
+end
+
+-- Control width estimate (translations, revision 6): fitted to the 2026-10-10 screenshot, where
+-- "Ind" (3 letters) took ~47 px and "Filter" (6) ~68 px: 26 px box + gap, ~7 px per letter.
+local CONTROL_BASE_PX <const> = 26
+local CONTROL_UNIT_PX <const> = 7
+
+function geom.textUnits(s : string) : integer
+	local n = 0
+	local i, len = 1, #s
+	while i <= len do
+		local b = s:byte(i)
+		if b < 0x80 then
+			n, i = n + 1, i + 1
+		elseif b >= 0xF0 then
+			n, i = n + 2, i + 4
+		elseif b >= 0xE0 then
+			-- U+3000 and up (lead byte 0xE3+): CJK punctuation, kana, ideographs, Hangul, full-width forms.
+			n, i = n + (b >= 0xE3 and 2 or 1), i + 3
+		elseif b >= 0xC0 then
+			n, i = n + 1, i + 2
+		else
+			i = i + 1 -- stray continuation byte
+		end
+	end
+	return n
+end
+
+function geom.controlWidth(label : string) : integer
+	return CONTROL_BASE_PX + CONTROL_UNIT_PX * geom.textUnits(label or "")
+end
+
+--- Byte length of one UTF-8 character from its lead byte, and its units (textUnits).
+local function charAt(b : integer) : integer, integer
+	if b < 0x80 then return 1, 1 end
+	if b >= 0xF0 then return 4, 2 end
+	if b >= 0xE0 then return 3, (b >= 0xE3 and 2 or 1) end
+	if b >= 0xC0 then return 2, 1 end
+	return 1, 0
+end
+
+function geom.fitText(s : string, maxUnits : integer) : string, boolean
+	if geom.textUnits(s) <= maxUnits then return s, false end
+	local budget = maxUnits - 3 -- room for "..."
+	local i, used = 1, 0
+	while i <= #s do
+		local n, u = charAt(s:byte(i))
+		if used + u > budget then break end
+		i, used = i + n, used + u
+	end
+	return (s:sub(1, i - 1):gsub(" +$", "")) .. "...", true -- " +$", not "%s": %s can match a UTF-8 byte (0xA0)
 end
 
 return geom

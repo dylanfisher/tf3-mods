@@ -83,18 +83,18 @@ Square.register({
 });
 
 Square.register({
-  id: 'square_better_minimap', name: 'Better Minimap', tagline: 'Your whole map at a glance', accent: '#E8B740',
-  // Exception to the flat-pictogram rule: the real map window in context, as a large rounded
-  // card (the first gallery slide's crop of 01-overview.jpg). Coordinates reach outside the
-  // 800 box so the card spans x 920-1880, y 350-1065 on the cover, across the diagonal.
+  id: 'square_better_minimap', name: 'Better Minimap', tagline: 'See roads, rails and towns,\nfilter by industry', accent: '#E8B740',
+  // Exception to the flat-pictogram rule: the real map window (Ind, Net and Viz on) as a large
+  // rounded card, a crop of 23-ind-viz.jpg with a strip of the scene on its left. Coordinates reach
+  // outside the 800 box so the card spans x 1180-1880, y 40-1040 on the cover, across the diagonal.
   glyph: S => `
     <defs>
-      <clipPath id="bmCard"><rect x="-388" y="150" width="1200" height="894" rx="30"/></clipPath>
+      <clipPath id="bmCard"><rect x="-62.5" y="-237.5" width="875" height="1250" rx="30"/></clipPath>
       <filter id="bmShadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="14" stdDeviation="22" flood-color="#000" flood-opacity=".45"/></filter>
     </defs>
-    <rect x="-388" y="150" width="1200" height="894" rx="30" fill="#18202a" filter="url(#bmShadow)"/>
-    <g clip-path="url(#bmCard)"><svg x="-388" y="150" width="1200" height="894" viewBox="2300 200 2820 2100" preserveAspectRatio="xMidYMid slice">
-      <image href="../plans/square_better_minimap/shots/01-overview.jpg" width="5120" height="2880"/>
+    <rect x="-62.5" y="-237.5" width="875" height="1250" rx="30" fill="#18202a" filter="url(#bmShadow)"/>
+    <g clip-path="url(#bmCard)"><svg x="-62.5" y="-237.5" width="875" height="1250" viewBox="3635 160 1470 2100" preserveAspectRatio="xMidYMid slice">
+      <image href="../plans/square_better_minimap/shots/23-ind-viz.jpg" width="5120" height="2880"/>
     </svg></g>`,
 });
 
