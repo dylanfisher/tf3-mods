@@ -1,0 +1,16 @@
+{
+    "name": "DEV Hitch Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Fake game-script pauses plus a frame-time log, to find frame hitches.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Developer tool: a button in the top-left mod area cycles fake pauses (game script or GUI, about every 2 s), and every frame time is logged as [HITCH] lines to stdout.txt. See plans/hitch_probe/README.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

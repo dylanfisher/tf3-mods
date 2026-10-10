@@ -350,6 +350,9 @@ Square.devCover({
   id: 'square_aat_perftest', name: 'DEV AAT Perf Test', group: 'perf', tagline: 'Timed original vs optimized',
 });
 Square.devCover({
+  id: 'square_hitch_probe', name: 'DEV Hitch Probe', group: 'perf', tagline: 'Do script pauses drop frames?',
+});
+Square.devCover({
   id: 'square_line_revert_probe', name: 'DEV Line Revert Probe', group: 'lines',
 });
 Square.devCover({
