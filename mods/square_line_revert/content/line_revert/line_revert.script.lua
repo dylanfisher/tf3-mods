@@ -127,11 +127,6 @@ end
 
 -- View model for the button, refreshed every step ------------------------------------------------------------
 local HIDDEN = { hidden = true }
-local SHIFT_HINT = " Shift+click: revert all."
-
-local function plural(n, one, many)
-	return tostring(n) .. " " .. (n == 1 and one or many)
-end
 
 --- core.diffSummary(a, b), remembered per slot ("undo" / "redo") for the last pair of states. History states are
 --- never changed once stored, so the same pair gives the same text; the tooltips ask for it every step.
@@ -146,26 +141,26 @@ end
 
 local function undoView(h)
 	if #h.states <= 1 then
-		return { enabled = false, tooltip = "Undo: no changes since you opened this line" }
+		return { enabled = false, tooltip = _("Undo: no changes since you opened this line") }
 	end
 	local top = h.states[#h.states]
 	local diff = cachedDiff("undo", h.states[#h.states - 1], top)
 	local n = core.changeCount(h)
 	return {
 		enabled = true,
-		tooltip = "Undo: " .. diff .. " (" .. plural(n, "change", "changes") .. " since you opened this line)."
-			.. SHIFT_HINT,
+		tooltip = core.fill(n == 1 and _("Undo: {diff} (1 change since you opened this line). Shift+click: revert all.")
+			or _("Undo: {diff} ({n} changes since you opened this line). Shift+click: revert all."), { diff = diff, n = n }),
 	}
 end
 
 local function redoView(h)
 	local target = core.redoTarget(h)
 	if target == nil then
-		return { enabled = false, tooltip = "Redo: nothing to redo" }
+		return { enabled = false, tooltip = _("Redo: nothing to redo") }
 	end
 	-- what the redo applies: the current top state -> the redo target; "N more" = redo steps left after this one
 	local diff = cachedDiff("redo", h.states[#h.states], target)
-	return { enabled = true, tooltip = "Redo: " .. diff .. " (" .. tostring(#h.redo - 1) .. " more)" }
+	return { enabled = true, tooltip = core.fill(_("Redo: {diff} ({n} more)"), { diff = diff, n = #h.redo - 1 }) }
 end
 
 --- { hidden } or { line, undo = { enabled, tooltip }, redo = { enabled, tooltip } }. Called once per step for
@@ -178,13 +173,14 @@ local function computeView()
 	if isProtected(params, s.line) then return HIDDEN end
 	local comp = readLine(s.line)
 	if not comp then
-		local gone = { enabled = false, tooltip = "Line no longer exists" }
+		local gone = { enabled = false, tooltip = _("Line no longer exists") }
 		return { line = s.line, undo = gone, redo = gone }
 	end
 	observe(s, comp)
 	local h = s.history
 	if h.expected ~= nil then
-		local busy = { enabled = false, tooltip = s.busy or "Undoing..." }
+		-- s.busy holds the English key (LABELS), translated here
+		local busy = { enabled = false, tooltip = _(s.busy or "Undoing...") } -- i18n: ignore
 		return { line = s.line, undo = busy, redo = busy }
 	end
 	return { line = s.line, undo = undoView(h), redo = redoView(h) }
@@ -281,9 +277,10 @@ local function resetEditorMode(params)
 end
 
 local LABELS = {
-	undo = { busy = "Undoing...", done = "undid one edit on", refused = "undo" },
-	all = { busy = "Undoing...", done = "reverted", refused = "undo" },
-	redo = { busy = "Redoing...", done = "redid one edit on", refused = "redo" },
+	-- busy: tooltip text key (translated at use); done: log text only
+	undo = { busy = "Undoing...", done = "undid one edit on" }, -- i18n: keys busy
+	all = { busy = "Undoing...", done = "reverted" }, -- i18n: keys busy
+	redo = { busy = "Redoing...", done = "redid one edit on" }, -- i18n: keys busy
 }
 
 --- kind = "undo" (one step), "all" (back to the state when the line was opened) or "redo" (one step forward).
@@ -298,7 +295,7 @@ local function send(kind)
 	end
 	local comp = readLine(s.line)
 	if not comp then
-		feedback(params, "Line Editor Undo: the line no longer exists.", true)
+		feedback(params, _("Line Editor Undo: the line no longer exists."), true)
 		return
 	end
 	local h = s.history
@@ -318,8 +315,10 @@ local function send(kind)
 	if not target then return end
 	local missing = core.missingStops(target, stationCount)
 	if #missing > 0 then
-		feedback(params, "Line Editor Undo: " .. #missing .. (#missing == 1 and " station" or " stations")
-			.. " of that line state no longer exist. Nothing was changed.", true)
+		feedback(params, #missing == 1
+			and _("Line Editor Undo: 1 station of that line state no longer exists. Nothing was changed.")
+			or core.fill(_("Line Editor Undo: {n} stations of that line state no longer exist. Nothing was changed."),
+				{ n = #missing }), true)
 		return
 	end
 	local built = core.build(target, api.type)
@@ -342,7 +341,8 @@ local function send(kind)
 			if success then
 				say(label.done .. " line " .. tostring(line) .. " (" .. count .. " stops)")
 			else
-				feedback(params, "Line Editor Undo: the game refused the " .. label.refused .. ".", true)
+				feedback(params, kind == "redo" and _("Line Editor Undo: the game refused the redo.")
+					or _("Line Editor Undo: the game refused the undo."), true)
 			end
 		end)
 		if not ok then warnOnce("callback", err) end
@@ -388,7 +388,8 @@ local function makeButtonRecipe(recipeName, which, icon)
 						end)
 						if not ok then
 							warnOnce(which, err)
-							feedback(managerParams, "Line Editor Undo: " .. which .. " failed (see log).", true)
+							feedback(managerParams, which == "redo" and _("Line Editor Undo: redo failed (see log).")
+								or _("Line Editor Undo: undo failed (see log)."), true)
 						end
 						perf:stop("click", tPerf)
 					end,

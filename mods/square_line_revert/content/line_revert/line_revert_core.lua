@@ -199,8 +199,28 @@ function core.matchesLive(lineComp, snap)
 	return true
 end
 
-local function plural(n, one, many)
-	return tostring(n) .. " " .. (n == 1 and one or many)
+--- Fills the named placeholders of a translated string: fill(_("{n} stops removed"), { n = 3 }). Whole phrases with
+--- named placeholders let a translation reorder them (no sentence building; the game's own lang_util.format idea).
+--- A placeholder without a value stays as it is.
+function core.fill(text, values)
+	return (text:gsub("{(%w+)}", function(k)
+		local v = values[k]
+		if v == nil then return nil end
+		return tostring(v)
+	end))
+end
+
+--- "1 stop removed" or "{n} stops removed": one key per form (translations use number-neutral wording).
+local function counted(n, one, many)
+	if n == 1 then return one end
+	return core.fill(many, { n = n })
+end
+
+--- Joins display phrases with the translated list separator ("{list}, {item}"; CJK uses its own comma).
+local function joinList(parts)
+	local out = parts[1]
+	for i = 2, #parts do out = core.fill(_("{list}, {item}"), { list = out, item = parts[i] }) end
+	return out
 end
 
 --- Short human summary of how `now` differs from `snap`, "" when they are equal.
@@ -209,7 +229,7 @@ end
 -- settings (terminal, load mode, waiting time, waypoints, cargo) are "N stops changed".
 function core.diffSummary(snap, now)
 	if core.equal(snap, now) then return "" end
-	if snap == nil or now == nil then return "line changed" end
+	if snap == nil or now == nil then return _("line changed") end
 	local a, b = snap.stops or {}, now.stops or {}
 	local countA, countB = {}, {}
 	for _i, s in ipairs(a) do countA[s.stationGroup] = (countA[s.stationGroup] or 0) + 1 end
@@ -225,8 +245,8 @@ function core.diffSummary(snap, now)
 	end
 
 	local parts = {}
-	if removed > 0 then parts[#parts + 1] = plural(removed, "stop removed", "stops removed") end
-	if added > 0 then parts[#parts + 1] = plural(added, "stop added", "stops added") end
+	if removed > 0 then parts[#parts + 1] = counted(removed, _("1 stop removed"), _("{n} stops removed")) end
+	if added > 0 then parts[#parts + 1] = counted(added, _("1 stop added"), _("{n} stops added")) end
 	if removed == 0 and added == 0 then
 		local reordered, changed = false, 0
 		for i = 1, #a do
@@ -236,14 +256,14 @@ function core.diffSummary(snap, now)
 				changed = changed + 1
 			end
 		end
-		if reordered then parts[#parts + 1] = "stops reordered" end
-		if changed > 0 then parts[#parts + 1] = plural(changed, "stop changed", "stops changed") end
+		if reordered then parts[#parts + 1] = _("stops reordered") end
+		if changed > 0 then parts[#parts + 1] = counted(changed, _("1 stop changed"), _("{n} stops changed")) end
 	end
 	if snap.customFilters ~= now.customFilters or snap.reservationPriority ~= now.reservationPriority then
-		parts[#parts + 1] = "line settings changed"
+		parts[#parts + 1] = _("line settings changed")
 	end
-	if #parts == 0 then parts[1] = "line changed" end
-	return table.concat(parts, ", ")
+	if #parts == 0 then parts[1] = _("line changed") end
+	return joinList(parts)
 end
 
 --- Stops whose station is gone. stationCount(group) returns the number of stations in the group, or nil when
