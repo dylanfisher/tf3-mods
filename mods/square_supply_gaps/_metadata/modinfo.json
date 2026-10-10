@@ -2,6 +2,56 @@
     "name": "Supply Gap Overview",
     "summary": "Find the town buildings your supply routes don't reach.",
     "description": "Find the town buildings your supply routes don't reach: markers on every town building that needs a cargo and isn't getting it. Off by default; the Gaps button in the top-left button ridge opens the panel.",
+    "localization": {
+        "ru": {
+            "name": "Обзор нехватки снабжения",
+            "summary": "Найдите здания городов, до которых не доходят ваши маршруты снабжения."
+        },
+        "de": {
+            "name": "Versorgungslücken-Übersicht",
+            "summary": "Finde die Stadtgebäude, die deine Versorgungsrouten nicht erreichen."
+        },
+        "fr": {
+            "name": "Aperçu des manques",
+            "summary": "Trouvez les bâtiments des villes que vos lignes d'approvisionnement n'atteignent pas."
+        },
+        "es": {
+            "name": "Carencias de suministro",
+            "summary": "Encuentra los edificios de las ciudades que tus rutas de suministro no alcanzan."
+        },
+        "it": {
+            "name": "Lacune di rifornimento",
+            "summary": "Trova gli edifici cittadini che le tue rotte di rifornimento non raggiungono."
+        },
+        "nl": {
+            "name": "Overzicht leveringsgaten",
+            "summary": "Vind de stadsgebouwen die je leveringsroutes niet bereiken."
+        },
+        "pl": {
+            "name": "Przegląd braków zaopatrzenia",
+            "summary": "Znajdź budynki miejskie, do których nie docierają twoje trasy zaopatrzenia."
+        },
+        "pt_BR": {
+            "name": "Lacunas de abastecimento",
+            "summary": "Encontre os prédios das cidades que suas rotas de abastecimento não alcançam."
+        },
+        "ja": {
+            "name": "供給不足の概要",
+            "summary": "供給ルートが届いていない町の建物を見つけます。"
+        },
+        "ko": {
+            "name": "공급 공백 개요",
+            "summary": "공급 노선이 닿지 않는 도시 건물을 찾아냅니다."
+        },
+        "zh_CN": {
+            "name": "供应缺口概览",
+            "summary": "找出供应线路未覆盖的城镇建筑。"
+        },
+        "zh_TW": {
+            "name": "供應缺口概覽",
+            "summary": "找出供應路線未覆蓋的城鎮建築。"
+        }
+    },
     "authors": [
         {
             "name": "square",

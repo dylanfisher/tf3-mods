@@ -211,13 +211,15 @@ end
 
 local function summary(snap : SupplyGapsSnapshot) : string
 	if snap.ticks == 0 then return _("Reading towns and stops...") end
-	local s = tostring(snap.unreached) .. " " .. _("not reached")
+	local s : string
 	if snap.includeStarved then
-		s = s .. ", " .. tostring(snap.starved) .. " " .. _("in range but empty")
+		s = string.format(_("%d not reached, %d in range but empty (of %d buildings with needs)."),
+			snap.unreached, snap.starved, snap.buildings)
+	else
+		s = string.format(_("%d not reached (of %d buildings with needs)."), snap.unreached, snap.buildings)
 	end
-	s = s .. " (" .. _("of") .. " " .. tostring(snap.buildings) .. " " .. _("buildings with needs") .. ")."
 	if snap.capped then
-		s = s .. " " .. _("Marking the") .. " " .. tostring(snap.markers) .. " " .. _("nearest.")
+		s = s .. " " .. string.format(_("Marking the %d nearest."), snap.markers)
 	end
 	return s
 end
@@ -230,13 +232,14 @@ local function scopeLine(snap : SupplyGapsSnapshot) : string
 		if snap.viewTowns == 0 then
 			s = _("In view: no towns. Pan to a town or untick \"Only towns in view\".")
 		else
-			s = _("In view:") .. " " .. snap.viewText
+			-- viewText: town names from the game (already localized) joined with ", ".
+			s = string.format(_("In view: %s"), snap.viewText)
 		end
 	else
-		s = _("Whole map:") .. " " .. tostring(snap.viewTowns) .. " " .. _("towns")
+		s = string.format(_("Whole map: %d towns"), snap.viewTowns)
 	end
 	if snap.pending > 0 then
-		s = s .. " (" .. _("reading") .. " " .. tostring(snap.pending) .. " " .. _("buildings") .. ")"
+		s = s .. " " .. string.format(_("(reading %d buildings)"), snap.pending)
 	end
 	return s
 end
