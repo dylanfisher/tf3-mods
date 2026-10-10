@@ -1,8 +1,21 @@
 {
     "modId": "square_bulk_bulldozer",
-    "revision": 2,
+    "revision": 3,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
-    "cosmetic": false
+    "cosmetic": false,
+    "params": [
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Bulk Bulldozer writes how long its brush samples, previews and tool renders took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its detailed mouse-event log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        }
+    ]
 }

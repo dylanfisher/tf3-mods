@@ -30,8 +30,18 @@
 -- modifiers; timing uses os.clock(). getDefinition may run in a different Lua VM than the recipe
 -- (research §6), so toolbar values reach the recipe through onChangeFn → api.gui.fireReactEvent →
 -- react.onEvent, and getCurrentParams() on activation.
+--
+-- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state; sections get_definition,
+-- action_render (tool recipe), world_render (actionFn) with overlay nested, step (react.onStep,
+-- Main Thread) with sample / erase_sample / preview nested, mouse (Selector events), commit (the
+-- synchronous start of a bulldoze), status_render. The per-event mouse log is level-3 only
+-- (debugLog below): it was Phase 1 spike logging.
 
-local react = ug_require "::/gui/main/react.lua" as React
+local sqperf = ug_require "square_bulk_bulldozer::/sqperf/square_bulk_bulldozer.lua" as SquareBulkBulldozerSqPerf
+local perf = sqperf.new({ mod = "square_bulk_bulldozer", ctx = "gui", paramKey = "sqperf_log", first = { "action_render" } })
+local perfInit = perf:start()
+
+local react =ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
 local constructionUi = ug_require "::/gui/construction/construction_react_util.tl" as ConstructionReactUtil
 local brush = ug_require "square_bulk_bulldozer::/bulk_bulldozer/bb_brush.tl" as BulkBulldozerBrush
@@ -151,6 +161,12 @@ end
 
 local function logMsg(msg : string)
 	pcall(function() log.message(PREFIX .. msg) end)
+end
+
+-- Chatty diagnostics (every mouse event, Moved summaries): only with "Debug: performance log" On
+-- (SQPERF level 3, re-read every 30 s).
+local function debugLog() : boolean
+	return perf.on
 end
 
 local record RadiusEvent
@@ -372,7 +388,9 @@ end
 
 -- One brush sample into the selection's stroke. Returns true when the stroke changed.
 local function takeSample(s : Selection, x : number, y : number, r : number, f : BulkBulldozerFilters) : boolean
+	local tPerf = perf:start()
 	local ok, res = pcall(gather.sample, x, y, r, f, s.ctx, s.cache)
+	perf:stop("sample", tPerf)
 	if not ok then
 		logMsg("sample failed: " .. tostring(res))
 		return false
@@ -397,7 +415,9 @@ end
 -- One Shift-stroke sample: every selected entity the brush touches leaves the selection, whatever
 -- the filters say. Returns true when the selection changed.
 local function eraseSample(s : Selection, x : number, y : number, r : number, f : BulkBulldozerFilters) : boolean
+	local tPerf = perf:start()
 	local ok, res = pcall(gather.sample, x, y, r, f, s.ctx, s.cache)
+	perf:stop("erase_sample", tPerf)
 	if not ok then
 		logMsg("erase sample failed: " .. tostring(res))
 		return false
@@ -530,8 +550,10 @@ end
 
 -- Fresh makeProposalData summary of the whole stroke.
 local function updatePreview(s : Selection)
+	local tPerf = perf:start()
 	local edges, cons = strokeLists(s.stroke)
 	local ok, pv = pcall(commit.preview, edges, cons)
+	perf:stop("preview", tPerf)
 	if not ok then
 		logMsg("preview failed: " .. tostring(pv))
 		pv = { ok = false, cost = nil, critical = false, errors = {}, seconds = 0 }
@@ -552,7 +574,7 @@ local function logStroke(what : string, s : Selection)
 end
 
 local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
-	function(param : ConstructionCustomActionParams<BulkBulldozerActionParam>) : TreeNodeId
+	perf:wrap("action_render", function(param : ConstructionCustomActionParams<BulkBulldozerActionParam>) : TreeNodeId
 
 	-- All hooks first, in a fixed order; the isActive gate comes after them.
 	local radiusState = react.useState(brush.DEFAULT_RADIUS) as ReactStateT<number>
@@ -671,10 +693,12 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 				bump()
 			end)
 		end
+		local tPerf = perf:start()
 		local ok, err = pcall(function() : string
 			commit.commit(edges, cons, s.ctx, s.cache.industryRoads, pre, onDone, logMsg)
 			return nil
 		end)
+		perf:stop("commit", tPerf)
 		if not ok then
 			logMsg("commit failed: " .. tostring(err))
 			refResult:set({ text = { head = "Bulldozing failed", detail = "See the game log" }, untilAt = os.clock() + RESULT_SECONDS })
@@ -809,6 +833,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 	end
 
 	react.onStep(function()
+		local tStep = perf:start()
 		local prm = refParam:get()
 		local active = prm.isActive == true
 		-- Activation edge: read back the toolbar (onChangeFn does not fire at mount).
@@ -833,6 +858,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 		if not active then
 			refLayerDownAt:set(nil)
 			publishIfChanged()
+			perf:stop("step", tStep)
 			return
 		end
 		-- World layer unmounted and not back (another tool took the world): the tool was switched.
@@ -933,15 +959,17 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 		-- Summarise Moved events instead of logging every one.
 		local ml = refMoved:get()
 		if ml.count > 0 and now - ml.lastAt >= MOVED_LOG_INTERVAL then
-			logMsg("mouse Moved x" .. tostring(ml.count) .. " (with LMB held: " .. tostring(ml.withLmb)
-				.. ", handled: " .. tostring(ml.handled) .. ")")
+			if debugLog() then logMsg("mouse Moved x" .. tostring(ml.count) .. " (with LMB held: " .. tostring(ml.withLmb)
+				.. ", handled: " .. tostring(ml.handled) .. ")") end
 			refMoved:set({ count = 0, withLmb = 0, handled = 0, lastAt = now })
 		end
 
 		publishIfChanged()
+		perf:stop("step", tStep)
 	end)
 
 	local onMouse = function(e : Gui.Mouse.Event) : boolean
+		local tMouse = perf:start()
 		local T = api.gui.mouse.Event.Type
 		local isLmb = e.button == 0
 		local isRmb = e.button == 2
@@ -950,6 +978,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 			ml.count = ml.count + 1
 			if refLmbDown:get() then ml.withLmb = ml.withLmb + 1 end
 			if e.handled then ml.handled = ml.handled + 1 end
+			perf:stop("mouse", tMouse)
 			return false
 		end
 		local s = refSel:get()
@@ -1024,9 +1053,12 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 				consume = true
 			end
 		end
-		logMsg("mouse " .. eventTypeName(e.type) .. " button=" .. tostring(e.button)
-			.. " handled=" .. tostring(e.handled) .. " -> return " .. tostring(consume)
-			.. " (phase " .. (s ~= nil and s.phase or "none") .. ")")
+		if debugLog() then
+			logMsg("mouse " .. eventTypeName(e.type) .. " button=" .. tostring(e.button)
+				.. " handled=" .. tostring(e.handled) .. " -> return " .. tostring(consume)
+				.. " (phase " .. (s ~= nil and s.phase or "none") .. ")")
+		end
+		perf:stop("mouse", tMouse)
 		return consume
 	end
 
@@ -1058,6 +1090,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 	end
 
 	local actionFn = function() : TreeNodeId
+		local tWorld = perf:start()
 		local _ = versionState:old()   -- re-render on selection changes
 		-- World-layer lifecycle (base: construction_react_util.tl:1355-1364). The menu swaps the
 		-- action to another entry's (or its "default") when the tool is left (construction.tl:4489-4501),
@@ -1131,7 +1164,9 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 					pc = { owner = s.cache, byPhase = {} }
 					refPieces:set(pc)
 				end
+				local tOverlay = perf:start()
 				local ok, built = pcall(buildOverlay, s, phase, key, pc)
+				perf:stop("overlay", tOverlay)
 				if ok then
 					ov = built
 				else
@@ -1177,7 +1212,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 			}
 		end
 
-		return builtin.ActionDescriptor{
+		local descriptor = builtin.ActionDescriptor{
 			tool = "bulk-bulldozer-tool",
 			crosshair = false,
 			terrainCirclePolicy = "Never",
@@ -1188,6 +1223,8 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 			end,
 			children = children,
 		}
+		perf:stop("world_render", tWorld)
+		return descriptor
 	end
 
 	-- Keep focus on the tool, as the base selector-based tools do (construction_react_util.tl:1325-1327).
@@ -1203,7 +1240,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 		react.useInputAction("IA_MENU_BACK", react.iaHandler(function() cancelPending("Esc") end))
 	end
 	return nil
-end)
+end))
 
 -- Toolbar status chip: the content of a disabled one-value Button (makeCompactButtonFn below).
 -- A recipe as button content is base practice (cargofilter_window.tl:156, IconLabelIndicator →
@@ -1212,7 +1249,7 @@ end)
 -- definition changes (construction.tl:1072-1092). Two TextViews, not a direct TextView child of
 -- the button: the bar fixes those to 50 x 24 px (construction.css.lua:820-823).
 local record StatusParam end
-local BulkBulldozerStatus = react.RegisterRecipe("BulkBulldozerStatus", function(_param : StatusParam) : TreeNodeId
+local BulkBulldozerStatus = react.RegisterRecipe("BulkBulldozerStatus", perf:wrap("status_render", function(_param : StatusParam) : TreeNodeId
 	local textState = react.useState({ head = g_status.head, detail = g_status.detail }) as ReactStateT<BulkBulldozerStatusText>
 	local refSeen = react.useRef(g_status.version) as ReactRefT<integer>
 	local function take(head : string, detail : string)
@@ -1240,7 +1277,7 @@ local BulkBulldozerStatus = react.RegisterRecipe("BulkBulldozerStatus", function
 			builtin.TextView{ meta = { class = "font-scale-annotation" }, text = t.detail },
 		},
 	}
-end)
+end))
 
 -- Button label wrapped in a BoxLayout, so the bar's 50 px TextView rule (construction.css.lua:820-823)
 -- doesn't clip it; the BoxLayout is centred by builtin.css.lua:178-182.
@@ -1313,7 +1350,7 @@ local function filterParam(fp : FilterParam, dflt : boolean) : ConstructionMenuP
 end
 
 local Ret = {
-	getDefinition = function(constructionDefinition : ResName, _repository : ConstructionActionRepository, _params : {string : number}) : ConstructionDefinition
+	getDefinition = perf:wrap("get_definition", function(constructionDefinition : ResName, _repository : ConstructionActionRepository, _params : {string : number}) : ConstructionDefinition
 		local defaultRadiusIndex = brush.radiusIndex(brush.DEFAULT_RADIUS)
 		local params : {ConstructionMenuParam} = {
 			{
@@ -1431,7 +1468,9 @@ local Ret = {
 				},
 			},
 		}
-	end,
+	end),
 }
+
+perf:phase("init", perfInit)
 
 return Ret
