@@ -163,3 +163,94 @@ ImageView + buffer + params userdata; only strips with changed bands are re-enco
 (~1 ms) per frame, then published together (one version bump, staged/spare userdata per strip, so no half-old
 picture); strip nodes are reused per strip version (`MinimapNetStrip` recipe + `findOldChildByLocalKey`). After a
 park only the strips that change get a new buffer (encoded whole). Details: PERF_REVIEW.md "Strips (2026-10-10)".
+
+## Phase 7: industry filter (2026-10-10, revision 5)
+
+User request: "holding shift and clicking an industry on the minimap (when Ind is active) filters to show only that
+industry type; while holding shift all other industries get muted, clicking makes them disappear, shift+clicking the
+minimap again makes them appear. Plus a filter box after Ind ('Fil') that only appears when Ind is on; clicking it
+opens a separate box to filter industries and show only those on the minimap. Consistent with our other industry
+filtering (square_industry_flows)."
+
+### Decisions (user, 2026-10-10)
+
+- **Shift mute = hover preview.** Shift held + mouse over an industry icon: every icon of another type is drawn muted
+  (faded). Nothing changes with Shift held over the empty map.
+- **Filter box = its own small movable window**, like Industry Flows' panel.
+- **Filter is remembered** with the other prefs (AppConfig.mainMenuState, never in the save).
+
+### Design
+
+- **Type of an industry** = `CONSTRUCTION.fileName` of its construction, found exactly like
+  `square_industry_flows/content/industry_flows/flows_gather.tl` `gather.typeOf` (streetConnectorSystem
+  `getConstructionEntityForSubconstruction`); display name = `constructionRep` `description.name` as `gather.typeName`
+  (cached per key), fallback prettified key as `flows_model.prettifyKey`/`displayName`. Read once per map build in
+  `readIndustry` (new fields on `SquareMinimapIndustry`: `typeKey`, plus the type's input/output cargo ids for the list).
+  Industries with no type key ("") form one "Other" type.
+- **Filter state** = a set of selected type keys. Empty set = show all (the default). A marker is drawn when the set is
+  empty or contains its type. Selected keys not on the current map stay selected (as Industry Flows does) but don't hide
+  anything extra; if no selected type is on the map the map shows no industries and the Fil button says so.
+- **Shift detection**: `api.gui.inputAction.modifierOnlyActionIsActive("IA_PRECISION_MODE")` (Shift by default; used
+  from GUI handlers by square_line_revert and by published community mods, e.g. zhenya_doubleclick_to_edit). pcall it.
+- **Hover**: the canvas already gets mouse events (`react.onMouseEvent`, phase 1); handle `Moved`/`Exited` too and hit
+  test against the cached marker layout (pure function in `minimap_geom.tl`, tested: nearest marker whose box contains the
+  point, small tolerance). Shift pressed/released without moving the mouse must also update the preview: poll Shift
+  cheaply only while the window is shown, Ind is on and the pointer is over the canvas.
+- **Muted look**: a second stylesheet class on the icon ImageView (semi-transparent tint, e.g. alpha ~0.25). Changing the
+  hovered type re-renders the markers recipe; it must not rebuild the marker layout (layout cache key unchanged) or
+  re-mount the preview.
+- **Shift+click** (never jumps the camera):
+  - on a marker, when the filter is not exactly {that marker's type}: filter = {that type};
+  - otherwise (empty map spot, or the only filtered type): clear the filter (show all).
+  Plain clicks keep jumping the camera as before. Log every filter change (`[Minimap] filter: ...`).
+- **Fil button** in the control row right after Ind, shown only while Ind is on. It toggles the filter window. It shows
+  when a filter is active (e.g. accent/highlight class, tooltip "Showing N of M industry types"). Recheck the
+  control-row width rules (`CONTROLS_TWO_ROWS_BELOW`, FLOOR_W): the extra button must not clip on narrow pictures.
+- **Filter window** (separate `builtin.Window`, movable, closable, compact like the minimap): search field
+  (TextInputField, as Industry Flows), "Show all" button (clears), a checkbox row per industry type on the map: name, its
+  cargo icons (inputs -> outputs, as flows `typeRow`/`cargoIcons`) and its count on the map; ScrollArea when long
+  (ScrollArea content must be a Component, memory). Same selection as Shift+click: both stay in sync. Closes when the
+  minimap window hides or Ind is switched off; reopening the minimap does not reopen it automatically.
+- **Pure logic in a new tested module** (e.g. `content/minimap/minimap_filter.tl`): group industries into types with
+  counts, search, toggle, the Shift+click rule, `isVisible(typeKey, selection)`, prefs (de)serialisation. Tests in
+  `tests/square_better_minimap/test_filter.lua`.
+- Must not impact saves: GUI only, nothing written to the game state.
+
+### Implemented (2026-10-10, not yet tested in game)
+
+As designed, with these details and differences:
+
+- Module `content/minimap/minimap_filter.tl` (tests `test_filter.lua`); hit test `geom.hitMarker` and the control-row
+  rule `geom.controlRows` in `minimap_geom.tl` (tests in `test_geom.lua`).
+- Industries without a construction get the key `filter.OTHER_KEY` = `"(other)"`, shown as "Other", listed last.
+- Prefs: the selection is stored as one string, sorted keys joined by `|` (`filterTypes`), not as a list, to keep the
+  `mainMenuState` table flat. The search text is session-only.
+- With Ind off, Shift+click jumps like a plain click (there is nothing to filter); the filter stays and applies again
+  when Ind is switched back on.
+- Selection semantics as Industry Flows: no box ticked = all shown; ticked boxes = only those. The window's heading
+  says "Showing all industry types" / "Showing N of M types"; "Show all" is greyed out while nothing is filtered.
+- The filter window is added once and then hidden/shown by id (like the minimap), so it keeps a position the player
+  dragged it to; first placement: left of the minimap, or right of it when there is no room (width estimated as
+  0.17 of the screen). Closed by the guard tick too if the minimap went away without `hideWindow`.
+- Control rows: one row "Ind Fil Net Viz" from 200 px picture width (estimate), else "Ind Fil" / "Net Viz"; without
+  Fil unchanged (160 px, "Ind Net" / "Viz").
+- Hover: Shift is read on every Moved/Entered event over the canvas and polled once per frame only while the pointer
+  is over the canvas (Ind on, window shown); the hit test runs only while Shift is held. The hovered type reaches
+  only `MinimapMarkers` (its own state); a filter change re-renders the content like any toggle (no re-mount).
+
+**Round 2 (2026-10-10, after the first in-game run):**
+- The script's main chunk hit 213 locals ("too many local variables", the file did not load): the network layer
+  section is a `do ... end` block now; `make check` compiles the generated Lua and catches this offline.
+- "Fil" button -> **"Filter" checkbox**, ticked exactly while the filter window is open (closing the window unticks it;
+  `filterWindowListener`). The active filter shows in its tooltip only.
+- **Viz only while Net is on.** Control rows are packed greedily by estimated widths (`geom.controlRows`, `CONTROL_W`).
+- **Hover perf** (SQPERF run 2026-10-10: `markers_render` 208 calls, avg 2.0 ms, max 15.5 ms, one per hover change,
+  every icon rebuilt with a muted class): icons are now one cached layer (`MinimapMarkerIcons`, reused by
+  `findOldChildByLocalKey` while layout + filter are unchanged); a hover adds a dim layer (`!minimap-industry-dim`)
+  ... Two tries rejected in game: a black dim layer (covered map and network) and swapping a normal and a faded
+  cached layer with `api.gui.byId.setVisible` (every icon flashed on each hover change). Final: the first pass's
+  per-icon faded class (a hover change still re-styles every icon, ~2 ms), but the icon layer's node is reused while
+  layout, filter and hover are unchanged, so content re-renders (toggles, S/L) no longer rebuild the icons.
+- Filter window resize: skipped (user, 2026-10-10). `builtin.Window` has no resize option and no base window is
+  user-resizable; a custom drag grip was not worth it.
+- **Preview reuse:** `preview_render` averaged 4.0 ms over 75 calls in the same run (0.9 ms before); `MinimapPreview` now returns its old node while map generation + size are unchanged.

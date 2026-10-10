@@ -1,5 +1,47 @@
 # Better Minimap: in-game test checklist (phase 2: window polish)
 
+## P7. Industry filter (phase 7, revision 5)
+
+Report every `[Minimap] filter` / `filter window` / `settings:` line, any Lua error or warning with `[Minimap]`, and
+(with "Debug: performance log" On) the SQPERF sections `markers_render`, `marker_icons_render` (counts
+`marker_icons_built` / `marker_icons_reused`: built must stay low while hovering), `preview_render` (count
+`preview_reused`: toggles and filter changes should reuse; the map must still show and update after a rebuild), `hover_hit`, `shift_poll`, `click_filter`,
+`filter_render`, counts `hover_changes`, `shift_changes`.
+- [ ] **Hover mute**: Ind on, hold Shift, move over an industry icon: every icon of another type fades (map and network
+      unchanged, no dark overlay); the hovered type's icons stay bright. Move to another type: the bright type follows. Shift over the empty map: nothing faded. No
+      flicker of the terrain, network or camera box (only the icons change; `industry markers gen N: ... drawn` must
+      **not** repeat while hovering, and no `preview ready` / `net: on` line).
+- [ ] **Shift without moving the mouse**: rest the pointer on an icon, press Shift: the others fade at once; release
+      Shift: all back to normal. Same when Shift is held first and the pointer comes to rest on the icon.
+- [ ] **Shift+click on an icon**: only that type stays (`filter: shift+click on <file>.con -> <file>.con (1 of N
+      types on the map shown)`); the camera does **not** jump. Shift+click the same icon again, or an empty spot:
+      all icons back (`... -> all`). Shift+click an icon of another type while filtered: switches to that type.
+- [ ] **Plain click** (no Shift) still jumps the camera, also on an icon and while a filter is active. With Ind off,
+      Shift+click jumps like a plain click (no filter change).
+- [ ] Does Shift+click on the minimap trigger anything else in the game (the base uses Shift as "precision mode")?
+- [ ] **Filter** checkbox appears right after Ind only while Ind is on; it is ticked exactly while the filter window is
+      open (closing the window with its X unticks it). Tooltip "Filter active: showing N of M ..." while filtered.
+- [ ] **Viz** appears only while Net is on (switch Net off: Viz goes away, the row re-packs).
+- [ ] **Filter window**: Ticking Filter opens a small window "Industry filter" next to the minimap (left of it, or right when the
+      minimap is at the left edge: is the placement sensible? `filter window opened at anchor x,y`). Search field
+      (try a type name and a cargo, e.g. "fuel"), checkbox rows with cargo icons (inputs > outputs) and counts, a
+      scroll bar when more than 8 types match, "Show all". Unticking Filter closes it. X closes it and unticks Filter. Movable.
+- [ ] **Sync**: ticking types in the window filters the map at once; Shift+click on the map updates the checkboxes
+      while the window is open; "Show all" clears both.
+- [ ] Switching Ind off closes the filter window (`filter window closed (Ind off)`); hiding the minimap (Map button, X,
+      ESC) closes it too; opening the minimap again does **not** reopen it.
+- [ ] **Persistence**: set a filter, wait 1 s (`settings: saved ... filter=<keys>`), restart the game or load a
+      save: `settings: loaded ... filter=<keys>` and the same types shown. "Show all" saves `filter=all`.
+- [ ] **Narrow picture control row**: on a portrait map or with the minimap at S on a 1:2+ map, the row must not clip:
+      rows are packed greedily by estimated widths (`CONTROL_W`: 47 px per 3-letter checkbox, Filter 68, spacing 6,
+      padding 8): all four on one row from ~235 px, "Ind Filter Net" / "Viz" below that, "Ind Filter" / "Net Viz"
+      below ~182 px. Report any clipped label or a row much wider than its controls (then adjust CONTROL_W).
+- [ ] Faded look readable? (alpha 0.25 tint, tile 0.2, `minimap-industry-muted`): too faint or too strong? No icon
+      flashes when the hovered type changes (the setVisible layer swap flashed: reverted).
+- [ ] Hover, release Shift, set a filter, hover again: the faded layer follows the filter (no faded icons of
+      filtered-out types).
+- [ ] No errors or `[Minimap] ... failed` warnings in stdout.txt during all of the above.
+
 ## P6b. Header size button (2026-10-10): done
 
 Title hidden, own magnifier (24 UI px) readable in the header. Right-aligning it next to the pin failed twice (CSS
@@ -149,6 +191,8 @@ Run this first; the full phase 2 list below still applies. Report every `[Minima
 
 **Fit (portrait 1:2 save)**
 - [ ] Toggle S/L: `option: size=S (180x360 px)`, `L (360x720)`. No empty band right of (or below) the picture at any size.
+- [ ] Portrait strip (1:3 or narrower) at S: `size=S (121x360 px)`, the picture fills the window edge to edge, the controls sit on two rows ("Ind Net" / "Viz"), nothing clipped, and `fit:` reports no `EMPTY BAND` (if it does, report N: FLOOR_W gets raised). 1:2 at S keeps one row. Hover Viz: "High visibility: ...". 
+- [ ] Mod setting **Top bar button** = Icon: the top-left button is a folded-map icon on a dark tile, same size as the data layers button; `setting: hudButtonStyle=icon (raw 2)`. Text (default): the "Map" text button as before.
 - [ ] A `fit: picture ... extra width ... (~N UI px)` line appears per size; report N. If it says `EMPTY BAND`, report the size and N (MIN_WIDTHS in the script gets raised).
 - [ ] Landscape/square save if you have one: S/L are 200/560 on the long side, no bands.
 

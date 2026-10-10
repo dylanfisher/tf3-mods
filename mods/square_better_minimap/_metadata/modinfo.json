@@ -1,7 +1,57 @@
 {
     "name": "Better Minimap",
-    "summary": "A pinnable overview map of your save: resource icons, a live camera box and click-to-jump.",
-    "description": "An overview map of your whole savegame with resource icons, a live camera box with a view direction arrow, and click-to-jump. Open it with the Map button in the top-left button ridge.",
+    "summary": "An overview map of your save: roads, rails, towns, filterable industries and click-to-jump.",
+    "description": "An overview map of your whole savegame: your roads, railways and towns, every industry by what it produces with a searchable industry filter, a live camera box with a view direction arrow, and click-to-jump. Open it with the Map button in the top-left corner.",
+    "localization": {
+        "ru": {
+            "name": "Улучшенная миникарта",
+            "summary": "Обзорная карта сохранения: дороги, рельсы, города, фильтр предприятий и переход по клику."
+        },
+        "de": {
+            "name": "Bessere Minikarte",
+            "summary": "Übersichtskarte deines Spielstands: Strassen, Gleise, Städte, filterbare Industrien, Klick-Sprung."
+        },
+        "fr": {
+            "name": "Meilleure mini-carte",
+            "summary": "Carte d'ensemble : routes, rails, villes, industries filtrables et saut par clic."
+        },
+        "es": {
+            "name": "Minimapa mejorado",
+            "summary": "Mapa general de tu partida: carreteras, vías, ciudades, industrias filtrables y salto con un clic."
+        },
+        "it": {
+            "name": "Minimappa migliorata",
+            "summary": "Mappa d'insieme della partita: strade, binari, città, industrie filtrabili e salto con un clic."
+        },
+        "nl": {
+            "name": "Betere minikaart",
+            "summary": "Overzichtskaart van je spel: wegen, sporen, steden, filterbare industrieën en klik om te springen."
+        },
+        "pl": {
+            "name": "Lepsza minimapa",
+            "summary": "Mapa przeglądowa zapisu: drogi, tory, miasta, filtrowane zakłady i skok po kliknięciu."
+        },
+        "pt_BR": {
+            "name": "Minimapa melhorado",
+            "summary": "Mapa geral do seu jogo: estradas, trilhos, cidades, indústrias filtráveis e salto com um clique."
+        },
+        "ja": {
+            "name": "改良ミニマップ",
+            "summary": "セーブ全体の概観マップ：道路、線路、町、絞り込み可能な産業、クリックで移動。"
+        },
+        "ko": {
+            "name": "향상된 미니맵",
+            "summary": "저장 게임 전체 개요 지도: 도로, 철도, 도시, 필터 가능한 산업, 클릭으로 이동."
+        },
+        "zh_CN": {
+            "name": "更好的小地图",
+            "summary": "存档总览地图：道路、铁路、城镇、可筛选的工业，点击即可跳转。"
+        },
+        "zh_TW": {
+            "name": "更好的小地圖",
+            "summary": "存檔總覽地圖：道路、鐵路、城鎮、可篩選的產業，點擊即可跳轉。"
+        }
+    },
     "authors": [
         {
             "name": "square",

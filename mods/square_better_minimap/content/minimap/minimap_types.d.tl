@@ -41,13 +41,19 @@ global record SquareMinimapCamPx
 end
 
 --- One industry as read on the GUI thread when the map is built (minimap_hud.script.tl
---- readIndustries): world position (bounding-box centre), icon path, display name.
+--- readIndustries): world position (bounding-box centre), icon path, display name, and its type
+--- (phase 7 filter): the construction's fileName (filter.OTHER_KEY when unknown), the type's localized
+--- name (nil when unknown) and its rule input / output cargo type ids.
 global record SquareMinimapIndustry
 	entity : integer
 	x : number
 	y : number
 	icon : string
 	name : string
+	typeKey : string
+	typeName : string
+	inputs : {integer}
+	outputs : {integer}
 end
 
 --- An industry marker laid out in a w x h picture: top-left corner in whole pixels (the marker is
@@ -59,6 +65,7 @@ global record SquareMinimapMarkerPx
 	top : integer
 	icon : string
 	name : string
+	typeKey : string  -- the industry's type (filter / hover mute); not part of key
 end
 
 -- Module: ug_require "square_better_minimap::/minimap/minimap_geom.tl" as SquareMinimapGeom
@@ -73,6 +80,7 @@ global record SquareMinimapPrefs
 	showNet : boolean       -- network layer (roads, tracks, town buildings) on
 	hiVis : boolean         -- network layer in the high-visibility palette
 	open : boolean          -- a pinned window was open: re-open it after the next load
+	filterTypes : string    -- industry filter (phase 7): selected type keys joined by "|" (filter.toPrefs); "" = show all
 end
 
 global record SquareMinimapGeom
@@ -104,8 +112,9 @@ global record SquareMinimapGeom
 	sameCamPx : function(a : SquareMinimapCamPx, b : SquareMinimapCamPx) : boolean
 	--- Picture size: widgetSize(longSide), widened (keeping the aspect) to at least minW so the
 	--- picture fills the window's minimum content width, then the long side capped at maxLong (the
-	--- cap wins: extreme strips stay on screen and leave a band beside the picture).
-	pictureSize : function(box : SquareMinimapBox, longSide : integer, minW : integer, maxLong : integer, orient : SquareMinimapOrient) : integer, integer
+	--- cap wins over minW). Optional floorW (the window's real minimum width) then wins over maxLong,
+	--- as long as the long side stays within absMaxLong: only strips beyond that keep a band.
+	pictureSize : function(box : SquareMinimapBox, longSide : integer, minW : integer, maxLong : integer, orient : SquareMinimapOrient, floorW ?: integer, absMaxLong ?: integer) : integer, integer
 	--- Ground point of a screen-corner ray (near n -> far f) on the plane z = planeZ, at most maxDist
 	--- metres from the camera centre (cx, cy); rays at/above the horizon go maxDist along their
 	--- ground direction. Returns x, y and whether the ray really hit the plane.
@@ -127,6 +136,72 @@ global record SquareMinimapGeom
 	--- stay inside it); industries outside the box are dropped. Sorted top to bottom, then left to
 	--- right, then by entity (stable drawing order: lower markers drawn over higher ones).
 	markerLayout : function(items : {SquareMinimapIndustry}, box : SquareMinimapBox, orient : SquareMinimapOrient, w : integer, h : integer, size : integer) : {SquareMinimapMarkerPx}
+	--- The marker under picture pixel (x, y): of the markers (size x size, top-left at left/top)
+	--- whose box grown by tol px on every side contains the point, the one whose centre is
+	--- nearest (ties: the later one in the list, i.e. the one drawn on top). Markers for which
+	--- visible(m) is false are skipped (visible may be nil). nil when none.
+	hitMarker : function(markers : {SquareMinimapMarkerPx}, x : number, y : number, size : integer, tol : number, visible ?: function(SquareMinimapMarkerPx) : boolean) : SquareMinimapMarkerPx
+	--- Control rows under the picture: the ids in order, packed greedily into rows of at most w px
+	--- (widths[id] per control, spacing between controls, pad = the row's left + right padding). A
+	--- control wider than w alone still gets its own row.
+	controlRows : function(w : integer, ids : {string}, widths : {string : integer}, spacing : integer, pad : integer) : {{string}}
+	--- Display width of a label in Latin-letter units, for width estimates: one per UTF-8 character,
+	--- two for wide (CJK, kana, Hangul: 3-byte sequences from U+3000 on) characters. Pure Lua 5.1 (no utf8).
+	textUnits : function(s : string) : integer
+	--- Estimated UI px of a checkbox control (box + gap + label) from its (translated) label.
+	controlWidth : function(label : string) : integer
+	--- s cut to at most maxUnits (textUnits) with "..." appended, at a UTF-8 character boundary, and
+	--- whether it was cut. Trailing spaces before the "..." are dropped.
+	fitText : function(s : string, maxUnits : integer) : string, boolean
+end
+
+-- Industry filter (phase 7). Module: ug_require "square_better_minimap::/minimap/minimap_filter.tl" as SquareMinimapFilter
+
+--- One industry type on the map, for the filter window and the Filter checkbox.
+global record SquareMinimapFilterType
+	key : string         -- construction fileName, or filter.OTHER_KEY
+	name : string        -- display name (localized, else the prettified key; "Other" for OTHER_KEY)
+	count : integer      -- industries of this type on the map
+	inputs : {integer}   -- union of the industries' input cargo type ids, sorted
+	outputs : {integer}
+	cargoNames : {string} -- names of those cargos (search matches them)
+end
+
+--- Selection: set of selected type keys. Empty = show all.
+global type SquareMinimapFilterSel = {string : boolean}
+
+global record SquareMinimapFilter
+	OTHER_KEY : string
+	--- Raw construction fileName ("" or nil when unknown) -> type key (OTHER_KEY for unknown).
+	normKey : function(raw : string) : string
+	--- "::/industry/farm/crop_farm.con" -> "Crop Farm" (Industry Flows' flows_model.prettifyKey).
+	prettifyKey : function(key : string) : string
+	--- The localized name unless empty or an untranslated string id, else prettifyKey(key).
+	displayName : function(key : string, localizedName : string) : string
+	--- Industries -> one entry per type with counts and cargo unions, sorted by name (Other last).
+	--- cargoNames maps cargo ids to names (may be nil); otherName is the display name of OTHER_KEY.
+	groupTypes : function(industries : {SquareMinimapIndustry}, cargoNames : {integer : string}, otherName : string) : {SquareMinimapFilterType}
+	--- Types whose name, key or a cargo name contains the query (trimmed, case-insensitive).
+	search : function(types : {SquareMinimapFilterType}, query : string) : {SquareMinimapFilterType}
+	isEmpty : function(sel : SquareMinimapFilterSel) : boolean
+	count : function(sel : SquareMinimapFilterSel) : integer
+	--- A marker of this type is drawn: the selection is empty or holds the key.
+	isVisible : function(key : string, sel : SquareMinimapFilterSel) : boolean
+	--- New selection with key flipped (the old one is not changed).
+	toggle : function(sel : SquareMinimapFilterSel, key : string) : SquareMinimapFilterSel
+	--- Shift+click rule: on a marker of type key (nil = empty spot) when the selection is not
+	--- exactly {key}: {key} ("only"); otherwise (empty spot, or key is the only selected type):
+	--- show all ("all"). Returns the new selection and the action.
+	shiftClick : function(sel : SquareMinimapFilterSel, key : string) : SquareMinimapFilterSel, string
+	--- Of the types on the map: how many are shown, how many there are.
+	shownCount : function(types : {SquareMinimapFilterType}, sel : SquareMinimapFilterSel) : integer, integer
+	same : function(a : SquareMinimapFilterSel, b : SquareMinimapFilterSel) : boolean
+	--- Selection -> prefs string (sorted keys joined by "|"; "" = show all).
+	toPrefs : function(sel : SquareMinimapFilterSel) : string
+	--- Prefs value (string as written by toPrefs, or a list of strings) -> selection; anything else = empty.
+	fromPrefs : function(raw : any) : SquareMinimapFilterSel
+	--- Log text: "all" or the sorted keys.
+	describe : function(sel : SquareMinimapFilterSel) : string
 end
 
 -- Network layer (phase 6). Module: ug_require "square_better_minimap::/minimap/minimap_net.tl" as SquareMinimapNet

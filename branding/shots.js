@@ -70,22 +70,28 @@ Square.slides('square_problem_radar', [
 ]);
 
 Square.slides('square_better_minimap', [
-  // Captures 2026-10-10 (rev 5, sub-arctic save). The window is x 4110-5090, y 165-2255; its map 4116-5079 x 268-2190.
+  // Captures 2026-10-10 11:00 (rev 5, sub-arctic save), same camera for 21-27. The minimap window is
+  // x 4110-5090, y 165-2255 (its map 4116-5079 x 268-2190); the filter window x 3255-4100, y 165-1080.
   { title: 'Roads, rails and towns', sub: 'Tick Net to draw your network on the map',
     media: { layout: 'wipe', labels: ['Off', 'Net'], split: 0.5,
-             before: '12-plain.jpg', after: '14-net.jpg', crop: [4116, 640, 963, 1060] } },
-  { title: 'Hi-vis when you need it', sub: 'Bright colours that stand out on any terrain',
-    media: { layout: 'wipe', labels: ['Net', 'Hi-vis'], split: 0.5,
-             before: '14-net.jpg', after: '13-hivis.jpg', crop: [4116, 640, 963, 1060] } },
-  { title: 'Your map at a glance', sub: 'The box follows the camera; click to jump',
-    media: { src: '15-mountain.jpg', crop: [2150, 150, 2950, 2150] } },
-  { title: 'Every industry by product', sub: 'Tick Ind: icons show what each one makes',
-    media: { src: '11-industries.jpg', crop: [4110, 165, 980, 1150] } },
-  { title: 'Small or large', sub: 'Switch with the magnifier; pin it to keep it open',
+             before: '27-plain.jpg', after: '26-net.jpg', crop: [4116, 640, 963, 1060] } },
+  { title: 'High visibility', sub: 'Tick Viz for colours that stand out anywhere',
+    media: { layout: 'wipe', labels: ['Net', 'Viz'], split: 0.5,
+             before: '26-net.jpg', after: '23-ind-viz.jpg', crop: [4116, 640, 963, 1060] } },
+  { title: 'Find any industry', sub: 'Search by name or cargo, tick the types you want',
+    media: { src: '21-filter-search.jpg', crop: [3245, 160, 1855, 1560] } },
+  { title: 'Shift+click to spotlight', sub: 'Hold Shift and click a resource to spotlight it',
+    media: { src: '24-hover-cement.jpg', crop: [4110, 430, 990, 1250] } },
+  { title: 'Your map at a glance', sub: 'Small or large; the box follows the camera',
     // Inset at about the main crop's scale, so S reads smaller than L.
     media: { layout: 'inset', at: 'bl', insetW: 230,
-             main: { src: '17-large.jpg', crop: [2700, 120, 2400, 2160] },
-             inset: { src: '16-small.jpg', crop: [4590, 170, 500, 1120] } } },
+             main: { src: '28-mountain-large.jpg', crop: [2150, 150, 2950, 2150] },
+             inset: { src: '29-mountain-small.jpg', crop: [4595, 165, 495, 1125] } } },
+  { title: 'Text or icon', sub: 'Pick the top bar button style in the mod settings',
+    // Top-left corner, same 5K scale: 30-icon-button.jpg is a 1288x308 piece from the screen's top-left.
+    media: { layout: 'stack', labels: ['Text', 'Icon'],
+             items: [{ src: '27-plain.jpg', crop: [0, 0, 450, 210] },
+                     { src: '30-icon-button.jpg', srcW: 1288, crop: [0, 0, 450, 210] }] } },
 ]);
 
 Square.slides('square_one_way_roads', [

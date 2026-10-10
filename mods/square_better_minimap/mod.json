@@ -1,11 +1,22 @@
 {
     "modId": "square_better_minimap",
-    "revision": 5,
+    "revision": 6,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
     "cosmetic": true,
     "params": [
+        {
+            "key": "hudButtonStyle",
+            "name": "Top bar button",
+            "tooltip": "How the minimap's button in the top-left bar looks. Text: the word \"Map\" without a frame. Icon: a map icon on a dark tile, like the game's data layers button.",
+            "uiType": "Button",
+            "values": [
+                "Text",
+                "Icon"
+            ],
+            "defaultIndex": 0
+        },
         {
             "key": "showArrow",
             "name": "View direction arrow",

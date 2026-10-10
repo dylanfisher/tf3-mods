@@ -1,18 +1,21 @@
 <p>An overview map of your whole savegame in a small window. See where you are, spot every resource at a glance and jump anywhere with one click.</p>
-<p>Open it with the Map button in the top-left button ridge.</p>
+<p>Open it with the Map button in the top-left corner of the screen.</p>
 <h4>Features</h4>
 <ul>
-<li><strong>Your map</strong>: the terrain, water and towns of your save, with every industry shown by the icon of what it produces.</li>
-<li><strong>Roads and towns</strong>: tick <strong>Net</strong> to draw your streets, railway tracks and town buildings onto the map. It keeps itself up to date as you build or bulldoze, redraws only what changed, and costs nothing while switched off. Tick <strong>Hi-vis</strong> for bright, opaque colours (yellow streets, magenta tracks, orange towns) that stand out on any terrain.</li>
-<li><strong>Camera box</strong>: shows where the camera is looking and follows it as you pan and zoom.</li>
-<li><strong>View direction arrow</strong>: an arrow in the camera box points the way the camera faces.</li>
+<li><strong>Your map</strong>: the terrain, water and towns of your save, with every industry shown by the icon of what it produces. Point at an icon to see the industry's name.</li>
+<li><strong>Roads, rails and towns</strong>: tick <strong>Net</strong> to draw your streets, railway tracks and town buildings onto the map. It keeps itself up to date as you build or bulldoze, redraws only what changed, and costs nothing while switched off.</li>
+<li><strong>High visibility</strong>: with Net on, tick <strong>Viz</strong> for bright, opaque colours (yellow streets, magenta tracks, orange towns) that stand out on any terrain.</li>
+<li><strong>Industry filter</strong>: with Ind on, tick <strong>Filter</strong> to open the filter window. Search by industry or cargo (try "grain"), see every industry type on the map with its input and output cargos and how many there are, and tick the types you want. Show all clears it. The filter stays active when you close the window.</li>
+<li><strong>Shift+click to spotlight</strong>: hold Shift and click a resource to spotlight it: only its type stays on the map. Shift+click again to show all. Holding Shift while pointing at an icon fades the other types as a preview.</li>
+<li><strong>Camera box</strong>: shows where the camera is looking and follows it as you pan and zoom, with an arrow that points the way the camera faces.</li>
 <li><strong>Click to jump</strong>: click anywhere on the map to move the camera there.</li>
-<li>Two sizes, small and large: the magnifier button switches between them. Pin the window to keep it open while you play.</li>
-<li>Remembers its position, size, pin, industry, network and hi-vis toggles, also after loading a save. A pinned minimap opens again by itself.</li>
-<li>Toggle the industry icons. The map updates on its own when the terrain, towns or industries change.</li>
+<li><strong>Small or large</strong>: the magnifier button in the header switches sizes. Pin the window to keep it open while you play.</li>
+<li>Remembers its position, size, pin, the Ind, Net and Viz toggles and the industry filter, also after loading a save. A pinned minimap opens again by itself.</li>
+<li>The map updates on its own when the terrain, towns or industries change.</li>
 </ul>
 <h4>Settings</h4>
 <ul>
+<li><strong>Top bar button</strong> (default Text): the button that opens the minimap. Text: the word "Map". Icon: a map icon on a dark tile, like the game's data layers button.</li>
 <li><strong>View direction arrow</strong> (default On): the arrow in the camera box.</li>
 <li><strong>Debug: performance log</strong> (default Off): writes timing lines to the game's log file every 30 s. Only for tracking down slowdowns.</li>
 </ul>
@@ -24,11 +27,20 @@
 </ul>
 <hr>
 <h2>Changelog</h2>
+<h4>Revision 6 (2026-10-10)</h4>
+<ul>
+<li>New: translations into Russian, German, French, Spanish, Italian, Dutch, Polish, Portuguese (Brazil), Japanese, Korean and Chinese (Simplified and Traditional). The mod follows the game's language setting.</li>
+<li>The control row under the map sizes itself to the length of the translated labels and moves controls to a second row when they don't fit. The hints in the filter window wrap instead of being cut off.</li>
+<li>Fixed: long industry names in the filter list (common in Russian and German) are shortened with "..." instead of running into the cargo icons. Point at a shortened name to see it in full.</li>
+</ul>
 <h4>Revision 5 (2026-10-10)</h4>
 <ul>
 <li>New: the Net toggle draws streets, railway tracks and town buildings onto the map and keeps them up to date. Off by default.</li>
 <li>New: the network is built in small steps spread over many frames and drawn as separate strips, so only the parts of the map that changed are redrawn. Building or bulldozing doesn't make the game stutter, and switching Net off and on again shows the map instantly.</li>
-<li>New: the Hi-vis toggle draws the network in bright, opaque colours. Switching it is instant and doesn't read the map again.</li>
+<li>New: the Viz (high visibility) toggle, shown while Net is on, draws the network in bright, opaque colours. Switching it is instant and doesn't read the map again.</li>
+<li>New: industry filter. Hold Shift over an industry icon to dim the other types, Shift+click to show only that type, Shift+click again to show all.</li>
+<li>New: the Filter box (shown while Ind is on) opens a filter window: search by industry or cargo name, a checkbox per industry type with its cargo icons and count, and Show all. The filter is remembered.</li>
+<li>New: mod setting "Top bar button" to show the minimap button as the word "Map" (default) or as a map icon.</li>
 <li>Changed: the S/L size button is now a magnifier icon in the window header, and the header no longer shows a "Map" title.</li>
 <li>Changed: the view direction arrow is now a slim white triangle.</li>
 <li>New: an optional performance log for troubleshooting (mod setting "Debug: performance log", Off by default).</li>
