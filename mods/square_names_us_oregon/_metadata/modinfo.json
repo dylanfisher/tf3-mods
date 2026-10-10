@@ -2,6 +2,56 @@
     "name": "Oregon Towns & Streets",
     "summary": "Real Oregon towns, plus real local names for the stops and stations you build.",
     "description": "Real Oregon towns, plus real local names for the stops and stations you build. Adds the name set \"Oregon (Towns & Streets)\" and renames new stops and stations in known Oregon cities.",
+    "localization": {
+        "ru": {
+            "name": "Oregon: города и улицы",
+            "summary": "Настоящие города штата Oregon и местные названия для ваших остановок и станций."
+        },
+        "de": {
+            "name": "Oregon: Orte & Strassen",
+            "summary": "Echte Orte aus Oregon, dazu lokale Namen für selbst gebaute Haltestellen und Bahnhöfe."
+        },
+        "fr": {
+            "name": "Oregon : villes et rues",
+            "summary": "Oregon : vraies villes, et vrais noms locaux pour les arrêts et gares que vous construisez."
+        },
+        "es": {
+            "name": "Oregon: pueblos y calles",
+            "summary": "Oregon: pueblos reales y nombres locales para las paradas y estaciones que construyas."
+        },
+        "it": {
+            "name": "Oregon: città e strade",
+            "summary": "Oregon: città reali e veri nomi locali per le fermate e le stazioni che costruisci."
+        },
+        "nl": {
+            "name": "Oregon: steden & straten",
+            "summary": "Oregon: echte plaatsen, plus echte lokale namen voor de haltes en stations die je bouwt."
+        },
+        "pl": {
+            "name": "Oregon: miasta i ulice",
+            "summary": "Oregon: prawdziwe miejscowości i lokalne nazwy dla przystanków i stacji, które budujesz."
+        },
+        "pt_BR": {
+            "name": "Oregon: cidades e ruas",
+            "summary": "Oregon: cidades reais e nomes locais reais para as paradas e estações que você constrói."
+        },
+        "ja": {
+            "name": "Oregonの町と通り",
+            "summary": "Oregonの実在する町と、建設した停留所や駅に付く実在の地元の名前。"
+        },
+        "ko": {
+            "name": "Oregon 도시와 거리",
+            "summary": "Oregon의 실제 도시, 그리고 건설한 정류장과 역에 붙는 실제 지역 이름."
+        },
+        "zh_CN": {
+            "name": "Oregon 城镇与街道",
+            "summary": "真实的Oregon城镇，并为你建造的站点和车站提供真实的本地名称。"
+        },
+        "zh_TW": {
+            "name": "Oregon 城鎮與街道",
+            "summary": "真實的Oregon城鎮，並為你建造的站點和車站提供真實的在地名稱。"
+        }
+    },
     "authors": [
         {
             "name": "square",

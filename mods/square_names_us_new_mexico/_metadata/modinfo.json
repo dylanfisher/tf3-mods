@@ -2,6 +2,56 @@
     "name": "New Mexico Towns & Streets",
     "summary": "Real New Mexico towns, plus real local names for the stops and stations you build.",
     "description": "Real New Mexico towns, plus real local names for the stops and stations you build. Adds the name set \"New Mexico (Towns & Streets)\" and renames new stops and stations in known New Mexico cities.",
+    "localization": {
+        "ru": {
+            "name": "New Mexico: города и улицы",
+            "summary": "Настоящие города штата New Mexico и местные названия для ваших остановок и станций."
+        },
+        "de": {
+            "name": "New Mexico: Orte & Strassen",
+            "summary": "Echte Orte aus New Mexico, dazu lokale Namen für selbst gebaute Haltestellen und Bahnhöfe."
+        },
+        "fr": {
+            "name": "New Mexico : villes et rues",
+            "summary": "New Mexico : vraies villes, et vrais noms locaux pour les arrêts et gares que vous construisez."
+        },
+        "es": {
+            "name": "New Mexico: pueblos y calles",
+            "summary": "New Mexico: pueblos reales y nombres locales para las paradas y estaciones que construyas."
+        },
+        "it": {
+            "name": "New Mexico: città e strade",
+            "summary": "New Mexico: città reali e veri nomi locali per le fermate e le stazioni che costruisci."
+        },
+        "nl": {
+            "name": "New Mexico: steden & straten",
+            "summary": "New Mexico: echte plaatsen, plus echte lokale namen voor de haltes en stations die je bouwt."
+        },
+        "pl": {
+            "name": "New Mexico: miasta i ulice",
+            "summary": "New Mexico: prawdziwe miejscowości i lokalne nazwy dla przystanków i stacji, które budujesz."
+        },
+        "pt_BR": {
+            "name": "New Mexico: cidades e ruas",
+            "summary": "New Mexico: cidades reais e nomes locais reais para as paradas e estações que você constrói."
+        },
+        "ja": {
+            "name": "New Mexicoの町と通り",
+            "summary": "New Mexicoの実在する町と、建設した停留所や駅に付く実在の地元の名前。"
+        },
+        "ko": {
+            "name": "New Mexico 도시와 거리",
+            "summary": "New Mexico의 실제 도시, 그리고 건설한 정류장과 역에 붙는 실제 지역 이름."
+        },
+        "zh_CN": {
+            "name": "New Mexico 城镇与街道",
+            "summary": "真实的New Mexico城镇，并为你建造的站点和车站提供真实的本地名称。"
+        },
+        "zh_TW": {
+            "name": "New Mexico 城鎮與街道",
+            "summary": "真實的New Mexico城鎮，並為你建造的站點和車站提供真實的在地名稱。"
+        }
+    },
     "authors": [
         {
             "name": "square",

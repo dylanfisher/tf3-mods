@@ -295,7 +295,7 @@ class GenTest(unittest.TestCase):
             d.mkdir()
             (d / "state.lua").write_text(
                 'return { key = "us_zz", name = "Zed", setName = "Zed (Towns & Streets)", modName = "Zed Towns & Streets",\n'
-                ' summary = "Real Zed towns.", revision = 1, changelog = {}, asciiFallback = true,\n'
+                ' summary = "Real Zed towns, plus real local names for the stops and stations you build.", revision = 1, changelog = {}, asciiFallback = true,\n'
                 ' minTowns = 2, minPool = 1, minStreetCities = 1,\n'
                 ' examples = { stops = "Peña Street", stations = "Cañon Depot" },\n'
                 ' climates = { dry = { desert = 1 } } }\n', encoding="utf-8")
@@ -323,6 +323,14 @@ class GenTest(unittest.TestCase):
             params = json.loads(files[mod_dir / "mod.json"])["params"]
             self.assertEqual([p["key"] for p in params], ["streetNames", "stationNames", "sqperf_log"])
             self.assertEqual(params[2]["values"], ["Off", "On"])
+            # i18n: every game language; the set name keeps the state name; keys in tools/i18n.py's order
+            strings = json.loads(files[mod_dir / "strings.json"])
+            self.assertEqual(list(strings), list(gen.LANGS[1:]))
+            self.assertEqual(strings["de"]["Zed (Towns & Streets)"], "Zed (Orte & Strassen)")
+            self.assertEqual(list(strings["ru"])[:2], ["Zed (Towns & Streets)", "Real street names"])
+            loc = json.loads(files[mod_dir / "_metadata" / "modinfo.json"])["localization"]
+            self.assertEqual(sorted(loc), sorted(gen.LANGS[1:]))
+            self.assertEqual(loc["fr"]["name"], "Zed : villes et rues")
             (d / "state.lua").write_text((d / "state.lua").read_text(encoding="utf-8").replace("minTowns = 2", "minTowns = 3"),
                                          encoding="utf-8")
             _, _, errors = gen.render("us_zz")

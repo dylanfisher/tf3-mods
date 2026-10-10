@@ -17,7 +17,9 @@ Inputs per state (plans/square_state_names/PLAN.md "Repo layout"):
   towns.tsv    name, tags, population, lat, lon, note (drafted by tools/state_towns.py)
   streets.lua  generic street pool;  cities.lua  real names per city
 Outputs (all overwritten; files the generator no longer produces are removed from the generated dirs):
-  mods/<modId>/mod.json, _metadata/modinfo.json, _metadata/description.html
+  mods/<modId>/mod.json, _metadata/modinfo.json (with "localization"), _metadata/description.html
+  mods/<modId>/strings.json (templates/state_names/i18n.json: param texts + the set name, every game language;
+               state names stay English; same layout as `make i18n ARGS=--fix-format`)
   mods/<modId>/content/names/<modId>/<key>.names.lua (+ <key>_<region>.names.lua when emitRegionalSets)
   mods/<modId>/content/<modId>/{mod.script,names.script,rename.script,rename.gs,sn_logic}.lua
   mods/<modId>/content/<modId>/data/{towns,streets,cities,state,contested}.lua
@@ -48,6 +50,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from hubconfig import MODS_DIR, ROOT  # noqa: E402
 from new_mod import PRESENCE_STUB  # noqa: E402
 import sqperf_sync  # noqa: E402
+from i18n import LANGS, MAX_NAME, MAX_SUMMARY  # noqa: E402
 
 DATA_DIR = ROOT / "data" / "states"
 TEMPLATES = ROOT / "templates" / "state_names"
@@ -258,6 +261,50 @@ def towns_lua(key: str, towns: list[dict]) -> str:
         out.append(f"\t{{ n = {lua_str(t['n'])}, t = {{ {tags} }}, p = {t['p']} }},\n")
     out.append("}\n")
     return "".join(out)
+
+
+@functools.cache
+def i18n_table() -> dict:
+    data = json.loads((TEMPLATES / "i18n.json").read_text(encoding="utf-8"))
+    return {lang: data[lang] for lang in LANGS if lang in data}
+
+
+def i18n_render(state: dict, mod_json: dict) -> tuple[str, dict, list[str]]:
+    """strings.json text, modinfo "localization" and lint errors. Keys are the English texts (tools/i18n.py):
+    the set name (the only `_()` in the generated code, in the .names.lua) first, then the params' name / tooltip /
+    values, i.e. tools/i18n.py's extraction order. "en" needs no block (no id keys)."""
+    table = i18n_table()
+    errors: list[str] = []
+    name = state["name"]
+    fill = lambda tmpl: tmpl.replace("{state}", name)  # noqa: E731
+    for fld, want in (("modName", state["modName"]), ("setName", state["setName"]), ("summary", state["summary"])):
+        if fill(table["en"][fld]) != want:
+            errors.append(f"{state['key']}: {fld} {want!r} doesn't match templates/state_names/i18n.json "
+                          f"{table['en'][fld]!r}, so it has no translations")
+    keys = [state["setName"]]
+    if state.get("emitRegionalSets"):  # their names need entries in i18n.json "strings" (reported below)
+        keys += [rs["name"] for rs in state.get("regionalSets") or []]
+    for param in mod_json["params"]:
+        for text in [param["name"], param["tooltip"], *param["values"]]:
+            if text not in keys:
+                keys.append(text)
+    out: dict[str, dict[str, str]] = {}
+    loc: dict[str, dict[str, str]] = {}
+    for lang in LANGS[1:]:
+        block = table.get(lang)
+        if block is None:
+            errors.append(f"i18n.json: no {lang} block")
+            continue
+        strings = dict(block.get("strings") or {}, **{state["setName"]: fill(block["setName"])})
+        missing = [k for k in keys if not strings.get(k)]
+        if missing:
+            errors.append(f"i18n.json: {lang} lacks {missing}")
+        out[lang] = {k: strings[k] for k in keys if strings.get(k)}
+        loc[lang] = {"name": fill(block["modName"]), "summary": fill(block["summary"])}
+        for fld, limit in (("name", MAX_NAME), ("summary", MAX_SUMMARY)):
+            if len(loc[lang][fld]) > limit:
+                errors.append(f"{state['key']}: {lang} modinfo {fld} is {len(loc[lang][fld])} chars (max {limit})")
+    return json.dumps(out, indent=4, ensure_ascii=False) + "\n", loc, errors
 
 
 def changelog_html(state: dict) -> str:
@@ -508,11 +555,15 @@ def render(key: str) -> tuple[str, dict[Path, str], list[str]]:
         ],
     }
     files[mod / "mod.json"] = json.dumps(mod_json, indent=4, ensure_ascii=False) + "\n"
+    strings_json, localization, i18n_errors = i18n_render(state, mod_json)
+    errors += i18n_errors
+    files[mod / "strings.json"] = strings_json
     modinfo = {
         "name": state["modName"],
         "summary": state["summary"],
         "description": f"{state['summary']} Adds the name set \"{state['setName']}\" and renames new stops and "
                        f"stations in known {state['name']} cities.",
+        "localization": localization,
         "authors": [{"name": "square", "role": "CREATOR"}],
         "tags": ["Script Mod", "Misc"],
         "dependencies": [],

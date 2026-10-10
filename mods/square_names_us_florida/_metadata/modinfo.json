@@ -2,6 +2,56 @@
     "name": "Florida Towns & Streets",
     "summary": "Real Florida towns, plus real local names for the stops and stations you build.",
     "description": "Real Florida towns, plus real local names for the stops and stations you build. Adds the name set \"Florida (Towns & Streets)\" and renames new stops and stations in known Florida cities.",
+    "localization": {
+        "ru": {
+            "name": "Florida: города и улицы",
+            "summary": "Настоящие города штата Florida и местные названия для ваших остановок и станций."
+        },
+        "de": {
+            "name": "Florida: Orte & Strassen",
+            "summary": "Echte Orte aus Florida, dazu lokale Namen für selbst gebaute Haltestellen und Bahnhöfe."
+        },
+        "fr": {
+            "name": "Florida : villes et rues",
+            "summary": "Florida : vraies villes, et vrais noms locaux pour les arrêts et gares que vous construisez."
+        },
+        "es": {
+            "name": "Florida: pueblos y calles",
+            "summary": "Florida: pueblos reales y nombres locales para las paradas y estaciones que construyas."
+        },
+        "it": {
+            "name": "Florida: città e strade",
+            "summary": "Florida: città reali e veri nomi locali per le fermate e le stazioni che costruisci."
+        },
+        "nl": {
+            "name": "Florida: steden & straten",
+            "summary": "Florida: echte plaatsen, plus echte lokale namen voor de haltes en stations die je bouwt."
+        },
+        "pl": {
+            "name": "Florida: miasta i ulice",
+            "summary": "Florida: prawdziwe miejscowości i lokalne nazwy dla przystanków i stacji, które budujesz."
+        },
+        "pt_BR": {
+            "name": "Florida: cidades e ruas",
+            "summary": "Florida: cidades reais e nomes locais reais para as paradas e estações que você constrói."
+        },
+        "ja": {
+            "name": "Floridaの町と通り",
+            "summary": "Floridaの実在する町と、建設した停留所や駅に付く実在の地元の名前。"
+        },
+        "ko": {
+            "name": "Florida 도시와 거리",
+            "summary": "Florida의 실제 도시, 그리고 건설한 정류장과 역에 붙는 실제 지역 이름."
+        },
+        "zh_CN": {
+            "name": "Florida 城镇与街道",
+            "summary": "真实的Florida城镇，并为你建造的站点和车站提供真实的本地名称。"
+        },
+        "zh_TW": {
+            "name": "Florida 城鎮與街道",
+            "summary": "真實的Florida城鎮，並為你建造的站點和車站提供真實的在地名稱。"
+        }
+    },
     "authors": [
         {
             "name": "square",
