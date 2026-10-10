@@ -1,8 +1,21 @@
 {
     "modId": "square_problem_radar",
-    "revision": 3,
+    "revision": 4,
     "severityAdd": "None",
     "severityRemove": "Warning",
     "visible": true,
-    "cosmetic": true
+    "cosmetic": true,
+    "params": [
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Problem Radar writes how long its scans and windows took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        }
+    ]
 }

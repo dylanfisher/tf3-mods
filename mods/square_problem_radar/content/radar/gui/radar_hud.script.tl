@@ -24,6 +24,16 @@
 -- industry.tl:56-64 and town_cargo_util.tl:64-72), so the timer maps and notify maps are never
 -- copied into the GUI. The ridge HUD reads kindCounts + settings only (counts, no rows, no texts).
 
+-- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state, the first ridge render, slow
+-- renders / clicks (> 16 ms, at most one line per section per minute), and with the "Debug:
+-- performance log" mod setting a 30 s summary. The polls run in react onStepTimer callbacks (worker
+-- threads "Main Pool N", engine_react_util.tl useStepStateTimer) and are timed too: api.type.Clock
+-- is safe there (docs/findings.md "Timers and threads in GUI contexts"). Local counters only;
+-- nothing is saved.
+local sqperf = ug_require "square_problem_radar::/sqperf/square_problem_radar.lua" as SquareProblemRadarSqPerf
+local perf = sqperf.new({ mod = "square_problem_radar", ctx = "gui", paramKey = "sqperf_log", first = { "hud_render" } })
+local perfInit = perf:start()
+
 local react = ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
 local engine_react_util = ug_require "::/gui/main/engine_react_util.tl" as EngineReactUtil
@@ -111,10 +121,13 @@ local rowRevs : {string : integer} = {}
 --- Ridge HUD poll: counts only (never nil; a missing state gives zero counts, so the badge still
 --- shows and proves the ridge renders).
 local function getCountsFromEngine() : ProblemRadarHudCounts
+	local t = perf:start() -- onStepTimer (worker thread): Clock is safe there
 	local s = readFields(HUD_FIELDS)
 	local settings = s ~= nil and type(s.settings) == "table" and s.settings or nil
-	return hud_model.counts(s ~= nil and s.kindCounts or nil, settings ~= nil and settings.hudMode or nil,
+	local counts = hud_model.counts(s ~= nil and s.kindCounts or nil, settings ~= nil and settings.hudMode or nil,
 		s ~= nil and s.tierCounts or nil)
+	perf:stop("poll_hud", t)
+	return counts
 end
 
 local SEQ_FIELDS : {string} = { "seq" }
@@ -151,25 +164,33 @@ local lastRaw : ProblemRadarHudView = nil
 --- Window poll: rows without translated texts (only the rendered rows get them), with the pending
 --- snooze clicks applied. `old` == nil: the window just opened, so always a full read.
 local function getFromEngine(old? : ProblemRadarHudView) : ProblemRadarHudView
+	local t = perf:start() -- onStepTimer (worker thread): Clock is safe there
 	local q = readFields(SEQ_FIELDS)
 	local seq = q ~= nil and q.seq or nil
 	if old == nil or lastRaw == nil or seq == nil or seq ~= lastSeq then
+		local tFull = perf:start()
 		lastRaw = hud_model.buildRaw(readFields(WINDOW_FIELDS))
 		lastSeq = seq
 		local all : {ProblemRadarHudRow} = {}
 		for __, r in ipairs(lastRaw.rows) do all[#all + 1] = r end
 		for __, r in ipairs(lastRaw.snoozedRows) do all[#all + 1] = r end
 		rowRevs = hud_model.trackRevisions(rowRevs, all, revOf)
+		perf:stop("poll_window_full", tFull)
 	end
 	reconcilePending(lastRaw)
-	return hud_model.applyPending(lastRaw, pendingSnooze, pendingWake)
+	local view = hud_model.applyPending(lastRaw, pendingSnooze, pendingWake)
+	perf:stop("poll_window", t)
+	return view
 end
 
 --- Poll for the Settings tab: the normalised settings only, so alert updates do not re-render it
 --- (useStepStateTimer compares with deepEquals, engine_react_util.tl:126-145).
 local function getSettingsFromEngine() : ProblemRadarSettings
+	local t = perf:start() -- onStepTimer (worker thread): Clock is safe there
 	local s = readFields(SETTINGS_FIELDS)
-	return radar_settings.normalize(s ~= nil and s.settings or nil)
+	local settings = radar_settings.normalize(s ~= nil and s.settings or nil)
+	perf:stop("poll_settings", t)
+	return settings
 end
 
 local function text(str : string, class? : string) : TreeNodeId
@@ -594,7 +615,7 @@ local function generalSection(settings : ProblemRadarSettings) : {TreeNodeId}
 	}
 end
 
-local ProblemRadarSettingsPage = react.RegisterRecipe("ProblemRadarSettingsPage", function() : TreeNodeId
+local ProblemRadarSettingsPage = react.RegisterRecipe("ProblemRadarSettingsPage", perf:wrap("settings_render", function() : TreeNodeId
 	local state = engine_react_util.useStepStateTimer(getSettingsFromEngine, POLL_SECONDS)
 	local settings = state:old() or radar_settings.defaults()
 
@@ -645,7 +666,7 @@ local ProblemRadarSettingsPage = react.RegisterRecipe("ProblemRadarSettingsPage"
 			},
 		},
 	})
-end)
+end))
 
 ---------------------------------------------------------------------------
 -- Window. Pattern: a wrapper recipe around builtin.Window, like
@@ -714,7 +735,7 @@ local function snoozedFooter(count : integer) : TreeNodeId
 	}, "radar-footer")
 end
 
-local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", function() : TreeNodeId
+local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", perf:wrap("window_render", function() : TreeNodeId
 	-- The window polls on its own (same hook as the HUD), so it stays live while open.
 	-- With commit: a snooze click shows at once (snoozeHandler), polls pause until the event is done.
 	local state, commit = engine_react_util.useStepStateTimerWithCommit(getFromEngine, WINDOW_POLL_SECONDS)
@@ -750,7 +771,7 @@ local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", function
 			tabs = tabs,
 		},
 	}, "radar-content")
-end)
+end))
 
 local record ProblemRadarWindowParam
 	onClose : function()
@@ -802,13 +823,14 @@ local function windowOpen() : boolean
 end
 
 --- Ridge button: open the window, or close it when it is already open (like the Industry Flows button).
-local function toggleWindow()
+--- SQPERF section "click_toggle" (onClick: GUI thread).
+local toggleWindow = perf:wrap("click_toggle", function()
 	if windowOpen() then
 		closeWindow()
 	else
 		openWindow()
 	end
-end
+end)
 
 ---------------------------------------------------------------------------
 -- Ridge HUD.
@@ -852,7 +874,8 @@ local function pluginRoot(child : TreeNodeId) : TreeNodeId
 	}
 end
 
-local ProblemRadarHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "ProblemRadarHudPlugin", function() : TreeNodeId
+-- SQPERF section "hud_render" (its first call includes the first poll, via useStateLazy).
+local ProblemRadarHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "ProblemRadarHudPlugin", perf:wrap("hud_render", function() : TreeNodeId
 	-- Hooks first, unconditionally (same order as the base transported plugin).
 	local isMapEditorRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean return api.gui.game.isMapEditor() end)
 	-- src: .cache/game/base/content/gui/main/engine_react_util.tl:126-145 (deepEquals on the fresh view)
@@ -869,10 +892,12 @@ local ProblemRadarHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.Ma
 		return pluginRoot(compactPanel(counts))
 	end
 	return pluginRoot(badge(counts))
-end)
+end))
 
 local result = {
 	ProblemRadarHudPlugin = ProblemRadarHudPlugin,
 }
+
+perf:phase("init", perfInit)
 
 return result

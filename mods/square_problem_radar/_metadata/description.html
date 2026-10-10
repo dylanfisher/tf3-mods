@@ -15,6 +15,7 @@
 <h4>Settings</h4>
 <ul>
 <li>All settings are in the radar's Settings tab and saved per savegame: alert types, thresholds (stuck minutes, line limits, worn condition, depot days, money and utilisation limits) and smoothing.</li>
+<li><strong>Debug: performance log</strong> (in the mod settings, default Off): writes timing lines to the game's log file every 30 s. Only for tracking down slowdowns.</li>
 </ul>
 <h4>Notes</h4>
 <ul>
@@ -23,12 +24,17 @@
 </ul>
 <hr>
 <h2>Changelog</h2>
+<h4>Revision 4 (2026-10-10)</h4>
+<ul>
+<li>New: an optional performance log for troubleshooting (mod setting "Debug: performance log", Off by default).</li>
+<li>Changed: the radar button in the top-left ridge now also closes the window when it is open.</li>
+<li>Fixed: the rotating money and utilisation checks keep one shared place in the rotation. The game runs the script in several parallel copies, and each used to keep its own, so some lines were checked more often than others.</li>
+</ul>
 <h4>Revision 3 (2026-10-08)</h4>
 <ul>
 <li>New: snooze an alert for 1 month, 6 months, 1 year or 5 years with the Zz button on its row. A snoozed alert is left out of the counts and notifications, then comes back if the problem is still there.</li>
 <li>New: Snoozed tab with each snooze's end date, and buttons to unsnooze one alert or all of them.</li>
 <li>Improved: the radar window refreshes twice as often and skips the work when nothing has changed.</li>
-<li>Improved: the radar button in the top-left ridge now also closes the window when it is open.</li>
 </ul>
 <h4>Revision 2 (2026-10-07)</h4>
 <ul>

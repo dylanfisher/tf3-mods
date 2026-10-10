@@ -14,13 +14,17 @@
 -- cosmetic campaign mods send; it only appends to the notification list). It never changes
 -- entities; it reads the API and keeps its own small state (plain tables; entity ids are stored as
 -- plain numbers the game never resolves).
--- Everything that must survive save/load lives in GameScriptState. Module-level values are
--- read-only caches (map-editor flag, warn-once set, lifespans) or transient bookkeeping that may
--- reset on load (the line-quality and economy cursors, the money check times, failure counters,
--- the toast budget, the stuck-scan caches, the live utilisation averages whose saved copy is
--- state.memory.useAvg), never game state. state:set runs only when alerts, timers, settings or the notify maps
--- changed. Every engine entry point (update, handleEvent) runs in a pcall: a script error is
--- logged once and never reaches the game's update loop or a save.
+-- Everything that must survive save/load lives in GameScriptState. The engine runs this script in
+-- ~14 simulation Lua states and each tick goes to whichever one is free (PERF_VMS.md): state is
+-- shared by all of them, module-level values are per Lua state. So what one scan hands to the next
+-- (notification priming, the toast budget, failure counters, the line-quality and economy cursors,
+-- the young stuck timers, the ineligible-vehicle marks) lives in state.rt (radar_checks.cleanRuntime /
+-- packRuntime), read with the state:get every scan slot does anyway. Module-level values are only
+-- caches whose loss or divergence changes the cost, never a result (listed below). state:set runs
+-- only when alerts, timers, settings, the notify maps or state.rt changed; state.seq (the window's
+-- poll) moves only when what the window shows changed. Every engine entry point (update,
+-- handleEvent) runs in a pcall: a script error is logged once and never reaches the game's update
+-- loop or a save.
 --
 -- Layers: gather* functions below are the ONLY place that calls api.*; they build the plain input
 -- tables of radar_types.d.tl. radar_checks.tl (pure, unit-tested) turns them into alerts and
@@ -33,6 +37,15 @@
 --   api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", "ProblemRadar", "ProblemRadar.snooze", { id = "line_unprofitable:123" }))
 --   api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", "ProblemRadar", "ProblemRadar.unsnooze", {}))
 -- src (console pattern): .cache/game/base/content/game_mechanics/subventions/subventions.script.tl:9-12
+
+-- SQPERF (plans/sqperf/README.md): load time of this Lua state, the first scan of each group, slow
+-- updates / scans / events (> 50 ms, at most one line per section per minute), and with the
+-- "Debug: performance log" mod setting a 30 s summary. Local counters only; nothing is saved.
+-- Created before the other modules load, so phase=init includes them.
+local sqperf = ug_require "square_problem_radar::/sqperf/square_problem_radar.lua" as SquareProblemRadarSqPerf
+local perf = sqperf.new({ mod = "square_problem_radar", ctx = "gs", paramKey = "sqperf_log",
+	first = { "scan_lines", "scan_stations", "scan_vehicles", "scan_fleet" } })
+local perfInit = perf:start()
 
 local radar_settings = ug_require "square_problem_radar::/radar/radar_settings.tl" as ProblemRadarSettingsModule
 local radar_checks = ug_require "square_problem_radar::/radar/radar_checks.tl" as ProblemRadarChecks
@@ -90,57 +103,59 @@ local QUALITY_MAX_QUERIES <const> = 160
 -- the cap makes a full rotation take L / 4 passes of 2.4 s.
 local ECON_MAX_LINES <const> = 4
 
+-- Shared bookkeeping (state.rt, ProblemRadarRuntime): the working copy for the scan slot being run.
+-- scanGroupBody sets it from the state before the scan (radar_checks.cleanRuntime) and stores it back
+-- (packRuntime) after; the scan functions read and change its fields. Never carried from one slot to
+-- the next in this variable (the next slot may run in another Lua state): only through the state.
+--   prime       Phase 6 notification priming (radar_notify.step silentAll / silentKinds): set when the
+--               mod is added to a save (fresh state) or kinds switch to "notify"; dropped after a notify
+--               step that followed one scan of every group (prime.seen), so old alerts never burst.
+--   budget      Phase 6 toast budget (radar_notify.applyBudget).
+--   fails       Phase 6 failure isolation: consecutive failures per scan group / sub-scan ("stuck",
+--               "lineQuality", Phase 7 "econMoney", "econUse"). radar_checks.carryOver / FAIL_DROP_AFTER.
+--   lineCursor  Phase 4 rotating line cursor: the last line measured.
+--   econCursor  Phase 7 line_unprofitable cursor; econGen / econOff: switching it off drops every Lua
+--               state's econCheckedAt (below), so switching it back on re-checks every line at once.
+--   young       stopped / blocked timers younger than PERSIST_TIMER_AFTER_MS (state.memory keeps the
+--               older ones), so vehicles that stop for a few seconds don't rewrite state.memory.
+--   ineligible  standing vehicles found foreign / user-stopped / not en route (with the time;
+--               re-checked after INELIGIBLE_RECHECK_MS), so their timers don't fill the timer cap.
+local rt : ProblemRadarRuntime = {}
+
+-- Per-Lua-state caches. Each state has its own copy; losing or diverging changes the cost, never a
+-- result (PERF_VMS "Side effects", reviewed 2026-10-10):
 -- Cached once per Lua state: the map editor and a game are separate loads, so this never changes
--- while the script runs. Read-only cache, not game state (it is never saved).
+-- while the script runs.
 local mapEditorCache : boolean = nil
--- Warn once per scan group when a gather fails (log hygiene only; never saved).
+-- Warn once per scan group when a gather fails (log hygiene only: one line per Lua state at most).
 local warned : {string : boolean} = {}
--- Model lifespans (ms) by model id: resource data, fixed for the whole load. Read-only cache.
+-- Model lifespans (ms) by model id: resource data, fixed for the whole load.
 local lifespanCache : {integer : integer} = {}
--- Phase 4 rotating line cursor: the last line measured. Transient: not saved (v5), so moving it
--- never rewrites the state; after a load the rotation simply restarts at the lowest line id.
-local lineCursor : integer = -1
--- Phase 7: the line_unprofitable cursor (same rules as lineCursor: transient, restarts after a load)
--- and the game time each line's money was last checked (pruned to the eligible lines every pass; a
--- load starts empty, so every line is re-checked once at the capped rate).
-local econCursor : integer = -1
+-- Phase 7: the game time each line's money was last checked by this Lua state (pruned to the
+-- eligible lines every pass). Due lines are taken after the shared rt.econCursor, so the rotation
+-- covers every line at the designed rate; a line is re-checked at most once a game month per Lua
+-- state (more often in total, still at most ECON_MAX_LINES per pass). A fresh Lua state (a load)
+-- re-checks every line once at the capped rate. econGen: the rt.econGen these belong to.
 local econCheckedAt : {integer : integer} = {}
+local econGen : integer = nil
 -- Phase 7: all eligible lines' yearly vehicle costs (> 0; nil = unknown), the size reference of
--- radar_checks.judgeLoss, and the game time it was computed (re-computed once a game month, or after
--- a load: transient).
+-- radar_checks.judgeLoss, and the game time it was computed (re-computed once a game month per Lua
+-- state: every copy is at most a game month old, as designed).
 local econNetworkCost : integer = nil
 local econNetworkAt : integer = nil
--- Phase 7 line_low_use: the live utilisation averages (floats, updated on every sample) and the game
--- time they were last updated. state.memory.useAvg is their saved copy, rewritten only on a real
--- change (radar_checks.persistUseAvg); radar_checks.reconcileUseAvg rebuilds these from the save
--- after a load or whenever they no longer match it.
+-- Phase 7 line_low_use: float copy of the averages (updated on every sample) and the game time it was
+-- last updated. state.memory.useAvg is the shared copy, rewritten on every pass that took a sample;
+-- radar_checks.reconcileUseAvg keeps this copy only while it is still the newest (no other Lua state
+-- sampled since), else rebuilds it from the state.
 local liveUse : {integer : ProblemRadarUseAvg} = nil
 local liveUseAt : integer = nil
--- Phase 6 failure isolation: consecutive failures per scan group / sub-scan ("stuck",
--- "lineQuality", Phase 7 "econMoney", "econUse"). Transient: a load starts at 0. radar_checks.carryOver / FAIL_DROP_AFTER.
-local failCount : {string : integer} = {}
--- Phase 6 toast budget (radar_notify.applyBudget). Transient; a load starts a fresh window.
-local budget : ProblemRadarNotifyBudget = nil
--- Phase 6 notification priming (radar_notify.step silentAll / silentKinds): set when the mod is
--- added to a save (fresh state) or a kind is switched to "notify"; cleared after a notify step
--- that followed one scan of every group (primeSeen), so the alerts already there never burst.
-local primeAll = false
-local primeKinds : {string : boolean} = {}
-local primeSeen : {string : boolean} = {}
--- Phase 6 stuck-scan caches (transient, pruned every vehicles pass): the carrier of owned standing
--- vehicles (read once), and standing vehicles found foreign / user-stopped / not en route (with
--- the time; re-checked after INELIGIBLE_RECHECK_MS), so their timers don't fill the timer cap.
+-- Phase 6 stuck-scan cache (pruned every vehicles pass): the carrier of owned standing vehicles
+-- (read once per Lua state; a carrier never changes).
 local carrierCache : {integer : string} = {}
-local ineligibleSince : {integer : integer} = {}
--- The full stopped / blocked timer maps of the last stuck scan. state.memory saves only the timers
--- at least radar_checks.PERSIST_TIMER_AFTER_MS old, so vehicles that stop for a few seconds (traffic
--- lights, signals) don't rewrite the state on every vehicles pass; the younger ones live here.
-local liveStopped : {integer : integer} = {}
-local liveBlockedSince : {integer : integer} = {}
-local liveBlockedBy : {integer : integer} = {}
-local liveAt : integer = nil -- gameTime of the scan that produced them
 local INELIGIBLE_RECHECK_MS <const> = 10 * 60 * 1000
--- Phase 6 fleet_old: creation revision per listed entity, so a reused id drops the kept row.
+-- Phase 6 fleet_old: creation revision per listed entity, so a reused id drops the kept row. A Lua
+-- state without the entry keeps the row; the vehicle's age slice re-decides it within AGE_SLICES
+-- fleet passes either way (inside the smoothing window, so no visible difference).
 local oldRevs : {integer : integer} = {}
 -- Phase 6: getVehiclesWithState fallback list per state, re-scanned only every
 -- FALLBACK_REFRESH calls (in between: the cached list, minus entities that are gone).
@@ -154,13 +169,31 @@ local function warnOnce(key : string, msg : string)
 	log.warning(PREFIX .. msg .. " (further failures not logged)")
 end
 
-local function requestPrime(kinds : {string : boolean})
-	if kinds == nil then
-		primeAll = true
-	else
-		for k in pairs(kinds) do primeKinds[k] = true end
+--- A new priming request on top of `prev`: every kind (kinds == nil) or these kinds. The groups seen
+--- start again, so priming lasts one full scan of every group after the latest request.
+local function requestPrime(prev : ProblemRadarPrime, kinds : {string : boolean}) : ProblemRadarPrime
+	local p : ProblemRadarPrime = { all = prev ~= nil and prev.all == true, kinds = {}, seen = {} }
+	if prev ~= nil then
+		for k, v in pairs(prev.kinds or {}) do p.kinds[k] = v end
 	end
-	primeSeen = {}
+	if kinds == nil then
+		p.all = true
+	else
+		for k in pairs(kinds) do p.kinds[k] = true end
+	end
+	return p
+end
+
+--- Failure isolation counters in rt.fails: +1 (returns the new count) / back to 0.
+local function failed(key : string) : integer
+	rt.fails = rt.fails or {}
+	local n = (rt.fails[key] or 0) + 1
+	rt.fails[key] = n
+	return n
+end
+
+local function succeeded(key : string)
+	if rt.fails ~= nil then rt.fails[key] = nil end
 end
 
 --- A state that never had the v5 notify maps (none at all, or an older version): the mod was just
@@ -421,7 +454,7 @@ local function scanLineQuality(s : ProblemRadarState, now : integer, lines : {in
 	end
 	local measured : {integer : ProblemRadarLineQuality} = {}
 	local samples : {integer : number} = {}
-	local cursor = lineCursor
+	local cursor = rt.lineCursor or -1
 	local count, queries = 0, 0
 	for __, line in ipairs(radar_checks.lineRotation(ids, cursor)) do
 		if count >= QUALITY_MAX_LINES or queries >= QUALITY_MAX_QUERIES then break end
@@ -433,7 +466,9 @@ local function scanLineQuality(s : ProblemRadarState, now : integer, lines : {in
 		queries = queries + cost
 		cursor = line
 	end
-	lineCursor = cursor -- module-local (not saved): no state change by itself
+	-- Shared (state.rt): the next lines pass, in whichever Lua state, continues after it. Unchanged
+	-- (every line measured each pass) means no state write.
+	if cursor ~= -1 then rt.lineCursor = cursor end
 	if not quality then return {}, memory, false, samples end
 	local keep : {ProblemRadarAlert} = {}
 	for __, a in ipairs(listedAndPending(s)) do
@@ -532,7 +567,7 @@ local function econEligible(lines : {integer : ProblemRadarLineInfo}, broken : {
 	return e
 end
 
---- line_unprofitable: the money of the next few due lines (econCursor, econCheckedAt). Nothing is
+--- line_unprofitable: the money of the next few due lines (rt.econCursor, econCheckedAt). Nothing is
 --- judged before the game is a year old (no line can have a full year of history). calculateBalance
 --- is called only by base GUI code so far: this runs in its own pcall (scanLines).
 local function scanMoney(s : ProblemRadarState, now : integer, lines : {integer : ProblemRadarLineInfo},
@@ -556,7 +591,7 @@ local function scanMoney(s : ProblemRadarState, now : integer, lines : {integer 
 	if yearMs ~= nil and yearMs > 0 and now >= yearMs then
 		local everyMs = math.max(1, yearMs // radar_checks.ECON_RECHECKS_PER_YEAR)
 		local soonMs = math.max(0, math.floor(s.settings.smoothSec or 0)) * 1000
-		local due = radar_checks.dueRotation(econ.moneyIds, econCursor, econCheckedAt, now, everyMs, ECON_MAX_LINES, soon, soonMs)
+		local due = radar_checks.dueRotation(econ.moneyIds, rt.econCursor or -1, econCheckedAt, now, everyMs, ECON_MAX_LINES, soon, soonMs)
 		-- The size reference: 2 calls over every eligible line, once a game month (only when some line
 		-- is due, so a network without lines makes none). Unknown (no enum, no costs) = nil.
 		if #due > 0 and (econNetworkAt == nil or now < econNetworkAt or now - econNetworkAt >= everyMs) then
@@ -576,7 +611,7 @@ local function scanMoney(s : ProblemRadarState, now : integer, lines : {integer 
 		-- next pass, so the failure count keeps rising and FAIL_DROP_AFTER still applies.
 		for __, line in ipairs(due) do
 			econCheckedAt[line] = now
-			econCursor = line -- module-local (not saved)
+			rt.econCursor = line -- shared (state.rt)
 		end
 	end
 	return radar_checks.unprofitable({ settings = s.settings, lines = lines, money = money, eligible = eligible, keep = keep,
@@ -596,14 +631,21 @@ local function scanUse(s : ProblemRadarState, now : integer, lines : {integer : 
 	live = radar_checks.sampleUseAvg(live, samples or {}, econ.owned, now, yearMs)
 	liveUse, liveUseAt = live, now
 	local alerts = radar_checks.lowUse({ now = now, yearMs = yearMs, settings = s.settings, lines = lines, eligible = econ.use, useAvg = live })
-	-- Saved once per game month at most from the cadence, else only when a line started / stopped
-	-- being tracked.
-	local newSaved, persist = radar_checks.persistUseAvg(live, saved, math.max(1, yearMs // 12))
+	-- Shared after every pass that took a sample (cadence 1 ms: any newer sample): the next lines pass
+	-- usually runs in another Lua state and must continue from these averages, or the samples of every
+	-- Lua state but the writer would be lost (PERF_VMS). The lines pass writes rt.lineCursor then anyway.
+	local newSaved, persist = radar_checks.persistUseAvg(live, saved, 1)
 	if not persist then return alerts, memory, false end
 	return alerts, radar_checks.patchMemory(memory, { useAvg = newSaved }), true
 end
 
 local QUALITY_KINDS_LIST <const> = { "line_overloaded", "line_underused", "line_bunching" }
+-- SQPERF: the sub-scans timed as their own sections (wrap keeps arguments, returns and errors;
+-- the callers' pcalls are unchanged).
+local scanLineQualityTimed = perf:wrap("lineQuality", scanLineQuality)
+local scanMoneyTimed = perf:wrap("econMoney", scanMoney)
+local scanUseTimed = perf:wrap("econUse", scanUse)
+
 local MONEY_KINDS <const> : {string : boolean} = { line_unprofitable = true }
 local USE_KINDS <const> : {string : boolean} = { line_low_use = true }
 
@@ -621,15 +663,15 @@ local function scanLines(s : ProblemRadarState, now : integer, _pass : integer) 
 	local roundTrips : {integer : integer} = nil
 	local vehicleLines : {integer : integer} = nil
 	if on(s, "line_cargo_not_unloaded") then
-		local okRt, rt = pcall(function() : {Engine.Entity : integer}
+		local okRt, rtCounts = pcall(function() : {Engine.Entity : integer}
 			return api.engine.system.simEntityAtVehicleSystem.getVehiclesWithRoundTripCount()
 		end)
 		if okRt then
 			roundTrips = {}
-			for v, n in pairs((rt or {}) as {Engine.Entity : integer}) do roundTrips[v as integer] = n end
+			for v, n in pairs((rtCounts or {}) as {Engine.Entity : integer}) do roundTrips[v as integer] = n end
 			if next(roundTrips) ~= nil then vehicleLines = {} end
 		else
-			warnOnce("roundTrips", "getVehiclesWithRoundTripCount failed: " .. tostring(rt))
+			warnOnce("roundTrips", "getVehiclesWithRoundTripCount failed: " .. tostring(rtCounts))
 		end
 	end
 
@@ -706,15 +748,15 @@ local function scanLines(s : ProblemRadarState, now : integer, _pass : integer) 
 		-- Phase 4 in its own pcall: a failure there must not lose the Phase 2 line alerts. On failure
 		-- the previous line-quality alerts and timers stay as they are (dropped after FAIL_DROP_AFTER
 		-- failures in a row); line_low_use gets no samples this pass.
-		local ok, quality, qMemory, qChanged, qSamples = pcall(scanLineQuality, s, now, lines, broken, memory, wantQuality)
+		local ok, quality, qMemory, qChanged, qSamples = pcall(scanLineQualityTimed, s, now, lines, broken, memory, wantQuality)
 		if not ok then
-			failCount["lineQuality"] = (failCount["lineQuality"] or 0) + 1
+			local n = failed("lineQuality")
 			warnOnce("lineQuality", "line-quality scan failed: " .. tostring(quality))
 			if wantQuality then
-				for __, a in ipairs(radar_checks.carryOver(listedAndPending(s), QUALITY_KINDS, failCount["lineQuality"])) do alerts[#alerts + 1] = a end
+				for __, a in ipairs(radar_checks.carryOver(listedAndPending(s), QUALITY_KINDS, n)) do alerts[#alerts + 1] = a end
 			end
 		else
-			failCount["lineQuality"] = 0
+			succeeded("lineQuality")
 			for __, a in ipairs(quality as {ProblemRadarAlert}) do alerts[#alerts + 1] = a end
 			memory = qMemory as ProblemRadarMemory
 			memoryChanged = memoryChanged or qChanged as boolean
@@ -727,30 +769,44 @@ local function scanLines(s : ProblemRadarState, now : integer, _pass : integer) 
 	-- so a failing money scan must not take line_low_use down with it.
 	local econ : EconLines = nil
 	if on(s, "line_unprofitable") or wantUse then econ = econEligible(lines, broken) end
+	-- This Lua state's check times belong to the current rt.econGen; a newer one means the kind was
+	-- switched off since (possibly while other Lua states ran the lines passes).
+	local gen = rt.econGen or 0
+	if econGen ~= gen then
+		econCheckedAt = {}
+		econNetworkCost, econNetworkAt = nil, nil
+		econGen = gen
+	end
 	if on(s, "line_unprofitable") then
-		local ok, money = pcall(scanMoney, s, now, lines, econ)
+		rt.econOff = nil
+		local ok, money = pcall(scanMoneyTimed, s, now, lines, econ)
 		if not ok then
-			failCount["econMoney"] = (failCount["econMoney"] or 0) + 1
+			local n = failed("econMoney")
 			warnOnce("econMoney", "line money scan failed (calculateBalance): " .. tostring(money))
-			for __, a in ipairs(radar_checks.carryOver(listedAndPending(s), MONEY_KINDS, failCount["econMoney"])) do alerts[#alerts + 1] = a end
+			for __, a in ipairs(radar_checks.carryOver(listedAndPending(s), MONEY_KINDS, n)) do alerts[#alerts + 1] = a end
 		else
-			failCount["econMoney"] = 0
+			succeeded("econMoney")
 			for __, a in ipairs(money as {ProblemRadarAlert}) do alerts[#alerts + 1] = a end
 		end
 	else
-		-- "off" drops its rows at once; forget the check times so turning it back on re-checks every
-		-- line at the capped rate instead of a month later.
+		-- "off" drops its rows at once; forget the check times (in every Lua state: rt.econGen) so
+		-- turning it back on re-checks every line at the capped rate instead of a month later.
 		econCheckedAt = {}
 		econNetworkCost, econNetworkAt = nil, nil
+		if rt.econOff ~= true then
+			rt.econOff = true
+			rt.econGen = gen + 1
+			econGen = rt.econGen
+		end
 	end
 	if wantUse then
-		local ok, use, uMemory, uChanged = pcall(scanUse, s, now, lines, econ, samples, memory)
+		local ok, use, uMemory, uChanged = pcall(scanUseTimed, s, now, lines, econ, samples, memory)
 		if not ok then
-			failCount["econUse"] = (failCount["econUse"] or 0) + 1
+			local n = failed("econUse")
 			warnOnce("econUse", "utilisation average scan failed: " .. tostring(use))
-			for __, a in ipairs(radar_checks.carryOver(listedAndPending(s), USE_KINDS, failCount["econUse"])) do alerts[#alerts + 1] = a end
+			for __, a in ipairs(radar_checks.carryOver(listedAndPending(s), USE_KINDS, n)) do alerts[#alerts + 1] = a end
 		else
-			failCount["econUse"] = 0
+			succeeded("econUse")
 			for __, a in ipairs(use as {ProblemRadarAlert}) do alerts[#alerts + 1] = a end
 			memory = uMemory as ProblemRadarMemory
 			memoryChanged = memoryChanged or uChanged as boolean
@@ -928,11 +984,13 @@ local function scanStuck(s : ProblemRadarState, now : integer, owned : function(
 	local thresholds = radar_settings.stuckThresholdsMs(s.settings)
 	local memory = s.memory or radar_checks.freshMemory()
 	local EN_ROUTE = api.type["enum"].TransportVehicleState.EN_ROUTE
-	-- The saved timers plus the young ones only this script holds (see liveStopped).
+	-- The saved timers plus the young ones (state.rt.young, shared by every Lua state).
 	local persistMs = radar_checks.PERSIST_TIMER_AFTER_MS
-	local prevStopped = radar_checks.withYoungTimers(memory.stoppedSince, nil, liveStopped, nil, liveAt, now, persistMs)
+	local young = rt.young
+	local youngAt = young ~= nil and young.at or nil
+	local prevStopped = radar_checks.withYoungTimers(memory.stoppedSince, nil, young ~= nil and young.stopped or nil, nil, youngAt, now, persistMs)
 	local prevBlockedSince, prevBlockedBy = radar_checks.withYoungTimers(memory.blockedSince, memory.blockedBy,
-		liveBlockedSince, liveBlockedBy, liveAt, now, persistMs)
+		young ~= nil and young.blockedSince or nil, young ~= nil and young.blockedBy or nil, youngAt, now, persistMs)
 
 	-- 1. Every en-route vehicle standing still (a number per vehicle, no component copies), minus
 	--    the ones already found ineligible (foreign, user-stopped) and not due for a re-check.
@@ -942,7 +1000,7 @@ local function scanStuck(s : ProblemRadarState, now : integer, owned : function(
 		local speed = getSpeed(v)
 		if speed ~= nil and speed <= STANDING_SPEED then standingAll[v] = true end
 	end
-	local ineligible = radar_checks.expireMarks(ineligibleSince, now, INELIGIBLE_RECHECK_MS, standingAll)
+	local ineligible = radar_checks.expireMarks(rt.ineligible, now, INELIGIBLE_RECHECK_MS, standingAll)
 	local standing : {integer : boolean} = {}
 	for v in pairs(standingAll) do
 		if ineligible[v] == nil then standing[v] = true end
@@ -1018,7 +1076,7 @@ local function scanStuck(s : ProblemRadarState, now : integer, owned : function(
 	local keepCarrier : {integer : string} = {}
 	for v in pairs(stoppedSince) do keepCarrier[v] = carrierCache[v] end
 	carrierCache = keepCarrier
-	ineligibleSince = ineligible
+	rt.ineligible = ineligible
 
 	local alerts = radar_checks.stuck({
 		now = now,
@@ -1030,8 +1088,19 @@ local function scanStuck(s : ProblemRadarState, now : integer, owned : function(
 		vehicles = vehicles,
 		excluded = excluded,
 	})
-	-- Only the timers old enough are saved; the state changes when that part changes.
-	liveStopped, liveBlockedSince, liveBlockedBy, liveAt = stoppedSince, blockedSince, blockedBy, now
+	-- The young part goes to state.rt.young (rewritten only when it changed; `at` stays with unchanged
+	-- maps), the old enough part to state.memory.
+	local yStopped = radar_checks.youngTimers(stoppedSince, now, persistMs)
+	local ySince, yBy = radar_checks.youngTimers(blockedSince, now, persistMs, blockedBy)
+	local yEmpty = next(yStopped) == nil and next(ySince) == nil
+	if young == nil then
+		if not yEmpty then rt.young = { at = now, stopped = yStopped, blockedSince = ySince, blockedBy = yBy } end
+	elseif yEmpty then
+		rt.young = nil
+	elseif not (radar_checks.sameTimerMap(yStopped, young.stopped) and radar_checks.sameTimerMap(ySince, young.blockedSince)
+			and radar_checks.sameTimerMap(yBy, young.blockedBy)) then
+		rt.young = { at = now, stopped = yStopped, blockedSince = ySince, blockedBy = yBy }
+	end
 	local savedStopped = radar_checks.agedTimers(stoppedSince, now, persistMs)
 	local savedSince, savedBy = radar_checks.agedTimers(blockedSince, now, persistMs, blockedBy)
 	local changed = not (radar_checks.sameTimerMap(savedStopped, memory.stoppedSince)
@@ -1042,8 +1111,10 @@ local function scanStuck(s : ProblemRadarState, now : integer, owned : function(
 end
 
 --- Kinds off / timers dropped: forget the young timers too, so turning a kind back on starts fresh.
+local scanStuckTimed = perf:wrap("stuck", scanStuck)
+
 local function clearLiveTimers()
-	liveStopped, liveBlockedSince, liveBlockedBy, liveAt = {}, {}, {}, nil
+	rt.young = nil
 end
 
 local STUCK_KINDS <const> : {string : boolean} = { veh_stuck = true, train_blocked_by = true }
@@ -1124,14 +1195,14 @@ local function scanVehicles(s : ProblemRadarState, now : integer, _pass : intege
 	-- unproven on the sim thread). On failure the Phase 2 vehicle rows above are still delivered and
 	-- the previous veh_stuck / train_blocked_by rows and timers stay (dropped after FAIL_DROP_AFTER
 	-- failures in a row).
-	local ok, stuck, memory, memoryChanged = pcall(scanStuck, s, now, owned, excluded)
+	local ok, stuck, memory, memoryChanged = pcall(scanStuckTimed, s, now, owned, excluded)
 	if not ok then
-		failCount["stuck"] = (failCount["stuck"] or 0) + 1
+		local n = failed("stuck")
 		warnOnce("stuck", "stuck scan failed: " .. tostring(stuck))
-		for __, a in ipairs(radar_checks.carryOver(listedAndPending(s), STUCK_KINDS, failCount["stuck"])) do alerts[#alerts + 1] = a end
+		for __, a in ipairs(radar_checks.carryOver(listedAndPending(s), STUCK_KINDS, n)) do alerts[#alerts + 1] = a end
 		return alerts, nil, false
 	end
-	failCount["stuck"] = 0
+	succeeded("stuck")
 	for __, a in ipairs(stuck as {ProblemRadarAlert}) do alerts[#alerts + 1] = a end
 	return alerts, memory as ProblemRadarMemory, memoryChanged as boolean
 end
@@ -1251,6 +1322,10 @@ local function scanFleet(s : ProblemRadarState, now : integer, pass : integer) :
 end
 
 --- (state, gameTime ms, pass number) -> alerts [, new memory, memory changed]
+-- SQPERF section per scan group (built once: no string concatenation per call).
+local SCAN_SECTION : {string : string} = {}
+for __, g in ipairs(radar_checks.GROUPS) do SCAN_SECTION[g] = "scan_" .. g end
+
 local SCANS : {string : function(ProblemRadarState, integer, integer) : {ProblemRadarAlert}, ProblemRadarMemory, boolean} = {
 	lines = scanLines,
 	stations = scanStations,
@@ -1273,15 +1348,22 @@ local function subscribe(state : GameScriptState<ProblemRadarState>)
 end
 
 --- state:set with the change counter bumped (state.seq): the window's poll compares it and skips the
---- full read while it is unchanged. Wraps well below 2^31.
-local function save(state : GameScriptState<ProblemRadarState>, s : ProblemRadarState)
-	s.seq = ((s.seq or 0) + 1) % 1000000000
+--- full read while it is unchanged. Wraps well below 2^31. `quiet`: only fields the window does not
+--- read changed (memory timers, notify maps, state.rt), so seq stays and the window skips the read.
+--- SQPERF: "stateSet" counts every write, "stateSetQuiet" the quiet ones; section "state_set" times them.
+local function save(state : GameScriptState<ProblemRadarState>, s : ProblemRadarState, quiet? : boolean)
+	if not quiet then s.seq = ((s.seq or 0) + 1) % 1000000000 end
+	local t0 = perf:start()
 	state:set(s)
+	perf:stop("state_set", t0)
+	perf:count("stateSet")
+	if quiet then perf:count("stateSetQuiet") end
 end
 
 -- Subscriptions are saved with the game, so a save from an older build only has the events that
 -- build knew (revision 2: no snooze events, so the GUI's snooze clicks were dropped). Re-subscribe
--- once per load; module-local, so every load starts false.
+-- once per load; module-local, so every load (and every simulation Lua state) starts false: each
+-- state re-subscribes once, which is idempotent.
 local subscribedThisLoad = false
 
 local function ensureSubscribed(state : GameScriptState<ProblemRadarState>)
@@ -1297,8 +1379,14 @@ local function ensureInitialised(state : GameScriptState<ProblemRadarState>, why
 	if isMapEditor() then return end
 	ensureSubscribed(state)
 	local raw = state:get()
-	if needsPrime(raw) then requestPrime(nil) end
 	local s, changed = radar_checks.upgradeState(raw)
+	if needsPrime(raw) then
+		-- In the state (not a module-local): the scans and the notify step run in other Lua states.
+		local r = radar_checks.cleanRuntime(s.rt)
+		r.prime = requestPrime(r.prime, nil)
+		s.rt = radar_checks.packRuntime(r)
+		changed = true
+	end
 	if changed then
 		save(state, s)
 		log.message(PREFIX .. "state initialised (" .. why .. ")")
@@ -1323,7 +1411,8 @@ end
 --- (radar_settings.reset): validated, saved only when something changed.
 local function handleSettings(state : GameScriptState<ProblemRadarState>, name : string, param : any)
 	if isMapEditor() then return end
-	local s = radar_checks.upgradeState(state:get())
+	local raw = state:get()
+	local s = radar_checks.upgradeState(raw)
 	local old = radar_settings.normalize(s.settings)
 	local newSettings, changed, rejected : ProblemRadarSettings, boolean, {string}
 	if name == EV_RESET_SETTINGS then
@@ -1338,7 +1427,14 @@ local function handleSettings(state : GameScriptState<ProblemRadarState>, name :
 		-- Phase 6: alerts already listed (or about to be listed) for kinds that just became
 		-- "notify" are marked notified silently on the next cycle: no burst of old problems.
 		local primed = radar_notify.newlyNotify(old, newSettings)
-		if primed ~= nil then requestPrime(primed) end
+		if primed ~= nil or needsPrime(raw) then
+			local r = radar_checks.cleanRuntime(s.rt)
+			-- A settings event before the first scan of a save without the mod: this write makes the
+			-- state current, so the priming of the mod being added must be requested here.
+			if needsPrime(raw) then r.prime = requestPrime(r.prime, nil) end
+			if primed ~= nil then r.prime = requestPrime(r.prime, primed) end
+			s.rt = radar_checks.packRuntime(r)
+		end
 		s.settings = newSettings
 		save(state, s)
 		log.message(PREFIX .. (name == EV_RESET_SETTINGS and "settings reset: " or "settings: ") .. settingsDiff(old, newSettings))
@@ -1403,46 +1499,56 @@ local function sendNotifications(toasts : {ProblemRadarAlert}, more : integer) :
 	if more > 0 then
 		send({ more = more })
 	end
+	perf:count("toasts", #toasts)
 	log.message(PREFIX .. "notified " .. tostring(#toasts) .. (more > 0 and (" +" .. tostring(more) .. " more") or ""))
 	return true
 end
 
 --- Run one scan group and store the result. state:get() copies the whole state, so it is only
---- called here (once per slot), and state:set() only when the alerts, timers, notify maps or the
---- state version changed (never for the transient line cursor).
+--- called here (once per slot), and state:set() only when the alerts, timers, notify maps, the shared
+--- bookkeeping (state.rt) or the state version changed; at most once per slot.
 --- `notifyStep`: once per full scan cycle (after the last group), decide the notifications.
-local function scanGroup(state : GameScriptState<ProblemRadarState>, group : string, now : integer, pass : integer, notifyStep : boolean)
+local function scanGroupBody(state : GameScriptState<ProblemRadarState>, group : string, now : integer, pass : integer, notifyStep : boolean)
 	local scan = SCANS[group]
 	if scan == nil then return end
+	local tGet = perf:start()
 	local raw = state:get()
-	if needsPrime(raw) then requestPrime(nil) end
+	perf:stop("state_get", tGet)
 	local s, upgraded = radar_checks.upgradeState(raw)
+	-- The shared bookkeeping as a working copy for this slot (see `rt` at the top).
+	rt = radar_checks.cleanRuntime(s.rt)
+	if needsPrime(raw) then rt.prime = requestPrime(rt.prime, nil) end
 	-- pcall: an unexpected API shape must never break the game's update loop.
 	local ok, result, memory, memoryChanged = pcall(scan, s, now, pass)
 	local merged, changed = s, upgraded
-	-- Smoothing: while priming after the mod was added (primeAll), each group's first scan lists its
+	-- What the window shows changed (state.seq): a migration or the alerts / counts / snoozes.
+	local visible = upgraded
+	-- Smoothing: while priming after the mod was added (prime.all), each group's first scan lists its
 	-- alerts at once (no smoothing delay; radar_notify marks them silently).
-	local instant = primeAll and primeSeen[group] ~= true
+	local prime = rt.prime
+	local instant = prime ~= nil and prime.all and prime.seen[group] ~= true
 	if ok then
-		failCount[group] = 0
-		primeSeen[group] = true
+		succeeded(group)
+		if prime ~= nil then prime.seen[group] = true end
 		-- Phase 5: "off" kinds are never listed (and never notified).
 		local fresh = radar_notify.filterOff(result as {ProblemRadarAlert}, s.settings)
 		local alertsChanged : boolean
 		merged, alertsChanged = radar_checks.merge(s, group, fresh, now, nil, memory as ProblemRadarMemory, instant)
 		changed = changed or alertsChanged or memoryChanged == true
+		visible = visible or alertsChanged
 	else
-		failCount[group] = (failCount[group] or 0) + 1
+		local fails = failed(group)
 		warnOnce(group, "scan '" .. group .. "' failed: " .. tostring(result))
-		if failCount[group] >= radar_checks.FAIL_DROP_AFTER then
+		if fails >= radar_checks.FAIL_DROP_AFTER then
 			-- Phase 6: the group keeps failing; its rows would be frozen forever, so drop them
 			-- (merge with no fresh alerts; timers are kept).
 			local alertsChanged : boolean
 			merged, alertsChanged = radar_checks.merge(s, group, {}, now)
 			changed = changed or alertsChanged
+			visible = visible or alertsChanged
 			if alertsChanged and not warned["drop:" .. group] then
 				warned["drop:" .. group] = true
-				log.warning(PREFIX .. "scan '" .. group .. "' failed " .. tostring(failCount[group]) .. " times in a row; its alerts were removed")
+				log.warning(PREFIX .. "scan '" .. group .. "' failed " .. tostring(fails) .. " times in a row; its alerts were removed")
 			end
 		end
 	end
@@ -1456,8 +1562,8 @@ local function scanGroup(state : GameScriptState<ProblemRadarState>, group : str
 			alerts = merged.alerts,
 			notified = merged.notified,
 			cleared = merged.notifyCleared,
-			silentAll = primeAll,
-			silentKinds = primeKinds,
+			silentAll = prime ~= nil and prime.all,
+			silentKinds = prime ~= nil and prime.kinds or nil,
 			snoozed = merged.snoozed,
 		})
 		if nr.changed then
@@ -1466,19 +1572,29 @@ local function scanGroup(state : GameScriptState<ProblemRadarState>, group : str
 			changed = true
 		end
 		-- Priming ends once every group has been scanned after it was requested.
-		local all = true
-		for __, g in ipairs(radar_checks.GROUPS) do all = all and primeSeen[g] == true end
-		if all then
-			primeAll = false
-			primeKinds = {}
+		if prime ~= nil then
+			local all = true
+			for __, g in ipairs(radar_checks.GROUPS) do all = all and prime.seen[g] == true end
+			if all then rt.prime = nil end
 		end
-		-- Game-time budget (radar_notify.applyBudget): the base history holds only 100 entries.
-		sendToasts, sendMore, budget = radar_notify.applyBudget(budget, now, nr.toasts, nr.more,
+		-- Game-time budget (radar_notify.applyBudget): the base history holds only 100 entries. Stored
+		-- only when it counted something (a toast / summary sent, or the pending count moved); an
+		-- unchanged or lapsed window needs no write (applyBudget treats a lapsed one as fresh).
+		local oldBudget = rt.budget
+		local newBudget : ProblemRadarNotifyBudget
+		sendToasts, sendMore, newBudget = radar_notify.applyBudget(oldBudget, now, nr.toasts, nr.more,
 			merged.settings ~= nil and merged.settings.notifyPaused == true)
+		if #sendToasts > 0 or sendMore > 0 or newBudget.pending ~= (oldBudget ~= nil and oldBudget.pending or 0) then
+			rt.budget = newBudget
+		end
 	end
 
+	-- The shared bookkeeping: written with the rest, or alone when only it changed.
+	local packed = radar_checks.packRuntime(rt)
+	if not radar_checks.sameRuntime(packed, s.rt) then changed = true end
+	merged.rt = packed
 	if changed then
-		save(state, merged)
+		save(state, merged, not visible)
 		if upgraded then log.message(PREFIX .. "state initialised (update)") end
 	end
 	if #sendToasts > 0 or sendMore > 0 then
@@ -1486,6 +1602,19 @@ local function scanGroup(state : GameScriptState<ProblemRadarState>, group : str
 		local sent, err = pcall(sendNotifications, sendToasts, sendMore)
 		if not sent then warnOnce("notify", "sending notifications failed: " .. tostring(err)) end
 	end
+end
+
+--- scanGroupBody timed as SQPERF section "scan_<group>" (state:get, the scan, merge, state:set,
+--- notifications). An error passes through to doUpdate's pcall unchanged (that call is not timed).
+local function scanGroup(state : GameScriptState<ProblemRadarState>, group : string, now : integer, pass : integer, notifyStep : boolean)
+	local section = SCAN_SECTION[group]
+	if section == nil then
+		scanGroupBody(state, group, now, pass, notifyStep)
+		return
+	end
+	local t0 = perf:start()
+	scanGroupBody(state, group, now, pass, notifyStep)
+	perf:stop(section, t0)
 end
 
 --- update body (see script.update).
@@ -1534,16 +1663,23 @@ end
 
 -- Both entry points run their body in one pcall: an error in this script is logged once and never
 -- propagates into the engine's update / event handling (or a save in progress).
+-- SQPERF times each whole entry point ("update" includes the scan_<group> sections inside it).
 local script : GameScript<ProblemRadarState> = {
 	update = function(_userParams : table, state : GameScriptState<ProblemRadarState>, dt : number) : any
+		local t0 = perf:start()
 		local ok, err = pcall(doUpdate, state, dt)
+		perf:stop("update", t0)
 		if not ok then warnOnce("update", "update failed: " .. tostring(err)) end
 	end,
 
 	handleEvent = function(_userParams : table, state : GameScriptState<ProblemRadarState>, _src : string, id : string, name : string, param : any) : any
+		local t0 = perf:start()
 		local ok, err = pcall(doHandleEvent, state, id, name, param)
+		perf:stop("event", t0)
 		if not ok then warnOnce("handleEvent", "event '" .. tostring(name) .. "' failed: " .. tostring(err)) end
 	end,
 }
+
+perf:phase("init", perfInit)
 
 return script
