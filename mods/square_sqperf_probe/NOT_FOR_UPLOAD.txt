@@ -1,0 +1,15 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_sqperf_probe answers one question for the SQPERF instrumentation (plans/sqperf/README.md
+"Open question"): is api.type.Clock safe to create and read in a hudIconScript (HUD icon recipe)
+and in react onStep / onStepTimer callbacks (worker threads)? A wrong answer there is a hard crash
+that pcall can't catch, so SQPERF only counts calls in those contexts until this probe says "ok".
+
+It logs [SQPERF-PROBE] lines to stdout.txt. Before every risky call it logs "try", after it "ok",
+so after a crash the last "try" line names the context. Read-only: it adds a hudIconScript to
+industry constructions that have none (in memory only) and an invisible, empty layout to the
+top-left mod button ridge. How to run it: plans/sqperf/README.md "Probe".
+
+Never publish it to mod.io (Mod Hub > My Mods would offer it because `make link` puts it in the
+staging area). When done: disable it in the game's mod list (quit to the main menu first before
+removing its staging link; see docs/findings.md).

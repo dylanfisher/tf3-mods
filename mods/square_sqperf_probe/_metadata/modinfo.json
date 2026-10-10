@@ -1,0 +1,16 @@
+{
+    "name": "DEV SQPERF Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Tests api.type.Clock in HUD icon scripts and react onStep callbacks.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Developer tool for the SQPERF performance instrumentation: creates and reads an api.type.Clock in a HUD icon script and in react onStep / onStepTimer callbacks and logs [SQPERF-PROBE] lines to stdout.txt. See plans/sqperf/README.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}
