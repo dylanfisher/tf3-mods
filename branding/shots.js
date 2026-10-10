@@ -67,18 +67,22 @@ Square.slides('square_problem_radar', [
 ]);
 
 Square.slides('square_better_minimap', [
+  // Captures 2026-10-10 (rev 5, sub-arctic save). The window is x 4110-5090, y 165-2255; its map 4116-5079 x 268-2190.
+  { title: 'Roads, rails and towns', sub: 'Tick Net to draw your network on the map',
+    media: { layout: 'wipe', labels: ['Off', 'Net'], split: 0.5,
+             before: '12-plain.jpg', after: '14-net.jpg', crop: [4116, 640, 963, 1060] } },
+  { title: 'Hi-vis when you need it', sub: 'Bright colours that stand out on any terrain',
+    media: { layout: 'wipe', labels: ['Net', 'Hi-vis'], split: 0.5,
+             before: '14-net.jpg', after: '13-hivis.jpg', crop: [4116, 640, 963, 1060] } },
   { title: 'Your map at a glance', sub: 'The box follows the camera; click to jump',
-    media: { src: '01-overview.jpg', crop: [2300, 200, 2820, 2100] } },
-  { title: 'Every industry by product', sub: 'Icons show what each one makes',
-    media: { src: '02-large.jpg', crop: [4150, 340, 970, 2120] } },
-  { title: 'Small or large', sub: 'Toggle with S/L; pin it to keep it open',
-    media: { layout: 'inset', at: 'bl', insetW: 300,
-             main: { src: '01-overview.jpg', crop: [4320, 345, 800, 1765] },
-             inset: { src: '03-small.jpg', crop: [4600, 40, 520, 1150] } } },
-  { title: 'See which way you face', sub: 'Optional arrow, toggled in the mod settings',
-    media: { layout: 'inset', at: 'bl', insetW: 320,
-             main: { src: '06-arrow.jpg', crop: [4160, 340, 960, 2110] },
-             inset: { src: '06-arrow.jpg', crop: [4647, 1537, 260, 260] } } },
+    media: { src: '15-mountain.jpg', crop: [2150, 150, 2950, 2150] } },
+  { title: 'Every industry by product', sub: 'Tick Ind: icons show what each one makes',
+    media: { src: '11-industries.jpg', crop: [4110, 165, 980, 1150] } },
+  { title: 'Small or large', sub: 'Switch with the magnifier; pin it to keep it open',
+    // Inset at about the main crop's scale, so S reads smaller than L.
+    media: { layout: 'inset', at: 'bl', insetW: 230,
+             main: { src: '17-large.jpg', crop: [2700, 120, 2400, 2160] },
+             inset: { src: '16-small.jpg', crop: [4590, 170, 500, 1120] } } },
 ]);
 
 Square.slides('square_one_way_roads', [
