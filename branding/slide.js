@@ -1,4 +1,4 @@
-// "square" house style for mod gallery slides (_metadata/1.png, 2.png, ...).
+// "square" house style for mod gallery slides (_metadata/1-<hash>.png, 2-<hash>.png, ...).
 // Plain browser script, loaded after cover.js (palette) by slide.html and shots.html.
 // A slide is 1920x1080 HTML: teal headline panel on the left, a cropped game capture on the
 // dark field on the right. Per-mod slide data lives in shots.js; captures in plans/<id>/shots/.

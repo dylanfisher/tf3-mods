@@ -149,28 +149,28 @@
     "logo": {
       "file": "0.png",
       "sha": "a06569402051e478",
-      "remote": "0.png"
+      "remote": "0.3.png"
     },
     "images": [
       {
         "file": "1.png",
         "sha": "b7c991ee2e08b7ad",
-        "remote": "1.png"
+        "remote": "1-b7c991ee.png"
       },
       {
         "file": "2.png",
         "sha": "33e6539e5260d206",
-        "remote": "2.png"
+        "remote": "2-33e6539e.png"
       },
       {
         "file": "3.png",
         "sha": "9dd3585e621ac593",
-        "remote": "3.png"
+        "remote": "3-9dd3585e.png"
       },
       {
         "file": "4.png",
         "sha": "21fdefa7ef2e0f21",
-        "remote": "4.png"
+        "remote": "4-21fdefa7.png"
       }
     ],
     "synced": "2026-10-10",
@@ -184,8 +184,8 @@
         "c40e15a371c6d7c2"
       ],
       "description": [
-        "2519baa479d16984",
-        "2519baa479d16984"
+        "6a5ef95ee920e139",
+        "6a5ef95ee920e139"
       ]
     }
   },

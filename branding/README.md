@@ -112,15 +112,15 @@ The US State Names mods (`square_names_us_<state>`, plan in `plans/square_state_
    `flagAspect` is the `aspect` from `SOURCES.json`; `accent` is the flag's main colour (for the palette table only).
 4. Check it in `index.html`, then `make covers MOD=mods/square_names_us_oregon`. A state name longer than about 14 characters ("North Carolina", "South Dakota") still fits on the first line; check it anyway.
 
-## Gallery slides (`_metadata/1.png`, `2.png`, …)
+## Gallery slides (`_metadata/1-<hash>.png`, `2-<hash>.png`, …)
 
-Same family as the cover: the teal panel on the left carries the mod name, a 2–4 word headline and one short line; the right side shows a crop of a real game capture on the dark field. `slide.js` draws them, `shots.js` holds the per-mod list, and `make shots MOD=mods/<id>` renders them (stale higher-numbered slides are removed; `0.png` is never touched).
+Same family as the cover: the teal panel on the left carries the mod name, a 2–4 word headline and one short line; the right side shows a crop of a real game capture on the dark field. `slide.js` draws them, `shots.js` holds the per-mod list, and `make shots MOD=mods/<id>` renders them as `N-<hash>.png` (first 8 hex digits of the file's sha256; older copies and stale higher-numbered slides are removed; `0.png` is never touched).
 
 - **Captures**: full-screen, Retina 5120×2880, saved to `plans/<id>/shots/NN-slug.jpg` (never shipped). English UI, same UI scale, no other mods in frame.
 - **Crop to the point**: `crop: [x, y, w, h]` in capture pixels. Show the window, label or area the slide is about, never the whole screen. The quickest way to find coordinates is a 1280-wide preview (multiply by 4).
 - **Layouts**: `single` (one crop), `inset` (scene plus a UI crop overlapping a corner, e.g. the panel that produced it, or a zoom of a small HUD element; `insetW` sets its width, and optional `insetY` centres it at that fraction of the slide height instead of the corner), `wipe` (two same-camera captures split on a 45° diagonal, labelled Off/On), `stack` (the same UI in two states, labelled).
 - Keep headlines to what the player gets, like the cover tagline. 3 slides per mod is plenty.
-- **After the first upload, sync the gallery with `make modio`.** A Mod Hub update does not replace gallery images that mod.io already has under the same number: it only adds new numbers (Problem Radar rev 2: the new economy slide rendered as `3.png` and pushed the settings slide to `4.png`, but mod.io kept the old `3.png` and showed settings twice). `make modio MOD=mods/<id>` shows whether mod.io's gallery and logo match `_metadata/`, and `ARGS=--apply` replaces the whole gallery with the local `1.png`, `2.png`, …, uploaded as `N-<hash>.png` so a changed slide gets a new URL (re-using `1.png` kept showing the old picture from caches). The Hub re-sends the slides on every update, so run it after each Hub update (CLAUDE.md "Releasing updates").
+- **Hashed names keep the gallery intact.** `make modio ARGS=--apply` uploads slides as `N-<hash>.png` (a changed slide gets a new URL; re-using `1.png` kept showing the old picture from caches), and the local files carry the same names. With those names a Mod Hub update leaves mod.io's gallery as it is (Blank Slate rev 3, `docs/findings.md` "Mod Hub uploads and the mod.io gallery"). With plain `N.png` names it didn't: the Hub added new numbers next to old ones (Problem Radar rev 2 showed the settings slide twice) and stored copies that differed from the local files. `make modio ARGS='--diff --verify'` compares mod.io's originals byte for byte; `--apply` replaces the whole gallery when they differ.
 
 ## Mod description (`_metadata/description.html`)
 

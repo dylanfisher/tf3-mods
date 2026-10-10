@@ -1,12 +1,14 @@
 # /// script
 # requires-python = ">=3.11"
 # ///
-"""Render mod gallery slides in the "square" house style to mods/<id>/_metadata/<n>.png.
+"""Render mod gallery slides in the "square" house style to mods/<id>/_metadata/<n>-<hash>.png.
 
 Slides are defined in branding/shots.js (captures in plans/<id>/shots/) and drawn by
 branding/slide.js; this script screenshots branding/slide.html?mod=<id>&n=<n> with headless
-Chrome at 1920x1080. Stale numbered slides (beyond the defined count) are removed; 0.png
-(the cover, see render_covers.py) is never touched.
+Chrome at 1920x1080. The file is named after its content hash, the same name modio_sync.py
+uploads it under, so a Mod Hub upload leaves mod.io's gallery as it is (docs/findings.md). Older
+copies of a slide and stale slides (beyond the defined count) are removed; 0.png (the cover, see
+render_covers.py) is never touched.
 
 Usage: uv run tools/render_shots.py [mods/<id> ...]
 """
@@ -14,6 +16,7 @@ Usage: uv run tools/render_shots.py [mods/<id> ...]
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import subprocess
 import sys
@@ -24,6 +27,17 @@ from hubconfig import MODS_DIR, ROOT  # noqa: E402
 from render_covers import find_chrome, png_size  # noqa: E402
 
 BRANDING = ROOT / "branding"
+SLIDE_RE = re.compile(r"^(\d+)(?:-[0-9a-f]{8})?$")  # N.png or N-<hash>.png, as modio_sync.py reads them
+
+
+def slide_number(path: Path) -> int | None:
+    m = SLIDE_RE.match(path.stem)
+    return int(m.group(1)) if m and path.suffix == ".png" else None
+
+
+def hashed_name(n: int, data: bytes) -> str:
+    """N-<first 8 hex of sha256>.png: modio_sync.py's upload name for this slide."""
+    return f"{n}-{hashlib.sha256(data).hexdigest()[:8]}.png"
 
 
 def slide_counts() -> dict[str, int]:
@@ -64,12 +78,18 @@ def main() -> None:
             failed = failed or bool(args.mods)
             continue
         for old in meta.glob("*.png"):
-            if old.stem.isdigit() and int(old.stem) > counts[mod_id]:
+            n = slide_number(old)
+            if n is not None and n > counts[mod_id]:
                 old.unlink()
                 print(f"removed {old.relative_to(ROOT)}")
         for n in range(1, counts[mod_id] + 1):
-            out = meta / f"{n}.png"
-            render(chrome, mod_id, n, out)
+            tmp = meta / f".render-{n}.png"
+            render(chrome, mod_id, n, tmp)
+            out = meta / hashed_name(n, tmp.read_bytes())
+            for old in meta.glob(f"{n}*.png"):
+                if slide_number(old) == n and old != out:
+                    old.unlink()
+            tmp.replace(out)
             size = png_size(out)
             ok = size == (1920, 1080)
             failed = failed or not ok
