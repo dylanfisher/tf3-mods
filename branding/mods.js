@@ -318,6 +318,24 @@ Square.register({
     <rect class="cut" x="560" y="336" width="95" height="34" rx="17"/>`,
 });
 
+Square.register({
+  id: 'square_line_rate_matcher', name: 'Line Rate Matcher', tagline: 'Right-size lines to their supply', accent: '#8A7FD1',
+  // Supply equals transport: an industry (left) and a cargo ship on the water (right) with an accent equals sign
+  // between them, i.e. the line's Rate matched to what the producer makes.
+  glyph: S => `
+    ${S.factory(0, 336, .78)}
+    ${S.ground(-10, 292, 570)}
+    <rect class="acc" x="318" y="404" width="108" height="46" rx="23"/>
+    <rect class="acc" x="318" y="492" width="108" height="46" rx="23"/>
+    <rect class="ink" x="536" y="330" width="44" height="90" rx="12"/>
+    <rect class="ink" x="508" y="390" width="120" height="120" rx="18"/>
+    <rect class="cut" x="528" y="420" width="32" height="32" rx="8"/>
+    <rect class="cut" x="576" y="420" width="32" height="32" rx="8"/>
+    <rect class="ink" x="646" y="440" width="114" height="70" rx="12"/>
+    <path class="ink" d="M478 520 H800 L754 592 Q746 604 730 604 H536 Q520 604 513 592 Z"/>
+    <path class="sink" d="M494 660 q 38 -26 76 0 t 76 0 t 76 0 t 76 0" stroke-width="22" stroke-linecap="round"/>`,
+});
+
 // US State Names series: one line per state, same cover every time (cover.js stateCover, README "State series").
 Square.stateCover({
   id: 'square_names_us_washington', state: 'Washington', flag: 'us_washington.svg', flagAspect: 1.6, accent: '#00843D',

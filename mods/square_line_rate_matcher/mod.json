@@ -1,0 +1,11 @@
+{
+    "modId": "square_line_rate_matcher",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "incompatibilities": [
+        { "mod": { "modId": "square_line_rate_matcher_probe" } }
+    ]
+}
