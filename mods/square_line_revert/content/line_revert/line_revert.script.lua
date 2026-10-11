@@ -3,6 +3,8 @@
 -- states one at a time until the next edit of your own. GUI only: no game script, nothing in the savegame. Plan: plans/square_line_revert/PLAN.md. Technique proven in game by square_line_revert_probe
 -- (PROBE.md run 1).
 --
+-- Rev 5: stands down (installs nothing) while Line Manager Plus is active with its undo On; see doReplace.
+--
 -- Two module-function wrappers, installed by doReplace (line_revert_replace.res.lua):
 -- * line_util.makeLineActionDescriptor: captures the manager's commonParams (a useRefLazy table, one per manager
 --   window: manager_window.tl:6255). The edited line is commonParams.lineState:old().entityAndRevision.entity
@@ -38,6 +40,7 @@ local engine_react_util = ug_require "::/gui/main/engine_react_util.tl"
 local button_react_util = ug_require "::/gui/main/button_react_util.tl"
 local line_util = ug_require "::/gui/line_vehicle_mgmt/line_util.tl"
 local core = ug_require "square_line_revert::/line_revert/line_revert_core.lua"
+local detect = ug_require "square_line_revert::/line_revert/line_revert_detect.lua"
 
 local AUTO_RENAME_ICON = "::/gui/line_vehicle_mgmt/icons/symbol_autorename.tga"
 -- base undo glyph (gui.zip: gui/node_editor/icons/undo@2x.tga, 48x48 greyscale mask like symbol_autorename@2x.tga);
@@ -70,8 +73,21 @@ local managerParams -- latest commonParams seen by makeLineActionDescriptor
 local session -- { params, line = entity, history = core history (states[1] = line when opened), busy = text | nil }
 local loggedLoadMode = false
 
+--- true when the react state `s` belongs to a recipe that has unmounted (s:hasExpired(), as the base checks before
+--- reading, engine_react_util.tl:146). managerParams outlive their manager window: when the window closes and another
+--- opens, our buttons render and step before the new window's descriptor call replaces them. :old() on such a state
+--- returns nil but the engine prints "Calling Old() on expired ReactStateWrap returns nil" plus a stack traceback to
+--- stdout.txt every time (docs/findings.md "Expired react states"), so check first. No hasExpired (a table): live.
+local function expired(s)
+	if s == nil then return false end
+	local f = s.hasExpired
+	return f ~= nil and f(s) == true
+end
+
 local function editedLine(params)
-	local ls = params and params.lineState and params.lineState:old()
+	local state = params and params.lineState
+	if state == nil or expired(state) then return nil end
+	local ls = state:old()
 	return ls and ls.entityAndRevision and ls.entityAndRevision.entity or nil
 end
 
@@ -439,8 +455,35 @@ local function iconToggleButton(className, path, ...)
 	return wrapped or node
 end
 
+-- Line Manager Plus (square_line_manager_plus) contains these buttons as its "line_undo" feature. With both active
+-- (mod.json lists it as incompatible, so the game warns at activation) exactly one set of buttons must appear: while
+-- Line Manager Plus is active with "line_undo" On, this mod installs nothing and logs one line. Our config's
+-- yieldsTo marker (line_revert_replace.res.lua) tells Line Manager Plus to install its own then. Active = it has a
+-- react-replacement-config in api.res.genericRep (line_revert_detect.lua explains why only active mods have one).
+local LINE_MANAGER_PLUS = "square_line_manager_plus"
+local stoodDown = false
+
+--- nil, or the log line why this mod stands down. A failed check counts as "not active" (two sets of buttons are
+--- better than none) and is logged once.
+local function standDownReason()
+	local ok, active = pcall(detect.isActive, api, LINE_MANAGER_PLUS)
+	if not ok then
+		warnOnce("detect " .. LINE_MANAGER_PLUS, active)
+		return nil
+	end
+	if not active or not detect.paramOn(detect.modParams(api, LINE_MANAGER_PLUS), "line_undo") then return nil end
+	return "Line Manager Plus (" .. LINE_MANAGER_PLUS .. ") is active and includes these undo buttons, so Line Editor"
+		.. " Undo stays off. Line Manager Plus replaces this mod: disable Line Editor Undo."
+end
+
 local function doReplace(_replacementApi)
-	if origToggle or origDescriptor then return end -- already installed
+	if origToggle or origDescriptor or stoodDown then return end -- already installed or stood down
+	local reason = standDownReason()
+	if reason then
+		stoodDown = true
+		say(reason)
+		return
+	end
 	-- read the current functions now, not at load, so wrappers of other mods (Auto Assign Terminals) stay in the chain
 	local toggle, descriptor = button_react_util.makeIconToggleButton, line_util.makeLineActionDescriptor
 	if type(toggle) ~= "function" or type(descriptor) ~= "function" then

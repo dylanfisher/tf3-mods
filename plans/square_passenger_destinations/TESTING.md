@@ -77,3 +77,69 @@ Re-check that quickly, then focus on the final-destination data.
    stores nothing).
 4. Achievements stay allowed (`cosmetic: true`).
 5. Don't `make unlink` or delete the folder while a save is loaded (findings: "cannot remove mods in game").
+
+## C. Vehicle window (rev 5)
+
+1. Click a bus / train / ship carrying passengers. Under Basics: one row `Destinations: [] Show arrows [] Next stop`.
+   A freight-only vehicle shows no row.
+2. Tick **Show arrows**: `push: …`, the window stays open, arrows fan out from the vehicle to the areas its
+   passengers are going to. The card: "N passengers on board, going to:" (N matches Basics' passenger count),
+   "Home N · Shop N · Work N", "-> <Town>: n" rows.
+3. Let it drive: the arrows' start follows the vehicle (1 s steps). At a stop the counts change within ~1 s.
+4. Tick **Next stop**: arrows to the stops where they get off, "getting off at:", "-> <Stop>: n".
+5. Untick / close the window / click elsewhere: `pop (…)`, arrows gone (as A.6-8).
+6. With "Debug: performance log" On: the 30 s SQPERF summary lists `vehicle_render`, `compute_vehicle` and
+   `read_on_board` (the all-vehicles map read; note its max ms in a big save).
+
+## D. Locate hover (rev 5)
+
+Follow `grep -F "[PaxDest] hover"`.
+
+1. After load: `hover: LocateButton replaced` (if it only appears after opening a station/vehicle/person window, the
+   module loads lazily: note that).
+2. Open a vehicle with passengers, expand the passenger list, hover a person's pin: an arrow from the person (or the
+   vehicle) to their home/shop/work. Log `hover push #N: person=… gameCtx=true visible windows=temp.view.entity_<vehicle>`.
+   Does the window stay visible, flicker, or vanish? Mouse out: `hover pop (mouse out)`, arrow gone.
+3. Move the mouse down the list slowly: one push per row, `#N` grows by one per row (not in bursts). A warning
+   `hover throttled` every second while the mouse is still = loop: report it.
+4. Same in a station's waiting list and a town building's residents list (`visible windows=` empty there = that
+   window got hidden: report which window id it has).
+5. Station arrows on (card ticked), then hover a pin: hover arrow replaces them, mouse out brings them back, the card
+   stays ticked.
+6. Close the window while hovering (Esc): `hover pop (unmount)`, no arrow left.
+
+## E. One card, two jumps (rev 5)
+
+1. Station, vehicle and person windows show the same row `Destinations: [] Show arrows`; a station with 2+ passenger
+   terminals adds `Terminals: [] 1 [] 2 …`, all ticked. No Next stop box anywhere.
+2. Show arrows: strong arrows to the stops where they get off, faded arrows from each of those stops to the areas.
+   Is the difference visible enough? (Faded = `Consumers3D.Potential` at `transparency.Low`; if too faint or too
+   alike, note it.)
+3. Station: untick a terminal: its passengers leave the counts and arrows within ~1 s.
+4. Person window, riding or waiting: strong arrow to the alighting stop, faded on to the building. Walking: one
+   strong arrow.
+5. Person window: hover the pins under Locations (home / work town names): arrow from the person to that building.
+
+## F. Shift hover on the map (rev 5)
+
+Log: `shift hover: makeDefaultSelector wrapped` at load; `hover push #N: entity=… token=-2` per Shift hover.
+
+1. No window open. Hold Shift, move the mouse onto a bus / train / ship: its arrows (strong to stops, faded to areas).
+   Onto a station: the station's arrows + catchment. Onto a walking person: their arrows.
+2. Keep Shift, move to another vehicle: arrows switch after ~¼ s (no flicker?). Move onto empty ground: gone after ~¼ s.
+3. Release Shift: arrows gone.
+4. Shift-hover with a station window open: works, the window stays visible.
+5. Open the line manager, construction menu, a layer (traffic etc.) or statistics: Shift-hover does nothing there, and
+   Shift keeps its normal meaning (precision mode in builders).
+6. Shift-hover a vehicle, then click it: its window opens normally, arrows go (Shift hover resets).
+7. Does onHover fire again while the mouse moves over the same entity? (If yes, pressing Shift while already over
+   something will also work after a small mouse move.)
+8. Right after loading a save (no window opened yet): Shift-hover a vehicle works. Log at start: `hover: LocateButton
+   replaced`, `shift hover: makeDefaultSelector wrapped`.
+9. Rest the mouse on a vehicle, then press Shift: arrows appear without moving the mouse.
+10. If arrows stop drawing again: note what you did just before, and look for `[PaxDest] diag:` lines.
+11. (2026-10-11 user: ready after two games) With Line Manager Plus on (Shift-click a line moved there
+    2026-10-11): Shift-hover a vehicle or station next to one of your lines so its arrows show, then, still holding
+    Shift, move onto the line and click within ~¼ s (before the arrows leave on their own): the line manager opens
+    and the arrows go (log `hover pop (another tool on top: Manager)`). Close the manager: no arrows come back.
+    Without Line Manager Plus a Shift-click on a line just opens the line window.

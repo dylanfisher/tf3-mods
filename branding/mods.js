@@ -299,6 +299,25 @@ Square.register({
   },
 });
 
+Square.register({
+  id: 'square_line_manager_plus', name: 'Line Manager Plus', tagline: 'Undo edits, know where you send', accent: '#D9B98C',
+  // Both features over one line with three stops: Line Editor Undo's counter-clockwise undo hook (accent, top
+  // left) and Send to Line Info's ink tooltip bubble with an accent "i" and three knocked-out text rows, its tail
+  // pointing at the line (top right).
+  glyph: S => `
+    <rect class="ink" x="100" y="660" width="600" height="40" rx="20"/>
+    ${[160, 400, 640].map(x => `<circle class="ink sep" cx="${x}" cy="680" r="56"/>
+    <circle class="cut" cx="${x}" cy="680" r="20"/>`).join('')}
+    <path class="sacc" d="M170 220 H220 A92 92 0 0 1 220 404 H160" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="acc" d="M50 220 L176 140 Q194 130 194 150 V290 Q194 310 176 300 Z" stroke="var(--acc)" stroke-width="20" stroke-linejoin="round"/>
+    <path class="ink sep" d="M480 110 H720 A40 40 0 0 1 760 150 V390 A40 40 0 0 1 720 430 H600 L540 520 V430 H480 A40 40 0 0 1 440 390 V150 A40 40 0 0 1 480 110 Z"/>
+    <circle class="acc" cx="502" cy="182" r="28"/>
+    <rect class="acc" x="479" y="232" width="46" height="150" rx="21"/>
+    <rect class="cut" x="560" y="168" width="160" height="34" rx="17"/>
+    <rect class="cut" x="560" y="252" width="130" height="34" rx="17"/>
+    <rect class="cut" x="560" y="336" width="95" height="34" rx="17"/>`,
+});
+
 // US State Names series: one line per state, same cover every time (cover.js stateCover, README "State series").
 Square.stateCover({
   id: 'square_names_us_washington', state: 'Washington', flag: 'us_washington.svg', flagAspect: 1.6, accent: '#00843D',

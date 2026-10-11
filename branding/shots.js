@@ -466,21 +466,32 @@ Square.slides('square_blank_slate', [
 ]);
 
 Square.slides('square_passenger_destinations', [
+  // Captures 2026-10-10 (rev 5). The entity window is x 3850-5030; the HUD bar starts at y 2660; other mods'
+  // buttons sit in the top strip (y < 150, x < 1660): crops stay clear of both.
   { title: 'Where they\'re going', sub: 'Arrows from the stop to every destination',
-    media: { layout: 'inset', at: 'tl', insetW: 540,
-             main: { src: '01-station-arrows.jpg', crop: [461, 307, 3379, 2355] },
-             inset: { src: '01-station-arrows.jpg', crop: [3853, 38, 1178, 358] } } },
-  { title: 'One row in the window', sub: 'Tick a terminal, or all of them',
-    media: { layout: 'stack', labels: ['Off', 'On'],
-             // Same size, On framed 16 px lower: Off stops above the first terminal's text, On still shows the summary.
-             items: [{ src: '02-station-row.jpg', crop: [3853, 38, 1178, 324] },
-                     { src: '01-station-arrows.jpg', crop: [3853, 54, 1178, 324] }] } },
-  { title: 'Off until you ask', sub: 'Nothing on the map until you tick a box',
-    media: { layout: 'wipe', labels: ['Off', 'On'], split: 0.35,
-             before: '02-station-row.jpg', after: '01-station-arrows.jpg',
-             crop: [461, 307, 3379, 2355] } },
-  { title: 'Like arrows?', sub: 'Good news: about thirty more per bus stop',
-    media: { src: '01-station-arrows.jpg', crop: [768, 512, 1792, 1152] } },
+    media: { layout: 'inset', at: 'br', insetW: 560,
+             main: { src: '01-station-hialeah.jpg', crop: [26, 154, 3600, 2490] },
+             inset: { src: '01-station-hialeah.jpg', crop: [3878, 174, 1119, 256] } } },
+  { title: 'Two jumps', sub: 'Strong to their stop, faded on to their door',
+    media: { layout: 'inset', at: 'tr', insetW: 560,
+             main: { src: '02-bus-two-jumps.jpg', crop: [973, 640, 2816, 1971] },
+             inset: { src: '02-bus-two-jumps.jpg', crop: [3878, 1318, 1119, 256] } } },
+  { title: 'Hold Shift on the map', sub: 'Point at any stop or vehicle, get instant destination arrows',
+    media: { src: '09-shift-hover.jpg', crop: [990, 589, 2700, 1888] } },
+  { title: 'Hover a passenger', sub: 'Point at a Locate pin: their whole trip',
+    media: { src: '06-hover-spencer.jpg', crop: [1946, 742, 3072, 1920] } },
+  { title: 'Any passenger list', sub: 'On board, waiting or at home',
+    media: { layout: 'inset', at: 'br', insetW: 500,
+             main: { src: '04-hover-andrea.jpg', crop: [973, 640, 2816, 1971] },
+             inset: { src: '04-hover-andrea.jpg', crop: [3886, 1242, 1119, 512] } } },
+  { title: 'Ports and ferries too', sub: 'Every stop with waiting passengers',
+    media: { layout: 'inset', at: 'br', insetW: 560,
+             main: { src: '07-port-hialeah.jpg', crop: [205, 154, 3482, 2432] },
+             inset: { src: '07-port-hialeah.jpg', crop: [3878, 174, 1119, 328] } } },
+  { title: 'The whole crowd', sub: 'Up to 10 stops and 30 areas per window',
+    media: { layout: 'inset', at: 'br', insetW: 560,
+             main: { src: '08-port-rockledge.jpg', crop: [1664, 0, 2176, 1525] },
+             inset: { src: '08-port-rockledge.jpg', crop: [3878, 174, 1119, 328] } } },
 ]);
 
 Square.slides('square_stress_test', [

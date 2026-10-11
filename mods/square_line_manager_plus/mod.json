@@ -1,0 +1,105 @@
+{
+    "modId": "square_line_manager_plus",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "incompatibilities": [
+        {
+            "mod": {
+                "modId": "square_line_revert"
+            }
+        }
+    ],
+    "params": [
+        {
+            "key": "send_to_line_info",
+            "name": "Send to Line: target line info",
+            "tooltip": "On: while you send vehicles to another line with Send to Line, hovering a line on the map also shows its vehicles by model and its capacity, utilization, frequency and rate. Off: the game's hover text only.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "send_to_line_estimate",
+            "name": "Send to Line: before/after estimate",
+            "tooltip": "On: with \"Send to Line: target line info\" also On, the hover text shows the line's capacity, frequency and rate as they would be after sending the selected vehicles, marked ~ (an estimate that assumes vehicles of similar speed). Off: current values only.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "line_undo",
+            "name": "Line editor: Undo and Redo buttons",
+            "tooltip": "On: Undo and Redo buttons left of Auto-Rename for the selected line. Undo takes back your last stop edit, Shift+click reverts every edit since you opened the line, Redo brings an undone edit back. Off: no buttons.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "line_dot_tooltip",
+            "name": "Line list: stats on the color dot",
+            "tooltip": "On: in the Line Manager's line list, hovering a line's color dot also shows the line's vehicles by model and its capacity, utilization, frequency and rate, below the game's tooltip. Off: the game's tooltip only.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "send_to_line_list_info",
+            "name": "Send to Line list: line info panel",
+            "tooltip": "On: in the list that the Send to Line button opens, hovering a line shows a panel right of the list with the line's vehicles by model and its capacity, utilization, frequency and rate; with \"Send to Line: before/after estimate\" also On, it adds the values after sending, marked ~. Off: the game's list only.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "line_actions",
+            "name": "Line editor: Line actions button",
+            "tooltip": "On: a Line actions button right of Auto-Rename for the selected line. Duplicate line makes a new line with the same stops and settings, a new color and no vehicles. Reverse line serves the stops in the opposite order, stop 1 staying first (Undo takes it back). Off: no button.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "map_shift_click",
+            "name": "Map: Shift-click a line opens the Line Manager",
+            "tooltip": "On: Shift-click one of your lines on the map to open the Line Manager on it. With a line window open, Shift-click empty ground or water to manage that line. Works on the plain map and with entity windows open. Off: Shift-click does what a click does.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Line Manager Plus writes how long its additions to the Line Manager took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus a line per recorded edit. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        }
+    ]
+}
