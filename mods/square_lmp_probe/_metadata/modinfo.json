@@ -1,0 +1,16 @@
+{
+    "name": "DEV Line Manager Plus Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Tests vehicle spacing data and re-sending for Balance vehicles.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Mounts an LMPP test button in the Line Manager line toolbar and logs [LMPProbe] lines to stdout.txt. Snap is read-only; the Send buttons re-send one line vehicle to a stop of its own line (vanilla vehicle state only, removing the mod leaves nothing behind): use a test save. See plans/square_line_manager_plus/PROBE.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

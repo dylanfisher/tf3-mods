@@ -327,6 +327,16 @@ Found with `square_passenger_destinations` rev 1 (user's game test, 2026-10-09).
   `gui/entity_window/view_manager.tl` ~404-415). The push handler runs after the shelve (`builtin.lua` push:
   `shelveNonTop`, then `pushHandler`), so `api.gui.byId.setVisible("temp.view.entity_<keyEntity>", true)` there brings
   it back. In game the station window stayed open with the arrows drawn. Popping the tool un-shelves the window tool.
+- **A near-zero-length cargo-flow arrow crashes the game** (2026-10-11, `square_passenger_destinations` rev 5 test build,
+  hovering a person's Locate pin in a building window): native assert `render_util.cpp:393 AddEveryNthPoint
+  "(num)>=(2)", 1 < 2`, fatal, crash save written. The same second the mod pushed that person's arrows (person -> stop ->
+  building), and one of them was most likely only a few metres long. The renderer seems to place points along the arrow
+  at a fixed spacing and needs at least 2. Never put a `FlowData` with `from` ≈ `to` (or non-finite coordinates) into a
+  `cargoFlowRenderableConfig`: Passenger Destinations drops arrows under 50 m (`MIN_ARROW_M`). The exact minimum isn't known.
+- **Locate hover works by patching the shared module table** (2026-10-11): replacing `line_react_util.LocateButton` from
+  a GUI script reached the base windows' name rows (vehicle passenger list); log `hover: LocateButton replaced` at load,
+  and a hover push re-showed the window hidden by the shelve. `meta.onMouseOver` on a `Component` around the pin fired
+  per row; a fast sweep down a list made ~10 pushes a second.
 
 ## Mod terrain generators for base climates (2026-10-09)
 
@@ -769,3 +779,95 @@ all is NOT tested: mods/square_inline_style_probe (60 inline styles, no CSS) exi
 Problem Radar rev 6 ships with 14 rules moved inline (62 → 48); if a load crash shows up with Radar active,
 revert that step with `git apply -R plans/square_problem_radar/inline_styles.patch` (back to the 62-rule
 version that loaded with the full 20-mod set).
+
+## Line Rate, cloning onto a line, sell on arrival (verified in game 2026-10-10)
+
+Probe `mods/square_line_rate_matcher_probe` (log `plans/square_line_rate_matcher/probe_run1.log`, plan
+`plans/square_line_rate_matcher/PROBE.md`), passenger ship line, game paused (game time constant all run).
+
+- **Rate (`calcLineStationThroughput`) is linear in the vehicle count and computed, not measured:** 1 / 2 / 3 identical
+  ships gave 51 / 103 / 154, and it updated within 1 s of the command **while paused**. So `perVehicle = rate / n`
+  predicts the Rate of n±k exactly for identical vehicles.
+- **Clone onto the selected line works:** copy `TRANSPORT_VEHICLE.transportVehicleConfig`, `makeVehicleBuyCmd(player,
+  depot, config)` (callback success, `cmd.resultVehicleEntity`, ~0.35 s), then `makeVehicleSetLineCmd(new, line, 0)`
+  (~0.55 s): the vehicle is `EN_ROUTE` on the line. `findBestLineAndDepotForVehicle(src)` returned the selected line
+  and its depot here (single test; it may differ on other lines).
+- **`makeVehicleSendToDepotCmd(v, true)` drops the vehicle from the line at once:** state `GOING_TO_DEPOT`, `line=-1`,
+  `sellOnArrival=true`, and Rate falls immediately. A vehicle heading to the depot is not counted.
+- `TransportVehicleConfig` capacities are indexed by cargo type id + 1 (`Passengers#0=20`).
+- A button left of A+ via the wrapped `makeIconToggleButton` (order 250) sits left of Line Revert's undo/redo (order 200)
+  and both work.
+- Supply walk on a cargo line (WC Logs, 2 ships, Rate 66): stop 1 reaches the logging camp; `getCargoMaxProductionPerYear`
+  = `produceFrequency` = `getIndustryProductionData.total` = **101** (the industry window's number), while
+  `getCargoProducedPerYear` is a measured value that drifts (112 one minute, 98 the next). Use 101 as the target and show
+  the measured value only as a hint. The other lines at that station group were passenger lines: the "other lines
+  loading this cargo" sum must check each line's stop `load[cargo+1]`, not just the shared station group.
+- **A clone bought with `purchaseTime = now` costs exactly the model's metadata `cost.price`** (verified 2026-10-11,
+  Line Rate Matcher phase 3e, WC Logs, one Sydfart): balance 2,062,832 -> 1,514,192 = 548,640 = `cost.price` =
+  `getPartPrice` of the fresh clone part = the vehicle store's price. `getPartPrice` of the owned template part
+  returned 70,484 = its `getDepreciatedValue` (a used part's value, not a new price). Base vehicles have
+  `cost.price = -1` / `runningCosts = -1`, filled at load as runningCosts = c x averageSpeed x capacity and
+  price = 6 x runningCosts (`base/content/base/model_metadata_util.lua:488-552`); `getRunningCost` of an owned
+  vehicle (91,440) matched the metadata. Log: `[RateMatcher] clone charged: balance 2062832 -> 1514192 = 548640 for 1
+  vehicle(s); store price each 548640`.
+
+## Re-sending a vehicle to its own line, departure schedule (verified in game 2026-10-10)
+
+Probe `mods/square_lmp_probe` (log `plans/square_line_manager_plus/probe_run1.log`, analysis
+`plans/square_line_manager_plus/PROBE_RESULTS.md`). Bus line, 4 stops, 4 buses (8 seats), already evenly spaced
+(gap/H 0.91-1.11); one cargo ship line (Logs, 2 stops, 2 ships). Game speed 1x, later 4x. No train line tested.
+
+- **`makeVehicleSetLineCmd(v, sameLine, i)` on a vehicle already on that line is accepted** (callback `success=true`
+  after 0.23-0.37 s, 5 of 5) and the vehicle stays on the line (`line` unchanged, never `-1`).
+- **Buses ignored the stop index: each drove on to its next stop in line order and served every stop** (4 of 4: sent
+  to 1 from stop 3 → arrived at stop 0; sent to 3 while heading to 0 → stopped at 0, then 1; sent to 0 while heading to
+  2 → stopped at 2; sent to 3 while heading to 3 → stop 3). `stopIndex` right after the command was the old next stop
+  (`SEND plan ... stopIndex=3 -> makeVehicleSetLineCmd(123418, 125579, 1)` then `track callback ... stopIndex=0`). The
+  cyclic order of the buses never changed. Whether the engine ignores the index or routes along the line through every
+  stop is not settled; either way a bus can't be moved forward into a gap this way.
+- **A ship on a 2-stop line took the index:** heading to stop 1, sent to 0 → `stopIndex=0` at once, and its track
+  curved round (distance to stop 0: 899 → 993 → 700 over 22 s), i.e. it turned around. Arrival not observed.
+- **Cargo stays on board:** 8/8, 8/8 and 7/8 passengers and 20/20 Logs were still aboard after the command; the buses
+  unloaded normally at their next stop (`Passengers#0=8/8` → `3/8` → `0/8` at stop 3). A bus sent while
+  `AT_TERMINAL`/`Loading` (0/8, just unloaded) **left at once without loading**.
+- **The command wipes the vehicle's history:** `lineStopDepartures` → all 0, `sectionTimes` → all 0,
+  `visitedStops` → `[]`, `lastLineStopDeparture` → 0; they refill as it departs/arrives again (first departure after
+  30-163 s here, one section per arrival, a full round trip ≈ 6 game min before its `sectionTimes` are complete).
+  `line_util.calculateFrequencySeconds` moved from 97-100 to 109-111 s on the bus line and 404 → 415 s on the ship
+  line after the wipes.
+- **Units:** `GAME_TIME.gameTime` and `lineStopDepartures` are milliseconds (10 000 per 10 s at 1x);
+  `sectionTimes`, `timeUntilDeparture`, `timeUntilNextScheduledDeparture` are seconds. `lineStopDepartures[i]` is the
+  last departure from stop i (1-based); the stop of the latest one agrees with `stopIndex` (0-based next stop) in every
+  sample. `sectionTimes[i]` = driving time stop i → i+1, **without dwell**, set on arrival (175083 left stop 0 at
+  79682600, `sectionTimes=[58.40,...]` on arrival ≈ 79741000, departed 79751200: departure gap 68.6 = 58.4 + 10.2 s
+  dwell). So Σ`sectionTimes` (356 s) is ~10% short of the departure-to-departure round trip (392 s) and of
+  frequency × n (400 s).
+- **`timeUntilNextScheduledDeparture` counts down only while the vehicle is at a stop** (frozen en route) and is set on
+  arrival to (latest other-vehicle departure from that stop + line frequency) − now: 123418 arrived at stop 3 with
+  +15.80 s, and 175083 had left stop 3 at 79529400 (+100 s = 79629400 ≈ 79614000 + 15.8 s); 134570 at stop 1: +0.60
+  ↔ 72235's departure + 100 s. Late vehicles show large negatives (−81). With no recorded departure at that stop
+  (all wiped) it starts at ≈ 0. Departures at each stop were 93-108 s apart (frequency 100 s) before the probe.
+- **`WaitForScheduledDeparture` seen once** (bus 123418 at stop 0, after its re-send): `tUntilDep` 7.40 → 3.40 → left,
+  while `tUntilSched` was already negative (−5.60). So it isn't simply "`tUntilSched` > 0"; its trigger is still open.
+- The probe's `simEntityAtVehicleSystem.getVehicleSimEntitiesCount(v)` printed `table: 0x...`: it returns a table, not
+  a number. `getVehicleSimEntitiesCountForCargoType(v, cargo)` returns the count.
+
+## Expired react states print a traceback on `:old()` (verified from the game log 2026-10-11)
+
+A react state (`ReactStateWrap`) whose recipe has unmounted is **expired**. Calling `:old()` on it doesn't raise a Lua
+error (`pcall` returns true): it returns `nil`, but the engine writes a message-less `stack traceback` to stdout.txt
+at the call, and later, in the timestamped log, `VERBOSE ... Calling Old() on expired ReactStateWrap returns nil`.
+`:set()` on an expired `ReactRefWrap` does the same with `MESSAGE ... Ignoring Set() on expired ReactRefWrap`. Check
+first with `s:hasExpired()` (on `ReactStateT` and `ReactRefT`, `base/tealdef/scripts/react.d.tl:130-142`), as the base
+does (`gui/main/engine_react_util.tl:146`, `builtin.lua:1168`).
+
+Evidence (stdout.txt of 2026-10-11, Line Manager Plus rev 1 in development): each reopen of the Line Manager printed
+two tracebacks, `=[C](-1): old` ← `lmp_capture.lua(63): editedLine` ← `undo.lua(93): ensureSession` ← ... ←
+`safeView`, the first under `declareStateLazy` ← `useStateLazy` ← `engine_react_util.tl(74)` (the `useStepState`
+initial value), the second under `engine_react_util.tl(84): update` (its `onStep`). Each pair is followed by exactly
+two `Calling Old() on expired ReactStateWrap returns nil` lines (20 tracebacks, 20 messages; the 12 `set` tracebacks
+of another mod match 12 `Ignoring Set()` lines one for one). So reading a state inside a `useStateLazy` initializer is
+**not** the problem; the state was expired. The cause: mods that capture the manager window's `commonParams` (from
+`line_util.makeLineActionDescriptor`) keep the closed window's table, and the new window's buttons render and step
+once before its first descriptor call replaces it. Fix in Line Manager Plus / Line Editor Undo: `hasExpired()` guard
+in `editedLine`.

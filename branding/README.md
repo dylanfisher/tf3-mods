@@ -76,9 +76,10 @@ Every mod ships under the creator name **square** (modId `square_<name>`, modinf
 | Blank Slate: Empty Flat Test Map | `#7CF0B4` mint (the sea around the island) |
 | Passenger Destinations | `#FF8A65` coral (lighter and pinker than the roundabout orange, more orange than the No Factory Passengers red) |
 | Stress Test Debug Tool | `#F048D8` hot magenta (more saturated than the Full Refund pink, redder than the Line Editor Undo orchid) |
+| Line Manager Plus | `#D9B98C` sand (paler and greyer than the ambers and the gold, yellower than the coral) |
 | State series (`<State> Towns & Streets`) | The flag's main colour (Washington `#00843D`), or a secondary one when the main is generic (Arizona `#CE5C17`, the copper star; Florida `#C60013`, the red saltire; Colorado `#00205B`, the blue bands; California `#5C462B`, the bear brown, since its red and green are taken; Texas `#BF0A30`, the flag red, since its blue is exactly Colorado's; Alaska `#FFB612`, the gold stars, since its dark blue is close to Colorado's; New York `#ECC875`, the seal's gold, since its blue field is close to Colorado's and its red to Texas's; Minnesota `#52C9E8`, the 2024 flag's light blue, since its dark blue is close to Colorado's; New Mexico `#0095B6`, turquoise (the state gem), since the Zia red is Texas's and its yellow sits next to Alaska's gold and the hazard yellow; Oregon `#2C5E3F`, Douglas fir green (the state tree), since the navy is close to Colorado's and the gold to Alaska's and New York's; Pennsylvania `#1F5290`, the seal shield's sea blue, since its blue field is exactly Colorado's and the seal's gold, red and green sit next to Alaska's/New York's, Texas's and Washington's; Hawaii `#D63384`, hibiscus pink (not a flag colour), since the flag's navy is close to Colorado's and its red to Florida's and Texas's). Recorded only; the series pictogram is all ink and the flag sticker carries the colour, so state accents may repeat or sit close to other mods. |
 
-Pick the next mod's accent away from these, for example sand `#D9B98C`. Avoid the family teal `#2FA48F`, the fork orange `#E2873B` and the DEV grey `#8E9BAE`.
+Pick the next mod's accent away from these, for example slate violet `#8A7FD1`. Avoid the family teal `#2FA48F`, the fork orange `#E2873B` and the DEV grey `#8E9BAE`.
 
 ## Local forks (SQ Opt)
 

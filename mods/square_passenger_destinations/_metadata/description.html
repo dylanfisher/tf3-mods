@@ -1,20 +1,33 @@
-<p>See where passengers are really going. The station window and the person window get a small Passenger destinations section that draws the game's moving cargo arrows to the homes, shops and workplaces they are travelling to.</p>
+<p>See where passengers are really going. The station, vehicle and person windows get a small Destinations row that draws the game's moving cargo arrows to the homes, shops and workplaces they are travelling to.</p>
 <p>If you liked the arrows on your industries, good news: there are now about thirty more per bus stop.</p>
 <h4>Features</h4>
 <ul>
-<li><strong>Station window</strong>: a single row above Terminals. Tick All or single terminal numbers. Arrows go from the station to the areas its waiting passengers are heading for (nearby destinations are grouped, busiest first). A summary under the row counts them per town and splits them into Home, Shop and Work.</li>
-<li><strong>Person window</strong>: tick Show destination (under Current Route). One arrow from the person, or their stop or vehicle, to the building they are going to, with a note such as "Riding Line 3, off at Main Street -> Work, Springfield".</li>
-<li><strong>Next stop</strong>: tick Next stop (station) or Next stop instead of final destination (person) to see the stop where they leave the current line instead.</li>
-<li><strong>Live</strong>: arrows and counts refresh every second while a toggle is on.</li>
+<li><strong>One row everywhere</strong>: Destinations: Show arrows. Stations add Terminals: 1 2 3 ... to leave out single terminals (all ticked by default).</li>
+<li><strong>Two jumps</strong>: strong arrows go to the stops where the passengers get off; faded arrows go on from there to the areas of the homes, shops and workplaces they are heading for (nearby buildings are grouped, busiest first).</li>
+<li><strong>Station and vehicle windows</strong>: a summary counts the passengers per town, splits them into Home, Shop and Work and names the stops where they get off. Vehicle arrows follow the vehicle as it moves; freight-only vehicles get no row.</li>
+<li><strong>Person window</strong>: the person's own two jumps, with a note such as "Riding Line 3, off at Main Street -> Work, Springfield".</li>
+<li><strong>Hover a Locate pin</strong>: hovering a person's pin in any list (passengers on board, waiting passengers, residents) shows that person's arrows. In a person window, hovering the pins under Locations shows an arrow to that home or workplace.</li>
+<li><strong>Hold Shift on the map</strong>: point at a station, vehicle or person and its arrows show without opening a window. Release Shift and they go. Works on the plain map and with entity windows open; builders, layers and the line manager keep Shift for themselves.</li>
+<li><strong>Live</strong>: arrows and counts refresh every second while Show arrows is on.</li>
 </ul>
 <h4>Notes</h4>
 <ul>
-<li>Arrows show while a toggle is on and clear when you untick it or close the window. At most 30 arrows are drawn per station; the rest are only counted.</li>
+<li>Changes of line after the first stop are not known to mods, so the faded arrow runs straight from that stop to the destination.</li>
+<li>Arrows show while Show arrows is on and clear when you untick it or close the window. At most 10 stop arrows and 30 destination arrows are drawn per station or vehicle; the rest are only counted.</li>
 <li>Workplaces in industries count as "Other" in the town list.</li>
 <li>Reads the game state only: it changes nothing in the simulation, stores nothing in the savegame, and can be added to or removed from existing saves.</li>
 </ul>
 <hr>
 <h2>Changelog</h2>
+<h4>Revision 5 (2026-10-10)</h4>
+<ul>
+<li>New: the vehicle window gets the Destinations row. Its arrows start at the vehicle and follow it as it moves.</li>
+<li>New: arrows in two jumps, strong to the stop where the passengers get off and faded from there to their home, shop or work. This replaces the Next stop option.</li>
+<li>New: hovering a person's Locate pin in any list shows that person's arrows; in a person window, the Locations pins show an arrow to that home or workplace.</li>
+<li>Changed: the station, vehicle and person windows share one row, Destinations: Show arrows. Stations filter terminals with Terminals: 1 2 3 ..., all ticked by default.</li>
+<li>New: hold Shift and point at a station, vehicle or person on the map to see its arrows without opening a window.</li>
+<li>Faster: hovering a pin scans its passengers once a second instead of four times, the station and vehicle rows redraw only when their counts change, and stop positions are reused between refreshes.</li>
+</ul>
 <h4>Revision 4 (2026-10-10)</h4>
 <ul>
 <li>New: translations into Russian, German, French, Spanish, Italian, Dutch, Polish, Portuguese (Brazil), Japanese, Korean and Chinese (Simplified and Traditional). The mod follows the game's language setting.</li>

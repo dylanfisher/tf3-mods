@@ -1,0 +1,12 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_lmp_probe is a developer tool for Line Manager Plus phase 6 (Balance probe). Never publish it to mod.io
+(Mod Hub > My Mods would offer it because `make link` puts it in the staging area).
+
+It mounts an "LMPP" test button left of A+ in the Line Manager line toolbar and logs [LMPProbe] lines to stdout.txt.
+"Snap" only reads. The "Send:*" buttons re-send ONE line vehicle to a stop of the same line with
+makeVehicleSetLineCmd (vanilla state only, nothing persists from the mod). Use a test save.
+How to run it: plans/square_line_manager_plus/PROBE.md.
+
+When done testing: disable it in the game's mod list, or `rm` its symlink from staging_area
+(make unlink removes every mod's link).

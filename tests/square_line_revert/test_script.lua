@@ -10,6 +10,9 @@ local world, sent, feedbacks, recipeName, origToggleCalls, shift
 -- "Debug: performance log" (sqperf_log: 1 = Off, 2 = On; On by default here so the edit trace lines can be
 -- counted) and the fake SQPERF Clock (microseconds; moves only when a test moves it).
 local sqperfLog, clockUs
+-- react-replacement-config data in the fake api.res.genericRep (Line Manager Plus detection) and Line Manager Plus's
+-- mod params (nil = not in the table)
+local rrConfigs, lmpParams
 local react, builtin, line_util, button_react_util, script
 
 local function stop(group, station)
@@ -65,9 +68,23 @@ before_each(function()
 	Line.Stop = ctor("Stop")
 	Line.StopConfig = ctor("StopConfig")
 	sqperfLog, clockUs = 2, 1e9
+	rrConfigs, lmpParams = {
+		{ filePath = "square_line_revert::/line_revert/line_revert.script", doReplaceFn = "doReplace", order = 200 },
+	}, nil
 	set_global("api", {
+		res = { genericRep = {
+			getAllOfType = function(t)
+				eq(t, "react-replacement-config")
+				local ids = {}
+				for i = 1, #rrConfigs do ids[i] = i end
+				return ids
+			end,
+			get = function(id) return { data = rrConfigs[id] } end,
+		} },
 		engine = {
-			config = { getModParams = function() return { square_line_revert = { sqperf_log = sqperfLog } } end },
+			config = { getModParams = function()
+				return { square_line_revert = { sqperf_log = sqperfLog }, square_line_manager_plus = lmpParams }
+			end },
 			entityExists = function(e) return world.lines[e] ~= nil or world.groups[e] ~= nil end,
 			getComponent = function(e, ct)
 				if ct == "LINE" then return world.lines[e] end
@@ -284,6 +301,29 @@ test("errors in the view fall back to a hidden button, not a crash", function()
 	local _btn, node = renderAPlus()
 	eq(node.children[1].children, {})
 	eq(node.children[3].path, AUTO_RENAME)
+end)
+
+-- A closed manager window's lineState has expired. The engine's :old() on it returns nil but prints "Calling Old() on
+-- expired ReactStateWrap returns nil" plus a stack traceback to stdout.txt; the next window's buttons render (the
+-- useStepState lazy init) and step before its descriptor call replaces the captured params. Never read it.
+test("a closed manager window's expired lineState is never read (no engine traceback)", function()
+	world.lines[1] = lineComp({ 10, 20 })
+	local p = makeParams(1)
+	line_util.makeLineActionDescriptor(p)
+	eq(renderAPlus().meta.enabled, false)
+	local reads = 0
+	p.lineState = {
+		hasExpired = function() return true end,
+		old = function() reads = reads + 1; error("old() on an expired state") end,
+	}
+	local _btn, node = renderAPlus() -- lazy init + step, still with the old window's params
+	eq(node.children[1].children, {})
+	eq(reads, 0)
+	local warned = 0
+	for _i, e in ipairs(log_entries()) do if e.level == "warning" then warned = warned + 1 end end
+	eq(warned, 0)
+	line_util.makeLineActionDescriptor(makeParams(1)) -- the new window's params
+	eq(renderAPlus().meta.enabled, false)
 end)
 
 test("undo resets a stale editor segment to the end of the line (addWaypoint crash)", function()
@@ -779,4 +819,86 @@ test("a slow view (> 16 ms) is logged, whatever the debug setting", function()
 	end
 	renderAPlus()
 	eq(#sqperfLines("slow=view max=20.0 over=1/"), 1)
+end)
+
+-- Stand-down for Line Manager Plus (rev 5) ------------------------------------------------------------------------
+
+local LMP_CONFIG = { filePath = "square_line_manager_plus::/line_manager_plus/lmp.script", doReplaceFn = "doReplace",
+	order = 250 }
+
+-- a fresh load of the script whose doReplace sees the current rrConfigs / lmpParams; returns the stand-down log count
+local function reload()
+	reset_modules()
+	clear_logs()
+	button_react_util.makeIconToggleButton = function(class, path)
+		origToggleCalls = origToggleCalls + 1
+		return { kind = "Toggle", class = class, path = path }
+	end
+	local origDescriptor = function(cp, x) return { cp = cp, x = x } end
+	line_util.makeLineActionDescriptor = origDescriptor
+	ug_require "square_line_revert::/line_revert/line_revert.script.lua"
+	script = data()
+	script.doReplace({})
+	local n = 0
+	for _i, e in ipairs(log_entries()) do
+		if e.msg:find("[LineRevert] Line Manager Plus (square_line_manager_plus) is active", 1, true) then n = n + 1 end
+	end
+	return n, line_util.makeLineActionDescriptor == origDescriptor
+end
+
+test("Line Manager Plus active (undo On or default): nothing installed, one log line, no button", function()
+	for _i, params in ipairs({ { line_undo = 2 }, {}, false }) do
+		rrConfigs[#rrConfigs + 1] = LMP_CONFIG
+		lmpParams = params or nil -- false: Line Manager Plus without a params table
+		local logged, untouched = reload()
+		eq(logged, 1)
+		eq(untouched, true)
+		world.lines[1] = lineComp({ 10, 20 })
+		line_util.makeLineActionDescriptor(makeParams(1))
+		local btn, node = renderAPlus()
+		eq(btn, nil)
+		eq(node.kind, "Toggle")
+		-- a later doReplace doesn't install either
+		script.doReplace({})
+		eq(renderAPlus(), nil)
+		rrConfigs[#rrConfigs] = nil
+	end
+end)
+
+test("Line Manager Plus active with its undo Off: Line Editor Undo installs as usual", function()
+	rrConfigs[#rrConfigs + 1] = LMP_CONFIG
+	lmpParams = { line_undo = 1 }
+	local logged, untouched = reload()
+	eq(logged, 0)
+	eq(untouched, false)
+	world.lines[1] = lineComp({ 10, 20 })
+	line_util.makeLineActionDescriptor(makeParams(1))
+	eq(renderAPlus().kind, "Button")
+end)
+
+test("Line Manager Plus params present but no config (not active): installs as usual", function()
+	lmpParams = { line_undo = 2 }
+	local logged, untouched = reload()
+	eq(logged, 0)
+	eq(untouched, false)
+end)
+
+test("a failing detection installs anyway and warns once", function()
+	api.res.genericRep.getAllOfType = function() error("no res") end
+	local logged, untouched = reload()
+	eq(logged, 0)
+	eq(untouched, false)
+	local warnings = 0
+	for _i, e in ipairs(log_entries()) do
+		if e.level == "warning" and e.msg:find("detect square_line_manager_plus", 1, true) then warnings = warnings + 1 end
+	end
+	eq(warnings, 1)
+end)
+
+test("our replacement config carries the yieldsTo marker Line Manager Plus looks for", function()
+	ug_require "square_line_revert::/line_revert/line_revert_replace.res.lua"
+	local res = data()
+	eq(res.type, "react-replacement-config")
+	eq(res.data.filePath, "square_line_revert::/line_revert/line_revert.script")
+	eq(res.data.yieldsTo, "square_line_manager_plus")
 end)

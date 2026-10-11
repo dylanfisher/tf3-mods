@@ -1,10 +1,13 @@
 {
     "modId": "square_line_revert",
-    "revision": 4,
+    "revision": 5,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
     "cosmetic": true,
+    "incompatibilities": [
+        { "mod": { "modId": "square_line_manager_plus" } }
+    ],
     "params": [
         {
             "key": "sqperf_log",

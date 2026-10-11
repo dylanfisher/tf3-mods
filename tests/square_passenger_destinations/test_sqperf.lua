@@ -47,12 +47,14 @@ local function stubs()
 		end,
 		useState = function(v) return newState(v) end,
 		onUnmount = function() end,
+		onMount = function() end,
 		onStepTimer = function() end,
+		onStep = function() end,
 		enqueueJoin = function(fn) fn() end,
 	})
 	stub_module("::/gui/main/builtin.lua", {
 		TextView = widget("TextView"), BoxLayout = widget("BoxLayout"), CheckBox = widget("CheckBox"),
-		Component = widget("Component"),
+		Component = widget("Component"), FlowLayout = widget("FlowLayout"),
 		type = { Orientation = { Horizontal = "H", Vertical = "V" } },
 	})
 	stub_module("::/gui/main/color_util.tl", { toArray4 = function(c) return c end })
@@ -83,8 +85,14 @@ local function stubs()
 			return function() return "action" end
 		end,
 	})
+	stub_module("::/gui/entity_window/line/line_eow.script.tl", { LineEowExtensionPoint = "line" })
+	stub_module("::/gui/main/mod_entry_point.tl", { ModEntryPointExtension = "entry" })
+	stub_module("::/gui/entity_window/view_manager_util.tl", { wouldCreateView = function(e) return e end })
 	stub_module("::/gui/entity_window/station_group/station_group_eow.script.tl", { StationGroupEowExtensionPoint = "sg" })
 	stub_module("::/gui/entity_window/sim_person/sim_person_eow.script.tl", { SimPersonEowExtensionPoint = "sp" })
+	stub_module("::/gui/entity_window/vehicle/vehicle_eow.script.tl", { VehicleEowExtensionPoint = "veh" })
+	F.lineReactUtil = { LocateButton = widget("LocateButton") }
+	stub_module("::/gui/line_vehicle_mgmt/line_react_util.tl", F.lineReactUtil)
 end
 
 local function load(sqperfLog)
@@ -115,12 +123,12 @@ local function lines(pattern)
 	return out
 end
 
--- Person window: render, tick "Show destination", run the pushed tool's action (its poll logs the
+-- Person window: render, tick "Show arrows", run the pushed tool's action (its poll logs the
 -- refresh line), a second render 31 s later closes the SQPERF window.
 local function personSession(m)
 	local card = m.PaxDestPersonPlugin({ entityId = 7, gameCtx = {}, showCalloutOnRightSide = false })
-	local box = find(card, function(n) return n.w == "CheckBox" and n.p.label == "Show destination" end)
-	ok(box ~= nil, "Show destination checkbox")
+	local box = find(card, function(n) return n.w == "CheckBox" and n.p.label == "Show arrows" end)
+	ok(box ~= nil, "Show arrows checkbox")
 	box.p.onValueChange(1)
 	ok(F.pushed ~= nil, "tool pushed")
 	eq(F.pushed.actionFn(), "action")
@@ -162,7 +170,7 @@ test("a slow scan is logged with the debug param Off", function()
 	end
 	m.PaxDestPersonPlugin({ entityId = 7, gameCtx = {}, showCalloutOnRightSide = false })
 	local card = m.PaxDestPersonPlugin({ entityId = 7, gameCtx = {}, showCalloutOnRightSide = false })
-	find(card, function(n) return n.w == "CheckBox" and n.p.label == "Show destination" end).p.onValueChange(1)
+	find(card, function(n) return n.w == "CheckBox" and n.p.label == "Show arrows" end).p.onValueChange(1)
 	eq(#lines("slow=compute_person max=30.0"), 1)
 end)
 

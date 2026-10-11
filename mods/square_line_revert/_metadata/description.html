@@ -1,4 +1,5 @@
 <p>Clicked or deleted a stop by accident and can't remember which one? Line Editor Undo adds Undo and Redo buttons to the line manager, so you can step back through your edits of a line's stops, put them all back the way they were when you opened the line, and redo what you undid.</p>
+<p><strong>Now part of Line Manager Plus.</strong> Line Manager Plus contains these Undo and Redo buttons plus target line info for Send to Line, each with its own setting. Use one or the other: if both are enabled, Line Editor Undo stays off and Line Manager Plus provides the buttons (unless its undo setting is Off).</p>
 <h4>Features</h4>
 <ul>
 <li><strong>Undo button</strong> (a curved-arrow icon) left of the Auto-Rename button of a single selected line: each click undoes one edit (adding, removing or moving a stop, a waypoint, a terminal, load mode, waiting times or cargo settings), most recent first.</li>
@@ -23,6 +24,11 @@
 </ul>
 <hr>
 <h2>Changelog</h2>
+<h4>Revision 5 (2026-10-10)</h4>
+<ul>
+<li>Line Manager Plus now includes this mod. The two are marked incompatible, and if both are enabled anyway, Line Editor Undo stays off so only one set of buttons appears.</li>
+<li>Fixed: opening the line manager again no longer writes a stack trace to the game's log (stdout.txt). The buttons read the closed window's line once before switching to the new window.</li>
+</ul>
 <h4>Revision 4 (2026-10-10)</h4>
 <ul>
 <li>Fixed: fewer stylesheet rules (12 → 5), so large mod sets no longer hit the game's load crash (the game crashes on load when mods add too many style rules).</li>

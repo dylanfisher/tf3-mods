@@ -32,6 +32,94 @@ vehicle when the person has no bounding box. *Final*: it ends at the target buil
 next-stop station group when waiting or riding. Note: "Riding <line>, off at <stop> -> Work, <town>", "Waiting for
 ...", "-> Home, <town>" when walking or driving, "At Home, <town>: no trip right now." at a building (no arrow).
 
+**C. Vehicle window** (rev 5, 2026-10-10). Compact one-row card like the station's (plugin of
+`::VehicleEowExtensionPoint`, order 20: under Basics 10, above Condition 50; `vehicle/*.res.lua`):
+`Destinations: [] Show arrows [] Next stop`, then the station's summary worded "N passengers on board, going to:" /
+"getting off at:". Hidden when `state.staticVehicleInfo.canTransportPassengers` is false. Passengers on board:
+`simEntityAtVehicleSystem.getVehicle2Cargo2SimEntitesMap()[vehicle][1]`, as the base passenger list does
+(`entity_window_util.tl:1677-1680`). That map covers every vehicle in the game, so it is re-read only when
+`getVehicleSimEntitiesCountForCargoType` changes or after 5 s; the arrow origin (`api.engine.util.vehicle.getPosition`)
+follows the vehicle every refresh. Next stop = `SIM_ENTITY_AT_VEHICLE.lineStop1`. Tests: `tests/square_passenger_destinations/test_vehicle.lua`.
+
+**D. Locate hover** (rev 5, 2026-10-10; verified in game 2026-10-11). Hovering the Locate pin of
+a person in any list (vehicle passengers, waiting passengers, residents) draws that person's final-destination
+arrow; mouse out clears it. The pin is base `line_react_util.LocateButton` (`line_react_util.tl:209`) with no
+extension point, so our GUI script replaces that field in the shared module table with a wrapper:
+`Component{meta.onMouseOver, layout = BoxLayout{original pin}}` (base pattern `tile_list_react_util.tl:222-233`), for
+SIM_PERSON entities only. Hover pushes its own tool entry (`HOVER_KEY`, owner -1) on top, so a card's arrows return
+on pop. The push shelves the window tools below (window hidden unless pinned): the push handler re-shows the candidate
+windows that were visible just before (our cards' open windows + the person's vehicle, stop, destination buildings).
+Throttle: at most 20 pushes per wall second, more are skipped until the next second (the first build switched hover
+off after 10 in a second, which a fast mouse sweep down a passenger list tripped in game, 2026-10-11). The re-show
+works: in that test the shelve hid the vehicle window and the push handler showed it again. Open questions: does the
+module-table patch reach base windows (is our module loaded before they render)? Does push/reshow flicker or
+re-trigger hover? Does a residents list's window get re-shown (its id may not be a candidate)?
+
+**E. One card, two jumps** (rev 5, 2026-10-11, user request). All three cards come from one code path
+(`useDestinations` + `destinationsRow` + `summaryRows`): `Destinations: [] Show arrows`, the station adds
+`Terminals: [] 1 [] 2 …` (an exclusion set, all on by default; shown only with 2+ terminals). The Next stop mode and
+its strings are gone. Arrows in two jumps: jump 1 strong (`Consumers3D.Actual`) to the stop where they get off
+(`lineStop1`, one per stop, at most 10); jump 2 faded (`Consumers3D.Potential` + `transparency.Low`, icon alpha 0.5,
+the base town window's potential-flow look, `town.tl:1024-1035`) from that stop to the 150 m cell of the building,
+one per (stop, cell), at most 30. Further transfers are not in the API (`SIM_PERSON` has no route; no path query
+for persons in `engine/system.d.tl` / `util.d.tl`), so only these two jumps exist. Locate hover also wraps a
+Locations pin (home / shop / work building, `sim_person_eow.script.tl` DestinationTown -> NameTextView) when its
+building is a destination of a person whose window is open: arrow person -> building. The "Current Route"
+Home / Work buttons are `DestinationAndTypeButton`, a local recipe of `sim_person_eow.script.tl`: not reachable
+without replacing the base route card, so not done.
+
+**Crash fix** (2026-10-11): a hover push drew an arrow of near-zero length and the game hit a native assert
+(`render_util.cpp:393 AddEveryNthPoint (num)>=(2)`). `buildLayerConfig` now drops every arrow under `MIN_ARROW_M` = 50 m
+or with non-finite coordinates (docs/findings.md).
+
+**F. Shift hover on the map** (rev 5, 2026-10-11; verified in game 2026-10-11, in description and changelog). Hold Shift
+(`IA_PRECISION_MODE`, read with `api.gui.inputAction.modifierOnlyActionIsActive`, as zhenya_doubleclick_to_edit and UI
+Overhaul do) and point at a person, vehicle or station: its arrows show without opening a window. Hover source: our
+wrapper around `selector_react_util.makeDefaultSelector` (field lookup from every default selector action,
+`selector_react_util.tl:231, 347`) gets a proxy ref whose `set` sees each `onHover` and forwards it. Allowed only while
+`toolStackApi.getActiveTool()` is `EntityDetailsTool` (plain map = its `__pinned__` default entry, and entity windows)
+or our own tool; the line manager (`Manager`), construction, layers, statistics etc. are other tools, so Shift does
+nothing there. Entity mapping: `view_manager_util.wouldCreateView` (carriage -> vehicle), then person / vehicle /
+station group (station, or a construction's first station -> `stationGroupSystem.getStationGroup`). Shown with the
+hover entry (token -2); our action polls on `onStep` (main thread): Shift released -> pop; mouse on something else for
+250 ms -> switch in place (same tool + key) or pop. Limitation: pressing Shift while already pointing at something
+does nothing until the mouse moves onto an entity (no always-mounted poll outside our tool).
+**Moved 2026-10-11:** Shift-click a line (below, and round 2 point 2) now lives in Line Manager Plus
+(`square_line_manager_plus`, feature `map_shift_click`, `content/line_manager_plus/map_shift_click.lua` +
+`lmp_line.res.lua`; plans/square_line_manager_plus/README.md). Removed from rev 5 before upload: the `builtin.Selector`
+swap, `shiftClickLine` / `playerLine` / `openLineList`, `PaxDestLinePlugin` and `paxdest_line.res.lua`. What stays here:
+the `makeDefaultSelector` proxy (Shift hover), and a cleanup the click code used to do (`shiftHide("shift click")`):
+`PaxDestEntry`'s onStep pops the Shift entry once another tool is on top of it (after our action's poll has seen it on
+top once, `shiftOnTop`), so a Shift-click that opens the line manager clears the arrows instead of shelving them.
+Both mods wrap `makeDefaultSelector`, each whatever the field holds at install (guards `squarePaxDestShift` /
+`squareLmpShiftClick`), so either load order works. History as it was:
+Shift-click on one of the player's lines (same tools only) opens the line manager on it: our wrapper swaps
+`builtin.Selector` for the duration of the base `makeDefaultSelector` call and wraps its `onSelect`; the click fires
+`react.fireEvent(nil, "openVehicleManager", { openWithLineEntity = line })`, the line window's own "Manage Line" call
+(`entity_window/line/line.tl:140-149`). Only for lines with `PLAYER_OWNED.player == api.engine.util.getPlayer()` (the
+button exists only for those); anything else selects as usual. User confirmed Shift hover works (2026-10-11).
+Game test 2026-10-11, round 2: (1) Shift hover did nothing after a load until a vehicle window had been opened: the
+module only loaded with the first EOW plugin, so the wrappers came late. Now a `::ModEntryPointExtension` plugin
+(`PaxDestEntry`, base `game.tl:73-93`, mounted with the game UI right after the ToolStack) loads it at start; its
+`onStep` also starts Shift hover when Shift is pressed while the mouse already rests on something. (2) A Shift-click
+hint label was tried and dropped (never showed in game; user: remove it). Instead: with a line window open
+(`PaxDestLinePlugin` on `::LineEowExtensionPoint`, no card, tracks the open lines), Shift-click on anything that opens
+no window (water, ground, nothing: `wouldCreateView` nil, or `onSelectNothing`) opens the manager for that line: the
+line window draws its line with `LineViewer selectable = false` (`line.tl`), so a click on the drawn line lands on
+what is under it. (3) After much Shift use around an open ship
+window every arrow (cards too) stopped drawing until a pause-menu round trip. The log showed normal pushes/pops and a
+few base "Ignoring Set() on expired ReactRefWrap" lines from our proxy (an unmounted action's selector still
+reporting; the proxy now skips expired refs). Cause unknown; `PaxDestEntry` logs `diag:` once when arrows should be
+on but our tool is not on top.
+Game test 2026-10-11, round 3: right after a load, Shift hover flashed the arrows on and off (~3 a second, also
+paused) until a window had been opened. Log: push, "hover pop (mouse left)" ~0.3 s later, push of the same entity, all
+with `gameCtx=false`. Cause: without a game context our action had no map selector, so nothing reported the mouse
+while our tool was on top; the poll took that for "mouse left" and popped, the map's selector reported the entity
+again, and it pushed again. Fix: the no-context action now has its own default selector (on
+`game_react_globals.getDefaultRendererComponent()`), and the context is captured at start from the map tool's
+`makeDefaultSelectorCombinedFn{gameCtx}` (wrapped, view_manager.tl:56-58). Also: moving onto another part of the
+same thing (a station of the shown group, a carriage) no longer re-pushes the entry.
+
 Both refresh every 1 s while on, and only while on. Changing the mode needs no re-push (the compute closure
 reads the per-plugin box).
 
