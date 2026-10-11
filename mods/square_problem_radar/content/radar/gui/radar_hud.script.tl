@@ -45,6 +45,11 @@ local game_react_globals = ug_require "::/gui/main/game_react_globals.tl" as Gam
 local hud_model = ug_require "square_problem_radar::/radar/gui/radar_hud_model.tl" as ProblemRadarHudModel
 local radar_settings = ug_require "square_problem_radar::/radar/radar_settings.tl" as ProblemRadarSettingsModule
 local radar_checks = ug_require "square_problem_radar::/radar/radar_checks.tl" as ProblemRadarChecks
+-- Rev 6: the fleet window (↑ on fleet_old / fleet_worn rows); it times its sections with this script's perf.
+local radar_fleet = ug_require "square_problem_radar::/radar/gui/radar_fleet.tl" as ProblemRadarFleet
+radar_fleet.setPerf(perf)
+-- INLINE STYLES (rev 6): StyleSheets that replace radar_hud.css.lua rules (radar_inline.tl).
+local radar_inline = ug_require "square_problem_radar::/radar/gui/radar_inline.tl" as ProblemRadarInline
 
 -- src: .cache/game/mods/release/urbangames_campaign_mission_08/content/mission/mission_story.tl:891 (mod gs name)
 local GS_NAME <const> = "square_problem_radar::/radar/radar.gs"
@@ -126,9 +131,15 @@ local function getCountsFromEngine() : ProblemRadarHudCounts
 	local settings = s ~= nil and type(s.settings) == "table" and s.settings or nil
 	local counts = hud_model.counts(s ~= nil and s.kindCounts or nil, settings ~= nil and settings.hudMode or nil,
 		s ~= nil and s.tierCounts or nil)
+	-- Rev 6: re-send the fleet recheck a few seconds after a replace (radar_fleet.tl).
+	radar_fleet.recheckTick()
 	perf:stop("poll_hud", t)
 	return counts
 end
+
+-- Rev 6: the worn thresholds (0..1; listed at / cleared above) for the fleet window's "worn" counts and
+-- the replaced-vehicle filter: set by ProblemRadarContent from the polled settings, like snoozeMonths.
+local fleetWornAt, fleetWornClear = radar_settings.wornThresholds(nil)
 
 local SEQ_FIELDS : {string} = { "seq" }
 
@@ -179,6 +190,9 @@ local function getFromEngine(old? : ProblemRadarHudView) : ProblemRadarHudView
 	end
 	reconcilePending(lastRaw)
 	local view = hud_model.applyPending(lastRaw, pendingSnooze, pendingWake)
+	-- Rev 6: Old / Worn rows of vehicles just replaced from the fleet window go at once (read live),
+	-- before the engine's recheck has dropped them.
+	view = hud_model.hideRows(view, radar_fleet.hiddenFleetIds(fleetWornClear))
 	perf:stop("poll_window", t)
 	return view
 end
@@ -195,7 +209,7 @@ end
 
 local function text(str : string, class? : string) : TreeNodeId
 	return builtin.TextView{
-		meta = { class = class or "font-scale-body" },
+		meta = { class = class or "font-scale-body", styleSheet = radar_inline.text(class) }, -- INLINE STYLES
 		text = str,
 	}
 end
@@ -264,6 +278,17 @@ local function focusEntity2(row : ProblemRadarHudRow)
 end
 
 local SECOND_TARGET_KINDS : {string : boolean} = { veh_blocked = true, train_blocked_by = true }
+-- Rev 6: rows with the ↑ fleet button (the row's entity is the vehicle).
+local FLEET_KINDS : {string : boolean} = { fleet_old = true, fleet_worn = true }
+
+
+--- ↑ button: the fleet window for the row's vehicle. Same entity guard as focusRow (the id must still
+--- belong to the vehicle the row was listed for). SQPERF "click_fleet_open" (radar_fleet.open).
+local function openFleet(row : ProblemRadarHudRow)
+	local entity = row.entity
+	if entity == nil or not api.engine.entityExists(entity) or not hud_model.sameRevision(rowRevs[row.id], revOf(entity)) then return end
+	radar_fleet.open(entity, fleetWornAt)
+end
 
 -- Stable click handlers keyed by alert id (Phase 6): a refresh re-uses the same function for the
 -- same row instead of a new closure per row per render; the handler looks the row up when clicked.
@@ -272,6 +297,7 @@ local shownRows : {string : ProblemRadarHudRow} = {}
 local rowHandlers : {string : function()} = {}
 local altHandlers : {string : function()} = {}
 local snoozeHandlers : {string : function()} = {}
+local fleetHandlers : {string : function()} = {}
 
 local function rowHandler(id : string) : function()
 	local h = rowHandlers[id]
@@ -281,6 +307,18 @@ local function rowHandler(id : string) : function()
 			if r ~= nil then focusRow(r) end
 		end
 		rowHandlers[id] = h
+	end
+	return h
+end
+
+local function fleetHandler(id : string) : function()
+	local h = fleetHandlers[id]
+	if h == nil then
+		h = function()
+			local r = shownRows[id]
+			if r ~= nil then openFleet(r) end
+		end
+		fleetHandlers[id] = h
 	end
 	return h
 end
@@ -356,6 +394,8 @@ end
 -- for every row). untilTexts caches the formatted end dates by "<ms>:<millisPerDay>".
 local renderMpd : integer = 0
 local snoozeTipText = ""
+local fleetTipText = ""
+local fleetLabelText = ""
 local wakeTipText = ""
 local untilTexts : {string : string} = {}
 local untilTextCount = 0
@@ -389,13 +429,13 @@ local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
 		meta = { class = "radar-row", tooltip = tip },
 		content = hbox({
 			dot(row.tier),
-			text(tierName(row.tier), "font-scale-annotation, radar-cell-tier, radar-tier-" .. tostring(row.tier)),
+			text(tierName(row.tier), "font-scale-annotation, radar-w60, radar-tier-" .. tostring(row.tier)),
 			text(row.kindLabel, "font-scale-annotation, radar-cell-kind"),
-			text(row.typeLabel, "font-scale-annotation, radar-cell-type"),
+			text(row.typeLabel, "font-scale-annotation, radar-w60, radar-dim"),
 			text(row.label, "font-scale-body, radar-cell-label"),
 			text(row.context, "font-scale-annotation, radar-cell-context"),
 			text(row.detail, "font-scale-annotation, radar-cell-detail"),
-			text(metric, "font-scale-annotation, radar-cell-metric"),
+			text(metric, "font-scale-annotation, radar-dim"),
 		}),
 		onClick = rowHandler(row.id),
 	}
@@ -403,15 +443,28 @@ local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
 	-- button leads the row, so it lines up in one column whether or not the row has a second target.
 	local children : {TreeNodeId} = {
 		builtin.Button{
-			meta = { class = "radar-row-snooze", tooltip = snoozed and wakeTipText or snoozeTipText },
+			meta = { class = "radar-row, radar-row-snooze", tooltip = snoozed and wakeTipText or snoozeTipText },
 			content = text(snoozed and "×" or "Zz", "font-scale-annotation"),
 			onClick = snoozeHandler(row.id),
 		},
-		button,
 	}
+	-- Rev 6: "↑ Upg" (fleet window) right after Zz, so it is never pushed past the list's edge by a long
+	-- detail (in game it sat after the metric and was clipped under the scrollbar). Rows without it get
+	-- an empty cell of the same width (radar_hud.css.lua radar-row-fleet / radar-row-fleet-gap), so the
+	-- columns line up. "↑": Lato, the GUI font, has U+2191 (it lacks ⇧ and ▲, docs/findings.md).
+	if row.entity ~= nil and FLEET_KINDS[row.kind] then
+		children[#children + 1] = builtin.Button{
+			meta = { class = "radar-row, radar-row-fleet", tooltip = fleetTipText },
+			content = hbox({ text("↑", "font-scale-annotation"), text(fleetLabelText, "font-scale-annotation") }, "radar-row-fleet-box"),
+			onClick = fleetHandler(row.id),
+		}
+	else
+		children[#children + 1] = text("", "font-scale-annotation, radar-row-fleet-gap")
+	end
+	children[#children + 1] = button
 	if row.entity2 ~= nil and SECOND_TARGET_KINDS[row.kind] then
 		children[#children + 1] = builtin.Button{
-			meta = { class = "radar-row-alt", tooltip = _("Show the other train") },
+			meta = { class = "radar-row", tooltip = _("Show the other train") },
 			content = text("→", "font-scale-annotation"),
 			onClick = altHandler(row.id),
 		}
@@ -433,12 +486,14 @@ local function alertList(view : ProblemRadarHudView, tab : string) : TreeNodeId
 	local keepRow : {string : function()} = {}
 	local keepAlt : {string : function()} = {}
 	local keepSnooze : {string : function()} = {}
+	local keepFleet : {string : function()} = {}
 	for id in pairs(shown) do
 		keepRow[id] = rowHandlers[id]
 		keepAlt[id] = altHandlers[id]
 		keepSnooze[id] = snoozeHandlers[id]
+		keepFleet[id] = fleetHandlers[id]
 	end
-	rowHandlers, altHandlers, snoozeHandlers = keepRow, keepAlt, keepSnooze
+	rowHandlers, altHandlers, snoozeHandlers, fleetHandlers = keepRow, keepAlt, keepSnooze, keepFleet
 
 	local mpdOk, mpd = pcall(function() : integer
 		local gs = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.GAME_SPEED) as Engine.Component.GameSpeed
@@ -447,10 +502,12 @@ local function alertList(view : ProblemRadarHudView, tab : string) : TreeNodeId
 	renderMpd = mpdOk and mpd or 0
 	snoozeTipText = lang_util.format(_("Snooze: hide this alert and its notifications for {time}"), { time = monthsText(snoozeMonths) })
 	wakeTipText = _("Unsnooze: list and count this alert again")
+	fleetTipText = _("Upgrade fleet: line stats and vehicle replacement")
+	fleetLabelText = _("Upg") -- short for "Upgrade" (the fleet window), after "↑"
 
 	if #rows == 0 and more == 0 then
 		local empty = tab == hud_model.SNOOZED_TAB and _("Nothing snoozed. Zz on a row hides it for a while.") or _("No problems detected")
-		return vbox({ text(empty, "font-scale-body, radar-empty") }, "radar-list")
+		return vbox({ text(empty, "font-scale-body, radar-empty, radar-tier-0") }, "radar-list")
 	end
 	local children : {TreeNodeId} = {}
 	for i, row in ipairs(rows) do children[i] = alertRow(row) end
@@ -465,7 +522,9 @@ local function alertList(view : ProblemRadarHudView, tab : string) : TreeNodeId
 		meta = { class = "radar-list" },
 		horizontalPolicy = builtin.type.ScrollBarPolicy.AlwaysOff,
 		verticalPolicy = builtin.type.ScrollBarPolicy.AsNeeded,
+		-- radar-list-content: right padding so the row ends (→) never sit under the scrollbar.
 		content = builtin.Component{
+			meta = { class = "radar-list-content", styleSheet = radar_inline.listContent() }, -- INLINE STYLES
 			layout = vbox(children),
 		},
 	}
@@ -569,7 +628,7 @@ local function numberRow(settings : ProblemRadarSettings, key : string, label : 
 			virtualKeyboardTitle = _(label), -- i18n: ignore (NUMBER_GROUPS)
 			virtualKeyboardDescription = rangeText(num),
 		},
-		text(rangeText(num), "font-scale-annotation, radar-set-range"),
+		text(rangeText(num), "font-scale-annotation, radar-col130"),
 	}, "radar-set-row")
 end
 
@@ -645,9 +704,9 @@ local ProblemRadarSettingsPage = react.RegisterRecipe("ProblemRadarSettingsPage"
 	left[#left + 1] = text(_("Off: not checked or listed. List: shown in the radar only. Notify: also a game notification when the problem first appears."),
 		"font-scale-annotation, radar-hint")
 	left[#left + 1] = hbox({
-		text(_("Alert"), "font-scale-annotation, radar-set-kind, radar-set-head"),
-		text(_("Severity"), "font-scale-annotation, radar-set-tier, radar-set-head"),
-		text(_("Level"), "font-scale-annotation, radar-set-head"),
+		text(_("Alert"), "font-scale-annotation, radar-set-kind, radar-dim"),
+		text(_("Severity"), "font-scale-annotation, radar-set-tier, radar-dim"),
+		text(_("Level"), "font-scale-annotation, radar-dim"),
 	}, "radar-set-row")
 	for __, kind in ipairs(radar_settings.NOTIFY_KINDS) do
 		left[#left + 1] = levelRow(settings, kind)
@@ -758,7 +817,12 @@ local function snoozedFooter(count : integer) : TreeNodeId
 	}, "radar-footer")
 end
 
-local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", perf:wrap("window_render", function() : TreeNodeId
+-- INLINE STYLES: only meta (the content's size + padding, radar_inline.content), applied by react through
+-- WithComponentParams (react.lua:362-373), as Supply Gaps' SupplyGapsContent.
+local record ProblemRadarContentParam is IRecipeParamWithMeta
+end
+
+local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", perf:wrap("window_render", function(__ : ProblemRadarContentParam) : TreeNodeId
 	-- The window polls on its own (same hook as the HUD), so it stays live while open.
 	-- With commit: a snooze click shows at once (snoozeHandler), polls pause until the event is done.
 	local state, commit = engine_react_util.useStepStateTimerWithCommit(getFromEngine, WINDOW_POLL_SECONDS)
@@ -772,6 +836,7 @@ local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", perf:wra
 	-- or the Settings page with its own poll); every other tab gets an empty placeholder until it
 	-- is selected.
 	snoozeMonths = view.settings.snoozeMonths
+	fleetWornAt, fleetWornClear = radar_settings.wornThresholds(view.settings)
 	local tabs : {TreeNodeId} = {}
 	for __, key in ipairs(hud_model.TABS) do
 		local label = lang_util.format(_(TAB_LABELS[key]), { n = tostring(view.tabCounts[key] or 0) }) -- i18n: ignore
@@ -815,7 +880,7 @@ local ProblemRadarWindow = react.RegisterWrapperRecipe("ProblemRadarWindow", bui
 		closable = true,
 		movable = true,
 		onClose = params.onClose,
-		content = ProblemRadarContent(),
+		content = ProblemRadarContent({ meta = { styleSheet = radar_inline.content() } }), -- INLINE STYLES
 	}
 end)
 
@@ -861,7 +926,7 @@ end)
 --- hudMode "badge": "Radar ● 3", dot coloured by the worst tier; click opens the window.
 local function badge(counts : ProblemRadarHudCounts) : TreeNodeId
 	return builtin.Button{
-		meta = { class = "radar-badge", tooltip = hud_model.compactText(counts.tierCounts) },
+		meta = { class = "radar-badge", tooltip = hud_model.compactText(counts.tierCounts), styleSheet = radar_inline.badge() }, -- INLINE STYLES
 		content = hbox({
 			text(_("Radar")),
 			dot(counts.worstTier),

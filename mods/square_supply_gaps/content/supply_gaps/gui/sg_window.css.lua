@@ -2,6 +2,9 @@
 -- Every rule is scoped under our own recipe names (R::SupplyGapsRidgePlugin, R::SupplyGapsContent) or
 -- our own window id (#squaresupplygaps.window, sg_window.script.tl WINDOW_ID), so nothing here
 -- touches base UI or other mods.
+-- Keep this file small: every selector part is a rule, and the game crashes on load once all active mods
+-- add more than ~200 (docs/findings.md "Load crash above ~200 mod stylesheet rules"). Size, padding and
+-- colour of the ridge button, the content and the grey texts are inline styles (sg_window.script.tl styles()).
 local ssu = require "::/gui/main/stylesheetutil.lua"
 
 function data()
@@ -17,25 +20,10 @@ function data()
 		gravity = { 0, 0 },
 	})
 
-	a(RIDGE .. " Button!sqsg-ridge-button", {
-		padding = { 2, 8, 2, 8 },
-	})
-
-	-- "On" state of the ridge button: text colour only (findings: colour classes are fine on an
-	-- enabled Button).
-	a(RIDGE .. " Button!sqsg-ridge-on TextView", {
-		color = { 0.45, 0.85, 0.55, 1.0 },
-	})
-
 	-- Left edge, a quarter down (as Industry Flows), so the map centre stays free.
 	a(WINDOW, {
 		gravity = { 0.01, 0.25 },
 		anchorPoint = { 0, 0 },
-	})
-
-	a(WIN, {
-		padding = { 4, 8, 8, 8 },
-		size = { 320, -1 },
 	})
 
 	a(WIN .. " BoxLayout!sqsg-box", {
@@ -67,11 +55,9 @@ function data()
 	a(WIN .. " ImageView!sqsg-cargo-icon", {
 		gravity = { 0, 0.5 },
 	})
-	a(WIN .. " TextView!sqsg-legend", {
-		color = { 0.75, 0.75, 0.75, 1.0 },
-	})
-	-- Long lines wrap inside the 320 px content instead of being clipped (as guide_system.css.lua:25-27).
-	a(WIN .. " TextView!sqsg-legend, " .. WIN .. " TextView!sqsg-summary, " .. WIN .. " TextView!sqsg-scope", {
+	-- Long lines (legend, summary, scope) wrap inside the 320 px content instead of being clipped
+	-- (as guide_system.css.lua:25-27).
+	a(WIN .. " TextView!sqsg-wrap", {
 		maxSize = { 300, -1 },
 		textAutoWrap = true,
 	})
@@ -81,13 +67,10 @@ function data()
 		size = { -1, 260 },
 	})
 
-	a(WIN .. " TextView!sqsg-scope", {
-		color = { 0.85, 0.85, 0.85, 1.0 },
-	})
-	-- "Options" heading: a gap above it separates the options from the cargo list.
-	a(WIN .. " TextView!sqsg-section", {
+	-- A gap above the "Options" heading (separates the options from Show supply gaps) and above the scope
+	-- line (heads the cargo block below the options).
+	a(WIN .. " TextView!sqsg-gap", {
 		margin = { 8, 0, 0, 0 },
-		color = { 0.75, 0.75, 0.75, 1.0 },
 	})
 
 	-- Area labels in the HUD (sg_labels.lua recipe SupplyGapsAreaLabel). The chips are the
@@ -102,24 +85,21 @@ function data()
 	a(LABEL .. " BoxLayout!sqsg-area-row", {
 		innerSpacing = { 3, 3 },
 	})
-	a(LABEL .. " R::Component!sqsg-lu-mark", {
-		size = { 5, 22 },
-		gravity = { 0, 0.5 },
-		backgroundImage1 = { fileName = "::/gui/builtin/button/default_surface.tga",
-			horizontal = { 0, 9, 21, 30 }, vertical = { 0, 9, 21, 30 } },
-	})
+	-- One rule per district (landUse 1..3, the only values an area has: sg_model.tl), the bar's shape in
+	-- each (no separate !sqsg-lu-mark rule). Without a district colour the bar keeps the default colour.
 	local okD, district = pcall(function()
 		return api.gui.genericRep.get(api.gui.genericRep.find("::/game_mechanics/towns/district_colors.gres")).data
 	end)
-	if okD and district ~= nil then
-		local lus = { district.Residential, district.Commercial, district.Industrial }
-		for i, c in ipairs(lus) do
-			if c ~= nil and c.max ~= nil then
-				a(LABEL .. " R::Component!sqsg-lu-mark!sqsg-lu-" .. tostring(i), {
-					backgroundColor1 = c.max,
-				})
-			end
-		end
+	local lus = (okD and district ~= nil) and { district.Residential, district.Commercial, district.Industrial } or {}
+	for i = 1, 3 do
+		local c = lus[i]
+		a(LABEL .. " R::Component!sqsg-lu-mark!sqsg-lu-" .. tostring(i), {
+			size = { 5, 22 },
+			gravity = { 0, 0.5 },
+			backgroundImage1 = { fileName = "::/gui/builtin/button/default_surface.tga",
+				horizontal = { 0, 9, 21, 30 }, vertical = { 0, 9, 21, 30 } },
+			backgroundColor1 = (c ~= nil and c.max ~= nil) and c.max or nil,
+		})
 	end
 
 	return result

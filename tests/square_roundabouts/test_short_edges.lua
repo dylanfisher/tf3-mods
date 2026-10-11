@@ -85,10 +85,18 @@ local function magicSweep(fn)
 	}, fn)
 end
 
--- Channelized junction: every value of every param (Islands None / Paved: Grass has the same roads).
--- The grid lives in golden.lua (shared with test_entries_unchanged_channel.lua).
+-- Channelized junction: every value of every param (Islands None / Paved: Grass has the same roads)
+-- at Scale XS (the grid lives in golden.lua, shared with test_entries_unchanged_channel.lua), then
+-- Scale S-XL (revision 6): every layout x main x side x slips x splitter x traffic side, the
+-- shortest and longest arm, Islands Paved.
 local function channelSweep(fn)
 	G.channelSweep(channel, geom, fn)
+	local CK = channel.PARAM_KEYS
+	G.each({
+		[CK.scale] = { 2, 3, 4, 5 }, [CK.layout] = { 1, 2 }, [CK.main] = range(#geom.ARM_TEMPLATES),
+		[CK.side] = range(#geom.ARM_TEMPLATES), [CK.slips] = { 1, 2, 3 }, [CK.splitter] = { 1, 2 },
+		[CK.armLength] = { 1, #channel.ARM_LENGTHS }, [CK.direction] = { 1, 2 }, [CK.island] = { 3 },
+	}, fn)
 end
 
 -- Roundabout interchange: every layout x highway x level x lanes x traffic side, the extreme

@@ -1,4 +1,5 @@
 <p>Problem Radar collects the problems in your transport network into one compact, sortable window, and stays quiet while everything runs.</p>
+<p>When vehicles get old or worn, one click shows their line's fleet, earnings and load, and opens the game's own Replace Vehicles window to upgrade them.</p>
 <h4>Features</h4>
 <ul>
 <li><strong>Vehicles</strong>: blocked, no path (with the missing piece where the game reports it), stuck (standing en route past a threshold per carrier; stops, harbour and runway queues and user-stopped vehicles are left out), trains waiting behind another train.</li>
@@ -6,8 +7,10 @@
 <li><strong>Stations</strong>: overcrowded, stop unusable for the line's vehicles.</li>
 <li><strong>Fleet</strong>: worn, past its lifespan, idle in a depot.</li>
 <li><strong>Economy</strong>: lines that lost money over the last 12 months (in at least 3 of the 4 quarters), and lines whose average utilisation over about a year is very low. Bigger losses and emptier lines get a higher severity.</li>
+<li><strong>Fleet window</strong>: the ↑ Upg button on an Old or Worn vehicle's row opens a Fleet window for its line: vehicles (how many are past their lifespan or worn), capacity, current load with a utilisation bar, frequency, passengers and cargo transported per year and the average age against the lifespan, next to the last 12 months' income, running costs, maintenance and balance. Fleet by model lists each model with its count, the oldest vehicle's age and how many are past their lifespan.</li>
+<li><strong>Upgrade</strong>: "Upgrade old vehicles", "Upgrade this vehicle", "Upgrade whole fleet" and the "Upgrade N…" button on each model open the game's own Replace Vehicles window with those vehicles, where you pick the new model and confirm the price. Replaced vehicles leave the radar at once. "Show line" opens the line's window.</li>
 <li><strong>Badge</strong>: a small badge or a compact one-row panel in the top-left button ridge shows the number of problems, coloured by the worst severity.</li>
-<li><strong>Tabs</strong> for All, Vehicles, Lines, Stations, Fleet and Economy, each with its count. Click a row to move the camera there and open the vehicle, line or station window.</li>
+<li><strong>Tabs</strong> for All, Vehicles, Lines, Stations, Fleet and Economy, each with its count, plus Snoozed and Settings. Click a row to move the camera there and open the vehicle, line or station window.</li>
 <li><strong>Notifications</strong>: each alert type can be set to Off, List (shown in the radar only) or Notify (also a game notification when the problem first appears). Notifications are rate-limited and can be paused.</li>
 <li><strong>Snooze</strong>: the Zz button on a row hides a problem you already know about (say, a line you accept losing money) for 1 month to 5 years of game time. It is not counted and sends no notifications while snoozed. The Snoozed tab lists it with its end date and can wake it early.</li>
 <li><strong>Smoothing</strong>: a problem is listed once it has lasted 30 game seconds and stays until it has been gone that long, so alerts don't flicker (adjustable, 0 = instant).</li>
@@ -20,10 +23,22 @@
 <h4>Notes</h4>
 <ul>
 <li>Economy severity combines how little of its vehicle costs a line earns back with how big the loss is next to all your lines' costs. Utilisation is tracked by the mod itself, so low-use rows appear after about half a game year.</li>
-<li>Reads the game state only: it never changes vehicles, lines or money. Safe to add to an existing save.</li>
+<li>Trains of different compositions are upgraded one model group at a time, with the "Upgrade N…" button on each model row.</li>
+<li>Reads the game state only: it never changes vehicles, lines or money. The fleet window's Upgrade buttons only open the game's Replace Vehicles window; nothing is bought until you confirm there. Safe to add to an existing save.</li>
 </ul>
 <hr>
 <h2>Changelog</h2>
+<h4>Revision 7 (2026-10-10)</h4>
+<ul>
+<li>Fixed: fewer stylesheet rules (79 → 48), so large mod sets no longer hit the game's load crash (the game crashes on load when mods add too many style rules).</li>
+</ul>
+<h4>Revision 6 (2026-10-10)</h4>
+<ul>
+<li>New: fleet window, opened with the ↑ Upg button next to Zz on Old and Worn rows. It shows the vehicle's line (vehicles, how many are past their lifespan or worn, capacity, current load with a utilisation bar, frequency, transported per year, average age against the lifespan) next to the last 12 months' income, running costs, maintenance and balance, and the line's fleet grouped by model.</li>
+<li>New: Upgrade buttons in the fleet window for this vehicle, the line's old vehicles, one model group or the whole fleet. They open the game's own Replace Vehicles window to choose the new model and confirm the price. Replaced vehicles leave the Old and Worn lists (and the Snoozed tab) at once. "Show line" opens the line's window.</li>
+<li>Changed: the radar window is a little wider, and the rows keep clear of the scrollbar.</li>
+<li>Changed: vehicle ages and lifespans on Old rows are in calendar years at the current calendar speed, like the Age in the game's vehicle window. With a slower calendar they used to show too many years.</li>
+</ul>
 <h4>Revision 5 (2026-10-10)</h4>
 <ul>
 <li>New: translations into Russian, German, French, Spanish, Italian, Dutch, Polish, Portuguese (Brazil), Japanese, Korean and Chinese (Simplified and Traditional). The mod follows the game's language setting.</li>

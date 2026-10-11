@@ -1,0 +1,30 @@
+<p><strong>DEV ONLY - NOT FOR UPLOAD.</strong> Never publish this mod to mod.io. It is a developer tool for Better Roundabouts (square_roundabouts) and does nothing useful for players.</p>
+<p><strong>Warning: the defaults BUILD.</strong> With Run On and Mode Build (the defaults), 5 s after a game loads it builds hundreds to thousands of constructions around the map centre. Only enable it on a throwaway Blank Slate map; choose Dry run to only log the plan.</p>
+<p>When Run is On, on game load it enumerates Better Roundabouts settings combinations, lays them out across the map in a pattern and writes the plan and an ASCII preview as [SQRB-SHOW] lines to stdout.txt. In Build mode it also builds every combination the engine accepts.</p>
+<h4>Features</h4>
+<ul>
+<li><strong>Generic combinations</strong>: the params come from each construction's own definition, so new settings are picked up automatically. Showcase, every combination (capped), one setting at a time, or a seeded random sample.</li>
+<li><strong>Patterns</strong>: grid, mosaic (quilt by island / lanes), kaleidoscope (4- and 8-fold, with true mirror images from the traffic side), mandala, golden-angle spiral, size gradient, checkerboard, random scatter.</li>
+<li><strong>Tight packing</strong>: exact box collisions, footprints from each road's own width, nearest-free-spot placement; the kaleidoscope keeps exact symmetry.</li>
+<li><strong>Safe building</strong>: one build at a time, each checked with makeProposalData after the previous one is built; refused ones, collisions and spots off the map or on water move to the nearest free spot up to twice, then are skipped and logged, never forced. Nothing is bulldozed.</li>
+<li><strong>Dry run</strong> (default): only logs the layout.</li>
+</ul>
+<h4>Settings</h4>
+<ul>
+<li><strong>Run</strong> (default On), <strong>Mode</strong> (default Build), <strong>Start delay</strong> (default 5 s), <strong>In flight</strong> (default 16 builds at once; neighbours within 50 m still wait for each other).</li>
+<li><strong>Constructions</strong>, <strong>Combinations</strong>, <strong>Cap</strong> (default 2000 constructions), <strong>Fill</strong> (default Repeat: combinations are placed again until the cap or the max radius is reached), <strong>Pattern</strong>, <strong>Gap</strong> (default 10 m), <strong>Rotation</strong>, <strong>Position</strong> (default X / Y = 0 / 0, the map centre; or the camera centre), <strong>Max radius</strong>, <strong>Seed</strong>.</li>
+</ul>
+<h4>Notes</h4>
+<ul>
+<li>Use it on an empty, flat test map only. The script stores nothing in the savegame; the constructions it builds are ordinary Better Roundabouts roads.</li>
+<li>Steps: plans/square_roundabouts_showcase/PLAN.md in the mod hub repository.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 1 (dev, never uploaded)</h4>
+<ul>
+<li>New: combination enumeration from the construction params, nine layout patterns, dry run with ASCII preview, checked batch building.</li>
+<li>Tight packing (fill % logged), road-width margins, gaps from 0 m (default 10 m), building with retries.</li>
+<li>Road-shape collisions: pieces interlock and sit in the empty corners of bigger ones; refusals log which build they hit.</li>
+<li>Faster building: up to 16 spatially independent builds in flight. Fill: repeats until the cap or the max radius. Defaults now build at the map centre 5 s after loading.</li>
+</ul>

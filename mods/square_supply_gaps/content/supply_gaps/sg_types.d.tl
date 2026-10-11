@@ -362,7 +362,7 @@ end
 global record SupplyGapsMarkers
 	KEY_PREFIX : string
 	TYPE : string             -- marker type of unreached gaps ("arrow")
-	TYPE_STARVED : string     -- marker type of starved gaps ("exclamation")
+	TYPE_STARVED : string     -- marker type of starved gaps ("question_red")
 	SCALE : number
 	shown : {integer : boolean}        -- entities with a marker up
 	typeOf : {integer : string}        -- entity -> marker type it was set with

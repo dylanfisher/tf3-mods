@@ -24,9 +24,9 @@ end
 local function build(over) return ch.build(ch.readParams(params(over))) end
 
 local function name(o)
-	return string.format("layout %d main %d side %d slips %d splitter %d len %d dir %d island %d",
+	return string.format("layout %d main %d side %d slips %d splitter %d len %d dir %d island %d scale %d",
 		o.layout or 1, o.main or ch.DEFAULT_MAIN, o.side or ch.DEFAULT_SIDE, o.slips or 1, o.splitter or 1,
-		o.armLength or 1, o.direction or 1, o.island or 1)
+		o.armLength or 1, o.direction or 1, o.island or 1, o.scale or ch.DEFAULT_SCALE)
 end
 
 --- fn(over) for layout x main x side x slips x splitter (432 combos), plus the given fields.
@@ -67,8 +67,10 @@ local function right(h) return { h[2], -h[1], 0 } end
 test("readParams: defaults and foreign values", function()
 	eq(ch.readParams({}), {
 		layout = ch.LAYOUT_T, main = ch.DEFAULT_MAIN, side = ch.DEFAULT_SIDE, slips = ch.SLIPS_NEAR,
-		splitter = ch.SPLITTER_OFF, armLength = ch.DEFAULT_ARM_LENGTH, direction = geom.DIRECTION_CCW, island = 1,
+		splitter = ch.SPLITTER_OFF, armLength = ch.DEFAULT_ARM_LENGTH, scale = ch.DEFAULT_SCALE,
+		direction = geom.DIRECTION_CCW, island = 1,
 	})
+	eq(ch.readParams({ sqrb_ch_scale = 6 }).scale, ch.DEFAULT_SCALE, "foreign Scale value")
 	-- sqrb_island is the roundabouts' 5-value param: this entry has its own key
 	eq(ch.readParams({ sqrb_island = 5, sqrb_ch_island = 4, sqrb_ch_layout = 3 }).island, 1)
 	eq(ch.readParams({ sqrb_ch_layout = 3 }).layout, ch.LAYOUT_T)
@@ -92,7 +94,14 @@ test(".con.lua: params, script, icon, availability; script exports only updateFn
 		ok((p.defaultIndex or 1) >= 1 and (p.defaultIndex or 1) <= #p.values, p.key .. " default in range")
 		eq(p.checkEnabledScript, nil, p.key .. " has no checkEnabledScript")
 	end
-	eq(order, { K.layout, K.main, K.side, K.slips, K.splitter, K.armLength, K.direction, K.island }, "UI order")
+	eq(order, { K.layout, K.scale, K.main, K.side, K.slips, K.splitter, K.armLength, K.direction, K.island }, "UI order")
+	-- revision 6: Scale, a row of size codes like the Magic Roundabout's, default XS (the only layout before)
+	eq(byKey[K.scale].name, "Scale"); eq(byKey[K.scale].uiType, "Button"); eq(byKey[K.scale].displayMode, "Horizontal")
+	eq(byKey[K.scale].values, { "XS", "S", "M", "L", "XL" }); eq(#ch.SCALES, 5)
+	eq(byKey[K.scale].defaultIndex, 1); eq(ch.SCALES[ch.DEFAULT_SCALE], 1)
+	for i, f in ipairs(ch.SCALES) do
+		ok(byKey[K.scale].tooltip:find(i == 1 and "XS" or tostring(f), 1, true) ~= nil, "tooltip names factor " .. f)
+	end
 	eq(#byKey[K.main].values, #geom.ARM_TEMPLATES); eq(#byKey[K.side].values, #geom.ARM_TEMPLATES)
 	eq(#byKey[K.armLength].values, #ch.ARM_LENGTHS); eq(#byKey[K.island].values, #ch.ISLAND_KINDS)
 	-- Phase 7c3: Arm length is a row of buttons (was a slider), same key and indices; no slider left
@@ -323,3 +332,114 @@ test("set-backs: the slip nodes do not depend on slip lanes, arm length or traff
 	ok(same({ main = 3 }).setback.main > same({ main = 1 }).setback.main)
 	ok(same({ side = 3 }).setback.side > same({ side = 1 }).setback.side)
 end)
+
+-- Scale (revision 6): XS is the computed minimum (the only layout before, golden-tested in
+-- test_entries_unchanged_channel.lua); S-XL multiply both set-backs by ch.SCALES, rounded up.
+local function copy(o, over)
+	local c = {}
+	for k, v in pairs(o) do c[k] = v end
+	for k, v in pairs(over or {}) do c[k] = v end
+	return c
+end
+
+-- one test per scale, so the runner can shard them
+for scale = 2, #ch.SCALES do
+	test("Scale " .. ch.SCALE_NAMES[scale] .. ": every combination: set-backs = XS x factor rounded up, the same checks, islands, bend, arm length", function()
+		local count, worstFree = 0, math.huge
+		local step = ch.SETBACK_STEP
+		local f = ch.SCALES[scale]
+		each({ island = 2, scale = scale }, function(o)
+			local b = build(o)
+			local xs = build(copy(o, { scale = 1 }))
+			local n = name(o)
+			count = count + 1
+			-- set-backs: XS x factor, rounded up to the step, always beyond XS
+			for _, r in ipairs({ "main", "side" }) do
+				local want = xs.setback[r] * f
+				ok(b.setback[r] >= want - 1e-9 and b.setback[r] < want + step, n .. ": " .. r .. " set-back")
+				ok(b.setback[r] > xs.setback[r], n .. ": " .. r .. " beyond XS")
+			end
+			-- same slip lane angle and template, same roads, slip lanes and legs
+			eq(b.slipAngle, xs.slipAngle, n); eq(b.slipRoad, xs.slipRoad, n)
+			eq(#b.lists, #xs.lists, n); eq(#b.slips, #xs.slips, n); eq(#b.legs, #xs.legs, n)
+			-- one-way bend: the chord direction moves by the rounding only (CHORD_MARGIN is 2 deg)
+			local chord = math.deg(math.atan(b.setback.side, b.setback.main))
+			local chordXs = math.deg(math.atan(xs.setback.side, xs.setback.main))
+			ok(math.abs(chord - chordXs) < 0.5, n .. string.format(": chord %.2f vs XS %.2f deg", chord, chordXs))
+			local a = b.slipAngle
+			local lo, hi = math.min(a, 90 - a), math.max(a, 90 - a)
+			if chordXs >= lo + 2 - 1e-6 and chordXs <= hi - 2 + 1e-6 then
+				ok(chord > lo + 1.5 and chord < hi - 1.5, n .. ": chord between the end headings")
+			end
+			-- splitter islands: the side slip node stays beyond the split node
+			if o.splitter == 2 and o.slips ~= 3 then
+				local sp = ch.splitParams(b.spec)
+				ok(b.setback.side > geom.ARM_HALF_WIDTH[o.main] + sp.split + sp.leg.halfWidth, n .. ": beyond the split node")
+			end
+			checks.report(checks.tags(b.lists), n)
+			checks.report(checks.lengths(b.lists, geom.MIN_EDGE), n)
+			checks.report(checks.engineModel(b.lists), n)
+			checks.report(checks.overlaps(b.lists, 0.5, nil, goreLimit), n)
+			checks.report(checks.islandClear(b.lists, b.island, geom.ISLAND_MARGIN - 0.25), n)
+			for _, xe in ipairs(checks.junctions(b.lists)) do worstFree = math.min(worstFree, xe.free) end
+			-- islands: one per slip lane and per splitter, as at XS, none smaller than XS's smallest rule
+			local want = #b.slips + #b.legs
+			if want == 0 then eq(b.island, nil, n) else
+				eq(#b.island.faces, want, n)
+				eq(#b.island.colliders, #b.slips, n .. ": a box collider per corner island")
+				for i, fc in ipairs(b.island.faces) do
+					ok(S.area(fc.outline) >= ch.SPLIT_TRIANGLE_MIN - 1e-6, n .. string.format(": island %.1f m^2", S.area(fc.outline)))
+					ok(S.area(fc.outline) >= S.area(xs.island.faces[i].outline) - 1e-6, n .. ": island not smaller than at XS")
+				end
+			end
+			-- arm length: every arm still runs ARM_LENGTHS beyond its slip node
+			for _, l in ipairs(b.lists) do
+				if l.role == "main" or l.role == "side" then
+					for _, e in ipairs(l.edges) do
+						if e.tag1 == nil and e.tag0 and e.tag0:find("slip", 1, true) then
+							near(S.dist(e.p0, e.p1), ch.ARM_LENGTHS[o.armLength or 1], 1e-6, n)
+						end
+					end
+				end
+			end
+		end)
+		print(string.format("    %d builds, smallest free length %.1f m", count, worstFree))
+	end)
+end
+
+test("Scale: set-backs of the default junction at every scale", function()
+	-- the set-backs of the default (town medium main, town small side) at each scale
+	local row, prev = {}, { main = 0, side = 0 }
+	for scale = 1, #ch.SCALES do
+		local sb = build({ scale = scale }).setback
+		ok(sb.main > prev.main and sb.side > prev.side, "larger at each scale"); prev = sb
+		row[#row + 1] = string.format("%s %.1f / %.1f", ch.SCALE_NAMES[scale], sb.main, sb.side)
+	end
+	print("    default set-backs (main / side, m): " .. table.concat(row, ", "))
+end)
+
+for scale = 2, #ch.SCALES do
+	test("Scale " .. ch.SCALE_NAMES[scale] .. ": left-hand traffic mirrors it; no new -0 in the result; the Islands param moves no road", function()
+		local updateFn = loadData("square_roundabouts_channel.script.lua").updateFn
+		each({ scale = scale }, function(o)
+			for direction = 1, 2 do
+				local p = params(copy(o, { direction = direction, island = 3 }))
+				local _, n = checks.negativeZeros(updateFn({}, p))
+				p[K.scale] = 1
+				local _, nXs = checks.negativeZeros(updateFn({}, p))
+				eq(n, nXs, name(copy(o, { direction = direction })) .. ": world -0 tangents as at XS")
+			end
+			local r, l = build(o), build(copy(o, { direction = 2 }))
+			for i, list in ipairs(r.lists) do
+				for j, e in ipairs(list.edges) do
+					local m = l.lists[i].edges[j]
+					near3(m.p0, mirrorOf(e.p0), name(o)); near3(m.t1, mirrorOf(e.t1), name(o))
+				end
+			end
+			local g = build(copy(o, { island = 2 }))
+			for i, list in ipairs(r.lists) do
+				for j, e in ipairs(list.edges) do near3(e.p1, g.lists[i].edges[j].p1, name(o)) end
+			end
+		end)
+	end)
+end

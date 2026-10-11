@@ -990,3 +990,30 @@ job found an accepted candidate; 753 calls, 174 rejected). No revision bump (3 i
   3.png) was removed and slides renumbered (now 1-10): before uploading, delete gallery media 3-6 on
   mod.io, otherwise mod.io keeps the old 3-6 and only adds 7-10.
   Never upload `square_roundabouts_probe`.
+
+## Channelized Junction Scale (revision 6, 2026-10-10)
+User request: every entry has a size control called Scale, a button row like the Magic Roundabout's
+(no slider). Better Roundabouts' and the Roundabout Interchange's Radius rows and the Magic
+Roundabout's Size row are renamed Scale (display name and texts only; keys, values and defaults
+unchanged, so saved settings and placed roads are unaffected). The Channelized Junction had no size
+control and gets one:
+- Param `sqrb_ch_scale` (`ch.PARAM_KEYS.scale`), Button row XS / S / M / L / XL (size codes, the same
+  in every language), right after Layout, default XS. `ch.SCALES = { 1, 1.25, 1.5, 2, 2.5 }`.
+- `ch.setbacks`: after the three minimum rules ("Set-backs" in Phase 5b notes: junction room, one-way
+  bend, island room), both set-backs are multiplied by the factor and each rounded up to
+  `SETBACK_STEP` (0.5 m). XS skips the step, so it is byte-identical to revision 5 (golden tests
+  unchanged). Same proportions, so the one-way bend chord moves by the rounding only (< 0.5 deg,
+  tested; CHORD_MARGIN is 2 deg); every node only moves further out, so the splitter rule (side node
+  beyond the split node) and island room still hold. Slip angle and template (`ch.slipRule`, the
+  engine-tuned table) do not depend on the scale; arm length still runs beyond the slip node.
+- Default town medium + town small set-backs (main / side, m): XS 42.2 / 41.4, S 53.0 / 52.0,
+  M 63.5 / 62.5, L 84.5 / 83.0, XL 105.5 / 104.0.
+- Tests: `test_channel.lua` "Scale S..XL" (every layout x road pair x slips x splitter, Islands Grass:
+  set-backs = XS x factor rounded up, tags, edge lengths, engine model, overlaps, islands clear and
+  not smaller than at XS, chord, splitter, arm length; mirror, Islands-independent roads and no world
+  -0 beyond XS's, per scale); `test_short_edges.lua` channel sweep extended by S-XL;
+  `test_menu_labels.lua` every entry's size row is named Scale.
+- **Not engine-probed:** only XS is what `p5_all` / `p5f_search` / `p5g_verify` placed. S-XL keep the
+  accepted angle and template with longer straight-ish slip lanes, which should only be easier, but
+  no probe has run them (TESTING.md 12.11).
+

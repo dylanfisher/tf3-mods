@@ -49,8 +49,9 @@ return {
 		"Alaska has fewer street-name cities than the other states in this series: real streets for 9 towns (Anchorage, Fairbanks, Juneau, Ketchikan, Sitka, Wasilla, Kodiak, Palmer and Homer). Every other town uses the Alaska-style street list.",
 		"Not affiliated with the \"Alaskan Names\" mod; all lists here are our own.",
 	},
-	revision = 5,
+	revision = 6,
 	changelog = {
+		{ rev = 6, date = "2026-10-10", items = { "Removing this mod is now marked Critical in the mod list. A game started with this mod's name set crashes without it as soon as it needs a new name (building a road, for example); turning the mod back on fixes the save." } },
 		{ rev = 5, date = "2026-10-10", items = { "New: translations into Russian, German, French, Spanish, Italian, Dutch, Polish, Portuguese (Brazil), Japanese, Korean and Chinese (Simplified and Traditional). The mod follows the game's language setting; town, street and station names stay as they are." } },
 		{ rev = 4, date = "2026-10-09", items = { "Clearer description: says up front that the mod renames the stops and stations you build, not just the default name lists." } },
 		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },

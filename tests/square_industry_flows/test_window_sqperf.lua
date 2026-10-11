@@ -90,6 +90,8 @@ local function stubs()
 		},
 	})
 	stub_module("::/gui/main/cargo_react_util.tl", { makeIcon = function(c, p, t) return { w = "Icon", p = { meta = { class = c } } } end })
+	-- inline styles (ridge button padding, cargo chevron size): record what the script sets
+	stub_module("::/gui/main/styleutil.tl", { makeStyle = function(t) local st = {}; for k, v in pairs(t) do st[k] = v end; return st end })
 	stub_module("::/gui/main/color_util.tl", { toArray4 = function(c) return c end, toArray4WithTransparency = function(c) return c end })
 	stub_module("::/scripts/lang_util.tl", { format = function(s, args)
 		return (s:gsub("{(%w+)}", function(k) return tostring(args[k]) end))
@@ -157,6 +159,7 @@ local function fakeApi(sqperfLog)
 			end },
 			ComponentType = { INDUSTRY = 1, TOWN = 2, TRANSPORT_VEHICLE = 3 },
 			LayerConfig = { new = function() return { layerConfig = true } end },
+			Vec4f = { new = function(a, b, c, d) return { a, b, c, d } end },
 		},
 		engine = {
 			getEntitiesWithComponent = function() F.reads = F.reads + 1; return {} end,
@@ -221,6 +224,8 @@ test("ridge plugin: a Flows button in game, nothing in the map editor", function
 	local button = root.p.children[1]
 	eq(button.w, "Button")
 	eq(class(button), "flows-ridge-button")
+	-- padding inline (no stylesheet rule): CSS order top, right, bottom, left
+	eq(table.concat(button.p.meta.styleSheet.padding, ","), "2,8,2,8")
 	F.mapEditor = true
 	eq(m.IndustryFlowsRidgePlugin(), nil)
 end)

@@ -1,0 +1,14 @@
+{
+    "name": "DEV inline style probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Renders 60 invisible components in the main mod button area, each with its own distinct inline StyleSheet, from the first frame after load, to test whether inline styles count toward the load crash above ~200 mod stylesheet rules (plans/bugreports/2026-10-10-load-crash-gui-tree.md). No stylesheet, no game script.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ]
+}

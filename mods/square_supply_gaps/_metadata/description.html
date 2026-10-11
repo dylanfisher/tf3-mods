@@ -2,8 +2,8 @@
 <p>Click the Gaps button in the top-left button ridge to open the panel, tick Show supply gaps and pick a cargo. The markers stay up while you place stops: put a stop on a line and the buildings it reaches lose their markers within about a second.</p>
 <h4>Features</h4>
 <ul>
-<li><strong>Arrow markers</strong> on town buildings that no stop delivering the cargo reaches.</li>
-<li><strong>Exclamation markers</strong> on buildings that a delivering stop reaches, but whose stock of the cargo has been empty for about 20 seconds.</li>
+<li><strong>Yellow arrow markers</strong> on town buildings that no stop delivering the cargo reaches.</li>
+<li><strong>Red question-mark markers</strong> on buildings that a delivering stop reaches, but whose stock of the cargo has been empty for about 20 seconds.</li>
 <li><strong>Cargo picker</strong> with icons: All needed, or one cargo. Each row counts the buildings not reached, in range but empty, and all buildings that need it.</li>
 <li><strong>Area labels</strong> under each town name: the share of each district's buildings that get the cargo, as a percentage per district. They also show in the Cargo Flow layer.</li>
 <li><strong>Follows the camera</strong>: only the towns on screen are counted and marked, and the panel names them. Pan to another town and it updates.</li>
@@ -32,6 +32,12 @@
 </ul>
 <hr>
 <h2>Changelog</h2>
+<h4>Revision 4 (2026-10-10)</h4>
+<ul>
+<li>Changed: in-range-but-empty buildings now get a red question mark instead of a yellow exclamation mark, so they stand apart from the yellow arrows at a glance. The options now sit above the cargo list, so they no longer move when the list changes.</li>
+<li>Faster: ticking an option or picking a cargo now updates the panel and the markers straight away, instead of after up to a second.</li>
+<li>Fixed: fewer stylesheet rules (26 → 18), so large mod sets no longer hit the game's load crash (the game crashes on load when mods add too many style rules).</li>
+</ul>
 <h4>Revision 3 (2026-10-10)</h4>
 <ul>
 <li>New: translations into Russian, German, French, Spanish, Italian, Dutch, Polish, Portuguese (Brazil), Japanese, Korean and Chinese (Simplified and Traditional). The mod follows the game's language setting.</li>

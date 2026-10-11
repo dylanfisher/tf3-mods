@@ -792,6 +792,54 @@ function model.applyPending(view : ProblemRadarHudView, snooze : {string : integ
 	return out
 end
 
+--- Rev 6: rows the GUI already knows are fixed (fleet rows of vehicles just replaced from the fleet
+--- window, until the engine's recheck has dropped them) left out of a view, counts adjusted like
+--- applyPending. Snoozed rows with those ids leave the Snoozed tab too. Returns the view itself when
+--- nothing applies (the common idle poll: no copy).
+function model.hideRows(view : ProblemRadarHudView, hide : {string : boolean}) : ProblemRadarHudView
+	if view == nil or hide == nil or next(hide) == nil then return view end
+	local any = false
+	for __, r in ipairs(view.rows) do
+		if hide[r.id] then any = true break end
+	end
+	if not any then
+		for __, r in ipairs(view.snoozedRows) do
+			if hide[r.id] then any = true break end
+		end
+	end
+	if not any then return view end
+
+	local out : ProblemRadarHudView = {}
+	for k, v in pairs(view as {string : any}) do (out as {string : any})[k] = v end
+	local tabCounts : {string : integer} = {}
+	for k, v in pairs(view.tabCounts) do tabCounts[k] = v end
+	local tierCounts : {integer} = { view.tierCounts[1], view.tierCounts[2], view.tierCounts[3] }
+	local total = view.total
+	local rows : {ProblemRadarHudRow} = {}
+	for __, r in ipairs(view.rows) do
+		if hide[r.id] then
+			tierCounts[r.tier] = math.max(0, tierCounts[r.tier] - 1)
+			tabCounts.all = math.max(0, tabCounts.all - 1)
+			if tabCounts[r.tab] ~= nil and r.tab ~= "all" then tabCounts[r.tab] = math.max(0, tabCounts[r.tab] - 1) end
+			total = math.max(0, total - 1)
+		else
+			rows[#rows + 1] = r
+		end
+	end
+	local snoozedRows : {ProblemRadarHudRow} = {}
+	for __, r in ipairs(view.snoozedRows) do
+		if not hide[r.id] then snoozedRows[#snoozedRows + 1] = r end
+	end
+	tabCounts.snoozed = #snoozedRows
+	out.rows = rows
+	out.snoozedRows = snoozedRows
+	out.tabCounts = tabCounts
+	out.tierCounts = tierCounts
+	out.total = total
+	out.worstTier = tierCounts[1] > 0 and 1 or (tierCounts[2] > 0 and 2 or (tierCounts[3] > 0 and 3 or 0))
+	return out
+end
+
 --- Creation revisions per alert id, so a click can tell a reused entity id from the entity the
 --- alert was about (like the notification click, entity_util.entityChanged0). Revisions already
 --- known are kept, new ids are looked up with `revOf` (nil when the entity is gone), ids no longer
