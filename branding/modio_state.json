@@ -1028,28 +1028,28 @@
     "logo": {
       "file": "0.png",
       "sha": "1fc691b6dd954cd0",
-      "remote": "0.4.png"
+      "remote": "0.5.png"
     },
     "images": [
       {
         "file": "1.png",
         "sha": "bea91124aab88d8d",
-        "remote": "1.3.png"
+        "remote": "1-bea91124.png"
       },
       {
         "file": "2.png",
         "sha": "5561d1875bed87ea",
-        "remote": "2.3.png"
+        "remote": "2-5561d187.png"
       },
       {
         "file": "3.png",
         "sha": "c7a13bd1a828e2a5",
-        "remote": "3.3.png"
+        "remote": "3-c7a13bd1.png"
       },
       {
         "file": "4.png",
         "sha": "9deb6417977da513",
-        "remote": "4.3.png"
+        "remote": "4-9deb6417.png"
       }
     ],
     "synced": "2026-10-10",
@@ -1063,8 +1063,8 @@
         "63c6bc1e1573643b"
       ],
       "description": [
-        "2545f529622e9e22",
-        "2545f529622e9e22"
+        "125ae71a55129510",
+        "125ae71a55129510"
       ]
     }
   },
