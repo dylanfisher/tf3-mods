@@ -1,0 +1,16 @@
+{
+    "name": "DEV Line Rate Matcher Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Tests Rate, cloning and selling for a planned line rate mod.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Mounts an RM test button in the Line Manager line toolbar and logs [RMPROBE] lines to stdout.txt. Its +1 and -1 buttons buy and sell vehicles: use a test save. See plans/square_line_rate_matcher/PROBE.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}
