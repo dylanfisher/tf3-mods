@@ -262,13 +262,15 @@ def remote_text(remote: dict, f: str) -> str:
 def base_name(remote_filename: str) -> str:
     """The local N.png a remote image stands for. Uploads are named N-<hash>.png (upload_name), and mod.io keeps
     names unique by adding a counter (a second "1.png" is stored as "1.1.png")."""
-    return re.sub(r"^(\d+)(?:-[0-9a-f]{8})?(?:\.\d+)?\.png$", r"\1.png", remote_filename)
+    m = re.match(r"^(\d+)(?:-[0-9a-f]{8})?(?:\.\d+)?\.png$", remote_filename)
+    return f"{int(m.group(1))}.png" if m else remote_filename
 
 
 def upload_name(path: Path) -> str:
     """N-<content hash>.png: a changed image gets a new name, so a new URL. Re-using "1.png" kept serving the old
     picture from caches (Better Minimap, 2026-10-10)."""
-    stem = slide_name(path)[:-4] if SLIDE_RE.match(path.stem) else path.stem
+    m = SLIDE_RE.match(path.stem)
+    stem = m.group(1) if m else path.stem  # keeps make shots' zero padding (02-...), the name the Hub uploads too
     return f"{stem}-{sha(path.read_bytes())[:8]}{path.suffix}"
 
 

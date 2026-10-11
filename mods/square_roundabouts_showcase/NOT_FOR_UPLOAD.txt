@@ -1,0 +1,12 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_roundabouts_showcase is a developer tool for square_roundabouts. Never publish it to mod.io
+(Mod Hub > My Mods would offer it because `make link` puts it in the staging area).
+
+WARNING: its DEFAULTS BUILD. With Run = On and Mode = Build (the defaults), 5 s after a game loads it
+lays out many Better Roundabouts combinations around the map centre and BUILDS them (real roads in
+the save, hundreds to thousands of constructions). Only enable it on a throwaway Blank Slate map.
+Set Mode = Dry run to only log the plan ([SQRB-SHOW] lines in stdout.txt). Plan and runbook: plans/square_roundabouts_showcase/PLAN.md.
+
+When done: set Run to Off, or disable it in the game's mod list (quit to the main menu before
+removing its symlink from staging_area).

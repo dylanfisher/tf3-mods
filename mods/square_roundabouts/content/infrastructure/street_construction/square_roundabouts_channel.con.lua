@@ -15,6 +15,13 @@ local function metres(list)
 	return out
 end
 
+-- Size codes XS / S / M / L / XL, the same in every language (the tooltip explains them)
+local function scales()
+	local out = {}
+	for i = 1, #channel.SCALES do out[i] = channel.SCALE_NAMES[i] end
+	return out
+end
+
 local ROADS = {
 	_("Town, small"), _("Town, medium"), _("Town, large"),
 	_("Country, small"), _("Country, medium"), _("Country, large"),
@@ -41,7 +48,7 @@ return toolbar({
 	},
 	description = {
 		name = _("Channelized Junction"),
-		description = _("A T or X junction with one-way slip lanes that bypass it across the corners, triangle islands between them and optional splitter islands on the side road. Choose the main and side road, which turns get a slip lane and the traffic side. Once built, everything is ordinary roads you can edit or connect."),
+		description = _("A T or X junction with one-way slip lanes that bypass it across the corners, triangle islands between them and optional splitter islands on the side road. Choose the main and side road, the scale, which turns get a slip lane and the traffic side. Once built, everything is ordinary roads you can edit or connect."),
 		-- own menu icon: square_roundabouts_channel@2x.tga (240x150), rendered by tools/render_icon_square_roundabouts.py
 		icon = "square_roundabouts_channel.tga",
 		-- hover preview: the main entry's for now (replace with an in-game capture, PHASE5.md 5e)
@@ -76,6 +83,15 @@ return toolbar({
 			uiType = "Button",
 			values = { "T", "X" }, -- shape codes, the same in every language
 			defaultIndex = channel.LAYOUT_T,
+		},
+		{
+			key = K.scale,
+			name = _("Scale"),
+			tooltip = _("Size of the junction, extra small to extra large.\nXS: the smallest layout the roads allow. S, M, L, XL\n(small, medium, large, extra large) set the slip lanes\nfurther out for bigger islands: about 1.25, 1.5, 2\nor 2.5 x as far from the centre as XS."),
+			uiType = "Button",
+			displayMode = "Horizontal",
+			values = scales(),
+			defaultIndex = channel.DEFAULT_SCALE,
 		},
 		{
 			key = K.main,

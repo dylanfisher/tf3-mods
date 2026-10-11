@@ -167,7 +167,7 @@ Run after section 0 passes (or together with it). Report every `[Minimap]` line.
 - [ ] Each industry shows a small cargo icon on a dark tile (coal mine = coal, farm = its crop, refinery = its first product, ...), sitting **exactly where the industry is** (pan the camera onto two or three industries and compare with the red dot / click-to-jump). Report any offset (all shifted the same way? only large icons? only near the edges?).
 - [ ] Toggle S/L: icons are 12 / 18 px and stay on their industries (`industry markers gen N` logged again per size).
 - [ ] Hover an icon: tooltip with the industry name? (Uncertain: it may not show because the marker containers are mouse-transparent; report.) Click on an icon still jumps the camera there.
-- [ ] Moving the camera does **not** log new `industry markers` lines (markers only change with a rebuild). Found or bulldoze an industry: a `game changed` rebuild, and the icon appears/disappears.
+- [ ] Moving the camera does **not** log new `industry markers` lines (markers only change with a rebuild). Found or bulldoze an industry: a `changed: industries` rebuild, and the icon appears/disappears.
 - [ ] Any `industry cargo failed`, `industry read failed`, `cargo icon failed` or `marker layout failed` warning: paste it. Any icon drawn as an empty/pink square: say which industry.
 - [ ] Frame rate with the window open on a big map (many industries) vs closed.
 
@@ -265,8 +265,8 @@ Stored in the game settings (`AppConfig.mainMenuState["square_better_minimap"]`)
 - [ ] With nothing happening, no new `map gen` lines appear (checked every 2 s; a growing town can legitimately trigger one now and then).
 - [ ] Tick **Assets**: immediately `option: assets=true` and `map gen N (assets on, assets=true): ... built in X ms`, and the picture changes (trees). Untick: rebuilds again without assets. **Report both build times.**
 - [ ] **Refresh** forces `map gen N (manual, ...)`.
-- [ ] Terraform a patch: within ~2 s `map gen N (game changed, ...)` and the picture updates.
-- [ ] Found a new industry (or remove one with the bulldozer): within ~2 s a `game changed` rebuild and the icon appears/disappears.
+- [ ] Terraform a patch: within ~2 s `map gen N (changed: terrain, ...)` and the picture updates.
+- [ ] Found a new industry (or remove one with the bulldozer): within ~2 s a `changed: industries` rebuild and the icon appears/disappears.
 - [ ] Does any rebuild cause a visible hitch? Report how long.
 
 ## 7. Save safety
@@ -282,3 +282,10 @@ Stored in the game settings (`AppConfig.mainMenuState["square_better_minimap"]`)
 3. Size toggle and fit (any empty space or clipping, at S/L).
 4. Assets toggle and game-change rebuilds: did they fire, build times, hitches.
 5. Every `[Minimap] ... failed:` warning or Lua error.
+
+## Map editor (rev 7)
+
+- [ ] The Map button shows in the editor's top-left bar; the window opens.
+- [ ] Generate Heightmap → Generate: within ~2 s after "Map is ready", `map gen N (changed: heights...)` and the new terrain.
+- [ ] Resize the map: `changed: bounds...`; picture, camera box and click-to-jump match the new size.
+- [ ] Generate towns / place an industry: `changed: towns` / `changed: industries`.

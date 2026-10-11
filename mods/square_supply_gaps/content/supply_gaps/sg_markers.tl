@@ -6,9 +6,12 @@
 -- Each tick sends only the difference (model.diff). Every engine call is in pcall; a failing call is
 -- counted and the first ERR_LOGS are logged.
 --
--- Kinds: unreached gaps get TYPE ("arrow"), starved gaps TYPE_STARVED ("exclamation"); both render in
+-- Kinds: unreached gaps get TYPE ("arrow"), starved gaps TYPE_STARVED ("question_red"); both render in
 -- free play (Phase 2 in-game test). A building whose kind changes gets its marker removed and set
--- again with the new type. Models: base/content/assets/markers/marker_{arrow,exclamation}.mdl.
+-- again with the new type. Models: base/content/assets/markers/marker_{arrow,question_red}.mdl. The engine maps
+-- types to models through a fixed table (MarkerManager m_type2modelName: arrow, exclamation, question,
+-- question_red, locate; an unknown type asserts and shows the default yellow model, verified in game
+-- 2026-10-10 with "exclamation_red"), so a mod cannot add its own marker type or colour.
 
 local model = ug_require "square_supply_gaps::/supply_gaps/sg_model.tl" as SupplyGapsModel
 
@@ -16,7 +19,7 @@ local markers : SupplyGapsMarkers = {}
 
 markers.KEY_PREFIX = "sqsg:"
 markers.TYPE = "arrow"
-markers.TYPE_STARVED = "exclamation"
+markers.TYPE_STARVED = "question_red"
 markers.SCALE = 0.75
 
 markers.shown = {}

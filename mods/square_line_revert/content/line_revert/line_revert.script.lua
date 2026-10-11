@@ -350,11 +350,14 @@ local function send(kind)
 end
 
 -- Button -------------------------------------------------------------------------------------------------------
---- One recipe per button, both built here so they share the look: line_revert.css.lua scopes the same rules under
---- both recipe names. `which` = "undo" or "redo" picks the half of the view and the click action.
-local function makeButtonRecipe(recipeName, which, icon)
+--- One recipe for both buttons, so line_revert.css.lua scopes its rules under a single recipe name (every
+--- stylesheet rule counts toward the game's load-crash limit, docs/findings.md). Param `which` = "undo" or "redo"
+--- picks the icon, the half of the view and the click action.
+local function makeButtonRecipe(recipeName)
 	-- SQPERF section "button_render" (both buttons; the recipe's own function, its first call includes the first view)
-	return react.RegisterRecipe(recipeName, perf:wrap("button_render", function(_p)
+	return react.RegisterRecipe(recipeName, perf:wrap("button_render", function(p)
+		local which = (p and p.which == "redo") and "redo" or "undo"
+		local icon = which == "redo" and REDO_ICON or UNDO_ICON
 		local state = engine_react_util.useStepState(function()
 			return stepView(which)
 		end, nil, sameView)
@@ -399,9 +402,8 @@ local function makeButtonRecipe(recipeName, which, icon)
 	end))
 end
 
--- recipe names also used as CSS scopes in line_revert.css.lua
-local LineRevertButton = makeButtonRecipe("SquareLineRevertButton", "undo", UNDO_ICON)
-local LineRedoButton = makeButtonRecipe("SquareLineRedoButton", "redo", REDO_ICON)
+-- recipe name also used as the CSS scope in line_revert.css.lua; LineRevertButton{ which = "undo" | "redo" }
+local LineRevertButton = makeButtonRecipe("SquareLineRevertButton")
 
 -- Wrappers -----------------------------------------------------------------------------------------------------
 local origDescriptor -- set in doReplace
@@ -424,8 +426,8 @@ local function iconToggleButton(className, path, ...)
 			orientation = builtin.type.Orientation.Horizontal,
 			children = {
 				-- the recipes are the items themselves, never a Component layout (memory: recipe-not-component-layout)
-				LineRevertButton{},
-				LineRedoButton{},
+				LineRevertButton{ which = "undo" },
+				LineRevertButton{ which = "redo" },
 				node,
 			},
 		}
@@ -459,6 +461,5 @@ function data()
 	return {
 		doReplace = doReplace,
 		LineRevertButton = LineRevertButton,
-		LineRedoButton = LineRedoButton,
 	}
 end

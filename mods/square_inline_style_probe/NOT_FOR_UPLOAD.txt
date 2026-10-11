@@ -1,0 +1,2 @@
+DEV probe: never upload. Tests whether inline StyleSheets count toward the ~200-rule load crash
+(docs/findings.md "Load crash above ~200 mod stylesheet rules", plans/bugreports/2026-10-10-load-crash-gui-tree.md).

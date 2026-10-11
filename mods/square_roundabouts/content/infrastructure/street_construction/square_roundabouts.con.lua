@@ -62,7 +62,7 @@ return toolbar({
 	},
 	description = {
 		name = _("Better Roundabouts"),
-		description = _("A roundabout with approach roads, optional splitter islands, a road or tram line through the centre, tram tracks and a centre island. Choose the shape, lanes, size, arms, arm road and traffic direction. Once built, everything is ordinary roads you can edit or connect."),
+		description = _("A roundabout with approach roads, optional splitter islands, a road or tram line through the centre, tram tracks and a centre island. Choose the shape, lanes, scale, arms, arm road and traffic direction. Once built, everything is ordinary roads you can edit or connect."),
 		-- own menu icon: square_roundabouts@2x.tga (240x150), rendered by tools/render_icon_square_roundabouts.py
 		icon = "square_roundabouts.tga",
 		-- own hover preview: square_roundabouts_preview@2x.tga (720x405), rendered by tools/render_preview_square_roundabouts.py
@@ -110,7 +110,7 @@ return toolbar({
 		{
 			-- Phase 7c3: presets on their own key (geom.RADIUS_PRESET_KEY), not the old slider's
 			key = geom.RADIUS_PRESET_KEY,
-			name = _("Radius"),
+			name = _("Scale"),
 			tooltip = _("Size of the roundabout, extra small to extra large:\nthe radius inside the ring road (the narrow side of\nan oval): XS 10 m, S 15 m, M 20 m, L 35 m, XL 60 m.\nXS: a mini roundabout with a flat island. The ring\ngrows if the chosen roads don't fit."),
 			uiType = "Button",
 			displayMode = "Horizontal",

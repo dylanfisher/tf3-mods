@@ -219,12 +219,12 @@ end)
 
 -- starved (Phase 2b) ------------------------------------------------------------------------
 
-test("starved: a reached building with an empty stock gets an exclamation", function()
+test("starved: a reached building with an empty stock gets a red question mark", function()
 	zero[1] = { [FISH] = 3 }
 	overlay.setOn(true)
 	overlay.tick("timer")
 	eq(overlay.gapList, { 1, 2 })
-	eq(setTypes["sqsg:1"], "exclamation")
+	eq(setTypes["sqsg:1"], "question_red")
 	eq(setTypes["sqsg:2"], "arrow")
 	local snap = overlay.snapshot()
 	eq(snap.unreached, 1)
@@ -255,15 +255,15 @@ test("starved: below the streak no marker; kind change re-sets the marker type",
 	zero[1] = { [FISH] = 3 }
 	for _ = 1, cache.BUILDING_EVERY do overlay.tick("timer") end
 	eq(overlay.gapList, { 1, 2 })
-	eq(setTypes["sqsg:1"], "exclamation")
-	-- building 2 gets food + fish via "Count stops without a line" but its stocks are empty: arrow -> exclamation
+	eq(setTypes["sqsg:1"], "question_red")
+	-- building 2 gets food + fish via "Count stops without a line" but its stocks are empty: arrow -> red question mark
 	zero[2] = { [FISH] = 3, [FOOD] = 3 }
 	overlay.setUnlined(true)
 	for _ = 1, cache.BUILDING_EVERY do overlay.tick("timer") end
-	eq(setTypes["sqsg:2"], "exclamation")
+	eq(setTypes["sqsg:2"], "question_red")
 	local n2 = 0
 	for _, k in ipairs(set) do if k == "sqsg:2" then n2 = n2 + 1 end end
-	eq(n2, 2) -- set as arrow, removed, set again as exclamation
+	eq(n2, 2) -- set as arrow, removed, set again as red question mark
 	eq(removed, { "sqsg:2" })
 end)
 

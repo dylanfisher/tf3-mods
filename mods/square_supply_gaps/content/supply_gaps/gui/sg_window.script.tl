@@ -33,6 +33,7 @@ local cargo_react_util = ug_require "::/gui/main/cargo_react_util.tl" as CargoRe
 local engine_react_util = ug_require "::/gui/main/engine_react_util.tl" as EngineReactUtil
 local main_mod_button_area = ug_require "::/gui/main/main_mod_button_area.tl" as MainModButtonArea
 local game_react_globals = ug_require "::/gui/main/game_react_globals.tl" as GameReactGlobals
+local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 
 local overlay = ug_require "square_supply_gaps::/supply_gaps/sg_overlay.tl" as SupplyGapsOverlay
 local labels = ug_require "square_supply_gaps::/supply_gaps/sg_labels.lua" as SupplyGapsLabels
@@ -80,6 +81,20 @@ end)
 -- the overlay's "tick" section).
 local stepCheck = perf:wrap("step_check", function() overlay.stepCheck() end)
 
+-- The content's state, set on every render and expired by react once the window is gone.
+local windowState : ReactStateT<SupplyGapsSnapshot> = nil
+
+--- After a click in the window (GUI thread): tick now and redraw the window from the new state, instead of
+--- waiting up to WINDOW_POLL for the checkbox to flip and up to overlay.TICK for the markers and list.
+--- SQPERF section "click_apply" (includes the tick, which is also timed as "tick").
+local applyNow = perf:wrap("click_apply", function()
+	overlay.tick("click")
+	if windowState ~= nil and not windowState:hasExpired() then
+		local ok, snap = pcall(overlay.snapshot)
+		if ok then windowState:set(snap as SupplyGapsSnapshot) end
+	end
+end)
+
 --- The "Show supply gaps" checkbox: the player's choice wins over a pending load read, and is sent to
 --- the game script so it is saved with the game (only a change is written).
 local function setShown(on : boolean)
@@ -97,9 +112,39 @@ do
 	labelsStatus = ok and tostring(r) or ("err " .. tostring(r))
 end
 
-local function text(str : string, class? : string) : TreeNodeId
+-- Inline styles instead of sg_window.css.lua rules (docs/findings.md "Load crash above ~200 mod stylesheet
+-- rules": every rule counts). Only size / padding / color here (api gui.d.tl record StyleSheet), built
+-- lazily in the window / ridge renders (GUI thread) and reused. Padding order is CSS (top, right, bottom,
+-- left), as square_better_minimap's layerAt.
+local record Styles
+	content : StyleSheet  -- R::SupplyGapsContent: 320 px wide content
+	ridge : StyleSheet    -- ridge Button padding
+	ridgeOn : StyleSheet  -- ridge Button text while the overlay is on
+	dim : StyleSheet      -- legend lines and the "Options" heading
+	scope : StyleSheet    -- scope line
+end
+local stylesCache : Styles = nil
+
+local function styles() : Styles
+	if stylesCache == nil then
+		local content = styleutil.makeStyle{ size = { 320, -1 } }
+		content.padding = api.type.Vec4f.new(4, 8, 8, 8)
+		local ridge = api.gui.StyleSheet.new()
+		ridge.padding = api.type.Vec4f.new(2, 8, 2, 8)
+		stylesCache = {
+			content = content,
+			ridge = ridge,
+			ridgeOn = styleutil.makeStyle{ color = { 0.45, 0.85, 0.55, 1.0 } },
+			dim = styleutil.makeStyle{ color = { 0.75, 0.75, 0.75, 1.0 } },
+			scope = styleutil.makeStyle{ color = { 0.85, 0.85, 0.85, 1.0 } },
+		}
+	end
+	return stylesCache
+end
+
+local function text(str : string, class? : string, style? : StyleSheet) : TreeNodeId
 	return builtin.TextView{
-		meta = { class = class or "font-scale-body" },
+		meta = { class = class or "font-scale-body", styleSheet = style },
 		text = str,
 	}
 end
@@ -135,6 +180,7 @@ local function checkBox(label : string, value : boolean, onChange : function(boo
 		onValueChange = function(v : integer)
 			local ok, m = try(function() onChange(v == 1) end)
 			if not ok then log.message(LOG_PREFIX .. "ERR checkbox " .. tostring(m)) end
+			applyNow()
 		end,
 	}
 end
@@ -181,6 +227,7 @@ end
 local function selectCargo(c : integer)
 	local ok, m = try(function() overlay.setSelection(c) end)
 	if not ok then log.message(LOG_PREFIX .. "ERR select " .. tostring(m)) end
+	applyNow()
 end
 
 local function cargoList(snap : SupplyGapsSnapshot) : TreeNodeId
@@ -244,11 +291,13 @@ local function scopeLine(snap : SupplyGapsSnapshot) : string
 	return s
 end
 
--- The content's state, set on every render and expired by react once the window is gone.
-local windowState : ReactStateT<SupplyGapsSnapshot> = nil
+-- Only meta (the inline padding / size of this recipe's node, applied by react through
+-- WithComponentParams, as base callout_container.tl:122-127 sets a recipe's meta.styleSheet).
+local record SupplyGapsContentParam is IRecipeParamWithMeta
+end
 
 -- SQPERF sections "window_render" (GUI thread) and "window_poll" (onStepTimer, worker thread).
-local SupplyGapsContent = react.RegisterRecipe("SupplyGapsContent", perf:wrap("window_render", function() : TreeNodeId
+local SupplyGapsContent = react.RegisterRecipe("SupplyGapsContent", perf:wrap("window_render", function(__ : SupplyGapsContentParam) : TreeNodeId
 	local state = engine_react_util.useStepStateTimer(function() : SupplyGapsSnapshot
 		local tPoll = perf:start()
 		local ok, snap = pcall(overlay.snapshot)
@@ -265,20 +314,12 @@ local SupplyGapsContent = react.RegisterRecipe("SupplyGapsContent", perf:wrap("w
 		checkBox(_("Show supply gaps"), snap.on, setShown,
 			_("Mark town buildings that need a cargo and aren't getting it. Saved with the game.")),
 	}
-	if snap.on then
-		local header = scopeLine(snap)
-		if header ~= nil then rows[#rows + 1] = text(header, "font-scale-body, sqsg-scope") end
-		rows[#rows + 1] = cargoList(snap)
-		rows[#rows + 1] = text(summary(snap), "font-scale-annotation, sqsg-summary")
-		rows[#rows + 1] = text(_("Arrow: no stop that delivers the cargo is in range."), "font-scale-annotation, sqsg-legend")
-		if snap.includeStarved then
-			rows[#rows + 1] = text(_("Exclamation: a delivering stop is in range, but the stock has been empty for about 20 s."),
-				"font-scale-annotation, sqsg-legend")
-		end
-	else
-		rows[#rows + 1] = text(_("Tick to mark the town buildings that miss a cargo."), "font-scale-annotation, sqsg-legend")
+	if not snap.on then
+		rows[#rows + 1] = text(_("Tick to mark the town buildings that miss a cargo."), "font-scale-annotation, sqsg-legend, sqsg-wrap",
+			styles().dim)
 	end
-	rows[#rows + 1] = text(_("Options"), "font-scale-body, sqsg-section")
+	-- Options above the cargo list, so they keep their place while the list grows and shrinks.
+	rows[#rows + 1] = text(_("Options"), "font-scale-body, sqsg-section, sqsg-gap", styles().dim)
 	rows[#rows + 1] = checkBox(_("Only towns in view"), snap.scoped, function(on : boolean) overlay.setScoped(on) end,
 		_("Count and mark only the towns on screen. Untick for the whole map."))
 	rows[#rows + 1] = checkBox(_("Include in-range but empty"), snap.includeStarved, function(on : boolean) overlay.setStarved(on) end,
@@ -287,6 +328,18 @@ local SupplyGapsContent = react.RegisterRecipe("SupplyGapsContent", perf:wrap("w
 		_("Under each town name, the share of each district's buildings that get the cargo (the worst three with All needed)."))
 	rows[#rows + 1] = checkBox(_("Count stops without a line"), snap.unlined, function(on : boolean) overlay.setUnlined(on) end,
 		_("Treat cargo stops that no line serves yet as delivering, to preview a new stop's coverage."))
+	if snap.on then
+		local header = scopeLine(snap)
+		if header ~= nil then rows[#rows + 1] = text(header, "font-scale-body, sqsg-scope, sqsg-wrap, sqsg-gap", styles().scope) end
+		rows[#rows + 1] = cargoList(snap)
+		rows[#rows + 1] = text(summary(snap), "font-scale-annotation, sqsg-summary, sqsg-wrap")
+		rows[#rows + 1] = text(_("Yellow arrow: no stop that delivers the cargo is in range."), "font-scale-annotation, sqsg-legend, sqsg-wrap",
+			styles().dim)
+		if snap.includeStarved then
+			rows[#rows + 1] = text(_("Red question mark: a delivering stop is in range, but the stock has been empty for about 20 s."),
+				"font-scale-annotation, sqsg-legend, sqsg-wrap", styles().dim)
+		end
+	end
 	-- The recipe sits in a Window's content: return a layout (memory "Recipe must return layout").
 	return vbox(rows, "sqsg-content")
 end))
@@ -303,7 +356,7 @@ local SupplyGapsWindow = react.RegisterWrapperRecipe("SupplyGapsWindow", builtin
 		closable = true,
 		movable = true,
 		onClose = params.onClose,
-		content = SupplyGapsContent(),
+		content = SupplyGapsContent({ meta = { styleSheet = styles().content } }),
 	}
 end)
 
@@ -369,9 +422,9 @@ local SupplyGapsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area.Ma
 	local on = onState:old() == true
 	return hbox({
 		builtin.Button{
-			meta = { class = on and "sqsg-ridge-button, sqsg-ridge-on" or "sqsg-ridge-button",
+			meta = { class = on and "sqsg-ridge-button, sqsg-ridge-on" or "sqsg-ridge-button", styleSheet = styles().ridge,
 				tooltip = _("Supply Gap Overview: town buildings that miss a cargo") },
-			content = text(on and _("Gaps: on") or _("Gaps")),
+			content = text(on and _("Gaps: on") or _("Gaps"), nil, on and styles().ridgeOn or nil),
 			onClick = toggleWindow,
 		},
 	}, "sqsg-ridge")

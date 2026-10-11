@@ -42,7 +42,7 @@ model.ICON_MIN_OUTPUTS = 2
 -- Both states keep white text (labelFontColor "Default", like the stock pill) and no shippingState
 -- (every base ShippingState except Vehicle is the stock pill's blue, gameplay_colors.gres.lua:13-18).
 -- The background colour that tells them apart comes from our scoped CSS on entryClass
--- (production_label.css.lua): producing = dark green, idle = neutral dark.
+-- (production_label.css.lua): producing = dark green, idle = neutral dark (production-label-neutral).
 model.STYLE_PRODUCING = {
 	labelFontColor = "Default",
 	shippingState = nil,
@@ -52,7 +52,7 @@ model.STYLE_PRODUCING = {
 model.STYLE_IDLE = {
 	labelFontColor = "Default",
 	shippingState = nil,
-	entryClass = "production-label-entry, production-label-idle",
+	entryClass = "production-label-entry, production-label-idle, production-label-neutral",
 }
 
 -- Pickup-rate pill icon: the game bar's Line Manager button (truck + route arrows,
@@ -62,11 +62,12 @@ model.STYLE_IDLE = {
 -- window's "Supplied" column (industry_eow.script.tl:505), a different number.
 model.PICKUP_ICON = "::/gui/game_bar/icons/line_vehicle_manager_30.tga"
 
--- Pickup pills: same white text, neutral dark background like idle (production_label.css.lua).
+-- Pickup pills: same white text, neutral dark background like idle (production-label-neutral,
+-- production_label.css.lua).
 model.STYLE_PICKUP = {
 	labelFontColor = "Default",
 	shippingState = nil,
-	entryClass = "production-label-entry, production-label-pickup",
+	entryClass = "production-label-entry, production-label-pickup, production-label-neutral",
 }
 
 -- Same as base mathutil.round (.cache/game/base/content/scripts/mathutil.lua:1-3), plus guards.

@@ -1,6 +1,6 @@
 {
     "modId": "square_problem_radar",
-    "revision": 5,
+    "revision": 7,
     "severityAdd": "None",
     "severityRemove": "Warning",
     "visible": true,

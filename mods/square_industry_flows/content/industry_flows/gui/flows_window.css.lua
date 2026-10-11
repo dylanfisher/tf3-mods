@@ -18,9 +18,8 @@ function data()
 		gravity = { 0, 0 },
 	})
 
-	a(RIDGE .. " Button!flows-ridge-button", {
-		padding = { 2, 8, 2, 8 },
-	})
+	-- The ridge button's padding { 2, 8, 2, 8 } is inline (flows_window.script.tl RIDGE_BUTTON_PADDING):
+	-- one stylesheet rule less (docs/findings.md "Load crash above ~200 mod stylesheet rules").
 
 	-- Panel at the left edge, a quarter down, so it does not cover the middle of the map where the
 	-- arrows are. gravity places the anchor on screen, anchorPoint is the window's own point
@@ -30,10 +29,6 @@ function data()
 		anchorPoint = { 0, 0 },
 	})
 
-	a(WIN, {
-		padding = { 4, 8, 8, 8 },
-	})
-
 	a(WIN .. " BoxLayout!flows-box", {
 		innerSpacing = { 6, 4 },
 	})
@@ -41,6 +36,7 @@ function data()
 	-- Width like a layer legend (base: #menu.layers.window size { 420, -1 }, layers/layers.css.lua:93-97),
 	-- a bit narrower (wide enough for a name plus a few cargo icons); the height follows the content.
 	a(WIN, {
+		padding = { 4, 8, 8, 8 },
 		size = { 400, -1 },
 	})
 
@@ -48,7 +44,8 @@ function data()
 	a(WIN .. " TextInputField!flows-search", {
 		gravity = { -1, 0 },
 	})
-	a(WIN .. " BoxLayout!flows-header, " .. WIN .. " BoxLayout!flows-type-row", {
+	-- Header and type rows share the class "flows-wide" (one rule instead of two).
+	a(WIN .. " BoxLayout!flows-wide", {
 		gravity = { -1, 0 },
 	})
 	a(WIN .. " Button!flows-clear", {
@@ -65,17 +62,14 @@ function data()
 	})
 
 	-- Cargo icons between the name and the count: tight spacing, vertically centred. The icons are
-	-- 20x20 from the base "text-icon-size-hack" class; the chevron is smaller.
+	-- 20x20 from the base "text-icon-size-hack" class; the chevron also carries "flows-cargo" and is
+	-- 10x10 from an inline size (flows_window.script.tl CARGO_ARROW_SIZE).
 	a(WIN .. " BoxLayout!flows-cargos", {
 		gravity = { 1, 0.5 },
 		innerSpacing = { 2, 0 },
 	})
 	a(WIN .. " ImageView!flows-cargo", {
 		gravity = { 0, 0.5 },
-	})
-	a(WIN .. " ImageView!flows-cargo-arrow", {
-		gravity = { 0, 0.5 },
-		size = { 10, 10 },
 	})
 
 	-- More than SCROLL_ROWS (flows_window.script.tl) matching types: fixed-height scroll list

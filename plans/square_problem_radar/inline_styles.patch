@@ -1,0 +1,455 @@
+diff --git a/mods/square_problem_radar/_metadata/description.html b/mods/square_problem_radar/_metadata/description.html
+index 17e6343..f07e538 100644
+--- a/mods/square_problem_radar/_metadata/description.html
++++ b/mods/square_problem_radar/_metadata/description.html
+@@ -34,7 +34,7 @@
+ <li>New: Upgrade buttons in the fleet window for this vehicle, the line's old vehicles, one model group or the whole fleet. They open the game's own Replace Vehicles window to choose the new model and confirm the price. Replaced vehicles leave the Old and Worn lists (and the Snoozed tab) at once. "Show line" opens the line's window.</li>
+ <li>Changed: the radar window is a little wider, and the rows keep clear of the scrollbar.</li>
+ <li>Changed: vehicle ages and lifespans on Old rows are in calendar years at the current calendar speed, like the Age in the game's vehicle window. With a slower calendar they used to show too many years.</li>
+-<li>Fixed: fewer stylesheet rules (79 → 62), so large mod sets no longer hit the game's load crash (the game crashes on load when mods add too many style rules).</li>
++<li>Fixed: fewer stylesheet rules (79 → 48), so large mod sets no longer hit the game's load crash (the game crashes on load when mods add too many style rules).</li>
+ </ul>
+ <h4>Revision 5 (2026-10-10)</h4>
+ <ul>
+diff --git a/mods/square_problem_radar/content/radar/gui/radar_fleet.tl b/mods/square_problem_radar/content/radar/gui/radar_fleet.tl
+index ac97cd6..5a2eeb6 100644
+--- a/mods/square_problem_radar/content/radar/gui/radar_fleet.tl
++++ b/mods/square_problem_radar/content/radar/gui/radar_fleet.tl
+@@ -22,6 +22,8 @@ local vehicle_util = ug_require "::/gui/line_vehicle_mgmt/vehicle_util.tl" as Ve
+ 
+ local fleet_model = ug_require "square_problem_radar::/radar/gui/radar_fleet_model.tl" as ProblemRadarFleetModel
+ local radar_checks = ug_require "square_problem_radar::/radar/radar_checks.tl" as ProblemRadarChecks
++-- INLINE STYLES (rev 6): StyleSheets that replace radar_hud.css.lua rules (radar_inline.tl).
++local radar_inline = ug_require "square_problem_radar::/radar/gui/radar_inline.tl" as ProblemRadarInline
+ 
+ local M : ProblemRadarFleet = {}
+ 
+@@ -330,7 +332,7 @@ end
+ 
+ local function text(str : string, class? : string) : TreeNodeId
+ 	return builtin.TextView{
+-		meta = { class = class or "font-scale-body" },
++		meta = { class = class or "font-scale-body", styleSheet = radar_inline.text(class) }, -- INLINE STYLES
+ 		text = str,
+ 	}
+ end
+@@ -368,8 +370,8 @@ end
+ 
+ --- A 1 px line across its parent (radar_hud.css.lua !radar-fleet-divider): a styled Component, the base
+ --- way to draw separators (game_bar.tl:1023 builtin.Component{ meta = { class = "separator" } }).
+-local function divider(class? : string) : TreeNodeId
+-	return builtin.Component{ meta = { class = "radar-fleet-divider" .. (class ~= nil and (", " .. class) or "") } }
++local function divider(class? : string, style? : StyleSheet) : TreeNodeId -- INLINE STYLES: style
++	return builtin.Component{ meta = { class = "radar-fleet-divider" .. (class ~= nil and (", " .. class) or ""), styleSheet = style } }
+ end
+ 
+ --- Section title (brighter, a step larger) with a divider under it.
+@@ -391,9 +393,10 @@ end
+ --- TextView (base pattern: manager_window.tl:3890-3898 makeTitleText).
+ local function stat(label : string, value : string, valueClass? : string, tip? : string, big? : boolean) : TreeNodeId
+ 	local font = big and "font-scale-headline" or "font-scale-body"
++	local labelClass = font .. ", radar-col130" .. (big and ", radar-fleet-sum" or "")
+ 	return hbox({
+ 		builtin.TextView{
+-			meta = { class = font .. ", radar-col130" .. (big and ", radar-fleet-sum" or ""), tooltip = tip },
++			meta = { class = labelClass, tooltip = tip, styleSheet = radar_inline.text(labelClass) }, -- INLINE STYLES
+ 			text = label,
+ 		},
+ 		text(value, font .. ", radar-fleet-value" .. (valueClass ~= nil and (", " .. valueClass) or "")),
+@@ -478,7 +481,8 @@ local function groupRow(g : ProblemRadarFleetGroup, i : integer, replaceTip : st
+ 	-- Alternating row backgrounds (radar-fleet-row-odd); the vehicle's own group gets a "›" marker in the
+ 	-- accent colour instead of a coloured name.
+ 	return builtin.Component{
+-		meta = { class = "radar-fleet-row, " .. (i % 2 == 1 and "radar-fleet-row-odd" or "radar-fleet-row-even"), localKey = g.key },
++		meta = { class = "radar-fleet-row, " .. (i % 2 == 1 and "radar-fleet-row-odd" or "radar-fleet-row-even"), localKey = g.key,
++			styleSheet = i % 2 == 1 and radar_inline.fleetRowOdd() or nil }, -- INLINE STYLES
+ 		layout = hbox({
+ 			text(g.hasTarget and "›" or "", "font-scale-body, radar-fleet-mark"),
+ 			text(g.name, "font-scale-body, radar-fleet-model"),
+@@ -504,7 +508,7 @@ local function groupList(view : ProblemRadarFleetView, replaceTip : string) : {T
+ 		text(_("Oldest: age / lifespan"), "font-scale-annotation, radar-fleet-age, radar-dim"),
+ 		text(_("Past lifespan"), "font-scale-annotation, radar-fleet-num, radar-dim"),
+ 	}, "radar-fleet-table-head")
+-	out[#out + 1] = divider("radar-fleet-dim-line")
++	out[#out + 1] = divider("radar-fleet-dim-line", radar_inline.fleetDimLine()) -- INLINE STYLES
+ 	if #rows <= MAX_UNSCROLLED_GROUPS then
+ 		out[#out + 1] = vbox(rows, "radar-fleet-rows")
+ 	else
+@@ -547,7 +551,7 @@ local function actions(view : ProblemRadarFleetView, replaceTip : string) : {Tre
+ 	return out
+ end
+ 
+-local record FleetContentParam
++local record FleetContentParam is IRecipeParamWithMeta -- INLINE STYLES: meta (radar_inline.fleetContent)
+ 	vehicle : integer
+ 	wornAt : number
+ end
+@@ -597,7 +601,8 @@ local ProblemRadarFleetWindow = react.RegisterWrapperRecipe("ProblemRadarFleetWi
+ 		closable = true,
+ 		movable = true,
+ 		onClose = params.onClose,
+-		content = ProblemRadarFleetContent{ vehicle = params.vehicle, wornAt = params.wornAt },
++		content = ProblemRadarFleetContent{ vehicle = params.vehicle, wornAt = params.wornAt,
++			meta = { styleSheet = radar_inline.fleetContent() } }, -- INLINE STYLES
+ 	}
+ end)
+ 
+diff --git a/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua b/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
+index a1d1207..0424eb6 100644
+--- a/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
++++ b/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
+@@ -27,29 +27,17 @@ function data()
+ 	local FLEET = "R::ProblemRadarFleetContent" -- rev 6 fleet window content (radar_fleet.tl)
+ 	local FLEET_WINDOW = "#squareproblemradar.fleet" -- radar_fleet.tl WINDOW_ID
+ 
+-	-- Tier colours: 0 = no alerts (green), 1 critical, 2 warning, 3 info. Shared by HUD and window.
+-	local tierColors = {
+-		[0] = colorDefault.Positive,
+-		[1] = colorDefault.Error,
+-		[2] = colorDefault.Warning,
+-		[3] = colorDefault.Info,
+-	}
+ 	-- Rule budget: the game crashes on load once all active mods add more than ~200 stylesheet rules
+ 	-- (docs/findings.md "Load crash above ~200 mod stylesheet rules"; every comma part is one rule), so
+ 	-- text rules shared by the HUD, the radar window and the fleet window are written once as
+ 	-- "BoxLayout TextView!radar-x": the same shape (two element levels + one class), so the same
+ 	-- specificity, as the per-recipe "R::... TextView!radar-x" rules they replace. Every TextView of ours
+ 	-- sits in a BoxLayout, and the radar-* classes exist only in this mod's trees.
+-	for tier = 0, 3 do
+-		a("BoxLayout TextView!radar-tier-" .. tier, {
+-			color = tierColors[tier],
+-		})
+-	end
+-
+-	-- Dim text (column heads, secondary cells, labels).
+-	a("BoxLayout TextView!radar-dim", {
+-		color = colorDefault.NeutralLight,
+-	})
++	-- INLINE STYLES (rev 6): rules that set only properties an inline StyleSheet has (colour, size,
++	-- padding, background) are gone from this file; radar_inline.tl applies the same values through
++	-- meta.styleSheet: tier colours (radar-tier-0..3), radar-dim, the ridge badge's padding, the radar and
++	-- fleet window contents' size + padding, radar-list-content, radar-fleet-dim-line, radar-fleet-sum,
++	-- radar-money-pos/neg and radar-fleet-row-odd. Revert: plans/square_problem_radar/inline_styles.patch.
+ 
+ 	-- Empty states: radar window "No problems detected" (+ radar-tier-0 colour), fleet window
+ 	-- "This vehicle no longer exists." (+ radar-dim).
+@@ -58,7 +46,7 @@ function data()
+ 	})
+ 
+ 	-- Settings tab range column and the fleet window's card labels: fixed width, wraps (de/ru/fr run
+-	-- ~40% longer). Before the fleet window's radar-fleet-sum rule, which brightens the totals line.
++	-- ~40% longer). The totals line's label is brightened inline (radar-fleet-sum, radar_inline.tl).
+ 	a("BoxLayout TextView!radar-col130", {
+ 		minSize = { 130, -1 },
+ 		maxSize = { 130, -1 },
+@@ -84,10 +72,6 @@ function data()
+ 		margin = { 0, 0, 0, 0 },
+ 	})
+ 
+-	a(HUD .. " Button!radar-badge", {
+-		padding = { 2, 8, 2, 8 },
+-	})
+-
+ 	-- Centre the window like the base finance/company windows: gravity places the anchor at the
+ 	-- middle of the screen, anchorPoint makes that the window's own centre (slightly above).
+ 	-- src: .cache/game/base/content/game_mechanics/finance/finances.css.lua:54-57,
+@@ -97,11 +81,8 @@ function data()
+ 		anchorPoint = { 0.5, 0.55 },
+ 	})
+ 
+-	-- Window content: sensible initial size, dense rows.
+-	a(WIN, {
+-		size = { 1100, 460 }, -- 980 + the snooze button column + (rev 6) the "↑ Upg" column
+-		padding = { 4, 6, 6, 6 },
+-	})
++	-- Window content size (1100 x 460: 980 + the snooze button column + (rev 6) the "↑ Upg" column) and
++	-- padding: radar_inline.tl content.
+ 
+ 	a(WIN .. " BoxLayout!radar-box", {
+ 		innerSpacing = { 8, 2 },
+@@ -129,10 +110,8 @@ function data()
+ 		margin = { 0, 0, 0, 0 },
+ 	})
+ 
+-	-- Rev 6: the alert list's content leaves room for the vertical scrollbar on the right.
+-	a(WIN .. " !radar-list-content", {
+-		padding = { 0, 18, 0, 0 },
+-	})
++	-- Rev 6: the alert list's content leaves room for the vertical scrollbar on the right
++	-- (radar_inline.tl listContent).
+ 
+ 	-- Rev 6: "↑ Upg" (fleet window) after the snooze button on fleet_old / fleet_worn rows, and an
+ 	-- empty cell of the same width on every other row, so the columns stay aligned.
+@@ -261,11 +240,7 @@ function data()
+ 	})
+ 
+ 	-- Rev 6 round 3: the window sizes to its content (no fixed height); 740 px wide fits the two cards
+-	-- (2 × 360) and the model table.
+-	a(FLEET, {
+-		size = { 740, -1 },
+-		padding = { 4, 8, 8, 8 },
+-	})
++	-- (2 × 360) and the model table (radar_inline.tl fleetContent).
+ 
+ 	a(FLEET .. " BoxLayout!radar-box", {
+ 		innerSpacing = { 8, 3 },
+@@ -285,9 +260,7 @@ function data()
+ 		margin = { 0, 0, 4, 0 },
+ 	})
+ 
+-	a(FLEET .. " !radar-fleet-dim-line", {
+-		backgroundColor = colorDefault.BaseLight,
+-	})
++	-- The model table's divider is dimmer (BaseLight): radar_inline.tl fleetDimLine.
+ 
+ 	a(FLEET .. " !radar-fleet-sum-line", {
+ 		margin = { 4, 0, 2, 0 },
+@@ -310,9 +283,7 @@ function data()
+ 
+ 	-- Card lines: dim label column (radar-col130, top of the file), right-aligned values in a fixed
+ 	-- column (textAlignment as keybinding_hint.css.lua:262-268). The totals line's label is brighter.
+-	a(FLEET .. " TextView!radar-fleet-sum", {
+-		color = colorDefault.NeutralLightest,
+-	})
++	-- (radar-fleet-sum: radar_inline.tl, NeutralLightest)
+ 
+ 	a(FLEET .. " TextView!radar-fleet-value", {
+ 		minSize = { 200, -1 },
+@@ -321,14 +292,8 @@ function data()
+ 		textAlignment = { 1, 0.5 },
+ 	})
+ 
+-	-- Money: the game's Ok green above zero, its Negative red below; zero keeps the default text colour.
+-	a(FLEET .. " TextView!radar-money-pos", {
+-		color = colorDefault.Ok,
+-	})
+-
+-	a(FLEET .. " TextView!radar-money-neg", {
+-		color = colorDefault.Negative,
+-	})
++	-- Money: the game's Ok green above zero, its Negative red below; zero keeps the default text colour
++	-- (radar-money-pos/neg: radar_inline.tl).
+ 
+ 	-- Utilization bar (base ProgressBar, builtin.css.lua:1569-1592: 20 px high by default).
+ 	a(FLEET .. " ProgressBar!radar-fleet-usage", {
+@@ -348,9 +313,7 @@ function data()
+ 		padding = { 3, 4, 3, 4 },
+ 	})
+ 
+-	a(FLEET .. " !radar-fleet-row-odd", {
+-		backgroundColor = color_util.withTransparencyRaw(colorDefault.BaseLight, transparency.High),
+-	})
++	-- Odd rows' subtle background: radar_inline.tl fleetRowOdd.
+ 
+ 	a(FLEET .. " TextView!radar-fleet-mark", {
+ 		minSize = { 12, -1 },
+diff --git a/mods/square_problem_radar/content/radar/gui/radar_hud.script.tl b/mods/square_problem_radar/content/radar/gui/radar_hud.script.tl
+index 3456fed..3cc30cb 100644
+--- a/mods/square_problem_radar/content/radar/gui/radar_hud.script.tl
++++ b/mods/square_problem_radar/content/radar/gui/radar_hud.script.tl
+@@ -48,6 +48,8 @@ local radar_checks = ug_require "square_problem_radar::/radar/radar_checks.tl" a
+ -- Rev 6: the fleet window (↑ on fleet_old / fleet_worn rows); it times its sections with this script's perf.
+ local radar_fleet = ug_require "square_problem_radar::/radar/gui/radar_fleet.tl" as ProblemRadarFleet
+ radar_fleet.setPerf(perf)
++-- INLINE STYLES (rev 6): StyleSheets that replace radar_hud.css.lua rules (radar_inline.tl).
++local radar_inline = ug_require "square_problem_radar::/radar/gui/radar_inline.tl" as ProblemRadarInline
+ 
+ -- src: .cache/game/mods/release/urbangames_campaign_mission_08/content/mission/mission_story.tl:891 (mod gs name)
+ local GS_NAME <const> = "square_problem_radar::/radar/radar.gs"
+@@ -207,7 +209,7 @@ end
+ 
+ local function text(str : string, class? : string) : TreeNodeId
+ 	return builtin.TextView{
+-		meta = { class = class or "font-scale-body" },
++		meta = { class = class or "font-scale-body", styleSheet = radar_inline.text(class) }, -- INLINE STYLES
+ 		text = str,
+ 	}
+ end
+@@ -522,7 +524,7 @@ local function alertList(view : ProblemRadarHudView, tab : string) : TreeNodeId
+ 		verticalPolicy = builtin.type.ScrollBarPolicy.AsNeeded,
+ 		-- radar-list-content: right padding so the row ends (→) never sit under the scrollbar.
+ 		content = builtin.Component{
+-			meta = { class = "radar-list-content" },
++			meta = { class = "radar-list-content", styleSheet = radar_inline.listContent() }, -- INLINE STYLES
+ 			layout = vbox(children),
+ 		},
+ 	}
+@@ -815,7 +817,12 @@ local function snoozedFooter(count : integer) : TreeNodeId
+ 	}, "radar-footer")
+ end
+ 
+-local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", perf:wrap("window_render", function() : TreeNodeId
++-- INLINE STYLES: only meta (the content's size + padding, radar_inline.content), applied by react through
++-- WithComponentParams (react.lua:362-373), as Supply Gaps' SupplyGapsContent.
++local record ProblemRadarContentParam is IRecipeParamWithMeta
++end
++
++local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", perf:wrap("window_render", function(__ : ProblemRadarContentParam) : TreeNodeId
+ 	-- The window polls on its own (same hook as the HUD), so it stays live while open.
+ 	-- With commit: a snooze click shows at once (snoozeHandler), polls pause until the event is done.
+ 	local state, commit = engine_react_util.useStepStateTimerWithCommit(getFromEngine, WINDOW_POLL_SECONDS)
+@@ -873,7 +880,7 @@ local ProblemRadarWindow = react.RegisterWrapperRecipe("ProblemRadarWindow", bui
+ 		closable = true,
+ 		movable = true,
+ 		onClose = params.onClose,
+-		content = ProblemRadarContent(),
++		content = ProblemRadarContent({ meta = { styleSheet = radar_inline.content() } }), -- INLINE STYLES
+ 	}
+ end)
+ 
+@@ -919,7 +926,7 @@ end)
+ --- hudMode "badge": "Radar ● 3", dot coloured by the worst tier; click opens the window.
+ local function badge(counts : ProblemRadarHudCounts) : TreeNodeId
+ 	return builtin.Button{
+-		meta = { class = "radar-badge", tooltip = hud_model.compactText(counts.tierCounts) },
++		meta = { class = "radar-badge", tooltip = hud_model.compactText(counts.tierCounts), styleSheet = radar_inline.badge() }, -- INLINE STYLES
+ 		content = hbox({
+ 			text(_("Radar")),
+ 			dot(counts.worstTier),
+diff --git b/mods/square_problem_radar/content/radar/gui/radar_inline.tl b/mods/square_problem_radar/content/radar/gui/radar_inline.tl
+new file mode 100644
+index 0000000..13548c7
+--- /dev/null
++++ b/mods/square_problem_radar/content/radar/gui/radar_inline.tl
+@@ -0,0 +1,97 @@
++-- INLINE STYLES (rev 6, stylesheet rule budget). The game crashes on load once all active mods add more
++-- than ~200 stylesheet rules (docs/findings.md "Load crash above ~200 mod stylesheet rules"), so the
++-- radar_hud.css.lua rules that set only properties an inline StyleSheet has (api gui.d.tl record
++-- StyleSheet: color, size, padding, backgroundColor, ...) moved here, applied through meta.styleSheet
++-- (react.lua:362-373). Each replaces exactly one former rule, on the same element, with the same values
++-- (same colour tables as the .css.lua: default_colors.gres / transparency.gres / color_util), and no
++-- base rule sets those properties on these elements in another state (checked against
++-- .cache/game/base/content/**/*.css.lua: no hover/active variants; our buttons are never disabled).
++-- The radar-* classes stay on the elements (no rule matches them any more).
++-- REVERT (if inline styles turn out to count toward the crash limit): apply
++-- plans/square_problem_radar/inline_styles.patch in reverse (git apply -R).
++-- Every StyleSheet is created once, lazily, in a render (GUI thread), then reused.
++
++local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
++local color_util = ug_require "::/gui/main/color_util.tl" as ColorUtil
++
++local M : ProblemRadarInline = {}
++
++-- Text colour classes in the order of their former rules (equal specificity: the later rule won). No
++-- TextView carries two of them.
++local TEXT_CLASSES <const> = {
++	"radar-tier-0", "radar-tier-1", "radar-tier-2", "radar-tier-3", "radar-dim",
++	"radar-fleet-sum", "radar-money-pos", "radar-money-neg",
++}
++
++local record Sheets
++	text : {string : StyleSheet}
++	badge : StyleSheet
++	content : StyleSheet
++	listContent : StyleSheet
++	fleetContent : StyleSheet
++	fleetDimLine : StyleSheet
++	fleetRowOdd : StyleSheet
++end
++local sheets : Sheets = nil
++
++local function padded(st : StyleSheet, top : number, right : number, bottom : number, left : number) : StyleSheet
++	-- CSS order (top, right, bottom, left); styleutil.makeStyle has no padding.
++	st.padding = api.type.Vec4f.new(top, right, bottom, left)
++	return st
++end
++
++local function get() : Sheets
++	if sheets == nil then
++		local c = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data as {string : {number}}
++		local transparency = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/transparency.gres")).data as {string : number}
++		local function color(col : {number}) : StyleSheet return styleutil.makeStyle{ color = col } end
++		local subtle = color_util.withTransparencyRaw(c.BaseLight as GResColor, transparency.High) as {number}
++		sheets = {
++			text = {
++				-- was "BoxLayout TextView!radar-tier-0..3" / "BoxLayout TextView!radar-dim"
++				["radar-tier-0"] = color(c.Positive),
++				["radar-tier-1"] = color(c.Error),
++				["radar-tier-2"] = color(c.Warning),
++				["radar-tier-3"] = color(c.Info),
++				["radar-dim"] = color(c.NeutralLight),
++				-- was "R::ProblemRadarFleetContent TextView!radar-fleet-sum / radar-money-pos / radar-money-neg"
++				["radar-fleet-sum"] = color(c.NeutralLightest),
++				["radar-money-pos"] = color(c.Ok),
++				["radar-money-neg"] = color(c.Negative),
++			},
++			-- was "R::ProblemRadarHudPlugin Button!radar-badge"
++			badge = padded(api.gui.StyleSheet.new(), 2, 8, 2, 8),
++			-- was "R::ProblemRadarContent"
++			content = padded(styleutil.makeStyle{ size = { 1100, 460 } }, 4, 6, 6, 6),
++			-- was "R::ProblemRadarContent !radar-list-content"
++			listContent = padded(api.gui.StyleSheet.new(), 0, 18, 0, 0),
++			-- was "R::ProblemRadarFleetContent"
++			fleetContent = padded(styleutil.makeStyle{ size = { 740, -1 } }, 4, 8, 8, 8),
++			-- was "R::ProblemRadarFleetContent !radar-fleet-dim-line"
++			fleetDimLine = styleutil.makeStyle{ backgroundColor = c.BaseLight },
++			-- was "R::ProblemRadarFleetContent !radar-fleet-row-odd"
++			fleetRowOdd = styleutil.makeStyle{ backgroundColor = subtle },
++		}
++	end
++	return sheets
++end
++
++function M.text(class : string) : StyleSheet
++	if class == nil or not class:find("radar-", 1, true) then return nil end
++	local has : {string : boolean} = {}
++	for token in class:gmatch("[^,%s]+") do has[token] = true end
++	local st : StyleSheet = nil
++	for __, name in ipairs(TEXT_CLASSES) do
++		if has[name] then st = get().text[name] end
++	end
++	return st
++end
++
++function M.badge() : StyleSheet return get().badge end
++function M.content() : StyleSheet return get().content end
++function M.listContent() : StyleSheet return get().listContent end
++function M.fleetContent() : StyleSheet return get().fleetContent end
++function M.fleetDimLine() : StyleSheet return get().fleetDimLine end
++function M.fleetRowOdd() : StyleSheet return get().fleetRowOdd end
++
++return M
+diff --git a/mods/square_problem_radar/content/radar/radar_types.d.tl b/mods/square_problem_radar/content/radar/radar_types.d.tl
+index 29b59d9..1ebaa84 100644
+--- a/mods/square_problem_radar/content/radar/radar_types.d.tl
++++ b/mods/square_problem_radar/content/radar/radar_types.d.tl
+@@ -879,4 +879,17 @@ global record ProblemRadarFleet
+ 	setPerf : function(perf : any)
+ end
+ 
++--- INLINE STYLES (rev 6, stylesheet rule budget; gui/radar_inline.tl): cached StyleSheets for
++--- meta.styleSheet that replace radar_hud.css.lua rules. GUI thread only (renders).
++global record ProblemRadarInline
++	--- Colour of a TextView from its radar-* text classes (tier, dim, fleet sum / money); nil if none.
++	text : function(class : string) : StyleSheet
++	badge : function() : StyleSheet        -- ridge Button!radar-badge padding
++	content : function() : StyleSheet      -- R::ProblemRadarContent size + padding
++	listContent : function() : StyleSheet  -- the alert list's ScrollArea content padding
++	fleetContent : function() : StyleSheet -- R::ProblemRadarFleetContent size + padding
++	fleetDimLine : function() : StyleSheet -- the model table's dim divider background
++	fleetRowOdd : function() : StyleSheet  -- odd model rows' background
++end
++
+ recordDef = false
+diff --git a/mods/square_problem_radar/tealdef/radar/radar_types.d.tl b/mods/square_problem_radar/tealdef/radar/radar_types.d.tl
+index 29b59d9..1ebaa84 100644
+--- a/mods/square_problem_radar/tealdef/radar/radar_types.d.tl
++++ b/mods/square_problem_radar/tealdef/radar/radar_types.d.tl
+@@ -879,4 +879,17 @@ global record ProblemRadarFleet
+ 	setPerf : function(perf : any)
+ end
+ 
++--- INLINE STYLES (rev 6, stylesheet rule budget; gui/radar_inline.tl): cached StyleSheets for
++--- meta.styleSheet that replace radar_hud.css.lua rules. GUI thread only (renders).
++global record ProblemRadarInline
++	--- Colour of a TextView from its radar-* text classes (tier, dim, fleet sum / money); nil if none.
++	text : function(class : string) : StyleSheet
++	badge : function() : StyleSheet        -- ridge Button!radar-badge padding
++	content : function() : StyleSheet      -- R::ProblemRadarContent size + padding
++	listContent : function() : StyleSheet  -- the alert list's ScrollArea content padding
++	fleetContent : function() : StyleSheet -- R::ProblemRadarFleetContent size + padding
++	fleetDimLine : function() : StyleSheet -- the model table's dim divider background
++	fleetRowOdd : function() : StyleSheet  -- odd model rows' background
++end
++
+ recordDef = false

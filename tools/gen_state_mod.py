@@ -516,7 +516,7 @@ def render(key: str) -> tuple[str, dict[Path, str], list[str]]:
         "modId": mod_id,
         "revision": int(state["revision"]),
         "severityAdd": "None",
-        "severityRemove": "Warning",
+        "severityRemove": "Critical",
         "visible": True,
         "cosmetic": True,
         "runScript": {"fileName": f"{mod_id}::/{mod_id}/mod.script@runFn"},

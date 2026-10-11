@@ -1,0 +1,16 @@
+{
+    "name": "DEV Roundabouts Showcase",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. BUILDS Better Roundabouts combinations on game load by default.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Its defaults BUILD hundreds of constructions 5 s after a game loads: only enable it on a throwaway Blank Slate map. Developer tool for square_roundabouts: on game load (when Run is On) it enumerates Better Roundabouts param combinations, lays them out across the map in a pattern (grid, mosaic, kaleidoscope, mandala, spiral, gradient, checkerboard, scatter), logs the plan and an ASCII preview as [SQRB-SHOW] lines to stdout.txt and, in Build mode, builds every combination the engine accepts. See plans/square_roundabouts_showcase/PLAN.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

@@ -1,55 +1,55 @@
 {
     "name": "Problem Radar",
-    "summary": "Alert window for stuck vehicles, broken or money-losing lines, crowded stations and fleet health.",
-    "description": "Collects stuck vehicles, broken or money-losing lines, crowded stations and fleet problems into one sortable window. Reads the game state only and is safe to add to an existing save.",
+    "summary": "Alert window for stuck vehicles, broken or money-losing lines, crowded stations and fleet upgrades.",
+    "description": "Collects stuck vehicles, broken or money-losing lines, crowded stations and fleet problems into one sortable window, and upgrades old or worn vehicles through the game's Replace Vehicles window. Reads the game state only and is safe to add to an existing save.",
     "localization": {
         "ru": {
             "name": "Problem Radar",
-            "summary": "Окно предупреждений: застрявший транспорт, сломанные или убыточные линии, переполненные остановки."
+            "summary": "Предупреждения: застрявший транспорт, сломанные и убыточные линии, полные остановки, замена парка."
         },
         "de": {
             "name": "Problem Radar",
-            "summary": "Meldefenster für feststeckende Fahrzeuge, defekte oder defizitäre Linien, volle Stationen, Fuhrpark."
+            "summary": "Meldungen: feststeckende Fahrzeuge, defekte oder defizitäre Linien, volle Stationen, Fahrzeugersatz."
         },
         "fr": {
             "name": "Problem Radar",
-            "summary": "Alertes : véhicules bloqués, lignes coupées ou déficitaires, arrêts bondés et état de la flotte."
+            "summary": "Alertes : véhicules bloqués, lignes coupées ou déficitaires, arrêts bondés et flotte à renouveler."
         },
         "es": {
             "name": "Problem Radar",
-            "summary": "Alertas: vehículos atascados, líneas rotas o con pérdidas, paradas abarrotadas y estado de la flota."
+            "summary": "Alertas: vehículos atascados, líneas rotas o con pérdidas, paradas llenas y renovación de flota."
         },
         "it": {
             "name": "Problem Radar",
-            "summary": "Avvisi: veicoli bloccati, linee interrotte o in perdita, fermate affollate e stato della flotta."
+            "summary": "Avvisi: veicoli bloccati, linee interrotte o in perdita, fermate affollate e rinnovo della flotta."
         },
         "nl": {
             "name": "Problem Radar",
-            "summary": "Meldingen: vastgelopen voertuigen, kapotte of verlieslatende lijnen, volle haltes en wagenpark."
+            "summary": "Meldingen: vastgelopen voertuigen, kapotte of verlieslatende lijnen, volle haltes, vlootvernieuwing."
         },
         "pl": {
             "name": "Problem Radar",
-            "summary": "Alerty: zablokowane pojazdy, przerwane lub stratne linie, przepełnione przystanki i stan taboru."
+            "summary": "Alerty: zablokowane pojazdy, przerwane lub stratne linie, przepełnione przystanki i wymiana taboru."
         },
         "pt_BR": {
             "name": "Problem Radar",
-            "summary": "Alertas: veículos presos, linhas quebradas ou com prejuízo, paradas lotadas e saúde da frota."
+            "summary": "Alertas: veículos presos, linhas quebradas ou com prejuízo, paradas lotadas e renovação da frota."
         },
         "ja": {
             "name": "Problem Radar",
-            "summary": "立ち往生した車両、断絶・赤字路線、混雑した駅、車両の状態をまとめた警告ウィンドウ。"
+            "summary": "立ち往生した車両、断絶・赤字路線、混雑した駅をまとめた警告ウィンドウ。古い車両の更新も。"
         },
         "ko": {
             "name": "Problem Radar",
-            "summary": "멈춘 차량, 끊기거나 적자인 노선, 혼잡한 정류장, 차량 상태를 모은 경고 창."
+            "summary": "멈춘 차량, 끊기거나 적자인 노선, 혼잡한 정류장을 모은 경고 창. 낡은 차량 교체도."
         },
         "zh_CN": {
             "name": "Problem Radar",
-            "summary": "汇总受困车辆、中断或亏损线路、拥挤站点和车队状况的警报窗口。"
+            "summary": "汇总受困车辆、中断或亏损线路、拥挤站点的警报窗口，并可更新老旧车辆。"
         },
         "zh_TW": {
             "name": "Problem Radar",
-            "summary": "彙整受困車輛、中斷或虧損路線、擁擠站點與車隊狀況的警報視窗。"
+            "summary": "彙整受困車輛、中斷或虧損路線、擁擠站點的警報視窗，並可汰換老舊車輛。"
         }
     },
     "authors": [

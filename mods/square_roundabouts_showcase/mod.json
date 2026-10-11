@@ -1,0 +1,272 @@
+{
+    "modId": "square_roundabouts_showcase",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": false,
+    "dependencies": [
+        {
+            "mod": {
+                "modId": "square_roundabouts",
+                "revisionMin": -1,
+                "revisionMax": -1
+            },
+            "modInfo": {
+                "displayName": "Better Roundabouts",
+                "url": ""
+            },
+            "loadBefore": true,
+            "optional": false
+        }
+    ],
+    "params": [
+        {
+            "key": "sqrb_show_run",
+            "name": "Run",
+            "tooltip": "DEV ONLY. On (default): on each game load, lays out Better Roundabouts combinations and, in Build mode, BUILDS them at once. Only enable this mod on a throwaway Blank Slate map.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "sqrb_show_mode",
+            "name": "Mode",
+            "tooltip": "Build (default): builds every placement the engine accepts (real roads in this save). Dry run: only logs the layout and an ASCII preview ([SQRB-SHOW] lines in stdout.txt).",
+            "uiType": "Button",
+            "values": [
+                "Dry run",
+                "Build"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "sqrb_show_delay",
+            "name": "Start delay",
+            "tooltip": "Seconds after the game has loaded before the run starts",
+            "uiType": "Button",
+            "values": [
+                "5 s",
+                "15 s",
+                "30 s",
+                "60 s"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqrb_show_batch",
+            "name": "In flight",
+            "tooltip": "Most builds waiting for the engine at once. Pieces closer than 50 m to a build still in flight wait for it, so neighbours are always checked against what is already built. 1 = strictly one after another.",
+            "uiType": "Button",
+            "values": [
+                "1",
+                "2",
+                "4",
+                "8",
+                "16",
+                "32"
+            ],
+            "defaultIndex": 4
+        },
+        {
+            "key": "sqrb_show_entries",
+            "name": "Constructions",
+            "tooltip": "Which Better Roundabouts entries to show",
+            "uiType": "ComboBox",
+            "values": [
+                "All",
+                "Better Roundabouts",
+                "Roundabout Interchange",
+                "Magic Roundabout",
+                "Channelized Junction",
+                "Parclo",
+                "Parclo, two quadrants",
+                "Diamond",
+                "All highway interchanges",
+                "All but highway"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqrb_show_combos",
+            "name": "Combinations",
+            "tooltip": "Showcase: every value of the most visible settings (scale, shape, layout, arms, lanes, island ...) plus scale x shape. Every: all combinations up to the cap (entries in turn). One at a time: each setting's values with the rest at default. Random: a seeded sample.",
+            "uiType": "ComboBox",
+            "values": [
+                "Showcase",
+                "Every combination",
+                "One setting at a time",
+                "Random sample"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqrb_show_cap",
+            "name": "Cap",
+            "tooltip": "With Fill = Repeat: the most constructions placed in total. With Fill = Off: the most distinct combinations (a kaleidoscope places 8 or 16 copies of each).",
+            "uiType": "ComboBox",
+            "values": [
+                "25",
+                "50",
+                "100",
+                "250",
+                "500",
+                "1000",
+                "2000",
+                "5000",
+                "10000"
+            ],
+            "defaultIndex": 6
+        },
+        {
+            "key": "sqrb_show_pattern",
+            "name": "Pattern",
+            "tooltip": "Grid: rows by entry and size. Mosaic: a quilt of blocks by island / lanes. Kaleidoscope 4 / 8: mirrored rings around the centre (traffic side flipped for true mirror images). Mandala: concentric rings. Spiral: golden-angle spiral by size. Size gradient: small to large along the diagonal. Checkerboard: two groups alternate. Scatter: seeded random.",
+            "uiType": "ComboBox",
+            "values": [
+                "Grid",
+                "Mosaic",
+                "Kaleidoscope 4",
+                "Kaleidoscope 8",
+                "Mandala",
+                "Spiral",
+                "Size gradient",
+                "Checkerboard",
+                "Scatter"
+            ],
+            "defaultIndex": 2
+        },
+        {
+            "key": "sqrb_show_gap",
+            "name": "Gap",
+            "tooltip": "Free space between neighbouring constructions, on top of each street's own width and kerbs (and earth slopes of raised roads)",
+            "uiType": "Button",
+            "values": [
+                "0 m",
+                "5 m",
+                "10 m",
+                "20 m",
+                "40 m",
+                "60 m",
+                "100 m",
+                "150 m"
+            ],
+            "defaultIndex": 2
+        },
+        {
+            "key": "sqrb_show_rotation",
+            "name": "Rotation",
+            "tooltip": "Pattern: each pattern's own (grids fixed, rings facing the centre, scatter random). Fixed: 0 degrees. Face centre. Random 90: multiples of 90. Random: any angle.",
+            "uiType": "ComboBox",
+            "values": [
+                "Pattern",
+                "Fixed",
+                "Face centre",
+                "Random 90",
+                "Random"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqrb_show_pos",
+            "name": "Position",
+            "tooltip": "Layout centre: the X / Y settings, or the camera centre (the point the view looks at) when the run starts",
+            "uiType": "Button",
+            "values": [
+                "X / Y",
+                "Camera centre"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqrb_show_x",
+            "name": "Position X (m)",
+            "tooltip": "World x of the layout centre (0 = map centre); Position = X / Y only",
+            "uiType": "Slider",
+            "values": [
+                "-4000",
+                "-2000",
+                "-1000",
+                "-500",
+                "0",
+                "500",
+                "1000",
+                "2000",
+                "4000"
+            ],
+            "defaultIndex": 4
+        },
+        {
+            "key": "sqrb_show_y",
+            "name": "Position Y (m)",
+            "tooltip": "World y of the layout centre (0 = map centre); Position = X / Y only",
+            "uiType": "Slider",
+            "values": [
+                "-4000",
+                "-2000",
+                "-1000",
+                "-500",
+                "0",
+                "500",
+                "1000",
+                "2000",
+                "4000"
+            ],
+            "defaultIndex": 4
+        },
+        {
+            "key": "sqrb_show_radius",
+            "name": "Max radius",
+            "tooltip": "Nothing is placed further than this from the centre",
+            "uiType": "ComboBox",
+            "values": [
+                "1000 m",
+                "2000 m",
+                "3000 m",
+                "4000 m",
+                "6000 m",
+                "8000 m"
+            ],
+            "defaultIndex": 2
+        },
+        {
+            "key": "sqrb_show_seed",
+            "name": "Seed",
+            "tooltip": "Random sample, random rotations and scatter positions (the same seed gives the same layout)",
+            "uiType": "ComboBox",
+            "values": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "10",
+                "11",
+                "12",
+                "13",
+                "14",
+                "15",
+                "16"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqrb_show_fill",
+            "name": "Fill",
+            "tooltip": "Repeat to fill (default): when the combinations run out, place them again (same pattern order; whole orbits in a kaleidoscope) until the cap or the max radius is reached. Off: each combination once.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "Repeat"
+            ],
+            "defaultIndex": 1
+        }
+    ]
+}

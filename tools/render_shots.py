@@ -27,6 +27,7 @@ from hubconfig import MODS_DIR, ROOT  # noqa: E402
 from render_covers import find_chrome, png_size  # noqa: E402
 
 BRANDING = ROOT / "branding"
+MAX_SLIDES = 10  # 19 and 22 failed the Mod Hub upload with mod.io error 13003 FILE_TOO_MANY; 10 worked (docs/findings.md)
 SLIDE_RE = re.compile(r"^(\d+)(?:-[0-9a-f]{8})?$")  # N.png or N-<hash>.png, as modio_sync.py reads them
 
 
@@ -35,9 +36,10 @@ def slide_number(path: Path) -> int | None:
     return int(m.group(1)) if m and path.suffix == ".png" else None
 
 
-def hashed_name(n: int, data: bytes) -> str:
-    """N-<first 8 hex of sha256>.png: modio_sync.py's upload name for this slide."""
-    return f"{n}-{hashlib.sha256(data).hexdigest()[:8]}.png"
+def hashed_name(n: int, data: bytes, count: int) -> str:
+    """N-<first 8 hex of sha256>.png: modio_sync.py's upload name for this slide. N is zero-padded to the width of
+    the slide count (02 of 22): the Mod Hub sorts gallery files as text, so 10-19 showed before 2."""
+    return f"{n:0{len(str(count))}d}-{hashlib.sha256(data).hexdigest()[:8]}.png"
 
 
 def slide_counts() -> dict[str, int]:
@@ -77,6 +79,10 @@ def main() -> None:
             print(f"skip    {mod_id}: no slides in branding/shots.js or no _metadata/")
             failed = failed or bool(args.mods)
             continue
+        if counts[mod_id] > MAX_SLIDES:
+            print(f"skip    {mod_id}: {counts[mod_id]} slides in branding/shots.js, at most {MAX_SLIDES} upload (mod.io 13003)")
+            failed = True
+            continue
         for old in meta.glob("*.png"):
             n = slide_number(old)
             if n is not None and n > counts[mod_id]:
@@ -85,8 +91,8 @@ def main() -> None:
         for n in range(1, counts[mod_id] + 1):
             tmp = meta / f".render-{n}.png"
             render(chrome, mod_id, n, tmp)
-            out = meta / hashed_name(n, tmp.read_bytes())
-            for old in meta.glob(f"{n}*.png"):
+            out = meta / hashed_name(n, tmp.read_bytes(), counts[mod_id])
+            for old in meta.glob("*.png"):
                 if slide_number(old) == n and old != out:
                     old.unlink()
             tmp.replace(out)

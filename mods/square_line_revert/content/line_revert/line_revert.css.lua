@@ -1,6 +1,6 @@
--- Line Editor Undo styles. Every rule is scoped under our own recipes (R::SquareLineRevertButton for Undo,
--- R::SquareLineRedoButton for Redo, line_revert.script.lua makeButtonRecipe), so nothing here touches base UI or
--- other mods. Both buttons get the same rules: each rule is added once per recipe scope. .css.lua files are picked up by extension
+-- Line Editor Undo styles. Every rule is scoped under our own recipe (R::SquareLineRevertButton, used for both Undo
+-- and Redo, line_revert.script.lua makeButtonRecipe), so nothing here touches base UI or other mods. One scope keeps
+-- the rule count low (docs/findings.md "Load crash above ~200 mod stylesheet rules"). .css.lua files are picked up by extension
 -- (docs/wiki/modding/general/resourcetypes.md, "Stylesheets"); layout as mods/square_problem_radar radar_hud.css.lua.
 --
 -- Size: padding and margin come from the base rule for "Button!vehicle-button" (line_vehicle_mgmt.css.lua:594-601),
@@ -15,6 +15,8 @@
 -- No fade: builtin.css.lua:158-160 and :197-199 animate a button's background and text colour over 0.2 s, so the
 -- button showed in full white on mount and then faded to the disabled grey. The base manager switches the same
 -- transitions off for its own buttons with an empty transitionPropertyDuration (line_vehicle_mgmt.css.lua:325-352).
+-- Only the ImageView needs it: the Button's content is the ImageView alone, so no TextView exists (base does the same
+-- for its icon buttons, ImageView only).
 local color_util = require "::/gui/main/color_util.tl"
 local ssu = require "::/gui/main/stylesheetutil.lua"
 
@@ -26,7 +28,8 @@ function data()
 	-- as builtin.css.lua:10
 	local colorDefault = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data
 
-	for _i, BTN in ipairs({ "R::SquareLineRevertButton", "R::SquareLineRedoButton" }) do
+	do
+		local BTN = "R::SquareLineRevertButton"
 		local B = BTN .. " Button!vehicle-button"
 
 		a(B, {
@@ -45,7 +48,7 @@ function data()
 			backgroundColor1 = colorDefault.NeutralMedium,
 			borderColor = colorDefault.Invisible,
 		})
-		a(BTN .. " Button TextView, " .. BTN .. " Button ImageView", {
+		a(BTN .. " Button ImageView", {
 			transitionPropertyDuration = {},
 		})
 	end

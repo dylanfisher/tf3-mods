@@ -63,6 +63,9 @@ local EV_RESET_SETTINGS <const> = "ProblemRadar.resetSettings"
 -- every snooze ({}).
 local EV_SNOOZE <const> = "ProblemRadar.snooze"
 local EV_UNSNOOZE <const> = "ProblemRadar.unsnooze"
+-- Rev 6: after the fleet window's Upgrade ({ vehicles = { <entity>, ... } }): re-read those vehicles now
+-- and drop their fleet_old / fleet_worn alerts that no longer hold (radar_checks.fleetCleared / dropAlerts).
+local EV_RECHECK <const> = "ProblemRadar.recheckVehicles"
 local PREFIX <const> = "[ProblemRadar] "
 -- Notification type: content/radar/notify/radar_notification.{res.lua,script.tl}. The base maps the
 -- type string "<mod>::/<path>.script" to "<path>.res" (notification_util.tl:12-14) and calls
@@ -1300,9 +1303,13 @@ local function scanFleet(s : ProblemRadarState, now : integer, pass : integer) :
 		end
 	end
 
-	-- Game ms per calendar year at default calendar speed (api/util.d.tl:120; sim-side use of the
-	-- api.util durations: base terrain/reforestation.script.tl:25).
-	local yearMs = api.util.getDefaultYearDuration()
+	-- Rev 6: game ms per calendar year at the CURRENT calendar speed, so "Age N/L y" reads like the base
+	-- vehicle window's Age (formatAge uses the current speed); with a slower calendar the default year
+	-- (api/util.d.tl:120) overstated the years. Old/not old compares game ms and is unchanged.
+	-- (sim-side use of the api.util durations: base terrain/reforestation.script.tl:25)
+	local gsp = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.GAME_SPEED) as Engine.Component.GameSpeed
+	local yearMs = radar_checks.calendarYearMs(gsp ~= nil and gsp.millisPerDay or 0, api.util.getYearDuration,
+		api.util.getDefaultYearDuration())
 	local alerts = radar_checks.fleet({
 		vehicles = vehicles,
 		prevIds = prevIds,
@@ -1345,6 +1352,7 @@ local function subscribe(state : GameScriptState<ProblemRadarState>)
 	state:subscribeToEvent(EV_RESET_SETTINGS)
 	state:subscribeToEvent(EV_SNOOZE)
 	state:subscribeToEvent(EV_UNSNOOZE)
+	state:subscribeToEvent(EV_RECHECK)
 end
 
 --- state:set with the change counter bumped (state.seq): the window's poll compares it and skips the
@@ -1641,6 +1649,45 @@ local function doUpdate(state : GameScriptState<ProblemRadarState>, dt : number)
 		slot == #radar_checks.GROUPS)
 end
 
+--- "ProblemRadar.recheckVehicles" { vehicles }: the GUI sends it when the game's Replace Vehicles window
+--- (opened from the fleet window) closes, and once more a few seconds later in case the replace command
+--- had not applied yet. Each vehicle is read like scanFleet does (purchaseAndLifespan, the maintenance
+--- state); the fleet rows that no longer hold are dropped at once instead of lingering until the
+--- vehicle's age slice comes round. Capped at MAX_RECHECK vehicles per event; saved only on a change.
+local MAX_RECHECK <const> = 500
+
+local function handleRecheck(state : GameScriptState<ProblemRadarState>, param : any)
+	if isMapEditor() then return end
+	local p = type(param) == "table" and param as {string : any} or {}
+	local list = type(p.vehicles) == "table" and p.vehicles as {any} or {}
+	local gt = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.GAME_TIME) as Engine.Component.GameTime
+	if gt == nil then return end
+	local s = radar_checks.upgradeState(state:get())
+	local __, wornClear = radar_settings.wornThresholds(s.settings)
+	local ids : {string : boolean} = {}
+	for i, raw in ipairs(list) do
+		if i > MAX_RECHECK then break end
+		local v = type(raw) == "number" and math.floor(raw as number) or nil
+		if v ~= nil then
+			local info : ProblemRadarFleetRecheck = { exists = exists(v) }
+			if info.exists then
+				local tv = getTv(v)
+				if tv ~= nil then
+					local purchase, life = purchaseAndLifespan(tv)
+					if purchase ~= nil then info.ageMs, info.lifespanMs = gt.gameTime - purchase, life end
+				end
+				info.condition = api.engine.util.vehicle.getVehicleMaintenanceState(v)
+			end
+			for __, id in ipairs(radar_checks.fleetCleared(v, info, wornClear)) do ids[id] = true end
+		end
+	end
+	local new, changed = radar_checks.dropAlerts(s, ids)
+	if changed then
+		save(state, new)
+		log.message(PREFIX .. "fleet recheck: dropped rows of replaced vehicles")
+	end
+end
+
 --- handleEvent body (see script.handleEvent).
 local function doHandleEvent(state : GameScriptState<ProblemRadarState>, id : string, name : string, param : any) : any
 	if id == "" then
@@ -1658,6 +1705,8 @@ local function doHandleEvent(state : GameScriptState<ProblemRadarState>, id : st
 		handleSettings(state, name, param)
 	elseif id == EVENT_ID and (name == EV_SNOOZE or name == EV_UNSNOOZE) then
 		handleSnooze(state, name, param)
+	elseif id == EVENT_ID and name == EV_RECHECK then
+		handleRecheck(state, param)
 	end
 end
 

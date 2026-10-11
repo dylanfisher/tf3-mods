@@ -156,7 +156,7 @@ test(".con.lua: params, script references and availability", function()
 	eq(#byKey[K.arms].values, #geom.ARM_LAYOUTS)
 	eq(#byKey[K.armType].values, #geom.ARM_TEMPLATES)
 	eq(byKey.sqrb_arm_length, nil, "no arm length param (fixed length)")
-	eq(byKey[RP].name, "Radius")
+	eq(byKey[RP].name, "Scale", "revision 6: every size row is called Scale (was Radius; same key and values)")
 	-- the defaults match readParams' fallbacks
 	local d = {}
 	for _, p in ipairs(con.params) do d[p.key] = p.defaultIndex or 1 end

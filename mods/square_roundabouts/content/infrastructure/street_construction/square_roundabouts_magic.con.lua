@@ -39,7 +39,7 @@ return toolbar({
 	},
 	description = {
 		name = _("Magic Roundabout"),
-		description = _("Five mini roundabouts around a two-way central ring, like Swindon's Magic Roundabout: traffic can go round either way. Each mini roundabout has one approach road; Size scales the whole layout. Once built, everything is ordinary roads you can edit or connect."),
+		description = _("Five mini roundabouts around a two-way central ring, like Swindon's Magic Roundabout: traffic can go round either way. Each mini roundabout has one approach road; Scale sets the size of the whole layout. Once built, everything is ordinary roads you can edit or connect."),
 		-- own menu icon: square_roundabouts_magic@2x.tga (240x150), rendered by tools/render_icon_square_roundabouts.py
 		icon = "square_roundabouts_magic.tga",
 		-- own hover preview: square_roundabouts_magic_preview@2x.tga (720x405), rendered by tools/render_preview_square_roundabouts.py
@@ -67,7 +67,7 @@ return toolbar({
 	params = {
 		{
 			key = K.size,
-			name = _("Size"),
+			name = _("Scale"),
 			tooltip = _("Size of the whole layout, extra small to extra large:\nthe mini roundabouts (XS 8 m, S 10 m, M 12 m, L 20 m,\nXL 35 m radius) and the central ring between them.\nIt grows if the arm road doesn't fit."),
 			uiType = "Button",
 			displayMode = "Horizontal",
@@ -77,7 +77,7 @@ return toolbar({
 		{
 			key = K.armType,
 			name = _("Arm road"),
-			tooltip = _("Road type of the five approach arms (30 m long).\nWide roads may need a larger size."),
+			tooltip = _("Road type of the five approach arms (30 m long).\nWide roads may need a larger Scale."),
 			uiType = "ComboBox",
 			values = {
 				_("Town, small"), _("Town, medium"), _("Town, large"),
@@ -88,7 +88,7 @@ return toolbar({
 		{
 			key = K.lanes,
 			name = _("Mini roundabout lanes"),
-			tooltip = _("Lanes on each one-way mini roundabout.\n2 lanes need size L or bigger: smaller sizes grow to L.\nThe central ring keeps one lane each way."),
+			tooltip = _("Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way."),
 			uiType = "Button",
 			values = { "1", "2" },
 			defaultIndex = 1,

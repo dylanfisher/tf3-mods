@@ -91,6 +91,33 @@ local game_react_globals = ug_require "::/gui/main/game_react_globals.tl" as Gam
 local table_util = ug_require "::/scripts/table_util.tl" as TableUtil
 local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 
+-- Base colour table (default_colors.gres.lua), read on first use in a render like statistics.tl:202.
+-- Fixed colours of single widgets go inline (meta.styleSheet) instead of into minimap_hud.css.lua:
+-- the game crashes on load above ~200 mod stylesheet rules (docs/findings.md), so the sheet stays small.
+local colorTable : {string : {number}} = nil
+local function colors() : {string : {number}}
+	if colorTable == nil then
+		colorTable = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data as {string : {number}}
+	end
+	return colorTable
+end
+
+--- 24 px white icon on a button (HUD "Icon" style, size toggle): map@2x.tga and zoom@2x.tga are 48x48, 1:1.
+local function icon24Style() : StyleSheet
+	return styleutil.makeStyle{ size = { 24, 24 }, color = colors().NeutralLightest }
+end
+
+--- Shift hover (phase 7): the other types' faded marker. Overrides the minimap-industry-icon rule's tile
+--- (BaseDark at 0.75) with a fainter one and fades the cargo icon through the tint's alpha.
+local function mutedIconStyle(size : integer) : StyleSheet
+	local tile = colors().BaseDark
+	return styleutil.makeStyle{
+		size = { size, size },
+		color = { 1, 1, 1, 0.25 },
+		backgroundColor = { tile[1], tile[2], tile[3], 0.2 },
+	}
+end
+
 local geom = ug_require "square_better_minimap::/minimap/minimap_geom.tl" as SquareMinimapGeom
 local net = ug_require "square_better_minimap::/minimap/minimap_net.tl" as SquareMinimapNet
 local netscan = ug_require "square_better_minimap::/minimap/minimap_netscan.tl" as SquareMinimapNetScan
@@ -148,8 +175,8 @@ local SIZE_LABELS : {string} = { "S", "L" } -- log only; the button shows SIZE_I
 -- Size toggle icon: our own tight white magnifier mask (zoom@2x.tga, 48x48, rendered by
 -- tools/render_icon_square_better_minimap.py; loaded by the plain name like cam_arrow). The base
 -- magnifier (gui/line_vehicle_mgmt/icons/inspector@2x.tga) has its glyph in only the middle 40% of
--- the image and read as a ~9 px dot at 22 UI px in game (2026-10-10). Tinted and sized in the
--- stylesheet (ImageView!minimap-size-icon).
+-- the image and read as a ~9 px dot at 22 UI px in game (2026-10-10). Tinted and sized inline
+-- (icon24Style).
 local SIZE_ICON <const> = "square_better_minimap::/minimap/gui/zoom.tga"
 -- Top-bar button in the "Icon" style (mod.json hudButtonStyle): folded-map mask, map@2x.tga 48x48
 -- (tools/render_icon_square_better_minimap.py), shown at 24 UI px like the base layers icon.
@@ -358,11 +385,19 @@ local record RevState
 	terrain : {integer : {integer, integer}}
 	towns : {integer : {integer, integer}}
 	industries : {integer : boolean}
+	bounds : {number} -- terrain bounding box: the map editor can resize the map
+	heights : {number} -- base height on a HEIGHT_GRID x HEIGHT_GRID grid
 end
+
+local HEIGHT_GRID <const> = 9 -- 81 getBaseHeightAt calls per check
 
 --- map_editor.tl:308-323 (terrain entity revisions + town revisions), plus the set of industries
 --- (INDUSTRY component: mission_savegame_util.tl:39). Industry revisions are not used: they change
 --- with production all the time; only founding/removing one changes the picture.
+--- The terrain bounds catch a map editor resize (the box drives every world <-> picture mapping).
+--- The height grid catches the map editor's Generate Heightmap: makeWorldReplaceTerrainCmd leaves the
+--- terrain entity revisions unchanged (in game 2026-10-10: no rebuild after Generate). Base height,
+--- not getHeightAt: construction alignments would rebuild on every station placed.
 local function readRevState() : RevState
 	local terrain : {integer : {integer, integer}} = {}
 	for e, r in pairs(api.engine.terrain.getTerrainEntityRevisions()) do
@@ -377,7 +412,27 @@ local function readRevState() : RevState
 	api.engine.forEachEntityWithComponent(function(e : Engine.Entity)
 		industries[e as integer] = true
 	end, api.type.ComponentType.INDUSTRY)
-	return { terrain = terrain, towns = towns, industries = industries }
+	local bb = api.engine.terrain.getBoundingBox()
+	local bounds = { bb.min.x, bb.min.y, bb.max.x, bb.max.y }
+	local heights : {number} = {}
+	local w, h = bb.max.x - bb.min.x, bb.max.y - bb.min.y
+	for i = 0, HEIGHT_GRID - 1 do
+		for j = 0, HEIGHT_GRID - 1 do
+			local p = api.type.Vec2f.new(bb.min.x + w * (i + 0.5) / HEIGHT_GRID, bb.min.y + h * (j + 0.5) / HEIGHT_GRID)
+			heights[#heights + 1] = api.engine.terrain.getBaseHeightAt(p)
+		end
+	end
+	return { terrain = terrain, towns = towns, industries = industries, bounds = bounds, heights = heights }
+end
+
+--- Which parts of two RevStates differ, for the rebuild log line.
+local function revDiff(a : RevState, b : RevState) : string
+	if a == nil or b == nil then return "first read" end
+	local parts : {string} = {}
+	for _i, k in ipairs({ "terrain", "towns", "industries", "bounds", "heights" }) do
+		if not table_util.deepEquals((a as table)[k], (b as table)[k]) then parts[#parts + 1] = k end
+	end
+	return table.concat(parts, "+")
 end
 
 local function countList(list : any) : integer
@@ -877,7 +932,15 @@ local MinimapPreview = react.RegisterRecipe("MinimapPreview", perf:wrap("preview
 		return vbox({
 			builtin.Component{
 				meta = { styleSheet = styleutil.makeStyle{ size = { params.w, params.h } } },
-				layout = vbox({ text(_("Loading map..."), "font-scale-annotation, minimap-status") }),
+				layout = vbox({ builtin.TextView{
+					-- Colour inline (meta.styleSheet), not a stylesheet rule: mod rules are capped (docs/findings.md
+					-- "Load crash above ~200 mod stylesheet rules").
+					meta = {
+						class = "font-scale-annotation, minimap-status",
+						styleSheet = styleutil.makeStyle{ color = colors().NeutralLight },
+					},
+					text = _("Loading map..."),
+				} }),
 			},
 		})
 	end
@@ -991,7 +1054,9 @@ local MinimapMarkerIcons = react.RegisterRecipe("MinimapMarkerIcons", perf:wrap(
 				meta = {
 					class = muted and "minimap-industry-icon, minimap-industry-muted" or "minimap-industry-icon",
 					tooltip = m.name,
-					styleSheet = styleutil.makeStyle{ size = { size, size } },
+					-- Shift hover (phase 7): the faded look of the other types inline (an inline style beats the
+					-- minimap-industry-icon rule; base: vehicle.tl:100-105 bubble backgroundColor1).
+					styleSheet = muted and mutedIconStyle(size) or styleutil.makeStyle{ size = { size, size } },
 				},
 				scaling = builtin.type.ImageViewScaling.AutoFit,
 				path = m.icon,
@@ -1813,7 +1878,13 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", perf:wrap("overlay
 			children[#children + 1] = layerAt("minimap_cam_box_" .. posKey, bl, bt, bw, bh, params.w, params.h, builtin.Component{
 				meta = {
 					class = "minimap-cam-box",
-					styleSheet = styleutil.makeStyle{ size = { bw, bh } },
+					-- Hollow rectangle, styled inline (no stylesheet rule; mod rules are capped).
+					styleSheet = styleutil.makeStyle{
+						size = { bw, bh },
+						borderWidth = { 2, 2, 2, 2 },
+						borderColor = colors().Warning,
+						backgroundColor = colors().Invisible,
+					},
 				},
 				mouseTransparent = true,
 			})
@@ -1827,7 +1898,8 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", perf:wrap("overlay
 				al, at, ARROW_PX, ARROW_PX, params.w, params.h, builtin.ImageView{
 				meta = {
 					class = "minimap-cam-arrow",
-					styleSheet = styleutil.makeStyle{ size = { ARROW_PX, ARROW_PX } },
+					-- White, untinted (its dark halo is baked into the icon).
+					styleSheet = styleutil.makeStyle{ size = { ARROW_PX, ARROW_PX }, color = colors().NeutralLightest },
 				},
 				path = ARROW_ICON,
 				scaling = builtin.type.ImageViewScaling.AutoFit, -- 16 UI px icon (32 px @2x) at ARROW_PX: 1:1
@@ -2140,7 +2212,7 @@ local MinimapSizeButton = react.RegisterRecipe("MinimapSizeButton", function() :
 	return hbox({
 		builtin.Button{
 			meta = { class = "minimap-size-button", tooltip = _("Toggle the map size: small / large") },
-			content = builtin.ImageView{ meta = { class = "minimap-size-icon" }, path = SIZE_ICON },
+			content = builtin.ImageView{ meta = { class = "minimap-size-icon", styleSheet = icon24Style() }, path = SIZE_ICON },
 			onClick = function()
 				if cycleSizeFn ~= nil then cycleSizeFn() end
 			end,
@@ -2262,7 +2334,11 @@ local function filterCargoIcons(t : SquareMinimapFilterType) : TreeNodeId
 	local icons : {TreeNodeId} = {}
 	for __, c in ipairs(t.inputs) do icons[#icons + 1] = filterCargoIcon(c) end
 	if #t.inputs > 0 and #t.outputs > 0 then
-		icons[#icons + 1] = builtin.ImageView{ meta = { class = "minimap-filter-cargo-arrow" }, path = CARGO_ARROW_ICON }
+		-- Shares the cargo icons' class (gravity rule); its 10 px size inline.
+		icons[#icons + 1] = builtin.ImageView{
+			meta = { class = "minimap-filter-cargo, minimap-filter-cargo-arrow", styleSheet = styleutil.makeStyle{ size = { 10, 10 } } },
+			path = CARGO_ARROW_ICON,
+		}
 	end
 	for __, c in ipairs(t.outputs) do icons[#icons + 1] = filterCargoIcon(c) end
 	return hbox(icons, "minimap-filter-cargos")
@@ -2298,7 +2374,7 @@ local function filterTypeRow(t : SquareMinimapFilterType, selected : boolean, on
 		},
 		filterCargoIcons(t),
 		text(tostring(t.count), "font-scale-body, minimap-filter-count"),
-	}, "minimap-filter-row")
+	}, "minimap-filter-row, minimap-filter-fill")
 end
 
 local MinimapFilterContent = react.RegisterRecipe("MinimapFilterContent", perf:wrap("filter_render", function() : TreeNodeId
@@ -2333,7 +2409,7 @@ local MinimapFilterContent = react.RegisterRecipe("MinimapFilterContent", perf:w
 
 	-- Search: base search field as Industry Flows (statistics_react_util.tl:167-183: value + onTyping + onValueChange).
 	rows[#rows + 1] = builtin.TextInputField{
-		meta = { class = "font-scale-body, search, minimap-filter-search" },
+		meta = { class = "font-scale-body, search, minimap-filter-search, minimap-filter-fill" },
 		placeholderText = _("Search industries or cargo..."),
 		value = query,
 		onTyping = withQuery,
@@ -2356,7 +2432,7 @@ local MinimapFilterContent = react.RegisterRecipe("MinimapFilterContent", perf:w
 				setFilter({}, "window show all")
 			end,
 		},
-	}, "minimap-filter-header")
+	}, "minimap-filter-header, minimap-filter-fill")
 
 	local typeRows : {TreeNodeId} = {}
 	local onMap : {string : boolean} = {}
@@ -2370,9 +2446,9 @@ local MinimapFilterContent = react.RegisterRecipe("MinimapFilterContent", perf:w
 		rows[#rows + 1] = text(empty, "font-scale-annotation, minimap-filter-hint")
 	elseif #typeRows > FILTER_SCROLL_ROWS then
 		-- ScrollArea content must be a Component, not a layout (memory "ScrollArea content is a
-		-- Component"; base: entity_window_util.tl:715-721). Height from the stylesheet.
+		-- Component"; base: entity_window_util.tl:715-721). Height inline, full width from the stylesheet.
 		rows[#rows + 1] = builtin.ScrollArea{
-			meta = { class = "minimap-filter-types" },
+			meta = { class = "minimap-filter-types, minimap-filter-fill", styleSheet = styleutil.makeStyle{ size = { -1, 220 } } },
 			content = builtin.Component{
 				layout = vbox(typeRows, "minimap-filter-list"),
 			},
@@ -2403,6 +2479,7 @@ MinimapFilterWindow = react.RegisterWrapperRecipe("MinimapFilterWindow", builtin
 		logm("filter window unmounted")
 	end)
 	return builtin.Window{
+		meta = { class = "minimap-window" }, -- stylesheet Window!minimap-window (anchor)
 		id = FILTER_WINDOW_ID,
 		title = _("Industry filter"),
 		closable = true,
@@ -2472,8 +2549,9 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 		if not isShown() then return end
 		local revs = readRevs()
 		if revs ~= nil and not table_util.deepEquals(revs, revsRef:get()) then
+			local what = revDiff(revsRef:get(), revs)
 			revsRef:set(revs)
-			rebuild("game changed")
+			rebuild("changed: " .. what)
 		end
 	end)
 
@@ -2749,6 +2827,7 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, per
 	-- Undocumented in builtin.d.tl but used by both base pinnable windows (view_manager.tl:318-322,
 	-- music_player.tl:278-280): a window the player moved counts as pinned.
 	local extra = winParams as {string : any}
+	extra.meta = { class = "minimap-window" } -- stylesheet Window!minimap-window (anchor)
 	extra.onMovedChange = function()
 		windowMoved = true
 		setPinned(true)
@@ -2841,7 +2920,7 @@ end
 -- SQPERF section "hud_render" (first: the first render after a load).
 local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "MinimapHudPlugin", perf:wrap("hud_render", function() : TreeNodeId
 	-- Hooks first, unconditionally (same order as square_problem_radar's plugin).
-	local isMapEditorRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean return api.gui.game.isMapEditor() end)
+	-- Also mounts in the map editor (game.tl mounts MainModButtonArea there too).
 	-- mod.json hudButtonStyle: { "Text", "Icon" }; read once per mount (mod params are fixed per game).
 	local hudIconRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean
 		local v = modParam("hudButtonStyle")
@@ -2854,21 +2933,17 @@ local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainMod
 	-- always mounted and visible, unlike the window.
 	react.onStep(function()
 		if not guardDue() then return end
-		if isMapEditorRef:get() then return end
 		local tPerf = perfStep:start()
 		guardTick()
 		perfStep:stop("guard", tPerf)
 	end)
-	if isMapEditorRef:get() then
-		return nil
-	end
 	-- A plugin root must be a layout (MainModButtonArea mounts plugins as BoxLayout children).
 	local button : TreeNodeId
 	if hudIconRef:get() then
 		-- "Icon" style: map icon on the base's dark button tile (stylesheet minimap-hud-icon-button).
 		button = builtin.Button{
 			meta = { class = "minimap-hud-icon-button", tooltip = _("Show or hide the minimap") },
-			content = builtin.ImageView{ meta = { class = "minimap-hud-icon" }, path = HUD_ICON },
+			content = builtin.ImageView{ meta = { class = "minimap-hud-icon", styleSheet = icon24Style() }, path = HUD_ICON },
 			onClick = toggleWindowClick,
 		}
 	else

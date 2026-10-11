@@ -104,6 +104,32 @@ test("radius tooltips list the preset radii of the geometry tables", function()
 	end
 end)
 
+test("every entry has a size row called Scale: a Button row, no slider (revision 6)", function()
+	local geom = ug_require(SC .. "square_roundabouts_geometry.lua")
+	local magic = ug_require(SC .. "square_roundabouts_magic.lua")
+	local ch = ug_require(SC .. "square_roundabouts_channel.lua")
+	local ix = ug_require(SC .. "square_roundabouts_interchange.lua")
+	local hx = ug_require(SC .. "square_roundabouts_highway.lua")
+	local keys = {
+		["square_roundabouts.con.lua"] = geom.RADIUS_PRESET_KEY,
+		["square_roundabouts_magic.con.lua"] = magic.PARAM_KEYS.size,
+		["square_roundabouts_channel.con.lua"] = ch.PARAM_KEYS.scale,
+		["square_roundabouts_interchange.con.lua"] = ix.RADIUS_PRESET_KEY,
+		["square_roundabouts_highway_parclo.con.lua"] = hx.PARAM_KEYS.size,
+		["square_roundabouts_highway_parclo2.con.lua"] = hx.PARAM_KEYS.size,
+		["square_roundabouts_highway_diamond.con.lua"] = hx.PARAM_KEYS.size,
+	}
+	for _, file in ipairs(ENTRIES) do
+		local con = loadFresh(file)
+		local p = paramByKey(con, keys[file])
+		ok(p ~= nil, file .. ": size row " .. tostring(keys[file]))
+		eq(p.name, "Scale", file); eq(p.uiType, "Button", file); eq(p.displayMode, "Horizontal", file)
+		for _, q in ipairs(con.params) do
+			if q ~= p then ok(q.name ~= "Radius" and q.name ~= "Size", file .. " " .. q.key .. ": no other size row") end
+		end
+	end
+end)
+
 test("highway Scale tooltips list hx.LOOP_RADII / hx.TERMINAL_DISTANCES", function()
 	local hx = ug_require(SC .. "square_roundabouts_highway.lua")
 	local function orList(list)

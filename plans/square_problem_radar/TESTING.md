@@ -247,10 +247,70 @@ Turn on **DEV SQPERF: all mods** (or the mod's *Debug: performance log*) for the
 - [ ] **Rotation:** with > 8 lines, `print(s.rt.lineCursor)` every few seconds walks up through the line ids and wraps (not stuck near the lowest ids).
 - [ ] **Write cost:** in the `ctx=gs` window lines compare `state_get n= ms=` with `state_set n= ms=`; `stateSet c=` all writes, `stateSetQuiet c=` the ones only bookkeeping changed (mostly lines and vehicles passes). Report both on the big save; `make perf` sums them.
 
+## 13. Rev 6: fleet window and Upgrade (FLEET_UPGRADE.md)
+
+**Verified in game (2026-10-10, first build):** "Upgrade …" opens the game's Replace Vehicles window and replacing
+works; `↑` renders. Found then and fixed since: the `↑` button after the metric was clipped by the scrollbar
+(Old rows: only a dot visible), the fleet window was translucent over the radar window, and replaced vehicles'
+Old / Worn rows lingered ~10 s. Re-check those three below.
+
+Setup: a bus line with 4+ buses of one model and 1-2 of another model, and a train line with two trains of
+different compositions. Make some vehicles old or worn quickly: Settings → Fleet → **Worn** at 99 %, or a save
+with vehicles past their lifespan (the Old row's `Age N y` detail). Fleet rows show up in the Fleet tab.
+
+- [ ] **Row button:** Old and Worn rows have `↑ Upg` (translated: de `↑ Erneu.`, ja `↑ 更新`, …) directly after
+  Zz; every other row has an empty cell of the same width there, so the tier/kind/… columns line up across all
+  rows (All tab with mixed kinds). Nothing is clipped on the right: the metric and the `→` of Blocked rows sit
+  left of the scrollbar, also on Old rows with "Age 41/15 y, past its lifespan · 274%". Window 1100 px wide.
+- [ ] **Window:** `↑ Upg` opens "Fleet: <line name>" (the vehicle's name when it has no line), a bit right of
+  the middle, movable and closable, with an **opaque** background (the radar window does not show through).
+  `↑ Upg` on a row of another line re-targets it; on the same vehicle it only comes to the front. No
+  `[ProblemRadar] fleet window read failed` line in the log.
+- [ ] **Look (round 3 redesign):** the window is ~740 px wide and only as tall as its content (no empty area
+  below). Top: two cards side by side with a subtle panel background, "Line" on the left, "Last 12 months" on the
+  right; each title is larger/brighter with a thin line under it; values sit right-aligned in a column. Income
+  and a positive Balance are **green**, costs and a negative Balance **red**, a $0 value plain white; nothing
+  non-clickable is blue. Balance is larger, with a line above it. Utilization has a thin bar with the % under the
+  "N of M on board now" text. Past lifespan / Worn counts and the Average age ("N y · lifespan L y") turn
+  golden (warning) when they apply. "Fleet by model": dim header with a line under it, alternating row shading,
+  the vehicle's own model marked with `›`, past-lifespan count and oldest age golden when > 0. More than 6 models
+  scroll in a 260 px area. "Upgrade" section last: "Upgrade old vehicles (N)…" (or "Upgrade this vehicle…" when
+  there are none) is the filled primary button, the others outlined, "Show line" last, the dim hint under them.
+  Report with a screenshot (de/ru too: labels wrap inside the 130 px label column, nothing cut).
+- [ ] **Ages match the base vehicle window:** a vehicle's own Age in its vehicle window vs. the Old row's "Age N/L
+  y" and the fleet window's oldest / average age. Ages are now calendar years at the current calendar speed (the
+  unit of the vehicle window's Age); they used to be default-speed years, which over-state the age with a slower
+  calendar. Note the calendar speed you play with. If they still differ, report the vehicle, both numbers and
+  the game year.
+- [ ] **Stats match the base line window** (open it with **Show line**): Vehicles, Capacity, Utilization (current
+  %), Frequency (`m:ss`), Transported per year, Balance (12 months). Income + Running Costs + Maintenance = Balance
+  (costs negative, red). Report each pair of numbers.
+- [ ] **Fleet by model:** one row per composition, the vehicle's own model first (blue name), then by count.
+  Trains read like `Loco + 6× Wagon`. Oldest `N of L y` matches the oldest vehicle's age / lifespan.
+- [ ] **Rows go at once after a replace:** "Upgrade old vehicles (N)…" (or a group's "Upgrade N…"), confirm in the
+  Replace window. Within ~1 s (one window poll) those vehicles' Old / Worn rows leave the radar list and the
+  tab counts drop; the log shows `[ProblemRadar] fleet recheck: dropped rows of replaced vehicles` (once, or a
+  second time ~3 s later if the first came too early). The ridge badge count drops within ~1 s too. Rows do
+  **not** come back on the next fleet passes. Cancel the Replace window instead: nothing disappears.
+- [ ] **Multi-replace:** a group's "Upgrade N…" opens Replace with N vehicles (price for N). "Upgrade old vehicles
+  (N)…" only when every old vehicle is one model (and isn't just this vehicle); otherwise group rows get "Upgrade
+  old (N)…". "Upgrade whole fleet (N)…" for the bus line with mixed models, **not** for the train line with two
+  compositions.
+- [ ] **Train line:** "Upgrade N…" on a train group replaces both trains with the chosen composition. Report how
+  the window handles a multiple unit.
+- [ ] **Vehicle sold:** sell the vehicle the window was opened for: within ~2 s it says "This vehicle no longer
+  exists." A row whose vehicle id was reused does nothing on `↑ Upg`.
+- [ ] **No line:** a vehicle without a line: "This vehicle is not on a line.", only that vehicle, no Show line.
+- [ ] **Layout:** in German and Russian the row button label fits its 78 px cell, the stats labels wrap, the group
+  rows fit, the Upgrade buttons wrap to a second row instead of being cut off. CJK: no boxes.
+- [ ] **SQPERF** (debug log on): `fleet_render`, `poll_fleet`, `click_fleet_open`, `click_fleet_replace` in the
+  `ctx=gui` lines; `poll_fleet` well under 16 ms on a 100-vehicle line; `poll_window` not noticeably slower in
+  the 30 s after a replace.
+
 ## Report back
 
 - Which checks passed, which failed, with screenshots of layout issues.
-- The API answers from §10 and §11 (numbers, not just "works").
+- The API answers from §10, §11 and §13 (numbers, not just "works"), especially whether `replaceVehicles` opened the game's Replace window.
 - FPS numbers from §7 and the save's size (vehicles, lines, stations).
 - Thresholds that felt wrong (false positives matter most: the radar should stay quiet on a healthy network).
 - Every `[ProblemRadar]` log line.

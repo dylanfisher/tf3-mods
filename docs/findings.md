@@ -644,6 +644,23 @@ to fit). The Mod Hub "My Mods" page for that staging mod still showed the Englis
   documented, so we avoid them.
 - Pending: whether `strings.json` changes in the staging area apply live or need a game restart.
 
+## A save whose name set is gone crashes on the next new name (2026-10-10)
+
+- A save stores its name set as a resource path in the config dict (`nameList: square_names_us_washington::/names/...`).
+  If the mod that ships it is turned off, **the save still loads without any warning**, but the first time the game
+  needs a new name it hits `ResTypeRep.h:233 Get: Assertion '(iindex)>(-1)'` ("Actual: -1 <= -1"), a fatal error, and
+  writes a crash save. The game looks the set up by path and uses the "not found" index -1 without falling back to a default.
+- Evidence: "Blank Slate" (made with `square_names_us_washington`) loaded with only `square_roundabouts` crashed twice
+  (20:11:15Z, 20:12:29Z), each about 2 s after opening construction menu → Roads (UI path `action-constructionbuilder`,
+  `tool-construction-menu-roads`), i.e. on the first preview that creates streets. The same mod set on "Test Area"
+  (`::/names/europe/europe.names`) worked. Earlier loads of Blank Slate had the Washington mod active and worked.
+  The roundabout construction itself was not the cause: every template, bridge and model it names resolves.
+- No mod code can prevent it (the mod is absent when it fires). Every mod that ships a `.names.lua` set needs
+  `severityRemove: "Critical"` and a "never remove it from a game started with this set" note. Turning the mod back on
+  fixes the save. The state names generator sets both from revision 6.
+- When debugging a `ResTypeRep` `Get` assert, compare the save's config dict (`Loading config from file`, `nameList`,
+  `climate`, `economy`) with the active mods first.
+
 ## Mod Hub uploads and the mod.io gallery (2026-10-10)
 
 - A Hub update uploads every slide in `_metadata/`, whatever its name: `N.png` and `N-<hash>.png` both show up
@@ -658,3 +675,97 @@ to fit). The Mod Hub "My Mods" page for that staging mod still showed the Englis
 - The same Hub upload sent the new `description.html` (rev 3 changelog entry) to mod.io. Earlier Hub updates
   seemed to leave the description old; the cause is unknown (maybe a description edited while the game was
   running, or mod.io's scan delay). Check with `make modio ARGS=--diff` after an upload.
+- The Hub's gallery strip sorts `_metadata` slides by file name as text: with 22 slides it showed 1, 10, 11 … 19,
+  2, 20 (Roundabouts, screenshot 2026-10-10). `make shots` now zero-pads the number when a mod has 10 or more
+  slides (`01-<hash>.png`), and `make modio` uploads under those same names.
+- **Too many gallery images fail the Hub upload.** Roundabouts with 22 slides, then 19 (plus `0.png`), failed in the
+  Hub with "Uploading gallery images: Unknown ApiError error (Error Code: 13003)", which mod.io's error list
+  (docs.mod.io/restapi/errors) names `FILE_TOO_MANY`. The 9-slide gallery uploaded fine. The limit isn't documented;
+  it may count the old gallery images on mod.io too (9 there at the time). Cut to 10, the Hub upload worked
+  (2026-10-10). `make shots` now refuses more than 10 slides per mod.
+
+## Firing base react events from a mod: `replaceVehicles` (verified in game 2026-10-10)
+
+- **Verified in game (2026-10-10, Problem Radar rev 6 from the staging area):** a mod GUI script's button
+  click that fires `react.fireEvent(nil, "replaceVehicles", VehicleStoreEventParam{vehicleEntities, carrier,
+  transportModes, filterTags})` opens the game's own **Replace Vehicles** window, and replacing from it works
+  (`mods/square_problem_radar/content/radar/gui/radar_fleet.tl` replaceVehicles). It is the exact call of the
+  vehicle window's Replace button (`base/content/gui/entity_window/vehicle/vehicle.tl:445-462`); the listener is
+  `react.onEvent("replaceVehicles", ...)` in `vehicle_store_window.tl:4895`. `react.fireEvent` is the native
+  `api.gui.react.fireEvent` (`gui/main/react.lua:825`) and reaches base listeners from a mod.
+- The param's `onClose` runs on accept (after `vehicle_react_util.HandleVehicleChanges` has sent the
+  `makeVehicleReplaceCmd` commands, `vehicle_store_window.tl:4654-4674, 4919-4925`) and on cancel. Replace keeps
+  the vehicle entity (`makeVehicleReplaceCmd(entity, config)`, `vehicle_react_util.tl:405-408`). Problem Radar
+  uses `onClose` to send a recheck event to its game script. Pending: whether the replace has applied by the
+  time that event is handled (the mod re-sends it after 3 s to be safe).
+- `fireEvent` returns nothing, so a missing listener can't be detected.
+- GUI font glyphs (checked offline with fontTools on `base/content/locale.zip`): Lato (`locale/Lato2OFL/`) has
+  `↑ → × ● · – …` but **not** `⇧ ▲ ⬆ △`; Noto Sans CJK has all of them. That matches the HUD showing `▲` as `?`.
+  **Verified in game (2026-10-10):** `↑` renders in the radar window's row buttons. Use `↑` for an "upgrade"
+  button; pending: whether window text falls back to Noto for `⇧`/`▲`.
+- Window background: the default `Window` rule uses `BaseDarkMedium` with transparency `VeryLow`
+  (`gui/main/builtin.css.lua:16, 1946-1953`), so a window over another one lets it show through. The base dialogs
+  set `backgroundColor1 = colorDefault.BaseDarkMedium` (opaque, `popover_react_util.css.lua:10-12`); Problem Radar's
+  fleet window does the same on its window id. Pending: confirm it looks opaque in game.
+- Colours (2026-10-10, from `gui/main/default_colors.gres.lua:50-59`): the base `!positive` class is `Positive` =
+  jordyBlue, a light blue that players read as a link; green is `Ok` (kellyGreen), red `Negative` (lightCoral) or
+  `Error`. For money, Problem Radar uses `Ok` / `Negative` in its own classes.
+- Vehicle age units: `api.engine.util.formatAge` formats "using current ingame speed" (`engine/util.d.tl:1066-1070`),
+  and the base vehicle window shows Age that way (`vehicle_util.tl:297-313`), while model lifespans are game ms
+  at the default calendar speed (`mdl.md:293`, `vehicle_util.tl:31-34`). Years from `getDefaultYearDuration`
+  therefore over-state the Age shown by the game when the calendar runs slower than default. Problem Radar converts
+  with `api.util.getYearDuration(GAME_SPEED.millisPerDay)` instead (`radar_checks.calendarYearMs`). Pending: confirm
+  in game that the numbers now match the vehicle window.
+
+## Mission marker types are a fixed list (verified in game 2026-10-10)
+
+`api.gui.mission.setMarkerAtEntity/AtPosition(key, ..., type, ...)` (`api/gui.d.tl:719-739`) has no colour argument,
+and `type` is not a file path: `MarkerManager` maps it through a fixed table `m_type2modelName` (strings in the
+`TransportFever3` binary): `arrow`, `exclamation`, `question`, `question_red`, `locate`
+→ `assets/markers/marker_<type>.mdl`. There is **no `exclamation_red` type**, although
+`marker_exclamation_red.mdl` exists (its path in the binary is part of a legacy model-rename list). An unknown type
+logs `MarkerManager.cpp:33: SetOrAddMarker: Assertion 'm_type2modelName.find(type) != m_type2modelName.end()'
+failed` per marker and shows the default model; no Lua error, so pcall doesn't catch it (Supply Gaps rev 4 test
+with `exclamation_red`: every marker yellow, assertion in stdout.txt).
+Colours (albedo textures in `base/content/assets/markers.zip`): `arrow`/`exclamation`/`question` yellow (~#EBD92B),
+`question_red` red, `locate` blue (a different icon). A mod can't add a type or colour; replacing a base marker
+model would recolour it for every user (missions, campaign). Supply Gaps uses yellow `arrow` + red `question_red`;
+`question_red` renders red in free play (verified in game 2026-10-10).
+
+## Map editor: Generate Heightmap leaves terrain entity revisions unchanged (verified in game 2026-10-10)
+
+- `api.engine.terrain.getTerrainEntityRevisions()` returns the same revisions before and after the map editor's
+  Generate Heightmap → **Generate** (`makeWorldReplaceTerrainCmd`, `base/content/gui/map_editor/map_editor.tl:796`),
+  although the whole terrain is replaced. The editor's own `useAutoUpdater` (map_editor.tl:298-345) compares exactly
+  that, so a mod copying its change check misses a new heightmap.
+- Detect it by sampling `api.engine.terrain.getBaseHeightAt` on a coarse grid (square_better_minimap: 9x9 points over
+  `getBoundingBox()`, every 2 s). Base height excludes construction alignments, so placing stations does not trigger it.
+- Mod GUI plugins in `::MainModButtonAreaExtension` mount in the map editor too (`gui/main/game.tl:554` mounts the
+  area unconditionally); a plugin that should hide there checks `api.gui.game.isMapEditor()`.
+- Evidence: stdout.txt, two Generates at 23:10:07 and 23:10:26 ("Map is ready"), each followed by
+  `[Minimap] map gen N (changed: heights, ...)` and no `terrain` in the changed list; before the height grid there
+  was no rebuild at all (23:08:40).
+
+## Load crash above ~200 mod stylesheet rules (verified in game 2026-10-10)
+
+A crash on the first frame after loading (always right after "Collect Lua Garbage"; main thread, uncaught
+std::string exception; frames #8 `100016a50`, #10 `10003d16c` = libc++ string init with a garbage length, #11
+`102fbe0cc` = `Component::ComputeStyles` under a recursive `Component::Validate` from `CCore::Step`) is a game bug
+that depends on the **total number of stylesheet rules from all active mods**. A computed style keeps a raw pointer
+(the `animationName` string at StyleSheet+0x1c8) into rule storage that has since moved or been freed.
+Evidence: bisect of 15 square mods (191 rules) + zhenya mods on a large save sorted exactly by the mod rule total
+(196 loads, 208/211/213/217 crash); our 15 mods + a DEV mod with only 40 inert rules
+(`mods/square_css_volume_probe`, no scripts) crashed without any other mod; a UI Overhaul-only new game crashed
+with the same stack on 2026-10-07. Base game ≈ 5,970 rules (comma-separated selectors count once per part),
+so the limit is near 6,170 in total. Not every load crashes near the limit (the freed memory has to be reused).
+Consequences: keep our stylesheets small (every selector part is a rule, so merging selectors with commas
+doesn't help); count with the scratch rule counter idea (run each `.css.lua` `data()` with a stub
+`stylesheetutil.makeAdder`). Reported to Urban Games: plans/bugreports/2026-10-10-load-crash-gui-tree.md.
+Fix on our side (2026-10-10): trimmed our mods from 191 to 134 rules (Radar 79→62, Minimap 33→22, Supply Gaps
+26→18, Industry Flows 17→13, Production Label 17→7, Line Revert 12→5); the user's full set of 20 mods
+(≈190 rules) then loaded. Square preset + Easy Terminal (185) loaded too, so moving values into inline
+styles (Minimap) did not bring the crash back at that level. Whether inline styles count toward the limit at
+all is NOT tested: mods/square_inline_style_probe (60 inline styles, no CSS) exists but was not run.
+Problem Radar rev 6 ships with 14 rules moved inline (62 → 48); if a load crash shows up with Radar active,
+revert that step with `git apply -R plans/square_problem_radar/inline_styles.patch` (back to the 62-rule
+version that loaded with the full 20-mod set).

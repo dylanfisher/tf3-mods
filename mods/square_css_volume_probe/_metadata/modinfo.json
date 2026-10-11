@@ -1,0 +1,14 @@
+{
+    "name": "DEV CSS volume probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Adds 40 inert stylesheet rules to test the load crash.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Adds 40 stylesheet rules whose selectors match nothing, to test whether the total stylesheet rule count triggers the load crash (plans/bugreports/2026-10-10-load-crash-gui-tree.md). No scripts.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ]
+}

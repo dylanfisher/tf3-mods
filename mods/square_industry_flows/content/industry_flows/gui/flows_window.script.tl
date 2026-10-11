@@ -39,6 +39,7 @@ local react = ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
 local cargo_react_util = ug_require "::/gui/main/cargo_react_util.tl" as CargoReactUtil
 local color_util = ug_require "::/gui/main/color_util.tl" as ColorUtil
+local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 local lang_util = ug_require "::/scripts/lang_util.tl" as LangUtil
 local table_util = ug_require "::/scripts/table_util.tl" as TableUtil
 local main_mod_button_area = ug_require "::/gui/main/main_mod_button_area.tl" as MainModButtonArea
@@ -57,6 +58,7 @@ local SCROLL_ROWS <const> = 8                    -- more matching types than thi
 local WINDOW_ID <const> = "squareindustryflows.window"
 local TOOL_NAME <const> = "SquareIndustryFlows"     -- react.RegisterTool names are global (react.lua:576-590)
 local ACTION_KEY <const> = "square_industry_flows"  -- key2 of setActionFn (industry.tl:410 uses "industry")
+local RIDGE_BUTTON_PADDING <const> : {number} = { 2, 8, 2, 8 }  -- inline (was Button!flows-ridge-button in the .css.lua)
 
 local function text(str : string, class? : string) : TreeNodeId
 	return builtin.TextView{
@@ -347,6 +349,7 @@ end
 
 -- Small right chevron between input and output cargos (base: main/collapsible_checkbox_list.tl).
 local CARGO_ARROW_ICON <const> = "::/gui/builtin/combobox/arrow_right.tga"
+local CARGO_ARROW_SIZE <const> : {number} = { 10, 10 }        -- inline (was ImageView!flows-cargo-arrow in the .css.lua)
 
 --- The type's cargos as icons, "inputs > outputs" (a raw producer shows only its outputs). Each icon
 --- has the cargo name as tooltip; 20 px like the Statistics industry table
@@ -379,7 +382,13 @@ local function cargoIcons(row : IndustryFlowsTypeRow) : TreeNodeId
 		icons[#icons + 1] = cargoIcon(c)
 	end
 	if #row.inputs > 0 then
-		icons[#icons + 1] = builtin.ImageView{ meta = { class = "flows-cargo-arrow" }, path = CARGO_ARROW_ICON }
+		-- "flows-cargo" gives the chevron the icons' gravity; its 10x10 size is inline, so it needs no
+		-- stylesheet rule of its own (docs/findings.md "Load crash above ~200 mod stylesheet rules").
+		-- Window render: GUI thread, where api.gui.StyleSheet may be created.
+		icons[#icons + 1] = builtin.ImageView{
+			meta = { class = "flows-cargo, flows-cargo-arrow", styleSheet = styleutil.makeStyle{ size = CARGO_ARROW_SIZE } },
+			path = CARGO_ARROW_ICON,
+		}
 	end
 	for __, c in ipairs(row.outputs) do
 		icons[#icons + 1] = cargoIcon(c)
@@ -402,7 +411,7 @@ local function typeRow(row : IndustryFlowsTypeRow, onToggle : function(string)) 
 		},
 		cargoIcons(row),
 		text(tostring(row.count), "font-scale-body, flows-count"),
-	}, "flows-type-row")
+	}, "flows-type-row, flows-wide")
 end
 
 --- One arrow toggle (Outputs / Inputs / Potential links): base labelled checkbox
@@ -608,7 +617,7 @@ local IndustryFlowsContent = react.RegisterRecipe("IndustryFlowsContent", perf:w
 			onClick = clearSelection,
 		}
 	end
-	rows[#rows + 1] = hbox(header, "flows-header")
+	rows[#rows + 1] = hbox(header, "flows-header, flows-wide")
 
 	local typeRows : {TreeNodeId} = {}
 	for __, row in ipairs(list.rows) do
@@ -721,9 +730,18 @@ local IndustryFlowsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area
 	if isMapEditorRef:get() then
 		return nil
 	end
+	-- Inline padding instead of a stylesheet rule (docs/findings.md "Load crash above ~200 mod stylesheet
+	-- rules"). No base rule sets a Button's padding per state, so it is the same in every state.
+	-- Order is CSS (top, right, bottom, left). Plugin render: GUI thread (isMapEditor above).
+	local buttonStyle = styleutil.makeStyle{}
+	buttonStyle.padding = api.type.Vec4f.new(RIDGE_BUTTON_PADDING[1], RIDGE_BUTTON_PADDING[2], RIDGE_BUTTON_PADDING[3], RIDGE_BUTTON_PADDING[4])
 	return hbox({
 		builtin.Button{
-			meta = { class = "flows-ridge-button", tooltip = _("Industry Flows: cargo arrows for every industry of the types you pick") },
+			meta = {
+				class = "flows-ridge-button",
+				styleSheet = buttonStyle,
+				tooltip = _("Industry Flows: cargo arrows for every industry of the types you pick"),
+			},
 			content = text(_("Flows")),
 			onClick = togglePanel,
 		},

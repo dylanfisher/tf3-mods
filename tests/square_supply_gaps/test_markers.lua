@@ -94,12 +94,12 @@ test("kinds: starved -> TYPE_STARVED, unreached -> TYPE; a kind change removes a
 	markers.apply({ 1, 2 }, { [1] = "unreached", [2] = "starved" })
 	local types = {}
 	for _, c in ipairs(calls) do if c[1] == "set" then types[c[2]] = c[3] end end
-	eq(types, { ["sqsg:1"] = "arrow", ["sqsg:2"] = "exclamation" })
+	eq(types, { ["sqsg:1"] = "arrow", ["sqsg:2"] = "question_red" })
 	calls = {}
 	local st = markers.apply({ 1, 2 }, { [1] = "starved", [2] = "starved" })
 	eq(names("remove"), { "sqsg:1" })
 	eq(names("set"), { "sqsg:1" })
-	eq(calls[#calls][3], "exclamation")
+	eq(calls[#calls][3], "question_red")
 	eq(st.retyped, 1)
 	eq(st.added, 1)
 	eq(st.shown, 2)

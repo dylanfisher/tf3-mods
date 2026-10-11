@@ -57,16 +57,21 @@ Square.slides('square_no_factory_passengers', [
 ]);
 
 Square.slides('square_problem_radar', [
-  { title: 'Every problem, one list', sub: 'Vehicles, lines, stations and fleet',
-    media: { src: '01-full-list.jpg', crop: [1240, 684, 2648, 1320] } },
-  { title: 'Always in view', sub: 'A problem count in the top-left corner',
-    media: { layout: 'inset', at: 'tl', insetW: 460,
-             main: { src: '02-fleet-list.jpg', crop: [0, 0, 4000, 2160] },
-             inset: { src: '02-fleet-list.jpg', crop: [16, 8, 440, 112] } } },
-  { title: 'Lines losing money', sub: 'A year of losses or empty seats, ranked by severity',
-    media: { src: '04-economy.jpg', crop: [1240, 680, 2668, 900] } },
+  // Captures 2026-10-10 (rev 6). Radar window x 1076-4050, y 684-2052; fleet window x 2064-4080, y 672-2064.
+  { title: 'Every problem, one list', sub: 'Vehicles, lines, stations, fleet and money',
+    media: { src: '01-all-tab.jpg', crop: [1064, 676, 3000, 1392] } },
+  { title: 'Old and worn vehicles', sub: 'Upg opens the fleet of that vehicle\'s line',
+    media: { src: '02-fleet-tab-upg.jpg', crop: [1064, 676, 3000, 1392] } },
+  { title: 'Upgrade a tired fleet', sub: 'Line stats, last year\'s money, every model',
+    media: { src: '03-fleet-window-trucks.jpg', crop: [2066, 664, 2030, 1412] } },
+  { title: 'Pick the new model', sub: 'In the game\'s own Replace Vehicles window',
+    media: { src: '04-replace-vehicles.jpg', crop: [1580, 196, 2996, 1784] } },
+  { title: 'Lines losing money', sub: 'A year of losses, ranked by severity',
+    media: { src: '05-economy-tooltip.jpg', crop: [1064, 676, 3204, 1392] } },
+  { title: 'Snooze what you accept', sub: 'Zz hides an alert for a month up to 5 years',
+    media: { src: '06-snoozed.jpg', crop: [1064, 676, 3000, 1392] } },
   { title: 'Off, List or Notify', sub: 'Choose how each alert reaches you',
-    media: { src: '03-settings.jpg', crop: [1248, 944, 1080, 1076] } },
+    media: { src: '07-settings.jpg', crop: [1064, 676, 3000, 1392] } },
 ]);
 
 Square.slides('square_better_minimap', [
@@ -87,6 +92,13 @@ Square.slides('square_better_minimap', [
     media: { layout: 'inset', at: 'bl', insetW: 230,
              main: { src: '28-mountain-large.jpg', crop: [2150, 150, 2950, 2150] },
              inset: { src: '29-mountain-small.jpg', crop: [4595, 165, 495, 1125] } } },
+  { title: 'In the map editor too', sub: 'Redraws after every Generate',
+    // 32-map-editor.jpg (rev 7, 2026-10-10 16:11): minimap x 4518-5056, y 166-909; the Generate
+    // Heightmap panel's preview x 3000-4115, y 1515-2630 shows the same terrain.
+    // The zoomed minimap sits over the small original (top right); the crop stops above the toolbar.
+    media: { layout: 'inset', at: 'tr', insetW: 360,
+             main: { src: '32-map-editor.jpg', crop: [2150, 130, 2970, 2510] },
+             inset: { src: '32-map-editor.jpg', crop: [4515, 165, 545, 745] } } },
   { title: 'Text or icon', sub: 'Pick the top bar button style in the mod settings',
     // Top-left corner, same 5K scale: 30-icon-button.jpg is a 1288x308 piece from the screen's top-left.
     media: { layout: 'stack', labels: ['Text', 'Icon'],
@@ -125,37 +137,44 @@ Square.slides('square_bulk_bulldozer', [
 ]);
 
 Square.slides('square_roundabouts', [
-  // 'Find it' slide moved to the front: every slide number shifted, so delete all mod.io gallery
-  // media before the next update (README "Gallery slides").
-  { title: 'Find it in the Road menu', sub: 'Same tab as the game\'s own roundabout',
-    media: { layout: 'inset', at: 'tr', insetW: 460,
-             main: { src: '10-settings-main.jpg', crop: [980, 1600, 3160, 1200] },
-             inset: { src: '10-settings-main.jpg', crop: [1372, 2408, 340, 212] } } },
-  { title: 'Magic Roundabout', sub: 'Five mini roundabouts on a two-way ring',
-    media: { src: '03-magic-closeup.jpg', crop: [320, 120, 4480, 2520] } },
-  { title: 'Round, oval or mini', sub: 'Any size, up to six arms, one to four lanes',
-    media: { src: '02-overview-variants.jpg', crop: [320, 560, 2880, 1840] } },
-  { title: 'Pick a centre island', sub: 'Grass, trees, a fountain or paving',
-    media: { src: '01-overview.jpg', crop: [80, 160, 2400, 1080] } },
-  { title: 'Four menu entries', sub: 'Right next to the game\'s own roundabout',
-    media: { layout: 'inset', at: 'tr', insetW: 620,
-             main: { src: '10-settings-main.jpg', crop: [4008, 696, 1056, 1216] },
-             inset: { src: '10-settings-main.jpg', crop: [1020, 2400, 1730, 240] } } },
-  // Revision 3: "Through the centre" (published 3.png) removed and "Two new menu entries" replaced
-  // by "Four menu entries", so slides 3-6 changed: delete mod.io media 3-6 before the update
-  // (README "Gallery slides"). New slides below.
-  { title: 'Roundabout interchange', sub: 'Two-bridge ring, dumbbell or peanut over a highway',
-    media: { layout: 'inset', at: 'bl', insetW: 360,
-             main: { src: '17-interchange-closeup.jpg', crop: [960, 120, 2800, 2000] },
-             inset: { src: '13-menu-interchange-hover.jpg', crop: [4008, 696, 1056, 1160] } } },
+  // Rev 6 gallery, captures 2026-10-10 (18-33 world shots, 40-44 settings panels; their empty map is
+  // never shown). Settings panel crops: x 56-934; menu strip y 2406-2624. Order changed throughout:
+  // `make modio ARGS=--apply` replaces the whole gallery. Kept to 10: the Hub failed with mod.io error 13003
+  // FILE_TOO_MANY at 22 and at 19 slides (docs/findings.md).
+  { title: 'Rings, junctions, interchanges', sub: 'Seven entries in the Road menu',
+    media: { layout: 'inset', at: 'bl', insetW: 1000,
+             main: { src: '20-horizon-mix.jpg', crop: [0, 720, 5120, 2160] },
+             inset: { src: '40-settings-roundabouts.jpg', crop: [1000, 2400, 3140, 230] } } },
+  { title: 'Mix and match', sub: 'Ovals, chains, junctions and interchanges',
+    media: { src: '19-oblique-mix.jpg', crop: [0, 0, 4640, 2520] } },
+  { title: 'Better Roundabouts', sub: 'Round or oval, 3 to 6 arms, 1 to 4 lanes',
+    media: { layout: 'inset', at: 'tr', insetW: 440,
+             main: { src: '33-ovals-chains.jpg', crop: [0, 0, 5120, 2880] },
+             inset: { src: '40-settings-roundabouts.jpg', crop: [56, 832, 878, 1792] } } },
   { title: 'Hamburger roundabouts', sub: 'A road straight through the ring, with splitter islands',
     media: { src: '15-oblique-hamburger.jpg', crop: [2000, 380, 2240, 1480] } },
+  { title: 'Magic Roundabout', sub: 'Five mini roundabouts on a two-way ring',
+    media: { layout: 'inset', at: 'tr', insetW: 440,
+             main: { src: '30-magic-trees.jpg', crop: [800, 240, 3000, 2640] },
+             inset: { src: '41-settings-magic.jpg', crop: [56, 1605, 878, 1019] } } },
   { title: 'Channelized junction', sub: 'Slip lanes and islands for a T or X junction',
-    media: { layout: 'inset', at: 'bl', insetW: 360,
+    media: { layout: 'inset', at: 'tr', insetW: 440,
              main: { src: '14-top-down-variety.jpg', crop: [1668, 608, 1360, 880] },
-             inset: { src: '12-menu-channel-hover.jpg', crop: [4008, 696, 1056, 1160] } } },
-  { title: 'Mix and match', sub: 'Ovals, hamburgers, chains, junctions and interchanges',
-    media: { src: '14-top-down-variety.jpg', crop: [600, 120, 3920, 2520] } },
+             inset: { src: '42-settings-channel.jpg', crop: [56, 1183, 878, 1441] } } },
+  { title: 'Roundabout interchange', sub: 'A ring on bridges over the highway',
+    media: { layout: 'inset', at: 'tr', insetW: 440,
+             main: { src: '22-interchange-ring-closeup.jpg', crop: [1760, 200, 2800, 2600] },
+             inset: { src: '43-settings-interchange.jpg', crop: [56, 1085, 878, 1539] } } },
+  { title: 'Dumbbell or two-bridge', sub: 'Two roundabouts, or one ring on two bridges',
+    media: { src: '23-dumbbell-magic-chain.jpg', crop: [240, 320, 2680, 2560] } },
+  { title: 'Parclo and Diamond', sub: 'Highway interchanges with one-way ramps',
+    media: { layout: 'inset', at: 'tr', insetW: 440,
+             main: { src: '25-parclo-diamond.jpg', crop: [400, 400, 4400, 2480] },
+             inset: { src: '44-settings-parclo2.jpg', crop: [56, 1336, 878, 1288] } } },
+  { title: 'Every layout and scale', sub: 'Next to the game\'s own interchanges',
+    media: { layout: 'inset', at: 'bl', insetW: 1000,
+             main: { src: '24-interchange-grid.jpg', crop: [0, 640, 4640, 1920] },
+             inset: { src: '44-settings-parclo2.jpg', crop: [1000, 2400, 3140, 230] } } },
 ]);
 
 Square.slides('square_line_revert', [

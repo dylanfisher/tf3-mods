@@ -34,6 +34,13 @@ ch.ARM_LENGTHS = { 30, 40, 50, 60 }
 ch.DEFAULT_ARM_LENGTH = 1
 -- "Islands" param -> geom island kind (no trees or fountain: the triangles are narrow).
 ch.ISLAND_KINDS = { geom.ISLAND_NONE, geom.ISLAND_GRASS, geom.ISLAND_PAVED }
+-- "Scale": both set-backs times SCALES[i] (rounded up to SETBACK_STEP), applied after the minimum
+-- rules of ch.setbacks, so XS (1) is exactly the smallest layout the roads allow (the only scale
+-- before revision 6) and every larger one stays above it. Size codes as button labels, the same in
+-- every language (as the Magic Roundabout's Size). M-XL are not engine-probed (TESTING.md).
+ch.SCALES = { 1, 1.25, 1.5, 2, 2.5 }
+ch.SCALE_NAMES = { "XS", "S", "M", "L", "XL" }
+ch.DEFAULT_SCALE = 1
 ch.DEFAULT_MAIN = 2 -- Town, medium
 ch.DEFAULT_SIDE = 1 -- Town, small
 
@@ -89,6 +96,7 @@ ch.PARAM_KEYS = {
 	slips = "sqrb_ch_slips",
 	splitter = "sqrb_ch_splitter",
 	armLength = "sqrb_ch_arm_length",
+	scale = "sqrb_ch_scale",
 	direction = K.direction, -- same meaning and values as the roundabouts' Direction
 	island = "sqrb_ch_island",
 }
@@ -104,6 +112,7 @@ function ch.readParams(params)
 		slips = index(params[k.slips], 3, ch.SLIPS_NEAR),
 		splitter = index(params[k.splitter], 2, ch.SPLITTER_OFF),
 		armLength = index(params[k.armLength], #ch.ARM_LENGTHS, ch.DEFAULT_ARM_LENGTH),
+		scale = index(params[k.scale], #ch.SCALES, ch.DEFAULT_SCALE),
 		direction = index(params[k.direction], 2, geom.DIRECTION_CCW),
 		island = index(params[k.island], #ch.ISLAND_KINDS, 1),
 		-- dev overrides (geom.readDev): only chSlipAngle, chCornerGap, chSlipFree apply here
@@ -200,6 +209,9 @@ end
 -- 2. Island room: the slip lane's kerb keeps CORNER_GAP from the corner of the two roads' kerbs
 --    (and from the splitter leg on that side), so a triangle island fits between them. Both
 --    set-backs grow by the same amount (bisection, rounded up to SETBACK_STEP).
+-- Then the Scale param multiplies both by ch.SCALES[spec.scale] (XS: 1, unchanged), each rounded up
+-- to SETBACK_STEP: the same proportions, so the one-way bend rule still holds within the rounding
+-- (well inside CHORD_MARGIN), and every node only moves further out (island room, splitter).
 ch.SLIP_FREE = 4
 ch.CHORD_MARGIN = 2 * DEG
 ch.CORNER_GAP = 7
@@ -270,6 +282,11 @@ function ch.setbacks(spec, sp, leg)
 		end
 		local extra = math.ceil(hi / ch.SETBACK_STEP) * ch.SETBACK_STEP
 		Lm, Ls = Lm + extra, Ls + extra
+	end
+	local f = ch.SCALES[spec.scale or ch.DEFAULT_SCALE] or 1
+	if f ~= 1 then
+		local step = ch.SETBACK_STEP
+		Lm, Ls = math.ceil(Lm * f / step) * step, math.ceil(Ls * f / step) * step
 	end
 	return Lm, Ls
 end

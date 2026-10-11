@@ -1974,4 +1974,77 @@ function checks.unsnooze(state : ProblemRadarState, id : string) : ProblemRadarS
 	return s, true
 end
 
+--- Rev 6: game ms per calendar year at the current calendar speed (GAME_SPEED.millisPerDay through
+--- api.util.getYearDuration, util.d.tl:105-108), the unit of the base vehicle window's Age
+--- (api.engine.util.formatAge "using current ingame speed", engine/util.d.tl:1066-1070; vehicle_util.tl:297-313).
+--- A frozen calendar (0) or a bad value gives the default year.
+function checks.calendarYearMs(millisPerDay : integer, yearDuration : function(integer) : integer, defaultYearMs : integer) : integer
+	local fallback = (defaultYearMs ~= nil and defaultYearMs > 0) and defaultYearMs or DEFAULT_YEAR_MS
+	if type(millisPerDay) ~= "number" or millisPerDay <= 0 or yearDuration == nil then return fallback end
+	local ok, y = pcall(yearDuration, math.floor(millisPerDay))
+	if ok and type(y) == "number" and y > 0 then return math.floor(y) end
+	return fallback
+end
+
+---------------------------------------------------------------------------
+-- Rev 6: fleet recheck after the fleet window's Upgrade (GUI event "ProblemRadar.recheckVehicles",
+-- radar.script.tl). The fleet scan reads ages for a slice of the fleet per pass and keeps listed
+-- fleet_old rows until their slice comes round, so a replaced vehicle would stay listed for a while.
+
+--- The fleet alert ids of vehicle `v` that no longer hold: the vehicle is gone, or no longer past its
+--- lifespan (fleet_old, same rule as checks.fleet), or its condition is above the worn clear threshold
+--- (fleet_worn, the hysteresis end of checks.fleet). Unknown values clear nothing.
+function checks.fleetCleared(v : integer, info : ProblemRadarFleetRecheck, wornClear : number) : {string}
+	local out : {string} = {}
+	if v == nil or info == nil then return out end
+	local oldId, wornId = "fleet_old:" .. tostring(v), "fleet_worn:" .. tostring(v)
+	if not info.exists then return { oldId, wornId } end
+	local age, life = toInt(info.ageMs), toInt(info.lifespanMs)
+	if age ~= nil and life ~= nil and not (life > 0 and age > life) then out[#out + 1] = oldId end
+	local c = info.condition
+	if type(c) == "number" and c > (wornClear or checks.WORN_CLEAR_THRESHOLD) then out[#out + 1] = wornId end
+	return out
+end
+
+--- Remove alerts by id: listed rows (their counts too, unless snoozed), pending (smoothing) rows and
+--- snoozes. Counts of rows over the stored cap are untouched (they have no stored row to match).
+function checks.dropAlerts(state : ProblemRadarState, ids : {string : boolean}) : ProblemRadarState, boolean
+	local s = checks.upgradeState(state)
+	if ids == nil or next(ids) == nil then return s, false end
+	local changed = false
+	local counts = copyCounts(s.kindCounts)
+	local alerts : {ProblemRadarAlert} = {}
+	for __, a in ipairs(s.alerts) do
+		if type(a) == "table" and ids[a.id] then
+			changed = true
+			if (s.snoozed == nil or s.snoozed[a.id] == nil) and checks.KINDS[a.kind] ~= nil then
+				local n = (counts[a.kind] or 0) - 1
+				counts[a.kind] = n > 0 and n or nil
+				s.total = math.max(0, (s.total or 0) - 1)
+			end
+		else
+			alerts[#alerts + 1] = a
+		end
+	end
+	if s.pending ~= nil then
+		local pending : {ProblemRadarAlert} = {}
+		for __, p in ipairs(s.pending) do
+			if type(p) == "table" and ids[p.id] then changed = true else pending[#pending + 1] = p end
+		end
+		s.pending = #pending > 0 and pending or nil
+	end
+	if s.snoozed ~= nil then
+		local kept : {string : ProblemRadarSnooze} = {}
+		for k, z in pairs(s.snoozed) do
+			if ids[k] then changed = true else kept[k] = z end
+		end
+		s.snoozed = next(kept) ~= nil and kept or nil
+	end
+	if not changed then return s, false end
+	s.alerts = alerts
+	s.kindCounts = counts
+	s.tierCounts = checks.tierCounts(unsnoozed(s.alerts, s.snoozed), s.kindCounts)
+	return s, true
+end
+
 return checks

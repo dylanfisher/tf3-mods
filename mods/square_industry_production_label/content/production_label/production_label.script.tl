@@ -244,7 +244,7 @@ local ProductionLabelHudIcon = react.RegisterRecipe("ProductionLabelHudIcon", pe
 				production[#production + 1] = makePill(model.styleFor(entry.producing), model.iconPaths(cargoIcon, count), entry.value)
 			end
 			rows[#rows + 1] = builtin.BoxLayout{
-				meta = { class = "production-label-row" },
+				meta = { class = "production-label-row, production-label-spaced" },
 				orientation = builtin.type.Orientation.Horizontal,
 				children = production,
 			}
@@ -259,7 +259,7 @@ local ProductionLabelHudIcon = react.RegisterRecipe("ProductionLabelHudIcon", pe
 		end
 		if #pickupPills > 0 then
 			rows[#rows + 1] = builtin.BoxLayout{
-				meta = { class = "production-label-row" },
+				meta = { class = "production-label-row, production-label-spaced" },
 				orientation = builtin.type.Orientation.Horizontal,
 				children = pickupPills,
 			}
@@ -269,7 +269,7 @@ local ProductionLabelHudIcon = react.RegisterRecipe("ProductionLabelHudIcon", pe
 	-- Empty BoxLayout when nothing applies: the hudIconScript contract expects a layout
 	-- (docs/wiki/modding/constructions/basics.md "HUD Icon Script").
 	return builtin.BoxLayout{
-		meta = { class = "production-label-layout" },
+		meta = { class = "production-label-layout, production-label-spaced" },
 		orientation = builtin.type.Orientation.Vertical,
 		children = rows,
 	}
@@ -312,12 +312,12 @@ local ProductionLabelWarehouseHudIcon = react.RegisterRecipe("ProductionLabelWar
 			outgoing[#outgoing + 1] = makePill(model.STYLE_OUTGOING, model.warehouseIconPaths(model.OUTGOING_ICON, cargoIcon), entry.outgoing)
 		end
 		rows[1] = builtin.BoxLayout{
-			meta = { class = "production-label-row" },
+			meta = { class = "production-label-row, production-label-spaced" },
 			orientation = builtin.type.Orientation.Horizontal,
 			children = incoming,
 		}
 		rows[2] = builtin.BoxLayout{
-			meta = { class = "production-label-row" },
+			meta = { class = "production-label-row, production-label-spaced" },
 			orientation = builtin.type.Orientation.Horizontal,
 			children = outgoing,
 		}
@@ -325,7 +325,7 @@ local ProductionLabelWarehouseHudIcon = react.RegisterRecipe("ProductionLabelWar
 
 	-- Empty layout when nothing moved: the warehouse label looks vanilla.
 	return builtin.BoxLayout{
-		meta = { class = "production-label-layout" },
+		meta = { class = "production-label-layout, production-label-spaced" },
 		orientation = builtin.type.Orientation.Vertical,
 		children = rows,
 	}
@@ -360,7 +360,7 @@ end
 --- Still a layout, as the hudIconScript contract expects (constructions/basics.md "HUD Icon Script").
 local function emptyLayout() : TreeNodeId
 	return builtin.BoxLayout{
-		meta = { class = "production-label-layout" },
+		meta = { class = "production-label-layout, production-label-spaced" },
 		orientation = builtin.type.Orientation.Vertical,
 		children = {},
 	}

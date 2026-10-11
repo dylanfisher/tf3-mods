@@ -324,8 +324,8 @@ green triangles); the hover preview is still the roundabout's (expected). Probe:
 (every layout x road pair x slip lanes x splitter x traffic side); in game, start from the combos
 it refused (if any) and the items below.
 1. **Menu.** Present from 1940 (absent in 1939), name "Channelized Junction", params in this order:
-   Layout, Main road, Side road, Slip lanes, Side-road splitter islands, Arm length, Traffic side,
-   Islands. Tooltips readable.
+   Layout, (Scale, revision 6), Main road, Side road, Slip lanes, Side-road splitter islands, Arm
+   length, Traffic side, Islands. Tooltips readable.
 2. **Default** (T, town medium main, town small side, near-side slip lanes, no splitter, 30 m, RHT,
    no islands): places on flat ground; two one-way slip lanes (one-way arrows in the street layer):
    east arm -> side road and side road -> west arm; vehicles use them for right turns.
@@ -353,6 +353,15 @@ it refused (if any) and the items below.
    slip template on country roads (sidewalks) looks acceptable.
 10. **Editing after placement**: slip lanes, legs and arms are ordinary streets (bulldoze one slip lane,
    upgrade the main road, connect the arm ends).
+11. **Scale (revision 6, not engine-probed for S-XL).** Menu: Scale is the second param, XS / S / M /
+   L / XL, default XS; XS builds exactly as before. For each scale S, M, L, XL place: the default
+   (T, town medium + town small), X with town large + town large, T with country large main + town
+   small side and splitter islands On, and one left-hand traffic X. Expect: places on flat ground
+   (note any "Construction not possible" with the combination and scale), slip nodes about 1.25 /
+   1.5 / 2 / 2.5 x as far out as XS (default XL: about 105 m main, 104 m side from the centre), bigger
+   triangle islands, slip lanes leaving and joining at the same angle as XS, arms 30 m beyond the
+   slip nodes. Also: Better Roundabouts, Magic Roundabout and Roundabout Interchange show their size
+   row as "Scale" (same buttons) in English and one other language.
 
 ## 13. Phase 5c: hamburger / through road (PHASE5.md "Phase 5c notes")
 Probe: `p5_hamburger` (Road and Road + traffic lights x 5 other through roads x every layout and

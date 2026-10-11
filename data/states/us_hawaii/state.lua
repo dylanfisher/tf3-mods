@@ -56,8 +56,9 @@ return {
 		"Hawaii is the smallest state in this series: every Census place in Hawaii is an unincorporated community (CDP), so the list has about 130 towns. Real streets cover 13 towns; every other town uses the Hawaii-style street list. Names are plain ASCII (no okina or kahako), as Census and most street signs write them.",
 		"Not affiliated with the \"Hawaii Names\" mod; all lists here are our own.",
 	},
-	revision = 5,
+	revision = 6,
 	changelog = {
+		{ rev = 6, date = "2026-10-10", items = { "Removing this mod is now marked Critical in the mod list. A game started with this mod's name set crashes without it as soon as it needs a new name (building a road, for example); turning the mod back on fixes the save." } },
 		{ rev = 5, date = "2026-10-10", items = { "New: translations into Russian, German, French, Spanish, Italian, Dutch, Polish, Portuguese (Brazil), Japanese, Korean and Chinese (Simplified and Traditional). The mod follows the game's language setting; town, street and station names stay as they are." } },
 		{ rev = 4, date = "2026-10-09", items = { "Clearer description: says up front that the mod renames the stops and stations you build, not just the default name lists." } },
 		{ rev = 3, date = "2026-10-08", items = { "Faster in the map editor: the mod no longer reads every mod's settings on every frame." } },

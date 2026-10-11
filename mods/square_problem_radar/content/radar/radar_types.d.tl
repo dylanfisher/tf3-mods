@@ -351,7 +351,7 @@ global record ProblemRadarFleetInput
 	prevIds : {string : boolean}                        -- alert ids of the previous state (hysteresis)
 	keepOld : {ProblemRadarAlert}                       -- previous fleet_old alerts of owned vehicles not read this pass
 	idleDays : integer                                  -- settings.idleDepotDays
-	yearMs : integer                                    -- game ms per year (api.util.getDefaultYearDuration)
+	yearMs : integer                                    -- game ms per calendar year at the current speed (rev 6: checks.calendarYearMs)
 	wornThreshold : number                              -- fleet_worn at condition <= this (settings.wornPct / 100; nil: WORN_THRESHOLD)
 	wornClear : number                                  -- an existing fleet_worn stays while <= this (nil: WORN_CLEAR_THRESHOLD)
 end
@@ -359,6 +359,15 @@ end
 -- ======================================================================
 -- from radar_checks.tl (pure checks + state merge; unit-tested)
 -- Module: ug_require "square_problem_radar::/radar/radar_checks.tl" as ProblemRadarChecks
+--- Rev 6: one vehicle as the fleet recheck reads it (radar.script.tl recheckVehicles; the GUI's
+--- optimistic filter in radar_hud.script.tl reads the same).
+global record ProblemRadarFleetRecheck
+	exists : boolean
+	ageMs : integer        -- oldest part's age; nil: unknown
+	lifespanMs : integer   -- that part's lifespan; 0 = none
+	condition : number     -- 0..1; nil: unknown
+end
+
 global record ProblemRadarChecks
 	STATE_VERSION : integer
 	MAX_STORED_ALERTS : integer         -- cap on state.alerts (save size)
@@ -499,6 +508,12 @@ global record ProblemRadarChecks
 	snooze : function(state : ProblemRadarState, id : string, untilMs : integer) : ProblemRadarState, boolean
 	--- End a snooze (id), or every snooze (id == nil). The alerts count again at once.
 	unsnooze : function(state : ProblemRadarState, id : string) : ProblemRadarState, boolean
+	--- Rev 6: game ms per calendar year at the current calendar speed (default year when frozen / unknown).
+	calendarYearMs : function(millisPerDay : integer, yearDuration : function(integer) : integer, defaultYearMs : integer) : integer
+	--- Rev 6 fleet recheck: the fleet_old / fleet_worn ids of vehicle v that no longer hold.
+	fleetCleared : function(v : integer, info : ProblemRadarFleetRecheck, wornClear : number) : {string}
+	--- Rev 6: remove alerts by id (listed with their counts, pending, snoozed); changed = anything removed.
+	dropAlerts : function(state : ProblemRadarState, ids : {string : boolean}) : ProblemRadarState, boolean
 
 	--- Phase 6 failure isolation: a scan that failed this many times in a row drops its kept rows.
 	FAIL_DROP_AFTER : integer
@@ -738,6 +753,9 @@ global record ProblemRadarHudModel
 	--- end moves a row to snoozedRows, `wake` ids move back (gone ones vanish). Counts follow. Returns
 	--- the view itself when nothing applies.
 	applyPending : function(view : ProblemRadarHudView, snooze : {string : integer}, wake : {string : boolean}) : ProblemRadarHudView
+	--- Rev 6: leave rows by id out of a view (fleet rows of just-replaced vehicles), counts adjusted;
+	--- the view itself when nothing applies.
+	hideRows : function(view : ProblemRadarHudView, hide : {string : boolean}) : ProblemRadarHudView
 	--- Alert id -> creation revision of its entity: kept for known ids, looked up for new ones.
 	trackRevisions : function(prev : {string : integer}, rows : {ProblemRadarHudRow}, revOf : function(integer) : integer) : {string : integer}
 	--- false when the entity's creation revision is newer than the saved one (its id was reused).
@@ -760,6 +778,118 @@ global record ProblemRadarHudModel
 	--- Notification title, description and icon path for ProblemRadarNotificationParams (any value: a
 	--- summary toast, or garbage from a save, gives a generic text).
 	notificationText : function(params : any) : string, string, string
+end
+
+-- ======================================================================
+-- from gui/radar_fleet_model.tl (pure fleet-window model, rev 6) and gui/radar_fleet.tl (the window)
+-- Modules: ug_require "square_problem_radar::/radar/gui/radar_fleet_model.tl" as ProblemRadarFleetModel,
+--          ug_require "square_problem_radar::/radar/gui/radar_fleet.tl" as ProblemRadarFleet
+
+--- One vehicle of the line as the fleet window's poll reads it (raw engine numbers).
+global record ProblemRadarFleetVehicle
+	entity : integer
+	key : string           -- composition key (model.compositionKey): vehicles with the same key replace together
+	ageMs : integer        -- age of the oldest part (vehicle_util.getMinPurchaseTimeAndLifespan); nil: no parts
+	lifespanMs : integer   -- that part's lifespan; 0 = none (never old)
+	condition : number     -- 0..1 (getVehicleMaintenanceState); nil: unknown
+end
+
+--- The fleet window's poll result before model.build.
+global record ProblemRadarFleetRaw
+	vehicle : integer      -- the vehicle the window was opened for
+	gone : boolean         -- that vehicle no longer exists
+	line : integer         -- its line; nil when it has none
+	multiUnit : boolean    -- carrier RAIL or TRAM: only one composition replaces at a time (plan)
+	vehicles : {ProblemRadarFleetVehicle} -- the line's vehicles (only the vehicle itself without a line)
+	names : {string : string} -- composition key -> display name ("Loco + 6× Wagon")
+	used : integer         -- getLineCapacityUsages(line, false): Σ used
+	capacity : integer     -- Σ capacity
+	intervalS : integer    -- 1 / getMaxFrequency (line_util.calculateFrequencySeconds); 0 = none
+	transported : integer  -- logbook itemsTransported per year
+	balance : integer      -- calculateBalance over the trailing year (line window "Balance")
+	running : integer      -- its VEHICLE share (negative); nil: split unknown
+	maintenance : integer  -- its VEHICLE_MAINTENANCE share (negative); nil: split unknown
+	yearMs : integer       -- calendar year at the current speed (checks.calendarYearMs)
+	wornAt : number        -- worn threshold (0..1), radar_settings.wornThresholds
+end
+
+--- One composition (model group) of the line's fleet.
+global record ProblemRadarFleetGroup
+	key : string
+	name : string
+	count : integer
+	old : integer          -- past their lifespan
+	worn : integer         -- condition at or below wornAt
+	oldestYears : integer  -- age of the oldest vehicle in whole years
+	lifeYears : integer    -- that vehicle's lifespan in years (rounded); 0 = none
+	vehicles : {integer}   -- sorted
+	oldVehicles : {integer} -- sorted
+	hasTarget : boolean    -- contains the vehicle the window was opened for
+	offerOld : boolean     -- show an "Upgrade old (N)" button on this row
+end
+
+--- The fleet window's view (numbers only; render formats and translates).
+global record ProblemRadarFleetView
+	vehicle : integer
+	gone : boolean
+	line : integer         -- nil: no line (no line stats)
+	count : integer
+	old : integer
+	worn : integer
+	capacity : integer
+	used : integer
+	usagePct : integer     -- nil when the capacity is 0
+	intervalS : integer
+	transported : integer
+	balance : integer
+	income : integer       -- balance - running - maintenance; nil when the split is unknown
+	running : integer      -- nil when unknown
+	maintenance : integer  -- nil when unknown
+	avgYears : integer     -- average age in whole years (rounded); nil without ages
+	avgLifeYears : integer -- average lifespan of the vehicles that have one, in years (rounded); nil: none
+	avgPastLife : boolean  -- the average age is past the average lifespan
+	groups : {ProblemRadarFleetGroup} -- the vehicle's own group first, then by count, then by key
+	oldVehicles : {integer}   -- "Upgrade old vehicles (N)": nil when not offered
+	fleetVehicles : {integer} -- "Upgrade whole fleet (N)": nil when not offered
+end
+
+global record ProblemRadarFleetModel
+	--- "<modelId>x<count>,..." sorted by model id: the base store's same-composition rule
+	--- (vehicle_store_window.tl:2836-2863 compares model id -> count maps).
+	compositionKey : function(modelIds : {integer}) : string
+	--- "Loco + 6× Wagon": model names in order of first appearance, "N× " for repeats.
+	compositionName : function(modelIds : {integer}, nameOf : function(integer) : string) : string
+	--- The view for a poll result (nil gives a gone view).
+	build : function(raw : ProblemRadarFleetRaw) : ProblemRadarFleetView
+end
+
+--- The fleet window (gui/radar_fleet.tl).
+global record ProblemRadarFleet
+	--- Open (or re-target) the window for a vehicle; wornAt = the radar's worn threshold (0..1).
+	open : function(vehicle : integer, wornAt : number)
+	close : function()
+	--- Rev 6: called by the ridge HUD's poll (worker thread): re-sends "ProblemRadar.recheckVehicles"
+	--- once, a few seconds after the Replace window closed, via react.enqueueJoin (main thread).
+	recheckTick : function()
+	--- Rev 6: fleet alert ids of vehicles replaced in the last ~30 s that no longer hold (engine reads
+	--- only; safe in a poll). Empty, and no reads, when nothing was replaced recently.
+	hiddenFleetIds : function(wornClear : number) : {string : boolean}
+	--- SQPERF instance (SquareProblemRadarSqPerfInst) of the calling GUI script (render / click / poll
+	--- sections); `any` because the sqperf types load after this file.
+	setPerf : function(perf : any)
+end
+
+--- INLINE STYLES (rev 6, stylesheet rule budget; gui/radar_inline.tl): cached StyleSheets for
+--- meta.styleSheet that replace radar_hud.css.lua rules. GUI thread only (renders).
+global record ProblemRadarInline
+	--- Colour of a TextView from its radar-* text classes (tier, dim, fleet sum / money); nil if none.
+	text : function(class : string) : StyleSheet
+	badge : function() : StyleSheet        -- ridge Button!radar-badge padding
+	content : function() : StyleSheet      -- R::ProblemRadarContent size + padding
+	listContent : function() : StyleSheet  -- the alert list's ScrollArea content padding
+	fleetContent : function() : StyleSheet -- R::ProblemRadarFleetContent size + padding
+	fleetDimLine : function() : StyleSheet -- the model table's dim divider background
+	fleetRowOdd : function() : StyleSheet  -- odd model rows' background
 end
 
 recordDef = false

@@ -58,7 +58,7 @@ checks and draws the real game state. It must be performant, and have no impact 
   timer, no engine read, no ImageView. Unmounting the window or an error drops every cache (`netRelease`); toggling off parks them for 60 s (round 3, below).
   While on but hidden, nothing is read (looked at once a second); after 60 s hidden the caches are dropped as well
   (re-opening rebuilds). The brief said "release when hidden": the 60 s grace avoids a full rebuild every time
-  the player flicks the Map button. Map editor: the HUD button doesn't exist there, so the layer can't mount.
+  the player flicks the Map button. Map editor: rev 7 mounts the button there too (game.tl mounts MainModButtonArea in both).
 - **Data** (main thread, `react.onStep`; never `onStepTimer`):
   - Edges: `getEntitiesWithComponent(BASE_EDGE)`. docs/findings.md shows that listing `BASE_EDGE_STREET` throws
     "Cannot loop over this component type", so if `BASE_EDGE` throws too, the fallback is

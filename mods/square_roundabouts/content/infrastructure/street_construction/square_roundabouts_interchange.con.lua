@@ -113,7 +113,7 @@ return toolbar({
 		{
 			-- Phase 7c3: presets on their own key (ix.RADIUS_PRESET_KEY), not the old slider's
 			key = ix.RADIUS_PRESET_KEY,
-			name = _("Radius"),
+			name = _("Scale"),
 			tooltip = _("Radius inside the ring road (each ring or lobe),\nsmall to extra large: S 15 m, M 20 m, L 30 m, XL 45 m.\nA minimum: the rings grow if the roads don't fit.\nThe two-bridge ring must span the highway, so it\nstarts at 25-40 m (with 4 lanes: 35-55 m)."),
 			uiType = "Button",
 			displayMode = "Horizontal",

@@ -87,7 +87,7 @@ Same pattern as the proven probe (research.md §1):
 
 ### Save safety (memory `mods-must-not-impact-saves`)
 
-- `severityAdd: None`, `severityRemove: Warning`, `cosmetic: true` (the probe with a name set and game script kept
+- `severityAdd: None`, `severityRemove: Critical` (2026-10-10: a save whose name set is gone crashes on the next new name), `cosmetic: true` (the probe with a name set and game script kept
   "Achievements earnable: true"). Note: a save started with our name set auto-activates the mod
   ("Autoactivating … (required by nameList)"), so it can't really be removed from such a save. On any other save,
   removing it leaves the given names and stops renaming.
