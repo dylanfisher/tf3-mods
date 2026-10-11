@@ -760,6 +760,10 @@ global record ProblemRadarHudModel
 	trackRevisions : function(prev : {string : integer}, rows : {ProblemRadarHudRow}, revOf : function(integer) : integer) : {string : integer}
 	--- false when the entity's creation revision is newer than the saved one (its id was reused).
 	sameRevision : function(saved : integer, current : integer) : boolean
+	--- Window anchor for a content rect kept on screen plus the frame offset; nil for an invalid rect.
+	windowAnchor : function(l : number, t : number, r : number, b : number, dx : number, dy : number, minTop : number) : number, number
+	--- The remembered window anchor ({ x, y } in 0..1) from the game settings; nil, nil if malformed.
+	readWindowPos : function(raw : any) : number, number
 	--- The view's rows for one tab ("all" = every row), in view order.
 	rowsForTab : function(view : ProblemRadarHudView, tab : string) : {ProblemRadarHudRow}
 	--- Translated problem text for an alert-like row (kind, code, arg; metric for veh_stuck / train_blocked_by).
