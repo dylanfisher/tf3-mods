@@ -817,6 +817,100 @@ local function snoozedFooter(count : integer) : TreeNodeId
 	}, "radar-footer")
 end
 
+---------------------------------------------------------------------------
+-- WINDOW POSITION: the window reopens where the player left it, also after a game restart.
+-- Same approach as Better Minimap's window (verified in game, docs/findings.md): getPosition() on the
+-- Window wrapper returns 0,0, so the content root's rect is read instead, and the window anchor
+-- (CSS anchorPoint {0.5, 0.55}, radar_hud.css.lua) = content top-left + a frame offset. The offset is
+-- measured once per window, before any move: then the anchor is still the initialX/Y we passed.
+-- Stored in the game settings, not the save: AppConfig.mainMenuState is "filled by the UI scripts to
+-- persist things" (type.d.tl); read-copy-write + saveAppConfig as Better Minimap's loadPrefs/writePrefs.
+-- Main thread (react.onStep); written once a moved position held still for one poll.
+
+local PREFS_KEY <const> = "square_problem_radar"
+local POS_POLL_SECONDS <const> = 0.5
+local DEFAULT_X <const> = 0.5  -- the screen centre (the old CSS gravity {0.5, 0.5})
+local DEFAULT_Y <const> = 0.5
+local WINDOW_MIN_TOP <const> = 0.08 -- content top at least this far down: the title bar stays below the ridge
+
+local posLoaded = false
+local posX : number = nil      -- remembered anchor (this session or from the settings)
+local posY : number = nil
+local savedX : number = nil    -- what the settings hold
+local savedY : number = nil
+local requestedX : number = nil -- initialX/Y of the open window
+local requestedY : number = nil
+local frameDX : number = nil   -- window anchor minus content top-left; nil = not measured yet
+local frameDY : number = nil
+local windowMoved = false      -- moved before the offset was measured: not remembered this time
+
+local function posWarn(what : string, err : any)
+	log.warning("[ProblemRadar] window position: " .. what .. ": " .. tostring(err))
+end
+
+--- Read the remembered anchor once per GUI load. Never throws.
+local function loadPos()
+	if posLoaded then return end
+	posLoaded = true
+	local ok, rawOrErr = pcall(function() : any
+		local mm = api.type.AppConfig.new(api.util.getAppConfig()).mainMenuState as {string : any}
+		return mm ~= nil and mm[PREFS_KEY] or nil
+	end)
+	if not ok then posWarn("load", rawOrErr) return end
+	posX, posY = hud_model.readWindowPos(rawOrErr)
+	savedX, savedY = posX, posY
+end
+
+local function savePos(x : number, y : number)
+	-- Marked saved even on failure, so a broken API is warned about once, not retried every poll.
+	savedX, savedY = x, y
+	local ok, err = pcall(function() : any
+		local cfg = api.type.AppConfig.new(api.util.getAppConfig())
+		local t : {string : any} = {}
+		for k, v in pairs((cfg.mainMenuState or {}) as {string : any}) do t[k] = v end
+		t[PREFS_KEY] = { x = x, y = y }
+		cfg.mainMenuState = t
+		api.util.setAppConfig(cfg, false)
+		api.util.saveAppConfig()
+		return nil
+	end)
+	if not ok then posWarn("save", err) end
+end
+
+--- Poll the open window's position (main thread). Never throws.
+local function pollPos(selfRef : ReactRefWrap, lastRef : ReactRefT<string>)
+	local ok, err = pcall(function() : any
+		local node = selfRef:get()
+		if node == nil then return nil end
+		local p0 = node:getPosition(0, 0)
+		local p1 = node:getPosition(1, 1)
+		local screen = api.gui.camera.getSize()
+		-- 0..1 screen fractions (Better Minimap); accept pixels too.
+		local function norm(p : Vec2f) : number, number
+			if (p.x > 1.5 or p.y > 1.5) and screen.x > 0 and screen.y > 0 then return p.x / screen.x, p.y / screen.y end
+			return p.x, p.y
+		end
+		local l, t = norm(p0)
+		local r, b = norm(p1)
+		if hud_model.windowAnchor(l, t, r, b, 0, 0, -1) == nil then return nil end -- not laid out
+		if frameDX == nil then
+			if windowMoved or requestedX == nil then return nil end
+			frameDX, frameDY = requestedX - l, requestedY - t
+		end
+		local x, y = hud_model.windowAnchor(l, t, r, b, frameDX, frameDY, WINDOW_MIN_TOP)
+		if x == nil then return nil end
+		x, y = math.floor(x * 10000 + 0.5) / 10000, math.floor(y * 10000 + 0.5) / 10000
+		posX, posY = x, y
+		-- Write once it held still for one poll (a drag passes through many positions).
+		local key = string.format("%.4f,%.4f", x, y)
+		local last = lastRef:get()
+		lastRef:set(key)
+		if key == last and (x ~= savedX or y ~= savedY) then savePos(x, y) end
+		return nil
+	end)
+	if not ok then posWarn("poll", err) end
+end
+
 -- INLINE STYLES: only meta (the content's size + padding, radar_inline.content), applied by react through
 -- WithComponentParams (react.lua:362-373), as Supply Gaps' SupplyGapsContent.
 local record ProblemRadarContentParam is IRecipeParamWithMeta
@@ -826,6 +920,17 @@ local ProblemRadarContent = react.RegisterRecipe("ProblemRadarContent", perf:wra
 	-- The window polls on its own (same hook as the HUD), so it stays live while open.
 	-- With commit: a snooze click shows at once (snoozeHandler), polls pause until the event is done.
 	local state, commit = engine_react_util.useStepStateTimerWithCommit(getFromEngine, WINDOW_POLL_SECONDS)
+	-- WINDOW POSITION: the content root's rect, polled on the main thread (getPosition is GUI-only;
+	-- onStepTimer runs on worker threads, so it only raises the flag).
+	local selfRef = react.useSelfRef()
+	local posDueRef = react.useRef(true) as ReactRefT<boolean>
+	local posLastRef = react.useRef("") as ReactRefT<string>
+	react.onStepTimer(function() posDueRef:set(true) end, POS_POLL_SECONDS)
+	react.onStep(function()
+		if not posDueRef:get() then return end
+		posDueRef:set(false)
+		pollPos(selfRef, posLastRef)
+	end)
 	windowState, windowCommit = state, commit as function(ProblemRadarHudView, Command<ICommandData>)
 	-- Controlled tab (value + onValueChange, like .cache/game/base/content/gui/menu/mod_manager_page.tl:286-300),
 	-- so the selected tab survives every data refresh (the tabs' labels and items change each poll).
@@ -863,25 +968,32 @@ end))
 
 local record ProblemRadarWindowParam
 	onClose : function()
+	initialX : number -- the window's anchor (CSS anchorPoint {0.5, 0.55}), screen fractions
+	initialY : number
 end
 
--- Window id: the .css.lua centres it with gravity + anchorPoint on "#" .. WINDOW_ID, exactly like the
--- base finance/company windows (.cache/game/base/content/game_mechanics/finance/finances.css.lua:54-57,
--- game_mechanics/company/company.css.lua:47-50; their Windows pass an id and no initialX/initialY,
--- finance/account.tl:140-155). Phase 1's initialX/initialY = 0.5/0.4 placed the window's top-left
--- corner there (anchorPoint defaults to the top-left), so it opened offset to the bottom right.
+-- Window id: the .css.lua sets anchorPoint {0.5, 0.55} on "#" .. WINDOW_ID, so initialX/Y is the
+-- window's centre (slightly above), like the base finance/company windows
+-- (.cache/game/base/content/game_mechanics/finance/finances.css.lua:54-57). Until rev 7 a CSS gravity
+-- centred it and initialX/Y was ignored; now openWindow passes the remembered position or the centre.
 local WINDOW_ID <const> = "squareproblemradar.window"
 
 local ProblemRadarWindow = react.RegisterWrapperRecipe("ProblemRadarWindow", builtin.Window, function(params : ProblemRadarWindowParam) : TreeNodeId
 	-- WindowParam: builtin.d.tl:1186-1210
-	return builtin.Window{
+	local winParams : Builtin.WindowParam = {
 		id = WINDOW_ID,
 		title = _("Problem Radar"),
 		closable = true,
 		movable = true,
 		onClose = params.onClose,
+		initialX = params.initialX,
+		initialY = params.initialY,
 		content = ProblemRadarContent({ meta = { styleSheet = radar_inline.content() } }), -- INLINE STYLES
 	}
+	-- Undocumented in builtin.d.tl, used by base windows (view_manager.tl:318-322) and Better Minimap.
+	local extra = winParams as {string : any}
+	extra.onMovedChange = function() windowMoved = true end
+	return builtin.Window(winParams)
 end)
 
 local function closeWindow()
@@ -899,7 +1011,12 @@ local function openWindow()
 		log.warning("[ProblemRadar] no window container; cannot open the radar window")
 		return
 	end
-	wa.addSingletonWindow(ProblemRadarWindow, { onClose = closeWindow })
+	loadPos()
+	local x, y = posX or DEFAULT_X, posY or DEFAULT_Y
+	requestedX, requestedY = x, y
+	frameDX, frameDY = nil, nil
+	windowMoved = false
+	wa.addSingletonWindow(ProblemRadarWindow, { onClose = closeWindow, initialX = x, initialY = y })
 	wa.moveSingletonWindowToFront(ProblemRadarWindow)
 end
 

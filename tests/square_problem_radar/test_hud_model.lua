@@ -439,6 +439,31 @@ test("Phase 6: trackRevisions remembers each listed entity's revision; sameRevis
 	ok(model.sameRevision(9, nil))
 end)
 
+-- window position ------------------------------------------------------------
+
+test("windowAnchor: content rect + frame offset, kept on screen; invalid rects give nil", function()
+	local x, y = model.windowAnchor(0.2, 0.3, 0.6, 0.6, 0.2, 0.1, 0.08)
+	eq({ x, y }, { 0.2 + 0.2, 0.3 + 0.1 }, "on screen: unchanged + offset")
+	x, y = model.windowAnchor(0.8, 0.0, 1.2, 0.3, 0.2, 0.1, 0.08)
+	eq({ x, y }, { 0.6 + 0.2, 0.08 + 0.1 }, "past the right edge and above minTop: pulled back")
+	x, y = model.windowAnchor(-0.25, 0.875, 0.25, 1.125, 0, 0, 0.08)
+	eq({ x, y }, { 0, 0.75 }, "past the left and bottom edges")
+	eq({ model.windowAnchor(0, 0, 0, 0, 0, 0, 0.08) }, {}, "not laid out yet")
+	eq({ model.windowAnchor(0 / 0, 0, 0.5, 0.5, 0, 0, 0.08) }, {}, "NaN")
+	eq({ model.windowAnchor(0.1, 0.1, 0.5, 0.5, nil, 0, 0.08) }, {}, "no offset")
+	eq({ model.windowAnchor(3, 3, 3.5, 3.5, 0, 0, 0.08) }, {}, "far off screen")
+end)
+
+test("readWindowPos: fractions in 0..1 only", function()
+	eq({ model.readWindowPos({ x = 0.5, y = 0.25 }) }, { 0.5, 0.25 })
+	eq({ model.readWindowPos(nil) }, {})
+	eq({ model.readWindowPos("x") }, {})
+	eq({ model.readWindowPos({ x = 0.5 }) }, {})
+	eq({ model.readWindowPos({ x = 1.5, y = 0.2 }) }, {})
+	eq({ model.readWindowPos({ x = 0 / 0, y = 0.2 }) }, {})
+	eq({ model.readWindowPos({ x = "0.5", y = 0.2 }) }, {})
+end)
+
 -- translations ---------------------------------------------------------------
 
 test("metricText: the engine's unit letters go through _() templates; other metrics unchanged", function()

@@ -72,12 +72,11 @@ function data()
 		margin = { 0, 0, 0, 0 },
 	})
 
-	-- Centre the window like the base finance/company windows: gravity places the anchor at the
-	-- middle of the screen, anchorPoint makes that the window's own centre (slightly above).
-	-- src: .cache/game/base/content/game_mechanics/finance/finances.css.lua:54-57,
-	--      .cache/game/base/content/game_mechanics/company/company.css.lua:47-50
+	-- anchorPoint: initialX/Y (radar_hud.script.tl openWindow; the screen centre by default) is the
+	-- window's own centre, slightly above. No gravity: it keeps initialX/Y from being applied, so the
+	-- remembered position would be lost (docs/findings.md; Better Minimap's window).
+	-- src: .cache/game/base/content/game_mechanics/finance/finances.css.lua:54-57 (anchorPoint)
 	a(WINDOW, {
-		gravity = { 0.5, 0.5 },
 		anchorPoint = { 0.5, 0.55 },
 	})
 

@@ -863,4 +863,33 @@ function model.sameRevision(saved : integer, current : integer) : boolean
 	return current <= saved
 end
 
+--- Window position (radar_hud.script.tl "WINDOW POSITION"), screen fractions. The content rect
+--- (l, t)-(r, b) is moved fully on screen (its top at least minTop, below the ridge), then shifted by
+--- the frame offset (dx, dy) = window anchor minus content top-left. nil for a rect that is not a
+--- laid-out on-screen window (NaN, 0,0-0,0 before layout, far off screen).
+function model.windowAnchor(l : number, t : number, r : number, b : number, dx : number, dy : number, minTop : number) : number, number
+	local function ok(v : number) : boolean return v ~= nil and v == v and v > -0.5 and v < 1.5 end
+	if not (ok(l) and ok(t) and ok(r) and ok(b) and ok(dx) and ok(dy)) then return nil, nil end
+	local w, h = r - l, b - t
+	if w <= 0.001 or h <= 0.001 or w > 1 or h > 1 then return nil, nil end
+	local x = math.max(0, math.min(l, 1 - w))
+	local y = math.max(minTop, math.min(t, 1 - h))
+	return x + dx, y + dy
+end
+
+--- The remembered window anchor from the game settings ({ x, y } in 0..1); nil, nil when missing or malformed.
+function model.readWindowPos(raw : any) : number, number
+	if type(raw) ~= "table" then return nil, nil end
+	local t = raw as {string : any}
+	local function frac(v : any) : number
+		if type(v) ~= "number" then return nil end
+		local n = v as number
+		if n ~= n or n < 0 or n > 1 then return nil end
+		return n
+	end
+	local x, y = frac(t.x), frac(t.y)
+	if x == nil or y == nil then return nil, nil end
+	return x, y
+end
+
 return model
