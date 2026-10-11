@@ -5,83 +5,167 @@
         "Debug: performance log": "Отладка: журнал производительности",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Выкл.: обычная игра. Вкл.: каждые 30 с Better Bus Overlay записывает в журнал игры (stdout.txt, строки с [SQPERF]), сколько заняли его слой, метки остановок и значки. Только для поиска замедлений; в остальных случаях оставьте выключенным. Медленные вызовы всегда кратко записываются, независимо от настройки.",
         "Off": "Выкл.",
-        "On": "Вкл."
+        "On": "Вкл.",
+        "Line routes": "Маршруты линий",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "Показывать ваши автобусные, трамвайные и грузовые маршруты на карте их цветами.",
+        "Building colors": "Цвета зданий",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "Окрашивать городские здания по типу. Здания, которые ваши маршруты ещё не обслуживают, сохраняют полный цвет, обслуживаемые бледнеют.",
+        "Stop tags": "Метки остановок",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "Показывать, сколько пассажиров ждёт на каждой остановке, и «Нет маршрута» на остановках без маршрута.",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "Показывать ваши автобусные, трамвайные, грузовые и железнодорожные маршруты на карте их цветами."
     },
     "de": {
         "No line": "Keine Linie",
         "Debug: performance log": "Debug: Leistungsprotokoll",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Aus: normales Spiel. An: alle 30 s schreibt Better Bus Overlay in die Logdatei des Spiels (stdout.txt, Zeilen mit [SQPERF]), wie lange seine Ansicht, Haltestellen-Schilder und Pins gedauert haben. Nur zur Suche nach Verlangsamungen; sonst auf Aus lassen. Langsame Aufrufe werden immer kurz protokolliert, unabhängig von dieser Einstellung.",
         "Off": "Aus",
-        "On": "An"
+        "On": "An",
+        "Line routes": "Linienverläufe",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "Zeigt deine Bus-, Tram- und LKW-Linien in ihren Linienfarben auf der Karte.",
+        "Building colors": "Gebäudefarben",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "Färbt Stadtgebäude nach Typ. Gebäude, die deine Linien noch nicht bedienen, behalten die volle Farbe, bediente werden blass.",
+        "Stop tags": "Haltestellen-Schilder",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "Zeigt, wie viele Passagiere an jeder Haltestelle warten, und „Keine Linie“ an Haltestellen, die keine Linie anfährt.",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "Zeigt deine Bus-, Tram-, LKW- und Zuglinien in ihren Linienfarben auf der Karte."
     },
     "fr": {
         "No line": "Aucune ligne",
         "Debug: performance log": "Débogage : journal des performances",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Désactivé : jeu normal. Activé : toutes les 30 s, Better Bus Overlay écrit dans le journal du jeu (stdout.txt, lignes commençant par [SQPERF]) le temps pris par sa vue, ses étiquettes d'arrêt et ses repères. Uniquement pour traquer les ralentissements ; sinon, laissez-le désactivé. Les appels lents sont toujours brièvement journalisés, quel que soit ce réglage.",
         "Off": "Désactivé",
-        "On": "Activé"
+        "On": "Activé",
+        "Line routes": "Tracés des lignes",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "Affiche vos lignes de bus, de tram et de camion sur la carte dans leurs couleurs.",
+        "Building colors": "Couleurs des bâtiments",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "Colore les bâtiments des villes par type. Ceux que vos lignes ne desservent pas encore gardent leur pleine couleur, ceux desservis sont estompés.",
+        "Stop tags": "Étiquettes d'arrêt",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "Affiche le nombre de passagers en attente à chaque arrêt, et « Aucune ligne » aux arrêts qu'aucune ligne ne dessert.",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "Affiche vos lignes de bus, de tram, de camion et de train sur la carte dans leurs couleurs."
     },
     "es": {
         "No line": "Sin línea",
         "Debug: performance log": "Depuración: registro de rendimiento",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Desactivado: juego normal. Activado: cada 30 s, Better Bus Overlay escribe en el registro del juego (stdout.txt, líneas que empiezan por [SQPERF]) cuánto tardaron su capa, las etiquetas de parada y los marcadores. Solo para buscar ralentizaciones; si no, déjalo desactivado. Las llamadas lentas siempre se registran brevemente, sea cual sea este ajuste.",
         "Off": "Desactivado",
-        "On": "Activado"
+        "On": "Activado",
+        "Line routes": "Recorridos de líneas",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "Muestra tus líneas de autobús, tranvía y camión en el mapa con sus colores.",
+        "Building colors": "Colores de edificios",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "Colorea los edificios de la ciudad por tipo. Los que tus líneas aún no atienden mantienen el color pleno; los atendidos se atenúan.",
+        "Stop tags": "Etiquetas de parada",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "Muestra cuántos pasajeros esperan en cada parada, y «Sin línea» en las paradas por las que no pasa ninguna línea.",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "Muestra tus líneas de autobús, tranvía, camión y tren en el mapa con sus colores."
     },
     "it": {
         "No line": "Nessuna linea",
         "Debug: performance log": "Debug: registro prestazioni",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Disattivato: gioco normale. Attivato: ogni 30 s Better Bus Overlay scrive nel file di log del gioco (stdout.txt, righe che iniziano con [SQPERF]) quanto hanno richiesto la sua vista, le etichette delle fermate e i segnaposto. Solo per individuare rallentamenti; altrimenti lascialo disattivato. Le chiamate lente vengono sempre registrate brevemente, qualunque sia questa impostazione.",
         "Off": "Disattivato",
-        "On": "Attivato"
+        "On": "Attivato",
+        "Line routes": "Percorsi delle linee",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "Mostra le tue linee di autobus, tram e camion sulla mappa nei loro colori.",
+        "Building colors": "Colori degli edifici",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "Colora gli edifici delle città per tipo. Quelli che le tue linee non servono ancora mantengono il colore pieno, quelli serviti sono sbiaditi.",
+        "Stop tags": "Etichette delle fermate",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "Mostra quanti passeggeri aspettano a ogni fermata, e \"Nessuna linea\" alle fermate dove non passa nessuna linea.",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "Mostra le tue linee di autobus, tram, camion e treno sulla mappa nei loro colori."
     },
     "nl": {
         "No line": "Geen lijn",
         "Debug: performance log": "Debug: prestatielogboek",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Uit: normaal spelen. Aan: elke 30 s schrijft Better Bus Overlay naar het logbestand van het spel (stdout.txt, regels die beginnen met [SQPERF]) hoe lang de weergave, haltelabels en spelden duurden. Alleen om vertragingen op te sporen; laat het anders uit. Trage aanroepen worden altijd kort gelogd, ongeacht deze instelling.",
         "Off": "Uit",
-        "On": "Aan"
+        "On": "Aan",
+        "Line routes": "Lijnroutes",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "Toont je bus-, tram- en vrachtwagenlijnen op de kaart in hun lijnkleuren.",
+        "Building colors": "Gebouwkleuren",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "Kleurt stadsgebouwen per type. Gebouwen die je lijnen nog niet bedienen houden de volle kleur, bediende gebouwen zijn vervaagd.",
+        "Stop tags": "Haltelabels",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "Toont hoeveel passagiers er bij elke halte wachten, en \"Geen lijn\" bij haltes waar geen lijn langskomt.",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "Toont je bus-, tram-, vrachtwagen- en treinlijnen op de kaart in hun lijnkleuren."
     },
     "pl": {
         "No line": "Brak linii",
         "Debug: performance log": "Debugowanie: dziennik wydajności",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Wył.: normalna gra. Wł.: co 30 s Better Bus Overlay zapisuje w pliku dziennika gry (stdout.txt, wiersze zaczynające się od [SQPERF]), ile trwały jego nakładka, etykiety przystanków i znaczniki. Tylko do szukania spowolnień; w innym przypadku zostaw wyłączone. Wolne wywołania są zawsze krótko zapisywane, niezależnie od tego ustawienia.",
         "Off": "Wył.",
-        "On": "Wł."
+        "On": "Wł.",
+        "Line routes": "Trasy linii",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "Pokazuje twoje linie autobusowe, tramwajowe i ciężarowe na mapie w ich kolorach.",
+        "Building colors": "Kolory budynków",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "Koloruje budynki w miastach według typu. Budynki, których twoje linie jeszcze nie obsługują, mają pełny kolor, obsługiwane są wyblakłe.",
+        "Stop tags": "Etykiety przystanków",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "Pokazuje, ilu pasażerów czeka na każdym przystanku, oraz „Brak linii” na przystankach, przez które nie przejeżdża żadna linia.",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "Pokazuje twoje linie autobusowe, tramwajowe, ciężarowe i kolejowe na mapie w ich kolorach."
     },
     "pt_BR": {
         "No line": "Sem linha",
         "Debug: performance log": "Depuração: log de desempenho",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Desligado: jogo normal. Ligado: a cada 30 s, Better Bus Overlay grava no arquivo de log do jogo (stdout.txt, linhas que começam com [SQPERF]) quanto tempo levaram sua camada, as etiquetas de parada e os marcadores. Só para investigar lentidão; caso contrário, deixe desligado. Chamadas lentas são sempre registradas brevemente, qualquer que seja esta configuração.",
         "Off": "Desligado",
-        "On": "Ligado"
+        "On": "Ligado",
+        "Line routes": "Trajetos das linhas",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "Mostra suas linhas de ônibus, bonde e caminhão no mapa nas cores delas.",
+        "Building colors": "Cores dos edifícios",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "Colore os edifícios da cidade por tipo. Os que suas linhas ainda não atendem mantêm a cor plena; os atendidos ficam esmaecidos.",
+        "Stop tags": "Etiquetas de parada",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "Mostra quantos passageiros esperam em cada parada, e \"Sem linha\" nas paradas por onde nenhuma linha passa.",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "Mostra suas linhas de ônibus, bonde, caminhão e trem no mapa nas cores delas."
     },
     "ja": {
         "No line": "路線なし",
         "Debug: performance log": "デバッグ：パフォーマンスログ",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "オフ：通常プレイ。オン：30 秒ごとに、Better Bus Overlay がオーバーレイ、停留所タグ、ピンにかかった時間をゲームのログファイル（stdout.txt、[SQPERF] で始まる行）に書き込みます。動作が遅くなる原因を調べるときだけ使い、それ以外はオフのままにしてください。遅い処理はこの設定にかかわらず常に簡潔に記録されます。",
         "Off": "オフ",
-        "On": "オン"
+        "On": "オン",
+        "Line routes": "路線ルート",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "バス・トラム・トラックの路線を、路線色で地図に表示します。",
+        "Building colors": "建物の色",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "町の建物を種類別に色分けします。路線がまだ利用されていない建物は濃い色のまま、利用されている建物は薄くなります。",
+        "Stop tags": "停留所タグ",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "各停留所の待ち乗客数と、路線が通らない停留所に「路線なし」を表示します。",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "バス・トラム・トラック・鉄道の路線を、路線色で地図に表示します。"
     },
     "ko": {
         "No line": "노선 없음",
         "Debug: performance log": "디버그: 성능 로그",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "끄기: 일반 플레이. 켜기: 30초마다 Better Bus Overlay가 오버레이, 정류장 태그, 핀에 걸린 시간을 게임 로그 파일(stdout.txt, [SQPERF]로 시작하는 줄)에 기록합니다. 느려지는 원인을 찾을 때만 사용하고, 그 외에는 끄기로 두세요. 느린 호출은 이 설정과 관계없이 항상 간단히 기록됩니다.",
         "Off": "끄기",
-        "On": "켜기"
+        "On": "켜기",
+        "Line routes": "노선 경로",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "버스, 트램, 트럭 노선을 노선 색상으로 지도에 표시합니다.",
+        "Building colors": "건물 색상",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "도시 건물을 유형별로 색칠합니다. 아직 노선이 이용되지 않는 건물은 진한 색 그대로, 이용되는 건물은 흐리게 표시됩니다.",
+        "Stop tags": "정류장 태그",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "각 정류장에서 기다리는 승객 수와, 노선이 지나지 않는 정류장에 \"노선 없음\"을 표시합니다.",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "버스, 트램, 트럭, 열차 노선을 노선 색상으로 지도에 표시합니다."
     },
     "zh_CN": {
         "No line": "无线路",
         "Debug: performance log": "调试：性能日志",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "关：正常游戏。开：Better Bus Overlay 每 30 秒将其叠加层、站点标签和图钉所用的时间写入游戏日志文件（stdout.txt，以 [SQPERF] 开头的行）。仅用于排查卡顿；其他情况下请保持关闭。无论此设置如何，缓慢的调用总会被简要记录。",
         "Off": "关",
-        "On": "开"
+        "On": "开",
+        "Line routes": "线路走向",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "在地图上以线路颜色显示你的公交、电车和卡车线路。",
+        "Building colors": "建筑颜色",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "按类型为城镇建筑着色。你的线路尚未服务的建筑保持全色，已服务的建筑变淡。",
+        "Stop tags": "站点标签",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "显示每个站点的等候乘客数，并在没有线路经过的站点显示“无线路”。",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "在地图上以线路颜色显示你的公交、电车、卡车和火车线路。"
     },
     "zh_TW": {
         "No line": "無路線",
         "Debug: performance log": "除錯：效能記錄",
         "Off: normal play. On: every 30 s, Better Bus Overlay writes how long its overlay, stop tags and pins took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "關：正常遊戲。開：Better Bus Overlay 每 30 秒將其疊加層、站點標籤與圖釘所花的時間寫入遊戲記錄檔（stdout.txt，以 [SQPERF] 開頭的行）。僅用於排查卡頓；其他情況請保持關閉。無論此設定為何，緩慢的呼叫一律會簡要記錄。",
         "Off": "關",
-        "On": "開"
+        "On": "開",
+        "Line routes": "路線走向",
+        "Draw your bus, tram and truck lines on the map in their line colors.": "在地圖上以路線顏色顯示你的公車、電車和卡車路線。",
+        "Building colors": "建築顏色",
+        "Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded.": "依類型為城鎮建築著色。你的路線尚未服務的建築保持全色，已服務的建築變淡。",
+        "Stop tags": "站點標籤",
+        "Show how many passengers wait at each stop, and \"No line\" at stops no line passes through.": "顯示每個站點的等候乘客數，並在沒有路線經過的站點顯示「無路線」。",
+        "Draw your bus, tram, truck and train lines on the map in their line colors.": "在地圖上以路線顏色顯示你的公車、電車、卡車和火車路線。"
     }
 }

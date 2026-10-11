@@ -18,6 +18,9 @@
 --   tool or the crosswalk tool, a non-selectable
 --   LineViewer with all bus and tram lines is appended to its children (same builtin the station window uses,
 --   station_group.tl:958-967). Precedent for wrapping ActionDescriptor: square_supply_gaps sg_patch.lua.
+-- * construction_react_util.forEachDefinition: adds the overlay toggles (CheckBoxes above Underground) to those
+--   definitions (and a "Line routes" toggle, Off by default, to every other tool); getActionParams skips each part
+--   whose toggle is Off ("Overlay toggles" below).
 --
 -- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state, slow calls (> 16 ms, at most one line
 -- per section per minute) and, with the "Debug: performance log" mod setting, a 30 s summary. Two
@@ -459,32 +462,42 @@ end
 -- Only bus and tram lines: train, air and water lines cluttered the street view (player feedback, 2026-10-09).
 -- Carrier check as the Lines window filters by carrier (isLineCompatibleWithAnyCarrier, api/engine/util.d.tl:228;
 -- manager_window.tl:156).
-local LINE_CARRIERS = nil
+-- The other tools' "Line routes" toggle adds rail (a track tool wants the train lines) but never air or water:
+-- planes and ships brought the clutter back in the road upgrade tool (player feedback on rev 5, 2026-10-10).
+local STREET_CARRIERS, LAND_CARRIERS = nil, nil
 local function isStreetLine(line)
-	LINE_CARRIERS = LINE_CARRIERS or { api.type.enum.Carrier.ROAD, api.type.enum.Carrier.TRAM }
-	return api.engine.util.line.isLineCompatibleWithAnyCarrier(line, LINE_CARRIERS, false)
+	STREET_CARRIERS = STREET_CARRIERS or { api.type.enum.Carrier.ROAD, api.type.enum.Carrier.TRAM }
+	return api.engine.util.line.isLineCompatibleWithAnyCarrier(line, STREET_CARRIERS, false)
 end
 
-local linesCache, linesStamp = nil, nil
-local function lineVisualizations()
+local function isLandLine(line)
+	LAND_CARRIERS = LAND_CARRIERS
+		or { api.type.enum.Carrier.ROAD, api.type.enum.Carrier.TRAM, api.type.enum.Carrier.RAIL }
+	return api.engine.util.line.isLineCompatibleWithAnyCarrier(line, LAND_CARRIERS, false)
+end
+
+-- all = the land lines of every carrier but air and water (the other tools' "Line routes" toggle);
+-- one cache per kind
+local linesCache, linesStamp = {}, {}
+local function lineVisualizations(all)
 	local now = os.time()
-	if linesCache and linesStamp == now then return linesCache end
+	if linesCache[all] and linesStamp[all] == now then return linesCache[all] end
 	local list = {}
 	for _, line in ipairs(api.engine.system.lineSystem.getLines()) do
-		if isStreetLine(line) then
+		if (all and isLandLine(line)) or (not all and isStreetLine(line)) then
 			local vis = builtin.type.LineVisualization.new()
 			vis.entity = line
 			vis.transparency = 1.0
 			list[#list + 1] = vis
 		end
 	end
-	linesCache, linesStamp = list, now
+	linesCache[all], linesStamp[all] = list, now
 	return list
 end
 
 local snapFactors = nil
-local function lineViewer()
-	local lines = lineVisualizations()
+local function lineViewer(all)
+	local lines = lineVisualizations(all)
 	if #lines == 0 then return nil end
 	snapFactors = snapFactors or hud_react_util.makeDefaultLineViewerSnapFactors()
 	return builtin.LineViewer{
@@ -500,8 +513,8 @@ end
 -- Wrappers -------------------------------------------------------------------------------------------------------
 local origGetActionParams, origActionDescriptor
 -- set by every getActionParams call, consumed by the next construction-menu ActionDescriptor (construction.tl
--- always calls the two in that order in one render)
-local linesPending = false
+-- always calls the two in that order in one render); linesAll: train lines too, not just bus and tram
+local linesPending, linesAll = false, false
 
 -- Street stops, and bus/tram station constructions (template definitions keep their own menuCategory,
 -- construction_react_util.tl:1074-1097). A template's menuCategory comes from the engine's template object
@@ -572,7 +585,8 @@ local function matchesStationMenu(definition)
 	return match, source .. " " .. seen
 end
 
-local function isStopDefinition(definition)
+-- quiet: no diagnostics line (forEachDefinition below sees every construction of the game)
+local function isStopDefinition(definition, quiet)
 	if definition.action == STOP_ACTION then return true end
 	if definition.action ~= CONSTRUCTION_ACTION then return false end
 	local ok, match, seen = pcall(matchesStationMenu, definition)
@@ -580,6 +594,7 @@ local function isStopDefinition(definition)
 		warnOnce("menu", match)
 		return false
 	end
+	if quiet then return match end
 	-- once per construction entry: what the menu check saw (diagnostics for station matching)
 	logOnce("menu:" .. tostring(definition.resName) .. "#" .. tostring(definition.constructionTemplate),
 		"menu " .. (match and "match" or "skip") .. " res=" .. tostring(definition.resName)
@@ -587,25 +602,128 @@ local function isStopDefinition(definition)
 	return match
 end
 
+-- Overlay toggles ------------------------------------------------------------------------------------------------
+-- CheckBoxes in the tool's left options column, above Underground, so each part of the overlay can be switched off
+-- (player request 2026-10-10: with the lines drawn, upgraded bus lane segments were hard to see). Added to the
+-- definitions by the forEachDefinition wrapper: construction.tl:4279-4287 collects the menu's definitions through the
+-- module table once per menu mount, and the menu shows each definition's params in list order, consecutive params of
+-- one group in one block (construction.tl:2050-2075). Toolbar location: the left column, as the Underground param
+-- (makeUndergroundParam, construction_react_util.tl:657-676). One key per toggle in every tool, with
+-- preserveValueInAllCategories, so a choice carries over between the tools (construction.tl:1045, 1879) until the
+-- game is restarted. getActionParams gets the values in its params map (CheckBox: 1 = Off, 2 = On; bulk bulldozer).
+-- Every other tool of the menu gets a "Line routes" toggle too, Off by default and with the train lines as well
+-- (player request 2026-10-10). It has its own key, so turning it on there leaves the bus tools' choice alone and the
+-- other way round. Our params never reach a construction: getConstructionActionParams passes on only params marked
+-- constructionParam (construction_react_util.tl:3150-3162).
+local OPT_LINES = "sqbbo_lines"
+local OPT_LINES_OTHER = "sqbbo_lines_other"
+local OPT_BUILDINGS = "sqbbo_buildings"
+local OPT_TAGS = "sqbbo_stop_tags"
+local OPT_GROUP = "sqbbo_overlay"
+local UNDERGROUND_KEY = "undergroundMode"
+
+local function optionParam(key, name, tooltip, defaultOn)
+	return {
+		key = key,
+		name = name,
+		tooltip = tooltip,
+		values = { _("Off"), _("On") },
+		defaultIndex = defaultOn and 2 or 1,
+		group = OPT_GROUP,
+		uiType = api.type.enum.ScriptParamType.CheckBox,
+		yearFrom = 0,
+		yearTo = 0,
+		location = api.type.enum.ScriptParamLocation.Toolbar,
+		preserveValueInAllCategories = true,
+	}
+end
+
+local function linesOption()
+	return optionParam(OPT_LINES, _("Line routes"),
+		_("Draw your bus, tram and truck lines on the map in their line colors."), true)
+end
+
+local function otherLinesOption()
+	return optionParam(OPT_LINES_OTHER, _("Line routes"),
+		_("Draw your bus, tram, truck and train lines on the map in their line colors."), false)
+end
+
+local function stopOptions()
+	return {
+		linesOption(),
+		optionParam(OPT_BUILDINGS, _("Building colors"),
+			_("Color town buildings by type. Buildings your lines don't serve yet keep the full color, served ones are faded."), true),
+		optionParam(OPT_TAGS, _("Stop tags"),
+			_("Show how many passengers wait at each stop, and \"No line\" at stops no line passes through."), true),
+	}
+end
+
+-- missing (another menu, or a definition without our params) counts as On for the bus tools' toggles
+local function optionOn(params, key)
+	return type(params) ~= "table" or params[key] ~= 1
+end
+
+-- and as Off for the other tools' lines
+local function otherLinesOn(params)
+	return type(params) == "table" and params[OPT_LINES_OTHER] == 2
+end
+
+-- the definition's params with ours inserted before Underground (or at the end); nil when they are there already
+local function withOptions(list, options)
+	local out, placed = {}, false
+	for _, p in ipairs(listItems(list)) do
+		if p.key == OPT_LINES or p.key == OPT_LINES_OTHER then return nil end
+		if not placed and p.key == UNDERGROUND_KEY then
+			for _, o in ipairs(options) do out[#out + 1] = o end
+			placed = true
+		end
+		out[#out + 1] = p
+	end
+	if not placed then
+		for _, o in ipairs(options) do out[#out + 1] = o end
+	end
+	return out
+end
+
+local function addOptions(definition)
+	local options
+	if LINES_ONLY_ACTIONS[definition.action] then
+		options = { linesOption() }
+	elseif isStopDefinition(definition, true) then
+		options = stopOptions()
+	else
+		options = { otherLinesOption() }
+	end
+	-- a new list: the old one may be shared with the definition's source
+	local params = withOptions(definition.params, options)
+	if params ~= nil then definition.params = params end
+end
+
 -- getActionParams(definition, params, repository, isGamepadMode, refParams, entity, accessNotificationCacheFn, ...)
 -- (construction_react_util.tl:3604-3606)
 local function getActionParams(definition, params, repository, isGamepadMode, refParams, entity, accessNotificationCacheFn, ...)
 	local res = origGetActionParams(definition, params, repository, isGamepadMode, refParams, entity, accessNotificationCacheFn, ...)
 	local t = perf:start() -- SQPERF section "action_params": our part only (GUI thread)
-	linesPending = false
+	linesPending, linesAll = false, false
 	if res ~= nil and definition ~= nil and LINES_ONLY_ACTIONS[definition.action] then
 		logOnce("def:" .. tostring(definition.resName), "match " .. tostring(definition.action) .. " res=" .. tostring(definition.resName))
-		linesPending = true
+		linesPending = optionOn(params, OPT_LINES)
 	elseif res ~= nil and definition ~= nil and isStopDefinition(definition) then
 		logOnce("def:" .. tostring(definition.resName), "match " .. tostring(definition.action) .. " res=" .. tostring(definition.resName))
-		linesPending = true
-		local ok, e = pcall(function()
-			if res.layerConfig == nil then res.layerConfig = api.type.LayerConfig.new() end
-			addServedColours(res.layerConfig)
-		end)
-		if not ok then warnOnce("colours", e) end
-		ok, e = pcall(addStopBadges, res, accessNotificationCacheFn)
-		if not ok then warnOnce("badges", e) end
+		linesPending = optionOn(params, OPT_LINES)
+		if optionOn(params, OPT_BUILDINGS) then
+			local ok, e = pcall(function()
+				if res.layerConfig == nil then res.layerConfig = api.type.LayerConfig.new() end
+				addServedColours(res.layerConfig)
+			end)
+			if not ok then warnOnce("colours", e) end
+		end
+		if optionOn(params, OPT_TAGS) then
+			local ok, e = pcall(addStopBadges, res, accessNotificationCacheFn)
+			if not ok then warnOnce("badges", e) end
+		end
+	elseif res ~= nil and definition ~= nil and otherLinesOn(params) then
+		linesPending, linesAll = true, true
 	end
 	perf:stop("action_params", t)
 	return res
@@ -618,7 +736,7 @@ local function actionDescriptor(p, ...)
 		local t = perf:start() -- SQPERF section "line_viewer" (GUI thread)
 		local tool = p.tool
 		if type(tool) == "string" and tool:sub(1, #TOOL_PREFIX) == TOOL_PREFIX then
-			local ok, viewer = pcall(lineViewer)
+			local ok, viewer = pcall(lineViewer, linesAll)
 			if not ok then
 				warnOnce("lines", viewer)
 			elseif viewer ~= nil then
@@ -633,8 +751,27 @@ local function actionDescriptor(p, ...)
 	return origActionDescriptor(p, ...)
 end
 
+local origForEachDefinition
+
+-- forEachDefinition(fnNonNil, repository) (construction_react_util.tl:2774); fn only ever gets a definition
+local function forEachDefinition(fn, repository, ...)
+	return origForEachDefinition(function(definition, ...)
+		local t = perf:start() -- SQPERF section "options" (GUI thread)
+		local ok, e = pcall(addOptions, definition)
+		if not ok then warnOnce("options", e) end
+		perf:stop("options", t)
+		return fn(definition, ...)
+	end, repository, ...)
+end
+
 local function doReplace(_replacementApi)
 	if origGetActionParams or origActionDescriptor then return end -- already installed
+	if type(construction_react_util.forEachDefinition) == "function" then
+		origForEachDefinition = construction_react_util.forEachDefinition
+		construction_react_util.forEachDefinition = forEachDefinition
+	else
+		warnOnce("install", "forEachDefinition " .. type(construction_react_util.forEachDefinition))
+	end
 	-- read the current functions now, not at load, so wrappers of other mods stay in the chain
 	local gap, ad = construction_react_util.getActionParams, builtin.ActionDescriptor
 	if type(gap) ~= "function" or ad == nil then
@@ -648,7 +785,8 @@ local function doReplace(_replacementApi)
 		origUseDefaultHudIcon = builtin.UseDefaultHudIcon
 		builtin.UseDefaultHudIcon = perfHud:wrap("default_icon", useDefaultHudIcon) -- SQPERF section (HUD renders)
 	end
-	say("installed pin=" .. (origUseDefaultHudIcon ~= nil and "ok" or "missing"))
+	say("installed pin=" .. (origUseDefaultHudIcon ~= nil and "ok" or "missing")
+		.. " options=" .. (origForEachDefinition ~= nil and "ok" or "missing"))
 	-- the pin styles, on this (Main) thread; SQPERF section "pin_styles" (perf). The stop opens perf's first window,
 	-- which reads the debug gate, so the check line below is only written with the debug gate On.
 	local t = perf:start()
