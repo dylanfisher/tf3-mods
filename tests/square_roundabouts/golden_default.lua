@@ -12,9 +12,13 @@
 -- 3,888 main builds: 2:1 ovals with 4 lanes and large arms, whose radial splitter fitted nowhere
 -- (12 forced at 60 m from sliders 45-60 m, 24 built at the 40 m floor the offline model rejected),
 -- now split along the ring normal (geom.splitAxis, PHASE5.md "Phase 5f notes"). Magic unchanged.
+-- Re-recorded on purpose for rev 7 (2026-10-12): 4 groups (main T / Y arms, splitter off, centre
+-- none), 6 of 3,888 main builds: 1.5:1 ovals, 1 lane, town large arms at 8 / 20 m, whose plain arm
+-- kerb corner lay 1.7-3.7 m behind its node (checks.engineModel), now grown to 20 / 25 m
+-- (geom.ARM_BEHIND_PLAN; test_oval_arm_room.lua). Magic unchanged.
 return {
-	["main a1 s1 c1 t1"] = 745191174,
-	["main a1 s1 c1 t2"] = 1722143356,
+	["main a1 s1 c1 t1"] = 815035298,
+	["main a1 s1 c1 t2"] = 587504673,
 	["main a1 s1 c2 t1"] = 1038074273,
 	["main a1 s1 c2 t2"] = 1430911553,
 	["main a1 s1 c3 t1"] = 515330366,
@@ -25,8 +29,8 @@ return {
 	["main a1 s2 c2 t2"] = 946900716,
 	["main a1 s2 c3 t1"] = 1972099067,
 	["main a1 s2 c3 t2"] = 1746962851,
-	["main a2 s1 c1 t1"] = 73022643,
-	["main a2 s1 c1 t2"] = 1039476406,
+	["main a2 s1 c1 t1"] = 645188712,
+	["main a2 s1 c1 t2"] = 1577363496,
 	["main a2 s1 c2 t1"] = 265776500,
 	["main a2 s1 c2 t2"] = 1902649333,
 	["main a2 s1 c3 t1"] = 1624775111,

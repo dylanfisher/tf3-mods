@@ -1,5 +1,7 @@
 # square_roundabouts Phase 6: lane connections at ring junctions
 
+Status: superseded 2026-10-08. Lane routing became the separate mod `square_smart_lanes` (`plans/square_smart_lanes/PLAN.md`); the Phase 6a probe ran (results: `docs/findings.md` "Junction lane connections (2026-10-08)"), 6b/6c were never done in this mod.
+
 Plan written 2026-10-08. Background: `PLAN.md` (Phases 1-4b), `PHASE5.md` (channel, interchange,
 hamburger). Phase 6a (this file's probe) changes nothing in `mods/square_roundabouts`.
 

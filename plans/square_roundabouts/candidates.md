@@ -1,5 +1,7 @@
 # Candidate additions (2026-10-07)
 
+Status: current backlog (ranking of 2026-10-07). Items 1-6 shipped in revisions 3-4 (Phase 5 and the Parclo of Phase 7); SPUI and Turbo are still open.
+
 ## Reference: Roadform — Interchanges & Intersections (Steam Workshop 3810308528)
 - Transport Fever 2 mod by psyhonut, ~2.9k subscribers. The author says a TF3 port comes next.
 - 15 types: diamond, parclo, SPUI, DDI, trumpet, directional T, windmill, turbine S/L, 4-level

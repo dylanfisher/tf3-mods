@@ -1,5 +1,7 @@
 # Roundabouts mod: feasibility review (2026-10-07)
 
+Status: done 2026-10-07 (feasibility review before Phase 1).
+
 ## Vanilla baseline
 
 `base/content/infrastructure/street_construction/roundabout.con.lua` + `street_constructions.script.lua:632` (`updateFnRoundabout`):

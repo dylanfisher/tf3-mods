@@ -1,5 +1,7 @@
 # square_roundabouts: in-game tests
 
+Status: open checks for revisions 6-7 at the top, then the standing regression checklist (sections 0-16). Passed one-off checks are in `HISTORY.md`.
+
 Setup: `make link`, enable the mod, start a free game (year 1940 or later) or load a save. Watch
 stdout.txt (`~/Library/Application Support/Steam/userdata/<id>/3493540/local/crash_dump/stdout.txt`)
 for errors mentioning `square_roundabouts`.
@@ -7,6 +9,23 @@ for errors mentioning `square_roundabouts`.
 Where it is: road construction menu (`street_constructions`), next to the base "Roundabout"
 (order 3010; "Magic Roundabout" at 3011). It has its own menu icon (Phase 2a); the hover preview image is still the base
 roundabout's (placeholder).
+
+## Open checks
+1. **Revision 7, small ovals with wide arms.** Better Roundabouts, Shape Oval 1.25 : 1, Scale XS,
+   Ring lanes 1, Arms 3 (T), Arm road Country large, Splitter islands Off (the Stress Test Showcase's
+   "Oval roundabout"): revision 6 grew it to 15 m and the game refused it ("Construction Not
+   Possible"); revision 7 builds a larger ring (20 m) that places. Try one or two more ovals of
+   1.25-1.75 : 1 with 1 lane, Scale XS-M and Town or Country large arms: each places. Round rings,
+   2:1 ovals and every other entry build as in revision 6.
+2. **Traffic lights field (7.4, via 13.2 and 13.3).** Still unanswered (no result recorded after the
+   Phase 5 round); it decides whether a highway signals param is possible.
+3. **Channelized Junction Scale S-XL (12.11).** Not engine-probed.
+4. **Highway entries: editing and removal (16C)**, and the loop speeds of 16B (not measured).
+
+Sections 0-10, 12-14 and 16B-16C are the standing regression checklist. Recorded results: sections
+0-5 "everything works" in the first round (2026-10-07, `HISTORY.md` "Phase 2a notes"); sections 11-15 "all
+good" (2026-10-08, `PHASE5.md` "Phase 5 result"); 16B "looks fine" (2026-10-09). Other
+items have no recorded result. Passed one-off checks are in `HISTORY.md`.
 
 ## 0. Loads, menu entry, params
 1. The entry "Better Roundabouts" appears in the street constructions menu from 1940 (base one:
@@ -190,7 +209,7 @@ Note which ring entry junctions get traffic lights:
    Large and Very large, 15 / 20 m minis). Town buildings stay off all of them.
 
 ## 9. Phase 3b retests (2026-10-07 fixes)
-Background: PLAN.md "Phase 3b notes". The offline junction model says a junction must leave every
+Background: HISTORY.md "Phase 3b notes". The offline junction model says a junction must leave every
 edge at least 4.5 m of its length and no kerb corner may lie more than 6 m behind a road's node.
 Both thresholds come from the first in-game results; these checks confirm or move them.
 
@@ -202,17 +221,6 @@ Both thresholds come from the first in-game results; these checks confirm or mov
 3. Same with 3 (Y) arms (axis north-south) and with Arms None.
 4. Through = Road + Tram tracks On is covered by 9.2 (tram on the ring).
 
-### 9.2 Tram tracks On (tram on the ring): does it place at all?
-Answered by the engine probe (Phase 4): yes, as often as Tram tracks Off (`probe_results.md`), so
-the param is no longer experimental. The checks below stay as an in-game confirmation.
-1. **Through Nothing + Tram tracks On, 2 lanes, Round, Radius 30 m (and 40 m), 4 arms, Town small
-   arms: does it place?** Expected after the first test: probably "Construction not possible".
-   Note the stdout lines (`transition not valid ... Crossing`?).
-2. If it fails: try 4 lanes (one-way medium tram ring) and 1 lane (highway small +
-   tramTrackType) at 40 m. If every variant fails, the param gets removed (or limited to the
-   arms) in the next phase.
-3. If it places: run 7.3 and Through = Road + Tram tracks On (4-way ring nodes with tram).
-
 ### 9.3 Size and large arm roads
 1. Magic Roundabout, Arm road Town large: Size Compact, Small, Medium all build the Large layout
    (15 m minis, about 171 m across plus the 30 m arms); Large and Very large build as chosen. Expected: places
@@ -222,12 +230,6 @@ the param is no longer experimental. The checks below stay as an in-game confirm
    the mini's edge next to the arm (it failed with 1.6 m before).
 3. Magic, every Size with Town small: five visibly different sizes, Compact (8 m minis, 40 m out)
    to Very large (20 m minis, 76 m out).
-4. (Superseded by 10.1-10.2: the engine rejected every medium/large splitter of this phase.)
-   Better Roundabouts, Splitter islands On, Town large arms, default 4 arms 20 m: the ring grows to
-   30 m; the legs fork at about +-72 degrees and meet the ring further apart. Places? Country large:
-   ring 25 m, fork about +-64 degrees. Town medium / small: unchanged (20 m ring, 40 degree fork).
-5. (Superseded by 10.2.) Splitter islands with Town large on 3 (T), 5 and 6 arms, 1 and 4 lanes: places? Expected ring
-   sizes: T 30 m (1 lane) / 25 m (4 lanes), 5 arms 40 / 35 m, 6 arms 50 / 40 m.
 6. Mini ring (8 m, 1 lane, 4 arms) with Town medium arms: grows to 12 m (junction room). Town small:
    stays 8 m. 3 (T), 1 lane, 8 m, Town large: 20 m.
 7. The widest combinations grow past the slider's 60 m (up to 100 m): e.g. Town large, splitter
@@ -236,7 +238,7 @@ the param is no longer experimental. The checks below stay as an in-game confirm
    radius fits, the legs fork wider and spread further apart (up to +-80 degrees). Check one,
    e.g. Town medium, 3 (Y), 4 lanes, Oval 2.00 : 1, 8 m: places, legs look sane?
 
-## 10. Phase 4b: engine-tuned geometry (PLAN.md "Phase 4b notes")
+## 10. Phase 4b: engine-tuned geometry (HISTORY.md "Phase 4b notes")
 The probe asked the engine (makeProposalData) about 33,000 layouts; the shipped geometry now
 follows its answers. These checks confirm that the in-game builder agrees with the probe.
 
@@ -271,52 +273,6 @@ follows its answers. These checks confirm that the in-game builder agrees with t
 1. 1 lane, 25 m (and 4 lanes, 25 m), 4 arms, Through = Tram line: the tram road runs all the way
    across (no tram-only middle; the engine rejected middles under 21 m). Places?
 2. 2 lanes, 30 m: stubs of 16 m and a tram-only middle in between. Places?
-
-## Phase 5 walkthrough (revision 3, sections 11-15)
-Run the probe first (PROBE.md "Phase 5e runs": `p5_all`, then `p5_search`, done; "Phase 5f
-runs": `p5f_all`, `p5f_search`, done; then "Phase 5g runs": `p5g_verify`): it tells which
-combinations of the new entries the engine refuses, so the in-game pass below can focus on looks,
-traffic and the questions the probe cannot answer. Then, in order:
-- a **1930s save** (or a new game starting 1930): 11.1, 11.2;
-- a **1965 save** (a new game starting 1965 is fine): 13.2 (lights from 1950), 14.3 (steel bridges,
-  then play past 1970), 11.3;
-- a **2020 flat map** (the probe map): 12, 13, 14 (concrete bridges), 11.5.
-Write each answer under its item (OK / what you saw); 7.4 gets its answer from 13.2.
-
-## 11. Phase 5a: unverified research results (PHASE5.md "Phase 5a notes")
-The open questions the Phase 5 entries (and a possible old-era path) depend on.
-1. **Unlock year unchanged.** Better Roundabouts, Magic Roundabout, Channelized Junction and
-   Roundabout Interchange all appear from 1940, not before (a 1939 save: absent; 1940: present).
-2. **Pre-1940 one-way template** (decides whether an old-era path for every entry is worth it,
-   PHASE5.md "Phase 5a notes", spike 2). Base `constructions/entrance_old_one_way.street_template`
-   (yearFrom 0, one 5 m car lane, 30 km/h; the modular street station's entrance before 1920) is
-   the only one-way template before 1940; base never builds it as a *freed* edge. Test it with the
-   probe's dev construction (enable **DEV Roundabouts Probe** with "Run the probe" **Off**; use a
-   throwaway save, the probe is never uploaded): in a 1930 save, street construction menu, last entry
-   **"DEV Probe: pre-1940 one-way (NOT FOR UPLOAD)"**, params Layout (Straight / Ring / Ring + old
-   arms, default the last) and One-way template (entrance_old_one_way / entrance_new_one_way).
-   1. Each layout places (or the exact error text).
-   2. The placed edges are ordinary streets: one-way arrows in the street layer, the ring runs
-      counterclockwise, the arms (town old small) are two-way; bulldoze one ring edge, upgrade an
-      arm with the street tool.
-   3. Traffic: a bus or truck line through the "Ring + old arms" roundabout drives the ring one way
-      only and enters/leaves from every arm.
-   4. Look: 1 lane, sidewalks both sides, old-town style; acceptable as a pre-1940 roundabout ring?
-   5. The same with entrance_new_one_way (the post-1920 variant) in the same save.
-3. **`params.year` in a street construction's updateFn** (the interchange picks its bridge from it).
-   The probe's `p5_interchange` passes year 1969 and 2020 explicitly; its report section "Bridge
-   type by year" says whether the two cost differently (the year reached the updateFn). In game
-   (14.3): is it the current year, and does a placed interchange keep its bridges when the updateFn
-   re-runs (save load, hovering the construction) after 1970?
-4. **Bridge years in constructions.** Base interchanges unlock 1960 but build
-   `concrete.bridge` (yearFrom 1970). Does `steel.bridge` (1940) work as a construction edgeType, and
-   does the interchange place with concrete bridges before 1970 (only when the year does not reach
-   the updateFn: then 14.3 shows concrete in 1965)?
-5. **Elevated plain edges.** The base diamond builds its cross road's approaches as normal edges
-   8 m above the construction origin (no `edgeType`, no `alignTerrain`). Place the base Diamond
-   Interchange on flat ground: earth embankments under them, or floating? (Decides whether 5d
-   needs `alignTerrain = true` or terrain alignment faces on its ramps.)
-6. **Traffic lights (7.4) still open:** answered by 13.2 (and 13.3); write the result under 7.4.
 
 ## 12. Phase 5b: Channelized Junction (PHASE5.md "Phase 5b notes")
 New menu entry under street constructions, own icon (T junction with two curved slip lanes and
@@ -431,30 +387,6 @@ left-hand, islands); `p5_interchange_search` asks whether smaller clearances wou
 12. **Editing after placement**: slip roads, rings, bridges and arms are ordinary streets; connect
     the arm ends (8 m up for ring over) and the highway ends.
 
-## 15. Phase 5f / 5g: engine tuning (PHASE5.md "Phase 5f notes", "Phase 5g notes")
-Probe first: `p5g_verify` (PROBE.md "Phase 5g runs"). Known gaps until it has run
-(`tests/square_roundabouts/verdicts.lua` V.GAPS): `interchange` (4-lane two-bridge rings at the
-Phase 5g radii no sweep placed yet). `channel` is empty since Phase 5g (no combo ships ch.FALLBACK).
-1. **Channelized Junction, 50 deg slip lanes** (accepted by the probe; e.g. T, main town large +
-   side town small; X, main country medium + side country medium): places; the slip lanes leave and
-   join at 50 deg and bow slightly towards the corner (the slip lane itself turns a little the other
-   way). Look acceptable?
-2. **Channelized Junction, steep slip lanes** (Phase 5g, from p5f_search; one-way xsmall slip lanes
-   everywhere): **65 deg** e.g. T, main town medium + side town medium (no splitter), or X, main
-   town medium + side town small; **80 deg** e.g. T, side town large with splitter islands, or X,
-   main town large + side town large. Places? Vehicles use them (an 80 deg slip lane is almost a
-   right-angle turn: do vehicles slow down a lot)? Look acceptable (65 / 80 deg slip lanes bow
-   towards the corner; small triangle islands)?
-3. **Roundabout Interchange, two-bridge ring with 4 lanes** (Phase 5g: slip nodes within 45 deg of
-   the highway): small / medium / large highway at the 15 m slider build 30 / 45 / 50 m rings
-   (Phase 5f: 35 / 45 / 55 m; revision 2 era: 25 / 35 / 40 m, all refused); the slip roads join the
-   ring at 45 deg or more. Places, both levels, both bridge types? Traffic flows?
-4. **2:1 oval, 4 lanes, large arms, splitter islands, Y or 5 arms** (Better Roundabouts): the split
-   nodes sit square to the ring's edge on the long flank (no longer radial). Places at 40 and 60 m?
-5. **Hamburger** (engine-accepted now): e.g. 4 lanes, Y, town small arms, Through road Town medium,
-   slider 8 m: builds 20 m (was 25 m, refused); 1 lane, Y, town large arms, Through road Town medium:
-   35 m (was 30 m, refused). Places.
-
 ## 16. Phase 7: Highway Interchanges (INTERCHANGES.md, "Phase 7b" to "Phase 7f notes")
 Three menu entries next to the base interchanges: **Parclo** (Layout [A][B] = A4 / B4), **Parclo, two
 quadrants** (Layout [A][B][AB] = A2 / B2 / AB2) and **Diamond**. Every entry of this mod has its settings
@@ -465,13 +397,6 @@ footprint (about 1 / 1.6 / 2.5 x; parclo loops 25 / 45 / 80 m). At Scale L the r
 highway ends stay within about 480 m of the centre (460 m with the highway on top); there Short / Medium /
 Long build the same. Placement is engine-verified by the probe (p7_hx_scale + p7_hx_scale_verify, p7_presets,
 at the builder's exact 0 deg transform), so this section is about the look, the menu and **traffic**.
-
-### 16A. Menu and look (done 2026-10-09 unless noted)
-1. Every icon of this mod carries the cover pictogram badge in the top-right corner; each entry has its own
-   hover preview (the three highway previews are drawn placeholders until captures exist).
-2. Every settings row fits the left panel, nothing cut off (5-button rows: Radius XS-XL, Magic Size).
-3. Scale S / M / L clearly different on Parclo A and the Diamond, both levels; each places at 0 deg.
-4. Left-hand traffic mirrored (loops turn left). 1965 save: steel bridges; 2020: concrete.
 
 ### 16B. Traffic test (2026-10-09: user ran traffic on the placed entries, "looks fine"; loop speeds not measured)
 Setup, about 10 minutes, one save, 2020, flat open area, no towns needed:
@@ -500,58 +425,6 @@ Report: per entry, lines OK / which movement failed, the loop speeds, anything s
    refuse to edit a curve under the template's 44 m `minCurveRadius`?).
 2. Removal of the mod from a save with an interchange: roads stay (severityRemove Warning; islands of the
    roundabout entries may go). Quit to the main menu first (removing a staging mod in game asserts).
-
-## Phase 6a lane probe (PHASE6.md; DEV ONLY mod `square_roundabouts_lanes_probe`, never upload)
-Goal: one round that answers PHASE6.md Q1-Q3. The probe only logs, except in part B.
-
-Setup:
-1. `make link` (links `mods/square_roundabouts_lanes_probe` too). Watch the log in a terminal:
-   `tail -f ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt | grep --line-buffered "SQRB-LANES"`
-2. New free game (year 1990 or later, so every template and traffic lights exist), mods enabled:
-   **Better Roundabouts** and **DEV Roundabouts Lane Probe**, probe setting "Write experiment" =
-   **Off**. Flat open area away from towns. After a few seconds of unpaused play stdout must show
-   `[SQRB-LANES] INFO msg=DEV_ONLY_lane_probe_subscribed` and `..._gui_loaded`.
-
-A. Read-only (write Off). Unpause between placements; wait about 3 s after each (look for a `SCAN` line).
-1. Better Roundabouts, defaults (Round, 2 lanes, 20 m, 4 arms, Town small).
-2. Better Roundabouts, 2 lanes, 4 arms, **Arm road Town medium** (2-lane arms).
-3. Better Roundabouts, **4 lanes**, 4 arms, Town medium.
-4. Better Roundabouts, **1 lane**, 3 (T) arms, Town small.
-5. Better Roundabouts, 2 lanes, **Splitter islands On**, Town small.
-6. Better Roundabouts, 2 lanes, **Through the centre: Road**.
-7. Magic Roundabout, defaults.
-8. Channelized Junction, defaults (T, near-side slips).
-9. Roundabout Interchange, defaults (two-bridge ring, ring over highway).
-10. The vanilla **Roundabout** (base menu), defaults: baseline for the engine's own connections.
-11. Crossing Tool: open the vanilla Crossing Tool on one arm node of roundabout 2 (2-lane ring,
-    medium arm). Note what it shows: which ring lane has arrows into the arm, which arm lanes go to
-    which ring lane (a screenshot helps). Then change one arrow (remove the inner ring lane's exit)
-    and apply. Write down the node position (hover) or take a screenshot; the probe logs the tool's
-    build as `BUILD ... ncfgAdd=1` plus `NCFG`/`NCFG_CONN` lines.
-12. Build any short road somewhere else (triggers one more `BUILD`).
-
-B. Write experiment. Save, quit to the menu, set the probe's "Write experiment" = **On**, load the save.
-1. Place Better Roundabouts 2 lanes, 4 arms, Town medium. After about 3 s stdout shows `WRITE k=1 ...
-   lane0=<n> mode=set_true` and `WRITE_RESULT k=1 ... success=true|false`. Open the Crossing Tool on
-   that node (position: the `NODE` line with the same `node=` id, or the arm node nearest the
-   roundabout's east side; screenshot if unsure): does the removed lane's arrow into the arm
-   disappear, and was it the **inner** or the **outer** ring lane?
-2. Place a 4-lane ring with Town medium arms (write k=2, `mode=keep`: userModified not set).
-   Same check in the Crossing Tool.
-3. Wait at least 60 s unpaused (`PERSIST ... reason=time60s same=true|false`).
-4. Edit near written node 1: build a short road onto the end of the arm at that node, then bulldoze
-   the outermost arm segment and rebuild it (each logs `PERSIST ... reason=build<N>`). Then use the
-   Crossing Tool on the written node and press apply without changing anything.
-5. Place a 1-lane ring: expect `WRITE ... status=no_candidate` (nothing changed).
-6. Watch the traffic for a minute on roundabout B1 if any town traffic reaches it (optional).
-
-Send back:
-- every `[SQRB-LANES]` line:
-  `grep -a "SQRB-LANES" ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_lanes.log`
-  (no `tools/parse_probe.py` support: the lines are `key=value` and read directly),
-- what the Crossing Tool showed in A11, B1, B2 (screenshots welcome), and which ring lane lost its exit,
-- any `ERROR` lines, crash or freeze.
-When done: set the probe off in the mod list or `make unlink` (never upload this mod).
 
 ## Things only checkable in game
 - Hermite tangents: the ring uses the exact circle handle 4·tan(θ/4)·r (vanilla's quarter value

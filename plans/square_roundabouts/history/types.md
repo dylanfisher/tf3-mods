@@ -1,5 +1,7 @@
 # New roundabout types: research (2026-10-07)
 
+Status: done 2026-10-07 (Phase 3 design input; Turbo deferred, see `../HISTORY.md` "Turbo: deferred").
+
 Constraints: base templates only, every node freed, pure updateFn. Checks may return only
 "Enabled" or "Disabled", never "Hidden".
 

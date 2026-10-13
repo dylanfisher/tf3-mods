@@ -1,5 +1,7 @@
 # square_roundabouts_probe: asking the engine which combos fail
 
+Status: current. Manual of the DEV probe `mods/square_roundabouts_probe` (never upload). The per-phase run sections are a record of past runs; "Phase 4b runs" (a) search_radius_split and (b) the final `all` sweep never ran (no logs in this folder).
+
 **DEV ONLY. Never upload `square_roundabouts_probe`.** It lives in `mods/square_roundabouts_probe/`
 and `make link` puts it in the staging area, so Mod Hub > My Mods will list it: don't publish it.
 Markers: modinfo name/summary/description ("DEV ONLY - NOT FOR UPLOAD"), `NOT_FOR_UPLOAD.txt`
@@ -206,7 +208,7 @@ the run stops (`ERROR dev override check ... ignores`).
    the repo folder).
 
 ## Phase 4b runs (next steps for you)
-The tuning table now holds the engine data (PLAN.md "Phase 4b notes"): splitter rules for medium
+The tuning table now holds the engine data (HISTORY.md "Phase 4b notes"): splitter rules for medium
 and large arms (with radius floors), exact engine radii, Magic size floors. Two runs are left.
 Same map and settings as before: flat, empty map, centre on land, year 2020; **Combos per update
 8**, Start delay 15 s, Position 0 / 0, Proposal context None, Log placeable combos On.

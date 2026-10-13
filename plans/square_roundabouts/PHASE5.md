@@ -1,5 +1,7 @@
 # square_roundabouts Phase 5: interchanges, hamburger, channelized junction, earlier unlock
 
+Status: done 2026-10-08 (Phase 5a-5g, revision 3 released). The last section, "Channelized Junction Scale", shipped in revision 6 (2026-10-10); its S-XL in-game check is still open (`TESTING.md` 12.11).
+
 Plan written 2026-10-08. Background: `candidates.md` (ranking), `types.md`, `PLAN.md` (Phases 1-4b:
 read "Decisions", "Phase 3 notes", "Phase 3b" root cause, "Phase 4/4b" before touching geometry).
 

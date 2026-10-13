@@ -1,5 +1,7 @@
 # Phase 7 runbook (for the remaining 7d / 7e / 7f agents)
 
+Status: done 2026-10-09 (revision 4 released). The tool tips (fast iteration, -0 check, debugging refusals) still apply; `PLAN.md` "Working on the code" lists the commands.
+
 Short, practical tips. Later phase reviews update this file. Last review: after 7e2 (2026-10-09).
 
 ## Where the time went

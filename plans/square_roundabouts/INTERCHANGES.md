@@ -1,5 +1,7 @@
 # square_roundabouts Phase 7: Highway Interchange (parclo, diamond and later types)
 
+Status: done 2026-10-09 (Phase 7a-7f, revision 4 released). "Later phases (v1.5 / v2+)" is unstarted backlog, linked from `PLAN.md`.
+
 Plan written 2026-10-09. Planning only: nothing in `mods/square_roundabouts` changes with this file.
 Background: `PLAN.md` (Phases 1-4b, "Decisions"), `PHASE5.md` (Phase 5a spike 4 "grade separation in
 base sc.lua", Phase 5d/5f/5g notes = the Roundabout Interchange, the closest precedent), `PROBE.md`

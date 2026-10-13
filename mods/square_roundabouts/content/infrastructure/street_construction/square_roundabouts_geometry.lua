@@ -224,6 +224,15 @@ geom.JUNCTION_PLAN = 5.0
 -- No kerb corner more than this behind a road's node (tests: 6 m; worked in game at 5.7 m with
 -- town medium splitter arms, which must keep their tested layout; failed at 12.7 m).
 geom.BEHIND_PLAN = 5.8
+-- A plain arm ending at a ring node (not one a road through the centre continues straight on):
+-- its kerb corner no more than this behind the node (rev 7, 2026-10-12). The engine-fitted model (tests/
+-- square_roundabouts/checks.lua ENGINE.behindArms, 1 m; Phase 4b) rejected 5,697 arms beyond it.
+-- Where a wide arm leaves the tight end of a small 1-lane oval, the ring's outer kerb curls back
+-- round the arm's kerb behind its node: Stress Test Showcase, oval 1.25:1, 10 m, country large T
+-- arms grew to 15 m with the corner 1.4 m behind, "Construction Not Possible" in game. Such a
+-- ring now grows (slider radii, then GROW_RADII) until the corner is within the limit, except in
+-- the patterns whose radius the engine judged (geom.radiusSearched).
+geom.ARM_BEHIND_PLAN = 1.0
 geom.KERB_SAMPLES = 48
 
 --- Picks list[i], falling back to list[default] for a missing or out-of-range index (params may
@@ -511,6 +520,18 @@ function geom.radiusFloor(spec)
 		if v then return v, false end
 	end
 	return nil
+end
+
+--- Whether the probe searched the radius of the spec's pattern (the tuning table's radius part has
+-- it, or the arm-road pattern with another through road): there the engine judged the offline
+-- growth rule's radius (a 0 cell = accepted as grown), so geom.plan keeps the rule it was searched
+-- with and leaves out geom.ARM_BEHIND_PLAN (rev 7). The engine accepted plain arms with corners up
+-- to 2.1 m behind on 2:1 ovals (Y arms, 1 lane, large arms at 10-12 m). Round and 2:1 rings are
+-- searched; the 1.25-1.75:1 ovals never were.
+function geom.radiusSearched(spec)
+	local t = geom.tuning.radius
+	if not t then return false end
+	return t[geom.patternKey(spec)] ~= nil or (geom.throughOwnRoad(spec) and t[geom.basePatternKey(spec)] ~= nil)
 end
 
 --- Engine-tuned splitter rule for the spec's arm road and ring lanes ("arm,lanes", then "arm"), or nil.
@@ -829,26 +850,35 @@ function geom.arcLength(a, b, t0, t1)
 end
 
 --- Smallest free length (arc minus the junction cut-backs at both ends) over the edges of a ring
--- with node parameters ts (ascending) and spokes[i] = {{p, d, w}} (roads leaving node i), and
+-- with node parameters ts (ascending) and spokes[i] = {{p, d, w, pts?}} (roads leaving node i),
 -- the farthest a kerb corner lies behind a road's node (a radial arm on an oval's flank meets
--- the ring at a slant).
+-- the ring at a slant), and that farthest for the straight roads that end at their node alone
+-- (spokes without pts or `continued`: plain arms; splitter legs pass their curve as pts, and an
+-- axis arm with the road through the centre straight opposite runs on through the node, which
+-- the engine-fitted model does not count, tests/square_roundabouts/checks.lua checks.junctions).
 function geom.ringFree(a, b, hw, ts, spokes)
-	local worst, behind = math.huge, 0
+	local worst, behind, behindStraight = math.huge, 0, 0
+	local function corner(along, sp)
+		behind = math.max(behind, -along)
+		if not (sp.pts or sp.continued) then behindStraight = math.max(behindStraight, -along) end
+	end
 	for i = 1, #ts do
 		local j = i % #ts + 1
 		local t0, t1 = ts[i], (j == 1) and (ts[1] + TWO_PI) or ts[j]
 		local cut0, cut1 = 0, 0
 		for _, sp in ipairs(spokes[i] or {}) do
 			local c, along = geom.kerbCut(a, b, hw, t0, t1, sp.p, sp.d, sp.w, sp.pts)
-			cut0, behind = math.max(cut0, c), math.max(behind, -along)
+			cut0 = math.max(cut0, c)
+			corner(along, sp)
 		end
 		for _, sp in ipairs(spokes[j] or {}) do
 			local c, along = geom.kerbCut(a, b, hw, t1, t0, sp.p, sp.d, sp.w, sp.pts)
-			cut1, behind = math.max(cut1, c), math.max(behind, -along)
+			cut1 = math.max(cut1, c)
+			corner(along, sp)
 		end
 		worst = math.min(worst, geom.arcLength(a, b, t0, t1) - cut0 - cut1)
 	end
-	return worst, behind
+	return worst, behind, behindStraight
 end
 
 --- Smallest delta > 0 with side * lateral(phi + side * delta) = target, where lateral is the offset
@@ -1023,12 +1053,14 @@ function geom.plan(spec, radius, arms, force)
 			local p = at(ringTs[i])
 			spokes[i] = { { p = p, d = an.out, w = an.hw, pts = an.pts } }
 			if an.kind == "P" and arms[an.arm].axis then
-				spokes[i][2] = { p = p, d = scale(an.out, -1), w = geom.throughHalfWidth(spec) }
+				spokes[i][2] = { p = p, d = scale(an.out, -1), w = geom.throughHalfWidth(spec), continued = true }
+				spokes[i][1].continued = true
 			end
 		end
 	end
-	local free, behind = geom.ringFree(a, b, hw, ringTs, spokes)
+	local free, behind, behindStraight = geom.ringFree(a, b, hw, ringTs, spokes)
 	if free < geom.JUNCTION_PLAN or behind > geom.BEHIND_PLAN then return nil end
+	if behindStraight > geom.ARM_BEHIND_PLAN and not geom.radiusSearched(spec) then return nil end
 	if axisArm then
 		local through = geom.throughHalfWidth(spec)
 		local w = left(dir(axisArm.phi))

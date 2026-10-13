@@ -1,5 +1,7 @@
 # square_roundabouts: performance review
 
+Status: done 2026-10-08, nothing changed. Covers the four entries of revision 3; the highway entries (revision 4) were not reviewed here.
+
 ## 2026-10-08
 
 Verdict: **nothing worth changing.** No shipped code was touched; revision stays 3.
