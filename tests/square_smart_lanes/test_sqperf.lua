@@ -85,10 +85,14 @@ test("game script: wrapped update / handleEvent / guiUpdate return nothing and s
 	end } } }, ug_require = ug_require, log = log }, { __index = _ENV })
 	assert(loadfile(LANES, "t", env))()
 	local gs = env.data()
-	local state = { get = function() return nil end, set = function() end }
+	local state = { get = function() return nil end, set = function() end, hasEventSubscriptions = function() return false end,
+		subscribeToNoEvents = function() end, subscribeToEvent = function() end }
 	eq(select("#", gs.update({}, state, 0.1)), 0)
 	eq(select("#", gs.handleEvent({}, state, "", "apply_command", "onPostBuildProposal", {})), 0)
 	eq(select("#", gs.guiUpdate({}, state, nil)), 0)
-	eq(lines("[SQRL]"), {})
+	-- only the once-per-load settings and zones lines (FLOW.md), even with Apply automatically Off
+	eq(lines("[SQRL]"), { "[SQRL] MODE phases=game free_turn=always lights=on", "[SQRL] ZONES op=loaded n=0 run=-" })
+	eq(select("#", gs.guiUpdate({}, state, nil)), 0)
+	eq(#lines("[SQRL]"), 2, "once")
 	eq(perfLines(), {})
 end)

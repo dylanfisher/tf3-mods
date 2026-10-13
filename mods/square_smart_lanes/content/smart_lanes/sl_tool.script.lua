@@ -7,7 +7,9 @@
 -- construction menu mounts it while the entry is selected (construction.tl:401-436) and the recipe
 -- hands the world layer to param.setActionFn. The world layer is an ActionDescriptor with a
 -- builtin.Selector (onHover / onSelect / onProcessMouseEvent, builtin.d.tl:1392-1415), a
--- builtin.NodeViewer for the selected junction's connections (double_slip_switch.tl:87-143, 185-199),
+-- builtin.NodeViewer for the selected junctions' connections (double_slip_switch.tl:87-143, 185-199;
+-- one NodeViewer, its nodeConfig map holding every selected junction: ring, street, Shift+click
+-- multi selection, sl_toolcore C.nodeViewerSpec),
 -- one EdgeRenderable with circle markers and an ActionTooltip.
 -- Toolbar values reach the recipe through onChangeFn -> api.gui.fireReactEvent -> react.onEvent
 -- (getDefinition may run in another Lua state than the recipe; bulk bulldozer research §6, §12).
@@ -18,7 +20,8 @@
 -- SQPERF (plans/sqperf/README.md): load time of this GUI Lua state; sections get_definition,
 -- action_render (tool recipe), world_render (actionFn), step (react.onStep, Main Thread), hover /
 -- select (Selector), apply_node / apply_ring / reset (toolbar buttons), status_render,
--- badge_render. The PROBE diagnostics (hover, nodeviewer, oneway) are logged only with
+-- badge_render; nested inside them the controller's (sl_toolcore Core.new): resolve, badge,
+-- refresh, multi_add, batch, nv_spec, highlight. The PROBE diagnostics (hover, nodeviewer, oneway) are logged only with
 -- "Debug: performance log" On (probeOn below); TOOL / PICK / APPLY / WRITE / VERIFY / RESET / ERROR
 -- lines stay (one per player action).
 
@@ -67,8 +70,26 @@ local function probeOn()
 	return perf.on == true
 end
 
+-- ERROR lines are capped (sl_pick.errorGate: 3 per where=, 20 per session), so a failure that
+-- repeats on every refresh / render cannot flood stdout.txt (in game 2026-10-11: 68 highlight errors)
+local errorState = {}
+
 local function out(kind, fields)
 	if string.find(kind, "PROBE", 1, true) == 1 and not probeOn() then return end
+	if kind == "ERROR" then
+		local where
+		for _, f in ipairs(fields or {}) do
+			if f[1] == "where" then where = f[2] end
+		end
+		local gate = Pick.errorGate(errorState, where)
+		if gate == "drop" then return end
+		if gate == "last" then
+			local copy = {}
+			for i, f in ipairs(fields) do copy[i] = f end
+			copy[#copy + 1] = { "more", "suppressed" }
+			fields = copy
+		end
+	end
 	emit(kind, fields)
 end
 
@@ -83,7 +104,7 @@ local g = {
 }
 
 local function core()
-	if g.core == nil then g.core = Core.new(api, out, os.clock) end
+	if g.core == nil then g.core = Core.new(api, out, os.clock, perf) end
 	return g.core
 end
 
@@ -362,7 +383,9 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", perf:wrap("act
 				end,
 				onSelect = function(entity, _i, _d)
 					local tSelect = perf:start()
-					c.select(entity, cursor())
+					-- Shift read at the click (Main Thread), as Bulk Bulldozer reads it at the LMB
+					-- press; unreadable -> a plain click. Hover never reads it (plain-click preview).
+					c.select(entity, cursor(), { shift = c.shiftHeld() })
 					sync()
 					perf:stop("select", tSelect)
 					return true -- swallow the click: no entity window
@@ -408,6 +431,23 @@ local SmartLanesAction = react.RegisterRecipe("SmartLanesAction", perf:wrap("act
 			if c.sel == nil or Pick.targetKey(c.sel) ~= Pick.targetKey(c.hover) then
 				text = text .. "\n" .. _("Click to select")
 			end
+			-- with a selection, Shift+click adds to it (sl_toolcore C.select); a selected junction leaves it
+			if c.sel ~= nil then
+				local member = false
+				if c.hover.kind == "node" then
+					if c.sel.kind == "node" then
+						member = c.sel.node == c.hover.node
+					else
+						for _, n in ipairs(c.sel.junctionNodes or {}) do
+							if n == c.hover.node then
+								member = true
+								break
+							end
+						end
+					end
+				end
+				text = text .. "\n" .. (member and _("Shift+click: remove from the selection") or Pick.shiftHint())
+			end
 			children[#children + 1] = builtin.ActionTooltip{
 				recipe = constructionUi.SimpleTooltipRecipe,
 				param = { message = { message = text } },
@@ -451,7 +491,7 @@ end))
 
 -- Hover texts of the two grey read-only boxes (also the params' own tooltips).
 local STATUS_TIP = _("Selection: the junction or roundabout you clicked, and the result\nof the last Apply or Reset. Right-click or Esc clears the selection.")
-local BADGE_TIP = _("Current lanes: what the selected junction or roundabout has now.\nSmart lanes: what Apply sets.\nGame default: the game's own lane connections.\nCustom lanes: anything else (Crossing Tool, older settings).\nCustom: a slip-lane junction without the rule.\nNot handled: the tool has no rule for this junction.")
+local BADGE_TIP = _("Smart lanes: what Apply sets.\nGame default: the game's own lane connections.\nCustom lanes: anything else (Crossing Tool, older settings).\nCustom: a slip-lane junction without the rule.\nNot handled: the tool has no rule for this junction.")
 
 -- Toolbar status chip: content of a disabled one-value Button (bulk_bulldozer.script.tl:1105-1140).
 -- Returns a BoxLayout (a recipe child must be a layout) and re-renders itself from g.status /
@@ -517,9 +557,9 @@ local SmartLanesBadge = react.RegisterRecipe("SmartLanesBadge", perf:wrap("badge
 	local b = badgeState:old()
 	local class = "font-scale-body"
 	if b.class ~= nil then class = class .. ", " .. b.class end
-	-- "Current lanes: <state>" so it reads as a readout, not a button (user, 2026-10-08)
-	local text = (b.label == nil or b.key == "none") and _("Current lanes: select a junction")
-		or string.format(_("Current lanes: %s"), b.label)
+	-- just the state (the user dropped the 2026-10-08 "Current lanes: " prefix, 2026-10-11); with
+	-- nothing selected the pick hint
+	local text = (b.label == nil or b.key == "none") and _("Click a junction or a roundabout") or b.label
 	local tip = BADGE_TIP .. "\n\n" .. text
 	return builtin.BoxLayout{
 		orientation = builtin.type.Orientation.Vertical,
@@ -580,11 +620,11 @@ local M = {
 	getDefinition = perf:wrap("get_definition", function(constructionDefinition, _repository, _params)
 		local params = {
 			actionButton(KEY_APPLY_NODE, _("Apply to junction"),
-				_("Set smart lanes on the selected junction only:\nlanes matched one to one, and an exit-only outer lane\nwhere every exit of the roundabout has two or more lanes.\nOn a slip-lane junction: lanes matched one to one, no crossings.\nGreyed out when the junction already has smart lanes."), EV_APPLY_NODE, GROUP_APPLY, "applyNode"),
+				_("Set smart lanes on the selected junction only:\nlanes matched one to one, and an exit-only outer lane\nwhere every exit of the roundabout has two or more lanes.\nOn a slip-lane junction: lanes matched one to one, no crossings.\nOn a street (clicked between junctions): its end junctions.\nShift+click adds junctions or roads: Apply sets them all.\nGreyed out when the junction already has smart lanes."), EV_APPLY_NODE, GROUP_APPLY, "applyNode"),
 			actionButton(KEY_APPLY_RING, _("Apply to roundabout"),
 				_("Set smart lanes on every junction of the selected roundabout.\nGreyed out when all of them already have smart lanes."), EV_APPLY_RING, GROUP_APPLY, "applyRing"),
 			actionButton(KEY_RESET, _("Reset"),
-				_("Back to the game's own lane connections for the selected junction (or the whole roundabout when a roundabout is selected).\nOn a slip-lane junction: back to the lanes it had before your first Apply there.\nGreyed out when there is nothing to reset."), EV_RESET, GROUP_RESET, "reset"),
+				_("Back to the game's own lane connections for the selected junction\n(or the whole roundabout when a roundabout is selected).\nOn a slip-lane junction: back to the lanes it had\nbefore your first Apply there.\nOn a street or several junctions (Shift+click): each as above.\nGreyed out when there is nothing to reset."), EV_RESET, GROUP_RESET, "reset"),
 			{
 				-- status chip: a disabled one-value Button whose content is SmartLanesStatus. Its
 				-- checkEnabledFn runs on every activation and change and nudges the recipe to sync
@@ -630,7 +670,9 @@ local M = {
 		return {
 			resName = constructionDefinition,
 			name = _("Smart Lanes"),
-			description = _("Set the lane connections of a roundabout or a slip-lane junction: click a junction or a roundabout and press Apply. Reset brings back the game's own connections. Right-click or Esc clears the selection."),
+			-- shown in the menu's info callout, which wraps it (construction.css.lua:534-539
+			-- textAutoWrap, 540 px): no "\n" breaks, it is not a tooltip
+			description = _("Set the lane connections of roundabouts, slip-lane junctions, crossroads and lane drops: click a junction, a roundabout or a road and press Apply. Shift+click adds more junctions or roads. Reset brings back the game's own connections. Right-click or Esc clears the selection."),
 			-- own icons next to this file; the game loads the @2x files (sl_tool@2x.tga 240x150,
 			-- sl_tool_preview@2x.tga 720x405, the sizes of the Crossing Tool's lane_control icons),
 			-- rendered by tools/render_icon_square_smart_lanes.py

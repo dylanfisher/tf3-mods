@@ -58,11 +58,19 @@ function P.colorIndices(conns)
 	return out
 end
 
---- Key of a pick target (to notice changes): "node:<id>", "ring:<key>" or "none".
+--- Key of a pick target (to notice changes): "node:<id>", "ring:<key>", "street:<clicked segment>"
+-- (a plain click: the junctions at its ends), "street+:<clicked segment>" (Shift+click: followed
+-- further), "multi:<id>,<id>,.." (Shift+click selection, PHASE7.md step 5b) or "none".
 function P.targetKey(t)
 	if t == nil then return "none" end
 	if t.kind == "node" then return "node:" .. tostring(t.node) end
 	if t.kind == "ring" then return "ring:" .. tostring(t.ringKey) end
+	if t.kind == "street" then return (t.follow and "street+:" or "street:") .. tostring(t.seg) end
+	if t.kind == "multi" then
+		local ids = {}
+		for i, n in ipairs(t.junctionNodes or {}) do ids[i] = tostring(n) end
+		return "multi:" .. table.concat(ids, ",")
+	end
 	return tostring(t.kind)
 end
 
@@ -81,15 +89,34 @@ local function shapeText(shape)
 	return labels[shape] or tostring(shape)
 end
 
+--- The Shift+click hint (street detail line, the hover tooltip with a selection).
+function P.shiftHint()
+	return _("Shift+click: add a junction or road")
+end
+
 --- One-line description of a pick target (the cursor tooltip and the status head).
--- t: { kind = "node" | "ring", node, ringKey, ringLanes, junctions, roads, conns,
+-- t: { kind = "node" | "ring" | "street" | "multi", node, ringKey, ringLanes, junctions, roads, conns,
 --      nodeKind = "arm" | "plain" | "skip" (on a ring) | "slip", exits, entries,
---      slipShape ("diverge" | "merge" | "diverge+merge"), slipLanes, slipSummary, slipReason }
+--      slipShape ("diverge" | "merge" | "diverge+merge" | "crossroads" | "t_junction" | "lane_drop" |
+--      "lane_gain" | "lane_drop+gain"), slipLanes, slipSummary, slipReason }
 function P.describe(t)
 	if t == nil then return _("Nothing selected") end
+	if t.kind == "street" then return plural(t.junctions or 0, _("Street: %d junction"), _("Street: %d junctions")) end
+	if t.kind == "multi" then return plural(t.junctions or 0, _("%d junction selected"), _("%d junctions selected")) end
 	if t.kind == "ring" then
 		return string.format(_("Roundabout %s: %s, %s"), tostring(t.ringKey), lanesText(t.ringLanes or 0),
 			armsText(t.junctions or 0))
+	end
+	if t.ringKey == nil and t.slipShape == "crossroads" then
+		return string.format(_("Crossroads, %s"), lanesText(t.slipLanes or 0))
+	end
+	if t.ringKey == nil and t.slipShape == "t_junction" then
+		return string.format(_("T-junction, %s"), lanesText(t.slipLanes or 0))
+	end
+	-- plain lane drops / gains (sl_slip case "D"); slipLanes: the wider side
+	local drops = { lane_drop = _("Lane drop, %s"), lane_gain = _("Lane gain, %s"), ["lane_drop+gain"] = _("Lane drop and gain, %s") }
+	if t.ringKey == nil and drops[t.slipShape] ~= nil then
+		return string.format(drops[t.slipShape], lanesText(t.slipLanes or 0))
 	end
 	if t.ringKey == nil and t.slipShape ~= nil then
 		return string.format(_("Slip-lane junction: %s, %s"), shapeText(t.slipShape), lanesText(t.slipLanes or 0))
@@ -106,12 +133,22 @@ end
 function P.detail(t)
 	if t == nil then return _("Click a junction, or a roundabout between its junctions") end
 	if t.kind == "ring" then return _("Apply to roundabout or Reset; click near a junction to pick one") end
+	if t.kind == "street" then
+		-- a plain click selects the two ends: tell how to get more (Shift+click: the street followed
+		-- further, or more junctions and roads added, sl_toolcore C.select)
+		if not t.follow then return P.shiftHint() end
+		return _("Apply to junction or Reset: every junction of the street")
+	end
+	if t.kind == "multi" then return _("Apply to junction or Reset: every selected junction") end
 	local parts = { plural(t.conns or 0, _("%d lane connection"), _("%d lane connections")) }
 	if t.ringKey ~= nil and t.nodeKind == "arm" then
 		parts[#parts + 1] = string.format(_("%d exit, %d entry lanes"), t.exits or 0, t.entries or 0)
 	elseif t.ringKey ~= nil and t.nodeKind == "skip" then
 		-- the reason is an internal id (sl_ring), shown as it is
 		parts[#parts + 1] = string.format(_("left alone (%s)"), tostring(t.reason))
+	elseif t.ringKey == nil and (t.slipShape == "crossroads" or t.slipShape == "t_junction"
+		or t.slipShape == "lane_drop" or t.slipShape == "lane_gain" or t.slipShape == "lane_drop+gain") then
+		-- the head names it; the lane summary is log material
 	elseif t.ringKey == nil and t.slipShape ~= nil then
 		table.insert(parts, 1, t.slipSummary or shapeText(t.slipShape))
 	elseif t.ringKey == nil and t.slipReason ~= nil then
@@ -139,9 +176,10 @@ function P.status(sel, _layoutName, result)
 end
 
 --- Lane status badge (the toolbar's second chip, the hover tooltip, PICK badge=..).
--- info: { kind = "ring" | "node" (ring junction) | "slip" | "na", total = junctions the tool
+-- info: { kind = "ring" | "node" (ring junction) | "slip" | "street" | "multi" | "na", total = junctions the tool
 -- handles (skipped ones not counted), smart = how many equal what Apply would write,
--- default = how many equal the engine-default model (nil: no model, slip nodes) }.
+-- default = how many equal the engine-default model (nil: no model, slip nodes; a street or multi
+-- selection with any junction without a model) }.
 -- Returns { key = "smart" | "default" | "custom" | "partial" | "na", label, class } where class is
 -- the game's global TextView colour class (default.css.lua "!positive" / "!warning") or nil.
 -- Smart wins over default (a 1-lane ring junction with one entry lane is both).
@@ -163,7 +201,7 @@ function P.badge(info)
 	if smart > 0 and total > 1 then
 		return { key = "partial", label = string.format(_("Smart lanes on %d of %d junctions"), smart, total), class = "warning" }
 	end
-	if info.kind == "slip" then
+	if info.kind == "slip" or ((info.kind == "street" or info.kind == "multi") and default == nil) then
 		-- no engine-default model at slip nodes: never claim "changed by hand" there
 		return { key = "custom", label = _("Custom"), class = nil }
 	end
@@ -173,6 +211,24 @@ end
 -- Badge chip with nothing selected (translated when called).
 function P.badgeNone()
 	return { key = "none", label = _("Lane status"), class = nil }
+end
+
+P.ERROR_MAX = 20       -- tool ERROR lines per session (the game script's cap)
+P.ERROR_PER_WHERE = 3  -- of them per where= (a failure repeating every refresh logs 3 times)
+
+--- Gate for the tool's ERROR lines: "log" (write it), "last" (write it and say the rest of this
+-- where= / the session is suppressed) or "drop". state: table kept per session; where: the
+-- line's where= field (any value).
+function P.errorGate(state, where)
+	local key = tostring(where)
+	state.total = state.total or 0
+	state.by = state.by or {}
+	local k = state.by[key] or 0
+	if state.total >= P.ERROR_MAX or k >= P.ERROR_PER_WHERE then return "drop" end
+	state.total = state.total + 1
+	state.by[key] = k + 1
+	if state.total >= P.ERROR_MAX or k + 1 >= P.ERROR_PER_WHERE then return "last" end
+	return "log"
 end
 
 --- Rate limiter for log lines: true when `key` differs from the last logged key and at least

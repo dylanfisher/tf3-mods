@@ -9,13 +9,44 @@
 -- cleanupStreetGraph = false}, args (false, true, true), sent with a callback (the Crossing Tool's
 -- build shape; undo_tf3_test tool_probe.script.lua:118-135). The tool's Reset uses the same write
 -- (never nodeConfigsToRemove alone: that deletes the node's config and crashes the game, findings.md).
+-- The node's traffic light phases index its connections, so every write re-points them
+-- (W.remapLights, Rules.remapLocked); a node whose phases cannot be re-pointed is not written.
+-- An item may carry `phase = { mode = Lights.SAFE | Lights.FREE | Lights.LOCK, kerb = X.kerbPairs }`:
+-- the crossroads' kerb turns are then freed in (SAFE: only in phases where nothing green crosses and no crosswalk on the path is green, merges allowed;
+-- or, Reset, locked back into) the same re-pointed phases,
+-- so lanes and phases go in one proposal (never a second proposal on the node right after: findings.md
+-- "A street proposal touching a node whose traffic light change is still pending is refused").
+-- W.kerbLights does the same for a node whose lanes stay (a phases-only light proposal).
+-- Light phases = Smart Lanes (setting sqrl_light_phases, PHASES_PLAN.md step 4): an item may carry
+-- `lightPlan = { view = sl_cross case "X" view, world }` (only for a lit node, X.litOf true): then
+-- W.remapLights replaces the phases by a Smart Lanes plan (sl_phaseplan.lua) built from the FINAL
+-- connections and the config's crosswalks of the same proposal, validated (PP.validatePlan) and
+-- range-checked; the free kerb turn is not applied on top (the plan frees conflict-free kerb turns
+-- itself). No plan or an invalid one: the item's `phase` (free kerb turn) and the plain re-pointing
+-- as before, the reason in it.planFail. W.planLights writes a plan for a node whose lanes stay (a
+-- phases-only light proposal), W.defaultLights gives a node the game's default phases back (states =
+-- {}, the Crossing window's "Reset to Default", double_slip_switch.tl:604-612).
+-- Fan mode (sl_fan zones, PHASES_PLAN.md "Fan mode"): lightPlan.fan = true asks planFor for the fan plan
+-- (sl_phaseplan opts.fan; validated with intra-approach conflicts accepted, nothing else). The fan's
+-- lanes cross each other, so a fan item whose plan cannot be made is not written at all (buildEntry
+-- fails "lights:fan_<reason>": SKIP), never re-pointed onto the game's phases.
 --
 -- The api is passed in (not read as a global) so the offline tests can hand in a fake.
 
 local Ring = ug_require "square_smart_lanes::/smart_lanes/sl_ring.lua"
 local Rules = ug_require "square_smart_lanes::/smart_lanes/sl_rules.lua"
+local Lights = ug_require "square_smart_lanes::/smart_lanes/sl_lights.lua"
+local Phases = ug_require "square_smart_lanes::/smart_lanes/sl_phases.lua"
+local PhasePlan = ug_require "square_smart_lanes::/smart_lanes/sl_phaseplan.lua"
+local Zones = ug_require "square_smart_lanes::/smart_lanes/sl_zones.lua"
 
 local Write = {}
+
+-- PROBE phases (W.probePhases): lit nodes logged per Lua state, list caps per node, chunk length
+Write.PROBE_PHASES_MAX = 200
+Write.PROBE_LIST_MAX = 512
+Write.PROBE_STATES_MAX = 32
+Write.PROBE_CHUNK = 180
 
 local function count(list)
 	if list == nil then return 0 end
@@ -24,6 +55,17 @@ local function count(list)
 	return n
 end
 Write.count = count
+
+--- The crosswalk entities of a node config as a plain list (Lights.kerbPhases SAFE ctx).
+local function crosswalkList(cfg)
+	local out = {}
+	local ok = pcall(function()
+		for _, x in ipairs(cfg.crosswalks or {}) do out[#out + 1] = x end
+	end)
+	if not ok then return {} end
+	return out
+end
+Write.crosswalkList = crosswalkList
 
 local function vec(v)
 	if v == nil then return nil end
@@ -52,9 +94,12 @@ local function checkList(list, conns)
 	return true
 end
 
---- New instance. api: the game api (or a fake); out(kind, fields): the log function.
-function Write.new(api, out)
-	local W = { how = nil, dead = {}, modes = nil }
+--- New instance. api: the game api (or a fake); out(kind, fields): the log function; opts
+-- (optional): { probeOn = function() -> bool } gates W.probePhases (the "Debug: performance log"
+-- setting; nil: never).
+function Write.new(api, out, opts)
+	local W = { how = nil, dead = {}, modes = nil, probeOn = opts and opts.probeOn or nil,
+		probeSeen = {}, probeCount = 0 }
 
 	local function getComp(entity, ct)
 		local ok, c = pcall(api.engine.getComponent, entity, ct)
@@ -78,14 +123,21 @@ function Write.new(api, out)
 		return modes
 	end
 
+	-- The zone list (sl_zones.lua) worlds made from now on see for world.exitFan; set by the caller (the
+	-- automatic pass per job, the tool when it reads the zones). nil: no zones.
+	W.zones = nil
+
 	--- sl_ring world over the live game, cached per world (make a new one per job / pick).
 	-- Nodes also carry z (BASE_NODE.position.z) for the tool's markers.
 	function W.makeWorld()
 		local CT = api.type.ComponentType
 		local modes = W.transportModes()
 		local nodes, segs = {}, {}
-		local world = {}
+		-- memo: results derived from this world's reads only (Walk.roadSegs, Ring.ringThrough, ...), as
+		-- old as the world; a new world (per job, pick, refresh, batch) starts empty
+		local world = { memo = {} }
 		function world.node(id)
+			if type(id) ~= "number" then return nil end -- defence: a caller's missing id is "no node"
 			local c = nodes[id]
 			if c ~= nil then return c or nil end
 			local bn = getComp(id, CT.BASE_NODE)
@@ -100,7 +152,32 @@ function Write.new(api, out)
 			nodes[id] = c
 			return c
 		end
+		-- traffic lights of a node (Lights.litOf: true / false / nil = unknown), read once per node and
+		-- only when asked (sl_cross: the crossroads it handles)
+		local lits = {}
+		function world.lit(id)
+			if type(id) ~= "number" then return nil end
+			local c = lits[id]
+			if c == nil then
+				local ok, st = pcall(W.lightState, id)
+				c = Lights.litOf(ok and st or nil, W.lightEnum())
+				if c == nil then c = "unknown" end
+				lits[id] = c
+			end
+			if c == "unknown" then return nil end
+			return c
+		end
+		-- an sl_exitfan zone at node id (sl_zones.lua, sl_cross X.exitFanOf): world.zones when the caller froze
+		-- a list into this world (the automatic pass: its job's zones), else W.zones read at the call (the
+		-- tool's last read, the re-checks: the current mirror); false outside or without zones
+		function world.exitFan(id)
+			local zoneList = world.zones
+			if zoneList == nil then zoneList = W.zones end
+			if type(id) ~= "number" or type(zoneList) ~= "table" or #zoneList == 0 then return false end
+			return Zones.nodeAb(zoneList, world, id) == "sl_exitfan"
+		end
 		function world.seg(id)
+			if type(id) ~= "number" then return nil end -- defence, as world.node
 			local c = segs[id]
 			if c ~= nil then return c or nil end
 			local e = getComp(id, CT.BASE_EDGE)
@@ -116,7 +193,7 @@ function Write.new(api, out)
 			end
 			c = { id = id, node0 = e.node0, node1 = e.node1, p0 = p0, p1 = p1,
 				t0 = vec(e.tangent0), t1 = vec(e.tangent1),
-				lanes = Ring.lanesFromConfigs(e.laneConfigs, modes) }
+				lanes = Ring.lanesFromConfigs(e.laneConfigs, modes), atMemo = {} }
 			segs[id] = c
 			return c
 		end
@@ -125,8 +202,7 @@ function Write.new(api, out)
 
 	--- The node's current connections as plain tables (Rules.conn), in the config's order (the
 	-- order is the NodeViewer edge index, double_slip_switch.tl:113-118).
-	function W.currentConns(node)
-		local cfg = getComp(node, api.type.ComponentType.BASE_NODE_CONFIG)
+	local function connsOfCfg(cfg)
 		local list = {}
 		if cfg then
 			for _, c in ipairs(cfg.laneConnections or {}) do
@@ -134,6 +210,10 @@ function Write.new(api, out)
 			end
 		end
 		return list
+	end
+
+	function W.currentConns(node)
+		return connsOfCfg(getComp(node, api.type.ComponentType.BASE_NODE_CONFIG))
 	end
 
 	-- BaseNodeLaneConnectionAndEntity for `node` with `conns`. LaneConnection objects of a read
@@ -192,14 +272,211 @@ function Write.new(api, out)
 	}
 	local ORDER = { "ctor", "table", "owned", "subset" }
 
-	function W.buildEntry(node, conns)
+	--- New TrafficLightState objects for `c` (a clone of the node's TrafficLightConfig): each with its
+	-- old duration, minDuration, canSkip and lockedLanes = lists[i]; assigned to c.states.
+	local function setStates(c, lists)
+		local states = {}
+		for i, st in ipairs(c.states) do
+			local ns = api.type.TrafficLightState.new()
+			ns.duration, ns.minDuration, ns.canSkip = st.duration, st.minDuration, st.canSkip
+			ns.lockedLanes = lists[i]
+			states[i] = ns
+		end
+		c.states = states
+		return #states
+	end
+
+	--- Errors unless `tlc` reads back with n states whose indices are all in [0, max].
+	local function checkStates(tlc, n, max)
+		if tlc == nil or count(tlc.states) ~= n then error("lights_readback") end
+		for _, st in ipairs(tlc.states) do
+			for _, l in ipairs(st.lockedLanes or {}) do
+				if type(l) ~= "number" or l < 0 or l > max then error("lights_index_" .. tostring(l)) end
+			end
+		end
+	end
+
+	--- New TrafficLightState objects from a Smart Lanes plan (PP.plan states: locked, duration,
+	-- minDuration, canSkip), assigned to c.states (c: a clone of the node's TrafficLightConfig).
+	local function setPlanStates(c, plan)
+		local states = {}
+		for i, st in ipairs(plan.states) do
+			local ns = api.type.TrafficLightState.new()
+			ns.duration, ns.minDuration, ns.canSkip = st.duration, st.minDuration, st.canSkip == true
+			local l = {}
+			for j, x in ipairs(st.locked) do l[j] = x end
+			ns.lockedLanes = l
+			states[i] = ns
+		end
+		c.states = states
+		return #states
+	end
+
+	--- A Smart Lanes phase plan for node n: conns = the connections the proposal sends (config
+	-- order), cws = the config's crosswalk entities, lp = { view, world } (the sl_cross case "X" view
+	-- and the world it was read in; lp.fan = true: the fan plan, sl_phaseplan opts.fan). Returns plan, or
+	-- nil, reason. Every index of every state is checked against [0, #conns + #cws - 1] here again (crash
+	-- rule: VectorMap.h:11 key >= 0).
+	local function planFor(n, conns, cws, lp)
+		if type(lp) ~= "table" or lp.view == nil or lp.world == nil then return nil, "no_view" end
+		if lp.view.case ~= "X" then return nil, "not_x" end
+		local info = PhasePlan.infoFromView(lp.view, lp.world, n, conns)
+		local M, whyM = Phases.build({ conns = conns, arms = info.arms, crosswalks = cws, cls = info.cls })
+		if M == nil then return nil, "map_" .. tostring(whyM) end
+		local fan = lp.fan == true
+		local plan, why = PhasePlan.plan(M, info, fan and { fan = true } or nil)
+		if plan == nil then return nil, tostring(why) end
+		local okV, whyV = PhasePlan.validatePlan(M, plan, #conns, #cws, fan and { fan = true } or nil)
+		if not okV then return nil, "invalid_" .. tostring(whyV) end
+		local max = #conns + #cws - 1
+		for _, st in ipairs(plan.states) do
+			for _, l in ipairs(st.locked) do
+				if type(l) ~= "number" or l ~= math.floor(l) or l < 0 or l > max then return nil, "index" end
+			end
+		end
+		return plan
+	end
+	W.planFor = planFor
+
+	--- Whether the read states equal the plan (lockedLanes as sets, duration, minDuration, canSkip).
+	local function samePlan(states, plan)
+		if count(states) ~= #plan.states then return false end
+		for i, st in ipairs(states) do
+			local want = plan.states[i]
+			if st.duration ~= want.duration or st.minDuration ~= want.minDuration or (st.canSkip == true) ~= want.canSkip then
+				return false
+			end
+			local set, n = {}, 0
+			for _, l in ipairs(st.lockedLanes or {}) do
+				if not set[l] then n = n + 1 end
+				set[l] = true
+			end
+			if n ~= #want.locked then return false end
+			for _, l in ipairs(want.locked) do
+				if not set[l] then return false end
+			end
+		end
+		return true
+	end
+
+	--- "Light phases" from this mod's params (read each call, as W.removeLights): "game" | "sl".
+	function W.phasesMode()
+		local ok, all = pcall(function() return api.engine.config.getModParams() end)
+		local raw = ok and type(all) == "table" and all[Rules.MOD_ID] or nil
+		return Rules.fromModParams(raw).phases
+	end
+
+	--- Re-points the traffic light phases of `entry` (its comp copied from `cfg`) from the old
+	-- connections to `conns` (Rules.remapLocked), on a clone of the config as the base node window
+	-- does (double_slip_switch.tl:46, 566-577). phase (optional, see the header): then the kerb turns
+	-- are freed / locked in the re-pointed phases (Lights.kerbPhases). Returns the number of states,
+	-- the number of kerb connections changed and stats { phases = (kerb connection, phase) locks
+	-- that differ from the plain re-pointing, merge / cross / ped = pairs "When safe" kept red };
+	-- errors when the remap does not read back (the caller then skips the node: stale phases crash
+	-- the simulation).
+	-- lp (optional, Light phases = Smart Lanes): { view, world }; the phases are then replaced by a
+	-- Smart Lanes plan for `conns` (stats.plan = PP.planText), or, when none can be made, re-pointed
+	-- as without it (stats.planFail = reason). A node without phases (no light) gets none.
+	function W.remapLights(entry, cfg, oldConns, conns, phase, lp)
+		local stats = { phases = 0, merge = 0, cross = 0, ped = 0, merged = 0 }
+		local tlc = cfg.trafficLightConfig
+		local fan = lp ~= nil and lp.fan == true
+		if tlc == nil or count(tlc.states) == 0 then
+			-- fan lanes never go out without their plan (they cross each other)
+			if fan then error("fan_no_phases", 0) end
+			if lp ~= nil then stats.planFail = "no_phases" end
+			return 0, 0, stats
+		end
+		local nCross = count(cfg.crosswalks)
+		if lp ~= nil then
+			local cws = crosswalkList(cfg)
+			local okP, plan, why = false, nil, "crosswalks"
+			if #cws == nCross then okP, plan, why = pcall(planFor, entry.entity, conns, cws, lp) end
+			if okP and plan ~= nil then
+				local c = tlc:clone()
+				local k = setPlanStates(c, plan)
+				entry.comp.trafficLightConfig = c
+				checkStates(entry.comp.trafficLightConfig, k, #conns + nCross - 1)
+				stats.plan = PhasePlan.planText(plan, #conns)
+				return k, 0, stats
+			end
+			stats.planFail = okP and tostring(why) or ("error:" .. tostring(plan):gsub("^.-:%d+: ", ""))
+			-- fan lanes never go out without their plan: the item is not written (SKIP reason=lights:fan_..)
+			if fan then error("fan_" .. stats.planFail, 0) end
+		end
+		local c = tlc:clone()
+		local olds = {}
+		for i, st in ipairs(c.states) do
+			local old = {}
+			for _, l in ipairs(st.lockedLanes or {}) do old[#old + 1] = l end
+			olds[i] = old
+		end
+		local remapOne = Rules.remapper(oldConns, conns, nCross) -- the matching once, then per state
+		local function remap(from)
+			local res = {}
+			for i, old in ipairs(from) do res[i] = remapOne(old) end
+			return res
+		end
+		local lists = remap(olds)
+		local changed = 0
+		if phase ~= nil then
+			local plain, kerbIdx = lists, Lights.kerbIndices(conns, phase.kerb)
+			-- kerb turns freed earlier are locked back with their approach before re-pointing: a
+			-- connection new to the node takes its approach's red only where every old connection of
+			-- that approach is red (remapLocked bySeg), and a freed kerb turn would make it green in
+			-- every phase. Stale old phases (refused) are re-pointed as read.
+			local relocked = Lights.kerbPhases(oldConns, Lights.kerbIndices(oldConns, phase.kerb), nCross, olds, Lights.LOCK)
+			if relocked ~= nil then lists = remap(relocked) end
+			local res, _, why, st = Lights.kerbPhases(conns, kerbIdx, nCross, lists, phase.mode,
+				{ kerb = phase.kerb, crosswalks = crosswalkList(cfg) })
+			-- remapLocked only makes indices in range, so a refusal here is a bug: keep the plain remap
+			if res ~= nil then
+				lists = res
+				stats.merge, stats.cross, stats.ped, stats.merged = st.merge, st.cross, st.ped, st.merged
+				-- kerb connections whose red differs from the plain re-pointing in some phase
+				local plainSet, listSet = {}, {}
+				for sI = 1, #lists do
+					local p, q = {}, {}
+					for _, l in ipairs(plain[sI]) do p[l] = true end
+					for _, l in ipairs(lists[sI]) do q[l] = true end
+					plainSet[sI], listSet[sI] = p, q
+				end
+				for _, j in ipairs(kerbIdx) do
+					local diff = false
+					for sI = 1, #lists do
+						if (plainSet[sI][j] == true) ~= (listSet[sI][j] == true) then
+							diff = true
+							stats.phases = stats.phases + 1
+						end
+					end
+					if diff then changed = changed + 1 end
+				end
+			else
+				lists = plain
+				out("ERROR", { { "where", "kerb_phases" }, { "node", entry.entity }, { "err", why } })
+			end
+		end
+		local k = setStates(c, lists)
+		entry.comp.trafficLightConfig = c
+		checkStates(entry.comp.trafficLightConfig, k, #conns + nCross - 1)
+		return k, changed, stats
+	end
+
+	--- Entry for `node` with `conns` (phase, lp: optional, see the header). Returns entry, strategy
+	-- name, kerb connections changed in the phases, their stats (W.remapLights: also plan / planFail);
+	-- or nil, reason.
+	function W.buildEntry(node, conns, phase, lp)
 		local CT = api.type.ComponentType
-		if api.engine.getComponent(node, CT.BASE_NODE_CONFIG) == nil then return nil, "no_config" end
+		-- one config read for the check, the old connections and the first try (it was three reads)
+		local first = api.engine.getComponent(node, CT.BASE_NODE_CONFIG)
+		if first == nil then return nil, "no_config" end
 		local notes = {}
+		local oldConns = connsOfCfg(first)
 		for _, name in ipairs(ORDER) do
 			if not W.dead[name] then
-				-- a fresh read per try: a failed try may have left the entry half written
-				local cfg = api.engine.getComponent(node, CT.BASE_NODE_CONFIG)
+				-- a fresh read per later try: a failed try may have left the entry half written
+				local cfg = first or api.engine.getComponent(node, CT.BASE_NODE_CONFIG)
+				first = nil
 				local entry = api.type.BaseNodeLaneConnectionAndEntity.new()
 				entry.entity = node
 				entry.comp = cfg
@@ -207,11 +484,15 @@ function Write.new(api, out)
 				if ok then
 					local okC, same = pcall(checkList, entry.comp.laneConnections, conns)
 					if okC and same then
+						local okL, eL, kerbN, kerbStats = pcall(W.remapLights, entry, cfg, oldConns, conns, phase, lp)
+						if not okL then
+							return nil, "lights:" .. tostring(eL):gsub("^.-:%d+: ", "")
+						end
 						if W.how ~= name then
 							W.how = name
 							out("HOW", { { "strategy", name }, { "tried", table.concat(notes, ";") } })
 						end
-						return entry, name
+						return entry, name, kerbN or 0, kerbStats
 					end
 					e = okC and "readback_differs" or ("readback:" .. tostring(same))
 				end
@@ -237,29 +518,346 @@ function Write.new(api, out)
 		end)
 	end
 
-	--- Writes connection sets: items = { {node, conns}, ... } in one proposal.
+	--- Writes connection sets: items = { {node, conns [, phase] [, lightPlan]}, ... } in one proposal.
+	-- Items with a lightPlan get it.planText (the plan written) or it.planFail (why not: the phase /
+	-- plain re-pointing went instead); they and items sent with a planFail (unlit, lit_unknown: no plan
+	-- tried) log one PHASES line each (src = the item's src or keyName):
+	--   PHASES src= node= phases=sl plan=<PP.planText> | plan_fail=<reason>
 	-- Nodes whose entry cannot be built are logged as SKIP <keyName>=<key> node reason.
 	-- onDone(success, expect, nodesText): expect = {node = Rules.connsText(conns)} of the sent nodes.
-	-- Returns the number of nodes sent (0: nothing sent, onDone is not called).
-	function W.sendConfigs(keyName, key, items, onDone)
-		local entries, removes, expect, nodesText = {}, {}, {}, {}
-		for _, it in ipairs(items) do
-			local okB, entry, info = pcall(W.buildEntry, it.node, it.conns)
-			if okB and entry then
-				entries[#entries + 1] = entry
-				removes[#removes + 1] = it.node
-				expect[it.node] = Rules.connsText(it.conns)
-				nodesText[#nodesText + 1] = tostring(it.node)
-			else
-				out("SKIP", { { keyName, key }, { "node", it.node }, { "reason", okB and info or ("error:" .. tostring(entry)) } })
+	-- Returns the number of nodes sent (0: nothing sent, onDone is not called), the kerb
+	-- connections changed in their phases (items with a phase; each sent item gets it.kerbChanged
+	-- and it.kerbStats) and the summed stats (W.remapLights).
+	-- onSkip(item, reason) (optional): called for each item left out (the automatic pass's SUMMARY).
+	function W.sendConfigs(keyName, key, items, onDone, onSkip)
+		local b = W.newBatch()
+		for _, it in ipairs(items) do W.addItem(b, keyName, key, it, onSkip) end
+		return W.sendBatch(b, onDone)
+	end
+
+	--- W.sendConfigs in parts, for a caller that builds one proposal over several steps (the automatic
+	-- pass, a frame's share of a job): b = W.newBatch(); W.addItem(b, keyName, key, it, onSkip) per item
+	-- (builds its entry at once, from reads made now: call it in the frame the batch is sent); then
+	-- W.sendBatch(b, onDone) sends them in one proposal. Same lines and results as W.sendConfigs.
+	function W.newBatch()
+		return { entries = {}, removes = {}, expect = {}, nodesText = {}, kerbTotal = 0,
+			statsTotal = { phases = 0, merge = 0, cross = 0, ped = 0, merged = 0 } }
+	end
+
+	--- Builds item `it`'s entry into batch b (see W.sendConfigs for the item fields, the PHASES and SKIP
+	-- lines and onSkip). Returns true when the item went into the batch.
+	function W.addItem(b, keyName, key, it, onSkip)
+		local okB, entry, info, kerbN, kerbStats = pcall(W.buildEntry, it.node, it.conns, it.phase, it.lightPlan)
+		if okB and entry then
+			it.kerbChanged = kerbN or 0
+			it.kerbStats = kerbStats or { phases = 0, merge = 0, cross = 0, ped = 0, merged = 0 }
+			if it.lightPlan ~= nil then
+				it.planText, it.planFail = it.kerbStats.plan, it.kerbStats.planFail
+				if it.planText == nil and it.planFail == nil then it.planFail = "none" end
 			end
+			-- (an item may come with planFail already: unlit / lit_unknown, no plan tried)
+			if it.lightPlan ~= nil or it.planFail ~= nil then
+				out("PHASES", { { "src", it.src or keyName }, { "node", it.node }, { "phases", "sl" },
+					it.planText and { "plan", it.planText } or { "plan_fail", it.planFail } })
+			end
+			Lights.addStats(b.statsTotal, it.kerbStats)
+			b.kerbTotal = b.kerbTotal + it.kerbChanged
+			b.entries[#b.entries + 1] = entry
+			b.removes[#b.removes + 1] = it.node
+			b.expect[it.node] = Rules.connsText(it.conns)
+			b.nodesText[#b.nodesText + 1] = tostring(it.node)
+			return true
 		end
-		if #entries == 0 then return 0 end
-		local nodes = table.concat(nodesText, ",")
-		send(removes, entries, function(success)
+		local reason = okB and info or ("error:" .. tostring(entry))
+		out("SKIP", { { keyName, key }, { "node", it.node }, { "reason", reason } })
+		if onSkip then pcall(onSkip, it, reason) end
+		return false
+	end
+
+	--- Sends batch b's entries in one proposal: returns as W.sendConfigs (0: nothing sent, onDone is
+	-- not called; else onDone(success, expect, nodesText) when it answered).
+	function W.sendBatch(b, onDone)
+		if #b.entries == 0 then return 0, 0, b.statsTotal end
+		local nodes = table.concat(b.nodesText, ",")
+		local expect = b.expect
+		send(b.removes, b.entries, function(success)
 			if onDone then onDone(success, expect, nodes) end
 		end)
-		return #entries
+		return #b.entries, b.kerbTotal, b.statsTotal
+	end
+
+	---------------------------------------------------------------------------
+	-- Traffic lights (sl_lights.lua)
+
+	function W.lightEnum()
+		local ok, e = pcall(function() return api.type.enum.TrafficLightPreference end)
+		if ok and type(e) == "table" then return e end
+		return nil
+	end
+
+	--- "No lights at roundabouts and ramps" from this mod's params (read each call: cheap, and the tool and
+	-- the game script share it).
+	function W.removeLights()
+		local ok, all = pcall(function() return api.engine.config.getModParams() end)
+		local raw = ok and type(all) == "table" and all[Rules.MOD_ID] or nil
+		return Rules.fromModParams(raw).lights == true
+	end
+
+	--- "Free kerb turn at traffic lights" from this mod's params (read each call, as W.removeLights):
+	-- the phase mode (Lights.SAFE "When safe", Lights.FREE "Always") or nil (Off).
+	function W.freeTurn()
+		local ok, all = pcall(function() return api.engine.config.getModParams() end)
+		local raw = ok and type(all) == "table" and all[Rules.MOD_ID] or nil
+		return Lights.modeFor(Rules.fromModParams(raw).freeTurn)
+	end
+
+	--- Frees (mode Lights.SAFE: where nothing green crosses it, merges allowed; Lights.FREE: everywhere) or locks back
+	-- (Lights.LOCK) the kerb turns `kerb` (sl_cross
+	-- X.kerbPairs) in the phases of a node whose lanes stay as they are (SAFE locks them back with
+	-- their approach first, as W.remapLights, so an earlier unsafe free does not stay): one light proposal with the
+	-- base node window's own call (double_slip_switch.tl:56 createTrafficLightProposal with a cloned
+	-- config, its preference kept; the phase editor commits edited lockedLanes this way, :147-170).
+	-- Only at a node with a standing light (BASE_NODE_TRAFFIC_LIGHT), whose phases index its current
+	-- connections (Lights.kerbPhases refuses stale ones) and where a kerb connection changes. Logs one
+	-- LIGHTS line per command sent (to=free_turn | lock_turn). onDone(success) when it answered.
+	-- Returns the kerb connections changed (0: nothing sent), a reason when nothing was sent
+	-- (no_config, no_light, no_phases, none, stale_phases, error:...) and the Lights.kerbPhases
+	-- stats when the phases were read (phases = (kerb connection, phase) locks changed, merge /
+	-- cross / ped = pairs "When safe" kept red). LIGHTS adds free_phases|lock_phases= and, for
+	-- SAFE, kept=cross:n,ped:n merge_free=n (merges no longer keep a turn red).
+	function W.kerbLights(node, kerb, mode, src, onDone)
+		local CT = api.type.ComponentType
+		local cfg = getComp(node, CT.BASE_NODE_CONFIG)
+		if not cfg then return 0, "no_config" end
+		if CT.BASE_NODE_TRAFFIC_LIGHT == nil or getComp(node, CT.BASE_NODE_TRAFFIC_LIGHT) == nil then return 0, "no_light" end
+		local tlc = cfg.trafficLightConfig
+		if tlc == nil or count(tlc.states) == 0 then return 0, "no_phases" end
+		local conns = W.currentConns(node)
+		if count(cfg.laneConnections) ~= #conns then return 0, "stale_phases" end
+		local nCross = count(cfg.crosswalks)
+		local lists = {}
+		for i, st in ipairs(tlc.states) do
+			local l = {}
+			for _, x in ipairs(st.lockedLanes or {}) do l[#l + 1] = x end
+			lists[i] = l
+		end
+		local kerbIdx = Lights.kerbIndices(conns, kerb)
+		-- When safe starts from the game's locks (as W.remapLights): a kerb turn freed earlier into
+		-- conflicting traffic (Always, or by hand) is locked back first, else it would stay green
+		local base = lists
+		if mode == Lights.SAFE then
+			local relocked = Lights.kerbPhases(conns, kerbIdx, nCross, lists, Lights.LOCK)
+			if relocked ~= nil then base = relocked end
+		end
+		local res, n, why, stats = Lights.kerbPhases(conns, kerbIdx, nCross, base, mode,
+			{ kerb = kerb, crosswalks = crosswalkList(cfg) })
+		if res == nil then return 0, why end
+		if base ~= lists then n, stats.phases = Lights.kerbDiff(kerbIdx, lists, res) end
+		if n == 0 then return 0, "none", stats end
+		local okP, cmd = pcall(function()
+			local c = tlc:clone()
+			local k = setStates(c, res)
+			checkStates(c, k, #conns + nCross - 1)
+			local p = api.engine.util.proposal.createTrafficLightProposal(node, c, cfg.trafficLightPreference)
+			return api.cmd.makeWorldBuildProposalCmd(p, nil, false, true)
+		end)
+		if not okP or cmd == nil then
+			local e = "error:" .. tostring(cmd):gsub("^.-:%d+: ", "")
+			out("SKIP", { { "kind", "lights" }, { "node", node }, { "reason", e } })
+			return 0, e, stats
+		end
+		local um = nil
+		pcall(function() um = cfg.userModifiedTrafficLightStates end)
+		local f = { { "src", src }, { "node", node }, { "to", mode == Lights.LOCK and "lock_turn" or "free_turn" },
+			{ mode == Lights.LOCK and "lock_turn" or "free_turn", n }, { "states", #res },
+			{ "pref", Lights.prefName(cfg.trafficLightPreference, W.lightEnum()) }, { "user_modified", tostring(um) },
+			{ mode == Lights.LOCK and "lock_phases" or "free_phases", stats.phases } }
+		if mode == Lights.SAFE then
+			f[#f + 1] = { "kept", Lights.keptText(stats) }
+			f[#f + 1] = { "merge_free", stats.merged or 0 }
+		end
+		f[#f + 1] = { "phases", W.phasesMode() }
+		out("LIGHTS", f)
+		api.cmd.sendCommand(cmd, function(_res, success)
+			if onDone then onDone(success == true) end
+		end)
+		return n, nil, stats
+	end
+
+	--- Reads the light of a node for a phases-only proposal: cfg, tlc, conns, crosswalks; or nil, reason
+	-- (no_config, no_light, no_phases, stale_conns, crosswalks).
+	local function lightRead(node)
+		local CT = api.type.ComponentType
+		local cfg = getComp(node, CT.BASE_NODE_CONFIG)
+		if not cfg then return nil, "no_config" end
+		if CT.BASE_NODE_TRAFFIC_LIGHT == nil or getComp(node, CT.BASE_NODE_TRAFFIC_LIGHT) == nil then return nil, "no_light" end
+		local tlc = cfg.trafficLightConfig
+		if tlc == nil or count(tlc.states) == 0 then return nil, "no_phases" end
+		local conns = W.currentConns(node)
+		if count(cfg.laneConnections) ~= #conns then return nil, "stale_conns" end
+		local cws = crosswalkList(cfg)
+		if #cws ~= count(cfg.crosswalks) then return nil, "crosswalks" end
+		return { cfg = cfg, tlc = tlc, conns = conns, cws = cws }
+	end
+
+	--- Smart Lanes phases for a node whose lanes stay (Light phases = Smart Lanes): a plan from the
+	-- node's current connections and crosswalks (lp = { view, world }: its sl_cross case "X" view and
+	-- the world it was read in), sent as a phases-only light proposal with the base node window's own
+	-- call (createTrafficLightProposal on a clone, the node's preference kept), only at a node with a
+	-- standing light whose phases differ from the plan. The caller makes sure no other proposal on
+	-- the node is pending. Logs LIGHTS src= node= to=sl_phases phases=sl states= cycle= pref=
+	-- user_modified= plan=. onDone(success) when it answered.
+	-- Returns 1 when sent, else 0 and a reason (lightRead's, "same", "plan_fail:<reason>",
+	-- "error:..."); and the plan text (sent or same).
+	function W.planLights(node, lp, src, onDone)
+		local r, why = lightRead(node)
+		if r == nil then return 0, why end
+		local okP, plan, whyP = pcall(planFor, node, r.conns, r.cws, lp)
+		if not okP then return 0, "plan_fail:error:" .. tostring(plan):gsub("^.-:%d+: ", "") end
+		if plan == nil then return 0, "plan_fail:" .. tostring(whyP) end
+		local text = PhasePlan.planText(plan, #r.conns)
+		if samePlan(r.tlc.states, plan) then return 0, "same", text end
+		local okC, cmd = pcall(function()
+			local c = r.tlc:clone()
+			local k = setPlanStates(c, plan)
+			checkStates(c, k, #r.conns + #r.cws - 1)
+			local p = api.engine.util.proposal.createTrafficLightProposal(node, c, r.cfg.trafficLightPreference)
+			return api.cmd.makeWorldBuildProposalCmd(p, nil, false, true)
+		end)
+		if not okC or cmd == nil then
+			local e = "error:" .. tostring(cmd):gsub("^.-:%d+: ", "")
+			out("SKIP", { { "kind", "lights" }, { "node", node }, { "reason", e } })
+			return 0, e
+		end
+		local um = nil
+		pcall(function() um = r.cfg.userModifiedTrafficLightStates end)
+		out("LIGHTS", { { "src", src }, { "node", node }, { "to", "sl_phases" }, { "phases", "sl" }, { "states", #plan.states },
+			{ "cycle", plan.cycle }, { "pref", Lights.prefName(r.cfg.trafficLightPreference, W.lightEnum()) },
+			{ "user_modified", tostring(um) }, { "plan", text } })
+		api.cmd.sendCommand(cmd, function(_res, success)
+			if onDone then onDone(success == true) end
+		end)
+		return 1, nil, text
+	end
+
+	--- The game's default phases back (the tool's Reset with Light phases = Smart Lanes): states = {}
+	-- on a clone of the node's TrafficLightConfig, sent with createTrafficLightProposal and the node's
+	-- preference, exactly as the Crossing window's "Reset to Default" button
+	-- (gui/entity_window/double_slip_switch.tl:604-612; the engine makes its default phases for an
+	-- empty list, findings.md). No index is written, so no stale index is possible. Only at a node
+	-- with a standing light and phases. Logs LIGHTS src= node= to=game_phases phases=game states=<before>.
+	-- Returns 1 when sent, else 0 and a reason.
+	function W.defaultLights(node, src, onDone)
+		local r, why = lightRead(node)
+		if r == nil then return 0, why end
+		local okC, cmd = pcall(function()
+			local c = r.tlc:clone()
+			c.states = {}
+			local p = api.engine.util.proposal.createTrafficLightProposal(node, c, r.cfg.trafficLightPreference)
+			return api.cmd.makeWorldBuildProposalCmd(p, nil, false, true)
+		end)
+		if not okC or cmd == nil then
+			local e = "error:" .. tostring(cmd):gsub("^.-:%d+: ", "")
+			out("SKIP", { { "kind", "lights" }, { "node", node }, { "reason", e } })
+			return 0, e
+		end
+		out("LIGHTS", { { "src", src }, { "node", node }, { "to", "game_phases" }, { "phases", "game" },
+			{ "states", count(r.tlc.states) }, { "pref", Lights.prefName(r.cfg.trafficLightPreference, W.lightEnum()) } })
+		api.cmd.sendCommand(cmd, function(_res, success)
+			if onDone then onDone(success == true) end
+		end)
+		return 1
+	end
+
+	--- Kerb connections of `node` that are red in at least one phase (the re-checks: whether the game
+	-- made or re-made phases after our write). nil without a config or phases.
+	function W.kerbLocked(node, kerb)
+		local cfg = getComp(node, api.type.ComponentType.BASE_NODE_CONFIG)
+		if not cfg or cfg.trafficLightConfig == nil or count(cfg.trafficLightConfig.states) == 0 then return nil end
+		local conns = W.currentConns(node)
+		-- the exit fan: only the kerb connections that may be freed (into the exit's kerb lane) count
+		local idx = Lights.splitKerb(conns, Lights.kerbIndices(conns, kerb), kerb)
+		local isKerb, hit = {}, {}
+		for _, j in ipairs(idx) do isKerb[j] = true end
+		for _, st in ipairs(cfg.trafficLightConfig.states) do
+			for _, l in ipairs(st.lockedLanes or {}) do
+				if isKerb[l] then hit[l] = true end
+			end
+		end
+		local n = 0
+		for _ in pairs(hit) do n = n + 1 end
+		return n
+	end
+
+	--- { pref, light } of a node, nil without a config.
+	function W.lightState(node)
+		local CT = api.type.ComponentType
+		local cfg = getComp(node, CT.BASE_NODE_CONFIG)
+		if not cfg then return nil end
+		local light = CT.BASE_NODE_TRAFFIC_LIGHT ~= nil and getComp(node, CT.BASE_NODE_TRAFFIC_LIGHT) ~= nil
+		return { pref = cfg.trafficLightPreference, light = light }
+	end
+
+	--- Sets the light preference of `nodes` to `target` (Lights.OFF / Lights.AUTO) with the base
+	-- game's own proposal, as the node window's traffic light buttons do (base
+	-- gui/entity_window/double_slip_switch.tl:56 createTrafficLightProposal with a cloned
+	-- trafficLightConfig, :489 TrafficLightPreference.NO; makeWorldBuildProposalCmd(p, nil, false, true)).
+	-- One command per node, only for nodes that differ. Such a build adds no street segment, so
+	-- the automatic pass ignores it (no loop). Logs one LIGHTS line per node sent.
+	-- onDone(expect) once every command answered: expect = {node = true} of the accepted ones.
+	-- Returns the number of commands sent (0: onDone is not called).
+	function W.setLights(nodes, target, src, onDone)
+		local enum = W.lightEnum()
+		local pref = Lights.prefFor(target, enum)
+		if pref == nil then return 0 end
+		local cmds = {}
+		for _, n in ipairs(nodes) do
+			local st = W.lightState(n)
+			if Lights.needs(st, target, enum) then
+				local okP, cmd = pcall(function()
+					local cfg = api.engine.getComponent(n, api.type.ComponentType.BASE_NODE_CONFIG)
+					local tlc = cfg.trafficLightConfig
+					local okC, c = pcall(function() return tlc:clone() end)
+					if okC and c ~= nil then tlc = c end
+					local p = api.engine.util.proposal.createTrafficLightProposal(n, tlc, pref)
+					return api.cmd.makeWorldBuildProposalCmd(p, nil, false, true)
+				end)
+				if okP and cmd ~= nil then
+					cmds[#cmds + 1] = { node = n, cmd = cmd }
+					out("LIGHTS", { { "src", src }, { "node", n }, { "before", Lights.prefName(st.pref, enum) },
+						{ "light", st.light }, { "to", target } })
+				else
+					out("SKIP", { { "kind", "lights" }, { "node", n }, { "reason", "error:" .. tostring(cmd) } })
+				end
+			end
+		end
+		if #cmds == 0 then return 0 end
+		local left, expect = #cmds, {}
+		for _, c in ipairs(cmds) do
+			api.cmd.sendCommand(c.cmd, function(_res, success)
+				if success == true then expect[c.node] = true end
+				left = left - 1
+				if left == 0 and onDone then onDone(expect) end
+			end)
+		end
+		return #cmds
+	end
+
+	--- Re-reads expect = {node = true} against target: returns done, total, gone (nodes without a
+	-- config any more: removed or replaced since, not counted as done).
+	function W.verifyLights(expect, target)
+		local enum = W.lightEnum()
+		local done, total, gone = 0, 0, 0
+		for n in pairs(expect) do
+			total = total + 1
+			local st = W.lightState(n)
+			if st == nil then
+				gone = gone + 1
+			elseif not Lights.needs(st, target, enum) then
+				done = done + 1
+			end
+		end
+		return done, total, gone
 	end
 
 	--- Re-reads expect = {node = connsText}: returns same, total.
@@ -270,6 +868,184 @@ function Write.new(api, out)
 			if Rules.connsText(W.currentConns(node)) == text then same = same + 1 end
 		end
 		return same, total
+	end
+
+	---------------------------------------------------------------------------
+	-- PROBE phases (PHASES_PLAN.md step 0, TESTING.md LP): read-only dump of a lit node's traffic
+	-- light, once per node per Lua state, at most Write.PROBE_PHASES_MAX nodes, only while
+	-- W.probeOn() (the "Debug: performance log" setting). Nothing is sent. Lines (all match
+	-- `grep "PROBE phases"`):
+	--   PROBE phases node= type= pref= user_modified= user_lanes= states=N durations= min= skip=
+	--     conns=N arms=<letter>=<segment>@<deg>,... crosswalks=<entities> cw_is_edge=y|n,...
+	--     light=true|false light_state= light_time= state_times= data_durations= data_locked=
+	--     data_same= data_red= data_models=
+	--   PROBE phases_conns node= part=i/k list=A1>B4,...  (config order: arm letter + lane index of
+	--     segment0 > segment1; suffix t = withTram, x = not withRoad; ?<segment> = not at the node)
+	--   PROBE phases_state node= state=i part=i/k duration= min= skip= n= locked=<indices>
+	-- Arms are lettered counter-clockwise by the angle of their direction away from the node
+	-- (sl_phases P.armsFromWorld). An unlit node (no BASE_NODE_TRAFFIC_LIGHT and no phases) is not
+	-- logged and not marked, so a later read logs it once its light came.
+
+	local function num(x)
+		if type(x) == "number" then return string.format("%g", x) end
+		return tostring(x)
+	end
+
+	local function joinList(list, f)
+		local parts = {}
+		for i, x in ipairs(list or {}) do
+			if i > Write.PROBE_LIST_MAX then
+				parts[#parts + 1] = "+"
+				break
+			end
+			parts[#parts + 1] = f and f(x) or num(x)
+		end
+		return #parts > 0 and table.concat(parts, ",") or "-"
+	end
+
+	--- Plain copy of a userdata / table list (nil -> {}), at most Write.PROBE_LIST_MAX entries.
+	-- A table entry at key 0 (a 0-based map, e.g. trafficLightData's state2* if so converted) comes
+	-- first; a native vector, which ipairs sees as empty (findings.md: filterCategories), is read
+	-- with :size() / :at(i) (1-based).
+	local function plain(list)
+		local out = {}
+		pcall(function()
+			if type(list) == "table" and list[0] ~= nil then out[1] = list[0] end
+			for _, x in ipairs(list or {}) do
+				if #out >= Write.PROBE_LIST_MAX then break end
+				out[#out + 1] = x
+			end
+		end)
+		if #out == 0 and type(list) == "userdata" then
+			pcall(function()
+				local n = list:size()
+				if type(n) ~= "number" then return end
+				for i = 1, math.min(n, Write.PROBE_LIST_MAX) do out[#out + 1] = list:at(i) end
+			end)
+		end
+		return out
+	end
+
+	--- Comma list split into chunks of at most Write.PROBE_CHUNK characters (at least one chunk).
+	local function chunks(text)
+		local out, cur = {}, ""
+		for item in text:gmatch("[^,]+") do
+			if #cur > 0 and #cur + 1 + #item > Write.PROBE_CHUNK then
+				out[#out + 1] = cur
+				cur = item
+			else
+				cur = #cur > 0 and (cur .. "," .. item) or item
+			end
+		end
+		out[#out + 1] = cur
+		return out
+	end
+
+	local function field(obj, key)
+		local ok, v = pcall(function() return obj[key] end)
+		if ok then return v end
+		return nil
+	end
+
+	--- Logs the PROBE phases lines of `node` (see above) when the probe is on and the node is lit
+	-- and new. world: the sl_ring world of the read (arm angles; nil: arms from the connections, no
+	-- angles). Returns true when logged. Never throws (the callers pcall it anyway).
+	function W.probePhases(node, world)
+		if W.probeOn == nil then return false end
+		local okOn, on = pcall(W.probeOn)
+		if not okOn or on ~= true then return false end
+		if W.probeSeen[node] or W.probeCount >= Write.PROBE_PHASES_MAX then return false end
+		local CT = api.type.ComponentType
+		local cfg = getComp(node, CT.BASE_NODE_CONFIG)
+		if not cfg then return false end
+		local tl = CT.BASE_NODE_TRAFFIC_LIGHT ~= nil and getComp(node, CT.BASE_NODE_TRAFFIC_LIGHT) or nil
+		local tlc = field(cfg, "trafficLightConfig")
+		local states = plain(tlc and field(tlc, "states"))
+		if tl == nil and #states == 0 then return false end
+		W.probeSeen[node] = true
+		W.probeCount = W.probeCount + 1
+		local ok, err = pcall(function()
+			-- arms: letters by angle (counter-clockwise from +x)
+			local arms = {}
+			if world ~= nil then arms = Phases.armsFromWorld(world, node) end
+			table.sort(arms, function(p, q)
+				if p.angle ~= q.angle then return p.angle < q.angle end
+				return p.seg < q.seg
+			end)
+			local letter, armText = {}, {}
+			for i, a in ipairs(arms) do
+				local l = string.char(64 + math.min(i, 26))
+				letter[a.seg] = l
+				armText[#armText + 1] = l .. "=" .. tostring(a.seg) .. "@" .. string.format("%.1f", a.angle)
+			end
+			local conns = W.currentConns(node)
+			local function end_(seg, lane)
+				return (letter[seg] or ("?" .. tostring(seg))) .. tostring(lane)
+			end
+			local cText = {}
+			for i, c in ipairs(conns) do
+				if i > Write.PROBE_LIST_MAX then break end
+				cText[#cText + 1] = end_(c.segment0, c.lane0) .. ">" .. end_(c.segment1, c.lane1)
+					.. (c.withTram and "t" or "") .. (c.withRoad and "" or "x")
+			end
+			local cws = plain(field(cfg, "crosswalks"))
+			local isEdge = {}
+			for _, cw in ipairs(cws) do isEdge[#isEdge + 1] = letter[cw] and "y" or "n" end
+			local durations, mins, skips, lists = {}, {}, {}, {}
+			for i, st in ipairs(states) do
+				if i > Write.PROBE_STATES_MAX then break end
+				durations[i] = num(field(st, "duration"))
+				mins[i] = num(field(st, "minDuration"))
+				skips[i] = tostring(field(st, "canSkip"))
+				lists[i] = plain(field(st, "lockedLanes"))
+			end
+			local f = { { "node", node }, { "type", num(tlc and field(tlc, "trafficLightType")) },
+				{ "pref", Lights.prefName(field(cfg, "trafficLightPreference"), W.lightEnum()) },
+				{ "user_modified", tostring(field(cfg, "userModifiedTrafficLightStates")) },
+				{ "user_lanes", tostring(field(cfg, "userModifiedLaneConnections")) },
+				{ "states", #states }, { "durations", joinList(durations, tostring) }, { "min", joinList(mins, tostring) },
+				{ "skip", joinList(skips, tostring) }, { "conns", #conns }, { "arms", #armText > 0 and table.concat(armText, ",") or "-" },
+				{ "crosswalks", joinList(cws) }, { "cw_is_edge", joinList(isEdge, tostring) }, { "light", tl ~= nil } }
+			if tl ~= nil then
+				f[#f + 1] = { "light_state", num(field(tl, "state")) }
+				f[#f + 1] = { "light_time", num(field(tl, "time")) }
+				f[#f + 1] = { "state_times", joinList(plain(field(tl, "stateTimes"))) }
+				local data = field(tl, "trafficLightData")
+				if data ~= nil then
+					f[#f + 1] = { "data_durations", joinList(plain(field(data, "state2duration"))) }
+					local dl = plain(field(data, "state2lockedLanes"))
+					local counts, same = {}, #dl == #lists
+					for i, l in ipairs(dl) do
+						local pl = plain(l)
+						counts[#counts + 1] = #pl
+						if same then
+							local a, b = table.concat(pl, ","), table.concat(lists[i] or {}, ",")
+							if a ~= b then same = false end
+						end
+					end
+					f[#f + 1] = { "data_locked", joinList(counts) }
+					f[#f + 1] = { "data_same", same }
+					local red = {}
+					for _, l in ipairs(plain(field(data, "state2redLightModelIndices"))) do red[#red + 1] = #plain(l) end
+					f[#f + 1] = { "data_red", joinList(red) }
+					f[#f + 1] = { "data_models", #plain(field(data, "animatedModels")) }
+				end
+			end
+			out("PROBE phases", f)
+			local parts = chunks(#cText > 0 and table.concat(cText, ",") or "-")
+			for i, p in ipairs(parts) do
+				out("PROBE phases_conns", { { "node", node }, { "part", i .. "/" .. #parts }, { "list", p } })
+			end
+			for s, list in ipairs(lists) do
+				local lp = chunks(joinList(list))
+				for i, p in ipairs(lp) do
+					out("PROBE phases_state", { { "node", node }, { "state", s }, { "part", i .. "/" .. #lp },
+						{ "duration", durations[s] }, { "min", mins[s] }, { "skip", skips[s] }, { "n", #list }, { "locked", p } })
+				end
+			end
+		end)
+		if not ok then out("ERROR", { { "where", "probe_phases" }, { "node", node }, { "err", tostring(err) } }) end
+		return true
 	end
 
 	return W

@@ -454,19 +454,37 @@ test("lanesFromConfigs reads transport modes keyed by enum value", function()
 		{ forward = true, transportModes = { [M.BUS] = true, [M.TRUCK] = true } },
 		{ forward = true, transportModes = { [M.CAR] = true, [M.TRAM] = false, [M.ELECTRIC_TRAM] = true } },
 	})
-	eq(l[1], { forward = false, road = false, car = false, tram = false })
-	eq(l[2], { forward = true, road = true, car = true, tram = false })
-	eq(l[3], { forward = true, road = true, car = false, tram = false })
-	eq(l[4], { forward = true, road = true, car = true, tram = true })
+	eq(l[1], { forward = false, road = false, car = false, tram = false, walk = true }, "sidewalk (PERSON)")
+	eq(l[2], { forward = true, road = true, car = true, tram = false, walk = false })
+	eq(l[3], { forward = true, road = true, car = false, tram = false, walk = false })
+	eq(l[4], { forward = true, road = true, car = true, tram = true, walk = false })
 end)
 
 ---------------------------------------------------------------------------
 -- Params and log
 
 test("mod params: 1-based indices and defaults", function()
-	eq(Rules.fromModParams(nil), { auto = true, ring = "two_lane" })
-	eq(Rules.fromModParams({ sqrl_auto = 2 }), { auto = false, ring = "two_lane" })
-	eq(Rules.fromModParams({ sqrl_auto = 9, sqrl_ring_rule = 2 }), { auto = true, ring = "two_lane" }, "old setting ignored")
+	eq(Rules.fromModParams(nil), { auto = true, lights = true, freeTurn = "always", phases = "game", ring = "two_lane" })
+	eq(Rules.fromModParams({ sqrl_auto = 2 }), { auto = false, lights = true, freeTurn = "always", phases = "game", ring = "two_lane" })
+	eq(Rules.fromModParams({ sqrl_auto = 9, sqrl_ring_rule = 2 }), { auto = true, lights = true, freeTurn = "always", phases = "game", ring = "two_lane" }, "old setting ignored")
+	eq(Rules.fromModParams({ sqrl_lights = 2 }), { auto = true, lights = false, freeTurn = "always", phases = "game", ring = "two_lane" })
+	-- Free kerb turn: 1 Off, 2 When safe, 3 Always (default)
+	eq(Rules.fromModParams({ sqrl_free_turn = 1 }), { auto = true, lights = true, freeTurn = "off", phases = "game", ring = "two_lane" })
+	eq(Rules.fromModParams({ sqrl_free_turn = 2 }).freeTurn, "safe")
+	eq(Rules.fromModParams({ sqrl_free_turn = 3 }).freeTurn, "always")
+	eq(Rules.fromModParams({ sqrl_free_turn = 3.0 }).freeTurn, "always", "a double index")
+	eq(Rules.fromModParams({ sqrl_free_turn = 1.5 }).freeTurn, "always", "not an index: default Always")
+	eq(Rules.fromModParams({ sqrl_free_turn = 0 }).freeTurn, "always", "out of range: default Always")
+	eq(Rules.fromModParams({ sqrl_free_turn = 4 }).freeTurn, "always", "out of range: default Always")
+	-- Light phases: 1 Game default (default), 2 Smart Lanes
+	eq(Rules.fromModParams({ sqrl_light_phases = 2 }).phases, "sl")
+	eq(Rules.fromModParams({ sqrl_light_phases = 1.0 }).phases, "game")
+	eq(Rules.fromModParams({ sqrl_light_phases = 3 }).phases, "game", "out of range: default Game default")
+	local L = ug_require "square_smart_lanes::/smart_lanes/sl_lights.lua"
+	eq(L.modeFor("off"), nil, "Off: no phase change")
+	eq(L.modeFor("safe"), L.SAFE)
+	eq(L.modeFor("always"), L.FREE)
+	eq(L.modeFor(nil), nil)
 end)
 
 test("mod.json params match KEYS / VALUES and severities stay None", function()
@@ -474,7 +492,17 @@ test("mod.json params match KEYS / VALUES and severities stay None", function()
 	local s = f:read("a")
 	f:close()
 	ok(s:find('"key": "sqrl_auto"', 1, true))
+	ok(s:find('"key": "sqrl_lights"', 1, true))
+	ok(s:find('"key": "sqrl_free_turn"', 1, true))
 	ok(s:find('"values": %["On", "Off"%]'))
+	-- Free kerb turn: three values in Rules.VALUES order, default Always (0-based defaultIndex 2)
+	ok(s:find('"values": %["Off", "When safe", "Always"%],%s*"defaultIndex": 2'), "free turn values and default")
+	eq(Rules.VALUES.freeTurn, { "off", "safe", "always" })
+	eq(Rules.DEFAULTS.freeTurn, 3)
+	ok(s:find('"key": "sqrl_light_phases"', 1, true))
+	ok(s:find('"values": %["Game default", "Smart Lanes"%],%s*"defaultIndex": 0'), "light phases values and default")
+	eq(Rules.VALUES.phases, { "game", "sl" })
+	eq(Rules.DEFAULTS.phases, 1)
 	ok(not s:find('sqrl_ring_rule', 1, true), "one setting only")
 	ok(s:find('"severityAdd": "None"', 1, true))
 	ok(s:find('"severityRemove": "None"', 1, true))
@@ -482,6 +510,23 @@ end)
 
 test("log line format", function()
 	eq(Rules.line("APPLY", { { "node", 5 }, { "x", "a b" } }), "[SQRL] APPLY node=5 x=a_b")
+end)
+
+test("countsText: most frequent first, ties by name, '-' when empty, '+N' past the cap", function()
+	eq(Rules.countsText({}), "-")
+	eq(Rules.countsText(nil), "-")
+	eq(Rules.countsText({ ambiguous = 1, branch_turn = 2, bus_lane = 1 }), "branch_turn:2,ambiguous:1,bus_lane:1")
+	-- cap 20: "aaaa:3,bbbb:2" (13) fits with room for "+N"; "cccc:1" would leave none
+	eq(Rules.countsText({ aaaa = 3, bbbb = 2, cccc = 1, dddd = 1 }, 20), "aaaa:3,bbbb:2,+2")
+	-- the last entry needs no room for a tail
+	eq(Rules.countsText({ aaaa = 3, bbbb = 2 }, 13), "aaaa:3,bbbb:2")
+	local many = {}
+	for i = 1, 60 do many["reason_" .. i] = i end
+	local s = Rules.countsText(many)
+	ok(#s <= 190, #s)
+	ok(s:find("^reason_60:60,reason_59:59"), s)
+	ok(s:find(",%+%d+$"), s)
+	eq(Rules.line("SUMMARY", { { "skips", s } }), "[SQRL] SUMMARY skips=" .. s, "under the 200 cap: not cut")
 end)
 
 ---------------------------------------------------------------------------
@@ -614,3 +659,363 @@ test("ring search on a large one-way network without rings stays cheap", functio
 	end
 	print(string.format("ring search: %d seeds on a %dx%d one-way grid: %.1f ms", #seeds, N, N, (os.clock() - t0) * 1000))
 end)
+
+test("remapLocked: phases follow connections by identity, movement, incoming segment; crosswalks shift", function()
+	local C = Rules.conn
+	local old = { C(1, 1, 2, 3), C(1, 2, 3, 3), C(2, 1, 1, 3), C(2, 1, 3, 4) }
+	-- locked: old 0 (1:1>2:3), old 2 (2:1>1:3), crosswalk 1 (index 5 = 4 + 1)
+	local locked = { 0, 2, 5 }
+	local new = { C(2, 1, 3, 4), C(1, 1, 2, 3), C(1, 2, 2, 4), C(1, 2, 3, 3), C(4, 1, 1, 3) }
+	local got = Rules.remapLocked(old, new, 2, locked)
+	-- new 0 = old 3 (unlocked); new 1 = old 0 (locked); new 2: movement 1>2 all locked -> locked;
+	-- new 3 = old 1 (unlocked); new 4: unknown segment -> unlocked; crosswalk 1 -> 5 + 1 = 6
+	eq(table.concat(got, ","), "1,2,6")
+	-- movement mixed (one locked, one not): unlocked
+	local mixed = Rules.remapLocked({ C(1, 1, 2, 3), C(1, 2, 2, 4) }, { C(1, 1, 2, 4) }, 0, { 0 })
+	eq(#mixed, 0)
+	-- nothing locked, no crosswalks
+	eq(#Rules.remapLocked(old, new, 0, {}), 0)
+end)
+
+test("remapper: the same lockedLanes as the per-state string-keyed remap on random connection lists", function()
+	-- the remap before PERF_REVIEW.md 2026-10-12 (three string-keyed maps per state), kept here as the reference
+	local function key(c)
+		return string.format("%s:%s>%s:%s", tostring(c.segment0), tostring(c.lane0), tostring(c.segment1), tostring(c.lane1))
+	end
+	local function reference(old, new, crosswalks, locked)
+		local isLocked = {}
+		for _, i in ipairs(locked or {}) do isLocked[i] = true end
+		local byKey, byPair, bySeg = {}, {}, {}
+		local function all(map, k, v)
+			if map[k] == nil then map[k] = v else map[k] = map[k] and v end
+		end
+		for i, c in ipairs(old) do
+			local l = isLocked[i - 1] == true
+			byKey[key(c)] = l
+			all(byPair, tostring(c.segment0) .. ">" .. tostring(c.segment1), l)
+			all(bySeg, c.segment0, l)
+		end
+		local out = {}
+		for j, c in ipairs(new) do
+			local l = byKey[key(c)]
+			if l == nil then l = byPair[tostring(c.segment0) .. ">" .. tostring(c.segment1)] end
+			if l == nil then l = bySeg[c.segment0] end
+			if l then out[#out + 1] = j - 1 end
+		end
+		for k = 0, (crosswalks or 0) - 1 do
+			if isLocked[#old + k] then out[#out + 1] = #new + k end
+		end
+		return out
+	end
+	local seed = 12345
+	local function rnd(n) -- deterministic LCG, 1..n
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		return seed % n + 1
+	end
+	local function randConn(segs)
+		local c = Rules.conn(segs[rnd(#segs)], rnd(4) - 1, segs[rnd(#segs)], rnd(4) - 1, rnd(4) > 1, rnd(3) == 1)
+		return c
+	end
+	for _ = 1, 3000 do
+		local segs = {}
+		for k = 1, rnd(5) do segs[k] = 1000 + k end
+		local old = {}
+		for k = 1, rnd(40) - 1 do
+			old[k] = randConn(segs)
+			-- duplicates and tram twins (the same lanes, other flags)
+			if rnd(6) == 1 and k > 1 then
+				local p = old[rnd(k - 1)]
+				old[k] = Rules.conn(p.segment0, p.lane0, p.segment1, p.lane1, not p.withRoad, not p.withTram)
+			end
+		end
+		-- new: some old ones kept (shuffled), some removed, some added (also on a segment the old list lacks)
+		local new = {}
+		for _, c in ipairs(old) do
+			if rnd(3) > 1 then table.insert(new, rnd(#new + 1), Rules.conn(c.segment0, c.lane0, c.segment1, c.lane1, c.withRoad, c.withTram)) end
+		end
+		local segs2 = { segs[1], 2000 }
+		for _ = 1, rnd(8) - 1 do table.insert(new, rnd(#new + 1), randConn(rnd(4) == 1 and segs2 or segs)) end
+		local nCross = rnd(5) - 1
+		local remap = Rules.remapper(old, new, nCross)
+		-- several states through one remapper (as W.remapLights): no state leaks into the next
+		for _ = 1, 4 do
+			local locked = {}
+			for _ = 1, rnd(#old + nCross + 3) - 1 do locked[#locked + 1] = rnd(#old + nCross + 4) - 2 end -- also -1 and past the end
+			local want = reference(old, new, nCross, locked)
+			local got = remap(locked)
+			eq(table.concat(got, ","), table.concat(want, ","))
+			eq(table.concat(Rules.remapLocked(old, new, nCross, locked), ","), table.concat(want, ","))
+			for _, l in ipairs(got) do ok(l >= 0 and l < #new + nCross, "index in range: " .. l) end
+		end
+	end
+end)
+
+---------------------------------------------------------------------------
+-- Ramp entry-only junctions (user's hand edit 2026-10-11, Roundabout Interchange ring 63759, node 63772):
+-- the on-ramp takes the outer ring lane(s), the circulating lanes zip into the inner ones.
+
+local SIDES = { { dir = "ccw" }, { dir = "cw" }, { dir = "ccw", mirror = true }, { dir = "cw", mirror = true } }
+
+local function sideName(o) return o.dir .. (o.mirror and " mirror" or "") end
+
+--- planRing over the interchange fixture; returns the plan, ring, world, the entry-only junction's result
+-- and the next junction downstream's result.
+local function interchange(opt, variant, seeds, current)
+	local W = F.interchange(opt)
+	local ring = assert(Ring.findRing(W, 1))
+	local p = Rules.planRing(W, ring, seeds or all(W), variant or "two_lane", function(n) return (current or {})[n] or {} end)
+	local js, ramp = {}, nil
+	for _, r in ipairs(p.nodes) do
+		js[#js + 1] = r
+		if r.view.kind == "arm" and #r.view.x == 0 and #r.view.e > 0 then ramp = #js end
+	end
+	return p, ring, W, js[ramp], js[(ramp % #js) + 1]
+end
+
+--- Road conns of a node result as "from>to" pairs in view terms: ring lanes "i<k>" (o_in), "o<k>"
+-- (o_out), entry "e<k>", exit "x<k>" (all outer / kerb first), sorted.
+local function viewPairs(r)
+	local v, names = r.view, {}
+	local function name(seg, lane, list, prefix)
+		for k, l in ipairs(list) do if l == lane then return prefix .. k end end
+		return prefix .. "?" .. tostring(lane) .. "@" .. tostring(seg)
+	end
+	for _, c in ipairs(r.conns) do
+		if c.withRoad then
+			local a = c.segment0 == v.ringIn and name(c.segment0, c.lane0, v.o_in, "i") or name(c.segment0, c.lane0, v.e, "e")
+			local b = c.segment1 == v.ringOut and name(c.segment1, c.lane1, v.o_out, "o") or name(c.segment1, c.lane1, v.x, "x")
+			names[#names + 1] = a .. ">" .. b
+		end
+	end
+	table.sort(names)
+	return table.concat(names, ",")
+end
+
+--- Own-lane entry invariants: every incoming ring lane continues or exits, every entry lane is
+-- connected, and no two connections cross: along the sources from the kerb side in (entry lanes kerb
+-- first, then the ring lanes outer first) the ring-out targets never go back outwards.
+local function assertRampInvariants(r, msg)
+	local v = r.view
+	local from = {}
+	for _, c in ipairs(r.conns) do
+		if c.withRoad then
+			local k = c.segment0 .. ":" .. c.lane0
+			from[k] = from[k] or {}
+			from[k][#from[k] + 1] = c
+		end
+	end
+	for _, l in ipairs(v.o_in) do ok(from[v.ringIn .. ":" .. l], msg .. " ring lane " .. l .. " continues or exits") end
+	for _, l in ipairs(v.e) do ok(from[v.arm .. ":" .. l], msg .. " entry lane " .. l .. " connected") end
+	-- order of sources (entries kerb first, then ring lanes outer first) vs. their ring-out targets
+	local pos = {}
+	for k, l in ipairs(v.o_out) do pos[l] = k end
+	local seq = {}
+	for _, l in ipairs(v.e) do seq[#seq + 1] = v.arm .. ":" .. l end
+	for _, l in ipairs(v.o_in) do seq[#seq + 1] = v.ringIn .. ":" .. l end
+	local last = 0
+	for _, k in ipairs(seq) do
+		local lo, hi = math.huge, 0
+		for _, c in ipairs(from[k] or {}) do
+			if c.segment1 == v.ringOut then lo, hi = math.min(lo, pos[c.lane1]), math.max(hi, pos[c.lane1]) end
+		end
+		if hi > 0 then
+			ok(lo >= last, msg .. " connections cross at " .. k)
+			last = hi
+		end
+	end
+end
+
+for _, o in ipairs(SIDES) do
+	for _, variant in ipairs({ "two_lane", "turbo" }) do
+		test("ramp entry-only junction takes its own ring lane, circulating lanes zip (" .. sideName(o) .. ", " .. variant .. ")", function()
+			local p, ring, W, r, nx = interchange(o, variant)
+			eq(p.turbo, false)
+			eq(p.turboReason, "narrow_exit", "1-lane off-ramp on the ring, as in game")
+			eq(r.entry, "own_lane", sideName(o))
+			eq(r.entryWhy, nil)
+			eq(r.status, "apply")
+			-- the user's 63772: 63640:1 -> 63650:1, 63640:2 -> 63650:1, 63644:1 -> 63650:2
+			eq(viewPairs(r), "e1>o1,i1>o2,i2>o2")
+			eq(r.after, 3)
+			assertRampInvariants(r, sideName(o))
+			-- the user's 63771: outer -> outer + kerb exit lane, inner -> inner + the two other exit lanes,
+			-- entry 1 -> outer, 2 and 3 -> inner
+			eq(#nx.view.x, 3)
+			eq(viewPairs(nx), "e1>o1,e2>o2,e3>o2,i1>o1,i1>x1,i2>o2,i2>x2,i2>x3")
+			eq(nx.entry, nil, "a junction with exits gets no entry decision")
+			assertReach(W, ring, result(p, nil, W, ring), sideName(o), true)
+		end)
+	end
+end
+
+test("ramp entry: the exact connection indices of the user's edit (ccw, right-hand traffic)", function()
+	local _, _, _, r, nx = interchange({ dir = "ccw" }, "turbo")
+	local v = r.view
+	-- fixture lane indices equal the game's: ring lanes 1/2 (sidewalk 0), ramp lane 1 (shoulder 0)
+	local exp = string.format("%d:1>%d:1:R-,%d:2>%d:1:R-,%d:1>%d:2:R-", v.ringIn, v.ringOut, v.ringIn, v.ringOut, v.arm, v.ringOut)
+	eq(Rules.connsText(r.conns), Rules.connsText(F.parseConns(exp)))
+	-- 63771 as logged in game (63650 in, 63649 out, 127589 the 3-lane arm)
+	local a, i, u = nx.view.arm, nx.view.ringIn, nx.view.ringOut
+	local exp2 = (("I:1>U:2:R-,I:2>U:1:R-,I:1>A:6:R-,I:2>A:5:R-,I:2>A:4:R-,A:1>U:2:R-,A:2>U:1:R-,A:3>U:1:R-")
+		:gsub("I", tostring(i)):gsub("U", tostring(u)):gsub("A", tostring(a)))
+	eq(Rules.connsText(nx.conns), Rules.connsText(F.parseConns(exp2)))
+end)
+
+test("ramp entry: badge input: the user's edit equals the Smart lanes plan, the engine model is unchanged", function()
+	local _, ring, W, r = interchange({ dir = "ccw" }, "turbo")
+	local cur = { [r.node] = r.conns }
+	local again = Rules.planRing(W, ring, { [r.node] = true }, "turbo", function(n) return cur[n] or {} end)
+	for _, x in ipairs(again.nodes) do
+		if x.node == r.node then
+			eq(x.status, "same", "the user's edit reads Smart lanes")
+			eq(x.entry, "own_lane")
+		end
+	end
+	-- Reset (engine model) and matched lanes: no entry decision, the old connections
+	for _, variant in ipairs({ "engine", "matched" }) do
+		local q = Rules.planRing(W, ring, all(W), variant, function() return {} end)
+		for _, x in ipairs(q.nodes) do
+			if x.node == r.node then
+				eq(x.entry, nil, variant)
+				ok(viewPairs(x) ~= "e1>o1,i1>o2,i2>o2", variant)
+			end
+		end
+	end
+end)
+
+--- Plan of the same junction under the give-way rule (twoLaneConns), as view pairs.
+local function giveWayPairs(r, p)
+	return viewPairs({ view = r.view, conns = Rules.twoLaneConns(r.view, { turbo = p.turbo }) })
+end
+
+for _, o in ipairs(SIDES) do
+	test("ramp entry kept as give-way: town arm, 1-lane ring, wide ramp, narrow next exit (" .. sideName(o) .. ")", function()
+		local cases = {
+			{ opt = { rampTpl = "one_way_town1" }, why = "not_ramp" },
+			{ opt = { ringTpl = "highway_small" }, why = "one_lane_ring" },
+			{ opt = { rampTpl = "highway_ramp2" }, why = "wide_entry" },
+			{ opt = { nextTpl = "highway_small" }, why = "narrow_next_exit" },          -- 1-lane next exit
+			{ opt = { nextTpl = "highway_small", nextFlip = true }, why = "narrow_next_exit" }, -- next is entry-only
+		}
+		for _, c in ipairs(cases) do
+			for k, v in pairs(o) do c.opt[k] = v end
+			for _, variant in ipairs({ "two_lane", "turbo" }) do
+				local p, ring, W, r = interchange(c.opt, variant)
+				local msg = c.why .. " " .. variant
+				eq(r.entry, "give_way", msg)
+				eq(r.entryWhy, c.why, msg)
+				eq(viewPairs(r), giveWayPairs(r, p), msg .. ": today's rule")
+				assertNoMerges(p, msg) -- today's invariants (an entry lane meets its ring lane: the give-way)
+				assertReach(W, ring, result(p, nil, W, ring), msg, true)
+			end
+		end
+	end)
+end
+
+test("ramp entry kept as give-way when reachability would break (an untouched junction downstream)", function()
+	for _, o in ipairs(SIDES) do
+		local _, _, _, r0, nx0 = interchange(o, "turbo")
+		-- the next junction (not a seed) keeps a hand edit without ring continuation: nothing behind it is
+		-- reachable from the ramp, so the ramp keeps today's give-way entry
+		local cut = {}
+		for _, c in ipairs(Rules.engineDefault(nx0.view)) do
+			if c.segment1 ~= nx0.view.ringOut or c.segment0 == nx0.view.arm then cut[#cut + 1] = c end
+		end
+		local p, _, _, r = interchange(o, "turbo", { [r0.node] = true }, { [nx0.node] = cut })
+		eq(r.entry, "give_way", sideName(o))
+		eq(r.entryWhy, "reachability", sideName(o))
+		eq(viewPairs(r), giveWayPairs(r, p), sideName(o))
+	end
+end)
+
+test("ramp entry: a 1-lane ramp on a 4-lane ring folds the outer lanes into lane 2, the inner ones stay", function()
+	for _, o in ipairs(SIDES) do
+		local _, ring, _, r = interchange({ dir = o.dir, mirror = o.mirror, ringTpl = "one_way_medium" }, "turbo")
+		eq(ring.lanes, 4)
+		eq(r.entry, "own_lane", sideName(o))
+		eq(viewPairs(r), "e1>o1,i1>o2,i2>o2,i3>o3,i4>o4")
+		assertRampInvariants(r, sideName(o))
+	end
+	-- a 2-lane ramp on a 4-lane ring: e1 -> o1, e2 -> o2, the circulating lanes into o3 / o4
+	local v = { o_in = { 11, 12, 13, 14 }, o_out = { 21, 22, 23, 24 }, e = { 31, 32 }, x = {}, ringIn = 1, ringOut = 2, arm = 3 }
+	eq(viewPairs({ view = v, conns = Rules.rampEntryConns(v) }), "e1>o1,e2>o2,i1>o3,i2>o3,i3>o3,i4>o4")
+end)
+
+test("ramp entry: APPLY fields carry entry= and why=", function()
+	eq(Rules.line("APPLY", Rules.withEntry({ { "node", 1 } }, { entry = "own_lane" })), "[SQRL] APPLY node=1 entry=own_lane")
+	eq(Rules.line("APPLY", Rules.withEntry({ { "node", 1 } }, { entry = "give_way", entryWhy = "not_ramp" })),
+		"[SQRL] APPLY node=1 entry=give_way why=not_ramp")
+	eq(Rules.line("APPLY", Rules.withEntry({ { "node", 1 } }, {})), "[SQRL] APPLY node=1")
+end)
+
+--- A 2-lane ring with two 1-lane on-ramps, each followed by a 3-lane arm (review 2026-10-11): every exit has
+-- 3 lanes, so the ring also gets the exit-only outer lane (turbo).
+local function twoRamps(o)
+	return F.ring({ ringTpl = "one_way_small", dir = o.dir, mirror = o.mirror,
+		arms = { { tpl = "large" }, { tpl = "highway_small", flip = true }, { tpl = "large" }, { tpl = "highway_small", flip = true } } })
+end
+
+for _, o in ipairs(SIDES) do
+	test("ramp entry with the exit-only outer lane (turbo), two ramps: no dead lane, every entry connected (" .. sideName(o) .. ")", function()
+		local W = twoRamps(o)
+		for _, variant in ipairs({ "two_lane", "turbo" }) do
+			local ring = assert(Ring.findRing(W, 1))
+			local p = Rules.planRing(W, ring, all(W), variant, none)
+			local msg = sideName(o) .. " " .. variant
+			eq(p.turbo, true, msg)
+			local own = 0
+			for _, r in ipairs(p.nodes) do
+				if r.entry ~= nil then
+					eq(r.entry, "own_lane", msg)
+					eq(viewPairs(r), "e1>o1,i1>o2,i2>o2", msg)
+					assertRampInvariants(r, msg)
+					own = own + 1
+				elseif r.view.kind == "arm" then
+					-- the 3-lane arm right after a ramp: the outer lane (the ramp's traffic) exits only
+					eq(viewPairs(r), "e1>o1,e2>o2,e3>o2,i1>x1,i2>o2,i2>x2,i2>x3", msg)
+				end
+			end
+			eq(own, 2, msg)
+			assertReach(W, ring, result(p, nil, W, ring), msg, true)
+		end
+	end)
+
+	test("ramp entry: the plan does not depend on the ring's start node or on the other ramp's state (" .. sideName(o) .. ")", function()
+		local W = twoRamps(o)
+		local ring = assert(Ring.findRing(W, 1))
+		local whole = byNode(Rules.planRing(W, ring, all(W), "turbo", none))
+		-- candidates are tried in travel order: another start node gives another order, the same plan
+		for _, start in ipairs(ring.nodes) do
+			local ring2 = assert(Ring.findRing(W, start))
+			for _, r in ipairs(Rules.planRing(W, ring2, all(W), "turbo", none).nodes) do
+				eq(Rules.connsText(r.conns), Rules.connsText(whole[r.node].conns), sideName(o) .. " start " .. start)
+			end
+		end
+		-- the tool's single-junction Apply (only that node a seed, the others as they are now: engine
+		-- default, or the other ramp already own_lane) writes what the badge's whole-ring plan expects
+		local default, planned = {}, {}
+		for _, n in ipairs(ring.nodes) do
+			default[n] = Rules.engineDefault(Ring.nodeView(W, ring, n))
+			planned[n] = whole[n].conns or default[n]
+		end
+		for _, n in ipairs(ring.nodes) do
+			if whole[n].entry ~= nil then
+				for _, cur in ipairs({ default, planned }) do
+					local single = byNode(Rules.planRing(W, ring, { [n] = true }, "turbo", function(m) return cur[m] end))
+					eq(single[n].entry, "own_lane", sideName(o))
+					eq(Rules.connsText(single[n].conns), Rules.connsText(whole[n].conns), sideName(o) .. " node " .. n)
+				end
+			end
+		end
+	end)
+
+	test("ramp entry: the ramp's own traffic reaches every exit without lane changes (non-turbo ring) (" .. sideName(o) .. ")", function()
+		local p, ring, W, r = interchange(o, "two_lane")
+		eq(p.turbo, false)
+		eq(r.entry, "own_lane")
+		local reach = Rules.reachability(W, ring, result(p, nil, W, ring), false)
+		for _, vout in ipairs(armSegs(W, ring, "out")) do
+			ok(reach[r.view.arm] and reach[r.view.arm][vout.arm], sideName(o) .. " ramp -> exit " .. vout.arm)
+		end
+	end)
+end

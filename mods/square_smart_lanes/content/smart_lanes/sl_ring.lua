@@ -69,9 +69,7 @@ function R.otherEndIndex(s, idx)
 	return #s.lanes - 1 - idx
 end
 
---- Road lanes of segment s at node: { e, incoming = {idx asc}, outgoing = {idx asc}, busOnly }.
--- busOnly: a road lane without CAR (bus lane), which the rules do not handle.
-function R.lanesAt(s, node)
+local function lanesAtOf(s, node)
 	local e = R.endAt(s, node)
 	if e == nil then return nil end
 	local inc, out, busOnly = {}, {}, false
@@ -87,6 +85,22 @@ function R.lanesAt(s, node)
 	table.sort(inc)
 	table.sort(out)
 	return { e = e, incoming = inc, outgoing = out, busOnly = busOnly }
+end
+
+--- Road lanes of segment s at node: { e, incoming = {idx asc}, outgoing = {idx asc}, busOnly }.
+-- busOnly: a road lane without CAR (bus lane), which the rules do not handle.
+-- A segment of a game world (sl_write W.makeWorld: s.atMemo, a table per segment and world) keeps its
+-- results: the same table is returned again, so callers only read it (none writes into these lists).
+-- Fixture worlds without atMemo get a new table per call.
+function R.lanesAt(s, node)
+	local m = s.atMemo
+	if m == nil then return lanesAtOf(s, node) end
+	local la = m[node]
+	if la == nil then
+		la = lanesAtOf(s, node) or false
+		m[node] = la
+	end
+	return la or nil
 end
 
 local function oneWayOf(s)
@@ -182,7 +196,9 @@ end
 -- searched within MAX_RING_LEN / 2 of start instead of MAX_RING_LEN.
 -- Returns { segs = {segId in travel order, starting at start}, nodes = {nodeId, starting at start},
 -- length } or nil, reason.
-function R.shortestCycle(world, start)
+-- A game world (sl_write W.makeWorld: world.memo) keeps the result per start node (R.ringThrough and
+-- the lane-drop check both search from the same node); callers only read it.
+local function shortestCycleOf(world, start)
 	local dist, prevSeg, done, open = {}, {}, {}, {}
 	local best, bestLast, bestLen = nil, nil, math.huge
 	local sn = world.node(start)
@@ -243,6 +259,28 @@ function R.shortestCycle(world, start)
 	return { segs = segs, nodes = nodes, length = bestLen }
 end
 
+--- Per-world memo of fn(world, n) -> value, reason under world.memo[name] (nil: no memo, a fixture world).
+local function memoized(name, fn)
+	return function(world, n)
+		local memo = world.memo
+		if memo == nil or type(n) ~= "number" then return fn(world, n) end
+		local m = memo[name]
+		if m == nil then
+			m = {}
+			memo[name] = m
+		end
+		local hit = m[n]
+		if hit == nil then
+			local v, why = fn(world, n)
+			hit = { v = v, why = why }
+			m[n] = hit
+		end
+		return hit.v, hit.why
+	end
+end
+
+R.shortestCycle = memoized("cycle", shortestCycleOf)
+
 --- Finds the one-way ring through `start`, validated: smooth, closed, at most MAX_RING_SEGS segments
 -- and MAX_RING_LEN metres, the same number of road lanes on every ring segment, no bus lanes.
 -- Returns ring { segs, nodes, length, side (+1 counterclockwise, -1 clockwise), lanes (R),
@@ -284,8 +322,9 @@ function R.findRing(world, start)
 end
 
 --- The one-way ring through node n, or nil, reason. A ring node has at least one one-way
--- segment arriving and one leaving (cheap test before the ring search).
-function R.ringThrough(world, n)
+-- segment arriving and one leaving (cheap test before the ring search). Kept per game world
+-- (world.memo, as R.shortestCycle): the job, a pick and a street walk ask for a node again.
+local function ringThroughOf(world, n)
 	local node = world.node(n)
 	if not node then return nil, "no_node" end
 	local inc, outg = false, false
@@ -299,13 +338,15 @@ function R.ringThrough(world, n)
 	if not (inc and outg) then return nil, "no_one_way_through" end
 	return R.findRing(world, n)
 end
+R.ringThrough = memoized("ring", ringThroughOf)
 
 -- TransportMode enum values (api/tealdef/api/type.d.tl:2217-2234, order PERSON=0, CARGO, CAR, BUS,
 -- TRUCK, TRAM, ELECTRIC_TRAM, ...; the probe logged a car lane as modes "2+3+4"). The game script
 -- passes the live api.type.enum.TransportMode values when it can read them.
-R.MODES = { CAR = 2, BUS = 3, TRUCK = 4, TRAM = 5, ELECTRIC_TRAM = 6 }
+R.MODES = { PERSON = 0, CAR = 2, BUS = 3, TRUCK = 4, TRAM = 5, ELECTRIC_TRAM = 6 }
 
---- Plain lane list from BaseEdge.laneConfigs (userdata or tables): { forward, road, car, tram }.
+--- Plain lane list from BaseEdge.laneConfigs (userdata or tables): { forward, road, car, tram, walk }
+-- (walk: a sidewalk, PERSON; sl_cross tells highway ramps, which have none, from town streets).
 -- transportModes is a {TransportMode : boolean} map, read with pairs (as the probe did).
 function R.lanesFromConfigs(laneConfigs, modes)
 	modes = modes or R.MODES
@@ -324,6 +365,7 @@ function R.lanesFromConfigs(laneConfigs, modes)
 			car = car,
 			road = car or set[modes.BUS] == true or set[modes.TRUCK] == true,
 			tram = set[modes.TRAM] == true or set[modes.ELECTRIC_TRAM] == true,
+			walk = set[modes.PERSON] == true,
 		}
 	end
 	return out

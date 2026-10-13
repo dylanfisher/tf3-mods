@@ -1,7 +1,7 @@
 # square_smart_lanes ("Smart Lanes")
 
 Plan written 2026-10-08. Mod: `mods/square_smart_lanes/`. Tests: `tests/square_smart_lanes/`.
-In-game checklist: `TESTING.md`. Background: `plans/square_roundabouts/PHASE6.md` (probe design),
+In-game checklist: `TESTING.md`. Flow results (Lights showcase twins, running ledger): `RESULTS.md`. Background: `plans/square_roundabouts/PHASE6.md` (probe design),
 `docs/findings.md` "Junction lane connections (2026-10-08)", probe `mods/square_roundabouts_lanes_probe/`.
 
 ## Goal
@@ -89,6 +89,10 @@ node, and every node with exits has min(E, R) >= 2.
 3. **Enter**: `e_j -> o_min(j, R)`: one to one; only an arm wider than the ring merges, its extra
    far-side lanes into the innermost ring lane (N - R + 1 lanes into o_R, unavoidable).
 4. Tram connections are kept as the engine made them; the node is written only when the result differs.
+5. **Ramp entry** (2026-10-11, user's hand edit at Roundabout Interchange node 63772; TESTING.md V): at an
+   entry-only junction of a ramp (one-way, no sidewalk) with N < R lanes, `e_j -> o_out[j]` and
+   `o_in[i] -> o_out[max(i, N + 1)]` (the ramp keeps its own lane, the circulating lanes zip inwards), when the
+   next junction downstream has an exit of >= 2 lanes and reachability holds; variants two_lane / turbo only.
 
 The only remaining "merge" at a node is the roundabout's give-way: entry lane j joins ring lane j,
 which also carries circulating traffic (inherent to every roundabout).
@@ -140,6 +144,15 @@ lane at the next arm; otherwise o1 exits or continues.
 `SKIP ring node reason` (ring nodes left alone, or a node whose entry could not be built),
 `WRITE ring nodes success` (callback), `VERIFY ring same nodes` (re-read 30 GUI frames later),
 `ERROR where err` (at most 20 per session).
+`SUMMARY job nodes rings ring=applied/same/skipped slip cross drop same skip skips=reason:count,...` (PHASE7.md
+step 6): one per processed automatic job that met a ring or a slip / crossing / drop candidate (TESTING.md Q).
+`AUDIT node case shape findings=kind:n,... [forced=..] detail src=auto|tool|pick [job | scope | ring]` (sl_audit.lua,
+TESTING.md X, 2026-10-11): one per junction with avoidable findings (squeeze, shared, across, ramp_ramp, u_turn,
+unfed, dead, bypassed_turn, weave, lights, bad), after the automatic job's / the tool's proposals were sent, or on a
+pick (current connections), at most 40 per automatic job; `AUDIT_SUMMARY src=auto job audited flagged findings
+forced [failed] [unlogged] skips` after each automatic job's SUMMARY (unlogged: flagged over the line cap); the
+tool's PICK lines gain `findings=`. Always on (quiet junctions log nothing; no extra config reads in
+the automatic pass), not tied to "Debug: performance log". `make audit` (tools/sqrl_audit.py) reports them.
 
 ## Phases
 ### Phase 1: automatic roundabouts (done offline, needs the in-game test)
@@ -293,7 +306,7 @@ matched one to one, no crossing". The tool said "Not a roundabout junction: not 
 the automatic pass ignored it. In-game checks: TESTING.md "G. Slip-lane junctions".
 
 **Files**: `content/smart_lanes/sl_slip.lua` (pure: classification, rule, plan, log fields; header
-comment is the spec), wired into `sl_lanes.script.lua` (`processSlips`) and `sl_toolcore.lua`
+comment is the spec), wired into `sl_lanes.script.lua` (`processSlips`; since 2026-10-12 `slipStep`) and `sl_toolcore.lua`
 (`applySlip`), status texts in `sl_pick.lua`. Tests: `test_slip.lua` (rule tables, invariants for
 every lane count 1-4, worlds: Channelized T for 3 main x 3 side x 3 slip templates x 4 slip angles
 x both traffic sides, two-way and one-way mains with 1-3 lanes, 1- and 2-lane branches, diverge and
@@ -377,6 +390,8 @@ Exact indices on the Channelized T east node (medium main, xsmall slip):
 ### Wiring
 - Automatic: `processJob` runs the rings first, then every job node not on a ring through
   `Slip.plan`; all slip nodes of one build go in one proposal (`sendConfigs("slip_job", seq, ...)`).
+  (2026-10-12, PERF_REVIEW.md: the job runs in steps over frames, one slip proposal per frame that built
+  entries, still one WRITE / VERIFY line per job.)
   Same seed policy (only nodes the build added or changed). Logs: `APPLY kind=slip node shape case
   side lanes before after`, `SKIP kind=slip node reason` (candidates only), `WRITE kind=slip job
   nodes success`, `VERIFY kind=slip job same nodes`.
@@ -413,3 +428,203 @@ TESTING.md "H. Lane status badge".
   `line_react_util.tl:630`). Unverified: `builtin.css.lua:268-275` greys TextViews inside disabled
   buttons, which may win over the class (then the badge is grey; fallback: an enabled no-op button
   or a mod stylesheet rule). Also the 3rd cursor tooltip line "Lanes: ..." and `PICK ... badge=..`.
+
+## Free kerb turn at traffic lights (rev 4, 2026-10-12, implemented offline, needs the in-game test: TESTING.md FK)
+User request: at signalised junctions Smart Lanes writes, the kerb turn (right in right-hand traffic) goes in every
+phase, so kerb turners never wait for their approach's green. Setting `sqrl_free_turn` "Free kerb turn at traffic
+lights" (Rules.KEYS.freeTurn; first On / Off, now Off / When safe / Always: see "Revised 2026-10-12" below;
+the notes up to there describe FREE, which is "Always" now).
+
+- Pure helpers (sl_lights.lua): `L.kerbIndices(conns, kerb)` (0-based indices of road, non-tram connections whose
+  `seg0>seg1` is a kerb pair), `L.kerbPhases(conns, kerbIdx, nCross, lists, mode)`: FREE removes the kerb indices
+  from every phase; LOCK (the tool's Reset) adds a kerb index where every other road connection of its approach
+  (segment0) is red, which reproduces the game's default (kerb turn red with its approach; unit test: Reset gives
+  the original phases back exactly). Refuses input with an index outside `[0, #conns + nCross - 1]` (stale phases)
+  and changes nothing else: crosswalks stay, no phase is added or removed, empty phases stay.
+- Kerb pairs from the case X view (`X.kerbPairs`, via `S.kerbPairs`): exits of category "kerb" over `ap.allExits`
+  (categories are already per driving side, so left-hand traffic needs no extra mirroring). Bypassed turns (TESTING
+  R) have no connection in the rule's list, so nothing is freed there; Reset's model has them and locks them.
+- Write path (sl_write.lua): items may carry `phase = {mode, kerb}`; `W.remapLights` applies `kerbPhases` to the
+  re-pointed lists before building the TrafficLightState objects and checks the read-back range as before. One
+  proposal for lanes and phases. `W.kerbLights` is the phases-only path for nodes whose lanes are already right:
+  fresh read, a standing light required, `createTrafficLightProposal(node, clone, current preference)` (the base
+  phase editor's commit), LIGHTS line with `user_modified=` (probe for the open question below).
+- Automatic pass: case X apply items get the FREE phase (setting On); same nodes get `W.kerbLights` unless a slip
+  proposal naming the node is unanswered or a pending job lists it (`busyNode`). Nodes whose light state was unknown
+  at the read (`Lights.litOf` nil: AUTO, no light yet) are re-checked 60 and 600 frames after the write answered
+  (`RECHECK`): lanes still ours and a kerb connection red -> `W.kerbLights` (src=recheck). Covers AUTO lights that
+  appear after our read; lights later than ~10 s are a documented gap (TESTING FK 3).
+- Tool: Apply (node, street, multi) frees with the setting On; Reset always locks back; same lanes -> phases-only,
+  with the tool's buttons held (`C.phaseHold`) until that proposal answered + VERIFY_DELAY frames.
+- Never two proposals on one node at once: crossroads keep their lights (no LIGHTS off proposal for them), the
+  phases-only proposal only goes to nodes not in a lane proposal (findings.md "pending change" refusal; a light
+  proposal built before a lane write lands would carry phases for the old connections).
+- No audit finding: the audit is about lane connections; phases are logged on SUMMARY / WRITE / LIGHTS / RECHECK.
+
+### Revised 2026-10-12: Off / When safe / Always (user decision)
+Freed turners do not give way (findings.md "A connection unlocked in a phase does not give way"), so FREE in every
+phase drove kerb turners into green traffic. The setting now has three values (`Rules.VALUES.freeTurn` =
+"off" / "safe" / "always", default "safe" (now "always": see "Revised 2026-10-12: default Always" below); mod.json
+values Off / When safe / Always, `defaultIndex` 1 (now 2);
+`Lights.modeFor` gives nil / `L.SAFE` / `L.FREE`). Off makes no phase change from this feature at all.
+
+Conflict model of `L.SAFE` (`L.kerbConflict`), per phase p and kerb connection k = A -> E, exit lane l; "green" =
+not in p's lockedLanes, including kerb connections freed earlier in the same phase:
+- merge: a green connection of another approach (segment0 ~= A), road or tram, ends on E in lane l.
+- cross: a green connection of another approach ends on E in a lane nearer the kerb than l. Reason: the game draws
+  one lane curve from the approach lane to the exit lane; a kerb turner enters E from the kerb side, so it cuts every
+  stream ending kerbward of l and runs beside the streams ending farther out (no conflict, so a far-aligned left turn
+  into the far lane does not block it). Lane positions come from sl_cross `ex.o` (exit lanes kerb first), carried as
+  the value of `X.kerbPairs` (true when unknown: then every other green lane of E counts). No other paths reach the
+  kerb corner between A and E: the other movements stay on the far side of the junction, U-turns (> 135 deg) are no
+  exits, and a game-made connection that ends on E falls under the lane rule anyway.
+- A's own connections never conflict (A's phase logic; the kerb turn is green with A in the game's default, and
+  sl_cross gives each lane of A a contiguous exit range, so they do not cross). Pedestrians are still checked there
+  (more conservative than "simply unlock", only differs for hand-edited phases).
+- ped: `BaseNodeConfig.crosswalks : {Entity}` (api/tealdef/api/engine.d.tl:190); read as the edges whose end at the
+  node has a crosswalk (inferred, not verified: a 3-way game node had 3 crosswalks and a dead end 1, findings.md;
+  community mods re-point them by edge id: move_it_probe_overpass `overpass_probe.script.tl:1589-1598`). A green
+  crosswalk on A or E keeps k red; on another road of the node it does not; an entity that is none of the node's
+  segments (or no list) blocks every kerb turn (conservative). In-game probe: TESTING FK 1e.
+Everything else as before: same `stale_phases` refusal, relock-then-free in `W.remapLights`, crosswalk indices
+untouched, no phase added or removed, LOCK (Reset) unchanged. Stats per (kerb connection, phase): `free_phases=`
+(unlocks), `kept=merge:n,cross:n,ped:n` (first kind found) on SUMMARY, tool WRITE and LIGHTS lines. The re-check
+uses the stored mode (When safe re-checks send nothing when the remaining reds are conflicts).
+Review 2026-10-12: (a) "cross" is one-sided, so with two kerb turns into one exit (5-way or skewed nodes) the
+order of the connections could free both across each other; a kerb connection is now freed only if the ones freed
+before it in that phase still pass with it green (unit test "two kerb turns into one exit"). (b) The phases-only path
+(`W.kerbLights`, tool Apply on unchanged lanes, auto `same`, re-check) now also locks back first for When safe
+(`Lights.kerbDiff` counts the net change), so a turn freed earlier by Always no longer stays green into traffic.
+(c) Param values: the released rev 3 has no `sqrl_free_turn`, so no player has a stored value; only a dev save/settings
+that stored the unreleased On / Off value 2 (Off) now reads as When safe (index 2). No migration needed.
+Expected effect: with the game's two-phase default at a 2x2 crossroads every kerb turn merges with the cross road's
+green straight, so When safe frees nothing there; it helps with per-approach phases, a side road's phase at a T
+(the main road's kerb turn), and exits where the green stream ends in lanes farther out.
+
+Open (TESTING FK): (1) answered: freed turners do not give way (findings.md 2026-10-12), hence When safe; open:
+whether When safe ever frees a turn into conflicting traffic, and what crosswalk entities are (FK 1e); (2) whether the game re-makes phases on its own later (nearby builds, edge
+upgrades) and whether `userModifiedTrafficLightStates` protects ours; Smart Lanes keeps the flag as read (setting
+it could make the engine keep phases for connections it re-makes, i.e. stale indices); (3) how late AUTO lights can
+appear.
+
+### Revised 2026-10-12 (later): When safe allows merges (user decision)
+In game (Lights showcase seed 530609, findings roads.md "A connection unlocked in a phase does not give way", "Later
+observations") freed kerb turners merged into a green stream entering the same exit lane tolerably, and the user
+judged that more efficient than holding the turn red; pedestrians were avoided only mostly. So `L.SAFE` now keeps a
+kerb turn red only for **cross** (a green stream of another approach ending kerbward of its exit lane) and **ped**
+(a green crosswalk on A or E); a **merge** (a green stream ending in its own exit lane) no longer blocks.
+`L.kerbConflict` still classifies (merge before cross before ped, the map agreement test uses it); `kerbPhases` uses
+`blockOf` (cross before ped, merges reported apart). Stats: `kept=` never has `merge:` now; `merged` = (kerb
+connection, phase) pairs freed while a green stream ends in the same lane, logged as `merge_free=<n>` after `kept=`
+on SUMMARY, tool WRITE and LIGHTS lines (named merge_free because SUMMARY already has `merged=<seq>` for merged jobs).
+Two kerb turns into one lane (5-way / skewed nodes) are a merge too and may both go; a crossing pair still never.
+In-game node 381095 (Lights showcase, PROBE phases 2026-10-12): phase 1 locked the south right turn D1>A4 although
+only C2>A4 (a green straight) ends in A4: now freed (unit test in test_lights.lua, both traffic sides).
+
+Planner (Light phases = Smart Lanes, sl_phaseplan.lua) decision: **consistent, kerb turns may merge there too**. Step
+4b, after the strict steps 2-4 (seeds, maximal phases, crosswalks): every kerb-class connection joins every phase
+where its only conflicts with green entries are merges (`opts.kerbMerge`, default true; fan plans excluded). Done on
+top of the strict plan, so no straight or crosswalk loses a phase to a merging kerb turn and the plan's structure is
+unchanged (weights come from the seeds; the calibrated T's cycle drops 85 -> 83 s as its turn phase needs less).
+The plan lists the kerb turns (`plan.kerb`); `PP.validatePlan` accepts a merge with one of them or with a class
+"kerb" connection of `M.cls` (a plan read back from a config), never a crossing or a crosswalk conflict, and refuses a
+listed connection whose class is known and not kerb. So "the plan subsumes When safe" holds again, and Light phases'
+tooltip says kerb turns also go where they only merge.
+
+### Revised 2026-10-12: default Always (user decision)
+"Free kerb turn at traffic lights" now defaults to **Always** (mod.json `defaultIndex` 2, `Rules.DEFAULTS.freeTurn` 3;
+an index out of range or not an integer also reads as Always). When safe and Off stay as choices. With Always the
+SUMMARY / tool WRITE lines carry no `kept=` / `merge_free=` (those are When safe only) and the MODE line says
+`free_turn=always`. Tests: test_rules "mod params" / "mod.json params", the default `{}` runs in the Always tests
+(test_script "free turn: a lit crossroads ...", test_tool "free turn (tool): Apply frees ..."). Fallback if Always
+jams in game: TESTING.md FK "If it fails".
+
+
+## Exit-lane fan (sl_exitfan zones, 2026-10-13; a measuring mode, never a default)
+Request (2026-10-13): a read-only lane audit of Stress Test session `2026-10-13_0205_top-up-61157` found Smart Lanes
+twins ~1.9 km/h slower than game twins at lit 2x2 crossroads (6/6 sets), queues on the arms where turners leave. Smart
+Lanes pins each turn to one exit lane (kerb turn into the exit's kerb lane, far turn into its far lane: `ks|sf`, 16
+connections); the game lets each turn enter every exit lane (24; PROBE phases_conns node=5921, session
+`2026-10-12_0753_sqot-dev-sqrl`). Hypothesis: turners can't pick their downstream lane, so they change lanes after
+the junction. The first plan made this the default and let the kerb lane of 3+ lanes go straight too (`ks|s|sf`).
+
+Changed before release (coordinator, fuller evidence from session `2026-10-13_0356_top-up-779299`, 12.5 game min, 15
+samples per twin, 12 pairs, not jammed): today's Smart Lanes layout BEATS game, 10/12 pairs faster, +3.2 km/h
+(p = 0.039): 3x3 +8.0 km/h (3/3), T 2x2 +2.9 (3/3), 2x2 +0.9 (2/1), 3x2 +0.9 (2/1); the earlier 2x2 loss was likely the
+rig's lane joins plus saturation. So **the default is unchanged** (the kerb-lane straight share is dropped entirely)
+and the exit-lane fan lives only in a new zone mode, `sl_exitfan`, for a twin to measure (sl vs sl_exitfan).
+
+Default paths unchanged, proven offline: the sl_cross code without the fan (the new blocks stripped, 1144 lines as
+before the change) gave byte-identical connections and kerb sets as the new code outside a zone, with
+`world.exitFan` false and inside a zone at unlit / unknown nodes, over 2790 world x lit cases (every T / X of 0-4 lanes
+in, 0-3 out, one-way roads included, Channelized X centres, both traffic sides; one-off check, 2026-10-13). Permanent
+tests: test_cross "exit fan off" (1728 cases) and every pre-existing test unchanged.
+
+Zone contract (sl_zones.lua; for the Stress Test side): ab name `sl_exitfan`; `by_ab` adds `,sl_exitfan:<n>` after
+`sl_lock` only when n > 0 (`game:a,sl:b,sl_phases:c[,sl_fan:d][,sl_lock:e][,sl_exitfan:f]`), older lines unchanged.
+
+What the zone does (automatic pass and tool alike):
+- Lanes: the rule's lane strings and straights as `sl` (X.allocate untouched); at a **lit** case-X node (X.litOf true)
+  whose roads are all two-way and form the game's axis model (X.phaseGroups: a crossroads = two axes, approaches that
+  are each other's straight exit; a T = one axis + the side road), every turn fans over the exit lanes its phase group
+  leaves it (X.placeExitLit). Unlit, unknown or off the model: today's lanes, `exit_fan=unlit | lit_unknown | one_way |
+  x_axes | t_axis | roads` on APPLY.
+- Light phases: always the game's (re-pointed by W.remapLights), whatever "Light phases" says (as `sl_lock`; the fan is
+  laid out for the game's axis phases). "Free kerb turn" is the setting's.
+- Which movements share a phase and an exit (game's axis phases, measured: findings roads.md "Default traffic light
+  phases"): in the N-S phase the W exit gets N's kerb turn and S's far turn (right-hand traffic), the E exit S's kerb
+  turn and N's far turn, the N / S exits only the opposite straight. A T's main-road phase: one main approach's kerb
+  turn and the other's far turn into the side road; the side road's phase: its turns alone. Straights never share a
+  phase with a turn into the same exit.
+- Layout per exit and phase group (X.placeExitLit): movements ordered kerb turn, straight, far turn; each gets a
+  contiguous range, neighbours share exactly one boundary lane (a merge) and never cross (the kerb-side movement never
+  ends farther out than the far-side one). Widths: first as many lanes as feeders (no fold where the road has room),
+  the spare round robin from the kerb side, so the kerb turn gets the larger share. A lone movement takes every lane.
+  Straights keep today's far-aligned lane-to-lane mapping (the exit's kerb lane stays free for a freed kerb turn).
+  Why the kerb turn gets the shared lane: it does not cross the opposing straight, so it flows steadily in its green,
+  and its kerb lane is the only one a freed kerb turn uses in other phases. The game fans both turns into every lane
+  (they cross); a crossing pair in one phase never yields in TF3 (findings "A connection unlocked in a phase does not
+  give way"), so the fan allows merges only, which the user judged tolerable (findings "Later observations").
+  | shape | lane strings | kerb turn > exit lanes | far turn > exit lanes | connections (sl / fan / game) |
+  |---|---|---|---|---|
+  | 2x2 X | `ks|sf` | 1-2 | 2 | 16 / 20 / 24 |
+  | 3x3 X | `k|s|sf` | 1-2 | 2-3 | 16 / 24 / 36 |
+  | 3x2 X | main `k|s|sf`, side `ks|sf` | main into side 1-2, side into main 1-2 | main into side 2, side into main 2-3 | |
+  | 2x2 T | main `ks|s` / `s|sf`, side `k|f` | main into side 1-2; side into main 1-2 | main into side 2; side into main 1-2 | |
+- Free kerb turn (sl_lights): X.kerbPairs marks the set `kerbLaneOnly`; L.kerbPhases (FREE / SAFE) frees only kerb
+  connections into the exit's kerb lane (position 1); the others (L.splitKerb "held") are locked as LOCK does, red
+  where every non-kerb road connection of the approach is red, so a freed turn never enters lanes green traffic
+  uses and a held one freed earlier is locked back. LOCK (Reset, sl_lock) unchanged. W.kerbLocked counts only the
+  freeable ones. SAFE's conflict model (conflictInfo / blockOf) sees the fanned connections of other approaches as
+  ever (merge in the same lane, cross kerbward).
+- Re-checks: an sl_exitfan node whose light was unknown at its write gets a re-check entry (60 / 600 frames, also with
+  Free kerb turn Off); once a light stands and its lanes are still the rule's, the fan goes out in one proposal with
+  the kerb phase change (`APPLY src=recheck ... exit_fan=yes`, `WRITE kind=exit_fan`). Lights that appear later than
+  600 frames (e.g. a save passing 1950) are not re-evaluated: a rebuild nearby or the tool's Apply does it (same gap as
+  FK 3).
+- Index safety: every lane write goes through W.remapLights (new fanned connections take their movement's state,
+  Rules.remapper; checkStates range check), one proposal per node; test_script "an existing lit junction with today's
+  lanes and freed phases re-applied" (16 -> 20 -> 16 connections, every index in range).
+- Audit (sl_audit): with view.exitFan, lanes shared across phases and one boundary lane per neighbour pair of one phase
+  are `shared_lit`; only shares within one phase beyond those count as `shared` (no false alarms: test_audit).
+- Logs: APPLY `exit_fan=..` (+ `zone=sl_exitfan`), AUDIT `zone=sl_exitfan`, SUMMARY `zone_exitfan=<nodes> exit_fan=<fanned>`.
+- Zones reach the worlds through `W.zones` (sl_write world.exitFan reads it at the call): the automatic pass sets it
+  whenever its zones mirror changes (so a job sees the current zones, not only its start snapshot), the tool on each
+  zone read. The tool's badge cache key includes the zone.
+- Files: sl_cross.lua (X.exitFanOf, X.phaseGroups, placeExitLit / fanBlocks, roadConns branch, kerbPairs flag),
+  sl_zones.lua, sl_write.lua (world.exitFan, W.zones, kerbLocked), sl_lights.lua (L.splitKerb, kerbPhases),
+  sl_slip.lua (log field), sl_lanes.script.lua (slipPlan, recheck, tallies), sl_toolcore.lua (zones, phasesAt, labels),
+  sl_audit.lua. Tests: test_cross / test_lights / test_audit / test_script / test_tool / test_zones ("exit fan",
+  "sl_exitfan", "kerbLaneOnly"). In-game check: TESTING.md "EF". No user-visible change outside the zone, so no
+  description / strings change.
+
+## Stress Test bench additions SL-1 .. SL-6 (2026-10-13, offline)
+Contract and choices: plans/square_stress_test/BENCH.md "As implemented in Smart Lanes". Summary: zone mode
+`sl_keeplights` (lights left as the game made them, `LIGHTS ... to=kept`, SUMMARY `zone_keeplights= lights_kept=`),
+`MODE ... lights=on|off`, `zid=` on APPLY / SKIP / LIGHTS / PHASES / AUDIT lines of nodes in a labelled zone, state
+`zmodes` / `zerr` (written on zones events only) and `qlen` (our GUI reports `SmartLanes.qlen`, only while zones are
+set), and one late lights look 600 frames after a lights-off for zone nodes (`RECHECK kind=lights`). Outside zones
+everything is as before (tests "SL-5 / SL-6 off outside zones" and every earlier test unchanged except the MODE line's
+appended `lights=` and the extra `SmartLanes.qlen` subscription). Files: sl_zones.lua (mode, zoneAt, idOf, runOf),
+sl_lanes.script.lua (keepLights, zid hook, MODE, SUMMARY, zerr / zmodes / qlen, lightsLate), sl_toolcore.lua
+(keeplights in toolLights, zid in its out wrapper, write path through it). In-game check: TESTING.md "BN".
