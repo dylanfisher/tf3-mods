@@ -1,873 +1,143 @@
 # In-game findings
 
 Facts verified by running mods in the installed game, where the wiki is wrong, silent or misleading.
-Hand-written (unlike `docs/wiki/` and `docs/game/`). These override the wiki. Add an entry whenever a
-game test contradicts or fills a gap in the docs, with the date and the evidence (log line, error).
-
-## Mod params, script functions and stylesheets
-
-Found 2026-10-08 while trying to give `square_bigger_line_dots` a "Dot size" setting (game build 40420).
-**Result: a mod.json param cannot change a stylesheet (`.css.lua`).** For size or style options, ship
-separate variant mods instead.
-
-### Script function signatures
-
-- The script functions get a `captureParams` argument **first**. The wiki
-  (`docs/wiki/modding/general/modscripts.md`) leaves it out:
-  - `runFn(captureParams, settings, allModParams)`: base `base/base_mod.lua:8`
-  - `preRunFn(captureParams, configDict, allModParams, baseConfig)`: base `base/mod.script.tl:16`
-  - `postRunFn(captureParams, configDict, allModParams)`: base `base/mod.script.tl:257`
-- With the wiki's two-argument `runFn(configDict, allModParams)`, the second argument is really the
-  config dict (keys `climate`, `economy`, `nameList`), so `allModParams[modId]` is nil and every option
-  silently falls back to its default.
-- `allModParams[modId].<key>` is the **1-based index** of the chosen value, even when the param has
-  `numbers` (the game log showed `dotSize = 4` for the 4th of `[12.0, 16.0, 20.0, 24.0]`).
-- `runFn` runs in about 50 Lua states per game load (every worker thread: "Load Game Pool", "Sim Pool",
-  "Main Thread", …). Globals it sets stay in each of those states.
-- `postRunFn` runs once ("Load Game Pool 1"), about 2 s before the GUI resources and stylesheets are built.
-
-### Stylesheets (`*.css.lua`)
-
-- Stylesheets are rebuilt on **every game load**, on the Main Thread, after `runFn` and `postRunFn`.
-  So timing is not the problem; access is.
-- The stylesheet's `api` has **only `gui` and `type`**. `api.engine` and `api.res` are nil, so
-  `api.engine.config.getModParams()` fails there.
-- Its sandbox is minimal: `rawget` is nil. `pcall`, `type`, `tostring`, `ipairs`, `pairs`, `table.concat`,
-  `require` and `log.message` work.
-- Any Lua error in `data()` makes the game drop **the whole stylesheet** ("Failed to load style sheet",
-  `StyleSheetRep.cpp`, in `crash_dump/error.json`) and the base styles come back. Keep risky reads in `pcall`.
-- Globals set by `runFn` are not visible (`nil`): the stylesheet is built in a separate Lua state.
-- `addModifier("loadStyleSheet", fn)` registers without error (the category exists in base
-  `base/mod.lua:128`), but the modifier is **never called**, not even for base stylesheets.
-
-### GUI resources (`*.gres.lua`, `gui_res_overwrite`)
-
-- A stylesheet can read a mod's own `gui_res` resource:
-  `api.gui.genericRep.get(api.gui.genericRep.find("<modId>::/path/file.gres")).data` works (the name
-  has no `.lua`).
-- The mod's `.gres.lua` `data()` and a `gui_res_overwrite` script (`docs/wiki/modding/misc/soundeffects.md`)
-  run on the Main Thread just before the stylesheets, in the same GUI-only state: no `api.engine`, no
-  `runFn` globals. So they can't read mod params either.
-- In `postRunFn`, `api.res.genericRep.add(name, res, true)` works (it returns an id), but `api.res.genericRep`
-  is a **separate repository** from `api.gui.genericRep`. The stylesheet can't see it, and `api.res.genericRep.find`
-  doesn't find `gui_res` resources.
-
-### Channels tried, all failed
-
-| Channel | Why it fails |
-|---|---|
-| `getModParams()` inside the `.css.lua` | `api.engine` is nil there |
-| `loadStyleSheet` modifier in `runFn` | never called |
-| global from `runFn`, read in the `.css.lua` | separate Lua state, `nil` |
-| global from `runFn`, read in a `.gres.lua`, then the `.css.lua` reads the gres | `.gres.lua` is in the GUI state too, `nil` |
-| `gui_res_overwrite` script calls `getModParams()`, then `setData` | no `api.engine` |
-| `postRunFn` writes or adds a generic resource | `api.res` repository, not visible to `api.gui` |
-
-Not tried: writing a file from `runFn` and reading it in the stylesheet (needs `io` in both sandboxes),
-and patching base GUI modules from a GUI script (the dots are built by a local function in
-`gui/line_vehicle_mgmt/manager_hud_util.tl`).
-
-### Debugging tips
-
-- `log.message` from any of these contexts lands in `<userdata>/crash_dump/stdout.txt`. Prefix messages
-  with the modId and `grep` for them. The thread column shows which Lua state ran the code.
-- The engine logs each load's mod params ("mod params: … dotSize = 4") after "Loading config from file".
-- `crash_dump/error.json` holds the most recent caught Lua error with file, line and stack trace.
-- **Removing a staging mod while a save is loaded crashes the game** (2026-10-09): deleting
-  `square_quota_run` (its staging symlink went with it) while in game, even though the save didn't use
-  it, crashed on the next staging rescan (`LocalModHubBackend::UpdateLocalInstallations`, "Mod got
-  locally deleted in restricted mod management mode", then Assertion `inAddMods && "cannot remove mods
-  in game"`). Edits to files in existing mods are fine. Quit to the main menu (or close the game) before
-  `make unlink`, deleting a mod folder, or switching to a git branch that lacks a mod.
-- **Adding a staging mod while the game runs is fine** (2026-10-09): `make link` added
-  `square_opt_zhenya_auto_assign_terminals` with the game open; stdout showed "new ModHubMod was installed and
-  will be added to filesystem …" and no assertion. Whether a save was loaded at the time isn't known.
-
-### Game-script event subscriptions are saved (2026-10-08)
-
-- `GameScriptState` subscriptions (`subscribeToEvent`) persist in the savegame. A script that subscribes
-  only `if not state:hasEventSubscriptions()` never picks up an event added in a later mod revision when
-  an existing save is loaded: the new GUI events are silently dropped (no error, the handler never runs).
-  Evidence: square_problem_radar rev 3 added `ProblemRadar.snooze`; on a rev 2 save the click did
-  nothing and stdout.txt had no handler log line. Fix: re-run the full subscribe (`subscribeToNoEvents`
-  + every `subscribeToEvent`) once per load, tracked by a module-local flag.
-
-## Street names and Road Stops (2026-10-08)
-
-Source: `square_town_street_names_probe` run, new game with its "DEV TSN Probe" name set (streets
-"Probe Street 01..80" in fixed order), 7 Road Stops built in one town. Log: `[SQTSN_PROBE]` lines in
-stdout.txt. Plan: `plans/square_town_street_names/`.
-
-- The name set's `streetNamesScript` is only ever called with `num = -1` (262 calls in one session,
-  bursts during load), so the engine takes the whole list and picks from it itself.
-- Each new Road Stop got the **next unused name in list order** (01, 02, … 07), regardless of which
-  street edge it was on. Seven stops on different edges: no East/#2 suffixes, no shared names. So the
-  "street name" is not tied to the actual street. With the base script the list is shuffled, which
-  hides this.
-- The name is on the **station group** (and the station's NAME shows the same value). The carrying
-  edge has no NAME.
-- `onPostBuildProposal` lists the stop in `proposal.proposal.edgeObjectsToAdd` with category 0 and,
-  after the build, the **real station entity id** as the result (not a placeholder). `onPreBuildProposal`
-  shows result -1. `playerInitiated` is true for player builds.
-- `stationSystem.getTown(station)` returns the right town immediately after the build, matching
-  `util.town.getClosestTown`.
-- A flag set in the build event was mostly **not visible** in the next `update` poll ("lastBuild=none"),
-  so treat build events and `update` as separate Lua states; pass data via `state` or detect in update.
-- `api.cmd.sendCommand(cmd, callback)` from a game script's engine `update` fails with "Callbacks are
-  currently disallowed". Send without a callback (as Auto Line Namer does) and check the result on a
-  later update.
-- Rename test (2026-10-08, same probe, mode "station group"): `makeEntitySetNameCmd(stationGroup, name)`
-  sent from the engine `update` works. The station group **and** its station both show the new name
-  within one update. Duplicate names are accepted as-is: two groups both became "Pike Street", no suffix.
-- A new stop gets the **first unused** pool name: after "Probe Street 10" was renamed to "Pike Street",
-  the next stop got "Probe Street 10" again.
-- Name set scripts and the climate (Probe 3, 2026-10-08, `square_town_street_names_probe`, new games on several
-  climates):
-  - In the town/person name scripts **`api.engine` is nil**, so `api.engine.config.getConfigDict()` and
-    `getModParams()` fail there.
-  - A global set by the mod's `runFn` **is** visible in the name scripts: both run in the same Lua state
-    ("Load Game Pool 1"). Log: `runFnGlobal climate=::/climates/tropical/tropical.clima`. So the climate reaches a
-    name script via `runFn(captureParams, configDict, …)` → `configDict.climate` → global.
-  - But a plain global assignment from `runFn` goes through base `base/content/base/init.lua:235-260`
-    (`_G.__newindex`), which logs ERROR "Global variable in mod" (`key = …`) in **every** Lua state (67 errors per
-    load). The value is still set (it `rawset`s first). Use `rawset(_G, KEY, value)` (in `pcall`) to bypass the
-    guard, or a table in a module both scripts `require` (same Lua state, same require cache). Reading with
-    `rawget(_G, KEY)` or `_G[KEY]` doesn't trigger anything. (`square_names_us_*`: `mod.script.lua`,
-    `names.script.lua`.)
-  - Town sizes don't follow the name order: the 1st name (Seattle) got `initialCap` 94, the 9th (Vancouver) 335.
-    Putting big-city names first does not make them the big towns on the map.
-
-## Junction lane connections (2026-10-08)
-
-Found with the probe `square_roundabouts_lanes_probe` (log lines `[SQRB-LANES]`, game stdout.txt), on
-`square_roundabouts` builds and the vanilla Crossing Tool. Details: `plans/square_roundabouts/PHASE6.md`.
-
-- Lane routing at a junction is `BASE_NODE_CONFIG.laneConnections` (`api/tealdef/api/engine.d.tl:184`).
-  The engine fills it when streets are built: `onPostBuildProposal` carries `nodeConfigsToAdd` for every
-  new node (8 for a 4-arm roundabout; arm end nodes get 0 connections).
-- **Lane indices count the sidewalks**: index 0 and the last index are sidewalks, so a 2-lane one-way
-  road uses lanes 1-2 and a 4-lane two-way road 1-4. Indices run left to right looking from the node
-  along the segment, so an incoming segment's lane 1 is on the driver's right and an outgoing
-  segment's lane 1 on the driver's left. On a counterclockwise (right-hand) ring: incoming lane 1 =
-  outermost, outgoing lane 1 = innermost; going straight is `i -> n + 1 - i`.
-- Engine defaults on a one-way ring at an arm node: only the outermost ring lane may exit (into every
-  exit lane of the arm); the other ring lanes only continue in their own lane; arm entry lanes fan out
-  (right entry lane -> outer ring lanes, left -> inner). Same for 2 and 4-lane rings.
-- The Crossing Tool applies each click as one build: `nodeConfigsToRemove = {node}` +
-  `nodeConfigsToAdd = {full new config}` (no added/removed streets, cost 0).
-  `userModifiedLaneConnections` stays nil after a Crossing Tool edit, so it is not the "edited" marker.
-- **LaneConnection objects read from a node are read-only** (2026-10-08, `square_smart_lanes` rev 1,
-  GUI thread): `lc.segment0, lc.lane0, ... = ...` on an element of
-  `getComponent(node, BASE_NODE_CONFIG).laneConnections` raised `cannot write to re[adonly ...]`
-  (`[SQRL] SKIP ... reason=error:...sl_lanes.script.lua:233`). move_it's `lc.segment0 = ...`
-  pattern therefore does not work as written. The tealdef has no `api.type.LaneConnection`
-  constructor, **but the runtime has one**: `api.type.LaneConnection.new()` works (2026-10-08,
-  `[SQRL] HOW strategy=ctor`). Set its six fields, put the objects in a list, assign the list to
-  `entry.comp.laneConnections` of a `BaseNodeLaneConnectionAndEntity.new()` whose `comp` is the
-  read config, and send `nodeConfigsToRemove = {node}` + `nodeConfigsToAdd = {entry}` from the GUI
-  thread: `WRITE success=true`, and a re-read about 30 frames later matches (`VERIFY same=4 nodes=4`,
-  4-lane ring).
-- **`builtin.NodeViewer` crashes the game on an out-of-range `edgeIdx`** (2026-10-08,
-  `square_smart_lanes` tool): `NodeViewer.cpp:76 Render: Assertion '0 <= edgeConfig.edgeIdx &&
-  edgeConfig.edgeIdx < (int)transportNetwork.edges.size()' failed`, "Actual: 1 not in range [0, 1)",
-  a fatal error that pcall cannot catch (it fires in the native render, later). It happened on a
-  plain 2-segment ring node with 2 lane connections: `edgeIdx` = lane connection index (as base
-  `double_slip_switch.tl:113-118` uses it) is not always valid, because the node's transport network
-  can have fewer edges. Guard: only pass indices below `#getComponent(node, TRANSPORT_NETWORK).edges`,
-  and draw nothing while a node config write is pending.
-- **Never send `nodeConfigsToRemove` without a matching `nodeConfigsToAdd`** (2026-10-08,
-  `square_smart_lanes` tool Reset probe on 3 ring junctions). The build succeeds, but the engine does
-  not regenerate default connections: it deletes the node's `BASE_NODE_CONFIG` (re-read: 0
-  connections, and a later config write finds no component to edit). About 13 s later the
-  simulation thread died with `Engine.cpp:693 PostRemoveComponent: Assertion 'it !=
-  components.end()' failed` (fatal, crash save written). move_it's and the overpass probe's
-  remove-only use is only for nodes that are rebuilt in the same proposal. To "reset" a junction,
-  write a full config (the engine-default model) with remove + add, as the Crossing Tool does.
-- **Text colour classes don't show inside a disabled toolbar Button** (2026-10-08, `square_smart_lanes`
-  lane badge): a TextView with `meta.class = "font-scale-body, positive"` (or `warning`) inside a
-  `checkEnabledFn -> "Disabled"` one-value Button param renders grey like the rest of the disabled
-  button (base `builtin.css.lua:268-275` wins). Use text (a prefix) for state instead of colour.
-- **One-way arrows in any tool: `LayerConfig.showOneWay`** (2026-10-08, `square_smart_lanes`): the
-  street builder's white one-way arrows are `LayerConfig.showOneWay = true` (api/type.d.tl:4924), set
-  only for `ACTION_STREET_BUILDER_UPGRADER` in the local `getLayerConfig` of
-  `gui/construction/construction_react_util.tl`. A custom tool gets them by adding
-  `builtin.LayerConfig{ config = cfg }` to its `ActionDescriptor` children.
-- **Native construction tools can be patched from a mod** (2026-10-08, `square_smart_lanes`):
-  `ug_require "::/gui/construction/construction_react_util.tl"` returns the same module table the
-  construction menu uses, and `construction.tl` calls `construction_react_util.getActionParams(...)`
-  through it at render time. Wrapping it and setting `res.layerConfig.showOneWay` for
-  `ACTION_LANE_MODIFIER_TOOL` showed the arrows in the native Crossing Tool. A mod tool's `.script.lua`
-  loads with the game (before any tool is opened), so the wrapper is in place at load. Evidence: stdout
-  `[SQRL] PROBE oneway=patched` at load, `oneway=crossing_tool` on opening the Crossing Tool, arrows in game.
-- **Upload validation rejects references to mods that don't exist** (2026-10-08, `square_smart_lanes`):
-  Mod Hub's validator checks the `<modId>::` paths a script loads and fails with "Lua Content ERROR …
-  Exists: The Mod is not enabled, mod = '<id>'" when the ID isn't a known mod, even inside a `pcall` and even when the path is built at runtime (`id .. "::/..."`), so it probably runs the script.
-  Trigger: a probe calling `ug_require("square_no_such_mod::/…")`. `make validate` doesn't catch this.
-  Remove probes that name made-up mods before uploading.
-- **`VisibilityThresholds.OfComponent.scale` doesn't shrink HUD icons** (2026-10-09, `square_better_bus_overlay`):
-  documented as "Scale multiplier for hud icon" (`base/tealdef/scripts/builtin.d.tl:484`), and base fills it
-  from `hud_gui_config.gres.lua` `renderDistances` (all 1.0). Setting the STATION_GROUP entry to 0.7 in the
-  stop tool's `HudIconManagerConfig` (log `scale station 1 -> 0.7`) left the stop icons and their tags the same
-  size in game. Probably a render-distance factor. To make a HUD tag smaller, build a smaller tag instead.
-
-## Camera zoom limit (2026-10-09)
-
-Found with the probe `square_zoom_probe` (log lines `[ZPROBE]`, game stdout.txt). `BaseConfig` has no camera
-distance field, so the GUI camera API is the only route past the zoom-out limit.
-
-- **`api.gui.camera.setCameraData` accepts a distance past the limit, but the camera eases back.** Vanilla max
-  distance about 4137 m (pitch 0.95). Setting 20000 read back 20000 immediately, then 18834 (frame 1), 17793 (2),
-  16301 (5), 8210 (30), and the vanilla max after about a second. x1.5 and x3 behaved the same.
-- **`setManualCamera(center, distance)` and `focusPosition(pos, distance)` don't change the distance** (read-back
-  ratio 1.00, both calls from a button `onClick`).
-- **The far plane follows the camera distance automatically**: `getNearFar()` went 7200 → 17549 at 18.8 km and
-  back to 7200 near the limit. A pushed camera doesn't need a larger `viewNearFar` in `baseConfig.settings`.
-- **Construction template entries reach `getActionParams` without `menuCategory`** (2026-10-09,
-  `square_better_bus_overlay`): `construction_react_util.tl:1074-1097` builds template definitions with
-  `menuCategory = template.menuCategory`, but the definition passed to the `getActionParams` wrapper had
-  `menuCategory == nil` for the street station (log `menu=nil … modular_terminal.con template=0`). Read it from the
-  resource instead: `api.res.constructionRep.findAndGet(definition.resName).constructionTemplates_native:at(
-  definition.constructionTemplate + 1).menuCategory` (template index is zero based). Its `categories` /
-  `filterCategories` are native vectors: `ipairs` sees nothing, use `:size()` / `:at(i)`.
-- **Recolouring a stop's HUD pin** (2026-10-09, `square_better_bus_overlay`): `builtin.UseDefaultHudIcon` is engine-drawn,
-  takes no colour, and no stylesheet reaches it. Wrapping the `builtin.UseDefaultHudIcon` module field (checked by
-  `react.getCurrentRecipeName() == "HudStationWithLineStops"`) and returning a copy works: the mask
-  `::/gui/hud/icons/hud_background.tga` in an ImageView (Stretch) tinted by CSS `color` at **29x38 UI px**, with
-  `::/gui/hud/icons/vehicle_bus_front_32.tga` at 20x20 stacked on top (two full-size FloatingLayoutChild layers,
-  padding 5/4/13/5), matches the vanilla pin in the Lines window. As a nine-patch background at the mask's natural
-  40x52 it came out ~40 % too big. Line dots and terminal numbers stay the base ones.
-- **Station HUD icons switch from group to per-terminal when zoomed in** (2026-10-09, `square_better_bus_overlay`):
-  a hud icon master is called with `param.index == -1` (one icon per station group) from afar, but close to the camera
-  with `index >= 0`, one icon per terminal (in the Lines window these carry the terminal number,
-  `manager_hud_util.tl:546-557`). A replacement that checked only `index == -1` showed when zoomed out and vanished
-  zoomed in; handle both.
-- **A HUD tag next to the stop icon gets stretched** (2026-10-09): `!hud-icon-main > BoxLayout` (gravity {-1, 0},
-  `gui_react_util.css.lua:54-57`) stretches a tag placed beside `UseDefaultHudIcon` in a horizontal BoxLayout to the
-  icon's height. Replace the icon with the tag inside `BoxLayout{ class = "station-icon-layout" }` instead, as
-  free play does (`hud_icon_toolbox.tl:112-142`).
-- **The camera controller eases toward its own hidden target distance, which mods can't set.** After a push, the
-  camera eased back to the last scroll-wheel distance (2771 m, below the 4137 m max), not to the limit. Re-applying
-  the distance every `react.onStep` (via `react.enqueueJoin`) held it on average, but the controller had already
-  pulled it back 4–16% before each reset, so the view visibly jittered. "Continuous Zoom" (`zoomPrecise`) was
-  tried and didn't stop the ease-back. No camera limit exists in the API, `BaseConfig` or `settings.lua`.
-  **Result: a "zoom out further" mod isn't feasible with the current API; idea scrapped.**
-
-## Highway street templates and interchange placement (2026-10-09)
-
-Found with the probe `square_roundabouts_probe` (runs p7_hx_all / p7_hx_search, logs in
-`plans/square_roundabouts/probe_p7_hx_*.log`; read via `api.res.streetTemplateRep`, GUI thread). Details:
-`plans/square_roundabouts/INTERCHANGES.md` "Phase 7e notes".
-
-- **Base highway templates** (`highway_new_small` / `_medium` / `_large`, ids 37 / 35 / 33 in this build):
-  `maxSlope = maxSlopeShape = 0.4`, `maxSlopeBuild = 0.2`, `minCurveRadius = 44`, `minCurveRadiusBuild = 60`,
-  `speedCoeffs` empty (curve speed for streets is engine-internal), lane speeds 27.78 m/s (small) and
-  33.33 m/s (medium, large), `country = true`.
-- **Those radius limits apply to the player's drag tool, not to constructions**: a construction's 25 m loops
-  of `highway_new_small` placed (every highway, both levels), as do the base cloverleaf's 24-31 m loops.
-- **A junction node on a large highway needs more than 10.5 m of plain edge to the next bridge end.**
-  Highway over road (highway on a bridge over the cross road), a slip road joining `highway_new_large`
-  10.5 m from the bridge's end: "Construction Not Possible" (65 of 65 combos); 17.5 m and 32.5 m placed.
-  On `highway_new_medium` / `_small` 10 m placed. The limit between 10.5 and 17.5 m is not measured. Inferred:
-  every refused layout had that 10.5 m piece, every placed large-highway one 17.5 m or more, and none of the
-  searched tunables (clearance, gore run, terminal gap, loop radius 20-30 m) changed it; p7_verify confirms.
-- **A construction whose edges reach about 485 m from its origin is refused** (2026-10-09, probe `p7_hx_scale`,
-  `plans/square_roundabouts/probe_p7_hx_scale.log`, flat test map, origin 0 / 0, rotation 0). Of 1080 parclo
-  builds every one with an edge end at |x| <= 481.25 m placed ("Highway over road", highway on an 8 m
-  embankment: up to 462.5 m) and every one at |x| >= 486.25 m was refused (190 of 190), with mixed messages:
-  "Construction Not Possible", "Too Much Incline" + "Construction Not Possible", or "Collision" (coll = 1,
-  no buildings). Edge length (557 m single edges placed), gradient and |y| (<= 325 m tested) did not separate
-  them. Inferred, not measured: whether the limit is per construction (radius or box around the origin) or
-  the test map's buildable area (only one position was used); the exact value lies in 481.25-486.25 m
-  (462.5-486.25 m for an elevated end). `square_roundabouts` keeps every highway build within the measured
-  maxima (`hx.MAX_REACH`); p7_hx_scale_verify checks it.
-
-## Negative zero in construction geometry (2026-10-09)
-
-Found while fixing "Highway Interchange" in `square_roundabouts` (Phase 7e fix-up; logs
-`plans/square_roundabouts/probe_p7_*.log`, notes in `plans/square_roundabouts/INTERCHANGES.md`).
-Confirmed in game by the user on 2026-10-09: with the fix the layout is green at 0°, and the old build is red.
-
-- **A `-0` in an edge's position or tangent can make a construction "Construction Not Possible" at exactly 0°
-  rotation, with no other reason, no collision and no Lua error.** Symptom: red at Rotation 0°, green after
-  rotating a few degrees, on any flat spot. In our case exactly one ramp had tangents `(+x, -0, -0)`; its point
-  mirror with `+0` placed fine.
-- **Why only at 0°:** the construction builder's placement transform at 0° is `1/-0/0/0/0/1/…` (sin = `-0`), so
-  `(-0)(+x) + (-0)` stays `-0` in world space. Any other rotation, and a transform built from
-  `Mat4f.new(Vec4f…)` with `+0`, turns it into `+0`.
-- **A script probe can't reproduce it:** `api.engine.util.proposal.makeProposalData` with a
-  `+0` identity transform placed every combination (thousands of calls, every context) while the UI refused
-  the same file, params and position. Copy the builder's exact transform (it carries the `-0`) to reproduce,
-  or test in the UI.
-- **Fix:** before returning from `updateFn`, normalise every zero coordinate in `edgeLists` (positions and
-  tangents) to `+0` (`if v == 0 then v = 0 end` turns `-0` into `+0`). Mirroring code (`-x`, `x * -1`, `-0`
-  literals) is where `-0` comes from. `square_roundabouts_highway.lua` `hx.positiveZeros` is the reference, and
-  `tests/square_roundabouts` forbids `-0` in the highway output. Print with `%a` or `%.17g` to spot it:
-  `%.2f` hides the sign only sometimes (`-0.00`).
-- **A world `-0` in a tangent's x placed** (2026-10-09, probe `p7_presets`, `plans/square_roundabouts/probe_p7_presets.log`,
-  88 / 88 placed at the builder's exact 0° transform): the Channelized Junction's X layout, left-hand traffic,
-  has side-road tangents `(-0, -y)`, world `(-0, …)` at 0°, and all 6 combos placed. The refused highway case
-  had the `-0` in the tangent's **y** (`(+x, -0, -0)`). Which components (or which edges) matter is unclear, so
-  normalise every zero anyway.
-- **Fastest diagnosis when the probe and the UI disagree:** add temporary DEV params to the `.con.lua` that
-  drop or swap parts of the layout (all, no ramps, only one ramp, …) and toggle them in the UI at a red spot.
-  This found the cause in three rounds after many probe rounds didn't.
-- **Probe artifact to avoid:** a `makeProposalData` for a `.con` called from inside the builder's own
-  `guiHandleEvent` callback (`builder.proposalCreate`) for that same file is refused anywhere on the map. Don't
-  use replays made there as evidence.
-
-## Drawing arrows from an entity-window plugin (2026-10-09)
-
-Found with `square_passenger_destinations` rev 1 (user's game test, 2026-10-09). Notes: `plans/square_passenger_destinations/PLAN.md`.
-
-- **An entity-window plugin can draw map layers by stacking its own tool.** EOW plugins get `gameCtx.toolStack`. Pushing a
-  window-less `react.RegisterTool{ push = function(ctx, p) ctx.setActionFn(actionFn, key) end, … }` with
-  `allowStacking = true` makes its `ActionDescriptor` (e.g. `selector_react_util.makeDefaultSelectorAction(gameCtx,
-  layerConfig, true)` with a `cargoFlowRenderableConfig`) the active one, and the arrows draw while the window is open.
-- **Pushing shelves the entity window, which hides it** unless it is pinned (`EntityDetailsTool.shelve`,
-  `gui/entity_window/view_manager.tl` ~404-415). The push handler runs after the shelve (`builtin.lua` push:
-  `shelveNonTop`, then `pushHandler`), so `api.gui.byId.setVisible("temp.view.entity_<keyEntity>", true)` there brings
-  it back. In game the station window stayed open with the arrows drawn. Popping the tool un-shelves the window tool.
-- **A near-zero-length cargo-flow arrow crashes the game** (2026-10-11, `square_passenger_destinations` rev 5 test build,
-  hovering a person's Locate pin in a building window): native assert `render_util.cpp:393 AddEveryNthPoint
-  "(num)>=(2)", 1 < 2`, fatal, crash save written. The same second the mod pushed that person's arrows (person -> stop ->
-  building), and one of them was most likely only a few metres long. The renderer seems to place points along the arrow
-  at a fixed spacing and needs at least 2. Never put a `FlowData` with `from` ≈ `to` (or non-finite coordinates) into a
-  `cargoFlowRenderableConfig`: Passenger Destinations drops arrows under 50 m (`MIN_ARROW_M`). The exact minimum isn't known.
-- **Locate hover works by patching the shared module table** (2026-10-11): replacing `line_react_util.LocateButton` from
-  a GUI script reached the base windows' name rows (vehicle passenger list); log `hover: LocateButton replaced` at load,
-  and a hover push re-showed the window hidden by the shelve. `meta.onMouseOver` on a `Component` around the pin fired
-  per row; a fast sweep down a list made ~10 pushes a second.
-
-## Mod terrain generators for base climates (2026-10-09)
-
-Found with `square_blank_slate` rev 1 (user's game test, 2026-10-09; screenshots in `plans/square_blank_slate/shots/`).
-
-- **A mod `.gen.lua` joins a base climate's generator list** with an absolute climate id:
-  `climate = "::/climates/temperate/temperate.clima"` (the base files' relative `"temperate.clima"` would resolve inside
-  the mod). Its tree's `climate` field uses the same form. No `_content.json` or other registration is needed: the file
-  sits in `content/<dir>/` and `nodeTree` names the tree without folder or extension. It showed up as a "Generator"
-  option in New Game, with an empty Terrain section because `params = { }`.
-- **A heightmap PNG works as the whole terrain.** A `texture_map` node with `minHeight`/`maxHeight` `constant_number`
-  inputs and `tex = "<modId>::/<dir>/<file>.png"` (16-bit grayscale, 1024 px) feeding `height_map_output` gave the exact
-  shape, stretched over the map. Sea level is 0 m, so anything below 0 is water.
-- **No trees or rocks:** an `assets_output` whose `assets` and `forest` inputs are a constant 0 `constant_map`, with
-  mappings that only use other values, placed nothing. A minimal tree (`biome0` = 1, `biome1..4` and `forest_mask` = 0,
-  a `Biomes` `output_biomes` of 0) ran fine on temperate with green grass ground and a sandy shore.
-- **Towns and industries still appear** in New Game (25 towns, 9 industries on Medium): the menu's own sampler places
-  them after the generator, whatever the tree outputs. The Map Editor's Generate heightmap turns them off.
-
-## Timers and threads in GUI contexts (2026-10-10)
-
-Probe `square_sqperf_probe` (log lines `[SQPERF-PROBE]`, game stdout.txt), "New Game - desert", build 40420.
-`api.type.Clock.new()` and `:getTime()` worked in every GUI context, with no crash or error:
-
-| Context | Thread column in stdout.txt |
-|---|---|
-| recipe render (GUI script) | Main Thread |
-| `react.onStep` | Main Thread |
-| `react.onStepTimer` | Main Pool N (worker threads, a different one per tick) |
-| `hudIconScript` function and its recipe render | Main Pool N |
-
-- Cost on the Main Thread (20 000 calls): `getTime` 0.07 µs, `os.clock` 1.0 µs. SQPERF's `wrap` adds 0.28 µs per
-  call and `hit` 0.03 µs. Use Clock, not `os.clock` (which is also process CPU time over all threads on macOS).
-- So the onStep/onStepTimer split matters: in this probe `react.onStep` ran on the Main Thread, while
-  `onStepTimer` and HUD icon scripts ran on worker threads. GUI-thread-only calls (`api.gui.*`,
-  `getApplicationTime`) belong in onStep or render, or behind `react.enqueueJoin` from onStepTimer.
-  The earlier square_supply_gaps crash ("Main Pool 10") is consistent with a worker-thread callback.
-
-## Stress Test probes (2026-10-10)
-
-First in-game run of `square_stress_test`'s Probe tab (plans/square_stress_test/TESTING.md), a running free game
-(not the map editor), build 40420. Evidence: `[SQST]` / `[SQST-PROBE]` lines in stdout.txt. All commands were sent
-from the GUI state's `react.onStep` (Main Thread) through `api.cmd.sendCommand`.
-
-- **Create a town in a running game (`town_create`): works.** `api.engine.mapgen.createTowns(seed, { one Map.Town })`
-  then `api.cmd.makeTownCreateCmd` on its `toAdd`. `toRemove` came back as **all existing towns** (3 of 3): createTowns
-  treats its input as the whole town list. The probe ignored it and no town was lost. Callback after 655 ms; the new
-  town had `initialLandUseCapacities` {100,100,100}, `sizeFactors` {1,1,1}, 58 buildings, person capacities {97,93,93}.
-- **Bigger towns (`town_create_big`): accepted.** Overwriting the TownInfo's `initialLandUseCapacities` with
-  {1600,1600,1600} before `makeTownCreateCmd` was kept as given. Callback after 3962 ms; 580 buildings, person
-  capacities {1537,1561,1416}.
-- **Grow a town (`town_grow_x10`): works, almost at once.** `makeTownUpdateSizeCmd` with `sizeFactors` {10,10,10} and
-  `updateAllBuildings = true`: callback after 2700 ms, `sizeFactors` read back {10,10,10} (not clamped), buildings
-  58 → 343 within 5 s and 345 at 30 s; person capacities {97,93,93} → {836,878,974}.
-- **Year jump:** `makeGameSetDateCmd(Date.new(2100, 1, 1))` → `success=true`, `getYear()` 2100 at once.
-- **Money top-up:** the keep-balance loop (`makeJournalBookAssetCmd`, player `ACCOUNT` balance read) worked; the balance
-  showed 204M on screen.
-- **`api.engine.getEntitiesWithComponent(BASE_EDGE_STREET)` throws "Cannot loop over this component type".** `BASE_EDGE`
-  throws the same (square_better_minimap, 2026-10-09). To list every edge, use
-  `api.engine.system.streetSystem.getNode2StreetEdgeMap()` / `getNode2TrackEdgeMap()` (each edge appears under both of
-  its nodes, so de-duplicate). Not every
-  component type can be listed this way; `TOWN` works. Base GUI code only lists `TOWN`, `INDUSTRY`, `VEHICLE_DEPOT`,
-  `TRANSPORT_VEHICLE`, `WAREHOUSE` and `STATION_GROUP` with it. Count street edges with
-  `api.engine.util.octree.findEntitiesInCircle(pos, r, BASE_EDGE)` filtered by a `BASE_EDGE_STREET` component instead
-  (that made probes 3a/3b fail; fixed, not re-run yet).
-
-Second run (2026-10-10, build 40420, same setup):
-
-- **Big growth factors (`town_grow` with {100,100,100}, `updateAllBuildings = true`) on Tacoma** (initCaps {233,314,244}):
-  callback 3956 ms; buildings 499 → 816 within 5 s (818–821 at 30 s); person capacities {1347,2033,1742} →
-  {4415,6958,7522}, about 19k capacity. The factor is **not clamped**, but the **building count plateaus** (probably
-  street space) while the person capacity per building keeps rising.
-- **`makeTownDevelopAtCmd(pos, true, true)` is not a useful generator.** 9 calls on a 150 m grid all returned success,
-  but street edges +0 and buildings +0 (Tacoma 155 → 155, Vancouver 23 → 23 edges). The single-call run showed
-  buildings +344, but a ×10 growth of the same town ran at the same time, so that number is not DevelopAt's. It adds no
-  streets; the Stress Test has no "Develop now" button.
-- **Town creation must be serialized.** `town_create_big` clicked several times quickly: all succeeded, but the
-  callbacks slowed to 10–12 s and the before/after town-set diff reported the same "new" town for two creations (a race
-  in the probe). One `makeTownCreateCmd` in flight at a time, the next after the callback.
-- **Speed 8 sticks:** `makeGameSetSpeedCmd(8)` → `GAME_SPEED.speedup` 8 after 15 s, while
-  `getEstimatedMaximumGameSpeed()` said 23. Speed 16 not tested yet.
-- **Journal booking of 1e9 works** (balance 204M → 1.204B). 3e9 (32-bit overflow) not tested yet.
-- **Emissions (`emissions_zero`) unresolved:** `makeEntitySetEmissionsCmd(e, 0, 0, r, r)` on 10 of 5180
-  `EMISSION_EMITTER` entities (that type *is* iterable with `getEntitiesWithComponent`): read-back zero = 0/10 after 2 s
-  and 0/9 after 30 s, with `missionEmissionsScriptFactor` = 1; the restore command reported failure. Either the command
-  doesn't take effect or the read-back reads a different field.
-- **Not run yet:** probes 4 (street from scratch), 5 (buy vehicles: the test save had no line), 6b (speed 16),
-  6d (3e9 booking), 7 (runtime `baseConfig.noCosts`).
-
-Third run (2026-10-10 06:15–06:26Z, build 40420, Towns and Traffic tabs; user: "it looks like it's working well"):
-
-- **Spawn spread over the map** (bounds -4096..4096): 5 + 8 medium towns created serially, 1.3–2.0 s each,
-  `initialLandUseCapacities` 400 kept, 175–250 buildings each. `makeTownCreateCmd`'s `resultEntities` came back
-  **empty** (results=0); the new town is found by diffing the town list.
-- **Placement was too strict:** Huge (3200, spacing 2500 m) near the camera placed 0 of 1 (16 candidates: near=12,
-  edge=4), so Huge is still untested; after ~16 towns the coarse spread grid had 0 valid spots for Small (near=16).
-  Fixed afterwards by relaxation steps (wider ring, 70 %, 50 % of the spacing, finer grid; never below 800 m).
-- **`makeTownConnectWithIndustriesCmd`** with `getDefaultTownConnections`' `{{0,1}}` (0-based) and `keep = true`:
-  success, ~0.8 s each.
-- **Grow: one `makeTownUpdateSizeCmd` builds only ~250–350 buildings, and re-sending it keeps building.** Callbacks
-  0.4–8 s per town, longer for bigger towns. With the SAME factor (1000, already capped) and
-  `updateAllBuildings = true`, Town 10 went 889 → 1193 → 1494 → 1732 → 2065 → 2314 over 5 calls (~4 s each). The
-  factor isn't the limit (this replaces the second run's "plateau" reading); hence the Grow form's build-out passes.
-- **Freeze/unfreeze** 19 towns (`makeTownSetDevelopmentActiveCmd`): ~100 ms.
-- **Hide notifications:** success with 29 type names from `getNotificationType2Label`, so `notification_util`
-  resolves from a mod GUI script.
-- **Add vehicles:** 25 buses on one line from depot 11332 (`findBestLineAndDepotForVehicle`), `makeVehicleSetLineCmd`
-  true for all 25, ~0.6 s per vehicle, 0 failures; balance 193.1M → 104.4M (price check fine). Lines with no vehicle
-  were skipped correctly.
-- **Speed 16** was sent; no read-back logged (still unconfirmed).
-
-Fourth run (2026-10-10 06:42–06:44Z, build 40420, Probe tab probes 4 and 9, Towns tab):
-
-- **Street from scratch (`street_from_scratch`, probe 4 variant A): works.** A `SimpleProposal` street edge (`type` 0,
-  `typeIndex` -1, `streetEdge` copied from a reference edge, template `country_new_small.street_template`) sent with
-  `makeWorldBuildProposalCmd`: `success=true`, `critical=false`, no messages, cost ~36.6k, street edges +1. Worked 3 of 3
-  times. Auto bus lines can build their own streets; stops and depot are still open (probe 10).
-- **`SIM_PERSON` is iterable** with `getEntitiesWithComponent` (9a census: 693 persons, `scanMs=1`). By `lastMoveMode`:
-  DRIVE=79, WALK=614. Persons driving right now (DRIVE + `MOVE_PATH`, no `SIM_PERSON_AT_VEHICLE`) = 63, and **all 63 have
-  a `LAND_VEHICLE` component**: a private car is a `SIM_PERSON` with `LAND_VEHICLE` + `MOVE_PATH`, not an entity of its
-  own. `LAND_VEHICLE` itself is **not** iterable. `lastMoveMode` 1 = DRIVE. `SIM_PERSON` fields: cargoType,
-  destinations{3}, moveModes{3}, travelTimes, targetOrAtEntity, lastNonResType, lastMoveMode, walkSpeed, modelIdPerson,
-  colorConfigPerson, modelIdCar, colorConfigCar, lastDestinationUpdate, landUse2ReachableWalkDrive,
-  landUse2ReachableLines, pickupTime, happiness.
-- **`api.cmd.debug.makeSimPersonSetStateCmd` works from a GUI script in a normal (release) game.**
-  - State **2 (jump home)**: all 5 picked drivers were at their home building with no `MOVE_PATH` after 2 s; the car
-    disappears from the road. Repeated 4×5 with the same result. By +15 s, 1–4 of the 5 were driving again (they start
-    their next trip), so clearing traffic for good means repeating it.
-  - State 1 (new path): no visible effect (still driving).
-  - State 0: the command failed (callback `success=false`).
-- **`PERSON_CAPACITY.pathfindingPreference`** on town buildings (9d): `destinationWeight=1`, `disallowedMoveModes={}`.
-  Read-only: no command writes it.
-- **Spawn Huge (3200)**: `initialLandUseCapacities` {3200,3200,3200} kept, 716 buildings, person capacities
-  {1972,2605,2688}, 5.5 s.
-
-Fifth run (2026-10-10 07:05–07:07Z, build 40420, Traffic tab Clear traffic, Probe tab probes 10a–10d):
-
-- **Clear traffic works at scale.** One click scanned 11,096 `SIM_PERSON`s and found 285 drivers: 285 sent, 285 ok,
-  333 ms wall (spread over frames). A second click right after found 64 drivers, 54 ok (the other 10 had changed state
-  in between). **Keep cleared every 5 s** finds 205–349 drivers again each cycle (traffic regenerates within 5 s),
-  382–394 ms per cycle, ok ≈ sent.
-- **Bus stops by script work (10a/10b).** Variant A (the replacement edge's `comp.objects` holds the stop with the temp id
-  `-400000000 + index`, `STOP_RIGHT`) succeeded on all 6 stops, cost ~39–42k each, one new `STATION_GROUP` per stop
-  (found by diffing the list). Stops on edges 31–88 m long worked. Variant B was never needed.
-- **Road depot (10c): placement often collides.** With the depot's free entrance node 22 m off the street centre
-  (construction origin ~57 m from the edge middle), the build often came back `messages={Collision}` on both sides,
-  once `critical` "Construction Not Possible" (the transform has no `-0` entries: every one goes through `z0`;
-  cause unknown, maybe terrain). It succeeded 2 of 5 times.
-- **A construction build's `resultEntities[1][1]` is not the construction.** The log said
-  "construction=10438 has no CONSTRUCTION component" while `VEHICLE_DEPOT` went 0→2 (new 11468, 11587). Find a new
-  depot by diffing the `VEHICLE_DEPOT` list and map it to its construction with
-  `streetConnectorSystem.getConstructionEntityForDepot`. The probe stopped there, so the entrance connection is
-  still untested. `cmd road_depot_here:build failed` lines next to a success are the refused tries of the other side.
-- **10d found no depot**: "depot=nil (none)" although 11468/11587 existed. The fallback (nearest road depot within
-  1500 m of the camera) filtered on `VehicleDepot.carrier == ROAD` and read the position through
-  `construction.transf:getTransl()`; one of the two failed. Base code derives a depot's carrier from its
-  `transportModes` (`gui/line_vehicle_mgmt/vehicle_util.tl:54-75`). The lookup now accepts either and falls back to the
-  depot's `BOUNDING_VOLUME`, and logs per depot what it saw (not re-run yet).
-- Fixed afterwards (not run yet): 10c walks candidate spots (along the edge at 0.5/0.25/0.75, both sides, entrance
-  30/45/60 m off) over the 3 nearest edges, pre-checks each with `api.engine.util.proposal.makeProposalData` (depot and a
-  stand-in stub street) and sends only clean spots; the new depot comes from the `VEHICLE_DEPOT` diff.
-
-Sixth run (2026-10-10 07:40–07:45Z, build 40420, a 53k-person map, Traffic tab):
-
-- **Auto bus lines in a dense town (SQST Town 6): the depot search failed every time**:
-  `depot: edges=4 spots=72 tried=72 pre={Collision=72} sent=0 | no spot left` (the 4 outermost town edges, 3 gaps x
-  3 params x 2 sides each, all refused by the `makeProposalData` pre-check). The stops and the line had been built
-  **before** the depot step, so each failed try left an empty line with 2 stops behind (SQST Bus 3, 6, 9, 12) and
-  spent the stop money. Fixed afterwards: the depot comes first (nothing is built without one), searched in rings
-  outward from the centre with more gaps, any player road depot within 2 km counts, and a line left with no bus is
-  destroyed again (not re-run yet).
-- **Once a depot existed (151591, built by the user), 2 runs of 4 lines x 10 buses all worked**:
-  `findBestDepotForLine` found 151591, 40 buses each run, ~6 s per line (11–14 s while Keep traffic cleared ran),
-  2 stops 301–440 m apart on built-up edges.
-- **Line names skipped by 3** (SQST Bus 3, 6, 9, 12, 15, 18): one counter was shared by the 2 stop names and the line
-  name. Fixed: a counter of its own, continuing after the highest existing "SQST Bus N".
-- **Three quick clicks queued 3 batches** (3 "bus_lines: 1 towns x 4 lines" plans). The buttons now refuse while the
-  same kind of job is queued or running (bus lines / their removal; add / sell vehicles).
-- **Remove added bus lines works**: 40 sold, 8 lines deleted, 0 failures (`makeLineDestroyCmd` after the buses are
-  sold). **Ignore town emissions** (Game tab town ratings): 13 towns, 26 events ok. **Add vehicles 10**: 10/10
-  bought. **Keep traffic cleared on 53.8k persons**: 2.4k–12k drivers per 5 s cycle, 1.1–3.8 s wall per cycle,
-  0 skipped cycles.
-- **Crash at 07:45:22Z, unexplained.** In the same second as the 3rd batch's "bus_lines 4/4 ... ok" and its summary
-  (12 lines and 120 buses this session; 40 buses sold and 8 lines destroyed at 07:41:59), the Simulation Thread hit
-  `Engine.h:323 GetComponentDataIndex` "Assertion it != components.end()" for entity 152444, component type 73 =
-  TransportVehicle. 152444 then had TpNetLink, BoundingVolume, LotList and TerrainAlignmentList, which looks like
-  a street stop / edge object, near the ids of the stops just built (station groups ~1525xx–1530xx). Suspected:
-  something still referenced a sold bus's id after the id was reused, or a vehicle on an edge our stop proposal
-  replaced; not proven, and no `[SQST]` line named 152444. Guards added afterwards: every vehicle or line id is
-  re-checked (TRANSPORT_VEHICLE / LINE component, PLAYER_OWNED) right before its command, removal waits until the
-  sold buses are gone and never deletes a line that still lists vehicles, stop edges with moving sim persons
-  (`getSimPersonsMovingForTransportNetwork`, untested on street edges) and edges near our stops or depot gates
-  come last, and every bought bus id and every stop's station group and result entities are logged (`rt.detail`)
-  so a future crash entity can be matched against stdout.txt.
-- **Unrelated(?)**: at 06:32:24Z, during a save load (no `[SQST]` line nearby), the Simulation Thread hit
-  `gamescript_util.cpp:385` "Assertion 'false' failed", logged as a fatal-error exception, but the game kept
-  running. Later traced to `state:get_native()` in the SQ Opt AAT fork; see "Game-script `get_native` asserts".
-
-## ImageView raw pixel data (2026-10-09)
-
-`builtin.ImageView{ data = {...}, size = api.type.Vec2i.new(w, h) }` draws a raw image. Verified in game (square_better_minimap network layer, calibration squares + road layer vs town markers):
-
-- One Lua integer per **byte**. The data length must be exactly `w*h*3` or `w*h*4`. The binary checks `bytes / (w*h)` and accepts only 3 or 4 ("only 3 or 4 is supported"). Otherwise it logs an error and shows a default image; it doesn't crash.
-- Channel order **RGBA**, and alpha works: alpha 0 is fully transparent over whatever is underneath.
-- Rows are **bottom-up**: the first row of the data is drawn at the bottom of the image. Write rows in reverse for a top-down raster.
-- Related (same mod): `api.engine.getEntitiesWithComponent(BASE_EDGE)` throws "Cannot loop over this component type". List
-  every edge with `api.engine.system.streetSystem.getNode2StreetEdgeMap()` / `getNode2TrackEdgeMap()` (each edge appears
-  under both of its nodes, so de-duplicate).
-
-## Window `header` slot (2026-10-10)
-
-`builtin.Window{ header = <node> }` (builtin.d.tl:1209) puts the node at the **left** of the title bar, before the
-title, in the dark title tab (square_better_minimap size button). An empty title plus
-`Window#<id> Window::Title { visibility = "none" }` removes the title text cleanly. In game, two attempts to
-right-align the header next to the pin both left it at the left: `gravity = { -1, 0 }` on the header recipe's root, and
-an explicit root `size` (picture width - 56 UI px) with the button at `gravity = { 1, 0 }`. The header container has no
-stylesheet name in the base CSS (only `Window::TitleBar`, `TitleLayout`, `Title`, `Icon`, `Content`, `Close`, `Locate`).
-The pin sits in its own notch outside the title tab.
-
-## Game-script pauses don't stall rendering (2026-10-10)
-
-Probe `square_hitch_probe` (`[HITCH]` lines, report `plans/hitch_probe/hitch_report.py`, steps in its README), a big
-save at 1x, camera panning, ~60 fps.
-
-- **A long game-script `update` does not delay rendered frames.** Busy-waiting 40 ms in `update` gave 0 of 13 pauses
-  a slow frame, 100 ms gave 0 of 8 (worst frame of that level 50 ms). The control, a 40 ms busy-wait in the GUI's
-  `react.onStep`, hit 6 of 6. The tester felt no difference either. `update` runs on `Sim Pool N` / `Simulation Thread`
-  threads beside the `Main Thread`. So a slow sweep costs simulation time, not frames; per-frame GUI work is what
-  players feel.
-- **`GAME_TIME.tickCount` is not per frame**, despite its doc comment ("once per frame"): read from the GUI, it moved by
-  4 once per simulation step, about every 200 ms (~20/s), with ~12-18 frames sharing a value.
-- Game-script `update` ran in more than one simulation Lua state within the same 40-tick period (10 periods paused
-  twice although the period was stored in the shared state), so a "once per interval" guard in a module local or even
-  in the state can fire more than once.
-
-## Game-script `get_native` asserts (2026-10-10)
-
-- **`state:get_native():findPath({...})` in a game script's `handleEvent` throws a fatal assertion in game**:
-  `gamescript_util.cpp:385` "Assertion 'false' failed" on the Simulation Thread (exception type "Fatal error"). The
-  game keeps running when the call is wrapped in `pcall`, but every call logs the fatal error, and the first one wrote
-  a crash dump (`crash_dump/*.dmp`, same second). The binary places that file in `GameScriptTableHelper` /
-  `SyncTableBack`, the native state accessors (`get_native`, `set_native`; `gamescript.d.tl:42`).
-- Evidence: `square_opt_zhenya_auto_assign_terminals` rev 1 called it per new station group in
-  `onPostBuildProposal`. It was the only script among 21 active mods that used `get_native`. A save with it active
-  logged 10 asserts 2–7 s apart (16:55:32Z–16:56:40Z) during a construction session; earlier unexplained cases
-  (02:55Z, 06:32Z) all date from after the fork was linked. Not yet confirmed by a game run without the fork. Which
-  call asserts (`get_native` or `findPath`, and whether only for missing paths) isn't isolated.
-- Use `state:get()` in game scripts. The GUI-side `gameScript.state_native:find(key)` / `findPath(...):asTable()`
-  (used by the base game, `industry_productivity_util.tl:11`) runs on the Main Thread, and no assert came from it in
-  the same log.
-
-## Wrapping rows in a GUI plugin: `builtin.FlowLayout` (2026-10-10)
-
-- **`builtin.FlowLayout{ children = {...} }` wraps its children onto new rows to fit the available width**, also inside
-  an entity-window plugin's `ContentCard` (`extraChildrenPermanent`). Its only field is `children`
-  (`base/tealdef/scripts/builtin.d.tl:683`); the base game uses it for sparse construction-menu toggle buttons
-  (`construction_desc_react_util.tl:970`, `builtin.lua:817`).
-- Use it instead of splitting a horizontal `BoxLayout` into rows after a fixed item count: the window width varies (a
-  port's station window is narrower than the counts assumed), and wider labels (two-digit numbers) overflow sooner.
-  Items past the edge of a `BoxLayout` are silently cut off.
-- Spacing: keep each item's gap inside the item (`BoxLayout{ item, gap }` with a fixed-width styled `Component` as the
-  gap), so a wrapped row never starts with a bare spacer.
-- Evidence: `square_passenger_destinations` rev 3. The station card's "Destinations: [] All [] 1 … [] Next stop" row
-  (fixed 6 + 10 per row) was cut off in a port window; as one FlowLayout it wrapped correctly in game.
-
-## 200 locals per function, also in a `.tl` file's main chunk (2026-10-10)
-
-- A `.tl` script whose top level declares more than 200 `local`s fails to load in game with "too many local variables
-  (limit is 200) in main function", and a GUI plugin in it takes the whole UI down ("Script component root failed",
-  crash dump). Teal's type check passes such a file; `make check` now also compiles the generated Lua and reports it
-  (`generated Lua: too many local variables ...`).
-- Evidence: `square_better_minimap` `minimap_hud.script.tl` with 213 top-level locals crashed on load at 17:33:15Z
-  (`MinimapHudPlugin`). Fix: group constants and helpers into tables.
-
-## Translations: `strings.json` and `_()` (research 2026-10-10, in-game checks pending)
-
-From game files and published mods, not yet tested in game. Replace each "pending" line with the in-game result.
-
-**Verified in game (2026-10-10, square_better_minimap rev 6 from the staging area, game language Russian):**
-`_()` in a GUI react script (HUD plugin recipes, a Window's content, CheckBox labels, a TextInputField
-placeholder, Button text) shows the mod's `strings.json` `ru` text: "Пром / Фильтр / Сеть / Ярко", "Карта",
-"Фильтр предприятий", "Показаны все типы". Cyrillic renders in all of them. Industry names from the game arrive
-in Russian (and are longer: "Лесозаготовительное предприятие", so rows sized for English names clip; cut them
-to fit). The Mod Hub "My Mods" page for that staging mod still showed the English name "Better Minimap" with the
-`localization.ru` block present. Pending: whether the mod browser / mod list for subscribed mods uses it.
-
-- `_` is a global (`api/tealdef/main.d.tl:9`, `global _ : function(string) : string`), implemented in
-  `base/content/base/mod.lua:154-184`. It translates immediately only where the engine sets `_getTextNow`;
-  everywhere else it returns the key unchanged and the engine translates the string when it displays it
-  (resource files: `.con.lua` name/description/params, road and street `.lua`, `.names.lua`). So in resource
-  files `_()` must wrap the whole displayed string: never `string.format`, concatenate or compare its result.
-  GUI scripts translate immediately: the base game does `string.format(_("%.0f%%"), v)`
-  (`base/content/gui/menu/settings_page.tl:88`), and community GUI scripts with a `ru` strings.json use `_()`
-  the same way (zhenya_auto_assign_terminals `aat_eow.script.lua:73-80`).
-- Used in published mods in: GUI `.script.lua/.tl` and the plain `.lua` modules they load, `.css.lua`
-  (move_it `move_it.css.lua:20`), `.con.lua` (incl. param name/tooltip/values), `.names.lua`, `.clima.lua`,
-  `.eco.lua`, `.mu.lua`, `.module.lua`, base-game HUD scripts. **Never seen** in a game script (`.gs.lua`)
-  or in mod.script `runFn`. Pending: does `_()` translate there, and in `hudIconScript`?
-- `strings.json` language keys are the short codes `en ru de fr es it nl pl pt_BR ja ko zh_CN zh_TW`
-  (exactly the game's 13 locales in `base/content/locale/*.lang.lua`; community mods use the same keys).
-  Fallback (wiki): language, then `en`, then the key itself. Pending: whether `pt_BR`/`zh_TW` fall back to
-  `pt`/`zh` (irrelevant as long as every mod ships all 13 keys).
-- mod.json param `name`, `tooltip` and each `values` entry are looked up in strings.json
-  (zhenya_doubleclick_to_edit uses id keys, the wiki's param-filter example plain English text).
-- `modinfo.json` `localization.<lang>.{name,summary,description}`: name ≤ 32 chars, summary ≤ 100, no line
-  breaks. The wiki warns the Hub concatenates the languages into the uploaded mod.io description; we
-  localize only `name` and `summary` (description.html stays English). `tools/modio_sync.py` ignores
-  `localization`. A Hub upload with a `localization` block (name + summary only) did not concatenate anything:
-  Blank Slate rev 3's mod.io description matched `description.html` exactly (2026-10-10, see "Mod Hub uploads
-  and the mod.io gallery").
-- Fonts: every locale has a Noto Sans CJK `unicodeFontMap` fallback, so Cyrillic and CJK should render in GUI
-  text. Pending: CJK and Cyrillic in HUD (`hudIconScript`) text, whose font lacks some glyphs (▲).
-- Named placeholders: the game's own convention is `{name}` plus `lang_util.format(s, {name = v})`
-  (`base/tealdef/scripts/lang_util.d.tl:5`); plurals exist (`nGetText`) but no strings.json plural form is
-  documented, so we avoid them.
-- Pending: whether `strings.json` changes in the staging area apply live or need a game restart.
-
-## A save whose name set is gone crashes on the next new name (2026-10-10)
-
-- A save stores its name set as a resource path in the config dict (`nameList: square_names_us_washington::/names/...`).
-  If the mod that ships it is turned off, **the save still loads without any warning**, but the first time the game
-  needs a new name it hits `ResTypeRep.h:233 Get: Assertion '(iindex)>(-1)'` ("Actual: -1 <= -1"), a fatal error, and
-  writes a crash save. The game looks the set up by path and uses the "not found" index -1 without falling back to a default.
-- Evidence: "Blank Slate" (made with `square_names_us_washington`) loaded with only `square_roundabouts` crashed twice
-  (20:11:15Z, 20:12:29Z), each about 2 s after opening construction menu → Roads (UI path `action-constructionbuilder`,
-  `tool-construction-menu-roads`), i.e. on the first preview that creates streets. The same mod set on "Test Area"
-  (`::/names/europe/europe.names`) worked. Earlier loads of Blank Slate had the Washington mod active and worked.
-  The roundabout construction itself was not the cause: every template, bridge and model it names resolves.
-- No mod code can prevent it (the mod is absent when it fires). Every mod that ships a `.names.lua` set needs
-  `severityRemove: "Critical"` and a "never remove it from a game started with this set" note. Turning the mod back on
-  fixes the save. The state names generator sets both from revision 6.
-- When debugging a `ResTypeRep` `Get` assert, compare the save's config dict (`Loading config from file`, `nameList`,
-  `climate`, `economy`) with the active mods first.
-
-## Mod Hub uploads and the mod.io gallery (2026-10-10)
-
-- A Hub update uploads every slide in `_metadata/`, whatever its name: `N.png` and `N-<hash>.png` both show up
-  on the upload screen and on mod.io.
-- With slides named `N.png`, a Hub update left the mod.io gallery wrong: it added new numbers next to old ones
-  (Problem Radar rev 2 showed the settings slide twice) and the stored files were not byte-identical to the local
-  slides. `make modio ARGS=--apply` fixed it by replacing the gallery as `N-<hash>.png` (`tools/modio_sync.py`).
-- With local slides named `N-<hash>.png`, the name `make modio` uploads them under, a Hub update left the gallery
-  exactly as it was: Blank Slate rev 3 (renamed slides, Hub upload) then gave "in sync" in
-  `make modio ARGS='--diff --verify'`, which downloads mod.io's originals and compares bytes. So `make shots` now
-  writes `N-<hash>.png` (first 8 hex digits of the sha256 of the file), and `modio_sync.py` reads both forms.
-- The same Hub upload sent the new `description.html` (rev 3 changelog entry) to mod.io. Earlier Hub updates
-  seemed to leave the description old; the cause is unknown (maybe a description edited while the game was
-  running, or mod.io's scan delay). Check with `make modio ARGS=--diff` after an upload.
-- The Hub's gallery strip sorts `_metadata` slides by file name as text: with 22 slides it showed 1, 10, 11 … 19,
-  2, 20 (Roundabouts, screenshot 2026-10-10). `make shots` now zero-pads the number when a mod has 10 or more
-  slides (`01-<hash>.png`), and `make modio` uploads under those same names.
-- **Too many gallery images fail the Hub upload.** Roundabouts with 22 slides, then 19 (plus `0.png`), failed in the
-  Hub with "Uploading gallery images: Unknown ApiError error (Error Code: 13003)", which mod.io's error list
-  (docs.mod.io/restapi/errors) names `FILE_TOO_MANY`. The 9-slide gallery uploaded fine. The limit isn't documented;
-  it may count the old gallery images on mod.io too (9 there at the time). Cut to 10, the Hub upload worked
-  (2026-10-10). `make shots` now refuses more than 10 slides per mod.
-
-## Firing base react events from a mod: `replaceVehicles` (verified in game 2026-10-10)
-
-- **Verified in game (2026-10-10, Problem Radar rev 6 from the staging area):** a mod GUI script's button
-  click that fires `react.fireEvent(nil, "replaceVehicles", VehicleStoreEventParam{vehicleEntities, carrier,
-  transportModes, filterTags})` opens the game's own **Replace Vehicles** window, and replacing from it works
-  (`mods/square_problem_radar/content/radar/gui/radar_fleet.tl` replaceVehicles). It is the exact call of the
-  vehicle window's Replace button (`base/content/gui/entity_window/vehicle/vehicle.tl:445-462`); the listener is
-  `react.onEvent("replaceVehicles", ...)` in `vehicle_store_window.tl:4895`. `react.fireEvent` is the native
-  `api.gui.react.fireEvent` (`gui/main/react.lua:825`) and reaches base listeners from a mod.
-- The param's `onClose` runs on accept (after `vehicle_react_util.HandleVehicleChanges` has sent the
-  `makeVehicleReplaceCmd` commands, `vehicle_store_window.tl:4654-4674, 4919-4925`) and on cancel. Replace keeps
-  the vehicle entity (`makeVehicleReplaceCmd(entity, config)`, `vehicle_react_util.tl:405-408`). Problem Radar
-  uses `onClose` to send a recheck event to its game script. Pending: whether the replace has applied by the
-  time that event is handled (the mod re-sends it after 3 s to be safe).
-- `fireEvent` returns nothing, so a missing listener can't be detected.
-- GUI font glyphs (checked offline with fontTools on `base/content/locale.zip`): Lato (`locale/Lato2OFL/`) has
-  `↑ → × ● · – …` but **not** `⇧ ▲ ⬆ △`; Noto Sans CJK has all of them. That matches the HUD showing `▲` as `?`.
-  **Verified in game (2026-10-10):** `↑` renders in the radar window's row buttons. Use `↑` for an "upgrade"
-  button; pending: whether window text falls back to Noto for `⇧`/`▲`.
-- Window background: the default `Window` rule uses `BaseDarkMedium` with transparency `VeryLow`
-  (`gui/main/builtin.css.lua:16, 1946-1953`), so a window over another one lets it show through. The base dialogs
-  set `backgroundColor1 = colorDefault.BaseDarkMedium` (opaque, `popover_react_util.css.lua:10-12`); Problem Radar's
-  fleet window does the same on its window id. Pending: confirm it looks opaque in game.
-- Colours (2026-10-10, from `gui/main/default_colors.gres.lua:50-59`): the base `!positive` class is `Positive` =
-  jordyBlue, a light blue that players read as a link; green is `Ok` (kellyGreen), red `Negative` (lightCoral) or
-  `Error`. For money, Problem Radar uses `Ok` / `Negative` in its own classes.
-- Vehicle age units: `api.engine.util.formatAge` formats "using current ingame speed" (`engine/util.d.tl:1066-1070`),
-  and the base vehicle window shows Age that way (`vehicle_util.tl:297-313`), while model lifespans are game ms
-  at the default calendar speed (`mdl.md:293`, `vehicle_util.tl:31-34`). Years from `getDefaultYearDuration`
-  therefore over-state the Age shown by the game when the calendar runs slower than default. Problem Radar converts
-  with `api.util.getYearDuration(GAME_SPEED.millisPerDay)` instead (`radar_checks.calendarYearMs`). Pending: confirm
-  in game that the numbers now match the vehicle window.
-
-## Mission marker types are a fixed list (verified in game 2026-10-10)
-
-`api.gui.mission.setMarkerAtEntity/AtPosition(key, ..., type, ...)` (`api/gui.d.tl:719-739`) has no colour argument,
-and `type` is not a file path: `MarkerManager` maps it through a fixed table `m_type2modelName` (strings in the
-`TransportFever3` binary): `arrow`, `exclamation`, `question`, `question_red`, `locate`
-→ `assets/markers/marker_<type>.mdl`. There is **no `exclamation_red` type**, although
-`marker_exclamation_red.mdl` exists (its path in the binary is part of a legacy model-rename list). An unknown type
-logs `MarkerManager.cpp:33: SetOrAddMarker: Assertion 'm_type2modelName.find(type) != m_type2modelName.end()'
-failed` per marker and shows the default model; no Lua error, so pcall doesn't catch it (Supply Gaps rev 4 test
-with `exclamation_red`: every marker yellow, assertion in stdout.txt).
-Colours (albedo textures in `base/content/assets/markers.zip`): `arrow`/`exclamation`/`question` yellow (~#EBD92B),
-`question_red` red, `locate` blue (a different icon). A mod can't add a type or colour; replacing a base marker
-model would recolour it for every user (missions, campaign). Supply Gaps uses yellow `arrow` + red `question_red`;
-`question_red` renders red in free play (verified in game 2026-10-10).
-
-## Map editor: Generate Heightmap leaves terrain entity revisions unchanged (verified in game 2026-10-10)
-
-- `api.engine.terrain.getTerrainEntityRevisions()` returns the same revisions before and after the map editor's
-  Generate Heightmap → **Generate** (`makeWorldReplaceTerrainCmd`, `base/content/gui/map_editor/map_editor.tl:796`),
-  although the whole terrain is replaced. The editor's own `useAutoUpdater` (map_editor.tl:298-345) compares exactly
-  that, so a mod copying its change check misses a new heightmap.
-- Detect it by sampling `api.engine.terrain.getBaseHeightAt` on a coarse grid (square_better_minimap: 9x9 points over
-  `getBoundingBox()`, every 2 s). Base height excludes construction alignments, so placing stations does not trigger it.
-- Mod GUI plugins in `::MainModButtonAreaExtension` mount in the map editor too (`gui/main/game.tl:554` mounts the
-  area unconditionally); a plugin that should hide there checks `api.gui.game.isMapEditor()`.
-- Evidence: stdout.txt, two Generates at 23:10:07 and 23:10:26 ("Map is ready"), each followed by
-  `[Minimap] map gen N (changed: heights, ...)` and no `terrain` in the changed list; before the height grid there
-  was no rebuild at all (23:08:40).
-
-## Load crash above ~200 mod stylesheet rules (verified in game 2026-10-10)
-
-A crash on the first frame after loading (always right after "Collect Lua Garbage"; main thread, uncaught
-std::string exception; frames #8 `100016a50`, #10 `10003d16c` = libc++ string init with a garbage length, #11
-`102fbe0cc` = `Component::ComputeStyles` under a recursive `Component::Validate` from `CCore::Step`) is a game bug
-that depends on the **total number of stylesheet rules from all active mods**. A computed style keeps a raw pointer
-(the `animationName` string at StyleSheet+0x1c8) into rule storage that has since moved or been freed.
-Evidence: bisect of 15 square mods (191 rules) + zhenya mods on a large save sorted exactly by the mod rule total
-(196 loads, 208/211/213/217 crash); our 15 mods + a DEV mod with only 40 inert rules
-(`mods/square_css_volume_probe`, no scripts) crashed without any other mod; a UI Overhaul-only new game crashed
-with the same stack on 2026-10-07. Base game ≈ 5,970 rules (comma-separated selectors count once per part),
-so the limit is near 6,170 in total. Not every load crashes near the limit (the freed memory has to be reused).
-Consequences: keep our stylesheets small (every selector part is a rule, so merging selectors with commas
-doesn't help); count with the scratch rule counter idea (run each `.css.lua` `data()` with a stub
-`stylesheetutil.makeAdder`). Reported to Urban Games: plans/bugreports/2026-10-10-load-crash-gui-tree.md.
-Fix on our side (2026-10-10): trimmed our mods from 191 to 134 rules (Radar 79→62, Minimap 33→22, Supply Gaps
-26→18, Industry Flows 17→13, Production Label 17→7, Line Revert 12→5); the user's full set of 20 mods
-(≈190 rules) then loaded. Square preset + Easy Terminal (185) loaded too, so moving values into inline
-styles (Minimap) did not bring the crash back at that level. Whether inline styles count toward the limit at
-all is NOT tested: mods/square_inline_style_probe (60 inline styles, no CSS) exists but was not run.
-Problem Radar rev 6 ships with 14 rules moved inline (62 → 48); if a load crash shows up with Radar active,
-revert that step with `git apply -R plans/square_problem_radar/inline_styles.patch` (back to the 62-rule
-version that loaded with the full 20-mod set).
-
-## Line Rate, cloning onto a line, sell on arrival (verified in game 2026-10-10)
-
-Probe `mods/square_line_rate_matcher_probe` (log `plans/square_line_rate_matcher/probe_run1.log`, plan
-`plans/square_line_rate_matcher/PROBE.md`), passenger ship line, game paused (game time constant all run).
-
-- **Rate (`calcLineStationThroughput`) is linear in the vehicle count and computed, not measured:** 1 / 2 / 3 identical
-  ships gave 51 / 103 / 154, and it updated within 1 s of the command **while paused**. So `perVehicle = rate / n`
-  predicts the Rate of n±k exactly for identical vehicles.
-- **Clone onto the selected line works:** copy `TRANSPORT_VEHICLE.transportVehicleConfig`, `makeVehicleBuyCmd(player,
-  depot, config)` (callback success, `cmd.resultVehicleEntity`, ~0.35 s), then `makeVehicleSetLineCmd(new, line, 0)`
-  (~0.55 s): the vehicle is `EN_ROUTE` on the line. `findBestLineAndDepotForVehicle(src)` returned the selected line
-  and its depot here (single test; it may differ on other lines).
-- **`makeVehicleSendToDepotCmd(v, true)` drops the vehicle from the line at once:** state `GOING_TO_DEPOT`, `line=-1`,
-  `sellOnArrival=true`, and Rate falls immediately. A vehicle heading to the depot is not counted.
-- `TransportVehicleConfig` capacities are indexed by cargo type id + 1 (`Passengers#0=20`).
-- A button left of A+ via the wrapped `makeIconToggleButton` (order 250) sits left of Line Revert's undo/redo (order 200)
-  and both work.
-- Supply walk on a cargo line (WC Logs, 2 ships, Rate 66): stop 1 reaches the logging camp; `getCargoMaxProductionPerYear`
-  = `produceFrequency` = `getIndustryProductionData.total` = **101** (the industry window's number), while
-  `getCargoProducedPerYear` is a measured value that drifts (112 one minute, 98 the next). Use 101 as the target and show
-  the measured value only as a hint. The other lines at that station group were passenger lines: the "other lines
-  loading this cargo" sum must check each line's stop `load[cargo+1]`, not just the shared station group.
-- **A clone bought with `purchaseTime = now` costs exactly the model's metadata `cost.price`** (verified 2026-10-11,
-  Line Rate Matcher phase 3e, WC Logs, one Sydfart): balance 2,062,832 -> 1,514,192 = 548,640 = `cost.price` =
-  `getPartPrice` of the fresh clone part = the vehicle store's price. `getPartPrice` of the owned template part
-  returned 70,484 = its `getDepreciatedValue` (a used part's value, not a new price). Base vehicles have
-  `cost.price = -1` / `runningCosts = -1`, filled at load as runningCosts = c x averageSpeed x capacity and
-  price = 6 x runningCosts (`base/content/base/model_metadata_util.lua:488-552`); `getRunningCost` of an owned
-  vehicle (91,440) matched the metadata. Log: `[RateMatcher] clone charged: balance 2062832 -> 1514192 = 548640 for 1
-  vehicle(s); store price each 548640`.
-
-## Re-sending a vehicle to its own line, departure schedule (verified in game 2026-10-10)
-
-Probe `mods/square_lmp_probe` (log `plans/square_line_manager_plus/probe_run1.log`, analysis
-`plans/square_line_manager_plus/PROBE_RESULTS.md`). Bus line, 4 stops, 4 buses (8 seats), already evenly spaced
-(gap/H 0.91-1.11); one cargo ship line (Logs, 2 stops, 2 ships). Game speed 1x, later 4x. No train line tested.
-
-- **`makeVehicleSetLineCmd(v, sameLine, i)` on a vehicle already on that line is accepted** (callback `success=true`
-  after 0.23-0.37 s, 5 of 5) and the vehicle stays on the line (`line` unchanged, never `-1`).
-- **Buses ignored the stop index: each drove on to its next stop in line order and served every stop** (4 of 4: sent
-  to 1 from stop 3 → arrived at stop 0; sent to 3 while heading to 0 → stopped at 0, then 1; sent to 0 while heading to
-  2 → stopped at 2; sent to 3 while heading to 3 → stop 3). `stopIndex` right after the command was the old next stop
-  (`SEND plan ... stopIndex=3 -> makeVehicleSetLineCmd(123418, 125579, 1)` then `track callback ... stopIndex=0`). The
-  cyclic order of the buses never changed. Whether the engine ignores the index or routes along the line through every
-  stop is not settled; either way a bus can't be moved forward into a gap this way.
-- **A ship on a 2-stop line took the index:** heading to stop 1, sent to 0 → `stopIndex=0` at once, and its track
-  curved round (distance to stop 0: 899 → 993 → 700 over 22 s), i.e. it turned around. Arrival not observed.
-- **Cargo stays on board:** 8/8, 8/8 and 7/8 passengers and 20/20 Logs were still aboard after the command; the buses
-  unloaded normally at their next stop (`Passengers#0=8/8` → `3/8` → `0/8` at stop 3). A bus sent while
-  `AT_TERMINAL`/`Loading` (0/8, just unloaded) **left at once without loading**.
-- **The command wipes the vehicle's history:** `lineStopDepartures` → all 0, `sectionTimes` → all 0,
-  `visitedStops` → `[]`, `lastLineStopDeparture` → 0; they refill as it departs/arrives again (first departure after
-  30-163 s here, one section per arrival, a full round trip ≈ 6 game min before its `sectionTimes` are complete).
-  `line_util.calculateFrequencySeconds` moved from 97-100 to 109-111 s on the bus line and 404 → 415 s on the ship
-  line after the wipes.
-- **Units:** `GAME_TIME.gameTime` and `lineStopDepartures` are milliseconds (10 000 per 10 s at 1x);
-  `sectionTimes`, `timeUntilDeparture`, `timeUntilNextScheduledDeparture` are seconds. `lineStopDepartures[i]` is the
-  last departure from stop i (1-based); the stop of the latest one agrees with `stopIndex` (0-based next stop) in every
-  sample. `sectionTimes[i]` = driving time stop i → i+1, **without dwell**, set on arrival (175083 left stop 0 at
-  79682600, `sectionTimes=[58.40,...]` on arrival ≈ 79741000, departed 79751200: departure gap 68.6 = 58.4 + 10.2 s
-  dwell). So Σ`sectionTimes` (356 s) is ~10% short of the departure-to-departure round trip (392 s) and of
-  frequency × n (400 s).
-- **`timeUntilNextScheduledDeparture` counts down only while the vehicle is at a stop** (frozen en route) and is set on
-  arrival to (latest other-vehicle departure from that stop + line frequency) − now: 123418 arrived at stop 3 with
-  +15.80 s, and 175083 had left stop 3 at 79529400 (+100 s = 79629400 ≈ 79614000 + 15.8 s); 134570 at stop 1: +0.60
-  ↔ 72235's departure + 100 s. Late vehicles show large negatives (−81). With no recorded departure at that stop
-  (all wiped) it starts at ≈ 0. Departures at each stop were 93-108 s apart (frequency 100 s) before the probe.
-- **`WaitForScheduledDeparture` seen once** (bus 123418 at stop 0, after its re-send): `tUntilDep` 7.40 → 3.40 → left,
-  while `tUntilSched` was already negative (−5.60). So it isn't simply "`tUntilSched` > 0"; its trigger is still open.
-- The probe's `simEntityAtVehicleSystem.getVehicleSimEntitiesCount(v)` printed `table: 0x...`: it returns a table, not
-  a number. `getVehicleSimEntitiesCountForCargoType(v, cargo)` returns the count.
-
-## Expired react states print a traceback on `:old()` (verified from the game log 2026-10-11)
-
-A react state (`ReactStateWrap`) whose recipe has unmounted is **expired**. Calling `:old()` on it doesn't raise a Lua
-error (`pcall` returns true): it returns `nil`, but the engine writes a message-less `stack traceback` to stdout.txt
-at the call, and later, in the timestamped log, `VERBOSE ... Calling Old() on expired ReactStateWrap returns nil`.
-`:set()` on an expired `ReactRefWrap` does the same with `MESSAGE ... Ignoring Set() on expired ReactRefWrap`. Check
-first with `s:hasExpired()` (on `ReactStateT` and `ReactRefT`, `base/tealdef/scripts/react.d.tl:130-142`), as the base
-does (`gui/main/engine_react_util.tl:146`, `builtin.lua:1168`).
-
-Evidence (stdout.txt of 2026-10-11, Line Manager Plus rev 1 in development): each reopen of the Line Manager printed
-two tracebacks, `=[C](-1): old` ← `lmp_capture.lua(63): editedLine` ← `undo.lua(93): ensureSession` ← ... ←
-`safeView`, the first under `declareStateLazy` ← `useStateLazy` ← `engine_react_util.tl(74)` (the `useStepState`
-initial value), the second under `engine_react_util.tl(84): update` (its `onStep`). Each pair is followed by exactly
-two `Calling Old() on expired ReactStateWrap returns nil` lines (20 tracebacks, 20 messages; the 12 `set` tracebacks
-of another mod match 12 `Ignoring Set()` lines one for one). So reading a state inside a `useStateLazy` initializer is
-**not** the problem; the state was expired. The cause: mods that capture the manager window's `commonParams` (from
-`line_util.makeLineActionDescriptor`) keep the closed window's table, and the new window's buttons render and step
-once before its first descriptor call replaces it. Fix in Line Manager Plus / Line Editor Undo: `hasExpired()` guard
-in `editedLine`.
+They override the wiki. Read this index first, then open only the topic file you need.
+
+Adding a finding: put the entry (`## Title (date)`, evidence: log line, error, session name from `.cache/logs`) in
+the matching `docs/findings/<topic>.md` (or a new topic file), and add its line here. Never write the entry itself
+into this file.
+
+## Mod scripts, params, stylesheets and Lua limits (`findings/scripting.md`)
+
+- **Mod params, script functions and stylesheets**: a mod.json param can't change a `.css.lua` (6 channels failed): ship variant mods. Param values are 1-based option indices, also for `numbers`.
+  - Script function signatures: `runFn(captureParams, settings, allModParams)`; `preRunFn` and `postRunFn` also take `captureParams` first. runFn runs in ~50 Lua states.
+  - Stylesheets (`*.css.lua`): own Lua state with only `api.gui`/`api.type`, no `rawget`; a Lua error drops the whole stylesheet. The `loadStyleSheet` modifier never fires.
+  - Debugging tips: never remove a staging mod while a save is loaded (assert "cannot remove mods in game"); adding one is fine. Re-run every `subscribeToEvent` once per load: subscriptions are saved.
+- **200 locals per function, also in a `.tl` file's main chunk (2026-10-10)**: over 200 top-level locals fails to load ("too many local variables") and can take the whole UI down. Group constants and helpers into tables; `make check` reports it.
+- **Translations: `strings.json` and `_()` (research 2026-10-10, in-game checks pending)**: `_()` translates at once in GUI scripts; in resource files it returns the key, so wrap the whole string, never format or compare it. Keys: the 13 locale codes. modinfo localizes only name and summary.
+- **Load crash above ~200 mod stylesheet rules (verified in game 2026-10-10)**: total mod CSS rules over ~205 (each comma part counts) crash the first frame after load (`102fbe0cc`). Keep stylesheets small; inline `meta.styleSheet` replaces class rules. Timetables alone has 187 rules (2026-10-12); a crash can also follow a mod switch from a big set in the same game session, at only 48 rules: restart the game first. 400 inert rules alone (no scripts, only mod) crash loading a large save (2026-10-12).
+- **Mod description rendering in game (verified in game 2026-10-11)**: the in-game Mod Hub renders `<p>`, `<strong>`, `<h4>`, `<ul>`/`<li>`; `<em>` is ignored, `<hr>` draws no line, whitespace between adjacent tags is dropped. Links untested: text must read fine without them.
+- **Mod settings tooltips not seen in game (user report 2026-10-11)**: param tooltips may not show in the mod list, so document every param, its options, default and effect in `description.html` "Settings".
+- **BaseConfig: set in preRunFn, read-only at runtime (2026-10-12)**: write BaseConfig in `preRunFn` (4th arg); `game.config.<field>` is nil in runFn. `api.res.getBaseConfig()` fields are read-only at runtime from GUI and game scripts alike.
+- **`rawget` is nil in GUI script states (2026-10-11)**: GUI and game-script states have no `rawget` (load crash / endless error loop); mod and name scripts do. Use `pcall(function() return _G[k] end)`. Quit the game fully to pick up a fix.
+- **In-game Lua is pre-5.3 (crash 2026-10-03)**: no 5.3-only library calls (`math.tointeger`, `math.type`, `utf8.*`, `string.pack`, `table.move`); `//` and bitwise ops are fine in `.tl` (target 5.1), never in plain `.lua`. `make check` lints it.
+- **mod.json param `numbers` must be doubles (2026-10-08)**: write `60.0`, not `60`, or the mod is silently skipped ("Failed to parse mod.json" in stdout.txt). `make validate` checks it.
+- **runFn: call addModifier every time (2026-10-06)**: never guard `addModifier` with a file-level "registered" flag (the script stays cached, the modifier table doesn't); make the modifier idempotent.
+- **Removing a staging mod while a save is loaded crashes (2026-10-09)**: deleting a staging mod, `make unlink` or a branch switch that drops a mod asserts "cannot remove mods in game": the user quits to the main menu first.
+
+## GUI, react and HUD (`findings/gui.md`)
+
+Crash rules `make check` misses: recipe roots must be layouts, never `Component{ layout = Recipe{} }`, ScrollArea content is a Component, ImageView has no `mouseTransparent`, no GUI-thread-only calls in HUD recipes or onStepTimer, no `rawget`, no unguarded optional Window fields (PS5 rejects `closable`).
+
+- **Drawing arrows from an entity-window plugin (2026-10-09)**: push a window-less `react.RegisterTool` with `allowStacking` from `gameCtx.toolStack`, then `setVisible` the shelved window. Never draw a cargo-flow arrow with `from` ≈ `to` (native crash; drop arrows under 50 m).
+- **Timers and threads in GUI contexts (2026-10-10)**: `react.onStep` and recipe render run on the Main Thread; `onStepTimer` and `hudIconScript` on worker threads. GUI-thread-only calls go in onStep/render or behind `react.enqueueJoin`. Time with `api.type.Clock`, not `os.clock`.
+- **ImageView raw pixel data (2026-10-09)**: `builtin.ImageView{ data, size }` takes one integer per byte, length exactly `w*h*3` or `w*h*4`, RGBA, rows bottom-up. List edges with `getNode2StreetEdgeMap()`, not `getEntitiesWithComponent(BASE_EDGE)`.
+- **Window fields differ by platform: PS5 rejects `closable` (player report 2026-10-12)**: `makeUserdata` raises on any Window field the platform lacks; console takes no `closable`. Pass every Window's params through `platformWindow` (pcall-tries each field on a spare `api.gui.react.params.builtin.Window.new()`, leaves failures out); give the window another way to close.
+- **Window `header` slot (2026-10-10)**: `Window{ header = node }` sits at the left of the title bar and can't be right-aligned. Hide the title with an empty title plus `Window::Title { visibility = "none" }`.
+- **Wrapping rows in a GUI plugin: `builtin.FlowLayout` (2026-10-10)**: put item rows in `builtin.FlowLayout{ children }`, which wraps to the window width; never split a BoxLayout by a fixed count. Gaps: `innerSpacing` through a class rule ("Inline styleSheets don't apply to layouts" below), not inline padding.
+- **Firing base react events from a mod: `replaceVehicles` (verified in game 2026-10-10)**: `react.fireEvent(nil, "replaceVehicles", VehicleStoreEventParam{...})` opens the game's Replace Vehicles window. Lato lacks `▲ ⇧`: use `↑`. Green is `Ok`, not `positive` (light blue).
+- **Expired react states print a traceback on `:old()` (verified from the game log 2026-10-11)**: `:old()` / `:set()` on an expired state or ref returns nil but logs a traceback. Check `s:hasExpired()` first, especially on states captured from a closed window.
+- **DataTable cell recipes get a userdata param (verified from the game log 2026-10-11)**: a `ColumnDesc` cell recipe gets a userdata (`rowKey`, `colKey`, `userParam`): read fields by index, no `pairs`/`type == "table"`. `react.ref(tbl)` treats a plain table as a list of refs.
+- **DataTable column weights, inline sizes on recipe calls, meta through recipe wrappers (verified in game 2026-10-11)**: `ColumnDesc{ weight }` gives a column spare width; cell roots need `gravity = { -1, -1 }`. `meta = { styleSheet }` on a recipe call sets size inline. Wrap a base recipe with a function that forwards `meta`, not a recipe.
+- **Recipe roots, Component layouts and ScrollArea content (verified in game 2026-10-05 to 2026-10-09)**: a custom recipe returns a BoxLayout at its root; never `Component{ layout = MyRecipe{} }`; `ScrollArea{ content = Component{ layout = ... } }`, never a layout. Each crashes the whole game.
+- **ImageView: rotation, icon masks, no mouseTransparent (2026-10-07)**: `rotation` in degrees; icons are greyscale masks tinted by CSS `color` (textures in the install's `gui.zip`); `mouseTransparent` on ImageView crashes; HUD font lacks `▲`.
+- **Placing GUI items at exact pixels (square_better_minimap, 2026-10-07)**: not FloatingLayoutChild h/v; use one full-size layer per item with a Component sized to the area and placed by `padding` (`layerAt` in Better Minimap).
+- **Inline `size` is the content box (2026-10-12)**: padding adds outside `size`; a 24 px content + 8 px padding = the 40 px base icon tile. Pin text tiles to the icon height, not the tile height.
+- **Window frame minimum height (2026-10-07)**: windows under ~90 UI px draw broken frames; the top 50 px are the title tab. Keep short windows at >= 92 px, compact title rows ~48 px.
+- **Reading and restoring a window position (square_better_minimap rev 3, 2026-10-07)**: the Window wrapper's `getPosition` is 0: read a node inside it plus a measured offset; place with `anchorPoint` + `initialX/Y` and no `gravity`; persist prefs in `AppConfig.mainMenuState[modId]`.
+- **Quitting runs no react.onUnmount; use the openPauseMenu event (verified in game 2026-10-13)**: "Return to Main Menu" calls `app.stopGame()` and no plugin `onUnmount` runs; never put must-run cleanup there. Hook instead: `react.onEvent("openPauseMenu", fn)` in a plugin fires on Esc, the menu button, Cmd+Q, Force Quit and Steam's stop (all open the pause menu), before any Quit.
+- **HUD filter = base GUI save data `""`.hudFilter (read from the game files 2026-10-13, not verified in game)**: no api shows / hides HUD icons; write the filter like the base HUD filter window, then fire `preventReactSelector` so the default selector re-reads it; while prevented it also drops the hover highlight, entity tooltips and click-to-select; `allowReactSelector` brings them back (re-reading the filter again). Never hide `BASE_NODE` (no toggle to undo).
+- **Inline styleSheets don't apply to layouts (user screenshot 2026-10-13; mechanism read from the game files)**: `meta.styleSheet` on a `builtin.BoxLayout` / `FlowLayout` (padding as a gap) showed nothing; react turns a builtin's `meta.styleSheet` into `builtin.WithComponentParams`, which styles a Component. Space children with `innerSpacing` in a class rule (`R::X !my-gap`), pad a layout through a class; inline sheets on Components / TextViews / Buttons do apply. Rules: `docs/ui-guide.md` "Spacing".
+- **The base free camera tool from a mod (read from the game files 2026-10-13, not verified in game)**: `ug_require "::/gui/main/free_cam_options.tl"`.FreeCamTool pushed with `game_react_globals.getDefaultToolStackApi().push(tool, nil, {}, true)` is the game bar's free camera: the game hides its UI and Esc / back pops the tool from GameUIProxyRoot. `getActiveTool()` tells when it is gone. Whether `setCameraData` drives the free camera is unknown (Photo Mode probes it and falls back).
+- **Input actions don't reach a hidden GameUIRoot (read from the game files 2026-10-13, not verified in game)**: Esc (`IA_MENU`) is only forwarded into GameUIRoot ("forwarding to an invisible GameUIRoot is still impossible", base `game.tl:746`), and every mod plugin point is inside it. While it is hidden only the pause key, react events (Cmd+Q) and `onStep` work: watch `GAME_SPEED.speedup` for the pause key.
+- **HUD icon recipes run off the GUI thread (crash 2026-10-07)**: GUI-thread-only APIs (`getApplicationTime`, `getInputMode`) in `hudIconScript` are a native crash pcall can't catch.
+
+## Game scripts (`findings/game-scripts.md`)
+
+- **Game-script pauses don't stall rendering (2026-10-10)**: a slow game-script `update` costs simulation time, not frames; per-frame GUI work is what players feel. `tickCount` moves per sim step (~200 ms), and `update` can run in several Lua states, so "once per interval" guards may fire twice.
+- **Game-script `get_native` asserts (2026-10-10)**: `state:get_native()` / `findPath` in a game script triggers fatal `gamescript_util.cpp:385` asserts. Use `state:get()`; the GUI-side `gameScript.state_native` is fine.
+- **Mission marker types are a fixed list (verified in game 2026-10-10)**: `setMarkerAt*` types are only `arrow`, `exclamation`, `question`, `question_red`, `locate`; no `exclamation_red`, no colour argument. Only `question_red` is red.
+- **guiHandleEvent needs guiUpdateScript and subscribeToEvent (verified in game 2026-10-07)**: register a (no-op) `guiUpdateScript` and call `state:subscribeToEvent(name)` in `update`, or `guiHandleEvent` never fires.
+- **No sendCommand inside build-proposal events (2026-10-08)**: `sendCommand` in onPre/PostBuildProposal asserts `!m_betweenChanges`; queue it in state and send from `update`.
+- **`.script.lua` exports via `data()` (2026-10-06)**: a `.script.lua` referenced as `<modId>::...@fn` exports with `function data() return script end`; `return script` fails in game every tick.
+
+## Roads, junctions and constructions (`findings/roads.md`)
+
+- **Street names and Road Stops (2026-10-08)**: stop names come from the name list in order, on the station group, not tied to the street. Game-script `sendCommand` from `update` must have no callback; build events and `update` are separate Lua states. Set globals from `runFn` with `rawset(_G, ...)`.
+- **Octree edge search is by position (2026-10-12, inferred from a run)**: `findEntitiesInCircle(pos, r, BASE_EDGE)` with a small circle on a node misses its long streets; search with r >= half the longest edge (or around a wider centre) and filter by distance.
+- **Junction lane connections (2026-10-08)**: lane indices count sidewalks (0 and last); read `LaneConnection`s are read-only, build new ones with `api.type.LaneConnection.new()`. Always pair `nodeConfigsToRemove` with `nodeConfigsToAdd`; link roads only to dead ends. Also holds: NodeViewer `edgeIdx` crash, Hub upload rejecting made-up `<modId>::` paths, `VisibilityThresholds.scale`, proposals refused next to a pending traffic light.
+  - Traffic light phases index the lane connections (2026-10-11): `lockedLanes` index `laneConnections` then crosswalks; a lane write must remap the phases or the sim asserts.
+  - The game's default crossroads connections vary per approach (2026-10-12): at some 3x3 approaches a turn comes from two lanes; compare the default per movement (count + exit lanes), not lane for lane.
+  - A connection unlocked in a phase does not give way (2026-10-12): an unlocked connection drives as if green; there is no yielding or turn on red. Later (user): merging into a green stream is tolerable; pedestrians mostly but not reliably avoided; country roads get no houses; 109.5k sim persons smooth at 4x.
+  - Default traffic light phases, measured in game (2026-10-12): 6 phases (axis 1, all-red 6 s, axis 2, all-red 6 s, pedestrians 3 s, all-red 9 s), `canSkip`, `minDuration = 1.5`; crosswalks are the node's edge ids.
+- **Script link roads without node configs (game logs 2026-10-11/12)**: the Stress Test's link roads left every new node without `BASE_NODE_CONFIG` (Smart Lanes logged 37 `reason=no_config` link nodes in one Showcase); every `Engine.h:323` `BaseNodeConfig` crash in the log archive followed such script nodes (correlation). Give every new node a config (empty with one edge) and an existing node that gains an edge a full one.
+- **Highway street templates and interchange placement (2026-10-09)**: template radius/slope limits bind the drag tool, not constructions. Keep >10.5 m (17.5 m works) of plain edge between a large-highway junction and a bridge end; edges past ~485 m from the origin are refused.
+- **Negative zero in construction geometry (2026-10-09)**: a `-0` in `edgeLists` positions or tangents makes a construction fail silently at exactly 0° rotation. Normalise every zero to `+0` before returning from `updateFn`; script probes can't reproduce it.
+- **Terrain-shaping constructions (verified in game 2026-10-11)**: a `terrainAlignmentLists`-only construction terraforms with a cost/reputation preview (cost = cutFill volume × `terrainLower`). It is an alignment (`getHeightAt` changes, `getBaseHeightAt` doesn't), owned by the construction.
+- **A construction's street end inside a neighbouring junction collides with its node (2026-10-12, inferred from a run)**: arms ending within ~half the street width of an existing node give `Collision (hits .. BASE_NODE)` (a crossroads of 32 m town streets: more than 29 m from the node, 2026-10-13); streets the same proposal removes are not collided with, so remove + add a construction in one proposal works. Fits a Medium grid: 2- or 3-lane highway ring, arms 46 m, inward arm 42 m (accepted in 4 runs).
+- **A lit T that loses a leg loses its light; a changed lit node gets new connections (2026-10-13, log)**: a 2-street node had 0 phases at the next read; a crossroads turned T had connections its old config lacked. Don't carry an old light config across a delay.
+
+## Towns and town growth (`findings/towns.md`)
+
+- **A save whose name set is gone crashes on the next new name (2026-10-10)**: a save keeps its name set by path; without that mod the first new name asserts in `ResTypeRep.h:233`. Mods shipping `.names.lua` need `severityRemove: "Critical"`.
+- **Town development needs its small street templates (crash 2026-10-11)**: never make the smaller town street templates non-`simBuildable`; town development asserts "Did not find any street template usable".
+- **Organic Towns probe, first run (2026-10-11)**: preRunFn's configDict is a list of `{key, value}` pairs; only runFn gets a dict. Never call `getParcelData(edge)` (native crash): use `getSegment2ParcelData()`. Give every new script node a `BASE_NODE_CONFIG`; remove a config only if it exists. Use `isOnWater`, not height.
+- **Organic Towns showcase, first run (verified from the game log 2026-10-11)**: towns can be made from `guiUpdate` with `createTowns` + `makeTownCreateCmd` (find them by diffing). `TownInfo` street angles change the town layout. Script nodes without configs crash the sim at random even with `ctx.player` set.
+- **Organic Towns Showcase v4 (from the game log and screenshots, 2026-10-12)**: forced growth fills from the core outward. `createTowns` takes the angle from the baseConfig range. One `makeTownDevelopAtCmd` triggers a big growth on the next round. `BaseEdge.roadDevelopmentLocked` exists (effect untested).
+- **Organic Towns Showcase v5 (game log 2026-10-12)**: town streets built with `roadDevelopmentLocked = true` still get houses and the town stops attaching its own side streets to them; freezing town development does little. See [towns](findings/towns.md).
+- **`makeTownDevelopAtCmd` resets a town's initial capacities to its current size (game log 2026-10-12)**: even with developStreets = false, after the call the town's target is size factor x its current size (750 -> 30066 initial in 10 rounds), so it builds streets and houses toward it and keeps growing after the calls stop. Put the initial capacities back with `makeTownSetInitialLandUseCapacitiesCmd`.
+- **Organic Towns Showcase v6 (game log 2026-10-12)**: the DevelopAt reset of the initial capacities is immediate and `makeTownSetInitialLandUseCapacitiesCmd(town, list)` from a script puts them back (and they stay); DevelopAt builds little at its point (~7 buildings within 60 m per call pair) and its two flags showed no clear effect; town streets far ahead of demand stay empty for rounds even unlocked. See [towns](findings/towns.md).
+- **Organic Towns Showcase v7 (game log 2026-10-12)**: a town whose target runs far ahead of its streets builds its own organic streets everywhere (metropolis towns: ~90 % of edges game-made); houses fill by network distance from the core, so far arm lots stay empty; a one-way town street ring with the derived lane pattern builds without a crash (traffic on it not checked). See [towns](findings/towns.md).
+- **Organic Towns Showcase v8 (game log 2026-10-12)**: forced growth passes with no new script streets round a shaped town with the game's own streets (houses elong 1.62 -> 1.12); locked script streets in 36-edge increments still leave ~70 % of a big town's streets to the game, but the locked frames keep their layout; screenshots requested in or right after a ~3 s stall, or 0.3 s apart, write no file. See [towns](findings/towns.md).
+- **Natural town growth (read from the game scripts 2026-10-12, not in-game verified)**: towns only gain experience from deliveries (`growthPerTick = 0`); target = Σ initial capacities x F(levels gained), split by transport usage weights (all 0 without transport: no growth), applied with `makeTownUpdateSizeCmd(town, sizeFactors, false)`; the script never lowers a size. See [towns](findings/towns.md).
+- **Town population = residential person capacity (2026-10-13, code reading + one probe log)**: read `getTown2personCapacitiesMap()[town][1]` (what world population and the town window use); a forced size command reached ~85 % of `initialLandUseCapacities[1] x sizeFactor` within 5 s on free land (58 % on a crowded map).
+- **A forced size command fills its capacity target at once (2026-10-13, 3 log sessions)**: residents after `makeTownUpdateSizeCmd(town, f, true)` = initialLandUseCapacities[1] x f (x1-x1.55: median 0.998 of it, whatever the people before; x3: 0.78 of it, room runs out), the same at the answer and minutes later. Size towns from their capacity target, not from their people. Confirmed: x1 for 400 on Medium towns gave 398 / 400 / 400 (session 0447).
+- **Towns build on unlocked script / construction streets within a minute (2026-10-13, inferred from a run)**: they hang streets on free dead ends and split edges before a later join; town-street rings get houses (even on the island). Lock such streets right after the build; use country templates (`highway_new_small/_medium/_large` for one-way rings: no houses, verified 2026-10-13). Locking ~2 s after the build fixed it in 3 runs (a later run lost the 3 of 69 locked at 3.4-4.2 s: a town can attach within ~3 s). Script-built `highway_new_*` edges arrive already locked (`initiallyLocked`).
+- **At the game's natural pace the town developer keeps open frontage ahead (real map + simulated growth, 2026-10-12)**: 388 Organic Towns checks over 32 simulated years were all `why=open` (open frontage >= 2x the need) while the game added 682 street edges of its own (0.29 per new building), whatever frontage was free; scarce room is no trigger for growth. No API switch stops a town's street growth alone (`developmentActive` stops all growth; `roadDevelopmentLocked` is per edge). See [towns](findings/towns.md).
+- **First screenshot of a session dropped; `makeInitialStreets` (2026-10-13, inferred from three runs / read from game files)**: the first `takeScreenshot` request of a game session wrote no file in three runs, even with steady frames (send a primer request first); `baseConfig.locations.makeInitialStreets` (default true) lays small town streets at the edge of industries at map generation, which towns can later fill as a separate cluster. See [towns](findings/towns.md).
+- **Dose fill leaves a town's development off (2026-10-13, inferred from a log)**: after `makeTownDevelopAtCmd` x2 + `makeTownSetInitialLandUseCapacitiesCmd`, `developmentActive` read false; one reactivate didn't hold. Which command does it: unknown (now logged). See [towns](findings/towns.md).
+- **Map bounds and script street bridges (research 2026-10-13, unverified in a game script)**: `api.engine.terrain.getBoundingBox()`; a bridge edge = `comp.type = BaseEdgeType.BRIDGE` + `comp.typeIndex` (bridgeTypeRep id), as Move It converts edges; a new script bridge is untested. See [towns](findings/towns.md).
+- **Locking the arm streets doesn't keep a big town's form (2026-10-13, inferred from a log + screenshots)**: at ~9x growth with the mod's arm streets locked the game still built ~59 % of the new streets from its own unlocked core and filled every wedge; the dev sim's simulated years don't move the game calendar. See [towns](findings/towns.md).
+- **Starting town size / `populationDensity` (read from the game files 2026-10-13, not verified in game)**: `baseConfig.locations.town.populationDensity` is the base "Population" setting (50-200 %, editable on savegames too), set in base's preRunFn; the new-game page generates the map preview's towns from its own locations config before the game starts, so a preRunFn change may not resize starting towns. See [towns](findings/towns.md).
+- **`makeInitialStreets` is applied when the map is built; industries don't need those streets (read from the game files 2026-10-13, not verified in game)**: the preview's `GameMap` has towns and industries but no streets, so the industry-edge streets come at game start from the running baseConfig (preRunFn can switch them off); industry workplaces are only a booster. See [towns](findings/towns.md).
+- **Satellite seeds refused by collisions outside the snapshot (2026-10-13, inferred from a log)**: Organic Towns seeds 1-1.5 km out collided with entities outside the town's street snapshot (likely farm fields, tracks or roads); partner kinds now logged. See [towns](findings/towns.md).
+- **Listing rail stations with position and forecourt (read from tealdefs / base files 2026-10-13, not verified in a game script)**: `stationSystem.getTown2StationsMap()`, `streetConnectorSystem.getConstructionEntityForStation` (none for kerbside stops), rail by `stations/rail/` in `CONSTRUCTION.fileName` (or the group's RAIL carrier), passenger by `util.station.isStationOfType(st, false)`, the forecourt = `transf` origin + 17 m along local -Y (modular main building). See [towns](findings/towns.md).
+- **The earliest start year is 1900 (user-reported 2026-10-13)**: a new TF3 game starts in 1900 at the earliest; year-dependent logic should span 1900 to the latest years, never rely on pre-1900 years. See [towns](findings/towns.md).
+- **Joining a script street to a country-road node (research 2026-10-13, not verified)**: country templates have the same 4-lane layout as town streets, but every verified join is a D3 on a town dead end; a country-road node already has a working config for 2-4 segments, never rewritten by a script, so Organic Towns never joins or crosses country roads. See [towns](findings/towns.md).
+- **Reading trees near a town; no "keep the forest" rule (read from tealdefs / base / mod code 2026-10-13, not verified in a game script)**: trees are `ASSET_GROUP` entities whose `MODEL_INSTANCE_LIST` fat / thin instances carry the positions, a tree model has `modelRep.get(id).metadata.tree`; find groups with `octree.findEntitiesInCircle(pos, r, ASSET_GROUP)`. No forest / ground-material sampler; the generator's forest noise isn't reproducible. Streets, constructions and town growth auto-remove trees (`autoRemovalEntity2models`, reputation impact); reforestation regrows them. See [towns](findings/towns.md).
+- **Listing industries with their type and position (read from tealdefs and base / mod code 2026-10-12, not verified in a game-script state)**: `getEntitiesWithComponent(INDUSTRY)`, then `getConstructionEntityForSubconstruction(e)` (or `getConstructionEntityForIndustry`) -> `CONSTRUCTION.fileName` for the type, the industry's `BOUNDING_VOLUME` centre for the position. See [towns](findings/towns.md).
+
+## Lines, vehicles and traffic (`findings/lines-vehicles.md`)
+
+- **`MOVE_PATH.path.edges` elements: userdata, read `elem.edgeId.entity` (verified from the game log 2026-10-13)**: the path alternates junction `BASE_NODE` and street `BASE_EDGE` ids; a positional pass count (inbound approach at one sample, gone at the next, 10 game s) matched the path count within 1 % over ~10k zone-samples. See [lines-vehicles](findings/lines-vehicles.md).
+- **Stress Test probes (2026-10-10)**: `createTowns` returns all existing towns in `toRemove` (ignore it). Send one `makeTownCreateCmd` at a time; re-send `makeTownUpdateSizeCmd` to keep growing. Find new entities by diffing, not `resultEntities`. Private cars are `SIM_PERSON`s; `makeSimPersonSetStateCmd(2)` sends them home.
+- **Line Rate, cloning onto a line, sell on arrival (verified in game 2026-10-10)**: Rate is linear in the vehicle count, computed even while paused. Clone with `makeVehicleBuyCmd` + `makeVehicleSetLineCmd` (charged `cost.price`); `makeVehicleSendToDepotCmd(v, true)` drops it from the line at once.
+- **Script-built road depots: the gate join (game log 2026-10-12)**: a stub joined to a depot's existing free node keeps the node's 0 lane connections (red no-entry sign, `findBestDepotForLine` -1): write its full config (D3). An 8-lane stub into the 4-lane entrance was always "Construction Not Possible" (cause inferred). `getClosestTown` is no on-the-streets test.
+- **Re-sending a vehicle to its own line, departure schedule (verified in game 2026-10-10)**: `makeVehicleSetLineCmd` on the same line: buses ignore the stop index, and it wipes `lineStopDepartures`/`sectionTimes`. `gameTime` and departures are ms, `sectionTimes` seconds without dwell.
+- **Sim crash while bus lines were added with "Car traffic" on (2026-10-11, cause suspected, not verified)**: an `Engine.h:323` sim assert followed failed bus line setup with Car traffic and capacity x4 on. Until settled, don't combine Car traffic with bus lines. Update 2026-10-12: config-less Showcase link nodes are the likelier cause (roads.md).
+- **`getEntitiesWithComponent(MODEL_PERSON)` can't be listed (verified from the game log 2026-10-13)**: it raises "Cannot loop over this component type"; list `SIM_PERSON` instead (8.8k in < 1 ms).
+- **Passenger catchables include industry workplaces (verified in game 2026-10-07)**: `getStationCatchables` includes an industry's own workplaces; keep only `TOWN_BUILDING` entities to detect real homes.
+
+## Map, terrain and camera (`findings/map-camera.md`)
+
+- **Camera zoom limit (2026-10-09)**: `setCameraData` past the zoom limit eases back within a second; no API sets the limit, so a zoom-out mod isn't feasible. Also holds: read `menuCategory` from the construction resource; station HUD icons with `index == -1` and `>= 0`; HUD pin recolouring.
+- **Mod terrain generators for base climates (2026-10-09)**: a mod `.gen.lua` joins a base climate with an absolute id (`::/climates/temperate/temperate.clima`); a 16-bit PNG `texture_map` can be the whole terrain. Towns and industries are still placed.
+- **Map editor: Generate Heightmap leaves terrain entity revisions unchanged (verified in game 2026-10-10)**: detect a new heightmap by sampling `getBaseHeightAt` on a grid, not by revisions. `::MainModButtonAreaExtension` plugins also mount in the map editor (`isMapEditor()`).
+- **Graphics settings from a mod: `api.util.setAppConfig` (verified in game 2026-10-12)**: a GUI script can switch MSAA, SSAO, textures, resolution scale etc. mid-game (keys set by name on an `AppConfig` copy); a switch stalls ~1.2 s with textures. The game saves values a mod left set: restore on every exit path (not in `onUnmount`: it doesn't run on quit).
+- **Changing render-buffer settings at runtime crashes (game logs 2026-10-13, inferred, strong)**: a mod may switch only textures, terrain textures, SSAO, SSR, MSAA and resolution scale mid-game (never crashed in ~40 switches). `shadowQuality` crashed 4 times (MoltenVK `mvkCmdBeginRenderPass` after 3x "Could not invert matrix"; `2026-10-13_0342_sqot`, `_0356_`, `_0522_`, `_0524_`), `geometryQuality` / `terrainQuality` / `grassQuality` once (fatal assert `StaticBuffer.cpp:743 material2offsetAndCount`, `2026-10-13_0558_session-crash`); both only now and then. Never change those four from a mod. See [map-camera](findings/map-camera.md).
+- **The staged graphics switch: time (from the log 2026-10-13)**: the texture stage is the whole ~1 s stall (others 0.2-33 ms); the "Could not invert matrix" after one-call restores came from their shadow change.
+- **Geometry tiers: writes stick, no visible effect (2026-10-13)**: replacing `baseConfig.settings.geometryQualityOptions` in preRunFn reads back in game, but camera tool / preview LOD x4 and 40 km draw distance changed nothing the player could see. Don't rely on them.
+- **Screenshots: `takeScreenshot(scale)` = viewport x scale, never with UI (verified in game 2026-10-13)**: 4 works (10240x5760, 89 MB, ~9 s stall); first request of a session and one right after a big shot are dropped. No hide-UI needed for clean shots.
+- **Hiding the game UI (verified from the log 2026-10-13)**: `api.gui.byId.setVisible("react.game-ui-root", false)` hides it and holds; `setVisibilityByClass` is undone by the game within 1 s. onStep keeps running while hidden. Free camera hides it too, leave with `leaveFollowCameraCockpit()`.
+- **Full-screen overlay Window crashed (2026-10-13)**: a Window wrapper recipe calling `react.setMouseTransparent` before returning `builtin.Window` gave fatal "Wrapper recipe must return child". No hooks in Window wrapper renders.
+
+## Publishing (Mod Hub, mod.io) (`findings/publishing.md`)
+
+- **Mod Hub uploads and the mod.io gallery (2026-10-10)**: name slides `N-<hash>.png` (zero-padded at 10+) so a Hub upload keeps the gallery intact; at most 10 slides (mod.io 13003). Check `make modio ARGS=--diff` after an upload.
+
+## Debugging and the game install (`findings/debugging.md`)
+
+- **Paths in the user's install (macOS Steam)**: userdata `crash_dump/` (live `stdout.txt`, `<uuid>_N` logs, json reports, `.dmp`), `screenshots/` (Read them directly), binary assets in the install's `base/content/**/*.zip`, vanilla text in `base/strings/<lang>/LC_MESSAGES/base.mo`.
+- **Native crash stacks with lldb (2026-10-07)**: `lldb --batch -o "target create --core '<file>.dmp'" -o "bt 40"`; frames 8/10/11 = `102fbe0cc` is the stylesheet rule count; check `runtimeRevision` bumps before blaming a mod change.
+- **Vulkan drivers and profiling on macOS (2026-10-10, build 40420)**: MoltenVK stays (KosmicKrisp renders black terrain); Steam launch options need a wrapper script, not `VAR=value %command%`; `sample <pid>` profiles the live game.
+- **Reloading a save replays the simulation deterministically (2026-10-12)**: same save, same settings, no input -> identical sim outcomes per in-game day; use load-to-load A/B for load-time settings.

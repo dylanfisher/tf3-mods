@@ -1,7 +1,7 @@
 # TF3 mod hub. All tools are stdlib/PEP 723 scripts run through uv.
 UV := uv run --quiet
 
-.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal covers shots state-towns state-mod state-mods names-browser flags gate test-tools probe-report probe-split hx-dump fork-new fork-status fork-merge fork-finish fork-abort forks-save forks-push sqperf-sync perf modio modio-status i18n
+.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal covers shots state-towns state-mod state-mods names-browser flags gate test-tools probe-report probe-split hx-dump fork-new fork-status fork-merge fork-finish fork-abort forks-save forks-push sqperf-sync perf audit flow bench logs logs-list logs-grep modio modio-status i18n tooltips
 
 help:
 	@echo "make docs        Re-sync all local docs (wiki + game files)"
@@ -30,6 +30,13 @@ help:
 	@echo "make teal        Generate tlconfig.lua for VS Code Teal autocompletion"
 	@echo "make sqperf-sync [MOD=mods/<id>] [ARGS=--check]  Copy tools/sqperf/ into mods using SQPERF (MOD: add it there)"
 	@echo "make perf [LOG=path]  Per-mod [SQPERF] report from the latest stdout.txt (or LOG)"
+	@echo "make audit [LOG=path] [ARGS='--last --src auto --top 5']  Smart Lanes junction audit report ([SQRL] AUDIT lines)"
+	@echo "make flow [LOG=path] [ARGS='--last --warmup 180 --worse-pct 10 --min-samples 5']  Traffic flow A/B report: Showcase twins sl / sl_phases vs game ([SQST] FLOW_* lines)"
+	@echo "make bench [LOG=session] [ARGS='--record --warmup 180']  Stress Test bench report: the last bench sheet's run (default LOG=last-bench) -> draft RESULTS.md entry in .cache/bench/; --record appends it"
+	@echo "                 (perf/audit/flow archive the live log first; LOG= also takes a session name/alias: last, last-crash, last-<tag>, a seed)"
+	@echo "make logs [ARGS='--tag NAME']  Archive the live stdout.txt and crash_dump logs -> .cache/logs/; print the newest sessions"
+	@echo "make logs-list [ARGS='--tag SQRL --crash --grep TEXT --since 2026-10-01 --last 5 -v']  Archived/crash sessions (.cache/logs/INDEX.md)"
+	@echo "make logs-grep PAT='regex' [ARGS='--tag X --since DATE --session last -C 2 --max 50 -i']  Search every archived/crash log"
 	@echo "make state-towns STATE=us_washington [ARGS=--fetch]  Draft data/states/<key>/towns.tsv from Census files"
 	@echo "make state-mod STATE=us_washington [ARGS=--check]    Generate mods/square_names_<key> + tests from data/states/<key>"
 	@echo "make state-mods [ARGS=--check]                       Generate (or check) every state mod"
@@ -99,6 +106,9 @@ validate:
 i18n:
 	$(UV) tools/i18n.py $(ARGS) $(MOD)
 
+tooltips:
+	$(UV) tools/tooltips.py $(ARGS) $(MOD)
+
 check:
 	$(UV) tools/tl_check.py $(ARGS) $(MOD) $(PATHS)
 
@@ -118,8 +128,36 @@ teal:
 sqperf-sync:
 	$(UV) tools/sqperf_sync.py $(ARGS) $(MOD)
 
+# Log reports archive the live stdout.txt first (never fatal), and LOG= takes a file or an archived session
+# name/alias (game_logs.py path). Every new log report target does the same.
+LOG_SAVE = $(UV) tools/game_logs.py save --quiet || true
+LOG_FILES = $(if $(LOG),logs="$$($(UV) tools/game_logs.py path $(LOG))" || exit 1;,logs="";)
+
 perf:
-	$(UV) tools/perf_report.py $(ARGS) $(LOG)
+	@$(LOG_SAVE)
+	@$(LOG_FILES) $(UV) tools/perf_report.py $(ARGS) $$logs
+
+audit:
+	@$(LOG_SAVE)
+	@$(LOG_FILES) $(UV) tools/sqrl_audit.py $(ARGS) $$logs
+
+flow:
+	@$(LOG_SAVE)
+	@$(LOG_FILES) $(UV) tools/flow_report.py $(ARGS) $$logs
+
+bench:
+	@$(LOG_SAVE)
+	@logs="$$($(UV) tools/game_logs.py path $(or $(LOG),last-bench))" || exit 1; $(UV) tools/bench_report.py $(ARGS) $$logs
+
+logs:
+	@$(UV) tools/game_logs.py save --show 5 $(ARGS)
+
+logs-list:
+	@$(UV) tools/game_logs.py list $(ARGS)
+
+logs-grep:
+	@test -n "$(PAT)" || (echo "usage: make logs-grep PAT='regex' [ARGS='--tag X --since DATE --session NAME -C 2 --max N -i']"; exit 1)
+	@$(UV) tools/game_logs.py grep '$(PAT)' $(ARGS)
 
 covers:
 	$(UV) tools/render_covers.py $(ARGS) $(MOD)

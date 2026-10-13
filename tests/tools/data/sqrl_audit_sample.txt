@@ -1,0 +1,25 @@
+[2026-10-11 12:00:00Z - MESSAGE  - Main Thread      - Main           ]  Loading config from file Old Save
+[2026-10-11 12:00:01Z - MESSAGE  - Main Thread      - Main           ]  Something
+    | mod params:
+    |   square_smart_lanes = { sqrl_auto = 1 }
+[2026-10-11 12:00:04Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT node=500 case=X shape=crossroads findings=squeeze:3 detail=squeeze:12 src=auto job=1
+[2026-10-11 12:00:05Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT_SUMMARY src=auto job=1 audited=1 flagged=1 findings=squeeze:3 forced=- skips=-
+[2026-10-11 12:00:06Z - MESSAGE  - Main Thread      - Main           ]  Loading config from file Junction Test
+    | mod params:
+    |   square_smart_lanes = { sqrl_auto = 1 }
+[2026-10-11 12:00:09Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] APPLY kind=slip node=1 shape=t_junction case=X side=right lanes=13:1-1|1-2;11:1-2|2-2 split=node before=12 after=8
+[2026-10-11 12:00:10Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] SKIP kind=slip node=17 reason=ambiguous
+[2026-10-11 12:00:11Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] SKIP kind=drop node=18 reason=u_turn
+[2026-10-11 12:00:12Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] SUMMARY job=1 nodes=40 rings=1 ring=3/0/1 slip=3 cross=6 drop=1 same=0 skip=3 skips=ambiguous:1,u_turn:1,multi_arm:1
+[2026-10-11 12:00:13Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT node=1 case=X shape=t_junction findings=shared:1 detail=shared:11:fs src=auto job=1
+[2026-10-11 12:00:14Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT node=7 case=X shape=crossroads findings=shared:4 detail=shared:11:fs,shared:12:fs,shared:13:fs,shared:14:fs src=auto job=1
+[2026-10-11 12:00:15Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT node=9 case=X shape=crossroads findings=shared:2,weave:2 forced=shared:4 detail=shared:13:fs,shared:14:fs,weave:14>12@10,weave:13>12@10 src=auto job=1
+[2026-10-11 12:00:16Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT node=12 case=B shape=diverge+merge findings=across:1 forced=shared:1,squeeze:1 detail=across:12>33 src=auto job=1
+[2026-10-11 12:00:17Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT_SUMMARY src=auto job=1 audited=11 flagged=4 findings=shared:7,weave:2,across:1 forced=shared:6,squeeze:3 skips=ambiguous:1,u_turn:1,multi_arm:1
+[2026-10-11 12:00:18Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] SUMMARY job=2 nodes=12 rings=0 ring=0/0/0 slip=0 cross=2 drop=0 same=0 skip=1 skips=ambiguous:1
+[2026-10-11 12:00:19Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT node=9 case=X shape=crossroads findings=shared:2 forced=shared:4 detail=shared:13:fs,shared:14:fs src=auto job=2
+[2026-10-11 12:00:20Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT_SUMMARY src=auto job=2 audited=2 flagged=1 findings=shared:2 forced=shared:4 skips=ambiguous:1
+[2026-10-11 12:00:21Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] PICK target=node:2 ring=- lanes=- arms=- node_kind=slip conns=8 badge=custom findings=squeeze:2,bypassed_turn:1
+[2026-10-11 12:00:22Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT node=2 case=B shape=diverge findings=squeeze:2,bypassed_turn:1 detail=squeeze:11,bypassed:12>21 src=pick
+[2026-10-11 12:00:23Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] SKIP src=tool scope=street street=9504 node=9007 reason=no_config
+[2026-10-11 12:00:24Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] AUDIT node=22768 case=ring shape=arm findings=lights:1 forced=shared:2 detail=lights src=pick

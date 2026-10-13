@@ -1,0 +1,390 @@
+[2026-10-12 12:00:01Z - MESSAGE  - Main Thread      - Main           ]  Loading config from file Showcase Test
+    | mod params:
+    |   square_stress_test = { }
+[2026-10-12 12:00:02Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] MODE phases=game free_turn=safe
+[2026-10-12 12:00:03Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] ZONES op=set n=10 run=s777-1760280000-1 by_ab=game:4,sl:5,sl_phases:1
+[2026-10-12 12:00:04Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zones sent n=10 run=s777-1760280000-1 by_ab=game:4,sl:5,sl_phases:1 smart_lanes=yes
+[2026-10-12 12:00:05Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zones ack=yes run=s777-1760280000-1 ms=120
+[2026-10-12 12:00:06Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g1a pair=g1 ab=sl kind=roundabout type=Magic_Roundabout x=0 y=0 r=150 r_from=measured towns=4 match=yes
+[2026-10-12 12:00:07Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g1b pair=g1 ab=game kind=roundabout type=Magic_Roundabout x=1000 y=0 r=150 r_from=measured towns=4 match=yes
+[2026-10-12 12:00:08Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g2a pair=g2 ab=sl kind=plain type=Crossroads x=0 y=2000 r=90 r_from=measured towns=4 match=yes
+[2026-10-12 12:00:09Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g2b pair=g2 ab=game kind=plain type=Crossroads x=500 y=2000 r=90 r_from=measured towns=4 match=yes
+[2026-10-12 12:00:10Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g2c pair=g2 ab=sl_phases kind=plain type=Crossroads x=1000 y=2000 r=90 r_from=measured towns=4 match=yes
+[2026-10-12 12:00:11Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g3a pair=g3 ab=sl kind=roundabout type=Turbo_roundabout x=0 y=4000 r=140 r_from=measured towns=4 match=no reason=town
+[2026-10-12 12:00:12Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g3b pair=g3 ab=game kind=roundabout type=Turbo_roundabout x=1000 y=4000 r=140 r_from=measured towns=4 match=no reason=town
+[2026-10-12 12:00:13Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g4a pair=g4 ab=sl kind=plain type=T_junction x=0 y=6000 r=80 r_from=measured towns=4 match=yes
+[2026-10-12 12:00:14Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g5a pair=g5 ab=sl kind=roundabout type=Magic_Roundabout x=0 y=8000 r=150 r_from=measured towns=4 match=yes
+[2026-10-12 12:00:15Z - MESSAGE  - Main Thread      - Main           ]  [SQST] showcase zone id=g5b pair=g5 ab=game kind=roundabout type=Magic_Roundabout x=1000 y=8000 r=150 r_from=measured towns=4 match=yes
+[2026-10-12 12:00:16Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_START run=1 v=1 interval=30 zones=11 towns=8 buses=2 speed=4 keep_cleared=0 cap=3000 gt=1000000
+[2026-10-12 12:00:17Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=1 kind=rb src=placement label=Magic_Roundabout x=7 y=-5 r=150 nodes=12 edges=20
+[2026-10-12 12:00:18Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=2 kind=rb src=placement label=Magic_Roundabout x=1007 y=-5 r=150 nodes=12 edges=20
+[2026-10-12 12:00:19Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=3 kind=x src=placement label=Crossroads x=7 y=1995 r=90 nodes=12 edges=20
+[2026-10-12 12:00:20Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=4 kind=x src=placement label=Crossroads x=507 y=1995 r=90 nodes=12 edges=20
+[2026-10-12 12:00:21Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=5 kind=x src=placement label=Crossroads x=1007 y=1995 r=90 nodes=12 edges=20
+[2026-10-12 12:00:22Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=6 kind=rb src=placement label=Turbo_roundabout x=7 y=3995 r=140 nodes=12 edges=20
+[2026-10-12 12:00:23Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=7 kind=rb src=placement label=Turbo_roundabout x=1007 y=3995 r=140 nodes=12 edges=20
+[2026-10-12 12:00:24Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=8 kind=x src=placement label=T_junction x=7 y=5995 r=80 nodes=12 edges=20
+[2026-10-12 12:00:25Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=9 kind=rb src=placement label=Magic_Roundabout x=7 y=7995 r=150 nodes=12 edges=20
+[2026-10-12 12:00:26Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=10 kind=rb src=placement label=Magic_Roundabout x=1007 y=7995 r=150 nodes=12 edges=20
+[2026-10-12 12:00:27Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=1 zone=51 kind=town src=cluster label=Grid_S1 x=5000 y=5000 r=400 nodes=80 edges=120
+[2026-10-12 12:00:28Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=1 gt=1000000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:29Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=2 gt=1000000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:30Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=3 gt=1000000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:31Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=4 gt=1000000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:32Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=5 gt=1000000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:33Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=6 gt=1000000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:34Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=7 gt=1000000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:35Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=8 gt=1000000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:36Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=9 gt=1000000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:37Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=10 gt=1000000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:38Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=1 zone=51 gt=1000000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:00:39Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=1 gt=1000000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:00:40Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=1 gt=1000000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:00:41Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=1 gt=1000000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:00:42Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=1 gt=1000000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:00:43Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=1 gt=1000000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:00:44Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=1 gt=1000000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:00:45Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=1 gt=1030000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:46Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=2 gt=1030000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:47Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=3 gt=1030000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:48Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=4 gt=1030000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:49Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=5 gt=1030000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:50Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=6 gt=1030000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:51Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=7 gt=1030000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:52Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=8 gt=1030000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:53Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=9 gt=1030000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:54Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=10 gt=1030000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:00:55Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=2 zone=51 gt=1030000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:00:56Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=2 gt=1030000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:00:57Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=2 gt=1030000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:00:58Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=2 gt=1030000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:00:59Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=1 gt=1060000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:00Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=2 gt=1060000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:01Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=3 gt=1060000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:02Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=4 gt=1060000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:03Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=5 gt=1060000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:04Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=6 gt=1060000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:05Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=7 gt=1060000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:06Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=8 gt=1060000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:07Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=9 gt=1060000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:08Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=10 gt=1060000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:09Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=3 zone=51 gt=1060000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:01:10Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=3 gt=1060000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:01:11Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=3 gt=1060000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:01:12Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=3 gt=1060000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:01:13Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=3 gt=1060000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:01:14Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=3 gt=1060000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:01:15Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=3 gt=1060000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:01:16Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=1 gt=1090000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:17Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=2 gt=1090000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:18Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=3 gt=1090000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:19Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=4 gt=1090000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:20Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=5 gt=1090000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:21Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=6 gt=1090000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:22Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=7 gt=1090000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:23Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=8 gt=1090000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:24Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=9 gt=1090000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:25Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=10 gt=1090000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:26Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=4 zone=51 gt=1090000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:01:27Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=4 gt=1090000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:01:28Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=4 gt=1090000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:01:29Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=4 gt=1090000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:01:30Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=1 gt=1120000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:31Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=2 gt=1120000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:32Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=3 gt=1120000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:33Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=4 gt=1120000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:34Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=5 gt=1120000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:35Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=6 gt=1120000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:36Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=7 gt=1120000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:37Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=8 gt=1120000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:38Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=9 gt=1120000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:39Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=10 gt=1120000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:40Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=5 zone=51 gt=1120000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:01:41Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=5 gt=1120000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:01:42Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=5 gt=1120000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:01:43Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=5 gt=1120000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:01:44Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=5 gt=1120000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:01:45Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=5 gt=1120000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:01:46Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=5 gt=1120000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:01:47Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=1 gt=1150000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:48Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=2 gt=1150000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:49Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=3 gt=1150000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:50Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=4 gt=1150000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:51Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=5 gt=1150000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:52Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=6 gt=1150000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:53Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=7 gt=1150000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:54Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=8 gt=1150000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:55Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=9 gt=1150000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:56Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=10 gt=1150000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:01:57Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=6 zone=51 gt=1150000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:01:58Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=6 gt=1150000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:01:59Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=6 gt=1150000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:02:00Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=6 gt=1150000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:02:01Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=1 gt=1180000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:02:02Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=2 gt=1180000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:02:03Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=3 gt=1180000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:02:04Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=4 gt=1180000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:02:05Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=5 gt=1180000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:02:06Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=6 gt=1180000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:02:07Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=7 gt=1180000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:02:08Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=8 gt=1180000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:02:09Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=9 gt=1180000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:02:10Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=10 gt=1180000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:02:11Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=7 zone=51 gt=1180000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:02:12Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=7 gt=1180000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:02:13Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=7 gt=1180000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:02:14Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=7 gt=1180000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:02:15Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=7 gt=1180000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:02:16Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=7 gt=1180000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:02:17Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=7 gt=1180000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:02:18Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=1 gt=1210000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:02:19Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=2 gt=1210000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:02:20Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=3 gt=1210000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:02:21Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=4 gt=1210000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:02:22Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=5 gt=1210000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:02:23Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=6 gt=1210000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:02:24Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=7 gt=1210000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:02:25Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=8 gt=1210000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:02:26Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=9 gt=1210000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:02:27Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=10 gt=1210000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:02:28Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=8 zone=51 gt=1210000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:02:29Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=8 gt=1210000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:02:30Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=8 gt=1210000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:02:31Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=8 gt=1210000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:02:32Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=1 gt=1240000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:02:33Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=2 gt=1240000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:02:34Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=3 gt=1240000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:02:35Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=4 gt=1240000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:02:36Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=5 gt=1240000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:02:37Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=6 gt=1240000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:02:38Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=7 gt=1240000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:02:39Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=8 gt=1240000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:02:40Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=9 gt=1240000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:02:41Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=10 gt=1240000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:02:42Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=9 zone=51 gt=1240000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:02:43Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=9 gt=1240000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:02:44Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=9 gt=1240000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:02:45Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=9 gt=1240000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:02:46Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=9 gt=1240000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:02:47Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=9 gt=1240000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:02:48Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=9 gt=1240000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:02:49Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=1 gt=1270000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:02:50Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=2 gt=1270000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:02:51Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=3 gt=1270000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:02:52Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=4 gt=1270000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:02:53Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=5 gt=1270000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:02:54Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=6 gt=1270000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:02:55Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=7 gt=1270000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:02:56Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=8 gt=1270000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:02:57Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=9 gt=1270000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:02:58Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=10 gt=1270000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:02:59Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=10 zone=51 gt=1270000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:03:00Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=10 gt=1270000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:03:01Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=10 gt=1270000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:03:02Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=10 gt=1270000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:03:03Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=1 gt=1300000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:03:04Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=2 gt=1300000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:03:05Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=3 gt=1300000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:03:06Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=4 gt=1300000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:03:07Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=5 gt=1300000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:03:08Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=6 gt=1300000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:03:09Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=7 gt=1300000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:03:10Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=8 gt=1300000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:03:11Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=9 gt=1300000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:03:12Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=10 gt=1300000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:03:13Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=11 zone=51 gt=1300000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:03:14Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=11 gt=1300000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:03:15Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=11 gt=1300000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:03:16Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=11 gt=1300000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:03:17Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=11 gt=1300000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:03:18Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=11 gt=1300000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:03:19Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=1 s=11 gt=1300000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:03:20Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=1 gt=1330000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:03:21Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=2 gt=1330000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:03:22Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=3 gt=1330000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:03:23Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=4 gt=1330000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:03:24Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=5 gt=1330000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:03:25Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=6 gt=1330000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:03:26Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=7 gt=1330000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:03:27Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=8 gt=1330000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:03:28Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=9 gt=1330000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:03:29Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=10 gt=1330000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:03:30Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=12 zone=51 gt=1330000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:03:31Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=1 s=12 gt=1330000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:03:32Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=12 gt=1330000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:03:33Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=1 s=12 gt=1330000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:03:34Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=1 s=13 zone=1 gt=1360000 standing=1
+[2026-10-12 12:03:35Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_SUMMARY run=1 samples=12 gt0=1000000 gt1=1330000 wall_s=360 zones=11 drivers_mean=400 standing_frac=0.4 v_mean=5.5 v_rel=0.6 capped=0 skipped=0 warn=-
+[2026-10-12 12:03:36Z - MESSAGE  - Main Thread      - Main           ]  Loading config from file Showcase Test
+    | mod params:
+    |   square_stress_test = { }
+[2026-10-12 12:03:37Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] MODE phases=game free_turn=safe
+[2026-10-12 12:03:38Z - MESSAGE  - Main Thread      - Main           ]  [SQRL] ZONES op=loaded n=10 run=s777-1760280000-1
+[2026-10-12 12:03:39Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_START run=2 v=1 interval=30 zones=11 towns=8 buses=2 speed=4 keep_cleared=0 cap=3000 gt=1100000
+[2026-10-12 12:03:40Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=21 kind=rb src=placement label=Magic_Roundabout x=7 y=-5 r=150 nodes=12 edges=20
+[2026-10-12 12:03:41Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=22 kind=rb src=placement label=Magic_Roundabout x=1007 y=-5 r=150 nodes=12 edges=20
+[2026-10-12 12:03:42Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=23 kind=x src=placement label=Crossroads x=7 y=1995 r=90 nodes=12 edges=20
+[2026-10-12 12:03:43Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=24 kind=x src=placement label=Crossroads x=507 y=1995 r=90 nodes=12 edges=20
+[2026-10-12 12:03:44Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=25 kind=x src=placement label=Crossroads x=1007 y=1995 r=90 nodes=12 edges=20
+[2026-10-12 12:03:45Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=26 kind=rb src=placement label=Turbo_roundabout x=7 y=3995 r=140 nodes=12 edges=20
+[2026-10-12 12:03:46Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=27 kind=rb src=placement label=Turbo_roundabout x=1007 y=3995 r=140 nodes=12 edges=20
+[2026-10-12 12:03:47Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=28 kind=x src=placement label=T_junction x=7 y=5995 r=80 nodes=12 edges=20
+[2026-10-12 12:03:48Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=29 kind=rb src=placement label=Magic_Roundabout x=7 y=7995 r=150 nodes=12 edges=20
+[2026-10-12 12:03:49Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=30 kind=rb src=placement label=Magic_Roundabout x=1007 y=7995 r=150 nodes=12 edges=20
+[2026-10-12 12:03:50Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ZONE run=2 zone=71 kind=town src=cluster label=Grid_S1 x=5000 y=5000 r=400 nodes=80 edges=120
+[2026-10-12 12:03:51Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=21 gt=1100000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:03:52Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=22 gt=1100000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:03:53Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=23 gt=1100000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:03:54Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=24 gt=1100000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:03:55Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=25 gt=1100000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:03:56Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=26 gt=1100000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:03:57Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=27 gt=1100000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:03:58Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=28 gt=1100000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:03:59Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=29 gt=1100000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:00Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=30 gt=1100000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:01Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=1 zone=71 gt=1100000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:04:02Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=1 gt=1100000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:04:03Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=1 gt=1100000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:04:04Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=1 gt=1100000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:04:05Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=1 gt=1100000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:04:06Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=1 gt=1100000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:04:07Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=1 gt=1100000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:04:08Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=21 gt=1130000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:09Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=22 gt=1130000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:10Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=23 gt=1130000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:11Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=24 gt=1130000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:12Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=25 gt=1130000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:13Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=26 gt=1130000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:14Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=27 gt=1130000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:15Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=28 gt=1130000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:16Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=29 gt=1130000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:17Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=30 gt=1130000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:18Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=2 zone=71 gt=1130000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:04:19Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=2 gt=1130000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:04:20Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=2 gt=1130000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:04:21Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=2 gt=1130000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:04:22Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=21 gt=1160000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:23Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=22 gt=1160000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:24Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=23 gt=1160000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:25Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=24 gt=1160000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:26Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=25 gt=1160000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:27Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=26 gt=1160000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:28Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=27 gt=1160000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:29Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=28 gt=1160000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:30Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=29 gt=1160000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:31Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=30 gt=1160000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:32Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=3 zone=71 gt=1160000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:04:33Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=3 gt=1160000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:04:34Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=3 gt=1160000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:04:35Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=3 gt=1160000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:04:36Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=3 gt=1160000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:04:37Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=3 gt=1160000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:04:38Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=3 gt=1160000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:04:39Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=21 gt=1190000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:40Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=22 gt=1190000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:41Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=23 gt=1190000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:42Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=24 gt=1190000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:43Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=25 gt=1190000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:44Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=26 gt=1190000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:45Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=27 gt=1190000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:46Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=28 gt=1190000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:47Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=29 gt=1190000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:48Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=30 gt=1190000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:49Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=4 zone=71 gt=1190000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:04:50Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=4 gt=1190000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:04:51Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=4 gt=1190000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:04:52Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=4 gt=1190000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:04:53Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=21 gt=1220000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:54Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=22 gt=1220000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:55Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=23 gt=1220000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:56Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=24 gt=1220000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:57Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=25 gt=1220000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:58Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=26 gt=1220000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:04:59Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=27 gt=1220000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:00Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=28 gt=1220000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:01Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=29 gt=1220000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:02Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=30 gt=1220000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:03Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=5 zone=71 gt=1220000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:05:04Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=5 gt=1220000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:05:05Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=5 gt=1220000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:05:06Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=5 gt=1220000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:05:07Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=5 gt=1220000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:05:08Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=5 gt=1220000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:05:09Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=5 gt=1220000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:05:10Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=21 gt=1250000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:11Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=22 gt=1250000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:12Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=23 gt=1250000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:13Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=24 gt=1250000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:14Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=25 gt=1250000 cars=10 standing=10 queue=10 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:15Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=26 gt=1250000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:16Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=27 gt=1250000 cars=8 standing=8 queue=8 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:17Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=28 gt=1250000 cars=6 standing=6 queue=6 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:18Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=29 gt=1250000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:19Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=30 gt=1250000 cars=12 standing=12 queue=12 v_mean=1.0 v_med=1.0 v_rel=0.5 stand_mean=99.0 extra_key=7
+[2026-10-12 12:05:20Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=6 zone=71 gt=1250000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:05:21Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=6 gt=1250000 drivers=400 sampled=400 in_zones=120 standing=300 v_mean=1.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:05:22Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=6 gt=1250000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:05:23Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=6 gt=1250000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:05:24Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=21 gt=1280000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:05:25Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=22 gt=1280000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:05:26Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=23 gt=1280000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:05:27Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=24 gt=1280000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:05:28Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=25 gt=1280000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:05:29Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=26 gt=1280000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:05:30Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=27 gt=1280000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:05:31Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=28 gt=1280000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:05:32Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=29 gt=1280000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:05:33Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=30 gt=1280000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:05:34Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=7 zone=71 gt=1280000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:05:35Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=7 gt=1280000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:05:36Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=7 gt=1280000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:05:37Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=7 gt=1280000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:05:38Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=7 gt=1280000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:05:39Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=7 gt=1280000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:05:40Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=7 gt=1280000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:05:41Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=21 gt=1310000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:05:42Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=22 gt=1310000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:05:43Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=23 gt=1310000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:05:44Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=24 gt=1310000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:05:45Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=25 gt=1310000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:05:46Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=26 gt=1310000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:05:47Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=27 gt=1310000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:05:48Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=28 gt=1310000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:05:49Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=29 gt=1310000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:05:50Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=30 gt=1310000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:05:51Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=8 zone=71 gt=1310000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:05:52Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=8 gt=1310000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:05:53Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=8 gt=1310000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:05:54Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=8 gt=1310000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:05:55Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=21 gt=1340000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:05:56Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=22 gt=1340000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:05:57Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=23 gt=1340000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:05:58Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=24 gt=1340000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:05:59Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=25 gt=1340000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:06:00Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=26 gt=1340000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:06:01Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=27 gt=1340000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:06:02Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=28 gt=1340000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:06:03Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=29 gt=1340000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:06:04Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=30 gt=1340000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:06:05Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=9 zone=71 gt=1340000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:06:06Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=9 gt=1340000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:06:07Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=9 gt=1340000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:06:08Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=9 gt=1340000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:06:09Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=9 gt=1340000 scope=all towns=8 speed_mean=0.70 speed_min=0.40 levels=100,20,3,0 coef=1 ms=3.1
+[2026-10-12 12:06:10Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=9 gt=1340000 scope=town town=500 name=Grid_S1 speed=0.40 levels=10,5,1,0
+[2026-10-12 12:06:11Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_TOWNS run=2 s=9 gt=1340000 scope=town town=501 name=Grid_S2 speed=0.90 levels=10,0,0,0
+[2026-10-12 12:06:12Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=21 gt=1370000 cars=10 standing=2 queue=1 v_mean=8.0 v_med=8.0 v_rel=0.5 stand_mean=6.0 extra_key=7
+[2026-10-12 12:06:13Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=22 gt=1370000 cars=10 standing=4 queue=3 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=12.0 extra_key=7
+[2026-10-12 12:06:14Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=23 gt=1370000 cars=10 standing=3 queue=2 v_mean=5.0 v_med=5.0 v_rel=0.5 stand_mean=9.0 extra_key=7
+[2026-10-12 12:06:15Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=24 gt=1370000 cars=10 standing=2 queue=1 v_mean=6.0 v_med=6.0 v_rel=0.5 stand_mean=8.0 extra_key=7
+[2026-10-12 12:06:16Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=25 gt=1370000 cars=10 standing=1 queue=0 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=4.0 extra_key=7
+[2026-10-12 12:06:17Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=26 gt=1370000 cars=8 standing=1 queue=0 v_mean=9.0 v_med=9.0 v_rel=0.5 stand_mean=3.0 extra_key=7
+[2026-10-12 12:06:18Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=27 gt=1370000 cars=8 standing=6 queue=5 v_mean=2.0 v_med=2.0 v_rel=0.5 stand_mean=30.0 extra_key=7
+[2026-10-12 12:06:19Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=28 gt=1370000 cars=6 standing=0 queue=0 v_mean=10.0 v_med=10.0 v_rel=0.5 stand_mean=- extra_key=7
+[2026-10-12 12:06:20Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=29 gt=1370000 cars=12 standing=3 queue=1 v_mean=7.0 v_med=7.0 v_rel=0.5 stand_mean=5.0 extra_key=7
+[2026-10-12 12:06:21Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=30 gt=1370000 cars=12 standing=3 queue=2 v_mean=6.5 v_med=6.5 v_rel=0.5 stand_mean=7.0 extra_key=7
+[2026-10-12 12:06:22Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=10 zone=71 gt=1370000 cars=20 standing=5 queue=2 v_mean=9 v_med=9 v_rel=- stand_mean=4
+[2026-10-12 12:06:23Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_ALL run=2 s=10 gt=1370000 drivers=400 sampled=400 in_zones=120 standing=80 v_mean=8.0 v_med=8 v_rel=0.6 stand_mean=6 frames=20 sweep_ms=40 capped=0
+[2026-10-12 12:06:24Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=10 gt=1370000 line=9001 name=SQST_Bus_1 pair=g1 ab=sl vehicles=2 stops=2 rt_n=2 rt_mean=200 rt_min=190 rt_max=210 dep_age_max=40 freq=0.02
+[2026-10-12 12:06:25Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW_BUS run=2 s=10 gt=1370000 line=9002 name=SQST_Bus_2 pair=g1 ab=game vehicles=2 stops=2 rt_n=2 rt_mean=240 rt_min=230 rt_max=250 dep_age_max=60 freq=0.02
+[2026-10-12 12:59:59Z - MESSAGE  - Main Thread      - Main           ]  [SQST] FLOW run=2 s=11 zone=21 gt=14
