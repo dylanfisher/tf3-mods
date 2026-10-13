@@ -72,7 +72,7 @@ local function fakeApi()
 	local function getComponent(e, ct)
 		local ed = W.edges[e]
 		if ed and ct == "BASE_EDGE" then
-			return { node0 = ed.node0, node1 = ed.node1, objects = ed.objects,
+			return { node0 = ed.node0, node1 = ed.node1, objects = ed.objects, roadTemplate = ed.template,
 				tangent0 = { x = 100, y = 0, z = 0 }, tangent1 = { x = 100, y = 0, z = 0 } }
 		end
 		if ed and ct == "BASE_EDGE_STREET" then return {} end
@@ -477,7 +477,8 @@ end)
 test("auto bus lines: no depot near the town builds one FIRST (ring 300-700 m), then stops and line; the next line reuses it", function()
 	W.addTown(1, 0, 0)
 	W.depots = {}
-	W.best = -1
+	-- findBestDepotForLine finds the depot once it is built
+	api.engine.util.vehicle.findBestDepotForLine = function() return W.depots[811] and 811 or -1 end
 	api.engine.system.streetSystem = { getNode2StreetEdgeMap = function() return { [10] = { 60, 61 } } end }
 	api.engine.system.streetConnectorSystem.getConstructionEntityForDepot = function(d) return d == 811 and 700 or -1 end
 	W.extraComp = function(e, ct)
@@ -675,7 +676,7 @@ test("depot first: no depot anywhere and every spot collides = the town is skipp
 	ok(text:find("summary towns=1 ok=0 failed=1 lines=0 (complete 0) buses=0 wastedStops=0", 1, true) ~= nil, text)
 end)
 
-test("depot first: the last-resort far depot is used only if findBestDepotForLine confirms one; else the line is destroyed", function()
+test("depot first: the last-resort far depot is used only if findBestDepotForLine confirms one; else, no depot near stop 1 either, the line is destroyed with no bus bought", function()
 	W.addTown(1, 0, 0)
 	W.depots = { [900] = { carrier = 0, inNodes = { {} }, outNodes = {}, pos = { 9000, 0 } } }
 	W.best = -1
@@ -687,7 +688,8 @@ test("depot first: the last-resort far depot is used only if findBestDepotForLin
 	eq(#bl.lines, 0)
 	local text = logText()
 	ok(text:find("depot=900 (nearest anywhere, 9000m;", 1, true) ~= nil, text)
-	ok(text:find("last-resort depot 900 not confirmed (findBestDepotForLine=-1)", 1, true) ~= nil, text)
+	ok(text:find("no depot reaches the line (findBestDepotForLine=-1; depot 900: nearest anywhere, 9000m;", 1, true) ~= nil, text)
+	ok(text:find("and none could be built near stop 1 (0-400m of stop 1 inRing=", 1, true) ~= nil, text)
 	ok(text:find("destroyed=true, 2 stops wasted", 1, true) ~= nil, text)
 	ok(text:find("wastedStops=2", 1, true) ~= nil, text)
 	-- findBestDepotForLine finds one: the line is kept and the buses come from it
@@ -787,7 +789,7 @@ test("debounce: clicks while a bus-lines batch or removal is queued or running a
 	local text = logText()
 	local _, plans = text:gsub("bus_lines: 1 towns x 1 lines", "")
 	eq(plans, 1)
-	local _, refused = text:gsub("bus_lines: refused, bus_lines is still queued or running", "")
+	local _, refused = text:gsub("Busy: bus_lines: bus_lines is still queued or running", "")
 	eq(refused, 3)
 	pump()
 	eq(#bl.lines, 1)
@@ -795,8 +797,8 @@ test("debounce: clicks while a bus-lines batch or removal is queued or running a
 	bl.removeAdded()
 	bl.addBusLines()
 	bl.removeAdded()
-	ok(logText():find("bus_lines: refused, remove_bus_lines is still queued or running", 1, true) ~= nil, logText())
-	ok(logText():find("remove_bus_lines: refused, remove_bus_lines is still queued or running", 1, true) ~= nil, logText())
+	ok(logText():find("Busy: bus_lines: remove_bus_lines is still queued or running", 1, true) ~= nil, logText())
+	ok(logText():find("Busy: remove_bus_lines: remove_bus_lines is still queued or running", 1, true) ~= nil, logText())
 	pump()
 	eq(#bl.lines, 0)
 	-- idle again: a new batch is accepted
@@ -917,4 +919,566 @@ test("stop edges: never next to our earlier stops (across batches) or our depot 
 			for _, f in ipairs(first) do ok(math.abs(W.edges[e].x0 - W.edges[f].x0) >= 100, "stop next to an earlier one: " .. e) end
 		end
 	end
+end)
+
+---------------------------------------------------------------------------
+-- Route lines (Junction / Crossing test Traffic = Bus lines)
+
+test("route lines: a stop in each town, one line between them, the buses; one command in flight", function()
+	W.addTown(1, 0, 0)
+	W.addTown(2, 5000, 0)
+	bl.ui.buses = 1
+	local n = bl.addRouteLines("bus_lines_junction_test", "Junction test", {
+		{ a = { id = 1, x = 0, y = 0 }, b = { id = 2, x = 5000, y = 0 }, label = "Cell A1 Grid A1 -> Grid B2" },
+	})
+	eq(n, 1)
+	pump()
+	eq(W.maxInFlight, 1)
+	eq(kinds(), "stop,stop,line,buy,setLine,buy,setLine")
+	local s1, s2 = W.sent[1].proposal.streetProposal.edgesToRemove[1], W.sent[2].proposal.streetProposal.edgesToRemove[1]
+	eq(W.edges[s1].town, 1)
+	eq(W.edges[s2].town, 2)
+	eq(#bl.lines, 1)
+	eq(#bl.vehicles, 2)
+	local text = logText()
+	ok(text:find("[SQST] bus_lines_junction_test: 1 bus lines between Junction test towns x 2 buses", 1, true) ~= nil, text)
+	ok(text:find("bus_lines_junction_test town Cell A1 Grid A1 -> Grid B2 (1): 1 lines ok", 1, true) ~= nil, text)
+	ok(text:find("bus_lines_junction_test summary towns=1 ok=1 failed=0 lines=1", 1, true) ~= nil, text)
+	-- Remove added bus lines takes them too
+	bl.removeAdded()
+	pump()
+	eq(#bl.lines, 0)
+end)
+
+test("route lines: a batch stopped by a low balance says so in a dialog; moneyWarning only without Keep balance", function()
+	W.addTown(1, 0, 0)
+	W.addTown(2, 5000, 0)
+	W.balance = -92.1e6
+	local n = bl.addRouteLines("bus_lines_showcase", "Showcase", {
+		{ a = { id = 1, x = 0, y = 0 }, b = { id = 2, x = 5000, y = 0 }, label = "Showcase Grid S1 -> Grid S2" },
+	})
+	eq(n, 1)
+	pump()
+	eq(#W.sent, 0)
+	eq(#rt.warnings, 1)
+	eq(rt.warnings[1].title, "Showcase bus lines")
+	local body = rt.warnings[1].body
+	ok(body:find("Bus lines not added: the balance -92.1M is below 1M.", 1, true), body)
+	ok(body:find("Tick Keep balance (Game tab) or add money, then build the Showcase again", 1, true), body)
+	ok(bl.moneyWarning():find("Keep balance (Game tab) is off", 1, true))
+	rt.keepBalance = true
+	eq(bl.moneyWarning(), nil)
+	rt.keepBalance = false
+	-- Auto bus lines: the same dialog, its own re-run
+	rt.warnings = {}
+	bl.addBusLines()
+	pump()
+	eq(#rt.warnings, 1)
+	ok(rt.warnings[1].body:find("then press the button again.", 1, true), rt.warnings[1].body)
+end)
+
+test("route lines: two routes from one town use different stop edges; bad routes are left out", function()
+	W.addTown(1, 0, 0)
+	W.addTown(2, 5000, 0)
+	W.addTown(3, 0, 5000)
+	bl.ui.buses = 1
+	local t1, t2, t3 = { id = 1, x = 0, y = 0 }, { id = 2, x = 5000, y = 0 }, { id = 3, x = 0, y = 5000 }
+	eq(bl.addRouteLines("bus_lines_crossing_test", "Crossing test", { { a = t1, b = t1 }, { a = t1 }, {} }), 0, "nothing valid")
+	eq(#rt.queue.jobs, 0)
+	eq(bl.addRouteLines("bus_lines_crossing_test", "Crossing test", { { a = t1, b = t2 }, { a = t1, b = t3 } }), 2)
+	pump()
+	eq(#bl.lines, 2)
+	local seen = {}
+	for _, c in ipairs(W.sent) do
+		if c.kind == "build" and c.proposal.streetProposal.edgeObjectsToAdd then
+			local e = c.proposal.streetProposal.edgesToRemove[1]
+			ok(not seen[e], "edge used twice: " .. e)
+			seen[e] = true
+		end
+	end
+end)
+
+test("route lines: refused while a bus-lines job is queued or running (no stacking)", function()
+	W.addTown(1, 0, 0)
+	W.addTown(2, 5000, 0)
+	bl.ui.towns, bl.ui.lines, bl.ui.buses = 1, 1, 1
+	bl.addBusLines()
+	eq(bl.addRouteLines("bus_lines_junction_test", "Junction test", { { a = { id = 1, x = 0, y = 0 }, b = { id = 2, x = 5000, y = 0 } } }), 0)
+	ok(logText():find("Busy: bus_lines_junction_test: bus_lines is still queued or running; wait for it to finish.", 1, true) ~= nil, logText())
+	pump()
+	eq(#bl.lines, 1)
+end)
+
+test("route lines: streets removed while the job is queued or running (Remove all roads): fails cleanly, no error", function()
+	W.addTown(1, 0, 0)
+	W.addTown(2, 5000, 0)
+	W.addTown(3, 0, 5000)
+	bl.ui.buses = 1
+	local t1, t2, t3 = { id = 1, x = 0, y = 0 }, { id = 2, x = 5000, y = 0 }, { id = 3, x = 0, y = 5000 }
+	eq(bl.addRouteLines("bus_lines_junction_test", "Junction test", { { a = t1, b = t2 }, { a = t1, b = t3 } }), 2)
+	-- town 2's streets go before the first line starts
+	for e, ed in pairs(W.edges) do
+		if ed.town == 2 then W.edges[e] = nil W.removed[e] = true end
+	end
+	-- the second route's stop 2 edge goes after its stop 1 was placed
+	W.stopFails = function(e)
+		if W.edges[e] and W.edges[e].town == 1 and #bl.lines == 0 then
+			for e2, ed in pairs(W.edges) do
+				if ed.town == 3 then W.edges[e2] = nil W.removed[e2] = true end
+			end
+		end
+		return false
+	end
+	pump()
+	local text = logText()
+	ok(text:find("no free street edge in one of the towns", 1, true) ~= nil, text)
+	ok(text:find("bus_lines_junction_test summary towns=2 ok=0 failed=2 lines=0", 1, true) ~= nil, text)
+	ok(text:find("error:", 1, true) == nil, text)
+	eq(#bl.lines, 0)
+end)
+
+---------------------------------------------------------------------------
+-- Showcase in-game failures (2026-10-12, seed 204313): depots of another road network, an unconnected
+-- depot at the map edge, buses stuck in a depot
+
+--- buildDepot's world for one edge (50: 0,0 -> 100,0): every built depot gets the next id (811, 812,
+--- ...) and construction (701, 702, ...) with its free entrance node; connect(n) answers the n-th
+--- connection; removals are recorded.
+local function depotWorld(connect)
+	W.edges[50] = { node0 = 500, node1 = 501, objects = {}, x0 = 0, y = 0 }
+	W.nodes[500], W.nodes[501] = { x = 0, y = 0 }, { x = 100, y = 0 }
+	W.depots = {}
+	api.engine.util.proposal = { makeProposalData = function() return { errorState = { critical = false, messages = {} } } end }
+	local node2edges = {}
+	api.engine.system.streetSystem = { getNode2StreetEdgeMap = function() return node2edges end }
+	local built, connects, removed = 0, 0, {}
+	api.engine.system.streetConnectorSystem.getConstructionEntityForDepot = function(d) return d > 810 and d - 110 or -1 end
+	W.extraComp = function(e, ct)
+		if e > 700 and e < 710 and ct == "CONSTRUCTION" and not removed[e] then
+			return { frozenNodes = {}, frozenEdges = { e * 10 }, transf = { [13] = 50, [14] = 65, [15] = 0 } }
+		end
+		if e > 7000 and e < 7100 and ct == "BASE_EDGE" then return { node0 = e + 1, node1 = e + 2 } end
+		if e > 7000 and e < 7100 and ct == "BASE_NODE" then return { position = { x = 50, y = 30, z = 0 } } end
+	end
+	W.answer = function(cmd)
+		local p = cmd.proposal
+		if p.constructionsToRemove then
+			for _, c in ipairs(p.constructionsToRemove) do
+				removed[c] = true
+				W.depots[c + 110] = nil
+			end
+			return true, {}, {}
+		end
+		if p.constructionsToAdd then
+			built = built + 1
+			W.depots[810 + built] = { carrier = 0, inNodes = { {} }, outNodes = {} }
+			node2edges[(700 + built) * 10 + 1] = { 1 }
+			return true, {}, {}
+		end
+		connects = connects + 1
+		local ok_ = connect(connects)
+		if ok_ then node2edges[(700 + built) * 10 + 1] = { 1, 2 } end
+		return ok_, ok_ and {} or { resultProposalData = { errorState = { critical = true, messages = { "Construction Not Possible" } } } }, {}
+	end
+	return removed
+end
+
+test("buildDepot: a depot whose connection is refused is removed again and the next spot tried", function()
+	local removed = depotWorld(function(n) return n >= 2 end)
+	local result
+	bl.buildDepot("dep", { edgeGeo(50, 0, 0, 100, 0) }, 0, 0, function(ok_, details, depot) result = { ok_, details, depot } end)
+	pump()
+	ok(result[1], result[2])
+	eq(result[3], 812)
+	eq(kinds(), "depot,street,street,depot,street")   -- build, refused connect, removal, build, connect
+	ok(removed[701], "the unconnected depot's construction removed")
+	eq(bl.depots, { 812 })
+	ok(result[2]:find("not connected (", 1, true) and result[2]:find("Construction Not Possible", 1, true), result[2])
+	ok(result[2]:find("depot 811 removed=true", 1, true), result[2])
+	-- every connection refused: nothing is left standing
+	W.sent = {}
+	bl.depots = {}
+	removed = depotWorld(function() return false end)
+	bl.buildDepot("dep2", { edgeGeo(50, 0, 0, 100, 0) }, 0, 0, function(ok_, details, depot) result = { ok_, details, depot } end)
+	pump()
+	eq(result[1], false)
+	eq(#bl.depots, 0)
+	local n = 0
+	for _ in pairs(removed) do n = n + 1 end
+	eq(n, bl.DEPOT_MAX_SENDS, "each of the depots built is removed again")
+end)
+
+test("buildDepot: spots within MAP_MARGIN of the map edge are left out", function()
+	depotWorld(function() return true end)
+	-- the map's lower edge 450 m below the street: spots south of it (building origin at y = -65 ...) are out
+	api.engine.terrain.getBoundingBox = function() return { min = { x = -8000, y = -450 }, max = { x = 8000, y = 8000 } } end
+	ok(not bl.insideMap({ 0, -60 }, bl.MAP_MARGIN))
+	ok(bl.insideMap({ 0, -40 }, bl.MAP_MARGIN))
+	local result
+	bl.buildDepot("dep", { edgeGeo(50, 0, 0, 100, 0) }, 0, 0, function(ok_, details) result = { ok_, details } end)
+	pump()
+	ok(result[1], result[2])
+	ok(result[2]:find("spots=12 tried=1 pre={ok=1} sent=1 outside=12 [e50 t=0.50 L30", 1, true), result[2])
+	-- no box readable: nothing left out
+	api.engine.terrain.getBoundingBox = nil
+	ok(bl.insideMap({ 0, -1e9 }, bl.MAP_MARGIN))
+end)
+
+test("buses: a bus whose SetLine fails is sold again (never left in the depot)", function()
+	W.addTown(1, 0, 0)
+	local base = W.answer
+	W.answer = function(cmd)
+		if cmd.kind == "setLine" then return false, {}, {} end
+		return base(cmd)
+	end
+	bl.ui.towns, bl.ui.lines, bl.ui.buses = 1, 1, 1
+	bl.addBusLines()
+	pump()
+	eq(kinds(), "stop,stop,line,buy,setLine,sell,destroyLine")
+	eq(#bl.vehicles, 0)
+	ok(logText():find("setLine failed vehicle=", 1, true) and logText():find("; sold again=true", 1, true), logText())
+end)
+
+test("buses only from a depot that reaches the line: none -> a new depot near stop 1, asked again; still none -> no bus bought", function()
+	W.addTown(1, 0, 0)
+	W.depots = { [801] = { carrier = 0, inNodes = { {} }, outNodes = {}, pos = { 0, 50 } } }
+	-- the town's depot does not reach the line; one built near stop 1 does
+	local base = W.answer
+	local builtD = false
+	W.answer = function(cmd)
+		if cmd.kind == "build" and cmd.proposal.constructionsToAdd then
+			builtD = true
+			W.depots[811] = { carrier = 0, inNodes = { {} }, outNodes = {} }
+			return true, {}, {}
+		end
+		return base(cmd)
+	end
+	api.engine.system.streetSystem = { getNode2StreetEdgeMap = function() return { [10] = { 60, 61 } } end }
+	api.engine.system.streetConnectorSystem.getConstructionEntityForDepot = function(d) return d == 811 and 700 or -1 end
+	W.extraComp = function(e, ct)
+		if e == 700 and ct == "CONSTRUCTION" then return { frozenNodes = { 11 }, frozenEdges = { 60 }, transf = { [13] = 0, [14] = -65, [15] = 0 } } end
+		if e == 60 and ct == "BASE_EDGE" then return { node0 = 10, node1 = 11 } end
+		if e == 10 and ct == "BASE_NODE" then return { position = { x = 0, y = -30, z = 0 } } end
+	end
+	api.engine.util.vehicle.findBestDepotForLine = function() return builtD and 811 or -1 end
+	bl.ui.towns, bl.ui.lines, bl.ui.buses = 1, 1, 1
+	bl.addBusLines()
+	pump()
+	eq(kinds(), "stop,stop,line,depot,buy,setLine,buy,setLine")
+	for _, c in ipairs(W.sent) do if c.kind == "buy" then eq(c.depot, 811) end end
+	local text = logText()
+	ok(text:find("depot=801 (existing, 50m)", 1, true), text)
+	ok(text:find("buses from depot=811 (findBestDepotForLine=811 after depot 811 built 0-400m of stop 1)", 1, true), text)
+	-- no depot ever reaches the line: given up before any bus is bought
+	clear_logs()
+	W.sent = {}
+	builtD = false
+	api.engine.util.vehicle.findBestDepotForLine = function() return -1 end
+	bl.addBusLines()
+	pump()
+	ok(not kinds():find("buy", 1, true), kinds())
+	ok(logText():find("| no depot reaches the line (findBestDepotForLine=-1; depot 811", 1, true)
+		and logText():find("destroyed=true, 2 stops wasted", 1, true), logText())
+end)
+
+test("buses only from a depot that reaches the line: a line that vanished meanwhile gets no depot built and no bus", function()
+	W.addTown(1, 0, 0)
+	W.depots = { [801] = { carrier = 0, inNodes = { {} }, outNodes = {}, pos = { 0, 50 } } }
+	-- findBestDepotForLine finds nothing because the line is gone (removed elsewhere right after its creation)
+	api.engine.util.vehicle.findBestDepotForLine = function(_c, _m, line)
+		W.removed[line] = true
+		return -1
+	end
+	bl.ui.towns, bl.ui.lines, bl.ui.buses = 1, 1, 1
+	bl.addBusLines()
+	pump()
+	eq(kinds(), "stop,stop,line")
+	local text = logText()
+	ok(text:find("| line ", 1, true) and text:find(" is gone (findBestDepotForLine=-1) | line ", 1, true)
+		and text:find("kept (no longer a line), 2 stops wasted", 1, true), text)
+end)
+
+test("route lines with a network: our depot of another network is not reused; a new one on the town's own streets", function()
+	W.addTown(1, 0, 0)
+	W.addTown(2, 5000, 0)
+	W.depots = { [900] = { carrier = 0, inNodes = { {} }, outNodes = {}, pos = { 0, 1177 } } }   -- ours, another network
+	bl.depots = { 900 }
+	bl.depotNet[900] = "line 2"
+	local base = W.answer
+	W.answer = function(cmd)
+		if cmd.kind == "build" and cmd.proposal.constructionsToAdd then
+			W.depots[811] = { carrier = 0, inNodes = { {} }, outNodes = {} }
+			return true, {}, {}
+		end
+		return base(cmd)
+	end
+	api.engine.system.streetSystem = { getNode2StreetEdgeMap = function() return { [10] = { 60, 61 } } end }
+	api.engine.system.streetConnectorSystem.getConstructionEntityForDepot = function(d) return d == 811 and 700 or -1 end
+	W.extraComp = function(e, ct)
+		if e == 700 and ct == "CONSTRUCTION" then return { frozenNodes = { 11 }, frozenEdges = { 60 }, transf = { [13] = 450, [14] = -65, [15] = 0 } } end
+		if e == 60 and ct == "BASE_EDGE" then return { node0 = 10, node1 = 11 } end
+		if e == 10 and ct == "BASE_NODE" then return { position = { x = 450, y = -30, z = 0 } } end
+	end
+	api.engine.util.vehicle.findBestDepotForLine = function() return W.depots[811] and 811 or -1 end
+	bl.ui.buses = 1
+	eq(bl.addRouteLines("bus_lines_showcase", "Showcase", {
+		{ a = { id = 1, x = 0, y = 0 }, b = { id = 2, x = 5000, y = 0 }, label = "Showcase Grid S5 -> Grid S6", net = "group 1" },
+	}), 1)
+	pump()
+	eq(kinds(), "depot,stop,stop,line,buy,setLine,buy,setLine")
+	-- the new depot is on town 1's own streets and belongs to group 1 now
+	local ce = W.sent[1].proposal.constructionsToAdd[1]
+	ok(math.abs(ce.transf[4][1]) < 1000, "near town 1")
+	eq(bl.depotNet[811], "group 1")
+	local text = logText()
+	ok(text:find("depot=811 (built in ring 300-700m)", 1, true), text)
+	-- a second route of the same network reuses it; the existing player depots near the town are not taken
+	clear_logs()
+	W.sent = {}
+	bl.addRouteLines("bus_lines_showcase", "Showcase", {
+		{ a = { id = 1, x = 0, y = 0 }, b = { id = 2, x = 5000, y = 0 }, label = "Showcase Grid S5 -> Grid S7", net = "group 1" },
+	})
+	pump()
+	eq(kinds(), "stop,stop,line,buy,setLine,buy,setLine")
+	ok(logText():find("depot=811 (ours, ", 1, true) and logText():find("m, group 1)", 1, true), logText())
+end)
+
+-- Showcase v2 in-game failures (2026-10-12, seed 488838): every depot stub into the grid refused
+-- "Construction Not Possible", the one depot that connected sat by a junction's ramp with a dead-end gate,
+-- and the batch stopped after its first 3 of 40 routes
+
+test("busEdgeReject: highway, one-way, not a town street, outside the town grid, inside a junction zone", function()
+	local town = { id = 1, x = 0, y = 0, half = 300 }
+	local p0, p1 = { -50, 100 }, { 50, 100 }
+	local large = "::/infrastructure/street/town/town_new_large.street_template"
+	eq(logic.busEdgeReject(large, p0, p1, town, nil, true), nil)
+	eq(logic.busEdgeReject("::/infrastructure/street/highway/highway_new_medium.street_template", p0, p1, town, nil, true), "highway")
+	eq(logic.busEdgeReject("::/infrastructure/street/town/town_new_one_way_small.street_template", p0, p1, nil, nil, false), "oneway")
+	eq(logic.busEdgeReject("::/infrastructure/street/country/country_new_large.street_template", p0, p1, town, nil, true), "not_town")
+	eq(logic.busEdgeReject("::/infrastructure/street/country/country_new_large.street_template", p0, p1, nil, nil, false), nil,
+		"Auto bus lines: country roads are fine")
+	-- the grid's outer street (x = 300) is in, a link road leaving it is not
+	eq(logic.busEdgeReject(large, { 300, -50 }, { 300, 50 }, town, nil, true), nil)
+	eq(logic.busEdgeReject(large, { 300, 0 }, { 400, 0 }, town, nil, true), "outside_town")
+	eq(logic.busEdgeReject(large, { 300, 0 }, { 400, 0 }, { id = 1, x = 0, y = 0 }, nil, true), nil, "no grid: no square")
+	-- a zone of reach 150 m at 600,100 keeps edges within 250 m of its centre
+	local zones = { { 600, 100, 150 } }
+	eq(logic.busEdgeReject(large, { 300, 50 }, { 300, 150 }, town, zones, true), nil, "300 m away")
+	eq(logic.busEdgeReject(large, { 300, 50 }, { 300, 150 }, town, { { 500, 100, 150 } }, true), "zone")
+	eq(logic.busEdgeReject("", p0, p1, town, nil, true), nil, "unreadable template: only the geometry")
+	eq(logic.gridHalfOfSize(1), 200)
+	eq(logic.gridHalfOfSize(2), 300)
+	eq(logic.gridHalfOfSize(nil), 200)
+end)
+
+test("depot connection: the stub is the small town street and the gate node gets its two-way lane connections", function()
+	local g = edgeGeo(50, 0, 0, 100, 0)
+	W.edges[50] = { node0 = 500, node1 = 501, objects = {}, x0 = 0, y = 0 }
+	W.nodes[500], W.nodes[501] = { x = 0, y = 0 }, { x = 100, y = 0 }
+	W.depots = {}
+	local checked = {}
+	api.engine.util.proposal = { makeProposalData = function(p)
+		checked[#checked + 1] = p
+		return { errorState = { critical = false, messages = {} } }
+	end }
+	api.type.LaneConnection = { new = function() return {} end }
+	api.res.streetTemplateRep = {
+		find = function(path) return path end,
+		get = function(path) return { laneConfigs = { "lanes of " .. path }, streetStyle = "style of " .. path } end,
+	}
+	local node2edges = { [11] = { 60 } }
+	local gateConns = {}
+	api.engine.system.streetSystem = { getNode2StreetEdgeMap = function() return node2edges end }
+	api.engine.system.streetConnectorSystem.getConstructionEntityForDepot = function(d) return d == 811 and 700 or -1 end
+	W.extraComp = function(e, ct)
+		if e == 700 and ct == "CONSTRUCTION" then
+			return { frozenNodes = { 10 }, frozenEdges = { 60 }, transf = { [13] = 50, [14] = 65, [15] = 0 } }
+		end
+		if e == 60 and ct == "BASE_EDGE" then return { node0 = 11, node1 = 10 } end
+		if e == 10 and ct == "BASE_NODE" then return { position = { x = 50, y = 44.7, z = 0 } } end
+		if e == 11 and ct == "BASE_NODE" then return { position = { x = 50, y = 30, z = 0 } } end
+		if e == 11 and ct == "BASE_NODE_CONFIG" then return { laneConnections = gateConns, crosswalks = { 60 } } end
+	end
+	W.answer = function(cmd)
+		if cmd.proposal.constructionsToAdd then
+			W.depots[811] = { carrier = 0, inNodes = { {} }, outNodes = {} }
+			return true, {}, {}
+		end
+		node2edges[11] = { 60, 61 }
+		gateConns = { 1, 2 }
+		return true, {}, {}
+	end
+	local result
+	bl.buildDepot("dep", { g }, 0, 0, function(ok_, details, depot) result = { ok_, details, depot } end)
+	pump()
+	ok(result[1], result[2])
+	local sp = W.sent[2].proposal.streetProposal
+	local stub = sp.edgesToAdd[3]
+	eq(stub.entity, -3)
+	eq(stub.comp.node1, 11)
+	eq(stub.comp.roadTemplate, "::/infrastructure/street/town/town_new_small.street_template")
+	eq(stub.comp.laneConfigs, { "lanes of ::/infrastructure/street/town/town_new_small.street_template" })
+	-- the gate: its old config removed and a full one added (entrance edge 60 <-> stub -3, lane 1 -> 2)
+	eq(sp.nodeConfigsToRemove, { 11 })
+	local entry
+	for _, e in ipairs(sp.nodeConfigsToAdd) do if e.entity == 11 then entry = e end end
+	ok(entry ~= nil, "gate config")
+	eq(entry.comp.crosswalks, { 60 })
+	eq(entry.comp.laneConnections, {
+		{ segment0 = 60, lane0 = 1, segment1 = -3, lane1 = 2, withRoad = true, withTram = false },
+		{ segment0 = -3, lane0 = 1, segment1 = 60, lane1 = 2, withRoad = true, withTram = false },
+	})
+	-- the new split node -4 gets a config too (a new node without one can crash the simulation):
+	-- the two-way pattern over its 3 segments, a.1 -> b.2 for each ordered pair
+	local split
+	for _, e in ipairs(sp.nodeConfigsToAdd) do if e.entity == -4 then split = e end end
+	ok(split ~= nil, "config for the split node -4")
+	eq(#split.comp.laneConnections, 6)
+	for _, lc in ipairs(split.comp.laneConnections) do
+		ok(lc.segment0 ~= lc.segment1 and lc.lane0 == 1 and lc.lane1 == 2, "a.1 -> b.2")
+	end
+	-- the pre-check's stand-in -5 (a new 1-edge node) gets an empty config
+	local stand
+	for _, pp in ipairs(checked) do
+		for _, e in ipairs(pp.streetProposal.nodeConfigsToAdd or {}) do if e.entity == -5 then stand = e end end
+	end
+	ok(stand ~= nil and #stand.comp.laneConnections == 0, "empty config for the stand-in -5")
+	-- the split edge's end nodes 500 / 501 have no config in this world: each gets one, add only
+	local ends = {}
+	for _, e in ipairs(sp.nodeConfigsToAdd) do if e.entity == 500 or e.entity == 501 then ends[#ends + 1] = e.entity end end
+	table.sort(ends)
+	eq(ends, { 500, 501 })
+	local nc = ug_require "square_stress_test::/stress/gui/stress_nodecfg.tl"
+	eq(nc.problems(sp, function() return 4 end), {})
+	ok(result[2]:find("laneConns 0->2 (entrance edge 60, stub ::/infrastructure/street/town/town_new_small.street_template) connected=true", 1, true), result[2])
+	-- the pre-check's stand-in stub is the same small street, and the old era takes town_old_small
+	api.engine.util.getYear = function() return 1900 end
+	W.sent = {}
+	bl.depots = {}
+	node2edges[11] = { 60 }
+	gateConns = {}
+	W.depots = {}
+	bl.buildDepot("dep2", { g }, 0, 0, function(ok_, details, depot) result = { ok_, details, depot } end)
+	pump()
+	eq(W.sent[2].proposal.streetProposal.edgesToAdd[3].comp.roadTemplate, "::/infrastructure/street/town/town_old_small.street_template")
+end)
+
+test("depot connection: never a stub onto a highway or a one-way street", function()
+	local g = edgeGeo(50, 0, 0, 100, 0)
+	g.template = "::/infrastructure/street/town/town_new_one_way_small.street_template"
+	local h = edgeGeo(51, 0, 50, 100, 50)
+	h.template = "::/infrastructure/street/highway/highway_new_medium.street_template"
+	local result
+	bl.buildDepot("dep", { g, h }, 0, 0, function(ok_, details, depot) result = { ok_, details, depot } end)
+	pump()
+	eq(result[1], false)
+	ok(result[2]:find("no depot spot", 1, true), result[2])
+	eq(#W.sent, 0)
+end)
+
+test("depot connection: a gate left with no lane connections (dead end) counts as not connected; the depot is removed", function()
+	local g = edgeGeo(50, 0, 0, 100, 0)
+	W.edges[50] = { node0 = 500, node1 = 501, objects = {}, x0 = 0, y = 0 }
+	W.nodes[500], W.nodes[501] = { x = 0, y = 0 }, { x = 100, y = 0 }
+	W.depots = {}
+	api.engine.util.proposal = { makeProposalData = function() return { errorState = { critical = false, messages = {} } } end }
+	local node2edges = { [11] = { 60 } }
+	api.engine.system.streetSystem = { getNode2StreetEdgeMap = function() return node2edges end }
+	api.engine.system.streetConnectorSystem.getConstructionEntityForDepot = function(d) return d == 811 and 700 or -1 end
+	local removed = false
+	W.extraComp = function(e, ct)
+		if e == 700 and ct == "CONSTRUCTION" and not removed then
+			return { frozenNodes = { 10 }, frozenEdges = { 60 }, transf = { [13] = 50, [14] = 65, [15] = 0 } }
+		end
+		if e == 60 and ct == "BASE_EDGE" then return { node0 = 11, node1 = 10 } end
+		if e == 10 and ct == "BASE_NODE" then return { position = { x = 50, y = 44.7, z = 0 } } end
+		if e == 11 and ct == "BASE_NODE" then return { position = { x = 50, y = 30, z = 0 } } end
+		if e == 11 and ct == "BASE_NODE_CONFIG" then return { laneConnections = {}, crosswalks = {} } end
+	end
+	W.answer = function(cmd)
+		local p = cmd.proposal
+		if p.constructionsToRemove then removed = true W.depots[811] = nil node2edges[11] = { 60 } return true, {}, {} end
+		if p.constructionsToAdd then
+			removed = false
+			W.depots[811] = { carrier = 0, inNodes = { {} }, outNodes = {} }
+			return true, {}, {}
+		end
+		node2edges[11] = { 60, 61 }   -- joined, but the config stays empty
+		return true, {}, {}
+	end
+	local result
+	bl.buildDepot("dep", { g }, 0, 0, function(ok_, details, depot) result = { ok_, details, depot } end)
+	pump()
+	eq(result[1], false, result[2])
+	eq(#bl.depots, 0)
+	ok(result[2]:find("laneConns 0->0", 1, true) and result[2]:find("connected=false", 1, true), result[2])
+	ok(result[2]:find("depot 811 removed=true", 1, true), result[2])
+	-- gateText reads a depot's gate for the log
+	W.depots[811] = { carrier = 0, inNodes = { {} }, outNodes = {} }
+	removed = false
+	eq(bl.gateText(811), "gate node=11 streetEdges=1 laneConns=0")
+	eq(bl.gateText(999), "gate ?(no construction)")
+end)
+
+test("route lines: stops and depots only on the route's own town grid, never in a junction zone or on a highway", function()
+	W.addTown(1, 0, 0)
+	W.addTown(2, 5000, 0)
+	-- town 1's row runs x -500..500: with a 300 m grid only the edges within x -315..315 are its streets
+	for k = 0, 9 do W.edges[100 + k].template = "::/infrastructure/street/town/town_new_large.street_template" end
+	W.edges[105].template = "::/infrastructure/street/highway/highway_new_medium.street_template"   -- x 0..100
+	bl.ui.buses = 1
+	-- no depot of the network yet: the depot search keeps to the same streets
+	eq(bl.addRouteLines("bus_lines_showcase", "Showcase", {
+		{ a = { id = 1, x = 0, y = 0, half = 300 }, b = { id = 2, x = 5000, y = 0 }, label = "Showcase Grid S1 -> Grid S2",
+			net = "group 1", zones = { { -250, 0, 50 } } },
+	}), 1)
+	pump()
+	local depotText = logText()
+	ok(depotText:find("rings: 300-700m edges=0 rejected={highway=1,outside_town=4,zone=2}", 1, true), depotText)
+	for _, c in ipairs(W.sent) do
+		if c.kind == "build" and c.proposal.constructionsToAdd then
+			local x = c.proposal.constructionsToAdd[1].transf[4][1]
+			ok(x == -50 or x == 150 or x == 250, "depot beside edges 104/106/107 (middles -50, 150, 250): x=" .. x)
+		end
+	end
+	-- with a depot of the network: the stops
+	W.sent = {}
+	clear_logs()
+	W.depots[900] = { carrier = 0, inNodes = { {} }, outNodes = {}, pos = { 250, -100 } }
+	bl.depots = { 900 }
+	bl.depotNet[900] = "group 1"
+	eq(bl.addRouteLines("bus_lines_showcase", "Showcase", {
+		{ a = { id = 1, x = 0, y = 0, half = 300 }, b = { id = 2, x = 5000, y = 0 }, label = "Showcase Grid S1 -> Grid S2",
+			net = "group 1", zones = { { -250, 0, 50 } } },
+	}), 1)
+	pump()
+	-- the first stop (and the depot search) stays on town 1's grid: not 105 (highway), not 102/103 (zone at x -250
+	-- r 50+100: edges x -300..-100), not 100/101/108/109 (outside the grid)
+	local stops = {}
+	for _, c in ipairs(W.sent) do
+		if c.kind == "build" and c.proposal.streetProposal and c.proposal.streetProposal.edgeObjectsToAdd then
+			stops[#stops + 1] = c.proposal.streetProposal.edgesToRemove[1]
+		end
+	end
+	ok(#stops >= 1, logText())
+	ok(stops[1] == 104 or stops[1] == 106 or stops[1] == 107, "stop 1 on " .. tostring(stops[1]))
+	ok(logText():find("depot=900 (ours, ", 1, true), logText())
+end)
+
+test("route lines: the batch goes on past failed routes and stops only after MAX_ROUTE_FAILS", function()
+	W.addTown(1, 0, 0)
+	W.addTown(2, 5000, 0)
+	W.stopFails = function() return true end   -- every stop refused: every route fails
+	bl.ui.buses = 1
+	local routes = {}
+	for k = 1, bl.MAX_ROUTE_FAILS + 3 do
+		routes[k] = { a = { id = 1, x = 0, y = 0 }, b = { id = 2, x = 5000, y = 0 }, label = "Showcase route " .. k, net = "group 1" }
+	end
+	eq(bl.addRouteLines("bus_lines_showcase", "Showcase", routes), #routes)
+	pump()
+	local text = logText()
+	ok(text:find("(3/10 failed routes, going on)", 1, true), text)
+	ok(text:find("bus_lines_showcase stopped after 10 failed routes", 1, true), text)
+	ok(text:find("summary towns=13 ok=0 failed=10", 1, true), text)
+	ok(not text:find("failed towns in a row", 1, true), text)
 end)

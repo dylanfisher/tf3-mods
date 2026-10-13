@@ -13,5 +13,55 @@
         "Misc"
     ],
     "dependencies": [],
-    "url": ""
+    "url": "",
+    "localization": {
+        "ru": {
+            "name": "Отладка: стресс-тест",
+            "summary": "Инструмент разработчика: плотная, загруженная карта для тестов. Меняет сохранение; берите копию."
+        },
+        "de": {
+            "name": "Stresstest-Debug-Werkzeug",
+            "summary": "Für Entwickler: macht ein freies Spiel zur dichten Testkarte. Ändert den Spielstand; Kopie nutzen."
+        },
+        "fr": {
+            "name": "Outil de stress test",
+            "summary": "Pour développeurs : une partie libre devient une carte de test dense. Modifie la partie."
+        },
+        "es": {
+            "name": "Herramienta de prueba de estrés",
+            "summary": "Para desarrolladores: una partida libre pasa a ser un mapa de prueba denso. Cambia la partida."
+        },
+        "it": {
+            "name": "Strumento stress test",
+            "summary": "Per sviluppatori: una partita libera diventa una mappa di test densa. Modifica la partita."
+        },
+        "nl": {
+            "name": "Stresstest-debugtool",
+            "summary": "Voor ontwikkelaars: maakt van een vrij spel een drukke testkaart. Wijzigt je savegame."
+        },
+        "pl": {
+            "name": "Narzędzie testu obciążenia",
+            "summary": "Dla twórców: zmienia wolną grę w gęstą, ruchliwą mapę testową. Zmienia zapis gry; użyj kopii."
+        },
+        "pt_BR": {
+            "name": "Ferramenta de teste de estresse",
+            "summary": "Para desenvolvedores: um jogo livre vira um mapa de teste denso. Altera o jogo salvo; use uma cópia."
+        },
+        "ja": {
+            "name": "ストレステスト用デバッグツール",
+            "summary": "開発者向け：フリーゲームを高密度で混雑したベンチマークマップにします。セーブを変更するのでコピーを使用してください。"
+        },
+        "ko": {
+            "name": "스트레스 테스트 디버그 도구",
+            "summary": "개발자용: 자유 게임을 밀집되고 붐비는 벤치마크 맵으로 만듭니다. 저장 파일이 바뀌니 사본을 쓰세요."
+        },
+        "zh_CN": {
+            "name": "压力测试调试工具",
+            "summary": "开发者工具：把自由游戏变成密集繁忙的基准测试地图。会修改存档，请使用副本。"
+        },
+        "zh_TW": {
+            "name": "壓力測試除錯工具",
+            "summary": "開發者工具：把自由遊戲變成密集繁忙的基準測試地圖。會修改存檔，請使用副本。"
+        }
+    }
 }

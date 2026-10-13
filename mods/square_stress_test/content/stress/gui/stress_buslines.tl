@@ -29,7 +29,12 @@
 -- pre-check shows no error are sent (if the pre-check itself is unavailable, the spot is sent and the
 -- engine's answer decides), at most DEPOT_MAX_SENDS sends. A script proposal does not snap, so a second
 -- proposal splits the street edge at the spot and adds a stub street to the depot's free node; the
--- stub is verified by the street edge count at that node. Construction transforms never hold -0
+-- stub is verified by the street edge count and the lane connections at that node. The stub is the
+-- small town street (the entrance street's lanes), and the free node gets a full two-way config in the
+-- same proposal (2026-10-12 Showcase v2: stubs copied from the 8-lane grid street were all refused
+-- "Construction Not Possible"; the one gate that did join kept 0 lane connections, the red no-entry
+-- sign, and findBestDepotForLine found no depot; docs/findings/lines-vehicles.md "Script-built road
+-- depots"). Route lines build stops and depots only on their own town's streets (EdgeRule). Construction transforms never hold -0
 -- (docs/findings.md "Negative zero"): every matrix entry goes through z0.
 --
 -- LINE AND BUS (probe 10d). makeLineCreateCmd(name, color, player, Line{stops = {Stop{stationGroup,
@@ -45,8 +50,13 @@
 -- depot of the player within BUS_DEPOT_REUSE, else buildDepot over DEPOT_RINGS outward from the centre,
 -- else the nearest road depot anywhere, which only counts if findBestDepotForLine confirms a depot once
 -- the line exists); a town without one is skipped with nothing built. Then the stops and the line; the
--- buses come from findBestDepotForLine if it finds one, else the town's depot. A line left with no bus is
--- destroyed again (makeLineDestroyCmd) and its stops are logged as wasted. Every vehicle or line id is
+-- buses come only from a depot findBestDepotForLine confirms (2026-10-12: buses bought at a depot of
+-- another road network could not be put on the line); none: a new depot near stop 1 (STOP_DEPOT_RINGS),
+-- asked again, else the line is given up before any bus is bought. A bus whose SetLine fails is sold
+-- again. A line left with no bus is destroyed again (makeLineDestroyCmd) and its stops are logged as
+-- wasted. Depot spots stay MAP_MARGIN inside the map, and a depot whose street connection is refused is
+-- removed again before the next spot is tried. Route lines with a network (Showcase: bl.depotNet) reuse
+-- only depots of that network and build only on their own town's streets. Every vehicle or line id is
 -- re-checked (rt.isVehicle / rt.isLine) right before its command, and removal waits until the sold buses
 -- are gone before it deletes a line (the sixth run's crash: a TransportVehicle read on a non-vehicle).
 --
@@ -59,6 +69,7 @@
 local logic = ug_require "square_stress_test::/stress/stress_logic.tl" as SquareStressLogic
 local rt = ug_require "square_stress_test::/stress/gui/stress_runtime.tl" as SquareStressRuntime
 local towns = ug_require "square_stress_test::/stress/gui/stress_towns.tl" as SquareStressTowns
+local nc = ug_require "square_stress_test::/stress/gui/stress_nodecfg.tl" as SquareStressNodeCfg
 
 local bl : SquareStressBusLines = {
 	ui = { towns = 2, lines = 1, buses = 2 },
@@ -67,6 +78,7 @@ local bl : SquareStressBusLines = {
 	depots = {},
 	avoidPoints = {},
 	lastGroups = {},
+	lineTwins = {},
 }
 
 bl.MIN_STOP_EDGE = 30.0                -- chord; the stop sits at the middle, >= minDistToCrossing 10 m
@@ -88,9 +100,20 @@ bl.DEPOT_CLEAR_RADIUS = 80.0           -- buildings counted around an edge's mid
 bl.BUILT_RADIUS = 60.0                 -- an edge with a town building this close counts as built-up
 bl.MIN_LINE_BALANCE = 1000000          -- without Keep balance: no new line below this balance
 bl.MAX_TOWN_FAILS = 3                  -- stop the batch after this many failed towns in a row
+bl.MAX_ROUTE_FAILS = 10                -- route lines (Showcase, tests): stop after this many failed routes in all
 bl.LINE_TIMEOUT_MS = 300000            -- one line (depot rings, 2 stops, line, N buses) at most
 bl.REMOVE_WAIT_MS = 20000              -- Remove added bus lines: wait at most this for sold buses to be gone
 bl.REMOVE_POLL_MS = 500
+-- Depot spots (entrance and building origin) stay this far inside the map (the Junction test's and
+-- Showcase's MAP_MARGIN; 2026-10-12 a depot 294 m from the map edge connected "Construction Not Possible").
+bl.MAP_MARGIN = 400.0
+-- A line whose depot does not reach it (findBestDepotForLine finds none): a new depot is searched in
+-- these rings around its first stop (the stop's own town's streets) before the line is given up.
+bl.STOP_DEPOT_RINGS = { { 0.0, 400.0 }, { 400.0, 900.0 } }
+--- Showcase route lines: depot -> the road network ("group 3") it was built or confirmed
+--- for; a depot is reused only within its own network (2026-10-12: a depot of the roundabout line was
+--- reused for a group's line 1.2 km away on another network, findBestDepotForLine=-1, setLine failed).
+bl.depotNet = {}
 
 local EDGE_OBJECT_TEMP_ID <const> = -400000000
 local DEPOT_CON <const> = "::/depots/road/road_depot/road_depot.con"
@@ -313,6 +336,8 @@ function bl.edgeGeo(e : integer, cx : number, cy : number) : SquareStressEdgeGeo
 	if n0 == nil or n1 == nil then return nil, "noNodes" end
 	local g : SquareStressEdgeGeo = { id = e, node0 = be.node0, node1 = be.node1, p0 = fromVec3(n0.position),
 		p1 = fromVec3(n1.position), t0 = fromVec3(be.tangent0), t1 = fromVec3(be.tangent1) }
+	local okT, tpl = pcall(function() : string return tostring(be.roadTemplate) end)
+	g.template = okT and tpl ~= "nil" and tpl or ""
 	g.length = dist2(g.p0, g.p1)
 	if g.length < bl.MIN_STOP_EDGE then return nil, "short" end
 	g.mid, g.dmid = bl.hermiteAt(g.p0, g.t0, g.p1, g.t1, 0.5)
@@ -368,37 +393,27 @@ end
 ---------------------------------------------------------------------------
 -- Proposals
 
---- Node configs at the given nodes with oldEdge re-pointed (node -> new edge id), as move_it does.
+--- Node configs at the given nodes with oldEdge re-pointed (node -> new edge id). Read lane connections
+--- are read-only (docs/findings/roads.md "Junction lane connections"), so rt.nodeConfigEntry rebuilds
+--- them with api.type.LaneConnection.new(); a node without BASE_NODE_CONFIG is left out of both lists.
 local function nodeConfigs(oldEdge : integer, nodeToNew : {{integer}}) : {Proposal.BaseNodeLaneConnectionAndEntity}, {integer}
 	local add : {Proposal.BaseNodeLaneConnectionAndEntity} = {}
 	local rm : {integer} = {}
 	for _, pair in ipairs(nodeToNew) do
 		local node, newId = pair[1], pair[2]
-		local cfg = comp(node, api.type.ComponentType.BASE_NODE_CONFIG) as Engine.Component.BaseNodeConfig
-		if cfg ~= nil then
+		local okE, entry = pcall(rt.nodeConfigEntry, node, { [oldEdge] = newId }, nil)
+		if okE and entry ~= nil then
 			rm[#rm + 1] = node
-			local ae = api.type.BaseNodeLaneConnectionAndEntity.new()
-			ae.entity = node
-			ae.comp = cfg
-			local conns : {LaneConnection} = {}
-			for i = 1, #cfg.laneConnections do
-				local lc = cfg.laneConnections[i]
-				if lc.segment0 == oldEdge then lc.segment0 = newId end
-				if lc.segment1 == oldEdge then lc.segment1 = newId end
-				conns[#conns + 1] = lc
-			end
-			ae.comp.laneConnections = conns
-			local cws : {integer} = {}
-			for i = 1, #cfg.crosswalks do
-				local c = cfg.crosswalks[i]
-				cws[#cws + 1] = c == oldEdge and newId or c
-			end
-			ae.comp.crosswalks = cws
-			add[#add + 1] = ae
+			add[#add + 1] = entry
 		end
 	end
 	return add, rm
 end
+
+-- Lane counts, the engine's two-way pattern and new-node configs: gui/stress_nodecfg.tl (shared with the
+-- Junction test's link roads and the other street proposals).
+local edgeLanes = nc.edgeLanes
+local newNodeConfig = nc.newNodeConfig
 
 --- A street segment copied from srcEdge (BASE_EDGE + BASE_EDGE_STREET) with new ends.
 local function copiedSegment(id : integer, srcEdge : integer, n0 : integer, n1 : integer,
@@ -442,6 +457,8 @@ local function stopProposal(g : SquareStressEdgeGeo, model : string, stopName : 
 	eo.playerEntity = rt.player()
 	eo.name = stopName
 	local cfgAdd, cfgRm = nodeConfigs(g.id, { { g.node0, -1 }, { g.node1, -1 } })
+	-- an end node without a config (a script-made node) gets a fresh one (nc.complete)
+	nc.complete({ seg }, { g.id }, cfgAdd, cfgRm)
 	proposal.streetProposal.edgesToRemove = { g.id }
 	proposal.streetProposal.edgesToAdd = { seg }
 	proposal.streetProposal.edgeObjectsToAdd = { eo }
@@ -476,9 +493,62 @@ local function depotProposal(transf : Mat4f) : SimpleProposal
 	return proposal
 end
 
+--- The depot stub's street: the small town street of the year, whose lanes are exactly those of the
+--- depot's own entrance street (entrance_new / entrance_old: 4 lanes 3/5/5/3 m, the same street style:
+--- base infrastructure/street/{town,constructions}/*.street_template.lua). nil, nil when unreadable.
+local function stubTemplate() : string, StreetTemplate
+	local okY, year = pcall(api.engine.util.getYear)
+	local path = (okY and year ~= nil and year < logic.WIDE_GRID_NEW_FROM) and "::/infrastructure/street/town/town_old_small.street_template"
+		or "::/infrastructure/street/town/town_new_small.street_template"
+	local ok, tpl = pcall(function() : StreetTemplate return api.res.streetTemplateRep.get(api.res.streetTemplateRep.find(path)) end)
+	if not ok or tpl == nil then return nil, nil end
+	return path, tpl
+end
+
+--- The free entrance node's full node config (docs/findings/towns.md "Joining a script street to a town
+--- dead end", D3): a plain join keeps the node's old config (0 lane connections: the red no-entry sign
+--- at the depot gate), so the stub -3 and the depot's entrance edge get the engine's two-way pattern,
+--- incoming road lane 1 -> outgoing lane 2 both ways (4 lanes each; ot_proposal.junctionConns). The
+--- node is removed first only if it has a config (removing a missing one asserts Engine.cpp:693).
+--- Each segment's own lanes and direction pick the indices (nc.connsAt: the stub -3's from its proposal
+--- edge `stub`, the entrance edge's read), so a stub that fell back to a copy of a wider street still gets
+--- valid ones and the pattern follows the driving side; lane counts are the fallback. Any light phases
+--- of the old config are re-pointed (nc.relight; a depot gate has none in practice).
+local function gateConfig(node : integer, entranceEdge : integer, stub : Proposal.SegmentAndEntity, stubLanes : integer) : Proposal.BaseNodeLaneConnectionAndEntity, boolean
+	local cfg = comp(node, api.type.ComponentType.BASE_NODE_CONFIG) as Engine.Component.BaseNodeConfig
+	local entry = api.type.BaseNodeLaneConnectionAndEntity.new()
+	entry.entity = node
+	if cfg ~= nil then entry.comp = cfg end   -- keeps its crosswalks
+	if entry.comp == nil then entry.comp = {} as Engine.Component.BaseNodeConfig end
+	local bes : {integer : Engine.Component.BaseEdge} = {
+		[entranceEdge] = comp(entranceEdge, api.type.ComponentType.BASE_EDGE) as Engine.Component.BaseEdge,
+		[-3] = stub ~= nil and stub.comp or nil,
+	}
+	local conns = nc.connsAt(node, { entranceEdge, -3 }, bes, { [entranceEdge] = edgeLanes(entranceEdge), [-3] = stubLanes })
+	if cfg ~= nil then
+		-- every old connection is replaced; crosswalks stay where they were
+		local nOld, nCw = 0, 0
+		pcall(function()
+			nOld = #(cfg.laneConnections or {})
+			nCw = #(cfg.crosswalks or {})
+		end)
+		local plain : {{integer}} = {}
+		for _, c in ipairs(conns) do plain[#plain + 1] = { c.segment0, c.lane0, c.segment1, c.lane1 } end
+		local cwMap : {integer : integer} = {}
+		for k = 1, nCw do cwMap[k] = k end
+		nc.relight(entry, cfg, {}, nOld, plain, cwMap, nCw)
+	end
+	entry.comp.laneConnections = conns
+	return entry, cfg ~= nil
+end
+
 --- Splits g at param t (new node -4, halves -1 and -2) and adds a stub -3 from there to node (an
---- existing node, or a new node -5 at nodePos when node is nil: the pre-check's stand-in).
-local function connectProposal(g : SquareStressEdgeGeo, t : number, node : integer, nodePos : {number}) : SimpleProposal
+--- existing node, or a new node -5 at nodePos when node is nil: the pre-check's stand-in). The stub is
+--- the small town street (stubTemplate), not a copy of g: 2026-10-12 every stub copied from the 8-lane
+--- town_new_large grid street into the depot's 4-lane entrance node was refused "Construction Not
+--- Possible" while the same stub to a new node pre-checked ok. With entranceEdge (the depot's own
+--- entrance edge at node) the node gets its full config (gateConfig).
+local function connectProposal(g : SquareStressEdgeGeo, t : number, node : integer, nodePos : {number}, entranceEdge? : integer) : SimpleProposal
 	local proposal = api.type.SimpleProposal.new()
 	local p, d = bl.hermiteAt(g.p0, g.t0, g.p1, g.t1, t)
 	local split = api.type.NodeAndEntity.new()
@@ -497,7 +567,32 @@ local function connectProposal(g : SquareStressEdgeGeo, t : number, node : integ
 	local e1 = copiedSegment(-1, g.id, g.node0, -4, g.p0, scaled(g.t0, t), p, scaled(d, t))
 	local e2 = copiedSegment(-2, g.id, -4, g.node1, p, scaled(d, 1 - t), g.p1, scaled(g.t1, 1 - t))
 	local e3 = copiedSegment(-3, g.id, -4, target, p, stubT, nodePos, stubT)
+	local gLanes = edgeLanes(g.id)
+	local stubLanes = gLanes
+	local path, tpl = stubTemplate()
+	if path ~= nil then
+		e3.comp.roadTemplate = path
+		e3.comp.laneConfigs = tpl.laneConfigs
+		e3.comp.roadStyle = tpl.streetStyle
+		local okN, n = pcall(function() : integer return #tpl.laneConfigs end)
+		stubLanes = (okN and n ~= nil and n >= 3) and n or 4
+	end
+	e3.comp.roadDevelopmentLocked = false
 	local cfgAdd, cfgRm = nodeConfigs(g.id, { { g.node0, -1 }, { g.node1, -2 } })
+	-- the new split node -4 (and the pre-check's stand-in -5) get configs too; -4's from each segment's
+	-- own lanes and direction (nc.connsAt: the driving side is read, not assumed), -5 an empty one
+	cfgAdd[#cfgAdd + 1] = newNodeConfig(-4, {}, {})
+	cfgAdd[#cfgAdd].comp.laneConnections = nc.connsAt(-4, { -1, -2, -3 }, { [-1] = e1.comp, [-2] = e2.comp, [-3] = e3.comp },
+		{ [-1] = gLanes, [-2] = gLanes, [-3] = stubLanes })
+	if target == -5 then cfgAdd[#cfgAdd + 1] = newNodeConfig(-5, { -3 }, {}) end
+	if node ~= nil and entranceEdge ~= nil then
+		local entry, had = gateConfig(node, entranceEdge, e3, stubLanes)
+		cfgAdd[#cfgAdd + 1] = entry
+		if had then cfgRm[#cfgRm + 1] = node end
+	end
+	-- anything still without a config (an end node of g that has none, a target node without the gate
+	-- config) gets one (nc.complete)
+	nc.complete({ e1, e2, e3 }, { g.id }, cfgAdd, cfgRm)
 	proposal.streetProposal.nodesToAdd = nodes
 	proposal.streetProposal.edgesToRemove = { g.id }
 	proposal.streetProposal.edgesToAdd = { e1, e2, e3 }
@@ -589,11 +684,11 @@ end
 -- Depots
 
 --- The construction's free entrance node: the end of a frozen edge that is not frozen, nearest to pos.
-local function freeNode(con : Engine.Component.Construction, pos : {number}) : integer, {number}
+local function freeNode(con : Engine.Component.Construction, pos : {number}) : integer, {number}, integer
 	local CT = api.type.ComponentType
 	local frozen : {integer : boolean} = {}
 	for _, n in ipairs(con.frozenNodes or {}) do frozen[n] = true end
-	local best : integer = nil
+	local best, bestEdge : integer, integer = nil, nil
 	local bestPos : {number} = nil
 	local bestD = math.huge
 	for _, e in ipairs(con.frozenEdges or {}) do
@@ -604,12 +699,34 @@ local function freeNode(con : Engine.Component.Construction, pos : {number}) : i
 				if bn ~= nil and not frozen[n] then
 					local p = fromVec3(bn.position)
 					local d = dist2(p, pos)
-					if d < bestD then best, bestPos, bestD = n, p, d end
+					if d < bestD then best, bestPos, bestD, bestEdge = n, p, d, e end
 				end
 			end
 		end
 	end
-	return best, bestPos
+	return best, bestPos, bestEdge
+end
+
+--- A node's lane connections ("-1": no BASE_NODE_CONFIG).
+local function laneConnsAt(node : integer) : integer
+	local cfg = comp(node, api.type.ComponentType.BASE_NODE_CONFIG) as Engine.Component.BaseNodeConfig
+	if cfg == nil then return -1 end
+	return #(cfg.laneConnections or {})
+end
+
+--- The depot's gate for the log: "gate node=N streetEdges=E laneConns=L" (L = 0 at a gate with street
+--- edges: the red no-entry sign, buses can't leave the depot), or why it could not be read.
+function bl.gateText(depot : integer) : string
+	local ok, text = pcall(function() : string
+		local conE = api.engine.system.streetConnectorSystem.getConstructionEntityForDepot(depot)
+		local con = conE ~= nil and conE >= 0 and comp(conE, api.type.ComponentType.CONSTRUCTION) as Engine.Component.Construction or nil
+		if con == nil then return "gate ?(no construction)" end
+		local pos = bl.depotPos(depot) or { 0, 0, 0 }
+		local node = freeNode(con, pos)
+		if node == nil then return "gate ?(no free node)" end
+		return string.format("gate node=%d streetEdges=%d laneConns=%d", node, bl.streetEdgesAt(node), laneConnsAt(node))
+	end)
+	return ok and text or ("gate ?(" .. tostring(text) .. ")")
 end
 
 local function isValue(v : any, enumValue : any, text : string) : boolean
@@ -731,24 +848,88 @@ local function locateDepot(before : {integer : boolean}, res : {{integer}}, orig
 	return best, bestCon, string.format("VEHICLE_DEPOT +%d new=[%s] (total %d) result=%s", #new, table.concat(notes, " "), nAfter, resultText(res))
 end
 
+local function forget(list : {integer}, e : integer)
+	for k = #list, 1, -1 do
+		if list[k] == e then table.remove(list, k) end
+	end
+end
+
+--- Whether p (x, y) lies at least `margin` inside the map's terrain box (read once per call site and
+--- passed as box; nil: read now); true when the box can't be read.
+function bl.insideMap(p : {number}, margin : number, box? : Box2f) : boolean
+	if box == nil then
+		local ok, b = pcall(function() : Box2f return api.engine.terrain.getBoundingBox() end)
+		if not ok or b == nil then return true end
+		box = b
+	end
+	local ok, inside = pcall(function() : boolean
+		return p[1] >= box.min.x + margin and p[1] <= box.max.x - margin and p[2] >= box.min.y + margin and p[2] <= box.max.y - margin
+	end)
+	return not ok or inside
+end
+
 --- Builds a road depot beside one of the edges and connects its entrance to the street.
 --- onDone(ok, details, depot): ok = the depot exists and its entrance node got a street edge.
 function bl.buildDepot(name : string, edges : {SquareStressEdgeGeo}, cx : number, cy : number,
 		onDone : function(ok : boolean, details : string, depot : integer))
-	local tries = bl.depotTries(edges, bl.DEPOT_GAPS, bl.DEPOT_PARAMS)
+	-- never a stub onto a highway or one-way street (the split node's config is the two-way pattern)
+	local twoWay : {SquareStressEdgeGeo} = {}
+	for _, g in ipairs(edges) do
+		local r = logic.busEdgeReject(g.template, g.p0, g.p1, nil, nil, false)
+		if r ~= "highway" and r ~= "oneway" then twoWay[#twoWay + 1] = g end
+	end
+	edges = twoWay
+	local all = bl.depotTries(edges, bl.DEPOT_GAPS, bl.DEPOT_PARAMS)
+	-- spots whose entrance or building lies within MAP_MARGIN of the map edge are left out
+	local tries : {SquareStressDepotTry} = {}
+	local okBox, box = pcall(function() : Box2f return api.engine.terrain.getBoundingBox() end)
+	for _, c in ipairs(all) do
+		local _, origin = bl.depotTransf(c.entrance, c.n)
+		if not okBox or box == nil or (bl.insideMap(c.entrance, bl.MAP_MARGIN, box) and bl.insideMap(origin, bl.MAP_MARGIN, box)) then
+			tries[#tries + 1] = c
+		end
+	end
+	local outside = #all - #tries
 	local before = bl.listSet(api.type.ComponentType.VEHICLE_DEPOT)
 	local idx, sends = 0, 0
 	local pre : {string : integer} = {}
 	local sentText : {string} = {}
 	local function head() : string
-		return string.format("edges=%d spots=%d tried=%d pre={%s} sent=%d [%s]", #edges, #tries, idx, countsText(pre), sends,
-			table.concat(sentText, "; "))
+		return string.format("edges=%d spots=%d tried=%d pre={%s} sent=%d%s [%s]", #edges, #tries, idx, countsText(pre), sends,
+			outside > 0 and string.format(" outside=%d", outside) or "", table.concat(sentText, "; "))
 	end
 	if #tries == 0 then
 		onDone(false, head() .. " no depot spot (edges too short or no direction)", nil)
 		return
 	end
 	local nextBatch : function()
+
+	--- A depot that could not be connected is removed again (never left standing unconnected:
+	--- 2026-10-12) and the next spot tried; `why` goes into the log.
+	local function dropAndGoOn(c : SquareStressDepotTry, depot : integer, conE : integer, why : string)
+		sentText[#sentText + 1] = string.format("%s not connected (%s)", bl.tryText(c), why)
+		local function goOn(removed : boolean)
+			sentText[#sentText + 1] = string.format("depot %s removed=%s", str(depot), tostring(removed))
+			if removed then
+				forget(bl.depots, depot)
+				bl.depotNet[depot] = nil
+				for k = #bl.avoidPoints, 1, -1 do
+					if bl.avoidPoints[k] == c.entrance then table.remove(bl.avoidPoints, k) end
+				end
+			end
+			nextBatch()
+		end
+		if conE == nil or not api.engine.entityExists(conE) then goOn(false) return end
+		local okP, p = pcall(function() : SimpleProposal
+			local proposal = api.type.SimpleProposal.new()
+			proposal.constructionsToRemove = { conE }
+			return proposal
+		end)
+		if not okP or p == nil then goOn(false) return end
+		rt.send(name .. ":remove", api.cmd.makeWorldBuildProposalCmd(p, nil, false, false), function(okR : boolean, _d : any)
+			goOn(okR)
+		end)
+	end
 
 	local function connect(c : SquareStressDepotTry, depot : integer, conE : integer, located : string)
 		local info = located
@@ -757,32 +938,46 @@ function bl.buildDepot(name : string, edges : {SquareStressEdgeGeo}, cx : number
 			onDone(false, string.format("%s | %s | construction=%s has no CONSTRUCTION component", head(), info, str(conE)), depot)
 			return
 		end
-		local node, nodePos = freeNode(con, c.entrance)
+		local node, nodePos, entranceEdge = freeNode(con, c.entrance)
 		info = string.format("%s depot=%s construction=%d frozenNodes=%d frozenEdges=%d freeNode=%s", info, str(depot), conE,
 			#(con.frozenNodes or {}), #(con.frozenEdges or {}), str(node))
 		if node == nil then
-			onDone(false, head() .. " | " .. info .. " (no free entrance node found)", depot)
+			dropAndGoOn(c, depot, conE, info .. " no free entrance node found")
 			return
 		end
 		info = info .. string.format(" at %.1f,%.1f (%.1fm from target)", nodePos[1], nodePos[2], dist2(nodePos, c.entrance))
 		local edgesBefore = bl.streetEdgesAt(node)
 		if edgesBefore >= 2 then
-			onDone(depot ~= nil, head() .. " | " .. info .. string.format(" already connected (streetEdges at node=%d)", edgesBefore), depot)
+			local conns = laneConnsAt(node)
+			if conns == 0 then
+				dropAndGoOn(c, depot, conE, info .. string.format(" joined, but a dead end (streetEdges at node=%d, laneConns=0)", edgesBefore))
+				return
+			end
+			onDone(depot ~= nil, head() .. " | " .. info .. string.format(" already connected (streetEdges at node=%d, laneConns=%d)", edgesBefore, conns), depot)
 			return
 		end
 		local g2 : SquareStressEdgeGeo = nil
 		if api.engine.entityExists(c.edge.id) then g2 = bl.edgeGeo(c.edge.id, cx, cy) end
 		if g2 == nil then
-			onDone(false, head() .. " | " .. info .. string.format(" street edge %d changed; not connected", c.edge.id), depot)
+			dropAndGoOn(c, depot, conE, info .. string.format(" street edge %d changed", c.edge.id))
 			return
 		end
-		rt.send(name .. ":connect", api.cmd.makeWorldBuildProposalCmd(connectProposal(g2, c.t, node, nodePos), nil, false, false),
+		local connsBefore = laneConnsAt(node)
+		rt.send(name .. ":connect", api.cmd.makeWorldBuildProposalCmd(connectProposal(g2, c.t, node, nodePos, entranceEdge), nil, false, false),
 			function(okC : boolean, dataC : any)
 				rt.later(name .. ":connected", SETTLE_MS, function()
 					local edgesAfter = bl.streetEdgesAt(node)
-					local connected = okC and (edgesAfter >= 2 or edgesAfter > edgesBefore)
-					onDone(connected and depot ~= nil, string.format("%s | %s connect: success=%s %s streetEdges at node %d->%d connected=%s",
-						head(), info, tostring(okC), bl.errText(dataC), edgesBefore, edgesAfter, tostring(connected)), depot)
+					-- a gate joined with no lane connections is a dead end (the red no-entry sign): not connected
+					local connsAfter = laneConnsAt(node)
+					local connected = okC and (edgesAfter >= 2 or edgesAfter > edgesBefore) and connsAfter ~= 0
+					local text = string.format("%s connect: success=%s %s streetEdges at node %d->%d laneConns %d->%d (entrance edge %s, stub %s) connected=%s",
+						info, tostring(okC), bl.errText(dataC), edgesBefore, edgesAfter, connsBefore, connsAfter, str(entranceEdge),
+						(stubTemplate()) or "copy", tostring(connected))
+					if connected and depot ~= nil then
+						onDone(true, head() .. " | " .. text, depot)
+					else
+						dropAndGoOn(c, depot, conE, text)
+					end
 				end)
 			end)
 	end
@@ -980,6 +1175,12 @@ local function moneyMatters() : boolean
 	return not rt.keepBalance and not noCosts()
 end
 
+function bl.moneyWarning() : string
+	if not moneyMatters() then return nil end
+	return string.format("Keep balance (Game tab) is off: the build costs money, and its bus lines are not added if the balance is below %s by then.\nTick Keep balance now to be sure; the build goes on either way.",
+		logic.formatMoney(bl.MIN_LINE_BALANCE))
+end
+
 local COLORS : {{number}} = { { 0.9, 0.45, 0.1 }, { 0.2, 0.6, 0.9 }, { 0.3, 0.75, 0.3 }, { 0.85, 0.25, 0.5 }, { 0.6, 0.4, 0.85 }, { 0.9, 0.8, 0.2 } }
 
 --- makeLineCreateCmd over the station groups; onDone(line or nil, details).
@@ -1017,12 +1218,13 @@ function bl.bestDepotForLine(line : integer, x : number, y : number) : integer, 
 	return d, "findBestDepotForLine=" .. str(d)
 end
 
---- Our nearest connected depot (built this session) within r of (x, y).
-local function ourDepotNear(x : number, y : number, r : number) : integer, number
+--- Our nearest connected depot (built this session) within r of (x, y); with net, only one of that
+--- road network (bl.depotNet).
+local function ourDepotNear(x : number, y : number, r : number, net? : string) : integer, number
 	local best : integer = nil
 	local bestD = r
 	for _, d in ipairs(bl.depots) do
-		if api.engine.entityExists(d) then
+		if api.engine.entityExists(d) and (net == nil or bl.depotNet[d] == net) then
 			local p = bl.depotPos(d)
 			local dist = p ~= nil and dist2(p, { x, y }) or nil
 			if dist ~= nil and dist <= bestD then best, bestD = d, dist end
@@ -1066,13 +1268,22 @@ function bl.buyBuses(name : string, depot : integer, makeCfg : function() : Tran
 				onDone(bought, string.format("bought bus=%d is not a vehicle of yours now; setLine skipped", v))
 				return
 			end
+			-- a bus that can't go on the line is sold again at once (2026-10-12: two buses stayed in a depot
+			-- of another road network)
+			local function sellBack(why : string)
+				if not rt.isVehicle(v) then onDone(bought, why .. "; it is no vehicle now, not sold") return end
+				rt.send(name .. ":sell", api.cmd.makeVehicleSellCmd({ v }), function(okX : boolean, _dx : any)
+					if okX then forget(bl.vehicles, v) end
+					onDone(bought, string.format("%s; sold again=%s", why, tostring(okX)))
+				end)
+			end
 			if not rt.isLine(line) then
-				onDone(bought, string.format("line=%d is gone; setLine skipped (bus %d stays in the depot)", line, v))
+				sellBack(string.format("line=%d is gone; setLine skipped (bus %d)", line, v))
 				return
 			end
 			rt.send(name .. ":setLine", api.cmd.makeVehicleSetLineCmd(v, line, 0), function(okS : boolean, _d : any)
 				if not okS then
-					onDone(bought, string.format("setLine failed vehicle=%d line=%d (bought, stays in the depot)", v, line))
+					sellBack(string.format("setLine failed vehicle=%d line=%d", v, line))
 					return
 				end
 				bought = bought + 1
@@ -1106,11 +1317,40 @@ local function quietOnes(edges : {SquareStressEdgeGeo}) : {SquareStressEdgeGeo}
 	return out
 end
 
+--- Where a route line may build (logic.busEdgeReject): route = true for route lines (Showcase,
+--- Junction / Crossing test: own town streets only, its grid when town.half is set, out of the zones);
+--- Auto bus lines only keep off highways and one-way streets.
+local record EdgeRule
+	route : boolean
+	zones : {{number}}
+end
+
+--- The edges of cands that pass rule for town (all of them with no rule), and the rejected counts per
+--- reason added to why.
+local function ruleEdges(cands : {SquareStressEdgeGeo}, town : SquareStressTownPos, rule : EdgeRule,
+		why : {string : integer}) : {SquareStressEdgeGeo}
+	local out : {SquareStressEdgeGeo} = {}
+	local isRoute = rule ~= nil and rule.route
+	for _, g in ipairs(cands) do
+		local r = logic.busEdgeReject(g.template, g.p0, g.p1, isRoute and town or nil, rule ~= nil and rule.zones or nil, isRoute)
+		if r == nil then out[#out + 1] = g else why[r] = (why[r] or 0) + 1 end
+	end
+	return out
+end
+
+local function rejectedText(why : {string : integer}) : string
+	if next(why) == nil then return "" end
+	return string.format(" rejected={%s}", countsText(why))
+end
+
 --- The town's eligible street edges within TOWN_EDGE_RADIUS of its centre (the TOWN_EDGE_MAX nearest),
---- nearest the centre first, that belong to this town (closest town), and the built-up ones among them
---- (a town building within BUILT_RADIUS; octree TOWN_BUILDING). Third result: summary.
-local function townEdges(town : SquareStressTownPos) : {SquareStressEdgeGeo}, {SquareStressEdgeGeo}, string
-	local cands, info = bl.streetEdgeCandidates(town.x, town.y, bl.TOWN_EDGE_RADIUS)
+--- nearest the centre first, that belong to this town (closest town) and pass rule, and the built-up ones
+--- among them (a town building within BUILT_RADIUS; octree TOWN_BUILDING). Third result: summary.
+local function townEdges(town : SquareStressTownPos, rule : EdgeRule) : {SquareStressEdgeGeo}, {SquareStressEdgeGeo}, string
+	local all, info = bl.streetEdgeCandidates(town.x, town.y, bl.TOWN_EDGE_RADIUS)
+	local why : {string : integer} = {}
+	local cands = ruleEdges(all, town, rule, why)
+	info = info .. rejectedText(why)
 	local mine : {SquareStressEdgeGeo} = {}
 	local built : {SquareStressEdgeGeo} = {}
 	local other, octreeOk = 0, true
@@ -1156,12 +1396,6 @@ local function lineVehicles(line : integer) : {integer}
 	return vs
 end
 
-local function forget(list : {integer}, e : integer)
-	for k = #list, 1, -1 do
-		if list[k] == e then table.remove(list, k) end
-	end
-end
-
 local record TownRun
 	town : SquareStressTownPos
 	name : string
@@ -1171,6 +1405,25 @@ local record TownRun
 	depotHow : string
 	depotFar : boolean            -- last resort (nearest anywhere): used only if findBestDepotForLine confirms a depot
 	wasted : integer              -- stops built for lines that were given up
+	other : SquareStressTownPos   -- addRouteLines: the line's second town (stop 2 there); nil: both stops in town
+	net : string                  -- addRouteLines: the towns' road network (depots reused only within it); nil: any
+	twin : SquareStressLineTwin   -- addRouteLines: the Showcase twin the route serves (bl.lineTwins); nil: none
+	rule : EdgeRule               -- where its stops and depots may go (ruleEdges)
+end
+
+--- Whether a street edge belongs to the town (its closest town; true when that can't be read).
+local function inTown(g : SquareStressEdgeGeo, townId : integer) : boolean
+	local okT, t = pcall(api.engine.util.town.getClosestTown, api.type.Vec3f.new(g.mid[1], g.mid[2], 0))
+	return not okT or t == nil or t < 0 or t == townId
+end
+
+--- The edges of a list that belong to the town.
+local function townOnly(cands : {SquareStressEdgeGeo}, townId : integer) : {SquareStressEdgeGeo}
+	local out : {SquareStressEdgeGeo} = {}
+	for _, g in ipairs(cands) do
+		if inTown(g, townId) then out[#out + 1] = g end
+	end
+	return out
 end
 
 function bl.selectedLines() : integer
@@ -1198,13 +1451,17 @@ end
 --- any road depot of the player within BUS_DEPOT_REUSE, a new one (DEPOT_RINGS outward from the centre,
 --- RING_EDGES fewest-buildings edges per ring), else the nearest road depot anywhere (far = true).
 --- onDone(depot or nil, how, far).
+--- A route line (run.net set: Showcase) reuses only our depots of its own road network, builds on its
+--- own town's streets only, and has no last resort far away (each would be on another network).
 local function findDepot(name : string, run : TownRun, onDone : function(depot : integer, how : string, far : boolean))
 	local town = run.town
 	local clears = rt.queueClears
-	local ours, dOurs = ourDepotNear(town.x, town.y, bl.BUS_DEPOT_REUSE)
-	if ours ~= nil then onDone(ours, string.format("ours, %.0fm", dOurs), false) return end
-	local near, dNear = bl.nearestRoadDepot(town.x, town.y, bl.BUS_DEPOT_REUSE)
-	if near ~= nil then onDone(near, string.format("existing, %.0fm", dNear), false) return end
+	local ours, dOurs = ourDepotNear(town.x, town.y, bl.BUS_DEPOT_REUSE, run.net)
+	if ours ~= nil then onDone(ours, string.format("ours, %.0fm%s", dOurs, run.net ~= nil and (", " .. run.net) or ""), false) return end
+	if run.net == nil then
+		local near, dNear = bl.nearestRoadDepot(town.x, town.y, bl.BUS_DEPOT_REUSE)
+		if near ~= nil then onDone(near, string.format("existing, %.0fm", dNear), false) return end
+	end
 	local notes : {string} = {}
 	local ri = 0
 	local function rings() : string return table.concat(notes, "; ") end
@@ -1214,6 +1471,10 @@ local function findDepot(name : string, run : TownRun, onDone : function(depot :
 		local ring = bl.DEPOT_RINGS[ri]
 		if ring == nil then
 			rt.detail(string.format("[SQST] %s %s depot rings: %s", name, run.name, rings()))
+			if run.net ~= nil then
+				onDone(nil, string.format("no depot on the %s network; rings: %s", run.net, rings()), false)
+				return
+			end
 			local far, dFar = bl.nearestRoadDepot(town.x, town.y, math.huge)
 			if far ~= nil then
 				onDone(far, string.format("nearest anywhere, %.0fm; rings: %s", dFar, rings()), true)
@@ -1224,18 +1485,23 @@ local function findDepot(name : string, run : TownRun, onDone : function(depot :
 		end
 		local label = string.format("%.0f-%.0fm", ring[1], ring[2])
 		local cands = bl.streetEdgeCandidates(town.x, town.y, ring[2])
+		if run.net ~= nil then cands = townOnly(cands, town.id) end
+		local why : {string : integer} = {}
+		cands = ruleEdges(cands, town, run.rule, why)
+		local rej = rejectedText(why)
 		local edges, inRing = bl.ringPick(cands, ring[1], ring[2], bl.RING_SAMPLE, bl.RING_EDGES,
 			function(g : SquareStressEdgeGeo) : number return depotScore(g, town.id) end)
 		if #edges == 0 then
-			notes[#notes + 1] = label .. " edges=0"
+			notes[#notes + 1] = label .. " edges=0" .. rej
 			tryRing()
 			return
 		end
 		bl.buildDepot(name .. ":depot", edges, town.x, town.y, function(okD : boolean, dd : string, depot : integer)
-			notes[#notes + 1] = string.format("%s inRing=%d %s", label, inRing, bl.depotShort(dd))
+			notes[#notes + 1] = string.format("%s inRing=%d%s %s", label, inRing, rej, bl.depotShort(dd))
 			rt.detail(string.format("[SQST] %s %s depot %s: %s", name, run.name, label, dd))
 			if okD then
 				rt.detail(string.format("[SQST] %s %s depot rings: %s", name, run.name, rings()))
+				if run.net ~= nil then bl.depotNet[depot] = run.net end
 				onDone(depot, "built in ring " .. label, false)
 				return
 			end
@@ -1246,10 +1512,75 @@ local function findDepot(name : string, run : TownRun, onDone : function(depot :
 	tryRing()
 end
 
+--- A new depot near a line's first stop g, on the streets of the run's town (STOP_DEPOT_RINGS around
+--- the stop): for a line no depot reaches yet. onDone(depot or nil, how).
+local function stopDepot(name : string, run : TownRun, g : SquareStressEdgeGeo, onDone : function(depot : integer, how : string))
+	local notes : {string} = {}
+	local ri = 0
+	local clears = rt.queueClears
+	local tryRing : function()
+	tryRing = function()
+		if rt.queueClears ~= clears then onDone(nil, "queue cleared") return end
+		ri = ri + 1
+		local ring = bl.STOP_DEPOT_RINGS[ri]
+		if ring == nil then
+			onDone(nil, table.concat(notes, "; "))
+			return
+		end
+		local label = string.format("%.0f-%.0fm of stop 1", ring[1], ring[2])
+		local why : {string : integer} = {}
+		local cands = ruleEdges(townOnly(bl.streetEdgeCandidates(g.mid[1], g.mid[2], ring[2]), run.town.id), run.town, run.rule, why)
+		local rej = rejectedText(why)
+		local edges, inRing = bl.ringPick(cands, ring[1], ring[2], bl.RING_SAMPLE, bl.RING_EDGES,
+			function(e : SquareStressEdgeGeo) : number return depotScore(e, run.town.id) end)
+		if #edges == 0 then
+			notes[#notes + 1] = label .. " edges=0" .. rej
+			tryRing()
+			return
+		end
+		bl.buildDepot(name .. ":depot", edges, g.mid[1], g.mid[2], function(okD : boolean, dd : string, depot : integer)
+			notes[#notes + 1] = string.format("%s inRing=%d%s %s", label, inRing, rej, bl.depotShort(dd))
+			rt.detail(string.format("[SQST] %s %s depot %s: %s", name, run.name, label, dd))
+			if okD then
+				if run.net ~= nil then bl.depotNet[depot] = run.net end
+				onDone(depot, "built " .. label)
+				return
+			end
+			tryRing()
+		end)
+	end
+	tryRing()
+end
+
 --- Two free stop edges for a line: built-up edges without traffic first, then built-up, then any town
 --- edge without traffic, then any; never within STOP_AVOID of our stops or depot entrances.
-local function pickStops(town : SquareStressTownPos) : SquareStressEdgeGeo, SquareStressEdgeGeo, string, string
-	local mine, built, info = townEdges(town)
+--- One free stop edge in a town (same pool order as pickStops), for a line between two towns.
+local function pickOne(town : SquareStressTownPos, rule : EdgeRule) : SquareStressEdgeGeo, string, string
+	local mine, built, info = townEdges(town, rule)
+	local names : {string} = { "builtUp,quiet", "builtUp", "all,quiet", "all" }
+	for i, poolName in ipairs(names) do
+		local pool : {SquareStressEdgeGeo}
+		if i == 1 then pool = quietOnes(built) elseif i == 2 then pool = built elseif i == 3 then pool = quietOnes(mine) else pool = mine end
+		for _, g in ipairs(pool) do
+			local free = true
+			for _, p in ipairs(bl.avoidPoints) do
+				if dist2(g.mid, p) < bl.STOP_AVOID then free = false break end
+			end
+			if free then return g, poolName, info end
+		end
+	end
+	return nil, nil, info
+end
+
+local function pickStops(town : SquareStressTownPos, other : SquareStressTownPos, rule : EdgeRule) : SquareStressEdgeGeo, SquareStressEdgeGeo, string, string
+	if other ~= nil then
+		local a, poolA, infoA = pickOne(town, rule)
+		local b, poolB, infoB = pickOne(other, rule)
+		local info = infoA .. " | " .. infoB
+		if a == nil or b == nil then return nil, nil, nil, info end
+		return a, b, poolA .. "/" .. poolB, info
+	end
+	local mine, built, info = townEdges(town, rule)
 	local names : {string} = { "builtUp,quiet", "builtUp", "all,quiet", "all" }
 	for i, poolName in ipairs(names) do
 		local pool : {SquareStressEdgeGeo}
@@ -1274,8 +1605,12 @@ local function runLine(name : string, run : TownRun, k : integer, buses : intege
 		onDone(false, "queue cleared")
 		return true
 	end
-	local a, b, pool, info = pickStops(town)
+	local a, b, pool, info = pickStops(town, run.other, run.rule)
 	if a == nil then
+		if run.other ~= nil then
+			onDone(false, string.format("%s no free street edge in one of the towns (%s); nothing built", head, info))
+			return
+		end
 		onDone(false, string.format("%s no two free street edges %.0f-%.0f m apart (%s); nothing built", head, bl.PAIR_MIN, bl.PAIR_MAX, info))
 		return
 	end
@@ -1319,26 +1654,49 @@ local function runLine(name : string, run : TownRun, k : integer, buses : intege
 						return
 					end
 					bl.lines[#bl.lines + 1] = line
+					if run.twin ~= nil then bl.lineTwins[line] = run.twin end
 					rt.detail(string.format("[SQST] %s %s created %s stationGroups=%d,%d", name, run.name, dl, g1, g2))
 					head = head .. " " .. dl
 					if stopped(0) then return end
-					local depot = run.depot
+					local function buy(depot : integer, info : string)
+						if run.net ~= nil and bl.depotNet[depot] == nil then bl.depotNet[depot] = run.net end
+						head = head .. string.format(" buses from depot=%d (%s)", depot, info)
+						bl.buyBuses(name, depot, makeCfg, buses, line, function(bought : integer, failure : string)
+							if failure == nil then
+								onDone(true, string.format("%s buses=%d/%d", head, bought, buses))
+							elseif bought == 0 and failure ~= "queue cleared" then
+								abandon(line, string.format("buses=0/%d | %s", buses, failure))
+							else
+								onDone(false, string.format("%s buses=%d/%d | %s", head, bought, buses, failure))
+							end
+						end)
+					end
+					-- Buses only from a depot findBestDepotForLine confirms reaches the line (2026-10-12: bought at
+					-- a depot of another road network, setLine failed and the bus stayed there). None: the town's
+					-- depot is on another network or not connected; a new depot near stop 1, asked again; still
+					-- none: the line is given up before any bus is bought.
 					local best, bestInfo = bl.bestDepotForLine(line, a.mid[1], a.mid[2])
-					if best ~= nil then
-						depot = best
-					elseif run.depotFar then
-						abandon(line, string.format("last-resort depot %d not confirmed (%s)", run.depot, bestInfo))
+					if best ~= nil then buy(best, bestInfo) return end
+					-- a line that vanished meanwhile gets no depot built for it
+					if not rt.isLine(line) then
+						abandon(line, string.format("line %d is gone (%s)", line, bestInfo))
 						return
 					end
-					head = head .. string.format(" buses from depot=%d (%s)", depot, bestInfo)
-					bl.buyBuses(name, depot, makeCfg, buses, line, function(bought : integer, failure : string)
-						if failure == nil then
-							onDone(true, string.format("%s buses=%d/%d", head, bought, buses))
-						elseif bought == 0 and failure ~= "queue cleared" then
-							abandon(line, string.format("buses=0/%d | %s", buses, failure))
-						else
-							onDone(false, string.format("%s buses=%d/%d | %s", head, bought, buses, failure))
+					stopDepot(name, run, a, function(depot : integer, how : string)
+						if stopped(0) then return end
+						if depot == nil then
+							abandon(line, string.format("no depot reaches the line (%s; depot %d: %s, %s) and none could be built near stop 1 (%s)",
+								bestInfo, run.depot, run.depotHow, bl.gateText(run.depot), how))
+							return
 						end
+						local best2, info2 = bl.bestDepotForLine(line, a.mid[1], a.mid[2])
+						if best2 == nil then
+							abandon(line, string.format("no depot reaches the line (%s; depot %d: %s, %s), not even depot %d %s (%s, %s)", bestInfo,
+								run.depot, run.depotHow, bl.gateText(run.depot), depot, how, bl.gateText(depot), info2))
+							return
+						end
+						run.depot, run.depotHow, run.depotFar = depot, how, false
+						buy(best2, string.format("%s after depot %d %s", info2, depot, how))
 					end)
 				end)
 			end)
@@ -1348,7 +1706,7 @@ local function runLine(name : string, run : TownRun, k : integer, buses : intege
 	local function afterDepot()
 		if stopped(0) then return end
 		if not api.engine.entityExists(a.id) or not api.engine.entityExists(b.id) then
-			a, b, pool, info = pickStops(town)   -- the depot's street connection replaced one of them
+			a, b, pool, info = pickStops(town, run.other, run.rule)   -- the depot's street connection replaced one of them
 			if a == nil then
 				onDone(false, string.format("%s depot=%d (%s), then no two free street edges (%s); no stop built", head, run.depot, run.depotHow, info))
 				return
@@ -1374,9 +1732,12 @@ local BUS_JOBS : {string} = { "bus_lines", "remove_bus_lines" }
 local function refuseBusy(name : string) : boolean
 	local busy = rt.busyJob(BUS_JOBS)
 	if busy == nil then return false end
-	rt.log(string.format("[SQST] %s: refused, %s is still queued or running", name, busy))
+	rt.warn("Busy", string.format("%s: %s is still queued or running; wait for it to finish.", name, busy))
 	return true
 end
+
+local runBatch : function(name : string, label : string, runs : {TownRun}, nLines : integer, nBuses : integer, rerun : string,
+	routes? : boolean)
 
 function bl.addBusLines()
 	local name = "bus_lines"
@@ -1389,19 +1750,34 @@ function bl.addBusLines()
 	end
 	local picked = logic.busTownPick(towns.townPositions(), cx, cy, bl.ui.towns)
 	if #picked == 0 then
-		rt.log("[SQST] bus_lines: no town found")
+		rt.warn("Bus lines", "No town found on the map.")
 		return
 	end
 	local runs : {TownRun} = {}
-	local plan : {{integer}} = {}   -- {run index, line k}
 	for i, t in ipairs(picked) do
-		runs[i] = { town = t, name = entityName(t.id), failed = false, done = 0, wasted = 0 }
+		runs[i] = { town = t, name = entityName(t.id), failed = false, done = 0, wasted = 0, rule = { route = false } }
+	end
+	rt.log(string.format("[SQST] %s: %d towns x %d lines x %d buses (%d lines)", name, #runs, nLines, nBuses, #runs * nLines))
+	runBatch(name, "Bus lines", runs, nLines, nBuses, "then press the button again.")
+end
+
+--- The serial batch behind addBusLines and addRouteLines: nLines lines per run, one step at a time.
+--- A batch that stops early (no money, no bus, failed towns) says so in a dialog (label: its title;
+--- rerun: how to try again, after the fix). Auto bus lines stop after MAX_TOWN_FAILS failed towns in a
+--- row (the town ring around the camera: no money or no room repeats); route lines (routes, each its own
+--- pair of towns: 2026-10-12 the Showcase stopped after its first 3 of 40 routes) go on past a failed
+--- route and stop only after MAX_ROUTE_FAILS failed routes in all.
+runBatch = function(name : string, label : string, runs : {TownRun}, nLines : integer, nBuses : integer, rerun : string,
+		routes? : boolean)
+	local plan : {{integer}} = {}   -- {run index, line k}
+	for i = 1, #runs do
 		for k = 1, nLines do plan[#plan + 1] = { i, k } end
 	end
-	rt.log(string.format("[SQST] %s: %d towns x %d lines x %d buses (%d lines)", name, #runs, nLines, nBuses, #plan))
 	local stats = { lines = 0, townsOk = 0, townsFailed = 0 }
 	local failsInRow = 0
 	local stopReason : string = nil
+	local stopWhy : string = nil   -- the dialog's text for stopReason (nil: stopReason)
+	local stopFix = "Check the log ([SQST] " .. name .. "), "   -- and its advice
 	local token = 0
 	local modelId : integer = nil
 	local modelInfo : string = nil
@@ -1419,6 +1795,15 @@ function bl.addBusLines()
 			stats.townsOk = stats.townsOk + 1
 			failsInRow = 0
 			rt.log(string.format("[SQST] %s town %s (%d): %d lines ok", name, run.name, run.town.id, run.done))
+		elseif routes then
+			stats.townsFailed = stats.townsFailed + 1
+			rt.log(string.format("[SQST] %s town %s (%d) failed after %d lines: %s (%d/%d failed routes, going on)", name, run.name,
+				run.town.id, run.done, why, stats.townsFailed, bl.MAX_ROUTE_FAILS))
+			if stats.townsFailed >= bl.MAX_ROUTE_FAILS then
+				stopReason = string.format("%d failed routes", stats.townsFailed)
+				rt.log(string.format("[SQST] %s stopped after %d failed routes", name, stats.townsFailed))
+				logic.stop(job)
+			end
 		else
 			stats.townsFailed = stats.townsFailed + 1
 			failsInRow = failsInRow + 1
@@ -1456,6 +1841,8 @@ function bl.addBusLines()
 			if balance ~= nil and balance < bl.MIN_LINE_BALANCE then
 				stopReason = string.format("balance %s below %s; tick Keep balance or add money", logic.formatMoney(balance),
 					logic.formatMoney(bl.MIN_LINE_BALANCE))
+				stopWhy = string.format("the balance %s is below %s", logic.formatMoney(balance), logic.formatMoney(bl.MIN_LINE_BALANCE))
+				stopFix = "Tick Keep balance (Game tab) or add money, "
 				rt.log(string.format("[SQST] %s stopped: %s", name, stopReason))
 				logic.stop(job)
 				return
@@ -1494,7 +1881,7 @@ function bl.addBusLines()
 			end
 			logic.resume(job)
 		end
-	end, { serial = true, label = "Bus lines", timeoutMs = bl.LINE_TIMEOUT_MS })
+	end, { serial = true, label = label, timeoutMs = bl.LINE_TIMEOUT_MS })
 
 	rt.enqueue(name .. ":summary", 1, function(_i : integer, job : SquareStressJob)
 		logic.resume(job)
@@ -1504,7 +1891,80 @@ function bl.addBusLines()
 		rt.log(string.format("[SQST] %s summary towns=%d ok=%d failed=%d lines=%d (complete %d) buses=%d wastedStops=%d (session: %d lines, %d buses) balance %s->%s%s",
 			name, #runs, stats.townsOk, stats.townsFailed, #bl.lines - linesBefore, stats.lines, #bl.vehicles - vehiclesBefore, wasted, #bl.lines,
 			#bl.vehicles, logic.formatMoney(balance0), logic.formatMoney(rt.balance()), stopReason ~= nil and (" stopped: " .. stopReason) or ""))
+		if stopReason ~= nil then
+			local added = #bl.lines - linesBefore
+			rt.warn(label, string.format("%s %s.\n%s%s", added == 0 and "Bus lines not added:" or string.format("Bus lines stopped after %d of %d lines:",
+				added, #plan), stopWhy or stopReason, stopFix, rerun))
+		end
 	end, { serial = true, quiet = true })
+end
+
+function bl.addRouteLines(name : string, title : string, routes : {SquareStressBusRoute}) : integer
+	if refuseBusy(name) then return 0 end
+	local runs : {TownRun} = {}
+	for _, r in ipairs(routes or {}) do
+		if r.a ~= nil and r.b ~= nil and r.a.id ~= nil and r.b.id ~= nil and r.a.id ~= r.b.id then
+			runs[#runs + 1] = { town = r.a, other = r.b, name = r.label or string.format("%d -> %d", r.a.id, r.b.id),
+				failed = false, done = 0, wasted = 0, net = r.net, rule = { route = true, zones = r.zones },
+				twin = r.twin ~= nil and { twin = r.twin, pair = r.pair, ab = r.ab } or nil }
+		end
+	end
+	if #runs == 0 then return 0 end
+	local nBuses = bl.selectedBuses()
+	rt.log(string.format("[SQST] %s: %d bus lines between %s towns x %d buses", name, #runs, title, nBuses))
+	runBatch(name, title .. " bus lines", runs, 1, nBuses, string.format("then build the %s again: its bus lines cannot be added on their own later (Auto bus lines on the Traffic tab adds lines in the towns around the camera).",
+		title), true)
+	return #runs
+end
+
+--- Showcase (SHOWCASE.md "Depots before growth"): every route's depot found or built BEFORE the towns grow
+--- (seed 718344: all 10 routes failed after the x10 growth, every depot spot collided with buildings in the
+--- built-up grids). One serial job, one step per route town (its first town, as its line's own findDepot:
+--- our depots of its road network, else DEPOT_RINGS on its own town's streets, out of the junction zones);
+--- each depot is marked with the route's network (bl.depotNet), so the line built after the growth finds it
+--- (findDepot -> ourDepotNear) instead of building one in the grown town. Logs one line per town, then
+--- "[SQST] <name> summary towns=N depots=D failed=F ms=M" and calls onDone(ms).
+function bl.prebuildDepots(name : string, routes : {SquareStressBusRoute}, onDone? : function(ms : number))
+	local runs : {TownRun} = {}
+	local seen : {string : boolean} = {}
+	for _, r in ipairs(routes or {}) do
+		if r.a ~= nil and r.a.id ~= nil then
+			local key = string.format("%d|%s", r.a.id, tostring(r.net))
+			if not seen[key] then
+				seen[key] = true
+				runs[#runs + 1] = { town = r.a, other = r.b, name = r.label or tostring(r.a.id), failed = false, done = 0, wasted = 0,
+					net = r.net, rule = { route = true, zones = r.zones } }
+			end
+		end
+	end
+	if #runs == 0 then
+		if onDone ~= nil then pcall(onDone, 0) end
+		return
+	end
+	local t0 = rt.nowUs()
+	local built, failed = 0, 0
+	rt.log(string.format("[SQST] %s: %d route towns, each its depot before the growth", name, #runs))
+	rt.enqueue(name, #runs, function(i : integer, job : SquareStressJob)
+		local run = runs[i]
+		local function done(depot : integer, how : string)
+			if depot ~= nil then
+				built = built + 1
+				if run.net ~= nil and bl.depotNet[depot] == nil then bl.depotNet[depot] = run.net end
+				rt.log(string.format("[SQST] %s %s depot=%d (%s)", name, run.name, depot, how))
+			else
+				failed = failed + 1
+				rt.log(string.format("[SQST] %s %s: no depot (%s); its line tries again after the growth", name, run.name, how))
+			end
+			logic.resume(job)
+			if i == #runs then
+				local ms = (rt.nowUs() - t0) / 1000
+				rt.log(string.format("[SQST] %s summary towns=%d depots=%d failed=%d ms=%.0f", name, #runs, built, failed, ms))
+				if onDone ~= nil then pcall(onDone, ms) end
+			end
+		end
+		local ok, err : boolean, any = pcall(findDepot, name, run, function(depot : integer, how : string, _far : boolean) done(depot, how) end)
+		if not ok then done(nil, "error: " .. tostring(err)) end
+	end, { serial = true, label = "Building the bus depots", timeoutMs = logic.BATCH_TIMEOUT_MS })
 end
 
 --- Sells the buses bought by Auto bus lines, waits until they are really gone, then deletes their lines
@@ -1580,6 +2040,7 @@ function bl.removeAdded()
 		if not rt.isLine(l) then
 			gone = gone + 1
 			forget(bl.lines, l)
+			bl.lineTwins[l] = nil   -- a reused id must not inherit the twin (FLOW_BUS)
 			logic.resume(job)
 			return
 		end
@@ -1594,6 +2055,7 @@ function bl.removeAdded()
 			if success then
 				deleted = deleted + 1
 				forget(bl.lines, l)
+				bl.lineTwins[l] = nil
 			else
 				failed = failed + 1
 				rt.log(string.format("[SQST] %s delete line %d failed", name, l))

@@ -89,6 +89,36 @@ This mod **deliberately modifies the save** (towns, vehicles, money, date). The 
    checklist (probes in Appendix A). Probe 8 left as it was, marked superseded. Cover entry was already in
    `branding/mods.js` (`_metadata/0.png` rendered).
 
+5. **Junction test** (rev 2, not run in game yet): Towns tab section shown when square_roundabouts' constructions
+   resolve (`api.res.constructionRep.find`). `gui/stress_junctions.tl`: a test grid (`towns.createGrid`, no town
+   links; the grid code was split out of `spawnGrid`) sized by `logic.junctionGrid` for the selected cases
+   (`logic.JUNCTION_CASES`: all 7 menu entries, Channelized X / T and the three Roundabout Interchange layouts as
+   separate cases = 10), one construction per cell centre turned 45 deg (pre-checked with `makeProposalData`),
+   arm ends = new street nodes within 520 m with one edge (diff 1 s after the callback), grouped within 45 m (highway
+   highway carriageway pairs run on as a highway to the town and merge in one node 60 m before it, each one-way edge extended in its own direction; links replace the existing nodes they join so the engine sets up their lanes), assigned to the
+   corner town in their direction, then one straight street proposal per arm (pieces <= 200 m, copies of the arm's
+   or the town node's edge) to the best town node (`logic.rankTownNodes`; 3 nodes tried). TESTING.md 6E.
+
+6. **Wide streets + Clear traffic Where** (rev 2, not run in game yet): (a) load-time "Town streets: Wide" (REMOVED 2026-10-11: crashed town development, docs/findings.md)
+   (`loadStreetTemplate` modifier: simBuildable off on every town template but the large ones, wiki
+   tracksstreets.md "simBuildable"); (b) Streets = Wide grid for Test grid / Junction test: our own construction
+   `infrastructure/street_construction/square_stress_test_town_grid.con.lua` (geometry `stress/stress_grid_streets.lua`,
+   all nodes free, +-200/300/400 m by town size, inside the 485 m reach) built at each grid point before its town;
+   (c) Clear traffic Where (Everywhere / In towns / Outside towns): driver position from
+   `api.engine.util.vehicle.getPosition` or the MOVE_PATH edge, town areas from sampled building positions
+   (cached 60 s). TESTING.md 6F.
+
+7. **More car traffic** (7a built 2026-10-11, not run in game yet; 7b after the test): load-time "Car traffic"
+   (town buildings disallow WALK + LINES via `personCapacity.disallowedMoveModes`) and "Town building capacity"
+   (x1/x2/x4), both through a `loadScript` modifier wrapping the town building `updateFn`; Traffic tab Scan and the
+   DRIVE / WALK / LINES split. Plan, unknowns and test: `MORE_TRAFFIC.md`, TESTING.md 6I.
+
+8. **Bench** (built 2026-10-13, rev 2, unreleased, not run in game yet): Towns tab > Bench, one button per 16 km sheet
+   runs a Smart Lanes A/B test end to end (clear the map, year 1950, build twins with towns only on the arms that need
+   traffic, Smart Lanes idle, record 20 game min at 2x, screenshots, `BENCH_DONE`); `make bench` writes the RESULTS.md
+   draft. Design, sheets, files: `BENCH.md`; in-game steps: TESTING.md 6W. The traffic log's `thru` now counts by
+   position (`thru_path` keeps the path count).
+
 ## Verified in game vs not (2026-10-10, docs/findings.md "Stress Test probes")
 
 Verified: the window, HUD button and form layout; Add money, Keep balance, Jump to year, speed 8, the Hide all

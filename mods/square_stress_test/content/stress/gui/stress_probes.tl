@@ -9,6 +9,7 @@
 local logic = ug_require "square_stress_test::/stress/stress_logic.tl" as SquareStressLogic
 local rt = ug_require "square_stress_test::/stress/gui/stress_runtime.tl" as SquareStressRuntime
 local bl = ug_require "square_stress_test::/stress/gui/stress_buslines.tl" as SquareStressBusLines
+local nc = ug_require "square_stress_test::/stress/gui/stress_nodecfg.tl" as SquareStressNodeCfg
 
 local probes : SquareStressProbes = { list = {} }
 
@@ -319,6 +320,12 @@ local function streetProposal(x : number, y : number, typeIndex : integer, stree
 	seg.comp.roadType = api.type["enum"].RoadType.STREET
 	proposal.streetProposal.nodesToAdd = { n0, n1 }
 	proposal.streetProposal.edgesToAdd = { seg }
+	-- both new nodes are 1-edge dead ends: an empty config each (script-made nodes get none otherwise,
+	-- docs/findings/towns.md "Street proposal crash")
+	local cfgAdd : {Proposal.BaseNodeLaneConnectionAndEntity} = {}
+	local cfgRm : {integer} = {}
+	nc.complete({ seg }, {}, cfgAdd, cfgRm)
+	proposal.streetProposal.nodeConfigsToAdd = cfgAdd
 	return proposal
 end
 
@@ -1103,5 +1110,11 @@ add("p10_line", "10d Bus line + 1 bus (10b stops, 10c depot)",
 			end)
 		end), { quiet = true })
 	end)
+
+---------------------------------------------------------------------------
+-- Probe 11 "Flow" (read only, plans/square_stress_test/FLOW.md): its own module (this file's main chunk
+-- is close to the 200-locals limit, docs/findings.md); its buttons go after probe 10's.
+local flowProbes = ug_require "square_stress_test::/stress/gui/stress_probes_flow.tl" as SquareStressFlowProbes
+flowProbes.addTo(probes.list)
 
 return probes

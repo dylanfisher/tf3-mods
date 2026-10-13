@@ -21,6 +21,42 @@ function data()
 
 	local a = ssu.makeAdder(result)
 
+	-- LAYER WINDOW OFFSET (shared by our five top-bar button mods; plans/ui_style/PLAN.md "Layer window
+	-- offset"; keep this block identical in all five except ME). The base data layer windows open 30 px
+	-- from the top (#menu.layers.window, .cache/game/base/content/gui/layers/layers.css.lua:89-120), under
+	-- the mod button row, so a mod button covers their title. These rules move them below the row. Only the
+	-- first ACTIVE mod of SQ_RIDGE_MODS adds them (each mod ships square_ridge/marker.gres; a disabled mod's
+	-- resources aren't loaded), so they cost 4 rules however many of the five are on. The selectors add the
+	-- Window element to the base ones, so they win over the base rules by specificity. The HUD filter window
+	-- keeps its base margin (430 px down, clear of the row); its rules are repeated only so ours don't match it.
+	do
+		local ME = "square_stress_test"
+		local SQ_RIDGE_MODS = { "square_better_minimap", "square_problem_radar", "square_industry_flows",
+			"square_supply_gaps", "square_stress_test" }
+		local function markerActive(modId)
+			local okFind, id = pcall(api.gui.genericRep.find, modId .. "::/square_ridge/marker.gres")
+			if not okFind or type(id) ~= "number" or id < 0 then return false end
+			local okGet, res = pcall(api.gui.genericRep.get, id)
+			return okGet and res ~= nil and type(res.data) == "table" and res.data.squareRidge == true
+		end
+		local leader = true
+		for __, modId in ipairs(SQ_RIDGE_MODS) do
+			if modId == ME then break end
+			if markerActive(modId) then
+				leader = false
+				log.message("[SQ ridge] layer window offset: skipped in " .. ME .. " (added by " .. modId .. ")")
+				break
+			end
+		end
+		if leader then
+			log.message("[SQ ridge] layer window offset: added by " .. ME)
+			a("Window#menu.layers.window", { margin = { 72, 0, 0, 80 } })
+			a("!input-controller Window#menu.layers.window", { margin = { 92, 0, 0, 80 } })
+			a("Window#menu.layers.window!menu-layers-hudFilters", { margin = { 430, 0, 0, 80 } })
+			a("!input-controller Window#menu.layers.window!menu-layers-hudFilters", { margin = { 430, 0, 0, 80 } })
+		end
+	end
+
 	-- as builtin.css.lua:10
 	local colorDefault = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data
 
@@ -28,8 +64,10 @@ function data()
 	local WIN = "R::SquareStressContent"
 	local WINDOW = "#squarestresstest.window"
 
+	-- margin: a 3 px gap on each side, so neighbouring top-bar buttons (ours and other mods') don't touch.
 	a(HUD, {
 		gravity = { 0, 0 },
+		margin = { 0, 3, 0, 3 },
 	})
 	a(HUD .. " Button!sqst-hud-button", {
 		padding = { 2, 8, 2, 8 },
@@ -128,9 +166,10 @@ function data()
 	-- Section heading rows: title left, the section's action button(s) at the right edge (a
 	-- fixed-width row with an expanding empty TextView between, like base "!horizontal-spacer",
 	-- default.css.lua:123-125).
+	-- each section ("Test grid", "Junction test", ...) starts well apart from the one above
 	a(WIN .. " BoxLayout!sqst-head", {
 		size = { 536, -1 },
-		margin = { 6, 0, 0, 0 },
+		margin = { 20, 0, 0, 0 },
 	})
 	a(WIN .. " BoxLayout!sqst-head TextView!sqst-section", {
 		margin = { 0, 0, 0, 0 },

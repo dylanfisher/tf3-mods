@@ -34,13 +34,14 @@
 --
 -- READOUT: lines (lineSystem.getLinesForPlayer), transport vehicles (TRANSPORT_VEHICLE is iterable,
 -- docs/findings.md "Stress Test probes"), sim persons (simPersonSystem.getCount, system.d.tl:133-136)
--- and "Driving now" from the last clear scan (no scan only for the readout).
+-- and "Driving now" plus the move-mode split (lastMoveMode DRIVE / WALK / LINES of every person) from the
+-- last clear scan or Scan (a scan without sends, MORE_TRAFFIC.md 7a); nothing is scanned for the readout.
 
 local logic = ug_require "square_stress_test::/stress/stress_logic.tl" as SquareStressLogic
 local rt = ug_require "square_stress_test::/stress/gui/stress_runtime.tl" as SquareStressRuntime
 
 local traffic : SquareStressTraffic = {
-	ui = { perLine = 1, keepCleared = false, clearInterval = 2 },
+	ui = { perLine = 1, keepCleared = false, clearInterval = 2, clearWhere = 1 },
 	added = {},
 }
 
@@ -119,7 +120,7 @@ local VEHICLE_JOBS : {string} = { "add_vehicles_", "remove_vehicles" }
 local function refuseBusy(name : string) : boolean
 	local busy = rt.busyJob(VEHICLE_JOBS)
 	if busy == nil then return false end
-	rt.log(string.format("[SQST] %s: refused, %s is still queued or running", name, busy))
+	rt.warn("Busy", string.format("%s: %s is still queued or running; wait for it to finish.", name, busy))
 	return true
 end
 
@@ -323,25 +324,41 @@ function traffic.readout() : string
 		return #api.engine.getEntitiesWithComponent(api.type.ComponentType.TRANSPORT_VEHICLE)
 	end)
 	local persons = count(function() : integer return api.engine.system.simPersonSystem.getCount() end)
-	return logic.trafficReadout(lines, vehicles, persons, #traffic.added, traffic.driving)
+	return logic.trafficReadout(lines, vehicles, persons, #traffic.added, traffic.driving, traffic.modes)
 end
 
 function traffic.uiSignature() : string
-	return string.format("%d/%d/%s/%d", traffic.ui.perLine, #traffic.added, tostring(traffic.ui.keepCleared),
-		traffic.ui.clearInterval)
+	return string.format("%d/%d/%s/%d/%d", traffic.ui.perLine, #traffic.added, tostring(traffic.ui.keepCleared),
+		traffic.ui.clearInterval, traffic.ui.clearWhere)
 end
 
 ---------------------------------------------------------------------------
 -- Clear traffic
 
 local driveMode : any = nil   -- MoveMode.DRIVE, resolved on first use (1 in game, docs/findings.md)
+local walkMode : any = nil    -- MoveMode.WALK / LINES (api/tealdef/api/type.d.tl:2364-2368), for the split
+local linesMode : any = nil
+
+local function modeValue(name : string, fallback : integer) : any
+	local ok, v = pcall(function() : any return (api.type["enum"] as {string : {string : any}}).MoveMode[name] end)
+	return (ok and v ~= nil) and v or fallback
+end
 
 local function driveValue() : any
-	if driveMode == nil then
-		local ok, v = pcall(function() : any return (api.type["enum"] as {string : {string : any}}).MoveMode.DRIVE end)
-		driveMode = (ok and v ~= nil) and v or 1
-	end
+	if driveMode == nil then driveMode = modeValue("DRIVE", 1) end
 	return driveMode
+end
+
+--- Counts one person's lastMoveMode into a split (other values are not counted).
+local function countMode(split : SquareStressMoveSplit, mode : any)
+	if walkMode == nil then walkMode, linesMode = modeValue("WALK", 0), modeValue("LINES", 2) end
+	if mode == driveValue() then
+		split.drive = split.drive + 1
+	elseif mode == walkMode then
+		split.walk = split.walk + 1
+	elseif mode == linesMode then
+		split.lines = split.lines + 1
+	end
 end
 
 local function has(e : integer, ct : Engine.ComponentType) : boolean
@@ -350,14 +367,79 @@ local function has(e : integer, ct : Engine.ComponentType) : boolean
 end
 
 --- Driving a car right now (logic.isDriver). The cheap test first: only DRIVE persons get more reads.
-local function isDriver(e : integer) : boolean
+--- Every person read is counted into split by lastMoveMode (the same SIM_PERSON read, no extra one).
+local function isDriver(e : integer, split : SquareStressMoveSplit) : boolean
 	local CT = api.type.ComponentType
 	local ok, sp : boolean, any = pcall(api.engine.getComponent, e, CT.SIM_PERSON)
 	if not ok or sp == nil then return false end
-	local drive = (sp as Engine.Component.SimPerson).lastMoveMode == driveValue()
+	local mode = (sp as Engine.Component.SimPerson).lastMoveMode
+	countMode(split, mode)
+	local drive = mode == driveValue()
 	if not drive then return false end
 	return logic.isDriver(drive, has(e, CT.MOVE_PATH),
 		has(e, CT.SIM_PERSON_AT_VEHICLE) or has(e, CT.SIM_ENTITY_AT_VEHICLE), has(e, CT.TRANSPORT_VEHICLE))
+end
+
+---------------------------------------------------------------------------
+-- Where (In towns / Outside towns): a driver's position is api.engine.util.vehicle.getPosition (util.d.tl:445,
+-- "the position of the vehicle"; a private car is the SIM_PERSON entity itself), else the first node of
+-- the street edge its MOVE_PATH is on now (path.edges[pathPos.edgeIndex], type.d.tl:2269-2294). A town's
+-- area is the circle around its buildings (up to TOWN_SAMPLE of them, TOWN_BUILDING.construction ->
+-- CONSTRUCTION.transf) + logic.TOWN_AREA_MARGIN, read at most every TOWN_AREA_TTL_US. A driver whose
+-- position can't be read keeps driving (counted as unknown in the cycle's line).
+
+local TOWN_SAMPLE <const> = 300
+local TOWN_AREA_TTL_US <const> = 60000000
+local townAreasCache : {SquareStressTownArea} = nil
+local townAreasUs = 0
+
+local function transl(m : Mat4f) : {number}
+	local ok, v = pcall(function() : Vec3f return m:getTransl() end)
+	if ok and v ~= nil then return { v.x, v.y } end
+	local ok2, x, y = pcall(function() : number, number return m[13], m[14] end)
+	if ok2 and x ~= nil then return { x, y } end
+	return nil
+end
+
+local function townAreas(now : integer) : {SquareStressTownArea}
+	if townAreasCache ~= nil and now - townAreasUs < TOWN_AREA_TTL_US then return townAreasCache end
+	local CT = api.type.ComponentType
+	local areas : {SquareStressTownArea} = {}
+	local ok, m = pcall(api.engine.system.townBuildingSystem.getTown2BuildingMap)
+	if ok and m ~= nil then
+		for _, list in pairs(m as {integer : {integer}}) do
+			local pts : {{number}} = {}
+			local stride = math.max(1, math.ceil(#list / TOWN_SAMPLE))
+			for k = 1, #list, stride do
+				local okB, tb : boolean, any = pcall(api.engine.getComponent, list[k], CT.TOWN_BUILDING)
+				local con = okB and tb ~= nil and (tb as Engine.Component.TownBuilding).construction or nil
+				local okC, cc : boolean, any = pcall(api.engine.getComponent, con, CT.CONSTRUCTION)
+				local p = (con ~= nil and okC and cc ~= nil) and transl((cc as Engine.Component.Construction).transf) or nil
+				if p ~= nil then pts[#pts + 1] = p end
+			end
+			local a = logic.townArea(pts, logic.TOWN_AREA_MARGIN)
+			if a ~= nil then areas[#areas + 1] = a end
+		end
+	end
+	townAreasCache, townAreasUs = areas, now
+	return areas
+end
+
+--- A driver's position (x, y), nil when unreadable.
+local function driverPos(e : integer) : number, number
+	local okV, v = pcall(api.engine.util.vehicle.getPosition, e)
+	-- exactly 0,0 = not a real answer (an entity the function doesn't know): try the path instead
+	if okV and v ~= nil and v.x ~= nil and (v.x ~= 0 or v.y ~= 0) then return v.x, v.y end
+	local ok, x, y = pcall(function() : number, number
+		local CT = api.type.ComponentType
+		local mp = api.engine.getComponent(e, CT.MOVE_PATH) as Engine.Component.MovePath
+		local step = mp.path.edges[mp.dyn.pathPos.edgeIndex + 1]
+		local be = api.engine.getComponent(step[1].entity, CT.BASE_EDGE) as Engine.Component.BaseEdge
+		local n = api.engine.getComponent(be.node0, CT.BASE_NODE) as Engine.Component.BaseNode
+		return n.position.x, n.position.y
+	end)
+	if ok and x ~= nil then return x, y end
+	return nil, nil
 end
 
 -- Keep traffic cleared state (session only)
@@ -384,7 +466,15 @@ local function finishCycle(c : SquareStressClearCycle, now : integer)
 	if c.finished then return end
 	c.finished = true
 	c.workDoneUs = c.workDoneUs or now
-	local line = logic.clearLine(c.name, c.scanned, #c.drivers, c.sent, c.ok, c.answered, (now - c.startedUs) / 1000, c.note)
+	local note = c.note
+	if c.where ~= 1 then
+		local w = string.format("where=%s towns=%d kept=%d unknown=%d", logic.CLEAR_WHERE[c.where] or "?", #(c.areas or {}),
+			c.kept, c.unknown)
+		note = note ~= nil and (w .. " " .. note) or w
+	end
+	local modes = logic.moveSplitLog(c.modes)
+	note = note ~= nil and (modes .. " " .. note) or modes
+	local line = logic.clearLine(c.name, c.scanned, #c.drivers, c.sent, c.ok, c.answered, (now - c.startedUs) / 1000, note)
 	if not c.keep then
 		rt.log(line)
 		return
@@ -421,16 +511,34 @@ local function clearStep(c : SquareStressClearCycle, job : SquareStressJob)
 		else
 			c.list = list as {integer}
 		end
+		if c.where ~= 1 then c.areas = townAreas(rt.nowUs()) end
 	end
 	if c.cursor <= #c.list then
 		local last = logic.chunkLast(c.cursor, #c.list, logic.CLEAR_SCAN_PER_FRAME)
 		for k = c.cursor, last do
 			local e = c.list[k]
-			if isDriver(e) then c.drivers[#c.drivers + 1] = e end
+			if isDriver(e, c.modes) then
+				if c.where == 1 then
+					c.drivers[#c.drivers + 1] = e
+				else
+					local x, y = driverPos(e)
+					if x == nil then
+						c.unknown = c.unknown + 1
+					elseif logic.clearWanted(c.where, logic.inTownArea(c.areas, x, y)) then
+						c.drivers[#c.drivers + 1] = e
+					else
+						c.kept = c.kept + 1
+					end
+				end
+			end
 		end
 		c.scanned = c.scanned + (last - c.cursor + 1)
 		c.cursor = last + 1
-		if c.cursor > #c.list then traffic.driving = #c.drivers end
+		if c.cursor > #c.list then
+			traffic.driving = #c.drivers + c.kept + c.unknown
+			traffic.modes = c.modes
+			if c.scanOnly then c.sendCursor = #c.drivers + 1 end   -- Scan: nothing is sent
+		end
 	elseif c.sendCursor <= #c.drivers then
 		local last = logic.chunkLast(c.sendCursor, #c.drivers, logic.CLEAR_SEND_PER_FRAME)
 		local dbg = api.cmd.debug
@@ -454,12 +562,13 @@ local function clearStep(c : SquareStressClearCycle, job : SquareStressJob)
 	end
 end
 
-local function startCycle(keep : boolean) : boolean
+local function startCycle(keep : boolean, scanOnly? : boolean) : boolean
 	if busy() then return false end
 	local c : SquareStressClearCycle = {
-		name = keep and "keep_traffic_cleared" or "clear_traffic", keep = keep,
+		name = scanOnly and "traffic_scan" or (keep and "keep_traffic_cleared" or "clear_traffic"), keep = keep,
 		cursor = 1, drivers = {}, sendCursor = 1, scanned = 0, sent = 0, answered = 0, ok = 0,
-		startedUs = rt.nowUs(), finished = false,
+		startedUs = rt.nowUs(), finished = false, where = scanOnly and 1 or (traffic.ui.clearWhere or 1), kept = 0,
+		unknown = 0, scanOnly = scanOnly == true, modes = { drive = 0, walk = 0, lines = 0 },
 	}
 	traffic.cycle = c
 	c.job = rt.enqueue(c.name, 1, function(_i : integer, job : SquareStressJob)
@@ -470,8 +579,16 @@ local function startCycle(keep : boolean) : boolean
 			c.workDoneUs = rt.nowUs()
 			if c.answered >= c.sent then finishCycle(c, c.workDoneUs) end
 		end
-	end, { quiet = true, label = "Clearing traffic", maxPerTick = 1 })
+	end, { quiet = true, label = scanOnly and "Scanning traffic" or "Clearing traffic", maxPerTick = 1 })
 	return true
+end
+
+--- Scan (MORE_TRAFFIC.md 7a): the clear cycle's scan without the sends, for Driving now and the
+--- move-mode split; its [SQST] traffic_scan line has drivers= and modes=.
+function traffic.scan()
+	if not startCycle(false, true) then
+		rt.log("[SQST] traffic_scan: a scan or clear is still running; try again in a moment")
+	end
 end
 
 function traffic.clearTraffic()

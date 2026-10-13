@@ -227,7 +227,8 @@ depot = the town is skipped with nothing built.** Then per line: two of the town
 at least 30 m, no stop or signal, not part of a construction) 300-800 m apart, built-up and without moving sim
 persons first, never within 100 m of any stop or depot gate of ours from this session; a stop on each, the line
 "SQST Bus N" (N counts 1, 2, 3 ... after the highest existing SQST Bus N), then N buses from
-`findBestDepotForLine`'s depot (else the town's). **A line that ends up with no bus is destroyed again** and its
+`findBestDepotForLine`'s depot only (2026-10-12; none: a new depot near stop 1, asked again, else the line is
+destroyed before any bus is bought; a bus whose SetLine fails is sold again). **A line that ends up with no bus is destroyed again** and its
 stops are counted as `wastedStops` in the summary. Every bus id and stop (station group, result entities) is logged
 with `rt.detail`. Every vehicle or line id is re-checked right before its command. One command at a time; a town
 stops at its first failure, the batch after 3 failed towns in a row, and without Keep balance it stops when the
@@ -276,6 +277,699 @@ notifications stay hidden in that save.
 3. Untick the box: `[SQST] notifications shown success=true`. New notifications appear again (old ones that were
    ignored while it was on don't come back). Note: this also clears your own notification-log filter.
 4. Tick it again: `hidden` again. Save, reload: still hidden, and the mod sends it again on load (one `hidden` line).
+
+## 6B. Test grid (rev 2, not run in game yet)
+
+Setup: Map Editor → new temperate map → Generate heightmap → **Blank Slate (flat island)** → Generate → save → Play Map
+(no towns, no industries). Enable Stress Test, open Debug → Towns.
+
+1. Test grid: 2 x 2, 2 km, Medium, Map centre, Roads = Neighbours → press "Create 2 x 2 grid, 2 km".
+   Expect 4 towns "Grid A1/A2/B1/B2", then 4 road links (A1-A2, A1-B1, A2-B2, B1-B2).
+2. stdout.txt: `[SQST] grid_2x2 summary towns=4 created=4 failed=0 ... maxOffset=` should be ~0 m. If not, the
+   engine moves the centre: note the per-town `asked=... real=...` lines. Also note `angle0=` (true = the street-angle
+   fields were writable) and whether the four towns look the same (same seed, same angle): docs/findings.md.
+3. Look at the road links: straight on a flat map, or winding? Do they join the town streets at the edges?
+4. Roads = Neighbours + diagonals on a 3 x 3, 3 km: 9 towns, 20 links (checks connect on a bigger batch).
+5. Centre = Camera with the camera over the sea edge: expect `grid_... cancelled: Grid X at ... is water`, nothing built.
+
+## 6C. Remove towns (rev 2, not run in game yet)
+
+Save first. `makeTownDestroyCmd` has only been used by the base map editor, never from a mod in a running game.
+
+1. Target Nearest to camera → "Remove the nearest town". Expect `[SQST] remove_nearest 1/1 ... success=true gone=true`
+   and the town's streets and buildings gone. Note what happens to your own roads/stations/stops that touch the town.
+2. Target Grid towns after a Test grid run: only "Grid ..." towns go. Road links between them (built by the town
+   connect command): removed with the towns, or left behind?
+3. Target All towns on a New Game Blank Slate map: an empty map without the Map Editor? Industries stay.
+4. Save, reload: no errors, town count as before the reload.
+
+## 6D. Remove all roads + confirm dialogs (rev 2, not run in game yet)
+
+The confirm dialog is the base `dialog_react_util.DialogWindow` (pause menu's Quit Game) opened in the default
+window container from a mod: never tried in game before.
+
+1. Remove towns (any target) and Remove all roads: a centred dialog with the count, Remove and Cancel (Cancel
+   focused). Cancel, Esc and a click outside do nothing; check stdout has no `remove_` line. Does it look right
+   (opaque, readable)?
+2. Remove all roads on a map with towns removed (step 6C.3): `[SQST] remove_roads: N street edges in K batches (M in
+   constructions kept)`, then `remove_roads summary ... failed=0 ... streets left=0`. Note `splits`/`failed` and the
+   error text of any refused batch (detail lines). Are leftover nodes or dead-end stubs visible?
+3. With towns still there (not frozen): do the towns rebuild streets? Are town streets refused (failed > 0)?
+4. A station with its access road: the station's own street pieces stay, the rest goes.
+
+## 6E. Junction test (rev 2, needs Roundabouts & Interchanges, not run in game yet)
+
+New from a mod: a square_roundabouts construction built from the Stress Test's GUI state (`react.onStep`, the
+showcase did it from a game script's guiUpdate), its arm ends read by a node diff, and long street proposals from
+those ends to town nodes. Setup as 6B (empty Blank Slate map), plus Roundabouts & Interchanges enabled.
+
+1. Without Roundabouts & Interchanges: the Towns tab shows only the hint line "Junction test: enable ...".
+2. Junctions Roundabouts (4), 2 km, Medium, Map centre → "Build 4 junctions, 2 km". Expect 9 towns (3 x 3, no town
+   links), then per cell `[SQST] junction_test Cell A1 Roundabout built ms=... nodes=N ends=4 arms=4 [1->Grid A1
+   1->Grid A2 ...]`, then 16 link lines (detail, stdout.txt) and `junction_test summary junctions=4 built=4
+   refused=0 arms linked=16 unlinked=0`. Look: is each junction turned 45 deg with its arms towards the four
+   corner towns, and does each link road join a town street at the town's edge?
+   **No red dead-end sign** (the HUD's "no entry" icon) at either end of a link road: first run
+   (2026-10-11) had one at every arm end and town node a link joined, so no traffic could pass; the links
+   now replace those nodes with new ones (docs/findings.md "Junction lane connections"). A sign there
+   now means the fix did not work: note which end (junction or town) and paste the link's detail line.
+3. If `ends=0`: the build's streets were not found by the diff (maybe they need longer than 1 s to appear, or the
+   construction keeps its nodes): note `nodes=`. If arms go to `none`: an arm more than 60 deg off a corner.
+4. Interchanges (6), 3 km: 4 x 3 towns, 6 junctions. Each highway arm should show `2->Grid ..`: both carriageways
+   run on as a highway side by side to the town, close in over the last ~180 m and meet in one node 60 m before
+   the town node, then a short town street joins it. Do the parallel carriageways keep their gap (no overlap)? Drive check: do cars use both carriageways in the right
+   direction (no wrong-way one-way piece; the merge node's lane connections look sane)?
+5. All types (10), 2 km: 6 x 3 towns. Note any `refused by the check: <reason>` (junction too big for 2 km? try
+   3 km) and any `link refused at N node(s)` with its error text.
+6. Run the game at speed 4-8 for a few minutes with towns grown (Grow, 2-3 passes): traffic between towns drives
+   through the junctions. Note jams or cars turning back at a junction (lane connections on the merge node).
+7. Clean up: Remove towns > Grid towns, then Remove all roads (the junctions are plain streets once built).
+
+### 6E2. Road types and In line (2026-10-11, not run in game yet)
+1. **Road types:** every roundabout's arms and every road link are "Country large" (main junctions too:
+   `sqrb_arm_type` / `sqrb_ch_main` / `sqrb_ch_side` / `sqrb_ix_cross` = 6). Highway arms stay the
+   interchange's highway and their links two carriageways. A "Construction Not Possible" that did not happen with
+   town-road arms: note the junction (country large arms may need a bigger ring).
+2. **In line**, Roundabouts (4), 4 km, Medium, In line = As many as fit: per road arm 3 extra junctions
+   (`[SQST] junction_test Cell A1 Roundabout -> Grid A1 in line 1/3 <layout> built ... through=yes`), each turned
+   along the route, then the chain links (`in line k/3 ... linked`) and the town link. Summary `in_line built=48
+   refused=0 arms linked=64`. Look: are the stops on the straight line, their through arms on it, and the spare
+   arms (side roads) dead ends? Do cars drive town to town through every stop?
+3. Layouts cycle through `INLINE_ROAD` (1 lane, 2 lanes, Magic, splitters, Channelized X, 4 lanes, oval 2:1,
+   Channelized T, T roundabout, Channelized X all slips, hamburger). Note every `refused by the check` with its
+   layout: that layout needs another size with country large arms (stress_logic.tl INLINE_ROAD).
+4. **Highways**, Interchanges (6), 8 km: highway arms get interchanges in a row (`INLINE_HIGHWAY`: Parclo A,
+   Diamond, Roundabout Interchange, Parclo B, Dumbbell, Parclo 2 AB, Peanut), linked carriageway to carriageway
+   (`sending link: ends=2->2`). Check both carriageways keep their direction through each one, and no red
+   dead-end sign at a link end. Their cross roads are dead ends (no traffic on the ramps there).
+5. `through=no`: the stop's arms were not found along the route (note the layout); the rest of that route is not
+   linked (`the rest of this route is not linked`), its town gets no link from that arm.
+6. With Smart Lanes (rev 4) on: every stop's ring and slip junctions get `[SQRL] APPLY` and `LIGHTS` lines.
+7. (2026-10-11 run: links into stops refused while Smart Lanes' light commands were pending.) Now (faster builds,
+   2026-10-11): the cell junctions are built back to back, then one wait (`[SQST] junction_test: 4 junctions built;
+   reading their arms in 3 s`, detail line in stdout.txt), their arms read, then all in-line stops back to back,
+   one more wait (`48 in-line junctions built; reading their arms in 3 s`), their `built ... through=` lines, then
+   the links route by route. Before, every stop waited 3 s (and every cell junction 1 s): In line with 4 roundabouts
+   and 48 stops waited about 148 s, now 6 s. A refused link still retries twice 3 s apart (`trying again in 3 s
+   (2/3)`). Note any `link refused 3 times`, especially into the last stops built (they had only the 3 s): if
+   those appear, raise INLINE_SETTLE_MS (gui/stress_junctions.tl). In Smart Lanes' `VERIFY kind=lights ...
+   gone=N`, N > 0 means the light change replaced the node (record it in docs/findings.md).
+   Every `built ... nodes=N ends=M ...` line now ends with `res_nodes=K`: K of the N new nodes were named by the
+   build callback's resultEntities. Record K vs N in docs/findings.md (K = N: resultEntities name a freed
+   construction's street nodes and could attribute them; K = 0: they don't). A stop placed `-160m along the
+   route` (or -300 m on a highway) sits inside the previous stop's scan circle: its `built` line and the
+   previous one's must still show only their own arms (same nodes/ends as other stops of that layout).
+8. A stop refused at its spot tries 80 m (highway 150 m) back and forth along the route; the refused line now
+   says what it hits (`(hits 3 town buildings, 1 streets)`). 10 junctions now use a 5 x 4 town grid.
+9. The grid is fitted to the map: a spacing that does not fit is lowered (dialog "... do not fit this map (16 x 16
+   km). Using 3.8 km ..."). On the 16 km Blank Slate map: All types at 3 km, any size, In line = As many as fit:
+   about 3 stops per road route (road stop reach 150 m, gap 100 m, town reach 0.35 x the size's spacing).
+10. **Highway town links** (2026-10-11 Showcase screenshot: the highway entered its town through a small street):
+    the two carriageways now meet a large 4-lane street piece (the town node's own street if large, else the
+    nearest large town / country street within 600 m, else as before the town node's own street), and links
+    prefer town dead ends on large streets (up to 400 m further than the nearest; Wide grid towns: the corner
+    stubs). Check at an interchange line's end town and a Junction test Interchanges town: the last ~60 m before
+    the town node is a large road, not a small one. Road links copy the arm's country large road up to the town
+    node as before.
+
+## 6F. Wide streets and Clear traffic Where (rev 2, not run in game yet)
+
+1. **Wide grid** (new: a Stress Test construction built from the GUI, then a town created on top of it). Test grid
+   2 x 2, 2 km, Medium, Streets = Wide grid. Expect per town `[SQST] grid_2x2 Grid A1 street grid 600m era=1
+   success=true` (stdout.txt), then the town. Look: a 600 m square grid of large 4-lane streets, no red dead-end
+   signs, and the town's own streets/buildings on and around it. Does the town create fail or overlap the grid?
+   Grow x5, 3 passes: do houses line the grid streets? If `street grid refused`, paste the line.
+2. **Junction test** with Streets = Wide grid (the default): links should end at grid corners (the corners face the
+   junctions).
+2b. **Wide grid, locked** (2026-10-11): same as 1 with Streets = Wide grid, locked. Expect after each grid line
+   `street grid locked edges=N success=true` (N about 250 for 600 m), then the town. Check with the game's Player owned
+   road tool view (or a street's window) that the grid streets are locked, no red dead-end signs, and cars still
+   drive the grid. Grow x5, 3 passes, unfrozen for a few game months: does the town still add streets off the grid
+   (stubs from grid nodes, streets beside it)? The flag says "prevent towns from updating or extending this road";
+   whether "extending" covers new side streets is the open question. Record the answer in docs/findings.md.
+   Link roads joined later (Junction test) replace the stub ends: are those still locked? (they copy the edge)
+3. ~~**Town streets = Wide**~~ REMOVED 2026-10-11: with only the large town street sim-buildable, Grow crashed the game (`simulation_util.cpp:116 GetStreetForTownDevelopment`, "Did not find any street template usable for town road development"; docs/findings.md). Skip this step. Was: (mod setting, reload): `[SQST] config` has no line for it; check in game whether
+   unfrozen towns widen streets to the large 4-lane street (watch a busy town for a few game months). Unknown:
+   whether new towns start with wide streets.
+4. **Clear traffic Where = In towns** on the junction test with traffic: `[SQST] clear_traffic ... where=In towns
+   towns=N kept=K unknown=U`. Cars on link roads and junctions keep driving, town streets empty. `unknown` should
+   be 0: if it equals the number of drivers, neither position read works (paste the line). Then Keep traffic
+   cleared every 5 s with In towns, and once Outside towns.
+
+## 6G. Warning dialogs (2026-10-11)
+1. Test grid at 6 km on a small map (or a point on water): a "Not enough space" dialog with the grid point and the
+   reason, OK closes it. Nothing is built.
+2. Press Build junctions twice quickly: a "Junction test" dialog says one is running.
+3. A junction test with refused junctions (e.g. All types at 2 km, Large towns): after the summary a "Junction test"
+   dialog lists them (at most 10) and suggests a larger spacing.
+4. Remove all roads on a map without streets, Remove towns without towns: a dialog each.
+5. Two warnings at once (press Build junctions twice while the first is still checking): shown together under
+   "Stress Test", one OK.
+
+## 6H. Crossing test (2026-10-11): input for Smart Lanes' crossroads rule
+Towns tab > Crossing test (no Roundabouts & Interchanges needed), Size Medium, Lights Off, empty Blank Slate map.
+Layout (stress_logic.crossingLayout, ~9 km across): rows west -> east at y = +1.5, 0, -1.5 km with 3, 2, 1 lanes each
+way; columns south -> north at x = -1.5, 0, +1.5 km with 3, 2, 1 lanes; collector roads (2 lanes) 1 km beyond on each
+side, T junctions where rows / columns end, a crossing in the middle whose outer arm goes 1.5 km to the town ("Grid
+W/E/N/S"). Every junction is our crossing construction (stress_crossing.lua).
+1. Expect `[SQST] crossing_test x12 Crossing 3x2 built nodes=5 arms=ENSW lights off at 1` for 21 junctions, then
+   `crossing_test summary crossings=21 built=21 refused=0 links=36 linked=36 failed=0`. No traffic lights anywhere.
+2. Unfreeze / grow the towns; at speed 4 watch W <-> E traffic straight along the rows and N/S <-> W/E traffic turning.
+3. For the rule: pick a crossing with the Smart Lanes tool (`[SQRL] CONNS` / `CONN` = the game's default), set the lanes
+   with the Crossing Tool (right turns only from the kerb lane, ...), pick it again; note its id (x12 = row 1 col 2:
+   3 x 2 lanes). Most useful: x11 (3x3), x12 (3x2), x13 (3x1), x22 (2x2), a collector T (w1 = T 2 / 3).
+4. Lights = Game decides: the same with the game's automatic lights.
+
+## 6I. More car traffic (Phase 7, not run in game yet)
+Load-time settings **Car traffic** (Default / Drive: destinations / Drive: all town buildings) and **Town building
+capacity** (x1 / x2 / x4): a `loadScript` modifier wraps the town building scripts' `updateFn` and patches each
+result's `personCapacity` (`disallowedMoveModes` += WALK, LINES; `capacity` x factor). Plan and unknowns U1-U6:
+`MORE_TRAFFIC.md`. Use a **copy** of a save with 2-3 grown towns connected by road, game speed 4. Every reload
+below = quit to the main menu, change the setting in the mod's settings, load the save again.
+
+Log lines (stdout.txt, one set per Lua state that loads scripts, so they repeat a few dozen times per load):
+- `[SQST] config car_traffic=<default|drive_destinations|drive_all> town_capacity=x<1|2|4> wrapped=N first=...`
+  from runFn. `wrapped` is what that Lua state wrapped before this runFn: 0 is normal (scripts load after runFn).
+- `[SQST] town_building_wrap wrapped=3 seen=S first=<file>,<file>,<file>` once 3 town building scripts are
+  wrapped (U1: the modifier gets them, and this is what their file names look like).
+- `[SQST] town_building_skip first=<file> (has updateFn, not a town building script)`: the first other script
+  with an `updateFn` (stations etc.). If this shows town building files, the name filter is wrong: paste it.
+- `[SQST] town_building_patch first=<file> type=<land use> modes=<list> capacity=<a>-><b> wrapped=N seen=S` for
+  the first patched result (U2: the wrapper runs when a building is built or updated).
+- Warnings: `[SQST] loadScript modifier failed` / `[SQST] town_building_patch failed` (one per state at most).
+
+Traffic tab: **Scan** (new button on the Car traffic row) counts without clearing; the readout then shows a second
+line `Last trip mode: DRIVE n (x%) / WALK n (x%) / LINES n (x%)` (every person's `lastMoveMode`) under
+"Driving now", and the window log gets `[SQST] traffic_scan scanned=... drivers=... sent=0 ... modes=DRIVE:a,WALK:b,LINES:c`.
+Clear traffic and Keep cleared lines now carry `modes=` too. Check the second readout line shows as its own line
+(not cut off or joined).
+
+1. **Baseline**: both settings Default. No `[SQST] config car_traffic` line and no `town_building_*` line. Traffic
+   tab: Scan; note Driving now and the DRIVE / WALK / LINES split.
+2. **Car traffic = Drive: destinations**, reload. stdout.txt: the `config` line, then `town_building_wrap` (U1) and
+   `town_building_patch ... type=COMMERCIAL or INDUSTRIAL modes=WALK,LINES` (U2). Does the save load and do town
+   buildings still build (no "Expected table", no load error)? Scan right after load and again after 2 game
+   minutes (U4: do existing buildings already act on it?). Then rebuild one town: Towns tab Grow, Target Nearest
+   to camera, Factor Reset to x1 (a town still at size factor 1 keeps its size; Grow always sends
+   updateAllBuildings), Passes 1; then Scan again (U4). Optional (Show probe tab = On): Probe tab "9d Person
+   capacity dump" reads the `pathfindingPreference` and capacity of the 3 town buildings nearest the camera; a
+   commercial building should now list WALK and LINES.
+3. **Car traffic = Drive: all town buildings**, reload, the same scans (U3: does the split move further towards
+   DRIVE once homes also disallow WALK and LINES? i.e. does the setting act on trips to a building, from it, or both).
+4. Watch 5 game minutes at speed 4: town ratings, cars stuck or circling, persons who never leave home, population
+   trend, the game's own warnings (U5).
+5. **Town building capacity = x4** (Car traffic Default), reload. `town_building_patch ... capacity=a->b` with
+   b = 4a. Open one building's window: capacity before (step 1 save) and after; Scan. After a town develops for a
+   few game minutes (or the rebuild of step 2), is the building still at x4 (U6)?
+6. Back to both Default, reload: buildings keep the changed values until they are rebuilt (expected, the tooltips
+   say so); rebuild a town as in step 2 and check a rebuilt building is back to normal.
+
+Report: the `[SQST]` lines (one of each kind), the Scan numbers per step, and screenshots of busy roads.
+
+## 6J. Traffic through the Junction / Crossing test (Smart Lanes PHASE7.md step 6, not run in game yet)
+New row **Traffic** (Off / Bus lines) on both forms. Bus lines: when the test's last link is done, the summary line
+`[SQST] Junction test done: 4 of 4 junctions built, 16 of 16 links; 8 bus lines queued.` (or `Crossing test done:
+21 of 21 crossings built, 36 of 36 links; 4 bus lines queued.`) goes to the window log, and 5 s later a bus-lines
+job (`bus_lines_junction_test` / `bus_lines_crossing_test`) builds one line per route: a stop on a free street of
+each town, the first town's depot (found or built as in Auto bus lines), the Traffic tab's Auto bus lines **Buses**
+count per line. Since 2026-10-12 (Showcase run): buses are bought only at a depot `findBestDepotForLine` confirms
+for the line; without one a depot is built near stop 1 and asked again, else the line is destroyed before any bus
+is bought; a bus whose SetLine fails is sold again; depot spots keep 400 m from the map edge and an unconnected depot
+is removed again (6K item 5). Routes: Junction test, both diagonals of every cell whose two arms reached their towns (SW-NE and
+SE-NW: both lines drive straight through the cell's junction and cross there), at most 40 lines; Crossing test,
+W-E and S-N straight across the grid, then W-N and E-S turning. With Traffic Off the summary line is written
+without the bus clause. Lines and buses count as Auto bus lines ("Remove added bus lines" removes them).
+1. Junction test, Roundabouts (4 junctions, 3 x 3 towns), Traffic Bus lines, Buses 2: the summary, then
+   `[SQST] bus_lines_junction_test: 8 bus lines between Junction test towns x 2 buses`, per line
+   `bus_lines_junction_test town Cell A1 Grid A1 -> Grid B2 (id): 1 lines ok`, and the job's summary
+   `towns=8 ok=8 ...`. In game: each line's two stops in two different towns, its buses driving through the
+   cell's junction (the line window's route map), and both lines of a cell crossing each other there.
+2. Crossing test, Traffic Bus lines: 4 lines Grid W -> Grid E, Grid N -> Grid S, Grid W -> Grid N, Grid E -> Grid S;
+   the buses run along the rows / columns and turn at the collectors and crossings.
+3. A busy bus-lines job when the test ends (start Auto bus lines with All towns just before the test's last link):
+   `Busy: bus_lines_junction_test: bus_lines is still queued or running; wait for it to finish.` in a dialog, no
+   test lines built. Pressing either test's button while the test's bus lines are queued or running: "A ... test
+   is already running (bus_lines_...)".
+4. A route whose stops cannot be placed (a town without free street edges): that line fails (`no free street edge
+   in one of the towns`), the others go on; the batch stops after 10 failed routes in all (since 2026-10-12;
+   Auto bus lines still stop after 3 failed towns in a row).
+5. With Smart Lanes enabled: one `[SQRL] SUMMARY` per junction job in stdout.txt (Smart Lanes TESTING.md Q); compare
+   the `ring=` / `slip=` / `cross=` counts with the junctions built.
+6. Remove added bus lines: the test lines are sold / deleted; Remove towns > Grid towns and Remove all roads clear
+   the rest (bulldoze leftover stops and depots by hand if needed).
+
+## 6K. Showcase (rev 2, needs Roundabouts & Interchanges; first run 2026-10-12, its fixes not run in game yet)
+Towns tab, section **Showcase** below the Junction test (only with Roundabouts & Interchanges enabled), options
+Size (town size, default Small), Seed (New seed / Same as last (N)), Lights, Traffic. Layout (stress_logic
+`showcaseLayout`, plans/square_stress_test/SHOWCASE.md), along the map's longer side, top to bottom: an interchange
+line (town at each end, a highway of carriageway pairs through every interchange type in turn), a roundabout line
+(a large country road through every roundabout type in turn), then a grid of groups (one roundabout, one town per
+arm on a ring around it, joined to nothing else). Every placement draws its settings from the seed (sizes, lanes,
+splitters, layouts, ramp lengths, levels, islands, ...; right-hand traffic only). On a 16 km map with Small towns:
+17-19 interchanges, 29-32 roundabouts in line and 12 groups (about 50 towns); Medium 9 groups, Large 4, Huge 2
+(2026-10-12 reach tables: was 13 interchanges and 32-38 roundabouts).
+1. An empty flat map (Blank Slate), Remove towns > All towns, Remove all roads. Showcase, Size Small, Seed New,
+   Lights Game decides, Traffic Off: Build showcase. First line `[SQST] showcase: seed=N map=…m towns=50
+   (Small) lines ix=18 rb=… groups=12 ring=1200m …`; then `showcase_towns` creates the towns `Grid S1` … (Wide grid
+   streets), then one line per placement, e.g. `[SQST] showcase Interchange line 3/18 Dumbbell Interchange at x,y
+   angle=0 reach=300m [sqrb_ix_arm_length=2 …] built ms=… nodes=… ends=6 arms=4 through=yes reach est=300m
+   measured=…m`, and `Group 4 Oval roundabout at … towns=4 reached=4`; the queue shows "Building the showcase".
+   Order (faster builds, 2026-10-11): every placement is built back to back first (refusals logged as they come),
+   then one wait (`[SQST] showcase: N junctions built; reading their arms in 3 s`, stdout.txt), then the placement
+   lines above (arms read), then the links line by line and the group links.
+   Since 2026-10-12 every placement line ends with `reach est=Nm measured=Mm` (and `bbox=Km` if the construction's
+   bounding volume can be read); after the summary one `[SQST] showcase reach: <type> n measured, k over the
+   estimate (worst +Xm); ...` line. **Record** any type with `over` > 0 (paste its placement lines): the estimates
+   are offline-measured worst cases, so an `over` means the engine builds bigger than square_roundabouts' updateFn.
+   A placement that would overlap the previous one's measured footprint logs `moved Nm along the line: ...` or
+   `left out: ...` (counted as refused). Before, each placement waited 3 s:
+   with ~60 placements (Small, 16 km) that was ~180 s of waiting, now 3 s, and the bus lines start 3 s (was 5 s)
+   after the last link. Note any `link refused 3 times` into the last placements built (they had only the 3 s).
+   Each placement line ends with `res_nodes=K` (see 6E2 item 7: record K vs nodes=N).
+2. Watch: the interchanges sit in one row near the top edge, the roundabouts in a row below, the groups below that;
+   no placement overlaps another or a town; every line ends in its two towns; every group arm reaches its town.
+3. Summary: `[SQST] showcase summary seed=N placements=… built=… refused=… links=… linked=… unlinked=… splits=…`
+   and the window line `Showcase done: X of Y junctions built, A of B links. Seed N.` Refused placements are left out
+   (their line links past them) and listed in a dialog with the seed; note which types and settings (the placement's
+   log line) are refused. **A failed link splits its line** (2026-10-12, was: ended it): `[SQST] showcase <line>:
+   line split at k/n (link refused); the N built junctions after it are still linked to each other and to Grid S…`
+   (or `(no through arm)` for a junction without an arm towards its neighbour); only that link counts as unlinked,
+   the rest of the line is linked as usual, and a split line gets no bus route. Before giving up, an arm-to-arm link
+   refused with `{Collision}` tries a bent route: `link refused (bent +50m) (...)`, then -50, +90, -90 (5 tries in
+   all); success logs `linked ms=… (bent +50m)`. A town link refused with a collision takes the nearest town node
+   through a point 60 m along the arm: `linked ms=… (nearest town node, 60m along the arm first)`. Interchange pair
+   links copy the narrower highway's carriageways (the 2026-10-12 Roundabout Interchange -> Parclo collision).
+   Between two different highways stdout.txt logs `<tag>: pair link copies <template> (ends Nm apart) into the ends
+   of <template> (Mm apart)` once per link: at those joins watch for a lane of the wider highway that ends dead
+   (the engine sets up the replaced end nodes' lanes; the two highways may differ in lane count).
+   In game: watch the bent links and the lead-out bends (no kinks into buildings); paste every `split` line.
+   Groups: `towns=N reached=N (k by the nearest arm)` and `<group>: Grid S… has no arm within 60 deg; linked to the
+   nearest free arm (D deg off)` when a town has no arm in its direction (ovals: arms leave up to ~33 deg off).
+4. Seed: Same as last (N) rebuilds the same layout and settings (after Remove towns > Grid towns and Remove all
+   roads): the placement log lines match the first run's.
+5. Traffic Bus lines: after the build, a bus line along each line linked end to end without a split (town to town)
+   and across every group's ring, at most 40, built by `bus_lines_showcase`. Each route has its road network (`line
+   1`, `group 3`): a depot is reused only within it (`depot=D (ours, Nm, group 3)`), new depots go on the route's
+   first town's own streets, and no "existing" or "nearest anywhere" depot is taken. **Run with Car traffic =
+   Default and capacity x1 first** (docs/findings.md sim crash). Expect per route either `buses from depot=D
+   (findBestDepotForLine=D)` or, when the town's depot does not reach the line, a depot built near stop 1
+   (`after depot D built 0-400m of stop 1`) or `no depot reaches the line ... destroyed=true` with **no** `bought
+   bus=` line. A `setLine failed ...; sold again=true` must not leave a bus in a depot. Depot spots within 400 m of
+   the map edge are skipped (`outside=N` in the depot line); a refused depot connection logs `not connected (...)`
+   and `depot D removed=true`, then the next spot.
+6. With Smart Lanes enabled (Apply automatically) every placement gets its lanes: after the build, `make audit`
+   reports on all of them (one `[SQRL] AUDIT` block per junction); compare its junction count with `built=`.
+7. Busy: pressing Build showcase, the Junction test or the Crossing test while another of them (or its bus lines) is
+   queued or running: "A test is already running (…)" in a dialog, nothing started.
+8. Clean-up: Remove towns > Grid towns removes every `Grid S…` town; Remove all roads the junctions and links.
+
+## 6L. Showcase second chances and bus-line dialogs (rev 2, 2026-10-12 run #2 fixes; not run in game yet)
+Note 2026-10-12: Showcase v2 (6N) has no options and no line placements: the Showcase parts of items 1-3 (its
+up-front money dialog, Seed Same as last, moves along a line) are gone; the Junction / Crossing test parts stay.
+Background: plans/square_stress_test/SHOWCASE.md "In-game run 2026-10-12 #2" (E-H).
+1. Bus lines without money: a fresh Blank Slate (costs on), Game tab Keep balance **unticked**. Showcase, Traffic Bus
+   lines, Build showcase: at once a dialog "Showcase: Traffic is Bus lines. Keep balance (Game tab) is off: ..."
+   and the build starts anyway. Same for the Junction test and the Crossing test with Traffic Bus lines (titles
+   "Junction test" / "Crossing test"); no such dialog with Keep balance ticked, with No costs, or with Traffic Off.
+   After the build (balance far below 1M): a dialog "Showcase bus lines: Bus lines not added: the balance -N is
+   below 1M. Tick Keep balance (Game tab) or add money, then build the Showcase again: ..." next to the log line
+   `bus_lines_showcase stopped: balance ...`. Auto bus lines (Traffic tab) with a low balance: the same dialog
+   titled "Bus lines", ending "then press the button again.".
+2. Then tick Keep balance, Remove towns > Grid towns, Remove all roads, Seed Same as last, Build showcase: no
+   up-front dialog, and `bus_lines_showcase` lines are built (6K item 5).
+3. Second chances (stdout.txt `[SQST] showcase`): a placement refused with "Construction Not Possible" logs
+   `refused by the check: Construction Not Possible; redrawn` (the refused params on that line), and then either
+   its built line `... [new params] (redrawn) built ...` or `refused by the check: ... (first: Construction Not
+   Possible)`. A line placement refused with a Collision logs `...; moved Nm along the line towards the previous
+   / next one` and is built there (its links reach it; no overlap with its neighbours). The dialog lists each as
+   `<tag>: <first verdict>, then redrawn / moved ... (the refused params are in the log)`. **Record** every
+   refused line with its params, and how often the redraw / move helped (summary `refused=`).
+4. A Collision line now names what it hit: `(hits 12 other ASSET_GROUP e.g. #N)` or similar. **Record** the kinds
+   (seed 747943 had `hits 12 other` at Interchange line 11/17: what is it?). If it is ASSET_GROUP / FIELD /
+   MODEL_INSTANCE_LIST, look at the spot (trees, rocks?) and note it in docs/findings.md.
+5. The refused settings alone (with the construction menu, flat spot, Rotation 0, no other roads nearby): the
+   params of seed 747943's Roundabout line 4/32 and 30/32, Group 7 (Rotation 180) and seed 204313's Roundabout
+   line 13/35 (all in SHOWCASE.md; param values are 1-based option indices). Red in the menu too = a square_roundabouts layout bug
+   (4/32 is predicted by its engine model: oval, 1 lane, small radius, large arms, no splitter); green = something
+   in the Showcase's spot or timing: note which.
+
+## 6M. Flow probes 11a-11h (Probe tab, 2026-10-12, not run in game yet)
+Background: plans/square_stress_test/FLOW_PLAN.md step 0, log contract FLOW.md. Eight read-only probes (they send no
+command and build nothing) that answer the traffic log's open questions. Needs "Show probe tab (developers)" On
+(reload). Each writes `[SQST] probe 11x ...` lines (stdout.txt only) and ends with one
+`[SQST-PROBE] flow_11x_<name> ok|fail ...` line (also in the window log). Every probe reads at most 25 items per frame
+(11c: 10 queries), so a probe takes a few seconds; 11f takes 10 s more.
+1. Map state: a Showcase build (6K) with Traffic **Bus lines**, Lights Game decides, Small towns, finished
+   (`showcase summary` and the `bus_lines_showcase` lines done), Smart Lanes enabled. Then let the game run at speed
+   4 for **3-5 game minutes** so car traffic and the buses are under way (Keep traffic cleared **off**). Any running
+   map with towns, car traffic and at least one SQST Bus line will do for 11a-11f and 11h.
+   **Save first**: 11c and 11h call engine functions (`getSimPersonsMovingForTransportNetwork` on street edges and
+   nodes, `calcPathPosData` on private cars) on entity kinds no code here has used them on in game yet; pcall can't
+   catch a native assert.
+2. Move the camera to a roundabout of the roundabout line (centre of the screen on the ring, zoomed so the ring
+   fills about a third of the screen): 11c, 11g and 11h read within 300 m of the camera centre.
+3. Probe tab: press 11a, wait for its `[SQST-PROBE] flow_11a_movepath` line in the window log, then 11b, 11c, 11d,
+   11e, 11f (wait for `flow_11f_bus`, ~12 s), 11g, 11h, one at a time. 11b-11h reuse 11a's 200 drivers for 20 s
+   (`reused sample` in their line), so press them soon after 11a, or they take a new sample.
+4. Then move the camera to an interchange of the interchange line and press 11g again; then to a group roundabout
+   (town ring) and press 11c and 11g again.
+5. Save, reload the save, and press 11g at the same roundabout again (do placements survive as CONSTRUCTION entities
+   after a reload?).
+6. Optional: pause the game (speed 0) and press 11f: the `gameTime delta` should be 0.
+7. **Paste back** every line of stdout.txt containing `probe 11` or `flow_11` (e.g.
+   `grep -E "probe 11|flow_11" stdout.txt`), and note the game speed during each probe. What they decide (FLOW.md
+   "What the probes answer"): 11a the MOVE_PATH read cost and whether `dyn.speed` is in m/s (`speed/speedLimit` med
+   below ~1.2, `getSpeed/dyn.speed` near 1); 11b whether a car crossing a junction is on a `node` entity; 11c whether
+   `getSimPersonsMovingForTransportNetwork` works on street edges / nodes (`expectedFound` near n/n; `no_tn` = entities
+   without a TRANSPORT_NETWORK component, skipped) and its cost;
+   11d whether VEHICLE_ORDER exists and what `blocked` means; 11e the town traffic map's cost from the GUI; 11f the
+   units of game time, sectionTimes and departures; 11g whether placements stay constructions and edges carry
+   PLAYER_OWNED; 11h position cost. **Record** any `fail` line in full, and any `firstError:`.
+8. Watch: no stutter while a probe runs (each spreads its reads over frames); the game state is unchanged (no road,
+   vehicle or money change; the window log shows no `cmd` line).
+
+## 6N. Showcase v2: one button, groups only, A/B twins (rev 2, 2026-10-12; not run in game yet)
+Background: plans/square_stress_test/SHOWCASE.md "Showcase v2" and "Twins". Map: a fresh 16 km Blank Slate, Remove
+towns > All towns; Roundabouts & Interchanges and Smart Lanes enabled. Game tab Keep balance **unticked**, costs on.
+1. Towns tab, Showcase: only a description and the "Build showcase" button (no Size / Seed / Lights / Traffic rows).
+   Press it: no money dialog; the Game tab's Keep balance box ticks itself; stdout.txt has
+   `[SQST] showcase keep_balance=on (was off)` and `[SQST] showcase: seed=N map=16384x16384m groups=G sets=S
+   interchanges=.. roundabouts=.. plain=.. twins sl=.. game=.. sl_phases=.. towns=T (Small / Medium)`. **Record**
+   the line (offline, seed 4242: 22 groups in 10 sets, 6 ix / 8 rb / 8 plain, 87 towns).
+2. While it builds: the window's queue line shows the progress; Junction test, Crossing test, Remove all roads and
+   Remove towns refuse with a busy dialog.
+3. Look at the map: groups of one junction with 3-6 towns close around it (Small and Medium mixed), twins of each
+   group side by side in a row (same junction, same rotation, same town sizes), groups not joined by any road.
+   Interchanges: their two highway arms reach their towns as two carriageways merging into a large town street;
+   their cross road arms as large country roads. Plain crossroads / T-junctions of ordinary streets with different
+   lanes per arm and angles from 60 to 120 deg; some with lights, some without (`lights=off` on their line, then
+   `lights off at 1`); a lit plain set has three twins (a, b, c).
+4. Per placement in stdout.txt: `[SQST] showcase zone id=g3a pair=g3 ab=sl kind=... type=... x= y= r= r_from=measured
+   towns=..` before its `Group 3a ... built ...` line; ab is sl / game (and sl_phases for c). **Record** any
+   `r_from=est` (measured nothing at the callback or the read) and any `measured=..m` far above `reach est=`.
+5. Summary: `[SQST] showcase summary seed=N groups=.. built=.. refused=.. interchanges=a/b roundabouts=a/b
+   plain=a/b sl=a/b game=a/b sl_phases=a/b links=.. linked=.. unlinked=.. towns_skipped=.. sets_mismatch=..` and the
+   window line `Showcase done: ... (sl a/b, game a/b, sl_phases a/b), .. of .. links; N bus lines queued. Seed N.`
+   A dialog only when something was refused or a town skipped (it starts with the same summary). **Record** every
+   refused placement (params on its line; a "Construction Not Possible" is redrawn once, `(redrawn)`). Twins
+   refused alike redraw alike and keep `match=yes`; when only one twin of a set was redrawn (or a redraw was refused
+   again), every twin of that set logs `match=no reason=redrawn` on its zone line and counts in `sets_mismatch`:
+   **record** which sets and how often. A town whose spot fails the land check logs `showcase_towns Grid SN at x, y:
+   town skipped: no land (...)` and is left out (no "Not enough space" dialog, the build goes on): its arm stays
+   unlinked, its set logs `match=no reason=town`, `towns_skipped=` counts it and the window line says `N town(s)
+   skipped (no land)`; on a flat Blank Slate expect `towns_skipped=0`.
+6. Bus lines: `bus_lines_showcase` adds lines across every group, the same arm pairs in each twin of a set (at most
+   40, whole sets), none to a town on a one-way side road; they are not skipped for money. Buses run on both
+   twins.
+7. Press Build showcase again on the same map after Remove towns > Grid towns and Remove all roads: a different
+   seed in the first line, `keep_balance=on (was on)`.
+8. ~~Smart Lanes does not yet treat `ab=game` twins differently~~: it does now, see 6O.
+
+## 6O. Showcase twins get their modes in Smart Lanes (rev 2, zones channel 2026-10-12; not run in game yet)
+Background: SHOWCASE.md "Twin modes in Smart Lanes", FLOW.md "[SQRL] ZONES". Smart Lanes side: its TESTING.md "ZN".
+Map as 6N (16 km Blank Slate, towns removed), Roundabouts & Interchanges and **Smart Lanes enabled**, Smart Lanes
+settings at their defaults (Light phases: Game default, Apply automatically On).
+1. Build showcase. stdout.txt, in this order: `[SQST] showcase: seed=..`, `[SQST] showcase zones sent n=G run=s<seed>-..
+   by_ab=game:a,sl:b,sl_phases:c smart_lanes=yes` (G = groups of the first line, by_ab = its twins counts), then
+   Smart Lanes' `[SQRL] ZONES op=set n=G run=<same> by_ab=<same>`, the towns, then `[SQST] showcase zones ack=yes run=<same>
+   ms=..` before the first `Group 1a ...` line. **Record** the ack ms (expect 0: the towns take longer).
+2. Per group set, look at the twins (Crossing Tool / Smart Lanes tool hover, or the lane arrows):
+   - b (`ab=game`): the game's own lanes (lanes cross at a crossroads, the game's ring lanes, traffic lights where
+     the game put them, its six default phases at a lit crossing in the Crossing window). Smart Lanes logs `SKIP
+     kind=zone zone=game job=.. nodes=.. reason=zone_game` for its job and `SUMMARY ... skips=zone_game:N`; no
+     APPLY / LIGHTS / PHASES line names its nodes.
+   - a (`ab=sl`): Smart Lanes lanes as without zones (APPLY lines; lights removed at rings / slips with Remove traffic
+     lights On; Game default phases re-pointed).
+   - c (`ab=sl_phases`, lit plain crossings only): Smart Lanes lanes plus `PHASES src=auto node=.. phases=sl plan=..`
+     (or `plan_fail=lit_unknown` then `RECHECK kind=phases ... sent=1`), `SUMMARY ... phases=game sl_plans=1 ...
+     zone_phases=1`; the Crossing window shows the planned phases (all-reds, protected turns), unlike twin b.
+3. The towns' streets and the links between arm ends and towns stay normal Smart Lanes (outside the zones), except
+   arm-end nodes inside a game zone (skipped like the junction). Note any junction node of a game twin that got an
+   APPLY line (a zone too small: compare its `showcase zone ... r=` with `measured=`).
+4. Save, quit to the main menu, load: Smart Lanes logs `[SQRL] ZONES op=loaded n=G run=<same>` once after `MODE`.
+   Build a plain crossroads by hand inside a game twin's circle: left at the game default (`SKIP kind=zone`); the
+   same next to an sl twin: Smart Lanes lanes.
+5. Smart Lanes tool in a game twin: select its junction, Apply to junction: it is written (manual override), the
+   `APPLY src=tool ...` line ends in `zone=game`.
+6. Remove all roads: `[SQST] showcase zones cleared by=remove_roads run=.. smart_lanes=yes` and `[SQRL] ZONES op=clear
+   n=0`. (Remove towns > Grid towns / All towns: `by=remove_grid` / `by=remove_all`; the nearest town: nothing.)
+7. Without Smart Lanes (disabled, reload): Build showcase logs `zones sent ... smart_lanes=no` and `zones ack=absent
+   ... ms=0`, no wait, no error; every twin keeps the game's lanes.
+8. Paste back: `grep -E "SQST\] showcase (zones|zone |summary)|SQRL\] (ZONES|SKIP kind=zone|SUMMARY|PHASES|ERROR)"
+   stdout.txt` and a screenshot of twins b and c of one lit plain set in the Crossing window.
+
+## 6P. Showcase bus lines: depot gates and own-town spots (rev 2, 2026-10-12 seed 488838 fixes; not run in game yet)
+Background: SHOWCASE.md "In-game run 2026-10-12 #3", docs/findings/lines-vehicles.md "Script-built road depots".
+Map as 6N, Traffic Bus lines (the Showcase always queues its bus lines), Buses 5.
+1. Depot gates. stdout.txt `[SQST] bus_lines_showcase <route> depot <ring>: ...`: every sent try ends in `connect:
+   success=.. streetEdges at node 1->2 laneConns A->B (entrance edge E, stub ::/infrastructure/street/town/
+   town_new_small.street_template) connected=..`. **Record**: is any connect still refused `Construction Not
+   Possible` (and with what `laneConns`), and B for the connected ones (expect 2; 0 = the gate is a dead end, the try
+   counts as not connected and the depot is removed). In game, click a new depot's gate: no red no-entry sign; the
+   short street to it is the small town street.
+2. Own-town spots: no depot or stop on a link road, a junction arm or within ~100 m of a junction; each sits on the
+   town's grid (the outer street of a 600 m / 400 m grid at most). The ring notes log the edges left out:
+   `rings: 300-700m edges=N rejected={highway=..,oneway=..,not_town=..,outside_town=..,zone=..}`.
+3. Lines: per route `bus_lines_showcase i/N <route> ok ... buses from depot=D (findBestDepotForLine=D) buses=5/5`.
+   A route that still fails names its depot's gate: `no depot reaches the line (findBestDepotForLine=-1; depot D: how,
+   gate node=N streetEdges=E laneConns=L) ...`. **Paste** those lines (laneConns > 0 there means the gate is fine and
+   the route itself is the problem: note the group's type and twin, `ab=` in its `showcase Group` line).
+4. Failed routes don't stop the batch: `... failed after 0 lines: ... (k/10 failed routes, going on)`; the batch
+   stops only at 10 failed routes (`stopped after 10 failed routes`). Summary `towns=40 ok=.. failed=.. wastedStops=..`:
+   **record** ok / failed / wastedStops.
+5. Paste back: `grep -E "bus_lines_showcase" stdout.txt | grep -E "depot rings|fail|ok ms|summary|laneConns"` and a
+   screenshot of one new depot's gate.
+
+## 6Q. Node configs on every script node (rev 2, 2026-10-12; not run in game yet)
+Background: docs/findings/roads.md "Script link roads without node configs" (every `Engine.h:323` `BaseNodeConfig`
+crash in the log archive followed config-less script nodes; the Showcase's links left 37 such nodes). Now every
+proposal of the mod (`gui/stress_nodecfg.tl`) gives each node it adds a config, and a joined existing node a full one.
+Map as 6N with Smart Lanes enabled; run the Showcase (and once the Junction test, set Interchanges, In line on).
+1. `grep -c "reason=no_config" stdout.txt` after the links: **expect 0** (was 37 for seed 204313). Paste any line
+   left, with the `showcase ... linked` line before it.
+2. No `Engine.h:323` / `Engine.cpp:693` assert during links, bus lines or the 10 minutes after (speed 4, towns
+   growing). If one comes: paste the assert block (entity, component type) and the 30 lines before it
+   (`make logs-grep PAT='Engine.h:323' ARGS='-C 30'`).
+3. Traffic: cars and buses drive through a link's town node and, on an interchange arm, through the merge node in both
+   directions (no red dead-end sign on any link node; no U-turn at the merge node).
+4. Junction test In line on highway arms: the linked carriageway pairs carry traffic both ways through the replaced
+   ends.
+
+## 6R. Traffic log (rev 2, FLOW_PLAN.md steps 4-5, 2026-10-12; not run in game yet)
+Background: plans/square_stress_test/FLOW.md "[SQST] FLOW_*" (every key), FLOW_PLAN.md. Reads only; the report is
+`make flow` (tools/flow_report.py). Smart Lanes enabled (rev 4 with the zone labels), Roundabouts & Interchanges
+enabled. Keep traffic cleared **off**.
+1. Map: load the save with the seed 488838 Showcase (session 2026-10-12_0905 in `.cache/logs`), or build a fresh
+   Showcase as 6N on a 16 km Blank Slate (wait for `showcase summary` and the bus lines).
+2. Traffic tab > Traffic log: Every 30 s, tick it. stdout.txt: one `[SQST] FLOW_START run=1 v=2 interval=30
+   interval_unit=game_s zones=Z ... gt_per_s=1000 src=placement|sl_zones sc_run=..` (window log too), then Z
+   `FLOW_ZONE` lines. **Record** `src` and Z: a fresh Showcase gives `src=placement` and Z = the `showcase zone`
+   lines; the reloaded save `src=sl_zones` with `id_from=sl` (Smart Lanes with labels) or `id_from=order` (zones
+   sent by an older Stress Test: ids recomputed; spot-check 3 zones against the old `showcase zone` lines by x / y).
+   On the reloaded save, Z = Smart Lanes' `[SQRL] ZONES op=loaded n=`.
+3. Game speed 4, run 15-20 game minutes (~4-5 wall minutes). The status line under the toggle counts samples and
+   shows `last sweep N ms in F frames, D drivers`. **Record** a typical N, F and D. Watch for stutter: none expected
+   (2 ms per frame at most); note any frame-time spike the game's FPS overlay shows during a sweep.
+4. stdout.txt per sample: Z `FLOW` lines (zones without cars too: `cars=0 ... v_mean=-`), one `FLOW_ALL`, one
+   `FLOW_BUS` per SQST Bus line (`twin=g.. pair=.. ab=.. twin_from=session|stops`; after the reload `stops`), and
+   every 60 s wall `FLOW_TOWNS` (scope=all + one per town). Every 10 samples a `FLOW_SUMMARY ... final=0`.
+   **Record** from a FLOW_ALL: drivers, sampled, in_zones, persons, sweep_ms, elapsed_ms, capped; from FLOW_TOWNS
+   scope=all: ms. Check: `skipped=0` in the summaries (else note the game speed and interval).
+5. Bus units (provisional, FLOW.md FLOW_BUS): pick one line's `raw_deps` over two samples 30 game s apart: the
+   values are game ms like `gt` (the first stop's departure jumps by the round trip, ~6-7 game min); `raw_sections`
+   are seconds that sum to roughly `rt_mean`; `lap_mean` a bit above `rt_mean` (dwell). Paste three FLOW_BUS lines.
+6. Turn on Traffic tab > Keep traffic cleared: a dialog "Traffic log: Keep traffic cleared is on ...", the next
+   summary has `warn=keep_cleared:N`. Turn it off again. Change Every to 10 s: `FLOW_SUMMARY ... final=1` then
+   `FLOW_START run=2 ... interval=10`. Pause the game for a minute: no samples while paused.
+7. Untick: `FLOW_SUMMARY run=2 ... final=1` (window log too). Clear queue while it runs also stops it (`final=1`, the
+   box unticks).
+8. `make flow` (or `make flow ARGS=--last`): the report lists "Twins: per zone" with every twin, "Twins: per pair"
+   with sl vs game (and sl_phases vs game) per set, "Bus lines (FLOW_BUS)" paired by twin, "Towns" and "Sampler runs".
+   Paste the report's per-pair table and the Sampler runs table, plus `grep -E "FLOW_(START|SUMMARY)" stdout.txt`.
+
+## 6S. Lights showcase (rev 2, 2026-10-12; not run in game yet)
+Background: SHOWCASE.md "Lights showcase". Map: a fresh **16 km** Blank Slate (four twins in a row need ~14-16 km
+of width), year **1950 or later** (Game tab > Date), Remove towns > All towns. (Since 2026-10-13 the fourth twin d
+is `sl_lock`, "Kerb locked" towns, not `sl_fan`: read sl_fan below as sl_lock; step 4 of 6U has the checks.) Smart
+Lanes enabled (rev with sl_lock zones), Apply automatically On, its settings at the defaults; Roundabouts & Interchanges not needed. Keep balance
+unticked, costs on.
+1. Build. Towns tab, Lights showcase: a description and the "Build lights showcase" button only (no option rows);
+   it is there without Roundabouts & Interchanges too. Press it: Keep balance ticks itself; stdout.txt has
+   `[SQST] lights_showcase keep_balance=on (was off)`, then `[SQST] lights_showcase: seed=N map=16384x16384m
+   groups=16 sets=4 crossroads=.. t_junctions=.. twins sl=4 game=4 sl_phases=4 sl_fan=4 towns=T (Medium / Large)
+   lights=yes year=Y grow=x10 passes=3` (offline: 16 groups / 4 sets / 56-60 towns for every seed tried; seed 4242:
+   12 crossroads + 4 T, 60 towns), `[SQST] showcase zones sent n=16 run=.. by_ab=game:4,sl:4,sl_phases:4,sl_fan:4
+   smart_lanes=yes`, Smart Lanes' `[SQRL] ZONES op=set n=16 ... by_ab=<same>`, then `zones ack=yes`. **Record** the
+   seed line. Before 1950 (try once, e.g. 1930): a dialog "The year is 1930: the game builds no traffic lights
+   before 1950 ..." and `lights_showcase year=1930 before 1950`; the build goes on.
+2. Look at the map: 4 rows, each one set of 4 twins side by side (Group Na, Nb, Nc, Nd: same crossing, arm roads and
+   town sizes); square layout (SHOWCASE.md "In-game run 2026-10-12 #4"): every crossing at 90 deg and axis-aligned
+   (`angle=0`, `sqst_x_angle=1`), its arms COUNTRY roads (no sidewalk kerbs; lanes differing per arm, 1-3 each way);
+   a Medium or Large town exactly north / east / south / west of it (T: three), all at one distance; each link one
+   straight country road along the axis into the MIDDLE of the town's facing side (where the grid's central street
+   meets the perimeter), never a corner, never another town; no roads between groups. Screenshot one set top-down.
+   **Record** any `-> Grid Sn: not linked (...)` line (the reason names the town and the side's middle point) and
+   any `link refused (... (hits ...))` (what it collided with). An unlinked arm gives `[SQST] showcase zone_match
+   id=gNx pair=gN match=no reason=link` for every built twin of that set after the links, and `sets_mismatch=` counts it.
+3. Per placement: `[SQST] lights_showcase Group Nx Crossroads|T-junction at .. lights=yes [.. sqst_x_lights=2 ..]
+   built ... lit=<node>:pref=yes|auto|?,light=yes|no`. **Record** the pref / light pairs: `pref=yes` means the
+   construction's light request took (trafficLightYes / trafficLightNodePreference; square_roundabouts' signals
+   use the same fields); `pref=auto,light=no` means it did not and AUTO had not lit it yet: the read then sends Yes
+   (`lights forced on at 1`, the dialog lists the twin: "no light at the read; set to Yes (its Smart Lanes phases may
+   be missing)"). Every junction must end up lit: check one set of each kind in game.
+4. The four twins of one crossroads set and one T set (Crossing window: click the centre node; Smart Lanes tool
+   hover for lanes):
+   - b (`ab=game`): the game's lanes and its six default phases; Smart Lanes `SKIP kind=zone zone=game ...`.
+   - a (`ab=sl`): Smart Lanes lanes, phases as the global Light phases setting (Game default: re-pointed).
+   - c (`ab=sl_phases`): Smart Lanes lanes plus `PHASES src=auto node=.. phases=sl plan=..`: the planned phases
+     (all-reds, protected turns) in the Crossing window.
+   - d (`ab=sl_fan`): the full fan (every entry lane to every exit lane of the other arms) and its split phase plan,
+     one approach per phase: `APPLY ... mode=fan`, `PHASES ... plan=x4_fan|t3_fan`, SUMMARY `zone_fan=..`. A forced
+     light (step 3) may give `fan=unlit` then `RECHECK kind=phases ... sent=1`: **record** whether d (and c) still got
+     their plans after a forced light.
+   Screenshot the Crossing window of twins b, c and d of one crossroads set.
+5. Summary: `[SQST] lights_showcase summary seed=N groups=16 built=16 refused=0 crossroads=a/b t_junctions=a/b sl=4/4
+   game=4/4 sl_phases=4/4 sl_fan=4/4 links=T linked=T unlinked=0 towns_skipped=0 sets_mismatch=0` and the window
+   line `Lights showcase done: .. of .. lit crossroads, .. of .. lit T-junctions built (sl 4/4, game 4/4, sl_phases
+   4/4, sl_fan 4/4), T of T links; every town then grows x10 in 3 build-out passes, locked to its grid; N bus lines
+   queued. Seed N.`
+   **Record** refused placements and mismatched sets (dialog and log, as 6N step 5).
+6. Growth, then bus lines (since the grid lock: 6T has the lock and leak lines): `[SQST] lights_showcase grow queued
+   towns=T factor=x10 passes=3 weights={0,0.1,0.5,1} locked=true ...`, the queue line "Growing x10, locked to the
+   grid", per town `lights_showcase_grow town <name> pass p/3 ... buildings a->b`, then `lights_showcase_grow dense
+   summary towns=T factor=x10 passes=3 ... buildings a->b ...`. **Record** the summary and how long it took (wall). Only then `bus_lines_lights_showcase` (lines across every twin, the same arm pairs in all four twins of a
+   set, at most 40). Check that grown towns did not reach a junction or another group's town (screenshot if so).
+7. Traffic log: tick Traffic tab > Traffic log, Every 30 s, before or after the build. After the bus lines it
+   restarts by itself (`traffic log run N stopped: zones changed`, a new `FLOW_START ... zones=16 src=placement`,
+   16 `FLOW_ZONE` lines, twins a-d). Game speed 4 for 20 game minutes, then `make flow`: the per-pair table now also
+   has `sl_fan vs game` and `sl_fan vs sl_phases` rows. Paste the per-pair table and `grep -E "FLOW_(START|SUMMARY)"`.
+8. Busy guards: while it builds (or grows, or adds bus lines) the Showcase, Junction test, Crossing test, Remove all
+   roads and Remove towns refuse with a busy dialog; the Lights showcase refuses while a Showcase runs.
+
+## 6T. Showcase towns locked into their grids (rev 2, 2026-10-12; not run in game yet)
+Background: SHOWCASE.md "Town growth locked into the grid". Same setup as 6N (Showcase: 16 km Blank Slate, year
+2000+, Roundabouts & Interchanges and Smart Lanes enabled; Remove towns > All towns first); then once more with the
+Lights showcase (6S setup). Keep the stdout.txt of each run.
+1. Lock after the towns: right after `showcase_towns summary ...`, one `[SQST] showcase_lock town Grid Sn lock
+   pass=towns edges=N unlocked=U ... locked=L refused=0 failed=0 batches=B ...` per town and `[SQST] showcase_lock
+   summary pass=towns towns=T locked=.. failed=0 ...`, all before the first `Group 1a ... built` line. **Record**
+   `unlocked=` of a few towns (the town's own seed streets) and any `refused=` / `failed=` above 0.
+2. Links locked: click a link road and a grid street with the street info (or Organic Towns' dev tool if enabled):
+   both locked (no town changes). Smart Lanes must not log `reason=no_config` after the links.
+3. Lock after the links: `showcase_lock town .. pass=links ... zone_streets=Z ... stubs=S removed=S` per town (Z:
+   unlocked streets in its junction's zone, the crossing's unlinked arms; locked now), summary `stubs_removed=
+   .. stubs_kept=0`. Lights showcase: all four stubs of every town go (links join the sides' middles). Look at 3 towns' corners: no 60 m dead-end stub left except the one a link uses; no red dead-end
+   sign at a corner.
+4. Density: `[SQST] showcase grow queued towns=T factor=x10 passes=3 weights={0,0.1,0.5,1} locked=true`, per town the
+   detail `showcase_grow town <name> weights={0,0.1,0.5,1} success=true read_back={0,0.1,0.5,1}` (**record** the
+   read_back: nil means the command did not take), per pass `pass p/3 ... buildings a->b` and the leak line
+   `[SQST] showcase_grow town <name> outside_streets=N houses_outside=M pass=p/3 ...`.
+5. Pass criteria, from the final lines (`... final buildings=B ...`) and the screenshots: **`outside_streets=0` on
+   every final leak line**, `houses_outside` only a few per town (houses behind the outer streets beyond 45 m),
+   **`houses_perimeter=0`** (houses just outside the outer street: the outer ring is now a country road, which
+   should get none; SHOWCASE.md "Country ring"), **no houses along any link road** (country roads; a screenshot of
+   one link after x10), and **no street the town built around a junction** (`zone_streets=` on the leak lines: 0, or
+   locked at once; the "links" lock pass may report the crossing's own unlinked arms there), the outer blocks of the
+   grid still with houses on their inner streets (if the town stalls at its edge, note it: the ring can go back to
+   town streets, `sqst_grid_ring` 1),
+   no street the town built outside its grid in a top-down screenshot of 3 towns (one Small, one Medium, one
+   Large/Lights), and a dense centre: `town <name> levels 1:a 2:b 3:c 4:d centre ...` with mostly level 3-4 in the
+   centre. **Record** the `dense summary` line (buildings a->b, outside_streets, houses_outside, locked, levels) and
+   compare the levels with a Grow x10 of a plain Test grid town (no weights) if time allows.
+6. Leak locking: any `locked=` above 0 on a pass's leak line means the town built a street during the pass and it was
+   locked; **record** how many over the run. Any `lock batch .. refused` line: note the node (pending light?) and
+   whether the retry went through.
+7. Later growth: leave the game running 2 game years at speed 4 (towns keep developing), then screenshot the same 3
+   towns: still nothing outside the grid? (A new street there would be unlocked: Grow on the nearest town shows it.)
+8. Test grid "Wide grid, locked" (6B / 6F): the lock is batched: `grid_.. Grid A1 street grid locked
+   edges=N locked=N batches=1..3 refused=0 failed=0 success=true`. Behaviour change: its outer ring (perimeter
+   streets + corner stubs) is now the country road (`sqst_grid_ring` 2, as the Showcases), so no houses outside the
+   perimeter; check the outer blocks still get houses on their inner streets and that "Roads = Neighbours" town links
+   and the Junction test's links (corner stub tips, now country dead ends) still join.
+
+## 6U. Faster Lights showcase + batched building (rev 2, 2026-10-12; not run in game yet)
+Background: SHOWCASE.md "Faster, simpler Lights showcase + batched building". Setup as 6S: 16 km Blank Slate, year
+1950+ (Game tab > Date), Smart Lanes enabled, Remove towns > All towns first. Keep stdout.txt.
+1. Press **Build lights showcase (2x2 X)** and note the wall-clock time. The first `[SQST] lights_showcase:` line ends
+   in `shape=1/4 (2x2 X) bus_lines=no`; the button then reads "(3x3 X)". **Pass: about 2 minutes** until
+   `[SQST] lights_showcase finished in N.N min`; **record** the `[SQST] lights_showcase timing towns=.. grids=..
+   locks=.. junctions=.. links=.. depots=0 density=.. total=..` line (expected roughly: towns 10-60 s for one create
+   command, grids 5-10 s, locks 10-20 s, junctions 15-25 s, links 5-15 s, density 60-90 s; any phase far above that
+   is the next target).
+2. Batches in the log: `lights_showcase_towns towns batch: one command for N towns success=true ... matched=N
+   missing=0` (**record** `ms=`; `missing>0` / `far>0` or "createTowns gave" means the batch fell back, note it),
+   `street grid ... batch c/n grids=10`, `street grids locked grids=N edges=E ... refused=0 failed=0`, `links: N in P
+   proposals`, `linked ms=.. (one proposal of 8 links)`. Any `street grids batch .. refused`, `link group of .. refused
+   (...)` or `lock batch .. refused` line: **record** it with what it hit (the piece then went alone).
+3. Square layout: top-down screenshot of 2 sets: every set the same 2x2 X junction, towns straight N / E / S / W,
+   links straight into the middle of each grid side; no houses along links or outside the country ring; the final
+   leak lines all `outside_streets=0`. Town size (user 2026-10-12): every town **Medium** (8 x 8 blocks, 600 m grid),
+   none Large: the first line reads `towns=N (Medium) ... grow=x3 passes=1`, and a 16 km map holds **6 sets** of 4
+   (24 twins, 96 towns for an X, 72 for a T; 20 km: 7 sets). **Density**: after the x3 growth the grids fill and
+   build up, never out (`lights_showcase grow queued ... factor=x3 passes=1 ... locked=true`; x3 since 2026-10-13,
+   sized for about 1000 people per town, SHOWCASE.md "Growth for ~1000 people per town"; was x10). **Population**:
+   every final line `lights_showcase_grow town <name> levels ... buildings=N pop=P`, and the dense summary ends
+   ` pop min/mean/max=a/b/c (n of N towns read)`: **record** it. **Pass:** the mean near ~1000 (roughly 700-1400)
+   and all towns read; far off: note it, `GROW_FILL` (0.85) is then re-derived from the mean. Also **record** a few
+   towns' population and buildings (town window) about 5 game minutes after the growth (does it keep rising after
+   the final check?), the final leak lines
+   (`outside_streets=0 houses_outside=0 ... houses_unread=N houses_pos=bbox:a,con:b,odd:c`: **record** the
+   `houses_pos` split; houses_outside must now match the screenshot, i.e. ~0 with no house visibly outside: seed
+   530609 logged 1842 with none outside, SHOWCASE.md "houses_outside"), and whether the frame rate / game speed
+   suffers with ~100 towns at x3. Optional extra for more traffic: the load setting **Town building
+   capacity** x2 / x4 multiplies the residents and workers per town building (experimental; x4 can slow the game;
+   don't combine with Car traffic + bus lines, docs/findings.md). Note it with the run if used.
+   **Names**: hover / open a few towns: "Smart lanes 1 N", "Game default 1 E", "Smart phases 1 S", "Kerb locked 1 W"
+   (twin a-d, set, side of its crossing; N = map +y, E = +x: **record** whether that matches the game's
+   north, i.e. the top of the minimap / map view; if not, logic.compassOf needs turning). In the Showcase (step 6) "Parclo 3 N (Smart lanes)" style. **Pass:** the names show in full on the map
+   labels; Remove towns > Grid towns lists every one of them (and an old save's "Grid S.." towns) and no real town.
+4. Traffic: Traffic tab > Traffic log on (every 10 s), game speed 4, let it run 20 game minutes, then `make flow`.
+   No `FLOW_BUS` lines are expected (no bus lines); every pair compares sl / sl_phases / sl_lock with game, and sl
+   with sl_lock. **sl_lock twin (2026-10-13)**: the first line `twins sl=N game=N sl_phases=N sl_lock=N`, the zones line
+   `by_ab=game:N,sl:N,sl_phases:N,sl_lock:N` and Smart Lanes' `[SQRL] ZONES ... by_ab=` the same (the ack matches:
+   `zones ack=yes`), Smart Lanes' `MODE` lines for the d twins kerb-locked with game phases; towns "Kerb locked
+   <set> <side>"; `make flow`: `sl_lock vs game` and `sl vs sl_lock` rows. **Record** the per-pair table.
+4b. **Town entries + every-driver sampler (2026-10-12, SHOWCASE.md "Town entries")**: rebuild the Lights showcase
+   on a fresh 16 km map with Smart Lanes enabled (the entry roundabout is the Stress Test's own construction since
+   2026-10-12; Roundabouts & Interchanges is not needed for it). The first line ends in
+   `entries=roundabout link_lanes=6`; then once `[SQST] lights_showcase entries: driving side right, ring
+   anticlockwise` (left-hand traffic: `left, ring clockwise`; `not read (...)` means right was assumed: record it);
+   one `entry <town> kind=roundabout at x,y node=N removed=3 ... reach=46m in_reach=Nm` line per town, then (after
+   the settle) `kind=roundabout joined=3/3`, and `[SQST] lights_showcase entries roundabout=96 crossroads=0 broken=0
+   joins=288/288`. **Inward arm** (runs 2026-10-12 / 10-13: all 96 refused, first with square_roundabouts' 62 m arms,
+   then at 46 m by the inward crossroads): **record** `in_reach=` (the same value in every line is expected) and the
+   line `entries: inward arm 46m refused by the check (...), Nm from now on` if present (at most one such line per
+   lowering; a second, later one means some sets got different reaches: they show `match=no reason=entry`, record
+   which). **Record** every `kind=crossroads (...)` line with its reason: `(roundabout refused by the check: ...
+   (inward arm 46m, 42m, 38m, 36m))` means even 36 m collided; its `; known: #id <role> far node (k streets)` part
+   names what. Screenshot
+   two towns: a 2-lane roundabout at the middle of the side facing the junction, its side arms joined to the ring,
+   its inner arm to the central street, the link (now 3 lanes each way) into its outer arm. **Pass:** after 20 game
+   minutes at 4x the links' inbound lanes no longer queue solid back to the junction (`make flow`: the "Approaches"
+   table's queued per arm stays well below the v2 run's solid queues; FLOW_ALL `capped=0 target=all`, **record**
+   `frames=`, `sweep_ms=`, `frame_ms_max=` and any `FLOW_TARGET` line). Screenshot one entry close up: the inward
+   arm visibly shorter than the other three when `in_reach` < 46, its join to the central street's crossroads clean;
+   **no houses on the ring or its island** (the ring is now `highway_new_medium`, a country one-way), the side arms
+   running along the perimeter street into it (no town stubs bent outwards). Third run (2026-10-13, seed 158690):
+   12 `arms not read`, 10 broken joins, 15 unlinked; **pass now**: `entries roundabout=96 crossroads=0 broken=0
+   joins=288/288`, `linked=` all, `sets_mismatch=0`, no `kind=roundabout locked=` line at log level (a shortfall
+   is logged: record it), the joined lines `lights=in:carried` or `in:off (unmapped (...))` /
+   `left:off (...)` / `right:off (...)` and no `node not found`; **record** any `arms not read (ends=N found=...)`
+   or `arm end N has k streets now` line. Also **record**: the `in_reach=` and `ring_lanes=` values used (expected `ring_lanes=3`, the 3-lane
+   `highway_new_large` ring, 2026-10-13; any `entries: 3 lanes ..m refused by the check (...), .. from now on` line,
+   and whether the 3-lane ring is refused and the 2-lane one taken: record the refusal reason); a screenshot of one
+   3-lane entry (three ring lanes, no houses on it or its island, the arms meeting it cleanly); the `kind=roundabout locked=8 of
+   8 streets age=2.x s` lines (detail; at log level only when short or fewer than 8: record those, and any `its
+   streets not all locked` / `lights off refused twice` line); that every entry still gets Smart Lanes' ring write
+   with the highway ring (`[SQRL] WRITE ring=` at each entry, `ring=4/0/0`): Smart Lanes treats a one-way street
+   without sidewalks as a ramp (square_smart_lanes sl_cross.lua:10), so a missing ring write or a ramp verdict on the
+   ring nodes is a finding; and the entry's footpath gap (pedestrians detour, no sidewalk on the ring).
+5. Press again for 3x3 X (then 3x2 X, T 2x2) on a fresh map: the constructions have `sqst_x_main=6 sqst_x_side=6`
+   (3x2 X: main 6, side 5; T: `sqst_x_shape=2`).
+6. Showcase (needs Roundabouts & Interchanges): every town Medium (`towns=N (Medium)` on the first line; 9-10 sets
+   on 16 km, 14-17 on 20 km by seed). After the links `[SQST] showcase_depots: N route towns ...`, one
+   `showcase_depots <route> depot=D (built in ring ...)` per route town, then the growth; later the bus lines log
+   `depot=D (ours, ...)` (the pre-built depot). **Pass:** most routes get their line (was 0 of 10 at seed 718344).
 
 ## 7. Save, reload and remove
 
@@ -380,3 +1074,61 @@ the Game tab's town ratings action (section 2); the probe is left as it was (its
 3. After 30 s (keep the game running at 1x): `[SQST-PROBE] emissions_zero ok|fail emitters=N picked=10 factor=F first: e=... noise=... | +2s zero=Z/R | +30s zero=Z2/R2 (still zero = not overwritten); restoring`.
    `+30s zero` lower than `+2s zero` = the base emissions script overwrote our values. `factor` is
    `advancedOptions.missionEmissionsScriptFactor`. The probe then restores the original values.
+
+## 6V. Mixed Lights showcase, ~400-people towns, throughput (rev 2, 2026-10-13; not run in game yet)
+Background: SHOWCASE.md "Mixed shapes, smaller towns, throughput" and "Exit-fan twin". A fresh **20 km** Blank Slate
+(a 16 km map holds only 6 of the 12 sets), 1950 or later, Smart Lanes enabled (with sl_exitfan), Remove towns > All
+towns.
+1. Press "Build lights showcase" (no options). **Pass:** the first line `twins sl=12 game=12 sl_exitfan=12 towns=135
+   (Medium) lights=yes ... shapes=2x2_X,3x3_X,3x2_X,T_2x2 per_shape=3`; the zones line `by_ab=game:12,sl:12,
+   sl_phases:0,sl_exitfan:12` and Smart Lanes' `[SQRL] ZONES op=set ... by_ab=` the same (`zones ack=yes`); 36
+   junctions built, `linked=135 unlinked=0`, `entries roundabout=135 crossroads=0 broken=0 joins=405/405`,
+   `sets_mismatch=0`. In the e zones (twins `g<k>e`, towns "Exit fan <set> <side>") Smart Lanes' `[SQRL] APPLY ...
+   zone=sl_exitfan exit_fan=yes` at every lit junction: **record** any e junction without it. Screenshot one T set
+   (three towns) and one set's three twins (their order rotates per shape). Entry locks: **record** how many
+   entries locked at the build (`locked=8 of 8 streets (4 already) age=0.0s`, detail log) and how many later (`(at
+   the build: the later lock tries again)`, then `age=2.x s`, or `(one lock for K entries)`), and every `kind=roundabout
+   stray street ... removed` / `not removed` line; pass: no `arms not read`.
+2. Growth: `grow queued ... target=400`, every pass line `(x.. for 400 from pop=..)`; **record** the summary's
+   `pop min/mean/max` (**pass:** mean about 400, roughly 300-500; else re-derive from the pass lines' pop before x
+   factor vs the final pop).
+3. Lanes: at a junction arm's end where it meets its link (2 -> 3 lanes), the node window shows the arm's far lane
+   connected to both of the link's inner lanes and both of them back into it; **record** a screenshot.
+4. Traffic log on (30 s), 20 game minutes at 4x, then `make flow`. First **record** the 4 `[SQST] FLOW_PATHDBG` lines
+   (what a path element is: its reader `[1]` / `first`, its entity, whether that entity is a BASE_EDGE / BASE_NODE,
+   and whether any appears in `set=`: run 2026-10-13_0356 had thru=0 everywhere). **Pass:** FLOW lines with `thru=N thru_s=30`
+   (not all 0 at busy junctions: if every thru stays 0 while cars cross, the EdgeId.entity assumption in FLOW.md is
+   wrong: report it), `q_in=` / `q_out=` per arm; FLOW_START `drive_side=right`; the report's per-pair table has
+   `thru/min`, the paired comparison `all` rows over the 12 sets for sl vs game, sl_exitfan vs sl (the fan alone) and
+   sl_exitfan vs game, with thru W/L/T; FLOW_ALL
+   `capped=0` (thru needs every driver) and **record** `sweep_ms` / `frames` / `frame_ms_max` against the last run
+   (the path checks cost frames). A `FLOW_TARGET ... reason=skipped` line means thru is no longer a full count:
+   from there `thru_scale=k` (an estimate from every k-th driver by id) until `reason=recovered target=all`;
+   **record** both lines, how many samples ran at which scale, and compare pairs only over samples of the same
+   scale (one `thru=-` sample at each change).
+
+## 6W. Bench sheet 1: roundabouts and lane drops (rev 2, 2026-10-13; not run in game yet)
+Background: plans/square_stress_test/BENCH.md (sheets, the run's phases, the report). One press runs everything.
+Setup (once): `make link`; in the Mod Hub enable **Stress Test Debug Tool**, **Smart Lanes** (the version with the
+bench zone mode `sl_keeplights`; its settings: Apply automatically On, No lights at roundabouts and ramps On, the rest
+as you like) and **Roundabouts & Interchanges**. Start a **new free game, 16 km (Very large) Blank Slate**, any year
+(the run sets 1950 if earlier).
+1. **Press**: Debug window > Towns tab > **Bench** > **Sheet 1**. **Pass:** a dialog "Bench sheet 1: roundabouts and
+   lane drops" with "39 junctions, 132 towns (~53k people), about 11 min to build; 16.0 x 16.0 km map: everything
+   fits". A dialog listing a problem instead (Smart Lanes setting, mod missing): fix it and press again.
+2. **Confirm**: "Run bench". Then leave the game running, unpaused, in front (no other window over it, no other
+   button presses) for about 25 minutes. The Bench section's status line shows the phase (clear, year, build,
+   sl_idle, warm-up / recording N of M game s, shots).
+3. **Wait** for the status `Bench s1 done (seed N): tell Claude "done" (make bench).` (a dialog "The bench stopped: ..."
+   means it aborted: note the reason; the log has it too).
+4. **Say "done"**. Claude runs `make bench` (draft in `.cache/bench/`). **Record** while it runs, only if you see it:
+   any error dialog, a stutter, a crash.
+What Claude checks in the log (no action for you): `BENCH_START ... sl_lights=on ... sl_modes=...,sl_keeplights`;
+`bench_s1 summary ... built=39 refused=0 ... linked=132 unlinked=0 ... sets_mismatch=0`; `bench_s1 entries
+roundabout=132 crossroads=0 broken=0 joins=396/396`; 39 `BENCH_TWIN` lines (rb4 twins: `lit_nodes` > 0 in the game and
+sl_keeplights twins, else test 2 is void: BENCH.md open question 2); `[SQRL] LIGHTS ... to=off zid=g<k>a` in the rb4 sl
+twins and `to=kept zone=sl_keeplights zid=g<k>f` in the f twins; `[SQRL] SKIP ... reason=zone_game zid=` naming every
+game twin; `[SQRL] APPLY kind=drop ... zid=` at every drop sl twin; `bench_s1 smart_lanes idle=yes`; `FLOW_START ...
+interval=10 ... thru_m=pos`, FLOW lines with `thru=` > 0 at busy junctions, `FLOW_PATHOFF` once (or `thru_path`
+values); warm-up and record phases at speed 2 (or 1 after a step-down); `BENCH_SHOT` x 5 (3 roundabout twins + 2 drop
+twins) and `BENCH_DONE ok=yes`. Screenshots: the game's `screenshots/` folder, the 5 newest files.

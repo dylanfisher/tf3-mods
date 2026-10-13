@@ -344,3 +344,189 @@ test("townReadout sums person capacities and buildings", function()
 	eq(logic.townReadout({ 1 }, caps, bld, 1), "Towns 1 (1 frozen)   Capacity 600   Buildings 2")
 	eq(logic.townReadout({}, nil, nil, nil), "Towns 0   Capacity 0   Buildings 0")
 end)
+
+---------------------------------------------------------------------------
+-- test grid
+
+test("gridPositions: centred, spacing apart, row by row, names Grid <row letter><column>", function()
+	local g = logic.gridPositions(100, 200, 2, 2, 3000)
+	eq(#g, 4)
+	eq({ g[1].x, g[1].y, g[1].name }, { -1400, -1300, "Grid A1" })
+	eq({ g[2].x, g[2].y, g[2].name }, { 1600, -1300, "Grid A2" })
+	eq({ g[3].x, g[3].y, g[3].name }, { -1400, 1700, "Grid B1" })
+	eq({ g[4].x, g[4].y, g[4].name }, { 1600, 1700, "Grid B2" })
+	local g3 = logic.gridPositions(0, 0, 3, 3, 1000)
+	eq({ g3[5].x, g3[5].y, g3[5].name }, { 0, 0, "Grid B2" }) -- the middle town sits on the centre
+	eq(g3[9].name, "Grid C3")
+end)
+
+test("gridPairs: none, neighbours, neighbours + diagonals", function()
+	eq(logic.gridPairs(2, 2, 1), {})
+	eq(logic.gridPairs(2, 2, 2), { { 1, 2 }, { 1, 3 }, { 2, 4 }, { 3, 4 } })
+	eq(#logic.gridPairs(2, 2, 3), 6) -- every pair of the four
+	eq(#logic.gridPairs(3, 3, 2), 12)
+	eq(#logic.gridPairs(3, 3, 3), 20)
+	eq(logic.gridPairs(4, 1, 3), { { 1, 2 }, { 2, 3 }, { 3, 4 } })
+end)
+
+test("gridLabel", function()
+	eq(logic.gridLabel("3 x 3", 1500), "Create 3 x 3 grid, 1.5 km")
+end)
+
+test("isGridTownName and removeLabel", function()
+	eq(logic.isGridTownName("Grid A1"), true)
+	eq(logic.isGridTownName("Grid C12"), true)
+	eq(logic.isGridTownName("Gridiron"), false)
+	eq(logic.isGridTownName("SQST Town 1"), false)
+	-- test town names (Remove towns > Grid towns): the grids', old Showcases' and the new Showcase names
+	for _, n in ipairs({ "Grid A1", "Grid S35", "Parclo 3 N (Smart lanes)", "Ring IX 12 NW (Game default)",
+			"T-junction 9 SE (Smart phases)", "Grid W", "Grid N", "Smart lanes 1 N", "Game default 2 E", "Smart phases 3 S", "Full fan 10 W", "Kerb locked 6 S", "Crossroads 2 E (Kerb locked)" }) do
+		eq(logic.isTestTownName(n), true, n)
+	end
+	for _, n in ipairs({ "Gridiron", "Springfield", "Parclo 3 N", "Smart lanes 1 Q", "Full fan city", "Kerb locked road", "Kerb locked 2", "Smart lanes N",
+			"Parclo N (Smart lanes)", "x 3 N (Other mode)", "Grid NE", "Grid", "" }) do
+		eq(logic.isTestTownName(n), false, n)
+	end
+	eq(logic.isTestTownName(nil), false)
+	eq(logic.removeLabel(2), "Remove grid towns")
+end)
+
+test("uniqueEdges, chunk, orphanNodes", function()
+	eq(logic.uniqueEdges({ [1] = { 11, 12 }, [2] = { 12, 13 }, [3] = { 11 } }), { 11, 12, 13 })
+	eq(logic.chunk({ 1, 2, 3, 4, 5 }, 2), { { 1, 2 }, { 3, 4 }, { 5 } })
+	eq(logic.chunk({}, 2), {})
+	-- node 2 joins both removed edges; node 3 still has another edge; node 4 is a construction node;
+	-- node 9 has an unknown degree
+	eq(logic.orphanNodes({ { 1, 2 }, { 2, 3 }, { 4, 9 } }, { [1] = 1, [2] = 2, [3] = 2, [4] = 1 }, { [4] = true }), { 1, 2 })
+end)
+
+---------------------------------------------------------------------------
+-- Town growth locked into the grid (Showcase / Lights showcase)
+
+test("outsideGrid / edgeOutside: the grid square grown by the margin; an edge leaving it at either end", function()
+	local a = { town = 1, label = "A", x = 1000, y = -500, half = 200 }
+	ok(not logic.outsideGrid(a, 1200, -300, 0))
+	ok(logic.outsideGrid(a, 1201, -500, 0))
+	ok(not logic.outsideGrid(a, 1219, -719, 20))
+	ok(logic.outsideGrid(a, 1000, -721, 20))
+	ok(not logic.edgeOutside(a, { 800, -500 }, { 1200, -500 }, logic.LOCK_MARGIN), "a grid street")
+	ok(logic.edgeOutside(a, { 1200, -500 }, { 1350, -500 }, logic.LOCK_MARGIN), "a street out of the grid")
+	ok(logic.edgeOutside(a, { 1350, -500 }, { 1200, -500 }, logic.LOCK_MARGIN))
+end)
+
+test("stubOuterEnd: exactly the four corner stubs of every wide grid, either direction; no other grid street", function()
+	local grid = ug_require "square_stress_test::/stress/stress_grid_streets.lua"
+	for _, half in ipairs(grid.HALF) do
+		local a = { town = 1, label = "A", x = 3000, y = 2000, half = half }
+		local stubs = 0
+		for _, e in ipairs(grid.edges(half)) do
+			local p0 = { e[1][1] + a.x, e[1][2] + a.y }
+			local p1 = { e[3][1] + a.x, e[3][2] + a.y }
+			local k = logic.stubOuterEnd(a, p0, p1)
+			if k ~= nil then
+				stubs = stubs + 1
+				eq(k, 1, "the grid's stubs run from the corner outwards")
+				eq(logic.stubOuterEnd(a, p1, p0), 0, "reversed")
+				ok(logic.edgeOutside(a, p0, p1, logic.LOCK_MARGIN), "a stub ends outside the grid (+ margin)")
+			else
+				ok(not logic.edgeOutside(a, p0, p1, logic.LOCK_MARGIN), "a grid street is inside")
+			end
+		end
+		eq(stubs, 4, "half " .. half)
+	end
+	-- a street out of a side's middle, or diagonal from a point off the corner, is no stub
+	local a = { town = 1, label = "A", x = 0, y = 0, half = 200 }
+	eq(logic.stubOuterEnd(a, { 200, 0 }, { 260, 0 }), nil)
+	eq(logic.stubOuterEnd(a, { 190, 200 }, { 240, 250 }), nil)
+	eq(logic.stubOuterEnd(a, { -200, 200 }, { -242, 242 }), 1)
+end)
+
+test("denseWeights: one fresh row of four per land use, clamped to 0..1; all zero falls back to DENSE_WEIGHTS", function()
+	local w = logic.denseWeights()
+	eq(#w, 3)
+	for k = 1, 3 do eq(w[k], { 0.0, 0.1, 0.5, 1.0 }) end
+	ok(w[1] ~= w[2] and w[1] ~= logic.DENSE_WEIGHTS, "fresh tables")
+	w[1][1] = 9
+	eq(logic.DENSE_WEIGHTS[1], 0.0)
+	eq(logic.denseWeights({ -1, 2, 0.5, 0.25 })[3], { 0.0, 1.0, 0.5, 0.25 })
+	eq(logic.denseWeights({ 0, 0, 0, 0 })[1], logic.DENSE_WEIGHTS)
+	-- the town editor's sliders run 0..100 % and never let all four be 0 (base town_eow.script.tl)
+	local sum = 0
+	for _, v in ipairs(logic.DENSE_WEIGHTS) do
+		ok(v >= 0 and v <= 1)
+		sum = sum + v
+	end
+	ok(sum > 0)
+	ok(logic.DENSE_WEIGHTS[4] > logic.DENSE_WEIGHTS[3] and logic.DENSE_WEIGHTS[3] > logic.DENSE_WEIGHTS[2], "shifted to the high levels")
+end)
+
+test("levelCounts / levelText: per level 1..4, out of range clamped", function()
+	local c = logic.levelCounts({ 1, 4, 4, 2, 3, 3, 3, 0, 7 })
+	eq(c, { 2, 1, 3, 3 })
+	eq(logic.levelText(c), "1:2 2:1 3:3 4:3")
+	eq(logic.levelText(logic.levelCounts({})), "1:0 2:0 3:0 4:0")
+end)
+
+test("denseSteps: per town weights then its passes; every town's final check after all the growth", function()
+	local st = logic.denseSteps(2, 3)
+	local text = {}
+	for k, s in ipairs(st) do text[k] = s.kind .. s.town .. ":" .. s.pass end
+	eq(table.concat(text, " "), "weights1:0 grow1:1 grow1:2 grow1:3 weights2:0 grow2:1 grow2:2 grow2:3 final1:3 final2:3")
+	eq(#logic.denseSteps(1, 0), 3, "at least one pass")
+	eq(logic.denseSteps(0, 3), {})
+end)
+
+test("leakLine: the line TESTING.md looks for", function()
+	eq(logic.leakLine("showcase_grow", "Grid S3", 0, 2, " final"), "[SQST] showcase_grow town Grid S3 outside_streets=0 houses_outside=2 final")
+	eq(logic.leakLine("x", "y", nil, nil), "[SQST] x town y outside_streets=0 houses_outside=0")
+end)
+
+test("both Showcase specs: streets locked, level weights, Showcase x10 in 3 passes, Lights showcase x3 once (denser, same grid)", function()
+	for _, sp in ipairs({ logic.SHOWCASE_SPEC, logic.LIGHTS_SPEC }) do
+		eq(sp.lockStreets, true, sp.id)
+		eq(sp.denseWeights, logic.DENSE_WEIGHTS, sp.id)
+	end
+	eq({ logic.SHOWCASE_SPEC.growFactor, logic.SHOWCASE_SPEC.growPasses }, { 10, 3 })
+	for k = 1, #logic.LIGHTS_SHAPES do
+		local sp = logic.lightsSpec(k)
+		eq({ sp.growFactor, sp.growPasses, sp.growTarget }, { 1.0, 1, 400 }, sp.shapeLabel)
+	end
+	-- both Showcases: Medium towns (user 2026-10-12); the Lights showcase gets its people from density
+	eq(logic.specSize(logic.SHOWCASE_SPEC), 2)
+	eq(logic.specSize(logic.LIGHTS_SPEC), 2)
+	-- sized for about 400 people per town (user 2026-10-13), each town from its capacity target; x1 the fallback
+	eq(logic.LIGHTS_GROW_FACTOR, 1.0)
+	eq(logic.LIGHTS_SPEC.growTarget, 400)
+	ok(logic.LIGHTS_GROW_FACTOR < logic.DENSE_GROW_FACTOR)
+	ok(logic.LIGHTS_GROW_FACTOR <= logic.MAX_SIZE_FACTOR)
+	local inF, inP = false, false
+	for _, f in ipairs(logic.GROW_FACTORS) do if f == logic.DENSE_GROW_FACTOR then inF = true end end
+	for _, p in ipairs(logic.GROW_PASSES) do if p == logic.DENSE_GROW_PASSES then inP = true end end
+	ok(inF and inP)
+	ok(logic.LOCK_BATCH > 0 and logic.LOCK_BATCH <= logic.LOCK_MAX_PASS)
+end)
+
+test("town growth for a target population: growFactorFor (target / (fill x initial residential capacity), 0.25 steps, 1..MAX), growFactorForPop (target / pop, 0.05 steps); popText", function()
+	eq(logic.GROW_FILL, 0.78)
+	eq(logic.LIGHTS_TARGET_POP, 400)
+	eq(logic.growFactorFor(400, 400), 1.25, "Medium at fill 0.78: 400 / 312 = 1.28")
+	eq(logic.growFactorFor(400, 400, 1.0), 1.0, "at small factors the town fills its target: x1")
+	eq(logic.growFactorFor(1000, 400), 3.25, "1000 / 312 = 3.21")
+	eq(logic.growFactorFor(1000, 1600), 1.0, "Large: never below 1")
+	eq(logic.growFactorFor(1000, 400, 0.5), 5.0)
+	eq(logic.growFactorFor(1e9, 1), logic.MAX_SIZE_FACTOR)
+	eq(logic.growFactorFor(nil, 400), 1.0)
+	eq(logic.growFactorFor(1000, 0), 1.0)
+	eq(logic.LIGHTS_GROW_FACTOR, 1.0)
+	-- per town from its capacity target (2026-10-13 session 0356: pop = initial capacity x factor, median 0.998)
+	eq(logic.growFactorForCap(400, 400), 1.0, "Medium: the level weights only")
+	eq(logic.growFactorForCap(400, 250), 1.6)
+	eq(logic.growFactorForCap(400, 1600), 1.0, "already bigger: weights only")
+	eq(logic.growFactorForCap(400, 0), nil)
+	eq(logic.growFactorForCap(400, nil), nil)
+	eq(logic.growFactorForCap(400, 0 / 0), nil)
+	eq(logic.growFactorForCap(1e9, 1), logic.MAX_SIZE_FACTOR)
+	eq(logic.popText({ 900, nil, 1100, 1000 }, 4), " pop min/mean/max=900/1000/1100 (3 of 4 towns read)")
+	eq(logic.popText({}, 3), " pop=unread")
+	eq(logic.popText({}, 0), " pop=unread")
+end)

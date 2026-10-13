@@ -1,6 +1,6 @@
 {
     "modId": "square_stress_test",
-    "revision": 1,
+    "revision": 2,
     "severityAdd": "None",
     "severityRemove": "Warning",
     "visible": true,
@@ -16,9 +16,20 @@
     },
     "params": [
         {
+            "key": "hudButtonStyle",
+            "name": "Top bar button",
+            "tooltip": "How the Stress Test button in the top-left bar looks.\nText: the word \"Debug\" without a frame. Icon: a gauge icon\non a dark tile, like the game's data layers button.",
+            "uiType": "Button",
+            "values": [
+                "Text",
+                "Icon"
+            ],
+            "defaultIndex": 1
+        },
+        {
             "key": "no_costs",
             "name": "No costs",
-            "tooltip": "On: building and vehicles cost nothing (the game's own noCosts setting, as in the official No Costs mod). Applied when the game loads.",
+            "tooltip": "On: building and vehicles cost nothing (the game's own\nnoCosts setting, as in the official No Costs mod). Applied\nwhen the game loads.",
             "uiType": "Button",
             "values": [
                 "Off",
@@ -29,7 +40,7 @@
         {
             "key": "sandbox",
             "name": "Sandbox mode",
-            "tooltip": "On: the game's sandbox mode (town editor, industry menus), as in the official Sandbox mod. Applied when the game loads.",
+            "tooltip": "On: the game's sandbox mode (town editor, industry menus),\nas in the official Sandbox mod. Applied when the game loads.",
             "uiType": "Button",
             "values": [
                 "Off",
@@ -40,7 +51,7 @@
         {
             "key": "vehicles_no_expire",
             "name": "Vehicles never expire",
-            "tooltip": "On: no vehicle model goes out of production (as in the official 'No end year for vehicles' mod).",
+            "tooltip": "On: no vehicle model goes out of production (as in the\nofficial 'No end year for vehicles' mod).",
             "uiType": "Button",
             "values": [
                 "Off",
@@ -51,7 +62,7 @@
         {
             "key": "no_emissions",
             "name": "No noise and pollution",
-            "tooltip": "On: vehicles emit no noise or pollution, the game stops updating the emissions of industries, stations, depots and warehouses (existing ones keep their current value, new industries start at zero), and noise and pollution no longer lower town ratings (towns given their own sensitivity in the town editor keep it). Applied when the game loads.",
+            "tooltip": "On: vehicles emit no noise or pollution, the game stops\nupdating the emissions of industries, stations, depots and\nwarehouses (existing ones keep their current value, new\nindustries start at zero), and noise and pollution no longer\nlower town ratings (towns given their own sensitivity in the\ntown editor keep it). Applied when the game loads.",
             "uiType": "Button",
             "values": [
                 "Off",
@@ -62,7 +73,7 @@
         {
             "key": "sim_recompute",
             "name": "Sim person trip recalculation",
-            "tooltip": "How often town residents re-pick their destinations (x1 = game default). Higher = more trips and more simulation load.",
+            "tooltip": "How often town residents re-pick their destinations (x1 =\ngame default). Higher = more trips and more simulation load.",
             "uiType": "Button",
             "values": [
                 "x1",
@@ -74,7 +85,7 @@
         {
             "key": "town_develop",
             "name": "Town development interval",
-            "tooltip": "How often towns grow. Default = the game's own interval (60); Fast = 15; Very fast = 5.",
+            "tooltip": "How often towns grow. Default = the game's own interval\n(60); Fast = 15; Very fast = 5.",
             "uiType": "Button",
             "values": [
                 "Default",
@@ -84,9 +95,33 @@
             "defaultIndex": 0
         },
         {
+            "key": "car_traffic",
+            "name": "Car traffic",
+            "tooltip": "Experimental, for testing only. Town buildings no longer\nallow walking or lines as a way to travel, so more trips go\nby car. Drive: destinations = shops and workplaces; Drive:\nall town buildings = homes too. Changes the town buildings\nin your save as they are built or rebuilt; after removing the\nmod they return to normal only when rebuilt. Applied when\nthe game loads.",
+            "uiType": "Button",
+            "values": [
+                "Default",
+                "Drive: destinations",
+                "Drive: all town buildings"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "town_capacity",
+            "name": "Town building capacity",
+            "tooltip": "Experimental, for testing only. Multiplies the residents and\nworkers of every town building (not the goods it needs), so\nmore people make more trips. Changes the town buildings in\nyour save as they are built or rebuilt; after removing the\nmod they return to normal only when rebuilt. Applied when\nthe game loads.",
+            "uiType": "Button",
+            "values": [
+                "x1",
+                "x2",
+                "x4"
+            ],
+            "defaultIndex": 0
+        },
+        {
             "key": "show_probe_tab",
             "name": "Show probe tab (developers)",
-            "tooltip": "On: adds the Probe tab with the in-game experiments the tool was built from. Each button changes your save. For mod developers only.",
+            "tooltip": "On: adds the Probe tab with the in-game experiments the tool\nwas built from. Each button changes your save. For mod\ndevelopers only.",
             "uiType": "Button",
             "values": [
                 "Off",

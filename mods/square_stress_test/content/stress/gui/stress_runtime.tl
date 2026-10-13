@@ -8,6 +8,7 @@
 -- next simulation step and calls the callback a frame after it ran (api/tealdef/api/cmd.d.tl:1-10).
 
 local logic = ug_require "square_stress_test::/stress/stress_logic.tl" as SquareStressLogic
+local nc = ug_require "square_stress_test::/stress/gui/stress_nodecfg.tl" as SquareStressNodeCfg
 
 local RECENT_MAX <const> = 8
 local TOPUP_CHECK_US <const> = 2000000
@@ -19,6 +20,7 @@ local rt : SquareStressRuntime = {
 	queue = nil,
 	version = 0,
 	recent = {},
+	warnings = {},
 	keepBalance = false,
 	hideNotifications = true,
 	notificationsSent = false,
@@ -26,6 +28,7 @@ local rt : SquareStressRuntime = {
 	PER_FRAME = 4,
 	tickHooks = {},
 	queueClears = 0,
+	lines = 0,
 }
 rt.queue = logic.newQueue(rt.PER_FRAME)
 
@@ -38,13 +41,85 @@ function rt.nowUs() : integer
 end
 
 function rt.log(msg : string)
+	rt.lines = rt.lines + 1
 	log.message(msg)   -- full text (with any traceback) to stdout.txt
 	rt.recent[#rt.recent + 1] = logic.oneLine(msg)   -- one line in the window
 	while #rt.recent > RECENT_MAX do table.remove(rt.recent, 1) end
 	rt.version = rt.version + 1
 end
 
+--- A node's BASE_NODE_CONFIG for a street proposal that replaces or removes some of its edges:
+--- connections and crosswalks through `gone` edges dropped, edge ids in `newIds` (old -> new temp id)
+--- re-pointed. Read connections are read-only, so they are rebuilt with api.type.LaneConnection.new()
+--- (docs/findings.md "Junction lane connections"; plain tables when the constructor is missing). Send
+--- it as nodeConfigsToRemove {node} + nodeConfigsToAdd {entry}, never the remove alone. Second
+--- result: how many connections and crosswalks were dropped or re-pointed. nil without a config.
+function rt.nodeConfigEntry(node : integer, newIds : {integer : integer}, gone : {integer : boolean}) : Proposal.BaseNodeLaneConnectionAndEntity, integer
+	local cfg = api.engine.getComponent(node, api.type.ComponentType.BASE_NODE_CONFIG) as Engine.Component.BaseNodeConfig
+	if cfg == nil then return nil, 0 end
+	newIds = newIds or {}
+	gone = gone or {}
+	local LC = (api.type as {string : any})["LaneConnection"] as {string : function() : any}
+	local conns : {any} = {}
+	local changed = 0
+	local dropped = false
+	-- for the light phases (nc.relight): old index -> re-pointed connection, old crosswalk -> new position
+	local oldMap : {integer : {integer}} = {}
+	local plain : {{integer}} = {}
+	local cwMap : {integer : integer} = {}
+	local nOld = #(cfg.laneConnections or {})
+	for i = 1, nOld do
+		local old = cfg.laneConnections[i]
+		if gone[old.segment0] or gone[old.segment1] then
+			changed = changed + 1
+			dropped = true
+		else
+			if newIds[old.segment0] ~= nil or newIds[old.segment1] ~= nil then changed = changed + 1 end
+			local lc : {string : any} = LC ~= nil and LC.new ~= nil and LC.new() as {string : any} or {}
+			lc.segment0 = newIds[old.segment0] or old.segment0
+			lc.lane0 = old.lane0
+			lc.segment1 = newIds[old.segment1] or old.segment1
+			lc.lane1 = old.lane1
+			lc.withRoad = old.withRoad
+			lc.withTram = old.withTram
+			conns[#conns + 1] = lc
+			local pc = { lc.segment0 as integer, old.lane0, lc.segment1 as integer, old.lane1 }
+			oldMap[i] = pc
+			plain[#plain + 1] = pc
+		end
+	end
+	local cws : {integer} = {}
+	local nCwOld = #(cfg.crosswalks or {})
+	for i = 1, nCwOld do
+		local c = cfg.crosswalks[i]
+		if gone[c] then
+			changed = changed + 1
+			dropped = true
+		else
+			if newIds[c] ~= nil then changed = changed + 1 end
+			cws[#cws + 1] = newIds[c] or c
+			cwMap[i] = #cws
+		end
+	end
+	local entry = api.type.BaseNodeLaneConnectionAndEntity.new()
+	entry.entity = node
+	entry.comp = cfg
+	entry.comp.laneConnections = conns as {LaneConnection}
+	entry.comp.crosswalks = cws
+	-- dropped connections or crosswalks shift the light phases' indices: re-point them (stale ones
+	-- crash the simulation, docs/findings/roads.md "Traffic light phases index the lane connections")
+	if dropped then nc.relight(entry, cfg, oldMap, nOld, plain, cwMap, nCwOld) end
+	return entry, changed
+end
+
+--- A warning the window shows in a dialog (the HUD pops rt.warnings), also logged.
+function rt.warn(title : string, body : string)
+	rt.log("[SQST] " .. title .. ": " .. body)
+	rt.warnings[#rt.warnings + 1] = { title = title, body = body }
+end
+
 function rt.detail(msg : string)
+	rt.lines = rt.lines + 1
 	log.message(msg)
 end
 
@@ -94,6 +169,12 @@ end
 --- The name of a queued or running job whose name starts with one of the prefixes, else nil (the
 --- buttons refuse a second batch of the same kind instead of stacking it; 2026-10-10 three quick clicks
 --- queued three bus-line batches).
+-- Job-name prefixes of the test builds (Junction test, Crossing test, Showcase and their bus lines): the tests
+-- refuse each other while one runs, and Remove all roads / Remove towns refuse while one runs (a removal queued
+-- between a test's towns and its junctions would leave the test half linked).
+rt.TEST_JOBS = { "junction_test", "junction_grid", "crossing_test", "crossing_towns", "bus_lines_junction_test",
+	"bus_lines_crossing_test", "showcase", "bus_lines_showcase", "lights_showcase", "bus_lines_lights_showcase", "bench_" }
+
 function rt.busyJob(prefixes : {string}) : string
 	for _, job in ipairs(rt.queue.jobs) do
 		for _, p in ipairs(prefixes) do

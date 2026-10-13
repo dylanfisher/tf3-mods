@@ -328,8 +328,8 @@ test("debounce: add / sell vehicles refuse while either is queued or running", f
 	local all = allLog()
 	local _, plans = all:gsub("lines x 1 = 2 vehicles", "")
 	eq(plans, 1)
-	ok(all:find("add_vehicles_1: refused, add_vehicles_1 is still queued or running", 1, true), all)
-	ok(all:find("remove_vehicles: refused, add_vehicles_1 is still queued or running", 1, true), all)
+	ok(all:find("Busy: add_vehicles_1: add_vehicles_1 is still queued or running", 1, true), all)
+	ok(all:find("Busy: remove_vehicles: add_vehicles_1 is still queued or running", 1, true), all)
 	eq(#rt.queue.jobs, 2)   -- one buy job and its summary
 end)
 

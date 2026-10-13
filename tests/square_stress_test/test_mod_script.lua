@@ -100,3 +100,8 @@ test("postRunFn: town noise and pollution sensitivity option 1 only with no_emis
 	mods.postRunFn({}, {}, { square_stress_test = { no_emissions = 2 } })
 	mods.postRunFn({}, {}, nil)
 end)
+
+test("runFn: the removed town_streets setting registers nothing, even with an old saved Wide value (crash 2026-10-11)", function()
+	mods.runFn({}, {}, { square_stress_test = { town_streets = 2 } })
+	eq(#modifiers, 0)
+end)

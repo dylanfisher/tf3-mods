@@ -1,5 +1,5 @@
 -- stress_probes.tl: the Probe tab's button list covers RESEARCH.md open probes 1-8, probe 9
--- (private car traffic, PROBES_TRAFFIC.md) and probe 10 (bus lines, PROBES_BUSLINES.md), ids are unique, and loading the module calls no engine API
+-- (private car traffic, PROBES_TRAFFIC.md), probe 10 (bus lines, PROBES_BUSLINES.md) and probe 11 (Flow, FLOW.md), ids are unique, and loading the module calls no engine API
 -- (nothing runs until a button is pressed).
 
 before_each(function()
@@ -7,7 +7,7 @@ before_each(function()
 	set_global("api", setmetatable({}, { __index = function(_, k) error("api." .. tostring(k) .. " used at load time") end }))
 end)
 
-test("one or more buttons per open probe 1-10, unique ids, all callable", function()
+test("one or more buttons per open probe 1-11, unique ids, all callable", function()
 	local probes = ug_require "square_stress_test::/stress/gui/stress_probes.tl"
 	local seen, perProbe = {}, {}
 	for _, p in ipairs(probes.list) do
@@ -19,10 +19,11 @@ test("one or more buttons per open probe 1-10, unique ids, all callable", functi
 		ok(n ~= nil, "id names its probe number: " .. p.id)
 		perProbe[n] = (perProbe[n] or 0) + 1
 	end
-	for n = 1, 10 do ok(perProbe[n] ~= nil, "probe " .. n .. " has a button") end
+	for n = 1, 11 do ok(perProbe[n] ~= nil, "probe " .. n .. " has a button") end
 	eq(perProbe[9], 5)
 	eq(perProbe[10], 4)
-	eq(#probes.list, 23)
+	eq(perProbe[11], 8)
+	eq(#probes.list, 31)
 end)
 
 test("streetEdgesNear: octree BASE_EDGE query, counts only edges with a BASE_EDGE_STREET", function()
@@ -306,6 +307,27 @@ test("10a replaces the edge by a copy carrying a right-side stop and reports the
 	eq(seg.comp.objects, { { -400000000, 1 } })
 	local eo = sp.edgeObjectsToAdd[1]
 	eq({ eo.edgeEntity, eo.param, eo.left, eo.oneWay, eo.playerEntity }, { -1, 0.5, false, false, 7 })
+	-- the edge's end nodes have no config here (a script-made node): each gets a fresh one, add only
+	local cfgNodes = {}
+	for _, e in ipairs(sp.nodeConfigsToAdd) do cfgNodes[#cfgNodes + 1] = e.entity end
+	table.sort(cfgNodes)
+	eq(cfgNodes, { 1, 2 })
+	eq(sp.nodeConfigsToRemove, {})
+end)
+
+test("4 Build street here: both new nodes get an (empty) node config", function()
+	local a = busApi()
+	a.type.Context = { new = function() return {} end }
+	a.type.enum.BaseEdgeType = { NORMAL = 0 }
+	a.type.enum.RoadType = { STREET = 0 }
+	a.res = { streetTemplateRep = { find = function(p) return p end, get = function() return { laneConfigs = { 1, 2, 3, 4 }, streetStyle = "s" } end } }
+	runUntilProbe("p4_street", a)
+	ok(#a.sent >= 1, "sent")
+	local sp = a.sent[1].proposal.streetProposal
+	local got = {}
+	for _, e in ipairs(sp.nodeConfigsToAdd) do got[#got + 1] = { e.entity, #e.comp.laneConnections } end
+	table.sort(got, function(x, y) return x[1] < y[1] end)
+	eq(got, { { -4, 0 }, { -3, 0 } })
 end)
 
 test("10a falls back to variant B (no comp.objects) when A fails", function()
@@ -351,7 +373,7 @@ test("10c builds the depot facing the street (no -0 in the transform), finds it 
 	ok(l:find("spots=24 tried=1 pre={unavailable=1} sent=1 [e50 t=0.50 R30 origin=50.0,-65.0,0.0 success=true]", 1, true) ~= nil, l)
 	ok(l:find("VEHICLE_DEPOT +1 new=[800(con=700 0m nodes=true)] (total 1) result=2{10438:?,700:con}", 1, true) ~= nil, l)
 	ok(l:find("depot=800 construction=700 frozenNodes=1 frozenEdges=1 freeNode=10 at 50.0,-30.0 (0.0m from target)", 1, true) ~= nil, l)
-	ok(l:find("streetEdges at node 1->2 connected=true", 1, true) ~= nil, l)
+	ok(l:find("streetEdges at node 1->2 laneConns -1->-1 (entrance edge 60, stub copy) connected=true", 1, true) ~= nil, l)
 	ok(l:find("depot=800 VEHICLE_DEPOT 0->1", 1, true) ~= nil, l)
 	eq(#a.sent, 2)
 	local ce = a.sent[1].proposal.constructionsToAdd[1]
