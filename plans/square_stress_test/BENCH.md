@@ -1,4 +1,11 @@
-Status: built 2026-10-13 (rev 2, unreleased), offline-tested; not run in game yet (TESTING.md 6W). Redesigned for
+Status: built 2026-10-13 (rev 2, unreleased), offline-tested; sheets 1-3 and micro v1 / v2 run in game; sheet 4 (spiral
+2-lane roundabouts on town streets, section "Sheet 4") v1 run: links refused; v2 (1 set) run 2026-10-13 (session
+`2026-10-13_2341_bench-s4-774314`, ok=yes); v3 (mid nodes, 4th twin sl_rsplit) run 2026-10-14 (mid nodes built and
+written, VERIFY same=8); v4 (5th twin sl_rmid, 3 ring sizes) run 2026-10-14 (writes all landed; live samples: below); v5 (plain vs mid-node
+rings) run 2026-10-14 (RESULTS.md "bench s4 v5"); sheet 5 (ring lane use: traffic mixes, RINGMIX / RINGLANE, section "Sheet 5") run
+2026-10-15 (session `2026-10-15_0602_bench-s5-ring-34019`); sheet 6 (the mid-node default under heavy traffic, section
+"Sheet 6") and the city run (section "City lights at scale") built 2026-10-15, offline-tested, not run yet (TESTING.md
+6Y3, 6Z3). Redesigned for
 16 km maps the same day (user: "9.9mi x 9.9 is very large size": 16 km is the largest map): three sheets, one press
 each. Builds on the Lights showcase (SHOWCASE.md "Town entries", "Mixed shapes", "Exit-fan twin"), the traffic log
 contract (FLOW.md v3) and the run ledger (`plans/square_smart_lanes/RESULTS.md`). Section "As built" lists the files.
@@ -11,7 +18,7 @@ test. and ideally we have as many tests as possible in one map so its faster to 
 automate the better".
 
 Tests wanted, in order: (1) Smart Lanes vs game at roundabouts, interchanges, slip-lane junctions, ramps, lane drops;
-(2) the "No lights at roundabouts and ramps" setting alone; (3) free kerb turn without a jam on mixed shapes (sl vs
+(2) the "No lights at roundabouts and ramps" setting alone; (3) free curb turn without a jam on mixed shapes (sl vs
 sl_lock); (4) T-junctions with 6+ pairs; (5) throughput, once `thru` reads.
 
 ## Key decisions (summary)
@@ -151,7 +158,7 @@ the map allows, 6 at least. Run 5's 11/12 at +3.5 km/h corresponds to q around 0
 
 **One shape per test vs mixed.** A test answers one question. Homogeneous (one variant in every set) when the
 question is about a junction ("does Smart Lanes beat the game at a 2-lane roundabout"): 9 pairs give a verdict for it.
-Mixed (a variant list cycling over the sets) only when the question is about a family ("the free kerb turn on lit
+Mixed (a variant list cycling over the sets) only when the question is about a family ("the free curb turn on lit
 junctions in general"); the report then shows per-variant rows as trends, never verdicts. Never pool across tests.
 
 **Correlated comparisons.** In a three-twin set both comparisons use the same sl twin: each is a valid paired test on
@@ -179,7 +186,7 @@ map-wide standing exceeds 50 % is flagged "saturated" in the draft.
 
 | type (construction) | params (bench variant) | arms / roads | towns | lights | zone r | special |
 |---|---|---|---|---|---|---|
-| Roundabout `square_roundabouts.con` | round, 2 ring lanes, radius S, 4 arms, no splitter, no tram, signals Off (the game's AUTO decides), arm road country medium | 4 two-way | 4 | AUTO (from 1950) may light the ring's arm junctions; the bench logs `lit_nodes=` per twin after the settle | reach 103 + 20 | test 2 needs lit ring nodes: if AUTO lights none at this variant, phase 2 switches the arm road to country large (gate) |
+| Roundabout `square_roundabouts.con` | round, 2 ring lanes, scale XS (`sqrb_radius_size` 1: 10 m inside the ring, grown to fit the roads), 4 arms, no splitter, no tram, signals Off (the game's AUTO decides), arm road country medium | 4 two-way | 4 | AUTO (from 1950) may light the ring's arm junctions; the bench logs `lit_nodes=` per twin after the settle | reach 103 + 20 | test 2 needs lit ring nodes: if AUTO lights none at this variant, phase 2 switches the arm road to country large (gate) |
 | Channelized T `square_roundabouts_channel.con` | layout T, scale 1, slips "near-side corners", no splitter, arm length 1, main and side country medium | 3 two-way | 3 | centre: AUTO; slip nodes: Smart Lanes removes (setting On) | 149 + 20 | |
 | Diamond `square_roundabouts_highway_diamond.con` | scale S, ramps short, arm length 1, highway 2 lanes per carriageway, cross road country large (`SHOWCASE_IX_CROSS`) | E / W: highway carriageway pairs (one-way each), N / S: two-way | 3 (W, E, N) | terminals: AUTO (Smart Lanes keeps crossroads / T lights); gores: none | 234 + 20 | **new link path**: each highway arm's carriageway pair runs on as a pair to a merge node near the town entry (>= r + 200 m from the junction, outside the zone and the measured corridors), then one two-way country medium (2+2: the highway's lanes) into the entry's outer arm. The FLOW corridor of a highway arm is 60 m wide (both carriageways), not 30 |
 | Lane drop (new `square_stress_test_crossing.con` shape 4 "Lane drop") | main country large (3+3) on the W arm, main2 country medium (2+2) on the E arm | 2 two-way | 2 | none | 88 + 20 | eastbound 3 -> 2 drop, westbound 2 -> 3 gain at the one node (Smart Lanes case D); links keep each arm's lanes |
@@ -242,7 +249,7 @@ Placed by the real packer (`stress_bench.plan`, tests/square_stress_test/test_be
 
 | sheet | test | junction | twins | sets | groups | towns | answers |
 |---|---|---|---|---|---|---|---|
-| 1 | `rb4` | Roundabout, 2-lane ring, radius S, 4 country medium arms, signals Off (the game's AUTO lights) | game, sl, sl_keeplights | 9 | 27 | 108 | test 1 (rings, 9 pairs), test 2 (rings, 9 pairs) |
+| 1 | `rb4` | Roundabout, 2-lane ring, scale XS, 4 country medium arms, signals Off (the game's AUTO lights) | game, sl, sl_keeplights | 9 | 27 | 108 | test 1 (rings, 9 pairs), test 2 (rings, 9 pairs) |
 | 1 | `drop` | Lane drop: country large (3 + 3) W arm, country medium (2 + 2) E arm, one node | game, sl | 6 (8 at most) | 12 | 24 | test 1 (lane drops, 6 pairs) |
 | | | | | | **39** | **132** | ~53k people, ~11 min build |
 | 2 | `cht` | Channelized T, scale 1, near-side slips, country medium | game, sl, sl_keeplights | 9 | 27 | 81 | test 1 (slip lanes, 9), test 2 (slip nodes, 9) |
@@ -259,7 +266,7 @@ min), screenshots ~1 min: about 25 minutes hands off. Sheet 1 needs the Smart La
 
 ## Automation, end to end (as built)
 
-**Towns tab > Bench: one button per sheet** ("Sheet 1", "Sheet 2", "Sheet 3"). A press first checks what it can
+**Towns tab > Bench: one button per sheet** ("Sheet 1" to "Sheet 5", "Micro"). A press first checks what it can
 (another test running, nothing fits the map, Roundabouts & Interchanges missing, Smart Lanes absent, Smart Lanes'
 "Apply automatically" Off, sheets 1-2: "No lights at roundabouts and ramps" Off): any of it is one dialog and nothing
 happens. Else a confirm dialog with the plan for this map ("39 junctions, 132 towns (~53k people), about 11 min to
@@ -277,7 +284,7 @@ every transition one `[SQST] BENCH_PHASE sheet= phase= gt= ms=` line:
 | warmup | Keep traffic cleared off; traffic log restarted at 10 game s (`bench.INTERVAL`); speed 2 | 180 game s; a skipped sample (a sweep missed its interval) at 2x: speed 1, the sampler restarted, the warm-up again (once) |
 | record | nothing: game time counts, a paused game waits | 1200 game s |
 | stop | traffic log off (`FLOW_SUMMARY final=1`), speed 1 | at once |
-| shots | a primer `takeScreenshot(1)` (the first of a session writes no file), then per test every twin of its first set: `setCameraData` 450 m over the junction (the camera's angle and pitch kept), 2.5 s, `takeScreenshot(1)`, one `[SQST] BENCH_SHOT n= id=<test>:<zone> x= y=` each, 4 s apart | the last shot |
+| shots | a primer `takeScreenshot(1)` (the first of a session writes no file), then per test every twin of its first set: `setCameraData` 130 m over the junction (450 m until 2026-10-14: queues only, no lanes) (the camera's angle and pitch kept), 2.5 s, `takeScreenshot(1)`, one `[SQST] BENCH_SHOT n= id=<test>:<zone> x= y=` each, 4 s apart | the last shot |
 | done | `[SQST] BENCH_DONE sheet= spec= seed= ok=yes samples= speed= minutes= problems=`; the window says `Bench s1 done (seed N): tell Claude "done" (make bench).` | |
 
 Abort: Clear queue, an error in a step, a build that did not start, a timeout: `[SQST] BENCH_ABORT sheet= phase=
@@ -341,7 +348,7 @@ the Bench status says done, say "done" (TESTING.md 6W).
 
 | # | what | why |
 |---|---|---|
-| SL-1 | zone mode **`sl_keeplights`**: as `sl` (lanes, free kerb turn and light phases as the settings), but no light is switched off in the zone (ring arm junctions, slip / ramp nodes), in the automatic pass and the tool; one `LIGHTS src=auto node= to=kept zone=sl_keeplights` line per node it would have switched off; `SUMMARY ... zone_keeplights= lights_kept=`; `by_ab ...,sl_keeplights:<n>`; accepted by `sl_zones.lua` (AB_SET, AB_OPTIONAL) | test 2: the setting is load-time and acts at build time, so neither a reload A/B nor a second map isolates it; twins on one map do |
+| SL-1 | zone mode **`sl_keeplights`**: as `sl` (lanes, free curb turn and light phases as the settings), but no light is switched off in the zone (ring arm junctions, slip / ramp nodes), in the automatic pass and the tool; one `LIGHTS src=auto node= to=kept zone=sl_keeplights` line per node it would have switched off; `SUMMARY ... zone_keeplights= lights_kept=`; `by_ab ...,sl_keeplights:<n>`; accepted by `sl_zones.lua` (AB_SET, AB_OPTIONAL) | test 2: the setting is load-time and acts at build time, so neither a reload A/B nor a second map isolates it; twins on one map do |
 | SL-2 | `[SQRL] MODE ... lights=on|off` (the "No lights at roundabouts and ramps" setting) | the report must know what the sl twins ran with |
 | SL-3 | `zid=<zone id>` on APPLY, SKIP (kind=zone), LIGHTS, PHASES and AUDIT lines of nodes in a zone (the stored label) | treatment check per twin without matching node ids by position |
 | SL-4 | in the game-script state next to `zrun`: `zerr` (the last refused payload's run and reason) and `zmodes` (the ab names it accepts) | preflight fails fast with "Smart Lanes does not know sl_keeplights" instead of `ack=timeout` and a silently untreated sheet |
@@ -355,7 +362,7 @@ Smart Lanes needs nothing new for tests 1, 3 and 4 (`game`, `sl`, `sl_lock` exis
 Choices where the table above left room are marked (choice).
 - **SL-1** `sl_keeplights`: accepted (sl_zones `M.AB` = game, sl, sl_phases, sl_fan, sl_lock, sl_exitfan,
   sl_keeplights); `by_ab` appends `,sl_keeplights:<n>` after `,sl_exitfan:<n>`, only when n > 0 (Stress Test
-  `stress_logic.slZonesByAb` must add the same, last). Lanes, free kerb turn and light phases as `sl`. A node there
+  `stress_logic.slZonesByAb` must add the same, last). Lanes, free curb turn and light phases as `sl`. A node there
   that "No lights at roundabouts and ramps" would switch off (ring arm junction, slip / ramp node, Lights.needs:
   preference not NO or a light standing) logs `[SQRL] LIGHTS src=auto node=<n> to=kept zone=sl_keeplights [zid=<id>]`
   (tool: `src=tool`) and is not sent. With the setting Off nothing is logged (nothing would be switched off).
@@ -462,6 +469,427 @@ Choices where the table above left room are marked (choice).
   (tests build it in a test-only sheet).
 - **Zone ids carry the sheet key:** `s1g10a`, pair `s1g10` (layout `idPrefix`), so ids no longer repeat across sheets
   run in one session. flow_report's twin-id and pair sorting accept the prefix; bench_report reads ids as given.
+
+## Micro bench (2026-10-13)
+
+A fourth button, **Micro**, runs a small one-off sheet with the same one-press automation (preflight, map clear, year,
+build, Smart Lanes idle, warm-up, record, screenshots, `BENCH_DONE`) and `make bench` support. Sheet key `micro`, id
+`bench_micro`, zone ids `microg<k><twin>` (pair `microg<k>`), so it never collides with sheets 1-3 in the ledger,
+RESULTS.md (`### Bench sheet micro: ...`) or one session's log.
+
+**Swapping a test in:** edit the block `bench.MICRO` in `mods/square_stress_test/content/stress/stress_bench.tl`
+(marked "MICRO BENCH: SWAP TESTS HERE"): its `tests` (a variant from `bench.VARIANTS` or a new `variant(...)`, the arms
+that get a town, the twins, the comparisons, the sets), `pop` (people per town) and `pool`; bump `version` (pairs of
+different versions never pool in the ledger). Then `make test MOD=mods/square_stress_test` (the "sheets on a 16 km map"
+test lists what each sheet places: update its `micro` line, or read the window's plan line) and `make link`. A new
+construction file needs its arms on the axes (the packer refuses others) and, for the build-time geometry check, a kind
+it knows (`rb`: 3+ one-way streets; `ix`: 4+; a crossing shape 4: a lane change; else any junction).
+
+**Version 1 (run, session `2026-10-13_0837_bench-micro-560595`, RESULTS.md):** 3- and 4-lane rings, game vs sl, 6 sets each,
+800 people a town (~52 % standing map-wide). The 3-lane ring is the Stress Test's own entry roundabout
+(`square_stress_test_entry.con`, ring 2 = `highway_new_large`; square_roundabouts' rings come in 1, 2 or 4 lanes only), the
+4-lane ring square_roundabouts' Roundabout with ring lanes "4" (`town_new_one_way_medium`), scale XS, country large arms.
+
+**Version 2 (current): ring layouts.** Per ring type one set of 8 twins: `game`, `sl` and Smart Lanes' six ring layout
+zone modes `sl_rturbo`, `sl_rmatch`, `sl_rout1`, `sl_r2exit`, `sl_rspiral`, `sl_rspread` (square_smart_lanes PLAN.md
+"Ring layout variants (bench)"; twin letters h-m, town names "Ring turbo 1 N" ...). Ring types in this order: `rb4l`
+(4-lane), `rb3` (3-lane), `rb2` (2-lane ring, 2 + 2 country medium arms: sheet 1's variant). The sheet places sets round
+robin (`roundRobin`: one set of every ring type before any second), so every type gets one and the second goes to the
+4-lane ring: **16 km: 4 sets, 32 junctions, 128 towns (~77k people), ~11 min build** plus growth, ~27 min in all.
+- Comparisons per test: sl vs game, every mode vs sl, every mode vs game (13); `pool`: each also pooled over the ring
+  types; `rank` (BENCH_START `rank=yes`): the report ranks every mode per ring type by mean km/h (with its delta to game,
+  standing, cars/min) and pooled over the types (mean delta to game, mean rank). The user accepts few sets: one clear
+  winner is the aim, not significance.
+- Towns 600 people (x1.5 by capacity, still a full fill): v1's 800 ran at ~52 % standing map-wide.
+- Treatment: a ring mode twin needs a ring `APPLY ... layout=<its mode> zid=` line (Smart Lanes writes the ring whole in
+  these zones), else it is excluded and left out of the ranking; the preflight requires the six modes in Smart Lanes'
+  `zmodes`; `by_ab` ends `...,sl_rturbo:4,sl_rmatch:4,sl_rout1:4,sl_r2exit:4,sl_rspiral:4,sl_rspread:4` (tested byte for
+  byte against sl_zones.lua's byAbText).
+
+## Sheet 4: roundabouts with and without nodes between the arms (2026-10-13; versions 3-5 2026-10-14)
+
+**Version 5 (2026-10-14):** v4 ran (session of 2026-10-14 ~01:30-01:52 UTC, `BENCH_DONE spec=bench_s4@4 seed=455860 ok=yes`).
+Every write landed: sl_rmid `VERIFY same=8` (2-lane), 8 (3-lane), 12 (4-lane), so the engine keeps crossing lane changes
+at a 2-edge node; the tool drew the mid nodes (sl_midview), no `ERROR where=mid_lines`. But the **live samples** (traffic
+log during the record phase from 01:40:31 UTC, read by the coordinator before the report; not `make bench` output) say the
+mid-node geometry itself may hurt:
+- 4-lane ring, 2 mid nodes per stretch: every twin jammed, the game's too (s4g3b game 1.4 km/h, 88 % standing; a sl 2.2 /
+  85; l sl_rspiral 1.8 / 90; n sl_rsplit 3.1 / 78; o sl_rmid 0.4 / 98).
+- 3-lane ring, 1 per quarter: sl (turbo) 0.2 / 97, sl_rmid 1.4 / 86, game 6.0 / 62, sl_rspiral 8.6 / 50, sl_rsplit 14.2 / 42.
+- 2-lane ring: all moving, 30-42 % standing.
+Hypothesis (unverified): the game's cars change lanes along segments, and mid nodes cut the ring into short segments, so
+the game's own lanes (and every layout) lose room for that. Nothing in the docs, findings or game files documents lane
+changes along a segment in TF3 either way (square_smart_lanes PLAN.md "Reachability and lane changes" assumes them; the
+in-game question in its TESTING.md 3 was ticked without a recorded observation). And without twins on the plain ring the
+sheet had no baseline. User: "game default might get totally buggy on the 2-node lane change", "we're missing the default
+baseline. next is the short sheet for baseline without mid rings". So v5, per ring size (one set each):
+- **Twins on two geometries in one set**: `<ab>@plain` on the ring as players have it today (R&I Nodes between arms Off,
+  `bench_rb2t` / `bench_rb4l`; the entry ring without nodes, `bench_rb3`), `<ab>@mid` on v4's mid-node ring (`bench_rb2tm`,
+  `bench_rb3m`, `bench_rb4lm`). The test lists both variants and `geoms = { plain = 1, mid = 2 }`; each twin takes its
+  geometry's variant (stress_bench `twinMode`, `placeSet`). The zone's mode stays the Smart Lanes mode (ab), mid twins get
+  their own letters (`MID_LETTER`: game p, sl q, sl_rspiral r, sl_rsplit s, sl_rmid t; plain twins keep a / b), town names
+  "<mode> mid". The zone line and BENCH_TWIN gain `geom=plain|mid`; tools/flow_report.py reads such a twin's mode as
+  `<ab>@<geom>`, so comparisons and the ranking name them unambiguously ("sl_rsplit@mid vs game@plain").
+- Twins: `game@plain`, `sl@plain` (Smart Lanes' shipped default: 2-lane: since 2026-10-14 Smart Lanes splits the plain
+  ring's edges itself and writes its 2-lane default, since 2026-10-14 `sl_rmid` (before: the mid-node spiral), so this twin
+  is nearly `sl_rmid@mid` with its nodes made by Smart Lanes; before that change the spiral without mid nodes; 3- and 4-lane: turbo), `game@mid` (what the nodes alone do), `sl_rsplit@mid`; on the 2-lane ring also `sl_rmid@mid`.
+- Comparisons: `sl_rsplit@mid vs game@plain` (the decision question), `sl_rsplit@mid vs sl@plain`, `game@mid vs game@plain`
+  (node harm), `sl@plain vs game@plain`; 2-lane also `sl_rmid@mid vs game@plain`, `sl_rmid@mid vs sl_rsplit@mid`.
+- Tests `rb2v` (links on the 2 + 2 country road), `rb3v`, `rb4v` (links at the arms' lanes). Plan: "13 junctions, 52 towns
+  (~21k people), about 4.3 min to build; 16.0 x 16.0 km map: everything fits". Spec `bench_s4@5`. Needs Smart Lanes with
+  `sl_rsplit` and `sl_rmid` in `zmodes` (preflight).
+- Report: the ranking per test shows `<ab>@<geom>`, its "delta vs game" against `game@plain`; treatment checks use the
+  mode before the @ (`sl_rsplit@mid` needs its `layout=sl_rsplit` APPLY lines and an `RSPLIT ... mids=` > 0 line).
+
+**Version 4 (2026-10-14):** v3 ran in game (every twin `mids=4`; sl_rsplit's mid nodes written, `VERIFY same=8 nodes=8`).
+User, on the Crossing Tool at the sl_rsplit twin's arm junction (the inner lane's inner -> outer curve crossing where
+the entry joins the outer lane): "try one where we don't allow the inner to outer merge at an intersection; they would do
+it mid-node". A **5th twin `sl_rmid`** (letter o, town names "Ring mid 1 N"; square_smart_lanes PLAN.md "Mid-node lane
+changes (sl_rmid)") on the same ring `bench_rb2tm`: at the arms no lane change (o1 -> exit only, o2 -> o2, e1 -> o1); at
+the mid nodes o1 -> o1 and o2, o2 -> o2 and o1 (both ways, crossing at the node). Comparisons added: `sl_rmid vs
+sl_rsplit` (where the outward move happens), `sl_rmid vs sl_rspiral`, `sl_rmid vs game`, plus `sl_rsplit vs sl_rspiral` and
+`sl vs game` (the five per test). The user then: "also for 3 lane roundabouts, so we use all 4 lanes effectively and allow
+mid-roundabout switching, in the same test" (both the 3- and the 4-lane ring): **three tests, one set each, the same five
+twins**: `rb2tm` (v3's ring), `rb3m` (variant `bench_rb3m`: the micro bench's 3-lane entry ring rb3 with `sqst_entry_mid
+= 2`, one plain node per quarter: a second leaves ~1 m of free ring beside the 30 m country large arms), `rb4lm`
+(`bench_rb4lm`: the micro bench's 4-lane ring rb4l with `sqrb_dev_ring_mid = 2`, two per gap: square_roundabouts grows it
+from 10 to 20 m inside so the junctions keep their room). Links: rb2tm on the 2 + 2 country road (`linkLanes = 4`), the
+wide rings at their arms' own lanes (as the micro bench). Plan: "15 junctions, 60 towns (~24k people), about 5 min to
+build; 16.0 x 16.0 km map: everything fits". Geometry check: `mids=` at least 4 per gap (rb3m 4, rb4lm 8).
+Since Smart Lanes rev 5's default spiral (2026-10-14, square_smart_lanes PLAN.md "Default: the mid-node spiral"), the `sl`
+twin of rb2tm writes sl_rsplit's lanes (a 2-lane ring with one-lane exits): there `sl vs game` measures the same layout as
+`sl_rsplit vs game` (a second pair of it); on rb3m / rb4lm `sl` keeps its default (matched / turbo).
+Treatment check as sl_rsplit's (`APPLY ... layout=sl_rmid` and the last `RSPLIT ... mids=` > 0 with its zid). Needs a
+Smart Lanes with `sl_rmid` in `zmodes`. Spec `bench_s4@4`.
+
+**Version 3 (2026-10-14):** the user, on a screenshot of a v2 ring: "can we build a roundabout with an extra node where
+the red circles are (half way between the arms), so that we could do spiral, but have the outer to inner lane change
+happen on that node, so that traffic entering doesn't overlap as much?" So:
+- **Ring with mid nodes** for every twin: variant `bench_rb2tm` ("RB 2L town mid") = `bench_rb2t` plus square_roundabouts'
+  dev override `sqrb_dev_ring_mid = 1` (a plain ring node half way between neighbouring arms: 8 ring nodes 45 degrees
+  apart, same radius 10 m, same arms; plans/square_roundabouts/PLAN.md "Ring mid nodes (dev)"). Test id `rb2tm` (other
+  geometry than v2's `rb2t`: results never pool, `bench_s4@3` either way). Same geometry in all twins is the better A/B
+  and costs nothing: the game makes a plain one-way node straight on, and `sl` / `sl_rspiral` plan junctions only, so
+  their mid nodes stay as the game made them (tested in square_smart_lanes test_rsplit "other twins").
+- **4th twin `sl_rsplit`** (letter n, town names "Ring split 1 N"; square_smart_lanes PLAN.md "Mid-node spiral
+  (sl_rsplit)"): at the arms o1 -> exit only, o2 -> o1 and o2, e1 -> o1 only; at the mid nodes o1 -> o1 and o2, o2 -> o2.
+  Comparisons `sl vs game`, `sl_rspiral vs sl`, `sl_rspiral vs game`, `sl_rsplit vs sl_rspiral` (the mid-node lane change
+  alone), `sl_rsplit vs game`; `rank = yes` ranks all four. Still 1 set: 4 junctions, 16 towns.
+- **Geometry check** (`benchGeometry`): a ring asked for mid nodes also needs 4+ new nodes joining two one-way streets
+  only: `BENCH_TWIN ... geometry=ok what=one_way_streets n=8 mids=4` (`geometry=bad` with fewer: the set is no match).
+- **Treatment check** (`make bench`): the sl_rsplit twin needs `APPLY ... layout=sl_rsplit` (as every ring layout twin)
+  and its last `[SQRL] RSPLIT ... mids=<n > 0>` line; a ring without mid nodes logs `RSPLIT ... mids=0
+  fallback=sl_rspiral reason=..` and writes `layout=sl_rspiral`: excluded ("sl_rsplit twin: no mid nodes on its ring").
+  tools/flow_report.py COMPARISONS gained `sl_rsplit vs sl_rspiral`, RING_MODES `sl_rsplit`; bench_report
+  EXPECTED_KINDS `rb2tm`: ring.
+- Needs: Smart Lanes with `sl_rsplit` in `zmodes` (the preflight names it) and this repo's square_roundabouts (the dev
+  override; an older one ignores the key and builds no mid nodes: geometry=bad on every twin).
+
+The v2 design below is kept for the record (v3 above it).
+
+**Version 2 (2026-10-13, after the first run):** the v1 run (session of 2026-10-13 23:02, seed 397256) built all 27
+rings and Smart Lanes set every twin as planned (9 x `APPLY layout=sl_rspiral`, 9 sl twins matched, game twins
+`zone_game`), but **all 108 links were refused** (Construction Not Possible, 3 tries each: `linked=0 unlinked=108`),
+so no traffic reached a ring. Sheets 1-3 linked fine; the new part was the 1 + 1 country link from a `town_new_small`
+arm to the 3-lane entry (which joint the game refuses is not known). And user: "why does this run need so many tests?
+it takes a long time to build. can we keep it simpler, sample size of 1". So v2:
+- **1 set: 3 junctions, 12 towns** (~1-2 min build). One pair per comparison: a direction, no significance; the
+  report's ranking and the cars/min say which layout to look at. A clear winner gets a larger run later.
+- **Links on the 2 + 2 country road** (test `linkLanes = 4`; sheet 1 joined that road to the 3-lane entries). A
+  refused link tries again with copies of the arm's town street (try 2), then the 1 + 1 country road (try 3)
+  (`showToTown`, only for a bench test with `linkLanes > 0`); the link line names the variant that was used.
+
+The v1 design below is kept for the record.
+
+**Question (one):** a player's 2-lane one-way roundabout with 1-lane town streets (1 + 1 lanes) as arms runs best with
+their hand-made "spiral": the outer ring lane always leaves at the next exit (exit-only), the inner lane either stays
+inner or moves into the outer lane (and so leaves at the next exit), the entry lane joins both ring lanes. That is
+Smart Lanes' ring layout `sl_rspiral` (square_smart_lanes `sl_rules.lua` `M.variantConns`; on this ring D = 2, A = 4:
+o1 -> exit only, o2 -> o1 and o2, e1 -> o1 and o2). Smart Lanes' default (`sl`) gives this ring plain matched lanes
+(the exit-only outer lane needs 2+ exit lanes at every arm: `turbo_reason=narrow_exit`), so its inner lane is never
+entered or left at a junction. Micro v2 had this ring only with 2 + 2 country arms, one set, saturated (spiral 81.1
+cars/min, matched 87.2, game 60.8).
+
+**Design** (`bench.SHEETS` entry `bench_s4`, key `s4`, button **Sheet 4**):
+- Junction `rb2t` (variant `bench_rb2t`, label "RB 2L town"): sheet 1's ring (square_roundabouts Roundabout, ring lanes
+  "2", scale XS, 4 arms, no splitter, signals Off) with arm road `sqrb_arm_type` 1 = Town, small (`town_new_small`:
+  1 + 1 lanes, sidewalks). Links at the arm's own lanes: a 1 + 1 country road (`country_*_small`) from the arm end to
+  the town's entry roundabout, so no lane changes inside the zone. A town on all four arms. No forced lights;
+  "No lights at roundabouts and ramps" On (as sheet 1; the game AUTO-lit sheet 1's rings, Smart Lanes removes them
+  in every sl-type twin).
+- Twins `game`, `sl`, `sl_rspiral` (letters b, a, l); comparisons `sl vs game` (what Smart Lanes gives this ring today),
+  `sl_rspiral vs sl` (the question: does spiral beat today's matched default), `sl_rspiral vs game` (spiral against the
+  game's own lanes). `rank = yes`: the report also ranks the three modes by km/h with cars/min.
+- **9 sets, 27 junctions, 108 towns of 400 people (~43k), ~9 min build, ~25 min in all** (warm-up 180 + record 1200
+  game s at 2x, 3 shots). 9 pairs per comparison: significant at 8 of 9 (power 0.77 at q = 0.9). A 16 km map holds 11
+  sets of 3 twins, but 11 pairs need 10 of 11 (power 0.70): 9 is the efficient count and leaves load off the map.
+- `sl_rspread` (turbo plus centre lanes; here: matched + o2 -> exit + e1 -> o2) left out: a 4th twin fits only 8 sets
+  (32 junctions), so every comparison would need 8 of 8 (power 0.43). If spiral wins, a version 2 could run spiral vs
+  spread on its own.
+- Load: 400 people is the least a Medium bench town takes (a Medium town is created with capacity 400 and `growFactorForCap` clamps at x1; a smaller
+  town would need another town size, which changes grids, entries and the packer). Sheet 3 ran at 18 % map-wide standing,
+  sheet 1 (same ring, 2 + 2 arms, 132 towns) at 31 %, micro v2 (600 people) at 52 %. Each arm here carries one town's
+  traffic like sheet 1's, through one entry lane instead of two, so the junctions are busier: if the draft says
+  "SATURATED" (over 50 %), read throughput, not speed, and say so in the result.
+- Ids: zones `s4g<k><a|b|l>`, pairs `s4g<k>` (k = 1-9), spec `bench_s4@1`: none of these occur in the ledger
+  (sheets s1-s3: `g<k>`; micro: `microg<k>`). Town names "Ring spiral 3 N", "Smart lanes 3 N", "Game default 3 N".
+- Treatment check (`make bench`): every spiral twin needs a ring `APPLY ... layout=sl_rspiral zid=` (or `SKIP ... reason=same
+  layout=sl_rspiral`) answered by `WRITE success=true`; sl twins a ring `APPLY` / `SKIP same` (EXPECTED_KINDS `rb2t`:
+  ring); game twins no APPLY. Failing twins are excluded from the pairs and the ranking.
+
+**Run:** a fresh 16 km Blank Slate (right-hand traffic) with Stress Test, Smart Lanes (Apply automatically On, No lights
+at roundabouts and ramps On, a version that has `sl_rspiral` in its `zmodes`) and Roundabouts & Interchanges; Debug
+window > Towns tab > Bench > **Sheet 4** > "Run bench"; leave it ~25 min; then `make bench` (TESTING.md 6Y). Recording
+into the ledger: `make bench ARGS=--record` after `BENCH_DONE ok=yes`.
+
+## Sheet 5: ring lane use (2026-10-15; run 2026-10-15: session `2026-10-15_0602_bench-s5-ring-34019`, results in plans/square_smart_lanes/RESULTS.md)
+
+Smart Lanes PLAN.md "Ring lane use (in progress)" / "Bench interface": the user's 2-lane ring with 2-lane arms (ring 282381)
+queues every car bound past the first exit in the inner entry lane (turbo: o1 exits only, so one circulating lane); on
+4-lane rings with 3-lane arms nothing enters or leaves o4. Two new Smart Lanes zone modes answer it: `sl_rmid2` (sl_rmid for
+wide exits; Smart Lanes adds the mid nodes itself, `SPLIT` then `RSPLIT ... mids=4`) and `sl_rturbo_in` (turbo with the inner
+lanes fed). The bench measures them, per traffic mix, with the turning mix and the lane use logged per twin.
+
+**What a press builds** (`bench.SHEETS` entry `bench_s5`, key `s5`, button **Sheet 5**, spec `bench_s5@1`):
+
+| test | ring | twins (letters) | sets |
+|---|---|---|---|
+| `lu2` | `bench_rb4` (sheet 1's ring): square_roundabouts Roundabout, ring lanes 2, scale XS, 4 country medium arms (2 + 2), signals Off | game (b), sl_rturbo (h), sl_rmid2 (w), sl_rmatch (i) | 3 |
+| `lu4` | `bench_rb4l` (the micro bench's): ring lanes 4, scale XS, 4 country large arms (3 + 3) | game (b), sl_rturbo (h), sl_rturbo_in (y), sl_rspread (m) | 3 |
+
+- **Traffic mixes** (`bench.LU_MIXES`, one per set, in turn: set 1 even, 2 straight, 3 adjacent; every twin of a set sees its
+  mix, so every mode sees each): **even** four towns of 350 people; **straight** N and S large (600), E and W small (100):
+  N <-> S trips take the 2nd exit both ways; **adjacent** N and E large, S and W small: mostly 1st + 3rd exits (a true
+  first-exit mix needs one-way demand: town-to-town demand is symmetric, so A -> B (1st exit) comes with B -> A (3rd)).
+  Equal people per ring (1400). A town below a Medium town's 400 is created with that capacity (`townCaps`, as the light
+  plans A/B's small towns); names end in the word: "Ring mid 2 2 N large", "Ring turbo in 6 W small". The label is checked,
+  not assumed: every ring twin logs its measured mix (RINGMIX), and the report says when a set's mix does not bear it out.
+- **Comparisons** (per test): every layout vs game and vs `sl_rturbo` (what `sl` wrote on these rings when Sheet 5 ran; since 2026-10-15 Smart Lanes writes matched lanes by default on 2-lane rings whose exits all have 2+ lanes, so `sl` = `sl_rmatch` on lu2, turbo stays on the 4-lane ring: square_smart_lanes PLAN.md "Default: matched lanes on 2-lane rings with wide exits"):
+  lu2 `sl_rturbo vs game`, `sl_rmid2 vs game`, `sl_rmatch vs game`, `sl_rmid2 vs sl_rturbo`, `sl_rmatch vs sl_rturbo`; lu4 the
+  same with `sl_rturbo_in` and `sl_rspread`. 3 sets = 3 pairs per comparison, one per mix (a direction, no significance:
+  the per-mix verdicts are the point). `rank = yes`.
+- **Letters**: `sl_rmid2` w, `sl_rturbo_in` y. The suggested p / q are taken (Sheet 4 v5's `MID_LETTER` p-t), a-v by the other
+  modes (stress_flow TWIN_LETTER: u sl_classic (dropped 2026-10-16, older saves), v sl_auto), g marks the set in a zone id (`s5g3w`) and x is the fallback
+  letter of a recomputed id. Zone ids `s5g<k><letter>`, pairs `s5g<k>` (k = 1-6: lu2 sets 1-3, lu4 4-6).
+- **Fit**: 16 km: **24 junctions, 96 towns (~34k people), ~8 min build**; the most this layout holds is 32 junctions (8 sets
+  of 4 twins: a 4th set per ring would repeat a mix). The 3-lane ring with 2-lane arms is left out: the Stress Test's entry
+  roundabout (the only 3-lane ring) has country large arms only, so it needs new geometry (PLAN.md: skip then).
+- **Mid nodes**: none built by the bench. Smart Lanes splits the `sl_rmid2` twins' ring edges itself; on this XS ring with
+  country medium arms the halves should clear its 8 m minimum (`SPLIT ... refused=short` would make that twin
+  `fallback=sl_rturbo`: excluded by the treatment check). No twin uses `sl_rmid` (it would need `sqrb_dev_ring_mid` on every
+  twin of the set).
+- **Turning mix and lane use** (traffic log, FLOW.md "RINGMIX / RINGLANE"): the bench's tests set `ringMix`, so the sampler
+  reads, for each driver in a ring twin's measured area, its path window once (entry and exit arm: `exit1..3`, `uturn`,
+  `none`; at most 400 drivers a sweep) and, for cars in the ring on a ring edge, their distance from the centre (lane use,
+  clustered into lanes by the report: o1 = outer). This runs while the bench's `path_thru` is off. Lines every 6 samples
+  and at the stop, cumulative.
+- **Report**: `make bench` (the ranking, the pairs, the treatment check) plus the section **"Ring lane use"** of
+  tools/flow_report.py for this run: per ring x mix every mode's thru/min, km/h, standing %, queue, queue per arm (inbound),
+  lane use and measured mix, the RINGMIX table per twin, a verdict line per ring and mix (best mode; each mode vs game and vs
+  sl_rturbo). `make flow` shows the same section for the whole log.
+- **Treatment check** (`make bench`): `sl_rturbo` / `sl_rmatch` / `sl_rturbo_in` / `sl_rspread` twins need ring `APPLY ...
+  layout=<mode> zid=` lines answered by `WRITE success=true`; `sl_rmid2` twins also their last `RSPLIT ... mids=` > 0 (a refused
+  split: `RSPLIT ... mids=0 fallback=sl_rturbo`, excluded as "no mid nodes on its ring, written as sl_rturbo"); game twins
+  no APPLY. EXPECTED_KINDS `lu2`, `lu4`: ring.
+- **Needs**: Smart Lanes with `sl_rmid2` and `sl_rturbo_in` in its `zmodes` (the preflight names a missing one), Apply
+  automatically On, No lights at roundabouts and ramps On; Roundabouts & Interchanges. Files: stress_bench.tl (AB, LU_MIXES /
+  LU_POPS / LU_SIDES, mixPop, setMix, the sheet, plan: per-town pop, group mix / ringMix), stress_logic.tl (SL_ZONE_AB,
+  slZonesByAb, town modes / words, zone lines' mix=), stress_flow.tl (ring*: newRing, ringClass, ringMove, ringSteps,
+  ringCount, ringMiss, ringEdge, ringLane, ringMixLine, ringLaneLine; FLOW_ZONE mix=; letters w / y), gui/stress_flow_log.tl
+  (ringRead, node / ring edge caches, the lines), gui/stress_hud.script.tl (hint), tools/flow_report.py, tools/bench_report.py.
+  Tests: test_bench "sheet 5", test_showcase "bench sheet 5 (16 km)", test_flow "ring mix", tests/tools RingUseTest and
+  Sheet5RingUseTest.
+
+## Sheet 6: the mid-node default under heavy traffic (2026-10-15; offline-tested, not run in game yet: TESTING.md 6Y3)
+
+Evidence: bench s5 (session `2026-10-15_0602_bench-s5-ring-34019`, RESULTS.md verdict "Mid nodes with crossing lane changes
+under heavy traffic"): `sl_rmid2` gridlocked in all 3 sets (both ring lanes full, nothing leaving). The default Smart Lanes
+**ships** for a 2-lane ring whose exits all have one lane is `sl_rmid` with mid nodes it adds itself (square_smart_lanes
+PLAN.md "Default: the mid-node spiral", "Smart Lanes adds the mid nodes"): the same crossing lane changes at the mid nodes.
+Its wins (Sheet 4 v3-v5) were on this ring shape at lighter traffic (1600 people a ring, 30-42 % standing). And the
+plain-ring `sl` twin of s4 v5 never had mid nodes (session `2026-10-14_0201_bench-s4-176702`: `RSPLIT ... mids=0
+fallback=sl_rspiral reason=no_mid_nodes`, `APPLY ... layout=sl_rspiral default=one_lane_exits`: before Smart Lanes split
+rings itself), so the shipped default with its own mid nodes has **not been benched at all**.
+
+**What a press builds** (`bench.SHEETS` entry `bench_s6`, key `s6`, button **Sheet 6**, spec `bench_s6@1`):
+
+| test | ring | twins (letters) | sets |
+|---|---|---|---|
+| `hm2` | `bench_rb2t` (Sheet 4's town ring, **plain**: no dev mid nodes): ring lanes 2, scale XS, 4 one-lane town street arms (`town_new_small`), signals Off; links on the 2 + 2 country road (`linkLanes = 4`, as rb2v) | game (b), sl (a), sl_rmatch (i), sl_rturbo (h) | 3 |
+
+- **sl = the automatic default.** In an `sl` zone Smart Lanes splits the ring (`SPLIT ... nodes_added=4`), then writes
+  `sl_rmid` (`RSPLIT ... mids=4`, `APPLY ... layout=sl_rmid default=one_lane_exits`). The report's treatment check wants
+  exactly that (`tools/bench_report.py` `DEFAULT_RING`), and prints a "Mode check, hm2:" line per twin (layout, default,
+  split, mids). A refused split (`SPLIT ... refused=short`: halves under 8 m on the XS ring) writes `sl_rspiral`: that
+  twin is excluded ("sl twin: no ring APPLY layout=sl_rmid ...").
+- **sl_rturbo falls back to matched here** (checked in square_smart_lanes `sl_rules.lua`: `variantConns("sl_rturbo")` =
+  `twoLaneConns(v, {turbo = ctx.turbo})`, and `ringPlan` gives `turbo=false, reason=narrow_exit` when any exit has one lane).
+  Its APPLY lines say `turbo=false layout=sl_rturbo`; the mode check notes "(matched lanes: every exit one lane)". So
+  `sl_rmatch vs sl_rturbo` compares identical layouts: an expected tie (`EXPECTED_TIES`) whose spread is the noise of
+  identical twins (an A/A pair, useful with 3 sets). Kept as asked rather than replaced by another layout.
+- **Load: 2400 people a ring** (`bench.HM_POPS`: even 600 each; straight / adjacent 1000 large + 200 small), the
+  Sheet 5 mixes (`bench.LU_MIXES`, one per set). Why 2400: s5 gridlocked sl_rmid2 at 1400 a ring, but with 2 + 2 arms (two
+  entry lanes per arm); here every arm feeds one entry lane, and s4 v5 ran this ring at 1600 with 30-42 % standing (moving).
+  1.5 x s4 v5's load (and 1.7 x s5's) should take every twin to saturation without the town entries being the limit (each
+  town still has its 3-lane entry roundabout and a 2 + 2 link). A large town is a Medium town sized x2.5 (fill ~0.8-0.9 at
+  that factor: 800-900 people likely; FLOW_TOWNS `pop=` shows it); a small town is created with capacity 200.
+- **Record 30 game min** (`recordS = 1800`, sheet field; others keep 20): a lock needs time to form and to be told from
+  a slow spell. 2x as the other sheets; 12 junctions, 48 towns (~29k people), ~5 min build: ~25 min hands off.
+- **Gridlock per twin** (tools/flow_report.py, FLOW.md "Gridlock per twin"): 2 game min windows of each ring twin's
+  recorded samples; locked = >= 80 % standing and thru/min <= 25 % of the best window of any twin of its set; gridlock =
+  the last 3 windows locked ("GRIDLOCK from game min n"). In the "Ring lane use" section (table + the verdict lines), for
+  Sheets 5 and 6 alike. Verdict per mix: the ring use verdict line (best mode, each vs game / sl_rturbo) plus the gridlocked
+  twins.
+- Comparisons: `sl vs game`, `sl_rmatch vs game`, `sl_rturbo vs game`, `sl vs sl_rmatch` (the shipped default against the
+  old matched default: the question), `sl_rmatch vs sl_rturbo` (A/A). `rank = yes`.
+- Files: stress_bench.tl (`HM_POPS`, `mixPop(mix, side, pops)`, test `pops`, sheet `recordS`, `bench.recordS` / `speed`),
+  gui/stress_bench_run.tl (per-sheet record length), tools/flow_report.py (gridlock, `sl vs sl_rmatch`), tools/bench_report.py
+  (`DEFAULT_RING`, `mode_notes`, SPLIT / turbo / default tracking, `EXPECTED_KINDS` hm2, the tie). Tests: test_bench "sheet 6",
+  tests/tools Sheet6HeavyTest.
+
+**What Smart Lanes may need** (not edited here): nothing to run it. If the sl twins' splits are refused (`refused=short`)
+on this XS ring, the sheet cannot judge sl_rmid: Smart Lanes would then need a lower `short` limit, or the bench a larger
+ring scale (an `sqrb_radius_size` S variant of rb2t, a new test id).
+
+## City lights at scale (2026-10-15; run in game twice: TESTING.md 6Z3; v2 options: "Funnel layouts" below)
+
+User: "make every light in the big grid cities be auto timer lights so we can see what happens with many at once". Smart
+Lanes' automatic timing (step B v4, its RETIME_PLAN.md: one queue snapshot of every enrolled junction every 120 game s, a
+junction's first decision after 8 snapshots ~16 game min, then every 10-60 min, writes at most 1 per 5 game s map-wide, a
+saturated junction settled ~45 game min after enrolling, cap 1000 junctions) on hundreds of lights at once.
+
+**What a press builds** (`bench.CITY`, key `city`, button **City lights** in the Towns tab's Lights showcase section, spec
+`bench_city@1`, `@2` since the options (below; the defaults build this run); not in `bench.SHEETS`: no junction tests, the bench run's phases with a city build):
+- **6 cities in 3 pairs** (`bench.cityPlan`): Large towns (capacity 1600) on the Stress Test's wide street grid, locked, its
+  outer ring a country road (the Lights showcase's town recipe: `towns.createGrid` streets 3, `lockTowns`, one size
+  command to **3000 people**, `densify`), 4 km apart (columns x -4000 / 0 / 4000, rows y -2000 / 2000), **never linked**:
+  each city its own network (the bench's "never share" rule). In each column one **auto** city and one **control** city,
+  the auto one on the first row in odd columns and on the second in even ones.
+- **Every inner crossing lit**: the 800 m grid has 9 x 9 = 81 inner crossings (80 m blocks; the ring's T-junctions are
+  left at the game's AUTO), found among the street nodes (4+ streets within 4 m of an inner grid point,
+  `bench.cityInterior`), a light set to Yes where the game's AUTO lit none (the Lights showcase's way, one command at a
+  time). 486 lit crossings, **243 enrolled** (the auto cities; within the 150-400 asked and Smart Lanes' 1000).
+- **One traffic log zone per city** (r = 400: the measured circle reaches 600 m, past the ring's corners), ab
+  `city_auto` / `city_control`, ids `cityg<k>v` / `cityg<k>b`, **not sent to Smart Lanes** (`slzones.setLocal`): Smart
+  Lanes treats every city alike with its global settings (lanes, its Light phases setting) until the enroll.
+- **Timeline** (one press, the bench run's phases): clear the map, year 1950, build, Smart Lanes idle, traffic log on (10
+  game s, path thru off), **4x**, 3 min warm-up, **15 game min baseline**, then the enroll (`SmartLanes.auto` op=add events
+  of <= 60 junctions, src=stress, the auto cities' crossings only; `[SQST] CITY_ENROLL`), **90 game min** more (105 in all,
+  `recordS = 6300`: first decisions ~16 min after the enroll, settled ~45 min after it, so the report's "after" window,
+  from `--auto-settle` 2700 s, has 45 game min), then op=clear (every junction unenrolled; written timing stays), 1x,
+  one shot over each city from 700 m, `BENCH_DONE`. A skipped sample in the warm-up steps 4x down to 2x (2x -> 1x for the
+  junction sheets, as before). ~40 min hands off.
+- **Preflight**: Smart Lanes present with `sl_auto` in its zone modes (rev 8+), and its **Debug: performance log On**
+  (`sqperf_log` 2) or the DEV `square_sqperf_all` active: the frame-time criteria need its SQPERF window lines.
+- **Control**: a variant without control cities (`city.control = false`) enrolls with `SmartLanes.auto op=all` (the user's
+  "All lit junctions" button) instead; the pairs need `op=add` so the controls stay out.
+- **Report**: tools/flow_report.py section "Auto lights at scale" (FLOW.md "Auto lights at scale in the report"):
+  Smart Lanes' cost (SQPERF ctx=bg: mean ms/frame, max, windows over 5 ms, slow lines), the v4 snapshots and their
+  person-list spikes (src=scan, one long frame per snapshot, counted apart), writes per game minute and per 10 min, junctions
+  written at least once, the game min by which 50 % / 80 % of the enrolled had a first `fits`, each city's km/h /
+  standing / queue before vs after, map-wide, auto minus control, and the pass criteria: no Smart Lanes frame over 5 ms
+  (also printed without the person-list spikes), mean cost < 1.5 ms/frame at 4x, no auto city's km/h more than 10 % below
+  its baseline. `make bench` shows the same section for a city run.
+- Log lines (keys only added): `[SQST] bench_city cities= auto= control= size= pop= spacing= half= crossings= enrolled= run=`,
+  `[SQST] bench_city_lights: <n> inner crossings found, <d> dark: lights on`, one `[SQST] CITY id= pair= role= town= name= x=
+  y= half= crossings= found= lit_before= forced= refused=` per city, `showcase zone` lines, `[SQST] showcase zones local n=
+  run=`, `BENCH_PHASE ... phase=record ... enroll=<n>`, `[SQST] CITY_ENROLL run= op=add|all cities= nodes= events= baseline_s=
+  by=bench smart_lanes=`; BENCH_START gains `city=yes cities= auto= control= crossings= enrolled= baseline_s= sl_perf=`.
+- Files: stress_bench.tl (`CITY`, `cityLines`, `cityPlan`, `cityInterior`, `cityPayloads`, `cityZone`, the lines,
+  `needs` / `problems` / `startLine` for it), gui/stress_citylights.tl (new: the build, the enroll, the unenroll),
+  gui/stress_bench_run.tl (the city path: build, 4x, enroll after the baseline, unenroll, shots, the 4x -> 2x step-down),
+  gui/stress_slzones.tl (`sendAutoNodes`, `setLocal`), gui/stress_hud.script.tl (button, hint, confirm text),
+  tools/flow_report.py (`render_city`, SQPERF / snapshot / plan / enroll parsing), tools/bench_report.py (the section for a
+  city run). Tests: test_bench "city lights", "run: the city run ...", test_citylights.lua (the build against a fake game),
+  test_hud, tests/tools CityLightsTest.
+- **Risks**: the town may grow its own streets over the grid (crossings `found` < 81; the lock pass should prevent it);
+  ~240 light commands one per queue step (~10 s); the sampler with 6 big cities at 4x (FLOW_TARGET then strides; the
+  report's speeds are still per city); a person-list spike every snapshot (src=scan above ~12 junctions: ~4-10 ms) fails
+  the strict 5 ms criterion by design: the report shows it apart.
+
+### Funnel layouts and fairer pairs (v2, `bench_city@2`, 2026-10-15; offline-tested, not run in game yet: TESTING.md 6Z4)
+
+Runs 1 and 2 (plans/square_smart_lanes/RESULTS.md "City lights at scale") could not judge the automatic timing: the
+cities were too quiet (623 of 776 checks "too little traffic") and the identical pairs differed at baseline as much as
+any effect (queues 80 vs 178, km/h +25 % / -22 %). User: force the streets into narrow sections "like an hour glass, or
+with holes in the grid" (they had bulldozed a city by hand into two grid halves joined by a 2-3 street neck). The City
+lights section got options (rows under its button; the confirm dialog repeats them in one line):
+
+| option | values (default first) | what changes |
+|---|---|---|
+| Layout | Plain grid / Hourglass / Holes | the grid's streets (below) |
+| Baseline | 15 min / 30 min | game min before the enroll; 90 after it either way (`recordS = baseline + 5400`) |
+| Busy (checkbox) | off / on | 7500 people wanted per city (v1: 3000), size command x4.7 from the Large capacity, level weights {0, 0, 0.25, 1} (`bench.CITY_BUSY`); the locked grid's lots cap it (v1 run 2: x1.9 gave ~2070 of 3000), the real number is the CITY line's `pop=` and the dense summary |
+| Swap roles (checkbox) | off / on | the other city of each pair is auto (`role_swap=1`) |
+| Same seed as the last city run (checkbox, after a run) | off / on | the last city run's seed again (the same holes); kept for this game session only |
+
+The defaults build v1's run (the same cities, crossings, record); only the spec version (`bench_city@2`) and the added
+log keys differ. `bench.citySheet(ui)` makes the sheet from the options (`gui/stress_bench_run.tl` `br.cityUi`,
+`br.sheetFor`).
+
+**Layouts** (stress_grid_streets.lua `grid.layout`; the 800 m grid, 10 x 10 blocks of 80 m, lines 0..10, center line 5):
+
+```
+ Hourglass (band 2 blocks tall, neck 3 streets)        Holes (an example: 4 holes of 2 x 2 blocks)
+ +--+--+--+--+--+--+--+--+--+--+                        +--+--+--+--+--+--+--+--+--+--+
+ |  |  |  |  |  |  |  |  |  |  |                        |  |  |  |  |  |  |  |  |  |  |
+ +--+--+--+--+--+--+--+--+--+--+                        +--+--+--+--+--+--+--+--+--+--+
+ |  |  |  |  |  |  |  |  |  |  |                        |  |     |  |  |  |  |  |  |  |
+ +--+--+--+--+--+--+--+--+--+--+                        +--+     +--+--+--+--+--+--+--+
+ |  |  |  |  |  |  |  |  |  |  |                        |  |     |  |  |  |     |  |  |
+ +--+--+--+--+--+--+--+--+--+--+                        +--+--+--+--+--+--+     +--+--+
+ |  |  |  |  |  |  |  |  |  |  |                        |  |  |  |  |  |  |     |  |  |
+ +--+--+--+--+--+--+--+--+--+--+                        +--+--+--+--+--+--+--+--+--+--+
+             |  |  |                                     |  |  |  |  |  |  |  |  |  |  |
+             +--+--+       (no streets left              +--+--+--+--+--+--+--+--+--+--+
+             |  |  |        and right: gaps)             |  |  |     |  |  |  |  |  |  |
+ +--+--+--+--+--+--+--+--+--+--+                        +--+--+     +--+--+--+     +--+
+ |  |  |  |  |  |  |  |  |  |  |                        |  |  |     |  |  |  |     |  |
+ +--+--+--+--+--+--+--+--+--+--+                        +--+--+--+--+--+--+--+--+--+--+
+ ...  (the south half as the north)                      ...
+```
+
+- **Hourglass**: a band `BAND_HALF` = 1 block above and below the center line where only the `2 x NECK_HALF + 1` = 3
+  central north-south streets (x = -80, 0, 80) and the east-west streets between them are built; the ring's sides, every
+  other north-south street and the center line's east-west streets outside the neck are left out (24 of 224 pieces). All
+  traffic between the two halves (4 block rows each) goes through the neck. 75 inner crossings: 61 4-way, 14 T (the band's
+  edges and the neck's sides), 6 grid points gone; `neck_streets=3`.
+- **Holes**: `HOLE_COUNT` = 4 holes of 2 x 2 blocks whose inner cross (the 4 streets meeting at the hole's center) is left
+  out (16 pieces); centers on lines 2..8 both ways, never the center (the town's center), at least 3 lines apart (no two
+  holes share a street); placed by a pattern (`HOLE_PATTERNS` = 12, Park-Miller shuffle, greedy pick; pattern =
+  `(seed - 1) % 12 + 1`): the same in every city of a run and for the same seed. 77 inner crossings: 61 4-way, 16 T.
+- Both keep the grid one network with the town's center (0, 0) on a 4-way crossing (tests: test_grid_layouts, a BFS over
+  the kept streets, every layout, size and pattern).
+
+**How the gaps stay free.** The streets are never built (not bulldozed later: a town that grew along them would keep
+its houses and lots, and the lock pass would have locked them): the grid construction takes two more params,
+`sqst_grid_layout` (1 plain / 2 hourglass / 3 holes) and `sqst_grid_holes` (the pattern), sent only by the city run
+(`towns.createGrid` opts `gridLayout` / `gridHoles`; every other build sends the same params as before). The town then
+lines the remaining streets with houses; run 2's log shows a town created on our locked grid builds no street of its
+own (lock pass `unlocked=0`) and none during the size command (`outside_streets=0 inside_new=0`), and locked streets are
+never branched from (towns.md). As a guard, after the lock pass every street whose middle lies `GAP_MARGIN` = 12 m inside
+a gap (hourglass gaps reach 20 m past the ring line) is removed, one proposal per city, before the size command (the same
+removal also covers a game that dropped the params: the full grid's gap pieces go): `[SQST] CITY_GAPS ... at=build
+gap_streets= removed=`. At the record's end the gaps are counted again (no removal): `CITY_GAPS ... at=end`; a non-zero
+count means the town grew into a gap during the run (note it; the lock should prevent it).
+
+**Lights**: every inner crossing with 4 streets, and in a funnel layout with 3 (`cityInterior` minDeg 3), lit as before;
+the CITY line counts `found4= found3= lit4= lit3=`.
+
+**Log keys added (v2)**: `BENCH_START ... layout= busy= role_swap=` (baseline_s= was there); `bench_city ... layout= busy=
+baseline_s= role_swap= neck_streets= holes= holes_pattern= holes_at=i:j,... x4= t3= weights=`; `bench_city_lights: ...
+lights on (layout= found4= found3=)`; `CITY ... layout= neck_streets= holes= found4= found3= lit4= lit3= pop= gap_streets=
+gap_removed=`; `CITY_GAPS id= pair= role= at=build|end layout= gap_streets= removed=`; `CITY_ENROLL ... layout= busy=
+role_swap=`. The report (FLOW.md "Auto lights at scale in the report"): one part per run, the options, each pair's
+baseline gap with a warning over 10 %, and with runs of both roles their swapped-roles mean.
+
+Files: stress_grid_streets.lua (`LAYOUTS`, `layout`, `holeCenters`, `layoutEdges`, `inGap`, `edgeKey`), the grid
+construction (two params), stress_bench.tl (`citySheet`, `CITY_*` options, `cityLayout`, `cityHolesPattern`,
+`cityOptionKeys`, `cityOptionsText`, `cityGapLine`, the swap in `cityPlan`, minDeg in `cityInterior`), gui/stress_towns.tl
+(`gridEntity` params), gui/stress_citylights.tl (gap clear and check, kinds, pop, weights), gui/stress_bench_run.tl
+(`cityUi`, `sheetFor`, Same seed, `gapCheck` at the end), gui/stress_hud.script.tl (rows, dialog), tools/flow_report.py.
+Tests: test_grid_layouts, test_bench "city lights options" / "run: the city run with options", test_citylights
+"Hourglass", test_towns "batched grids with a layout", tests/tools CityLightsTest.
 
 ## Compatibility
 

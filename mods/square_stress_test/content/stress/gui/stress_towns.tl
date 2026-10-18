@@ -617,7 +617,7 @@ end
 --- The street grid construction for a town of caps at (x, y) (lock: the country ring, SHOWCASE.md "Country
 --- ring"; stress_grid_streets.lua RING_TEMPLATES), the radius its streets with the corner stubs reach
 --- (half x sqrt 2 + STUB, rounded up: lockR), its side and era. nil when our construction is not found.
-local function gridEntity(x : number, y : number, caps : integer, lock : boolean) : SimpleProposal.ConstructionEntity, number, number, integer
+local function gridEntity(x : number, y : number, caps : integer, lock : boolean, layout? : integer, holes? : integer) : SimpleProposal.ConstructionEntity, number, number, integer
 	local file = gridStreetsCon()
 	if file == nil then return nil, 0, 0, 0 end
 	local okY, year = pcall(api.engine.util.getYear)
@@ -628,7 +628,14 @@ local function gridEntity(x : number, y : number, caps : integer, lock : boolean
 	local V = api.type.Vec4f.new
 	local ce = api.type.SimpleProposal.ConstructionEntity.new()
 	ce.fileName = file
-	ce.params = { sqst_grid_half = half, sqst_grid_era = era, sqst_grid_ring = lock and 2 or 1, seed = 1 }
+	local params : {string : integer} = { sqst_grid_half = half, sqst_grid_era = era, sqst_grid_ring = lock and 2 or 1, seed = 1 }
+	-- the bench's City lights layouts (stress_grid_streets.lua LAYOUTS): only when asked, so every other build sends the
+	-- same params as before (the table is filled before it is handed over: the userdata setter copies it)
+	if layout ~= nil and layout > 1 then
+		params.sqst_grid_layout = layout
+		params.sqst_grid_holes = holes or 1
+	end
+	ce.params = params
 	ce.transf = api.type.Mat4f.new(V(1.0, 0.0, 0.0, 0.0), V(0.0, 1.0, 0.0, 0.0), V(0.0, 0.0, 1.0, 0.0),
 		V(x == 0 and 0.0 or x, y == 0 and 0.0 or y, z == 0 and 0.0 or z, 1.0))
 	ce.playerEntity = rt.player()
@@ -723,6 +730,8 @@ local function createOne(name : string, p : SquareStressGridPoint, caps : intege
 	local ti = res.toAdd[1]
 	local given = ti.position
 	local givenText = given ~= nil and string.format("%.1f,%.1f", given.x, given.y) or "?"
+	-- a point's own smaller capacity (the light plans A/B's small towns; its grid keeps the size's)
+	caps = p.townCaps or caps
 	ti.initialLandUseCapacities = { caps, caps, caps }
 	ti.position = api.type.Vec2f.new(p.x, p.y)
 	local angleOk = trySet(ti, "majorStreetAngle", 0.0) and trySet(ti, "initialMajorStreetAngle", 0.0)
@@ -763,6 +772,8 @@ local record GridBatch
 	before : {integer : {integer : boolean}}   -- grid index -> street edges there before its grid's batch
 	gridOk : {integer : boolean}
 	timing : {string : number}             -- towns / grids / locks (ms)
+	layout : integer                       -- the grids' layout param (opts.gridLayout), holes pattern (opts.gridHoles)
+	holes : integer
 end
 
 --- One step of a batched createGrid after its setup.
@@ -781,7 +792,7 @@ local function gridBatch(b : GridBatch, list : {integer}, label : string, done :
 	local era = 0
 	for _, k in ipairs(list) do
 		local p = b.points[k]
-		local ce, lockR, side, e = gridEntity(p.x, p.y, b.capsOf(k), b.lock)
+		local ce, lockR, side, e = gridEntity(p.x, p.y, b.capsOf(k), b.lock, b.layout, b.holes)
 		if ce ~= nil then
 			ces[#ces + 1] = ce
 			idx[#idx + 1] = k
@@ -801,8 +812,9 @@ local function gridBatch(b : GridBatch, list : {integer}, label : string, done :
 		local errText = success and "" or refusedText(data)
 		for _, k in ipairs(idx) do
 			if success then b.gridOk[k] = true end
-			rt.detail(string.format("[SQST] %s %s street grid %dm era=%d success=%s ms=%.0f %s grids=%d%s", b.name, b.points[k].name,
-				math.floor(sides[k]), era, tostring(success), ms, label, #idx, errText))
+			rt.detail(string.format("[SQST] %s %s street grid %dm era=%d success=%s ms=%.0f %s grids=%d%s%s", b.name, b.points[k].name,
+				math.floor(sides[k]), era, tostring(success), ms, label, #idx,
+				(b.layout ~= nil and b.layout > 1) and string.format(" layout=%d holes_pattern=%d", b.layout, b.holes or 1) or "", errText))
 		end
 		if success or #idx == 1 then
 			if not success then
@@ -871,7 +883,8 @@ local function createBatch(b : GridBatch, list : {integer}, done : function(foun
 	for i, k in ipairs(list) do
 		local p = b.points[k]
 		local ti = res.toAdd[m[i]]
-		local caps = b.capsOf(k)
+		-- a point's own smaller capacity (the light plans A/B's small towns; its grid keeps the size's)
+		local caps = p.townCaps or b.capsOf(k)
 		ti.initialLandUseCapacities = { caps, caps, caps }
 		ti.position = api.type.Vec2f.new(p.x, p.y)
 		angleOk = trySet(ti, "majorStreetAngle", 0.0) and trySet(ti, "initialMajorStreetAngle", 0.0) and angleOk
@@ -1021,7 +1034,7 @@ function towns.createGrid(opts : SquareStressGridOpts,
 			-- explicit points (Crossing test), offsets from the centre
 			points = {}
 			for k, q in ipairs(opts.points) do
-				points[k] = { x = cx + q.x, y = cy + q.y, name = q.name, row = 1, col = k, size = q.size }
+				points[k] = { x = cx + q.x, y = cy + q.y, name = q.name, row = 1, col = k, size = q.size, townCaps = q.townCaps, pop = q.pop }
 			end
 		else
 			points = logic.gridPositions(cx, cy, layout.cols, layout.rows, spacing)
@@ -1068,7 +1081,8 @@ function towns.createGrid(opts : SquareStressGridOpts,
 		-- one command; each batch falls back to one by one on refusal. Steps: setup, grids (one per batch),
 		-- lock, towns, the towns the batch missed (one by one).
 		local b : GridBatch = { name = name, points = points, live = {}, capsOf = capsOf, lock = opts.streets == 3,
-			grids = opts.streets == 2 or opts.streets == 3, lockR = {}, before = {}, gridOk = {}, timing = timing }
+			grids = opts.streets == 2 or opts.streets == 3, lockR = {}, before = {}, gridOk = {}, timing = timing,
+			layout = opts.gridLayout, holes = opts.gridHoles }
 		local tasks : {GridTask} = {}
 		rt.enqueue(name, 1, function(i : integer, job : SquareStressJob)
 			if i == 1 then
@@ -1564,6 +1578,8 @@ function towns.densify(name : string, areas : {SquareStressLockArea}, opts : Squ
 	local acc = { b1 = 0, outside = 0, houses = 0, locked = 0, sent = 0, early = 0 }
 	local all : {integer} = { 0, 0, 0, 0 }
 	local pops : {integer : integer} = {}   -- town index -> population at its final check
+	local targets : {integer : number} = {} -- town index -> its own target (areas' target, the light plans A/B)
+	for k, a in ipairs(areas) do targets[k] = a.target end
 	local t0 : integer = nil
 	local targetText = opts.target ~= nil and string.format(" target=%d (each town: target / its capacity target)", math.floor(opts.target)) or ""
 	rt.log(string.format("[SQST] %s queued towns=%d factor=x%g passes=%d weights=%s (level 1..4, every land use)%s", name, #areas, factor, np,
@@ -1580,7 +1596,7 @@ function towns.densify(name : string, areas : {SquareStressLockArea}, opts : Squ
 				local ms = (rt.nowUs() - t0) / 1000
 				rt.log(string.format("[SQST] %s dense summary towns=%d factor=x%g passes=%d weights=%s sent=%d stoppedEarly=%d buildings %d->%d outside_streets=%d houses_outside=%d locked=%d levels %s ms=%.0f%s",
 					name, #areas, factor, np, weightsText, acc.sent, acc.early, before, acc.b1, acc.outside, acc.houses, acc.locked, logic.levelText(all), ms,
-					logic.popText(pops, #areas)))
+					logic.popText(pops, #areas) .. logic.popByTargetText(pops, targets, #areas)))
 				if opts.onDone ~= nil then pcall(opts.onDone, ms) end
 			end
 		end
@@ -1620,13 +1636,15 @@ function towns.densify(name : string, areas : {SquareStressLockArea}, opts : Squ
 			local pop0 = townPop(a.town)
 			local cap0 : number = nil
 			pcall(function() cap0 = (tc.initialLandUseCapacities[1] as number) * ((tc.sizeFactors or {})[1] or 1) end)
-			if opts.target ~= nil and st.pass == 1 then
-				local own = logic.growFactorForCap(opts.target, cap0)
+			-- the town's own target first (the light plans A/B's small towns), else the job's
+			local tgt = a.target or opts.target
+			if tgt ~= nil and st.pass == 1 then
+				local own = logic.growFactorForCap(tgt, cap0)
 				if own ~= nil then f = own end
 			end
 			local factors, note = logic.growPlan(tc.sizeFactors, f, st.pass)
-			if opts.target ~= nil and st.pass == 1 then
-				note = note .. string.format(" (x%g for %d from capacity=%s pop=%s)", f, math.floor(opts.target), cap0 ~= nil and string.format("%.0f", cap0) or "?",
+			if tgt ~= nil and st.pass == 1 then
+				note = note .. string.format(" (x%g for %d from capacity=%s pop=%s)", f, math.floor(tgt), cap0 ~= nil and string.format("%.0f", cap0) or "?",
 					pop0 ~= nil and tostring(pop0) or "?")
 			end
 			local t0 = rt.nowUs()
@@ -1663,8 +1681,8 @@ function towns.densify(name : string, areas : {SquareStressLockArea}, opts : Squ
 			-- the population read late (every town's size command answered by now: the town has had time to fill)
 			local pop = townPop(a.town)
 			pops[st.town] = pop
-			rt.log(string.format("[SQST] %s town %s levels %s centre %s buildings=%d pop=%s", name, a.label, logic.levelText(levels),
-				logic.levelText(centre), n, pop ~= nil and tostring(pop) or "?"))
+			rt.log(string.format("[SQST] %s town %s levels %s centre %s buildings=%d pop=%s%s", name, a.label, logic.levelText(levels),
+				logic.levelText(centre), n, pop ~= nil and tostring(pop) or "?", a.target ~= nil and string.format(" target=%d", math.floor(a.target)) or ""))
 			last()
 		end)
 	end, { serial = true, label = string.format("Growing x%g, locked to the grid", factor) })

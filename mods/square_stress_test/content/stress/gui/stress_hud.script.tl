@@ -49,6 +49,7 @@ local flowlog = ug_require "square_stress_test::/stress/gui/stress_flow_log.tl" 
 local flowlib = ug_require "square_stress_test::/stress/stress_flow.tl" as SquareStressFlow
 local benchlib = ug_require "square_stress_test::/stress/stress_bench.tl" as SquareStressBench
 local benchrun = ug_require "square_stress_test::/stress/gui/stress_bench_run.tl" as SquareStressBenchRun
+local slzones = ug_require "square_stress_test::/stress/gui/stress_slzones.tl" as SquareStressSlZones
 
 local WINDOW_ID <const> = "squarestresstest.window"
 local STATUS_US <const> = 1000000      -- status line (year, speed, balance) refresh
@@ -201,10 +202,13 @@ end
 --- without scrolling: each section works like a form, options below, the button at the top.
 --- A section header: a blank line (the gap above every section; a stylesheet margin alone did not show
 --- in game 2026-10-11), then the title with its buttons on the right.
+-- The buttons go in a builtin.FlowLayout so a long row (Bench: Sheet 1..6, Micro) wraps to the window width
+-- instead of running off it (docs/findings.md "Wrapping rows in a GUI plugin"; user screenshot 2026-10-15). Each
+-- button keeps its gap inside an hbox, so a wrapped line never starts with a bare spacer.
 local function head(title : string, buttons : {TreeNodeId}) : TreeNodeId
-	local children : {TreeNodeId} = { text(title, "font-scale-body, sqst-section"), text("", "sqst-spacer") }
-	for _, b in ipairs(buttons) do children[#children + 1] = b end
-	return vbox({ text(" "), hbox(children, "sqst-head") })
+	local children : {TreeNodeId} = { hbox({ text(title, "font-scale-body, sqst-section"), text("", "sqst-spacer") }, "sqst-head") }
+	for _, b in ipairs(buttons) do children[#children + 1] = hbox({ b, text("", "sqst-spacer") }, "sqst-head") end
+	return vbox({ text(" "), builtin.FlowLayout{ children = children } })
 end
 
 --- The base confirm dialog (gui/menu/dialog_react_util.tl, used by the pause menu's Quit Game,
@@ -411,15 +415,30 @@ end
 --- can at once (a dialog says what is missing), then a confirm dialog with the plan for this map; OK runs the whole
 --- sheet (clear the map, build, record, screenshots) with no further input. The status line shows the phase.
 local function confirmBench(key : string)
-	local sheet = benchlib.sheet(key)
+	local sheet = benchrun.sheetFor(key)
 	if sheet == nil then return end
 	local problems = benchrun.check(key)
 	if #problems > 0 then
 		rt.warn(sheet.title, table.concat(problems, "\n"))
 		return
 	end
-	confirm(sheet.title, string.format("%s.\n\nThis removes every town and every road on the map first, sets the year to %d if earlier, builds the bench, records %d game minutes of traffic at %dx and takes a screenshot of each test. About 15-25 minutes; leave the game running and unpaused. Use a fresh %g km Blank Slate map.",
-		benchrun.planLine(key), benchlib.YEAR, math.floor(benchlib.RECORD_S / 60), benchlib.SPEED, sheet.minKm), "Run bench", function()
+	local what = "builds the bench, records %d game minutes of traffic at %dx and takes a screenshot of each test. About 15-25 minutes"
+	if sheet.city ~= nil then
+		what = "builds the cities and lights every inner crossing, records %d game minutes of traffic at %dx (Smart Lanes' automatic timing starts at the auto cities after "
+			.. string.format("%d", math.floor((sheet.baselineS or 0) / 60)) .. " of them) and takes a screenshot of each city. About "
+			-- the warm-up and the record at its speed, plus ~10 min of clearing, build (~5-8 min) and shots
+			.. string.format("%d", math.floor((benchlib.recordS(sheet) + benchlib.WARMUP_S) / 60 / benchlib.speed(sheet) + 10.5)) .. " minutes"
+	end
+	local opts = ""
+	if sheet.city ~= nil then
+		opts = "\n\n" .. benchlib.cityOptionsText(sheet)
+		if benchrun.cityUi.sameSeed and benchrun.lastCitySeed ~= nil then
+			opts = opts .. string.format(" Seed: %d (the last city run's).", benchrun.lastCitySeed)
+		end
+	end
+	local optsFmt = opts:gsub("%%", "%%%%")
+	confirm(sheet.title, string.format("%s." .. optsFmt .. "\n\nThis removes every town and every road on the map first, sets the year to %d if earlier, " .. what .. "; leave the game running and unpaused. Use a fresh %g km Blank Slate map.",
+		benchrun.planLine(key), benchlib.YEAR, math.floor(benchlib.recordS(sheet) / 60), benchlib.speed(sheet), sheet.minKm), "Run bench", function()
 		benchrun.start(key)
 	end)
 end
@@ -428,18 +447,18 @@ local function benchItems() : {TreeNodeId}
 	local buttons : {TreeNodeId} = {}
 	for _, sh in ipairs(benchlib.SHEETS) do
 		local key = sh.key
-		buttons[#buttons + 1] = primary("Sheet " .. key:sub(2), sh.title .. ". One press: clears the map, builds, records the traffic and takes screenshots", function() confirmBench(key) end)
+		buttons[#buttons + 1] = primary(sh.button or ("Sheet " .. key:sub(2)), sh.title .. ". One press: clears the map, builds, records the traffic and takes screenshots", function() confirmBench(key) end)
 	end
 	local lines : {string} = {}
 	for _, sh in ipairs(benchlib.SHEETS) do
 		local tests : {string} = {}
 		for _, t in ipairs(sh.tests) do tests[#tests + 1] = string.format("%s (%d sets: %s)", t.title, t.sets, table.concat(t.twins, " / ")) end
-		lines[#lines + 1] = string.format("Sheet %s: %s.", sh.key:sub(2), table.concat(tests, "; "))
+		lines[#lines + 1] = string.format("%s: %s.", sh.button or ("Sheet " .. sh.key:sub(2)), table.concat(tests, "; "))
 	end
 	local status = benchrun.status()
 	local items : {TreeNodeId} = {
 		head("Bench", buttons),
-		hint(table.concat(lines, " ") .. " Every junction is built as twins side by side (game default / Smart Lanes / a Smart Lanes test mode) with a town on every arm that needs traffic. Needs a fresh 16 km Blank Slate map, Smart Lanes (Apply automatically On; sheets 1-2: No lights at roundabouts and ramps On) and, for sheets 1-2, Roundabouts & Interchanges. When the status says done, run make bench."),
+		hint(table.concat(lines, " ") .. " Every junction is built as twins side by side (game default / Smart Lanes / a Smart Lanes test mode) with a town on every arm that needs traffic. Needs a fresh 16 km Blank Slate map, Smart Lanes (Apply automatically On; sheets 1, 2, 4, 5, 6 and Micro: No lights at roundabouts and ramps On) and, for sheets 1, 2, 4, 5, 6 and Micro, Roundabouts & Interchanges. Sheet 5 (ring lane use) runs each ring under three traffic mixes and logs every ring twin's turning mix and lane use; sheet 6 runs Smart Lanes' mid-node default under heavy traffic (30 game minutes). Micro is a small sheet for one-off tests (its tests are swapped in the mod's code). When the status says done, run make bench."),
 	}
 	if status ~= "" then items[#items + 1] = hint(status) end
 	return items
@@ -456,17 +475,66 @@ local function showcaseItems() : {TreeNodeId}
 	}
 end
 
+--- The City lights options (BENCH.md "Funnel layouts"): Layout and Baseline as choices, Busy / Swap roles / Same seed as
+--- checkboxes; the confirm dialog repeats them.
+local function cityOptionItems() : {TreeNodeId}
+	local u = benchrun.cityUi
+	local items : {TreeNodeId} = {
+		hbox({ label("Layout"), choice(benchlib.CITY_LAYOUT_LABELS, u.layout or 1, function(i : integer) u.layout = i end) }, "sqst-row"),
+		hbox({ label("Baseline"), choice(benchlib.CITY_BASELINE_LABELS, u.baseline or 1, function(i : integer) u.baseline = i end) }, "sqst-row"),
+		builtin.CheckBox{
+			value = u.busy and 1 or 0,
+			onValueChange = function(v : integer) u.busy = v == 1 end,
+			label = string.format("Busy: about %d people per city instead of %d", math.floor(benchlib.CITY_BUSY.pop), math.floor(benchlib.CITY.city.pop)),
+		},
+		builtin.CheckBox{
+			value = u.swap and 1 or 0,
+			onValueChange = function(v : integer) u.swap = v == 1 end,
+			label = "Swap roles: the other city of each pair gets the automatic timing",
+		},
+	}
+	if benchrun.lastCitySeed ~= nil then
+		items[#items + 1] = builtin.CheckBox{
+			value = u.sameSeed and 1 or 0,
+			onValueChange = function(v : integer) u.sameSeed = v == 1 end,
+			label = string.format("Same seed as the last city run (%d)", benchrun.lastCitySeed),
+		}
+	end
+	return items
+end
+
 --- The Lights showcase section (Towns tab): one button, no options (user 2026-10-12, SHOWCASE.md "Lights
 --- showcase"). Only lit plain crossings (our own construction), so it needs no other mod; Smart Lanes
 --- gives its twins their modes. Every shape on one map (stress_logic.lightsMixedSpec), the same press every time.
 local function lightsShowcaseItems() : {TreeNodeId}
-	return {
+	local autoStatus = slzones.autoStatus()
+	local items : {TreeNodeId} = {
 		head("Lights showcase", {
 			primary(logic.lightsShowcaseLabel(), "Fill the map with every lit junction shape (2x2 X, 3x3 X, 3x2 X, T 2x2, lanes each way), " .. string.format("%d", logic.LIGHTS_PER_TYPE) .. " sets of each, with a medium town on every arm. Each set is built three times side by side: Smart Lanes, the game default and Smart Lanes with every turn fanned into the exit lanes",
 				notDuringBench(function() junctions.buildLightsShowcase() end)),
+			button(logic.lightsPlansLabel(), "A focused light-plan A/B: a 2-lane (2x2 X) and a 3-lane (3x3 X) lit crossroads, " .. string.format("%d", logic.LIGHTS_PLANS_PER_TYPE) .. " sets of each, every set built three times side by side: the game's light phases, Smart Lanes' axis plan and the axis plan with its timing kept adjusted. Busier towns (about " .. string.format("%d", logic.LIGHTS_PLANS_TARGET_POP) .. " people each); every second set unbalanced (a small north town, a tiny south town)",
+				notDuringBench(function() junctions.buildLightPlans() end)),
 		}),
 		hint("Like the Showcase, for traffic lights: every 90 deg lit shape (2x2 X, 3x3 X, 3x2 X: main 3 lanes each way, side 2; T 2x2), " .. string.format("%d", logic.LIGHTS_PER_TYPE) .. " sets of each, every set as three twins a, b, e (Smart Lanes / game default / Smart Lanes exit-lane fan), so the twins compare under the same traffic; a new seed per press. All 12 sets, with every twin once in every position per shape (a position-balanced comparison), need a 20 km map; a 16 km map holds 6 sets, positions not balanced. Use an empty flat map (Blank Slate) from 1950 on (the game's lights) and Remove towns > All towns first. The build turns Keep balance on; every link is a large country road (3 lanes each way) and enters its town through a 3-lane roundabout (2 lanes where 3 is refused) at the middle of the grid's side (before 1940: the grid's crossroads), so the town entry is never the bottleneck; the towns stay locked inside their grids (country ring and country links: no houses outside) and grow once after the links, to about " .. string.format("%d", logic.LIGHTS_TARGET_POP) .. " people each (each town from its own capacity; denser, not wider). No bus lines: the towns' own traffic. About 2 minutes on a 16 km map. Remove towns > Grid towns and Remove all roads clean it up."),
+		hint("Build light plans A/B: the same build for comparing light plans at busy junctions: 2x2 X and 3x3 X, " .. string.format("%d", logic.LIGHTS_PLANS_PER_TYPE) .. " sets each (fits a 16 km map), twins b, c, v (game default / Smart Lanes axis plan / the axis plan with its timing kept adjusted; towns \"Game default\", \"Smart phases\", \"Auto timing\"). Balanced and unbalanced sets in turn: in a balanced set every town has about " .. string.format("%d", logic.LIGHTS_PLANS_TARGET_POP) .. " people; in an unbalanced one the east and west towns about " .. string.format("%d", logic.LIGHTS_PLANS_POPS.busy) .. ", the north town about " .. string.format("%d", logic.LIGHTS_PLANS_POPS.small) .. " (\"small\") and the south town about " .. string.format("%d", logic.LIGHTS_PLANS_POPS.tiny) .. " (\"tiny\"). Needs Smart Lanes with the sl_auto zone mode (rev 8). Turn the Traffic log on and run at 4x for 90 game minutes after the build (the auto twins first re-time about 16 game minutes after the build and settle after about 45), then make flow. Press Auto re-time > Clear when done."),
+		head("Auto re-time", {
+			button("All lit junctions", "Smart Lanes keeps the timing of every lit junction on the map adjusted (its Keep timing adjusted, at most 1000 junctions): takes a queue snapshot every 2 game minutes and re-times each junction from about 16 game minutes on, every 10-60 minutes. Junctions lit later are not included: press again. For a before / after run on any lit map: Traffic log on, wait 15 game minutes, press, run 90 more, make flow",
+				notDuringBench(function() slzones.sendAuto("all", "button") end)),
+			button("Clear", "Stops Smart Lanes' automatic re-timing at every junction (the zones of a light plans A/B build do not stop it by themselves). Timing already written stays",
+				notDuringBench(function() slzones.sendAuto("clear", "button") end)),
+		}),
+		head("City lights at scale", {
+			button(benchlib.CITY.button, benchlib.CITY.title .. ". One press: clears the map, builds the cities, lights every inner crossing, records the traffic before and after Smart Lanes' automatic timing starts, takes screenshots",
+				function() confirmBench(benchlib.CITY.key) end),
+		}),
 	}
+	for _, it in ipairs(cityOptionItems()) do items[#items + 1] = it end
+	local cs = benchrun.sheetFor(benchlib.CITY.key)
+	items[#items + 1] = hint(string.format("%d big grid towns (Large, about %d people each wanted, the wide 800 m street grid, %d lit crossings each) in pairs: Smart Lanes keeps re-timing every light of one city of each pair (Auto re-time for its junctions), the other never (control). Traffic log on at %dx: %d game minutes as they are, then the automatic timing starts at the auto cities, then %d more. Layout: Hourglass leaves out a band through the middle except the 3 central streets (all traffic between the halves goes through that neck); Holes leaves out the inner streets of 4 blocks of 2 x 2 (placed by the seed, the same in every city). Busy wants about 2.5 times the people (the grid's lots may cap it; the log has the real number). Swap roles: run again with the same seed and Swap roles on; the report pairs the two runs. Needs Smart Lanes rev 8 with its Debug: performance log On (or DEV SQPERF: all mods): the report reads its frame times. When the status says done, run make flow (section Auto lights at scale).",
+		cs.city.pairs * (cs.city.control and 2 or 1), math.floor(cs.city.pop), benchlib.cityLayout(cs).crossings, benchlib.speed(cs),
+		math.floor((cs.baselineS or 0) / 60), math.floor((benchlib.recordS(cs) - (cs.baselineS or 0)) / 60)))
+	if autoStatus ~= "" then items[#items + 1] = hint(autoStatus) end
+	return items
 end
 
 local function townsTab(readout : string) : TreeNodeId
@@ -695,7 +763,7 @@ local function makeView(status : string, townsLine : string, trafficLine : strin
 	local recent : {string} = {}
 	for i, line in ipairs(rt.recent) do recent[i] = line end
 	return { status = status, progress = logic.progress(rt.queue), recent = recent, keepBalance = rt.keepBalance,
-		hideNotifications = rt.hideNotifications, towns = townsLine, townsUi = towns.uiSignature() .. "|" .. junctions.uiSignature() .. "|" .. junctions.crossSignature() .. "|" .. junctions.showcaseSignature() .. "|" .. junctions.lightsSignature() .. "|" .. benchrun.status(), traffic = trafficLine, trafficUi = traffic.uiSignature() .. "|" .. buslines.uiSignature() .. "|" .. flowlog.uiSignature() }
+		hideNotifications = rt.hideNotifications, towns = townsLine, townsUi = towns.uiSignature() .. "|" .. junctions.uiSignature() .. "|" .. junctions.crossSignature() .. "|" .. junctions.showcaseSignature() .. "|" .. junctions.lightsSignature() .. "|" .. benchrun.status() .. "|" .. benchrun.cityUiSignature(), traffic = trafficLine, trafficUi = traffic.uiSignature() .. "|" .. buslines.uiSignature() .. "|" .. flowlog.uiSignature() }
 end
 
 local function sameView(a : View, b : View) : boolean

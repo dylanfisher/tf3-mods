@@ -64,10 +64,12 @@ function data()
 	local WIN = "R::SquareStressContent"
 	local WINDOW = "#squarestresstest.window"
 
-	-- margin: a 3 px gap on each side, so neighbouring top-bar buttons (ours and other mods') don't touch.
+	-- margin: the base data layers button's (layers.css.lua:44-55 "R::ExpandableLayerButton", 1 px a side,
+	-- 2 at the bottom on the top button), as Timetables sets it on its ridge ToggleButton. Here on the plugin
+	-- root, which holds only the button (inline styles take no margin): same layout, no extra rule.
 	a(HUD, {
 		gravity = { 0, 0 },
-		margin = { 0, 3, 0, 3 },
+		margin = { 1, 1, 2, 1 },
 	})
 	a(HUD .. " Button!sqst-hud-button", {
 		padding = { 2, 8, 2, 8 },

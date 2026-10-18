@@ -138,7 +138,7 @@ test("the construction: its year and its direction param (1-based, default antic
 	local d = data()
 	eq(d.availability.yearFrom, 1940)
 	eq(d.availability.yearFrom, logic.ENTRY_FROM_YEAR)
-	eq(#d.params, 4)
+	eq(#d.params, 5)
 	eq(d.params[1].key, "sqst_entry_dir")
 	eq(d.params[1].values[d.params[1].defaultIndex], "Anticlockwise")
 	eq(d.params[2].key, "sqst_entry_ring")
@@ -149,6 +149,52 @@ test("the construction: its year and its direction param (1-based, default antic
 	eq(d.params[3].values[d.params[3].defaultIndex], "None")
 	eq(d.params[4].key, "sqst_entry_in_reach")
 	eq(d.params[4].values, { "46 m", "42 m", "38 m", "36 m" })
+	eq(d.params[5].key, "sqst_entry_mid")
+	eq(d.params[5].values, { "None", "1", "2", "3" })
+	eq(d.params[5].values[d.params[5].defaultIndex], "None")
+end)
+
+test("ring mid nodes (sqst_entry_mid 2..4): 1-3 plain nodes evenly on every quarter, on the circle, arc tangents, both directions, no -0; None as before", function()
+	for _, ringI in ipairs({ 1, 2 }) do
+		local rg = entry.RINGS[ringI]
+		-- None and a missing / bad value: the ring as before, byte for byte
+		eq(entry.result({ sqst_entry_ring = ringI, sqst_entry_mid = 1 }), entry.result({ sqst_entry_ring = ringI }))
+		eq(entry.result({ sqst_entry_ring = ringI, sqst_entry_mid = 9 }), entry.result({ sqst_entry_ring = ringI }))
+		for n = 1, 3 do
+			for _, dir in ipairs({ 1, 2 }) do
+				local r = entry.result({ sqst_entry_ring = ringI, sqst_entry_mid = n + 1, sqst_entry_dir = dir })
+				local ring, arms = r.edgeLists[1], r.edgeLists[2]
+				eq(#ring.edges, 2 * 4 * (n + 1))
+				eq(#arms.edges, 8)
+				local th = (math.pi / 2) / (n + 1)
+				local t = rg.radius * 4 * math.tan(th / 4)
+				local starts, ends = {}, {}
+				for i = 1, #ring.edges, 2 do
+					local p0, t0, p1, t1 = ring.edges[i][1], ring.edges[i][2], ring.edges[i + 1][1], ring.edges[i + 1][2]
+					for _, pq in ipairs({ { p0, t0 }, { p1, t1 } }) do
+						near(math.sqrt(pq[1][1] ^ 2 + pq[1][2] ^ 2), rg.radius, 1e-9)
+						near(math.sqrt(pq[2][1] ^ 2 + pq[2][2] ^ 2), t, 1e-9)
+						local cr = pq[1][1] * pq[2][2] - pq[1][2] * pq[2][1]
+						ok(dir == 1 and cr > 0 or dir == 2 and cr < 0, "direction")
+						for k = 1, 3 do ok(not negZero(pq[1][k]) and not negZero(pq[2][k]), "no -0") end
+					end
+					-- one piece spans th
+					local a0, a1 = math.atan(p0[2], p0[1]), math.atan(p1[2], p1[1])
+					near(math.abs(((a1 - a0) + math.pi) % (2 * math.pi) - math.pi), th, 1e-9)
+					starts[key(p0)], ends[key(p1)] = true, true
+				end
+				-- closed: every start is some piece's end; every arm starts at a ring node
+				local nNodes = 0
+				for k in pairs(starts) do ok(ends[k], "closed"); nNodes = nNodes + 1 end
+				eq(nNodes, 4 * (n + 1))
+				for k = 1, 4 do ok(starts[key(arms.edges[2 * k - 1][1])], "arm at a ring node") end
+			end
+		end
+	end
+	eq(entry.midNodes({}), 0)
+	eq(entry.midNodes({ sqst_entry_mid = 2 }), 1)
+	eq(entry.midNodes({ sqst_entry_mid = 4 }), 3)
+	eq(entry.midNodes({ sqst_entry_mid = 5 }), 0)
 end)
 
 test("drivingSide: right / left from a two-way street's road lanes; nil for one-way, mixed or too few", function()

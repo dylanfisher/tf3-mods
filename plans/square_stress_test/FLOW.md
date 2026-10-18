@@ -67,7 +67,7 @@ automatically Off). Mod settings cannot change during a load, so the line holds 
 | key | meaning |
 |---|---|
 | `phases` | setting "Light phases": `game` = the game's own traffic light phases (re-pointed to the lanes), `sl` = Smart Lanes planned phases at lit crossroads / T-junctions it writes (sl_phaseplan.lua) |
-| `free_turn` | setting "Free kerb turn at traffic lights": `off` / `safe` / `always` (with `phases=sl` only where no plan could be made) |
+| `free_turn` | setting "Free curb turn at traffic lights": `off` / `safe` / `always` (with `phases=sl` only where no plan could be made) |
 
 Report rule: split runs by `phases` (the A/B of Smart Lanes phases vs the game's); a load without a MODE line (Smart
 Lanes absent or older) is `phases=game`. Per junction, `[SQRL] PHASES node= phases=sl plan=|plan_fail=` (and
@@ -100,7 +100,7 @@ with Apply automatically Off; not in the map editor).
 | `op` | `set` (every zone replaced), `clear` (all removed), `ignored` (payload refused as a whole: nothing changed), `loaded` |
 | `n` | zones now stored (`set` / `loaded`) |
 | `run` | the sender's run id (`-` none); Stress Test reads it back as the acknowledgement |
-| `by_ab` | zones per mode, fixed order `game,sl,sl_phases`, then `,sl_fan:<n>` only when the set has fan zones, then `,sl_lock:<n>` only when it has lock zones, then `,sl_exitfan:<n>` only when it has exit-fan zones (older lines unchanged) |
+| `by_ab` | zones per mode, fixed order `game,sl,sl_phases`, then `,sl_fan:<n>` only when the set has fan zones, then `,sl_lock:<n>` only when it has lock zones, then `,sl_exitfan:<n>` only when it has exit-fan zones, then likewise `sl_keeplights`, the ring layout variants (`sl_rturbo` .. `sl_rmid`) and `sl_classic` in sl_zones.lua `M.AB` order (older lines unchanged) |
 | `reason` | `ignored` only: `not_table`, `op`, `run`, `zones`, `too_many` (> 400), `zone<i>` / `xy<i>` / `r<i>` / `ab<i>` (the first bad zone; r must be in (0, 2000] m, \|x\|,\|y\| <= 1e6, ab one of game / sl / sl_phases / sl_fan / sl_lock) |
 
 Effect (automatic pass only; nothing written before the zones arrived is changed): a node in a `game` zone is left
@@ -108,7 +108,11 @@ alone (no lanes, lights or phases): one `SKIP kind=zone zone=game job= nodes= re
 any node in a game zone: `SKIP ring= node= reason=zone_game`, the whole ring), `SUMMARY ... skips=zone_game:<n>`.
 `sl`: as everywhere (the global settings). `sl_phases`: lit crossroads / T-junctions get the Smart Lanes phase plan
 as with Light phases = Smart Lanes (`PHASES ... phases=sl plan=`); with the setting at Game default `SUMMARY` then
-carries `sl_plans= plan_fail= zone_phases=<nodes planned for the zone>`. A node in several zones takes the one whose
+carries `sl_plans= plan_fail= zone_phases=<nodes planned for the zone>`. Since Smart Lanes rev 8 that plan is the
+axis plan (`plan=x4_axis|t3_axis`: one phase per road, a 6 s pedestrian phase after each); `sl_classic` (rev 8, the
+last of the optional `by_ab` modes, `,sl_classic:<n>`) plans the earlier classic patterns there instead
+(`plan=x4_split|x4_protected|x4_leadlag|x4_mixed|t3`, counted in `zone_phases`), for game / sl_phases / sl_classic
+twins; the Stress Test does not send it yet. A node in several zones takes the one whose
 centre is nearest relative to its radius. The tool's Apply works in a game zone (manual override): its `APPLY
 src=tool` lines end in `zone=game`.
 `sl_fan` (added 2026-10-12, a measuring mode: square_smart_lanes PHASES_PLAN.md "Fan mode"): a lit crossroads /
@@ -122,12 +126,12 @@ Test sends `sl_fan` zones from its Lights showcase (2026-10-12, SHOWCASE.md "Lig
 lit crossing set; `SL_ZONE_AB` has it; its `by_ab` then ends in `,sl_fan:<n>` as Smart Lanes' own). Since 2026-10-12 the Lights
 showcase builds no bus lines (SHOWCASE.md "Faster, simpler Lights showcase"): no `FLOW_BUS` lines for it.
 `sl_lock` (added 2026-10-12, a measuring mode: square_smart_lanes PHASES_PLAN.md "Lock mode"): as `sl` (Smart Lanes
-lanes), but the kerb turn at crossroads / T-junctions is never freed, as with "Free kerb turn" Off, and the light
-phases stay the game's, whatever the global settings; a kerb turn freed by an earlier write is locked back with its
+lanes), but the curb turn at crossroads / T-junctions is never freed, as with "Free curb turn" Off, and the light
+phases stay the game's, whatever the global settings; a curb turn freed by an earlier write is locked back with its
 approach. Lines: `APPLY ... zone=sl_lock free_turn=off` (and on its `AUDIT` line), `SUMMARY ... zone_lock=<nodes>
-lock_turn=<kerb connections locked back> lock_phases=<n>` (free_turn= never counts them), `LIGHTS src=auto ...
+lock_turn=<curb connections locked back> lock_phases=<n>` (free_turn= never counts them), `LIGHTS src=auto ...
 to=lock_turn` when only the phases had to change. Report rule: `sl_lock` vs `game` = the lane layout alone, `sl` vs
-`sl_lock` = the free kerb turn alone (with `MODE phases=game`; `MODE free_turn=` says what the sl twin ran).
+`sl_lock` = the free curb turn alone (with `MODE phases=game`; `MODE free_turn=` says what the sl twin ran).
 tools/flow_report.py compares both (`COMPARISONS`). Stress Test side, **done 2026-10-13** (offline-tested, not run
 in game yet): the Lights showcase sends an `sl_lock` twin (letter d, towns "Kerb locked <set> <side>") instead of
 `sl_fan` (`LIGHTS_AB`, `SL_ZONE_AB`, its own `by_ab` text ending in `,sl_lock:<n>` after `,sl_fan:<n>`, and
@@ -253,7 +257,10 @@ r_measure) or within r at one sample, and not there at the next, has passed. Sam
 scaling as below. At 10 game s per sample every car is seen on its approach (no bias towards the slower twin); at 30 s
 cars faster than approach / 30 s can be missed. The path count below is written as `thru_path=` (appended), and stops
 for the run after `PATH_GIVE_UP` (2000) path elements no reader could read (`[SQST] FLOW_PATHOFF run= tries=`, once).
-`FLOW_START` appends `thru_m=pos ix_corridor_m=50`; `FLOW_ZONE` appends `approach=<m|-> [test=<bench test>]`. Added 2026-10-13 (after the bench's
+`FLOW_START` appends `thru_m=pos ix_corridor_m=50`; `FLOW_ZONE` appends `approach=<m|-> [test=<bench test>]`
+(2026-10-14: then `[demand=balanced|unbalanced]`, the light plans A/B's set demand; the `showcase zone` line carries
+the same `demand=` last; 2026-10-15: then `[mix=even|straight|adjacent]`, the bench Sheet 5's traffic mix, also last on
+the `showcase zone` line after `demand=`). Added 2026-10-13 (after the bench's
 sheets 1-2): `FLOW_START ... path_thru=on|off` (off: the bench's record, no path reads, `thru_path=-`), `FLOW_ALL ...
 frame_phase=<list|sets|scan|buslist|bus|towns>` (the phase of the sweep's busiest frame, `-` when none). The path
 elements read in game as `elem.edgeId.entity` (docs/findings/lines-vehicles.md), and the two counts agreed within 1 %.
@@ -335,7 +342,9 @@ From `api.engine.util.town.computeTownsTrafficSpeedMap(1)` in its own frame (api
 town_util.tl:345,459). `speed` its first value per town (**(P) 11e**: a 0..1 rating), `levels` its second value,
 streets per congestion level (**(P) 11e**: order); `scope=all` sums `levels` and averages `speed`; then one
 `scope=town` line per town, slowest first, at most 100. `ms` the call's cost: above 50 ms the next call waits
-300 s instead of 60 s.
+300 s instead of 60 s. Added 2026-10-14 (keys only appended): `pop=<people|->` on each town line (its residential
+person capacity, `townBuildingSystem.getTown2personCapacitiesMap()`, one call per FLOW_TOWNS) and `pop_total=` on the
+`scope=all` line: the light plans A/B's small towns can be watched over the run.
 
 ### FLOW_BUS (one per SQST Bus line per sample)
 
@@ -385,6 +394,38 @@ A sample came due while sweep `s` was still running (that sample is skipped): th
 (drivers this sweep had read by then) x 0.75, at least 3000; `was` the target before; `drivers_prev` the drivers of
 the last finished sweep (the next stride). tools/flow_report.py lists it as a warning per load.
 
+### RINGMIX / RINGLANE (bench Sheet 5, ring lane use; 2026-10-15, offline-tested, not run in game yet)
+
+```
+[SQST] RINGMIX run=1 s=6 zone=3 twin=s5g1w pair=s5g1 ab=sl_rmid2 gt=1060000 arms=4 dir=ccw n=412 exit1=88 exit2=201 exit3=97 uturn=11 none=15 reads=30144 capped=0 final=0 mix=straight
+[SQST] RINGLANE run=1 s=6 zone=3 twin=s5g1w pair=s5g1 ab=sl_rmid2 gt=1060000 cars=1840 bin_m=0.5 radii=17.5:902,17.0:31,14.0:880,13.5:27 final=0
+```
+
+Only for zones whose Showcase zone has `ringMix` (the bench tests with `ringMix = true`: Sheet 5's `lu2` / `lu4`), one pair
+per such zone every `RING_EVERY` (6) samples and at the stop (`final=1`), **cumulative within the sampler run** (the report
+takes the recorded window's difference). `zone` is the run's zone number and `twin=` the zid, as on FLOW lines (the PLAN.md
+sketch said `zone=<zid>`; the FLOW grammar keeps `zone=` numeric).
+
+- **RINGMIX**: each driver once (by entity id). A driver in the zone's measured area not counted yet gets its path window
+  read (`RING_WINDOW` 40 elements each way of `dyn.pathPos.edgeIndex`; elements by `elem.edgeId.entity`, findings
+  lines-vehicles.md); each element that is a node (`BASE_NODE`, cached per run) is classed inside the junction's circle `r`,
+  out on arm k (within 30 deg of its heading) or elsewhere; the first run of inside nodes is the ring, the nearest outside
+  node before it the entry arm, after it the exit arm. `exit<k>` = left k arms after the entry in the ring's travel
+  direction (arms sorted by angle, counterclockwise for right-hand traffic `dir=ccw`, clockwise `dir=cw` for left-hand,
+  from the map's driving side), k = 1 .. A-1; `uturn` = left by its entry arm; `none` = read `RING_TRIES` (3) samples
+  without both (a path ending inside, a window too short). `n` = their sum. `reads` = path elements read for the zone;
+  `capped` = samples where the per-sweep cap (`RING_MIX_READS` 400 drivers, all ring zones together) left a driver of this
+  zone unread (it is read in a later sample). Independent of `path_thru` (the bench turns that off); no element read at
+  all after 2000 tries: `[SQST] FLOW_RINGOFF run= tries=` once and no more ring reads that run (no driver counted as none).
+- **RINGLANE**: lane use. A car in the junction's circle whose current path element is a ring edge (both end nodes inside
+  `r`, off the centre, within 3 m of one distance from it: an arm runs outwards) adds one sample at its distance from the
+  centre, in `bin_m` (0.5 m) bins; `radii` lists them outer first (`<m>:<car samples>`, at most 80, the rest `+N`), `cars`
+  their sum. At most `RING_LANE_READS` (2000) such reads a sweep. A lane is not read from the path element's index (its
+  meaning per street is not known): tools/flow_report.py clusters the distances into lanes (bins under 2 % of the samples
+  left out, a gap over 1.25 m starts the next lane) and names them outer first, o1 = the outer lane.
+- Cost: pure Lua on the paths already read per driver plus one cached `BASE_NODE` / `BASE_EDGE` read per new entity; the
+  clock is checked after every driver it reads (the 2 ms frame budget holds).
+
 ## `[SQST] <id> entry` (Lights showcase town entries, 2026-10-12; SHOWCASE.md "Town entries")
 
 ```
@@ -410,9 +451,9 @@ One line per built Showcase placement, after its arms are read (after the build'
 
 | key | meaning |
 |---|---|
-| `id` | `g<set><twin>`: the group set (one draw) and its twin letter (`a`, `b`, `c`; Lights showcase also `d`), unique within the run |
+| `id` | `g<set><twin>`: the group set (one draw) and its twin letter (`a` sl, `b` game, `c` sl_phases, `d` sl_lock / sl_fan, `e` sl_exitfan, `f` sl_keeplights, `h`-`o` the bench's ring modes, `p`-`t` its mid-node twins, `u` sl_classic: stress_flow `TWIN_LETTER`, stress_bench `MID_LETTER`), unique within the run |
 | `pair` | `g<set>`: the twins of one set have identical junction, params, rotation and town sizes (compare them) |
-| `ab` | the twin's A/B mode (stress_logic `SHOWCASE_AB`, one table): `sl` Smart Lanes lanes + current light behaviour, `game` game default lanes and lights (Smart Lanes leaves it alone: `[SQRL] ZONES` above), `sl_phases` Smart Lanes lanes + Smart Lanes light phases whatever the setting (only lit plain crossings), `sl_fan` (Lights showcase, `LIGHTS_AB`) Smart Lanes' full fan + split phases, `sl_lock` Smart Lanes lanes with the kerb turn never freed and the game's phases (Smart Lanes accepts it since 2026-10-12; the Lights showcase's twin once the Stress Test sends it). The Lights showcase writes the same `showcase zone` lines (kind `plain`) |
+| `ab` | the twin's A/B mode (stress_logic `SHOWCASE_AB`, one table): `sl` Smart Lanes lanes + current light behaviour, `game` game default lanes and lights (Smart Lanes leaves it alone: `[SQRL] ZONES` above), `sl_phases` Smart Lanes lanes + Smart Lanes light phases whatever the setting (only lit plain crossings), `sl_fan` (Lights showcase, `LIGHTS_AB`) Smart Lanes' full fan + split phases, `sl_lock` Smart Lanes lanes with the curb turn never freed and the game's phases (Smart Lanes accepts it since 2026-10-12; the Lights showcase's twin once the Stress Test sends it), `sl_classic` (twin letter `u`, the light plans A/B, 2026-10-14) Smart Lanes lanes with its classic light patterns (`sl_phases` = the same lanes with its axis plan). The Lights showcase writes the same `showcase zone` lines (kind `plain`) |
 | `kind` | `interchange` / `roundabout` / `plain` (FLOW_ZONE `ix` / `rb` / `x`) |
 | `type` | the construction type label, spaces as `_` |
 | `x`,`y` | map position of the junction centre (m) |
@@ -445,6 +486,158 @@ built, read and joined.
 A twin that was refused for another reason or whose build failed has no zone line at all: the report
 must treat a `pair=` with fewer zone lines than its set's modes as unmatched and leave it out of pairwise
 comparisons (pooled per-type numbers may still use the twins that exist).
+
+## Light plans and Re-time in the report (2026-10-14; SHOWCASE.md "Light plans A/B")
+
+Read by tools/flow_report.py (no new Stress Test line):
+
+- **Twin `sl_classic`** (`ab=sl_classic`, id `g<k>u`): compared `sl_classic vs game` and `sl_phases vs sl_classic`
+  (with `sl_phases vs game`: every pair of the three plans). A set needs its `game` twin; it needs an `sl` twin only
+  when its Showcase run builds any (the light plans A/B builds none), else "missing twin".
+- **Section "Light plans: game vs axis vs classic"** (when a kind / type has `sl_classic` twins and one more plan): per
+  shape, the matched sets' twins of each plan pooled: sets, samples, thru/min, km/h, standing %, queue (cars standing
+  >= 5 s), queue per arm (inbound side `q_in`, `q_arm` in older logs); then one verdict line per shape: the best plan by
+  thru/min (km/h when a plan has no thru), its margin over each other plan in % and standing pp, and its wins per set
+  (`2x2_X: axis best: +8 % thru/min vs game (standing -6 pp, 3/3 sets); +3 % thru/min vs classic (...)`).
+- **Re-time** (Smart Lanes' tool, its PLAN.md "Logging"): `[SQRL] RETIME op=write node=<n> sent=<k> ...` with `sent >= 1`
+  is a write; a later `RETIME op=probe node=<n> at=cb success=false` marks it refused (noted, not split). The write's twin:
+  the line's own `zid=` if it has one, else the `zid=` of any Smart Lanes line naming that node in the same Showcase
+  run (the write's `LIGHTS src=tool node=<n> to=retime ... zid=<twin id>`, an `APPLY` / `PHASES` line); none: noted
+  ("its twin is unknown"), not split. The set of that twin is split at the write by stdout order: every twin keeps its
+  samples before the first write (the twin tables, the light plans section and the pooled table show the plans as
+  built); samples from `--retime-settle` (default 60) game s after the last write (counted from the first FLOW sample
+  after it in that load; a later load counts whole) form the set `<pair>+rt` of zones `<id>+rt`, the written twin's
+  mode `<ab>+rt` (e.g. `sl_phases+rt`), compared only as the written twin against its set's others in that window
+  (`sl_phases+rt vs game`, `sl_phases+rt vs sl_classic`; also in the paired comparison, as their own rows). Section
+  **"Re-time: before / after"**: per twin of a split set, samples / thru/min / km/h / standing / queue before and after,
+  and the twin minus its set's game twin in each window; the verdict line is the difference of those differences
+  (the traffic's own drift between the windows cancels): `g1 g1c (axis, 2x2_X): re-timed better by +24.0 thru/min
+  relative to game (-8.0 before, +16.0 after; 6 / 4 samples)`.
+
+## Ring lane use in the report (2026-10-15; BENCH.md "Sheet 5")
+
+Read by tools/flow_report.py (and `make bench`'s draft, for the run's zones):
+
+- **Zone lines** `showcase zone ... mix=even|straight|adjacent` and `FLOW_ZONE ... mix=` (keys only added): the set's
+  traffic mix. Twins `sl_rmid2` (letter w) and `sl_rturbo_in` (y) are ring modes (`RING_MODES`): compared with `game`, `sl`
+  and, with `sl_rmatch` and `sl_rspread`, with `sl_rturbo` (`... vs sl_rturbo`: what Smart Lanes wrote on these rings when Sheet 5 ran; its 2-lane default with wide exits is matched lanes since 2026-10-15).
+- **Window**: RINGMIX / RINGLANE are cumulative per sampler run, so a twin's recorded window is the run's last line minus its
+  first line at or after the warm-up cut (the zone's first sample in the load + `--warmup`); a run started after the cut
+  counts whole; with no line after the cut, the last one before it (up to 6 samples of warm-up included). Summed over runs.
+- **Section "Ring lane use"** (zone lines with `mix=` only): per ring (test) and mix, every mode's matched twins: sets,
+  samples, thru/min, km/h, standing %, queue, queue per arm (inbound), lane use (`o1 22 % (17.6 m), o2 78 % (14.1 m)`) and
+  the measured turning mix (`1st 21 %, 2nd 52 %, 3rd 24 %, U 3 % (n 150, none 3 %)`); a table of RINGMIX counts per twin;
+  one verdict line per ring and mix: the best mode by thru/min (km/h without thru), then every Smart Lanes mode against
+  game and against sl_rturbo (thru/min %, km/h, standing pp), and a note when the measured mix does not bear out its label
+  (straight: the 2nd exit not the most taken; adjacent: 1st + 3rd exits not above the 2nd).
+
+## Auto timing in the report (2026-10-14; SHOWCASE.md "Light plans A/B", Smart Lanes PLAN.md "Stress Test interface: Keep timing adjusted")
+
+Read by tools/flow_report.py:
+
+- **Twin `sl_auto`** (`ab=sl_auto`, id `g<k>v`, towns "Auto timing ..."): Smart Lanes lanes + the axis plan, every lit
+  junction in its zone enrolled in Smart Lanes' automatic re-timing. Compared `sl_auto vs sl_phases` (the re-timing
+  alone) and `sl_auto vs game`; plan name "auto". `sl_classic` stays read (the classic variant and older logs).
+- **Demand**: the `showcase zone` line's `demand=balanced|unbalanced` (else the FLOW_ZONE's). The light plans section
+  is per shape **and demand** (`| shape | demand | plan | ...`, `-` without one), one verdict line each
+  (`**2x2_X unbalanced**: auto best: ...`); the auto section names each set's demand.
+- **Settled window**: `[SQRL] AUTORETIME op=write ... sent=1 ... zid=<twin>` (the twin also from any Smart Lanes line
+  naming that node with a `zid=`, as for Re-time; a later `op=write ... at=cb success=false` marks it refused) on an
+  `sl_auto` twin splits its set at the first write: every twin keeps its samples before it (as built: the auto twin is
+  still the axis plan); samples from its **settled-from** time = the first write's game time (the first FLOW sample
+  after it in that load) + `--auto-settle` (default **2700** game s since Smart Lanes step B v4, 2026-10-15: one queue
+  snapshot every 120 game s, a junction's first decision after 8 snapshots (~16 game min), then every 10-60 min, writes
+  at most 1 per 5 game s map-wide, a saturated junction settled ~45 game min after enrolling; it was 900 before v4, when
+  the cycle moved <= 20 s per write >= 5 game min apart; Smart Lanes RETIME_PLAN.md "Step B v4") form the set `<pair>+as`
+  of zones `<id>+as`, the auto twin's mode `sl_auto+as`
+  (paired only as `sl_auto+as vs sl_phases` / `vs game`, like `+rt`). Samples in between are dropped. Writes after the
+  settled-from time are counted ("writes (after)": the timing was still moving: rerun with a longer settle).
+- **Light plans section** compares a split set in its settled window (every twin's `+as` samples) and any other set
+  whole; the header says how many sets were settled.
+- **Section "Auto timing: as built / settled"**: per split set: demand, auto twin, settled from (game min since the
+  load's first sample), writes (after), samples / thru/min / km/h / standing before and settled, the auto twin minus
+  its game and its axis twin in each window; a line per set: `g2 g2v (unbalanced, 2x2_X): auto vs axis gained +16.0
+  thru/min from as built to settled (+0.0 -> +16.0; 10 / 20 samples)`.
+- **Whole map** (the Stress Test's Auto re-time > All lit junctions: `[SQST] AUTO_ALL op=all|clear run= by=
+  smart_lanes=`, then Smart Lanes' `AUTORETIME op=enroll_all phase=request|done run=`): section **"Whole-map auto
+  re-time: before / after"** at the last `phase=done` of the report's loads: the enrolled zones (a twin by the `op=enroll
+  src=all ... zid=` lines, else a zone within max(r, 60) m of an enroll line's `pos=`; with no enroll lines every plain
+  zone) pooled per kind / type / mode, samples before the request vs from `--auto-settle` after it, plus FLOW_ALL
+  map-wide km/h and standing in the same windows. Computed on whole samples (before any set split).
+- **Towns**: with FLOW_TOWNS `pop=`, a table of town populations per class (name suffix busy / small / tiny, else
+  other): first and last sample mean, last min / max.
+- Smart Lanes log ops read: `op=write ... sent=1 zid=`, `op=write at=cb success=`, `op=enroll_all phase=done`, `op=enroll`
+  (any src), `op=plan result=`, and (v4) `op=snapshot src= max_frame_ms= busy_ms= n=`. The v3 ops `window_start`,
+  `window_end`, `settle`, `member_gone` are gone with v4 and never read.
+
+## Auto lights at scale in the report (2026-10-15; BENCH.md "City lights at scale")
+
+The bench's city run logs (keys only added; the zone lines are ordinary `showcase zone` lines with `ab=city_auto` /
+`ab=city_control`, kind `other`, never sent to Smart Lanes: `[SQST] showcase zones local n= run=`):
+
+```
+[SQST] CITY id=cityg1v pair=cityg1 role=auto town=501 name=City_auto_1 x=-4000 y=-2000 half=400 crossings=81 found=81 lit_before=41 forced=40 refused=0
+[SQST] CITY_ENROLL run=city-9 op=add cities=3 nodes=243 events=5 baseline_s=900 by=bench smart_lanes=yes
+```
+
+`found` = inner crossings read (4+ streets within 4 m of an inner grid point), `lit_before` = lit by the game's AUTO,
+`forced` = set to Yes by the run, `refused` = still dark after it. `CITY_ENROLL` is the before / after split (`op=all` when
+the run has no control cities). Read by tools/flow_report.py (`make flow`; `make bench` adds the section for a city run):
+section **"Auto lights at scale"**, one part per CITY_ENROLL of the report's loads (several runs: a `### City run <run>`
+heading each; a run spans its CITY lines to the next run's first CITY line, so two runs in one game session stay apart).
+v2 runs (bench_city@2, BENCH.md "Funnel layouts") add keys:
+
+```
+[SQST] CITY ... refused=0 layout=hourglass neck_streets=3 holes=0 found4=61 found3=14 lit4=61 lit3=14 pop=2400 gap_streets=0 gap_removed=0
+[SQST] CITY_GAPS id=cityg1v pair=cityg1 role=auto at=build|end layout=hourglass gap_streets=0 removed=0
+[SQST] CITY_ENROLL run=city-9 op=add cities=3 nodes=225 events=4 baseline_s=1800 by=bench smart_lanes=yes layout=hourglass busy=1 role_swap=0
+```
+
+Each part:
+
+- **Options**: layout, Busy, baseline, roles (`CITY_ENROLL layout= busy= role_swap= baseline_s=`; a v1 line has none: plain);
+  in a funnel layout one line with the 4-way / T crossings found and lit, the streets found in the gaps after the lock
+  (removed) and at the run's end (`CITY_GAPS`), and the cities' people (`pop=`).
+
+- **Smart Lanes' cost**: `[SQPERF] mod=square_smart_lanes ctx=bg` window lines (Smart Lanes' "Debug: performance log" On,
+  or DEV SQPERF: all mods): mean ms per frame = the sections' ms over the frames (the most calls of one section) per
+  30 s window, before and after the enroll; the windows' max; slow lines (> 16 ms) after it; the record's speed (BENCH_PHASE).
+- **Snapshots** (Smart Lanes step B v4 `AUTORETIME op=snapshot`): count by `src`, junctions watched, mean `busy_ms`,
+  longest frame, the person-list fetch (`fetch_ms` mean / max) and the **person-list spikes**: `src=scan` snapshots (more
+  than ~12 junctions watched) read the whole person list in one engine call every 120 game s. A spike = a `src=scan`
+  snapshot whose `fetch_ms` (the list call alone) is over 5 ms. Smart Lanes times with a wall clock since it logs
+  `AUTORETIME op=config ... clock=wall`; an older log (no `clock=wall`) has os.clock `max_frame_ms` (CPU time over all
+  threads on macOS, 3-6x the frame's wall time): shown, labeled "os.clock (inflated)", never counted as a spike. A SQPERF
+  window over 5 ms (wall clock: the frame criterion) with a spike snapshot since the window before counts as a spike window,
+  apart from the others.
+- **Writes**: after the enroll, per game minute, per 10 game min bin; junctions written at least once of those enrolled
+  (`AUTORETIME op=enroll` lines after CITY_ENROLL, else its `nodes=`); **fits**: `op=plan` results after the enroll and the
+  game min by which 50 % / 80 % of the enrolled junctions had a first `result=fits` ("most report fits").
+- **Per city**: crossings found / lit before / forced, enrolled and written (by position within half + 50 m), samples, km/h,
+  standing %, queue before the enroll vs from `--auto-settle` after it; map-wide FLOW_ALL in the same windows; each auto
+  city's km/h change minus its pair's control's (the traffic's drift cancels).
+- **Pairs at baseline**: per pair the auto and control cities' km/h and queue before the enroll, the gap (auto vs control,
+  %) and auto minus control after; **"WARNING: pairs too unequal at baseline"** for a pair whose baseline km/h differ by
+  more than 10 % (`CITY_PAIR_GAP_PCT`): identical layouts, so the gap is the pair's own noise (run 2: +25 % / -22 %).
+- **Swapped roles** (`### Swapped roles: runs A and B`, when the logs hold runs with `role_swap=0` and `role_swap=1`; the
+  last of each): per pair auto minus control in both runs and their mean. With Swap roles the other city of each pair is
+  auto, so a pair's own difference enters the two runs with opposite signs and cancels in the mean; a warning when the two
+  runs differ in more than the roles (layout, Busy). Give both logs: `make flow LOG='<session 1> <session 2>'`, or one
+  session holding both runs.
+- **Pass criteria** (printed PASS / FAIL / UNKNOWN): no Smart Lanes frame over 5 ms (and, when there are spike windows, the
+  same without the person-list spikes); mean cost under 1.5 ms/frame at 4x (noted when recorded at another speed); no auto
+  city's km/h more than 10 % below its baseline.
+- The city zones never pair with a game twin (no "missing twin" exclusions); their writes are not "unjoined auto writes".
+
+## Gridlock per twin (2026-10-15; BENCH.md "Sheet 6")
+
+For every ring twin with `mix=` (Sheets 5 and 6), in the "Ring lane use" section: its recorded samples in 2 game min
+windows; a window is **locked** at >= 80 % standing with thru/min <= 25 % of the best window any twin of its set reached;
+**gridlock** = its last 3 windows locked (the lock lasted to the end), reported "GRIDLOCK from game min <n>" (the start
+of that last locked run, game min since the twin's first recorded sample); else "no" or "no (locked k of n windows, not at
+the end)". Table `| ring | mix | twin | mode | windows | locked | last window standing % | last window thru/min | set best
+thru/min | gridlock |`; each verdict line ends with `Gridlock: <mode> (<twin>) from game min <n>.` when one locked.
+Constants GRID_WIN_S / GRID_STANDING / GRID_THRU_FRAC / GRID_LAST in tools/flow_report.py.
 
 ## What the probes answer (TESTING.md 6M; results go to docs/findings.md)
 

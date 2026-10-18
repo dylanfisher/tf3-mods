@@ -95,6 +95,11 @@ function F.api()
 					local p = conPos[e]
 					return { transf = { getTransl = function() return { x = p.x, y = p.y, z = 0 } end } }
 				end
+				-- ring lane use: F.nodePos[e] = {x, y} (a path node), F.edgeEnds[e] = {node0, node1} (a street edge)
+				if F.nodePos and ct == "BASE_NODE" and F.nodePos[e] then
+					return { position = { x = F.nodePos[e][1], y = F.nodePos[e][2], z = 0 } }
+				end
+				if F.edgeEnds and ct == "BASE_EDGE" and F.edgeEnds[e] then return { node0 = F.edgeEnds[e][1], node1 = F.edgeEnds[e][2] } end
 				-- the junction streets of F.junctionEdges: one end node at the zone's centre (thruSetOf reads them)
 				if F.junctionEdges and (ct == "BASE_EDGE" or ct == "BASE_NODE") then
 					for key, list in pairs(F.junctionEdges) do

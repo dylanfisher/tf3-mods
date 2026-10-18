@@ -1192,8 +1192,20 @@ end
 
 --- The twin mode words of Showcase town names (SHOWCASE_AB / LIGHTS_AB label).
 -- "Full fan": the Lights showcase's fourth twin until 2026-10-13 (old saves); "Kerb locked" since.
--- "Keep lights": the bench's sl_keeplights twins (BENCH.md).
-logic.TEST_TOWN_MODES = { "Smart lanes", "Game default", "Smart phases", "Full fan", "Kerb locked", "Exit fan", "Keep lights" }
+-- "Keep lights": the bench's sl_keeplights twins (BENCH.md). "Classic phases": the light plans A/B's sl_classic twins
+-- until 2026-10-16 (old saves; Smart Lanes dropped the classic patterns, its PLAN.md "No classic fallback").
+-- "Auto timing": the light plans A/B's sl_auto twins.
+logic.TEST_TOWN_MODES = { "Smart lanes", "Game default", "Smart phases", "Full fan", "Kerb locked", "Exit fan", "Keep lights",
+	"Ring turbo", "Ring matched", "Ring outer exit", "Ring two exits", "Ring spiral", "Ring spread", "Ring split", "Ring mid",
+	"Classic phases", "Auto timing", "Ring mid 2", "Ring turbo in" }
+-- the light plans A/B's unbalanced towns: "<mode> <set> <side> <word>" ("Auto timing 2 S tiny"); the bench Sheet 5's mixes
+-- ("Ring mid 2 3 N large")
+logic.TEST_TOWN_WORDS = { busy = true, small = true, tiny = true, large = true }
+-- the bench's twins on a mid-node ring next to plain-ring twins (Sheet 4 v5, stress_bench twinMode): "<mode> mid"
+do
+	local n = #logic.TEST_TOWN_MODES
+	for i = 1, n do logic.TEST_TOWN_MODES[#logic.TEST_TOWN_MODES + 1] = logic.TEST_TOWN_MODES[i] .. " mid" end
+end
 
 --- Whether a town name is a test town's (Remove towns > Grid towns; towns.removePlan also takes the
 --- session's own created towns by entity id): the test grid's "Grid A1" (and older Showcases' "Grid S35"),
@@ -1208,6 +1220,8 @@ function logic.isTestTownName(name : string) : boolean
 	for _, m in ipairs(logic.TEST_TOWN_MODES) do
 		local side = s:match("^" .. m .. " %d+ (%u%u?)$")
 		if side ~= nil and logic.compassIndex(side) ~= nil then return true end
+		local side2, word = s:match("^" .. m .. " %d+ (%u%u?) (%l+)$")
+		if side2 ~= nil and logic.compassIndex(side2) ~= nil and logic.TEST_TOWN_WORDS[word] then return true end
 		side = s:match("^%S.* %d+ (%u%u?) %(" .. m .. "%)$")
 		if side ~= nil and logic.compassIndex(side) ~= nil then return true end
 	end
@@ -2269,6 +2283,43 @@ function logic.popText(pops : {integer : integer}, n : integer) : string
 	return string.format(" pop min/mean/max=%d/%.0f/%d (%d of %d towns read)", lo, sum / k, hi, k, n)
 end
 
+--- Per growth target (the light plans A/B's 600 / 150 / 40 towns): " pop_by_target=40:38/40/41/18,150:..." = target:min/
+--- mean/max/towns read, targets ascending; "" when no town has a target. pops / targets: town index -> people / target.
+function logic.popByTargetText(pops : {integer : integer}, targets : {integer : number}, n : integer) : string
+	local by : {integer : {integer}} = {}
+	local keys : {integer} = {}
+	for i = 1, n or 0 do
+		local t, p = targets[i], pops[i]
+		if t ~= nil then
+			local key = math.floor(t)
+			if by[key] == nil then
+				by[key] = { 0, 0, 0, 0, 0 }   -- min, max, sum, read, towns
+				keys[#keys + 1] = key
+			end
+			local b = by[key]
+			b[5] = b[5] + 1
+			if p ~= nil then
+				if b[4] == 0 or p < b[1] then b[1] = p end
+				if b[4] == 0 or p > b[2] then b[2] = p end
+				b[3] = b[3] + p
+				b[4] = b[4] + 1
+			end
+		end
+	end
+	if #keys == 0 then return "" end
+	table.sort(keys)
+	local parts : {string} = {}
+	for _, key in ipairs(keys) do
+		local b = by[key]
+		if b[4] == 0 then
+			parts[#parts + 1] = string.format("%d:unread/%d", key, b[5])
+		else
+			parts[#parts + 1] = string.format("%d:%d/%.0f/%d/%d", key, b[1], b[3] / b[4], b[2], b[4])
+		end
+	end
+	return " pop_by_target=" .. table.concat(parts, ",")
+end
+
 --- The leak check line: "[SQST] <name> town <label> outside_streets=N houses_outside=M<extra>".
 function logic.leakLine(name : string, label : string, outside : integer, houses : integer, extra? : string) : string
 	return string.format("[SQST] %s town %s outside_streets=%d houses_outside=%d%s", name, label, outside or 0, houses or 0, extra or "")
@@ -2348,6 +2399,70 @@ function logic.lightsMixedSpec() : SquareStressShowcaseSpec
 	return sp
 end
 logic.LIGHTS_SPEC = logic.lightsMixedSpec()
+
+-- Light plans A/B (user 2026-10-14, SHOWCASE.md "Light plans A/B"): a lit crossroads with the game's default (game, b),
+-- Smart Lanes' axis plan (sl_phases, c: Smart Lanes lanes + the axis phases since Smart Lanes rev 8) and the axis plan
+-- with its timing kept adjusted (sl_auto, v). The classic patterns' twin (sl_classic, u) is gone (2026-10-16: Smart
+-- Lanes dropped the classic patterns, its PLAN.md "No classic fallback"); letter u stays reserved (older saves).
+-- Keep timing adjusted (user 2026-10-14, Smart Lanes rev 8 step B; its PLAN.md "Stress Test interface: Keep timing
+-- adjusted"): sl_auto = sl_phases (lanes + the axis plan) with every lit junction in the zone enrolled in Smart Lanes'
+-- automatic re-timing (~30 game s after its light). Letter v: a-u are taken (u: the dropped sl_classic).
+logic.LIGHTS_AUTO_AB = { ab = "sl_auto", twin = "v", label = "Auto timing",
+	note = "Smart Lanes lanes and axis plan, its timing kept adjusted (Keep timing adjusted)", litPlainOnly = true } as SquareStressShowcaseAb
+-- built in stress_flow TWIN_ORDER (game, sl_phases, sl_auto), so a reload's fallback set split stays right. The classic
+-- patterns are settled (session 2026-10-14, seed 488195: axis +23-26 % thru/min vs game, classic worse than game, 6/6
+-- sets) and gone from Smart Lanes: the twins are game / axis / auto.
+logic.LIGHTS_PLANS_AB = { logic.LIGHTS_AB[2], logic.LIGHTS_AB[3], logic.LIGHTS_AUTO_AB } as {SquareStressShowcaseAb}
+-- busy junctions: 600 people a town (x1.5 by capacity, filled at once: docs/findings/towns.md); 400 left the 3x3 X's
+-- Smart Lanes twins at ~20 % standing (session 2026-10-13_0447_top-up-726115), the micro bench's 800 neared a jam
+-- (~52 % standing map-wide), 600 is the micro bench's choice since
+logic.LIGHTS_PLANS_TARGET_POP = 600
+logic.LIGHTS_PLANS_PER_TYPE = 3
+-- Unbalanced demand (user 2026-10-14, SHOWCASE.md "Light plans A/B": "some sets get unbalanced demand to exercise the
+-- timing"): in an unbalanced set the two towns on the E-W road stay busy (LIGHTS_PLANS_TARGET_POP), the north town is
+-- small, the south town tiny. A town smaller than its size's initial capacity is created with that capacity (a forced
+-- size command never sizes a town below x1, growFactorForCap; it fills its capacity target at once: docs/findings/
+-- towns.md); its street grid stays the size's (the same layout as the balanced sets). Word: the town name's suffix.
+logic.LIGHTS_PLANS_POPS = { busy = logic.LIGHTS_PLANS_TARGET_POP, small = 150, tiny = 40 }
+logic.LIGHTS_PLANS_UNBALANCED = { E = "busy", W = "busy", N = "small", S = "tiny" }
+
+--- A light plans set's demand: per shape (typeIndex: its place in the spec's types, 1-based) its k-th set; balanced and
+--- unbalanced in turn, the shapes starting on opposite ones (2x2 X: balanced, unbalanced, balanced; 3x3 X: unbalanced,
+--- balanced, unbalanced), so a 16 km map holds three of each and every twin sees both (the twins of a set share it).
+function logic.lightsPlansDemand(typeIndex : integer, k : integer) : string
+	return ((typeIndex or 1) + (k or 1)) % 2 == 1 and "unbalanced" or "balanced"
+end
+
+--- One town's people of a light plans set: (target, word) by its demand and its side's compass point; the word ("busy" /
+--- "small" / "tiny") only in an unbalanced set (nil: balanced, every town LIGHTS_PLANS_TARGET_POP).
+function logic.lightsPlansTownPop(demand : string, side : string) : number, string
+	if demand ~= "unbalanced" then return logic.LIGHTS_PLANS_TARGET_POP, nil end
+	local word = logic.LIGHTS_PLANS_UNBALANCED[side] or "busy"
+	return logic.LIGHTS_PLANS_POPS[word], word
+end
+
+--- The light plans A/B (its own button): a 2-lane (2x2 X) and a 3-lane (3x3 X) lit crossroads in turn,
+--- LIGHTS_PLANS_PER_TYPE sets of each (6 sets, 18 junctions: what a 16 km map holds with three twins), every set as
+--- three twins game / sl_phases (axis plan) / sl_auto, each twin once in every position per shape (alternateTwins),
+--- balanced and unbalanced sets in turn (demandMix, lightsPlansDemand), towns of about LIGHTS_PLANS_TARGET_POP people.
+--- Otherwise the Lights showcase (square layout, entries, country links, locks, no bus lines, batched building).
+--- (Its variant "classic", twins game / sl_phases / sl_classic, is gone with Smart Lanes' classic patterns, 2026-10-16.)
+function logic.lightsPlansSpec() : SquareStressShowcaseSpec
+	local sp = logic.lightsSpec(1)
+	sp.title = "Light plans A/B"
+	sp.kinds = { "x" }
+	sp.types = { x = { logic.LIGHTS_SHAPES[1], logic.LIGHTS_SHAPES[2] } }
+	sp.kindWords = { x = "lit crossroads" }
+	sp.modes = logic.LIGHTS_PLANS_AB
+	sp.perType = logic.LIGHTS_PLANS_PER_TYPE
+	sp.alternateTwins = true
+	sp.growTarget = logic.LIGHTS_PLANS_TARGET_POP
+	sp.variant = "light_plans"
+	sp.demandMix = true
+	sp.shape, sp.shapeLabel = nil, nil
+	return sp
+end
+logic.LIGHTS_PLANS_SPEC = logic.lightsPlansSpec()
 
 local function specOf(spec : SquareStressShowcaseSpec) : SquareStressShowcaseSpec
 	return spec or logic.SHOWCASE_SPEC
@@ -2555,8 +2670,11 @@ end
 --- A Showcase town's name (user 2026-10-12: the name says which test it belongs to). modeNames (Lights
 --- showcase): "<mode> <set> <side>" ("Smart lanes 1 N"); else "<type> <set> <side> (<mode>)" ("Parclo 3 N
 --- (Smart lanes)"), type = its short label. Kept short (<= ~30 characters).
-function logic.showcaseTownName(t : SquareStressShowcaseType, m : SquareStressShowcaseAb, set : integer, side : string, modeNames : boolean) : string
+function logic.showcaseTownName(t : SquareStressShowcaseType, m : SquareStressShowcaseAb, set : integer, side : string, modeNames : boolean,
+		word? : string) : string
 	local mode = m.label or m.ab
+	-- word: the light plans A/B's unbalanced towns ("Auto timing 2 S tiny")
+	if modeNames and word ~= nil then return string.format("%s %d %s %s", mode, set, side, word) end
 	if modeNames then return string.format("%s %d %s", mode, set, side) end
 	return string.format("%s %d %s (%s)", t.short or t.label, set, side, mode)
 end
@@ -2889,6 +3007,9 @@ function logic.showcaseLayout(w : number, h : number, margin : number, seed : in
 				misses[kind] = 0
 				set = set + 1
 				typeSets[tp.id] = (typeSets[tp.id] or 0) + 1
+				-- demandMix (the light plans A/B): the set's demand by its shape and its count of that shape
+				local demand : string = nil
+				if specOf(spec).demandMix then demand = logic.lightsPlansDemand(n % #types + 1, typeSets[tp.id]) end
 				for t, m in ipairs(modes) do
 					-- alternateTwins: per type the twins' positions rotate by one with each of its sets (its k-th set puts
 					-- twin t at position (t - 1 + k - 1) mod n + 1), so over n sets of a type every twin sits once in every
@@ -2901,11 +3022,16 @@ function logic.showcaseLayout(w : number, h : number, margin : number, seed : in
 					local pl : SquareStressShowcasePlacement = { case_ = g.place.case_, x = tx + 0.0, y = y + 0.0, angle = g.place.angle,
 						reach = g.place.reach, lightsOff = g.place.lightsOff }
 					local group : SquareStressShowcaseGroup = { name = string.format("Group %d%s", set, m.twin), kind = g.kind, slot = kind,
-						place = pl, towns = {}, oneWay = g.oneWay, R = g.R, set = set, twin = m.twin, ab = m.ab }
+						place = pl, towns = {}, oneWay = g.oneWay, R = g.R, set = set, twin = m.twin, ab = m.ab, demand = demand }
 					for i, o in ipairs(g.offsets) do
 						local ti = #out.towns + 1
+						local pop, word : number, string = nil, nil
+						if demand ~= nil then pop, word = logic.lightsPlansTownPop(demand, g.sides[i]) end
 						out.towns[ti] = { x = tx + o[1] + 0.0, y = y + o[2] + 0.0, row = 1, col = ti, size = g.sizes[i],
-							name = logic.showcaseTownName(g.type_, m, set, g.sides[i], specOf(spec).modeNames == true) }
+							name = logic.showcaseTownName(g.type_, m, set, g.sides[i], specOf(spec).modeNames == true, word), pop = pop }
+						-- a town wanted below its size's initial capacity is created with that capacity (lightsPlansTownPop)
+						local caps = (logic.TOWN_SIZES[g.sizes[i]] or {}).caps
+						if pop ~= nil and caps ~= nil and pop < caps then out.towns[ti].townCaps = math.floor(pop) end
 						group.towns[i] = ti
 					end
 					out.groups[#out.groups + 1] = group
@@ -2987,7 +3113,8 @@ function logic.showcaseZones(layout : SquareStressShowcaseLayout, cx? : number, 
 		local pre = layout.idPrefix or ""
 		out[#out + 1] = { id = string.format("%sg%d%s", pre, g.set or 0, g.twin or ""), pair = string.format("%sg%d", pre, g.set or 0), ab = g.ab,
 			kind = g.kind, label = g.place.case_.label, x = (cx or 0) + g.place.x, y = (cy or 0) + g.place.y, r = g.place.reach,
-			towns = #g.towns, test = g.test, variant = g.variant, approach = logic.groupApproach(layout, g) }
+			towns = #g.towns, test = g.test, variant = g.variant, geom = g.geom, approach = logic.groupApproach(layout, g), demand = g.demand,
+			mix = g.mix, ringMix = g.ringMix }
 	end
 	return out
 end
@@ -2997,7 +3124,9 @@ end
 logic.SL_ZONES_MAX = 400          -- zones per event (Smart Lanes ignores a bigger event as a whole)
 logic.SL_ZONE_R_MAX = 2000.0      -- m, largest radius Smart Lanes accepts
 logic.SL_ZONE_PAD = 20.0          -- m added to the reach estimate: the junction's nodes all lie inside
-logic.SL_ZONE_AB = { game = true, sl = true, sl_phases = true, sl_fan = true, sl_lock = true, sl_exitfan = true, sl_keeplights = true }
+logic.SL_ZONE_AB = { game = true, sl = true, sl_phases = true, sl_fan = true, sl_lock = true, sl_exitfan = true, sl_keeplights = true,
+	sl_rturbo = true, sl_rmatch = true, sl_rout1 = true, sl_r2exit = true, sl_rspiral = true, sl_rspread = true, sl_rsplit = true, sl_rmid = true,
+	sl_auto = true, sl_rmid2 = true, sl_rturbo_in = true }
 logic.SL_ZONE_LABEL_MAX = 12      -- characters of a zone's id / pair label (Smart Lanes LABEL_MAX)
 
 --- A twin id / pair label for the zones payload ("g3a", "g3"): Smart Lanes stores labels of 1..12 [%w_]
@@ -3037,7 +3166,9 @@ end
 --- "game:a,sl:b,sl_phases:c" of a payload's zones, then ",sl_fan:d", ",sl_lock:e" and ",sl_exitfan:f" each only when > 0 (the log
 --- line; Smart Lanes logs the same on receipt, sl_zones.lua M.byAbText).
 function logic.slZonesByAb(list : {{string : any}}) : string
-	local c : {string : integer} = { game = 0, sl = 0, sl_phases = 0, sl_fan = 0, sl_lock = 0, sl_exitfan = 0, sl_keeplights = 0 }
+	local c : {string : integer} = { game = 0, sl = 0, sl_phases = 0, sl_fan = 0, sl_lock = 0, sl_exitfan = 0, sl_keeplights = 0,
+		sl_rturbo = 0, sl_rmatch = 0, sl_rout1 = 0, sl_r2exit = 0, sl_rspiral = 0, sl_rspread = 0, sl_rsplit = 0, sl_rmid = 0, sl_auto = 0,
+		sl_rmid2 = 0, sl_rturbo_in = 0 }
 	for _, z in ipairs(list or {}) do
 		local ab = z.ab as string
 		if c[ab] ~= nil then c[ab] = c[ab] + 1 end
@@ -3048,12 +3179,25 @@ function logic.slZonesByAb(list : {{string : any}}) : string
 	if c.sl_exitfan > 0 then s = s .. string.format(",sl_exitfan:%d", c.sl_exitfan) end
 	-- the bench's lights twin (BENCH.md "What Smart Lanes must add" SL-1: after sl_exitfan, only when > 0)
 	if c.sl_keeplights > 0 then s = s .. string.format(",sl_keeplights:%d", c.sl_keeplights) end
+	-- the ring layout modes (square_smart_lanes PLAN.md "Ring layout variants (bench)"), then the auto re-timing twin
+	-- (sl_auto, the light plans A/B: Smart Lanes PLAN.md "Stress Test interface: Keep timing adjusted"), then the ring lane
+	-- use modes (sl_rmid2, sl_rturbo_in after sl_auto: Smart Lanes PLAN.md "Ring lane use"), in Smart Lanes' byAbText order,
+	-- each only when > 0 (sl_classic, Smart Lanes' classic patterns, is gone since 2026-10-16: no longer sent or counted)
+	for _, m in ipairs({ "sl_rturbo", "sl_rmatch", "sl_rout1", "sl_r2exit", "sl_rspiral", "sl_rspread", "sl_rsplit", "sl_rmid", "sl_auto",
+			"sl_rmid2", "sl_rturbo_in" }) do
+		if c[m] > 0 then s = s .. string.format(",%s:%d", m, c[m]) end
+	end
 	return s
 end
 
 --- "Build showcase".
 function logic.showcaseLabel() : string
 	return "Build showcase"
+end
+
+--- "Build light plans A/B" (the Lights showcase's second button).
+function logic.lightsPlansLabel() : string
+	return "Build light plans A/B"
 end
 
 --- "Build lights showcase" or, with the next shape, "Build lights showcase (2x2 X)".
@@ -3154,7 +3298,13 @@ function logic.showcaseZoneLine(z : SquareStressShowcaseZone, measured : boolean
 		z.reason ~= nil and ("match=no reason=" .. z.reason) or "match=yes")
 	-- the bench (BENCH.md "Log contract additions"): its test and variant; keys only added
 	if z.test ~= nil then s = s .. " test=" .. z.test .. " variant=" .. ((z.variant or "-"):gsub("[%s,]+", "_")) end
+	-- a bench twin on a named ring geometry (Sheet 4 v5): tools/flow_report.py reads its mode as "<ab>@<geom>"
+	if z.geom ~= nil then s = s .. " geom=" .. z.geom end
 	if z.approach ~= nil then s = s .. string.format(" approach=%.0f", z.approach) end
+	-- the light plans A/B's demand of the set (balanced / unbalanced; tools/flow_report.py splits its tables by it)
+	if z.demand ~= nil then s = s .. " demand=" .. z.demand end
+	-- the bench Sheet 5's traffic mix of the set (even / straight / adjacent; tools/flow_report.py "Ring lane use")
+	if z.mix ~= nil then s = s .. " mix=" .. z.mix end
 	return s
 end
 
@@ -3306,6 +3456,9 @@ function logic.showcaseSummary(built : {string : integer}, planned : {string : i
 	if sp.growFactor ~= nil and (sp.growPasses or 1) > 1 then
 		s = s .. string.format("; every town then grows x%g in %d build-out passes%s", sp.growFactor, sp.growPasses or 1,
 			sp.lockStreets and ", locked to its grid" or "")
+	elseif sp.growTarget ~= nil and sp.demandMix then
+		s = s .. string.format("; every town then grows to about %d people (one size command, no build-out passes)%s, but in the unbalanced sets the north town to about %d and the south town to about %d",
+			math.floor(sp.growTarget), sp.lockStreets and ", locked to its grid" or "", math.floor(logic.LIGHTS_PLANS_POPS.small), math.floor(logic.LIGHTS_PLANS_POPS.tiny))
 	elseif sp.growTarget ~= nil then
 		s = s .. string.format("; every town then grows to about %d people (one size command, no build-out passes)%s", math.floor(sp.growTarget),
 			sp.lockStreets and ", locked to its grid" or "")

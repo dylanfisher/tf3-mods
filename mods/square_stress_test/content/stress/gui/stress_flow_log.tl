@@ -38,6 +38,15 @@
 -- ids from the stored id / pair labels, else recomputed from the list order). A new Showcase (or its zones
 -- cleared) restarts the run once no test build runs. Buses: the twin from stress_buslines lineTwins (session),
 -- else from the line's two stops (stress_flow.twinFromStops, twin_from=stops).
+--
+-- RING LANE USE (BENCH.md "Sheet 5", FLOW.md "RINGMIX / RINGLANE"): in zones with ringMix (the bench's ring lane use
+-- twins) each driver in the measured area not yet counted gets its path window read (RING_WINDOW elements each way,
+-- the elements' nodes by position: inside the ring's circle or out on an arm) for its entry and exit arm, at most
+-- RING_MIX_READS drivers a sweep (the rest wait for the next sample; capped= counts such samples per zone); a car in the
+-- ring's circle whose current path element is a ring edge counts its distance from the centre (lane use, at most
+-- RING_LANE_READS a sweep). Independent of the path thru (the bench turns that off); every read pcall'd, node positions and
+-- ring edges cached per run (NODE_CACHE_MAX), the clock checked after each such driver. Lines every RING_EVERY samples
+-- and at the stop, cumulative per run.
 
 local logic = ug_require "square_stress_test::/stress/stress_logic.tl" as SquareStressLogic
 local flow = ug_require "square_stress_test::/stress/stress_flow.tl" as SquareStressFlow
@@ -61,6 +70,8 @@ local fl : SquareStressFlowLog = {
 local ZONE_CHECK_US <const> = 2000000   -- how often the zone source is compared (a new Showcase)
 local SETS_PER_FRAME <const> = 2        -- zones whose junction streets are re-read in one frame (path thru)
 local CHECK_EVERY <const> = 8           -- persons between two clock reads in a slice
+local NODE_CACHE_MAX <const> = 100000   -- node positions / not-a-node marks cached per run (ring mix); a full cache starts over
+local RING_GIVE_UP <const> = 2000       -- ring path elements read with no reader working before the ring reads stop for the run
 
 local record BusItem
 	line : integer
@@ -88,6 +99,9 @@ local record Sweep
 	townLines : {string}
 	out : {string}
 	outCursor : integer
+	ringMixReads : integer        -- drivers whose path window was read for a ring's turning mix this sweep
+	ringLaneReads : integer       -- drivers whose current path element was read for a ring's lane use this sweep
+	ringCapped : {integer : boolean}  -- ring zones with a driver left unread by the cap this sweep
 end
 
 -- The run's state in one table (Lua 5.1: at most 60 upvalues per function).
@@ -127,6 +141,13 @@ local record State
 	pathDbg : integer             -- FLOW_PATHDBG lines written this run
 	pathTries : integer           -- path elements read this run without any reader working (the path thru stops at PATH_GIVE_UP)
 	pathOff : boolean             -- no path element read: the path thru (thru_path) is off for the run, the positional thru goes on
+	rings : {integer : SquareStressFlowRing}  -- ring lane use: per ringMix zone its counts (stress_flow.newRing)
+	nodePos : {integer : {number}}  -- path element entity -> its node's {x, y} (ring mix)
+	notNode : {integer : boolean}   -- path element entities that are no node (edges, unreadable)
+	nodeCached : integer
+	ringEdges : {integer : {integer : boolean}}  -- per ring zone: street edge -> is a ring edge
+	ringTries : integer           -- ring path elements read with no reader working
+	ringOff : boolean             -- no path element read: ring reads off for the run (FLOW_RINGOFF)
 end
 
 local st : State = { run = 0, active = false, zones = {}, s = 0, laps = {}, lineTwin = {}, lineTwinFrom = {}, nextTownsUs = 0,
@@ -263,6 +284,14 @@ local function loadZones()
 		circles[i] = { zone = i, x = z.x, y = z.y, r = tr, rm = tr, measure = "circle" } as SquareStressFlowZone
 	end
 	st.trackIndex = flow.newIndex(circles)
+	-- ring lane use: the ringMix zones' counts, fresh caches
+	st.rings, st.nodePos, st.notNode, st.nodeCached, st.ringEdges, st.ringTries, st.ringOff = {}, {}, {}, 0, {}, 0, false
+	for i, z in ipairs(st.zones) do
+		if z.ringMix then
+			st.rings[i] = flow.newRing(z)
+			st.ringEdges[i] = {}
+		end
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -350,9 +379,23 @@ local function summary(final : boolean)
 	if final then rt.log(line) else write(line) end
 end
 
+--- The RINGMIX and RINGLANE lines of every ring zone (cumulative in this run).
+local function ringLines(final : boolean) : {string}
+	local out : {string} = {}
+	for i, z in ipairs(st.zones) do
+		local ring = st.rings ~= nil and st.rings[i] or nil
+		if ring ~= nil then
+			out[#out + 1] = flow.ringMixLine(st.run, st.s, st.prevGt, z, ring, flow.DRIVE_SIDE, final)
+			out[#out + 1] = flow.ringLaneLine(st.run, st.s, st.prevGt, z, ring, final)
+		end
+	end
+	return out
+end
+
 local function stopRun(why : string)
 	if not st.active then return end
 	st.active = false
+	for _, l in ipairs(ringLines(true)) do write(l) end
 	if st.sweep ~= nil then
 		st.totals.warn["unfinished"] = (st.totals.warn["unfinished"] or 0) + 1
 		st.sweep = nil
@@ -611,6 +654,97 @@ local function thruCheck(smp : SquareStressFlowSample, e : integer, mp : Engine.
 	return reads
 end
 
+--- A path element's node position ({x, y}), nil for an edge or an unreadable element (cached per run).
+local function nodeAt(ent : integer) : {number}
+	if ent == nil then return nil end
+	local p = st.nodePos[ent]
+	if p ~= nil then return p end
+	if st.notNode[ent] then return nil end
+	if st.nodeCached >= NODE_CACHE_MAX then
+		st.nodePos, st.notNode, st.nodeCached = {}, {}, 0
+	end
+	st.nodeCached = st.nodeCached + 1
+	local bn = comp(ent, api.type.ComponentType.BASE_NODE) as Engine.Component.BaseNode
+	local okP, x, y = pcall(function() : number, number return bn.position.x, bn.position.y end)
+	if bn ~= nil and okP and type(x) == "number" and type(y) == "number" then
+		p = { x, y }
+		st.nodePos[ent] = p
+		return p
+	end
+	st.notNode[ent] = true
+	return nil
+end
+
+--- Whether street edge ent is one of ring zone k's ring edges (cached per run and zone).
+local function isRingEdge(k : integer, ent : integer) : boolean
+	local cache = st.ringEdges[k]
+	if cache == nil or ent == nil then return false end
+	local c = cache[ent]
+	if c ~= nil then return c end
+	local z = st.zones[k]
+	local yes = false
+	local be = comp(ent, api.type.ComponentType.BASE_EDGE) as Engine.Component.BaseEdge
+	if be ~= nil then
+		local a, b = nodeAt(be.node0), nodeAt(be.node1)
+		if a ~= nil and b ~= nil then yes = flow.ringEdge(z, a[1] - z.x, a[2] - z.y, b[1] - z.x, b[2] - z.y) end
+	end
+	cache[ent] = yes
+	return yes
+end
+
+--- Ring lane use for driver e in ring zone k (part: its part of the zone, 0 the junction's circle; x, y its position):
+--- its turning mix once (path window, capped per sweep) and, in the circle on a ring edge, its lane sample. Returns
+--- whether anything was read (the caller checks the clock).
+local function ringRead(sw : Sweep, e : integer, mp : Engine.Component.MovePath, k : integer, part : integer, x : number, y : number) : boolean
+	local ring = st.rings[k]
+	local z = st.zones[k]
+	if ring == nil or z == nil or st.ringOff then return false end
+	local wantLane = part == 0 and sw.ringLaneReads < flow.RING_LANE_READS
+	local wantMix = not ring.done[e]
+	if wantMix and sw.ringMixReads >= flow.RING_MIX_READS then
+		if not sw.ringCapped[k] then
+			sw.ringCapped[k] = true
+			ring.capped = ring.capped + 1
+		end
+		wantMix = false
+	end
+	if not wantLane and not wantMix then return false end
+	local okP, edges, n, cur = pcall(function() : {{any}}, integer, integer
+		local list = (mp.path as {string : any}).edges as {{any}}
+		return list, #list, math.floor(mp.dyn.pathPos.edgeIndex)
+	end)
+	if not okP or edges == nil or n == nil or cur == nil then return true end
+	local function entity(i : integer) : integer
+		ring.reads = ring.reads + 1
+		local ok, elem = pcall(function() : any return edges[i + 1] end)
+		local id = ok and elemEntity(elem) or nil
+		if elemHow == nil then
+			st.ringTries = st.ringTries + 1
+			if st.ringTries >= RING_GIVE_UP and not st.ringOff then
+				st.ringOff = true
+				write(string.format("[SQST] FLOW_RINGOFF run=%d tries=%d (no path element read: RINGMIX / RINGLANE off)", st.run, st.ringTries))
+			end
+		end
+		return id
+	end
+	if wantLane then
+		sw.ringLaneReads = sw.ringLaneReads + 1
+		local ent = entity(cur)
+		if ent ~= nil and isRingEdge(k, ent) then flow.ringLane(ring, math.sqrt((x - z.x) ^ 2 + (y - z.y) ^ 2)) end
+	end
+	if wantMix and not st.ringOff then
+		sw.ringMixReads = sw.ringMixReads + 1
+		local entry, exit = flow.ringMove(function(i : integer) : integer
+			local p = nodeAt(entity(i))
+			if p == nil then return nil end
+			return flow.ringClass(z, p[1] - z.x, p[2] - z.y)
+		end, n, cur, flow.RING_WINDOW)
+		-- nothing read yet with any reader (an unknown binding): no verdict, never a "none"
+		if entry ~= nil then flow.ringCount(ring, e, entry, exit, flow.DRIVE_SIDE) elseif elemHow ~= nil then flow.ringMiss(ring, e) end
+	end
+	return true
+end
+
 --- Scans persons from the cursor until the frame's budget or read limit; true when the list is done.
 local function scanSlice(sw : Sweep, t0 : integer) : boolean
 	local smp = sw.sample
@@ -650,6 +784,13 @@ local function scanSlice(sw : Sweep, t0 : integer) : boolean
 						local n = 0
 						if x == nil then smp.posFail = smp.posFail + 1 else n = flow.zonesAt(st.index, x, y, zoneBuf, partBuf, dirBuf) end
 						flow.addCar(smp, zoneBuf, n, speed, ts, partBuf, dirBuf)
+						-- ring lane use (ringMix zones; zoneBuf / partBuf are this driver's until the next zonesAt on them)
+						local ringDid = false
+						if x ~= nil and n > 0 and next(st.rings) ~= nil then
+							for j = 1, n do
+								if st.rings[zoneBuf[j]] ~= nil and ringRead(sw, e, mp, zoneBuf[j], partBuf[j], x, y) then ringDid = true end
+							end
+						end
 						-- thru: every driver read, or the stride's id subset (counted x stride)
 						if x ~= nil and st.trackIndex ~= nil then
 							local m = flow.zonesAt(st.trackIndex, x, y, trackBuf)
@@ -670,6 +811,7 @@ local function scanSlice(sw : Sweep, t0 : integer) : boolean
 							end
 							if (m > 0 or st.prevAheadOf[e] ~= nil) and rt.nowUs() - t0 >= fl.BUDGET_US then return false end
 						end
+						if ringDid and rt.nowUs() - t0 >= fl.BUDGET_US then return false end
 					end
 				end
 			end
@@ -709,6 +851,10 @@ local function formatSweep(sw : Sweep)
 	end
 	st.prevSample, st.prevComplete, st.prevGt, st.prevAheadOf = smp, complete, sw.gt, aheadOf
 	out[#out + 1] = flow.allLine(st.run, st.s, sw.gt, smp, cost)
+	-- ring lane use, cumulative: every RING_EVERY samples (the stop writes the last ones)
+	if st.s % flow.RING_EVERY == 0 then
+		for _, l in ipairs(ringLines(false)) do out[#out + 1] = l end
+	end
 	for _, l in ipairs(sw.busLines or {}) do out[#out + 1] = l end
 	for _, l in ipairs(sw.townLines or {}) do out[#out + 1] = l end
 	if traffic.ui.keepCleared then
@@ -768,8 +914,16 @@ local function step(sw : Sweep, now : integer)
 			st.townsEveryUs = ms > fl.TOWNS_SLOW_MS and fl.TOWNS_SLOW_EVERY_US or fl.TOWNS_EVERY_US
 			st.nextTownsUs = now + st.townsEveryUs
 			if ok and m ~= nil then
+				-- every town's people (its residential person capacity, one engine call; pop= on the town lines)
+				local pops : {integer : integer} = {}
+				pcall(function()
+					local caps = api.engine.system.townBuildingSystem.getTown2personCapacitiesMap() as {integer : {integer}}
+					for t, c in pairs(caps or {}) do
+						if type(c) == "table" and type(c[1]) == "number" then pops[t] = math.floor(c[1]) end
+					end
+				end)
 				sw.townLines = flow.townsLines(st.run, st.s + 1, sw.gt, m as {integer : {any}}, 1.0, math.floor(ms * 100 + 0.5) / 100,
-					function(t : integer) : string return entityName(t) end)
+					function(t : integer) : string return entityName(t) end, pops)
 			else
 				st.totals.warn["towns_failed"] = (st.totals.warn["towns_failed"] or 0) + 1
 			end
@@ -862,7 +1016,7 @@ function fl.tick(now : integer)
 	smp.target = st.target
 	smp.stride = flow.stride(st.target, st.prevDrivers)
 	st.sweep = { gt = gt, phase = "list", startUs = now, busyUs = 0, frames = 0, frameMaxUs = 0, cursor = 1, sample = smp,
-		target = st.target, stride = smp.stride, lowered = false }
+		target = st.target, stride = smp.stride, lowered = false, ringMixReads = 0, ringLaneReads = 0, ringCapped = {} }
 end
 
 rt.addTickHook(function(now : integer) fl.tick(now) end)

@@ -93,6 +93,22 @@ local function road(n, firstNode, firstEdge)
 	for i = 0, n - 1 do edges[firstEdge + i] = { firstNode + i, firstNode + i + 1 } end
 end
 
+--- A Smart Lanes module loaded outside its mod (sl_auto.lua requires sl_settings / sl_record): its ug_require calls
+-- resolve inside square_smart_lanes' content.
+local function slRequire(path)
+	local cache = {}
+	local function req(p)
+		local rel = p:match("^square_smart_lanes::/(.+)$") or p
+		if cache[rel] == nil then
+			local env = setmetatable({ ug_require = req }, { __index = _G })
+			local chunk = assert(loadfile("mods/square_smart_lanes/content/" .. rel, "t", env))
+			cache[rel] = chunk()
+		end
+		return cache[rel]
+	end
+	return req(path)
+end
+
 test("count: street edges, construction edges counted apart", function()
 	road(5, 1, 1001)
 	conEdge[1003] = 77
@@ -218,4 +234,35 @@ test("remove all: clears the Showcase's Smart Lanes zones first; without the eve
 	roads.removeAll()
 	ok(table.concat(rt.recent, "\n"):find("zones send failed", 1, true))
 	ok(table.concat(rt.recent, "\n"):find("cleared by=remove_roads run=%S+ smart_lanes=no failed=yes") ~= nil, table.concat(rt.recent, "\n"))
+end)
+
+test("Auto re-time (whole map): SmartLanes.auto {op=all|clear, run} sent and logged AUTO_ALL; the status line names the last op and run; any other op is refused", function()
+	local slz = ug_require "square_stress_test::/stress/gui/stress_slzones.tl"
+	local events = {}
+	api.cmd.makeScriptingSendEventCmd = function(src, id, name, param) return { kind = "event", src = src, id = id, name = name, param = param } end
+	local send = api.cmd.sendCommand
+	api.cmd.sendCommand = function(cmd, cb)
+		if cmd.kind == "event" then events[#events + 1] = cmd return end
+		return send(cmd, cb)
+	end
+	eq(slz.autoStatus(), "")
+	local run = slz.sendAuto("all", "button")
+	ok(run ~= nil and run:match("^s0%-%d+%-%d+$"), tostring(run))
+	eq(#events, 1)
+	eq({ events[1].id, events[1].name, events[1].param.op, events[1].param.run }, { "square_smart_lanes", "SmartLanes.auto", "all", run })
+	eq(events[1].param.src, nil, "src defaults to stress on Smart Lanes' side")
+	ok(table.concat(rt.recent, "\n"):find("[SQST] AUTO_ALL op=all run=" .. run .. " by=button smart_lanes=", 1, true), table.concat(rt.recent, "\n"))
+	ok(slz.autoStatus():find("every lit junction enrolled (run " .. run .. ")", 1, true), slz.autoStatus())
+	local run2 = slz.sendAuto("clear", "button")
+	ok(run2 ~= nil and run2 ~= run)
+	eq({ events[2].name, events[2].param.op, events[2].param.run }, { "SmartLanes.auto", "clear", run2 })
+	ok(table.concat(rt.recent, "\n"):find("[SQST] AUTO_ALL op=clear run=" .. run2, 1, true))
+	ok(slz.autoStatus():find("every junction unenrolled", 1, true), slz.autoStatus())
+	eq(slz.sendAuto("add", "button"), nil)
+	eq(#events, 2)
+	-- Smart Lanes' payload validator takes both
+	local Auto = slRequire("smart_lanes/sl_auto.lua")
+	eq({ Auto.validate(events[1].param) }, { "all", {}, "stress", run })
+	eq({ Auto.validate(events[2].param) }, { "clear", {}, "stress", run2 })
+	api.cmd.sendCommand = send
 end)

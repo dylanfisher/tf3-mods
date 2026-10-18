@@ -161,6 +161,7 @@ global record SquareStressLogic
 	REMOVE_TARGETS : {string}
 	isGridTownName : function(name : string) : boolean
 	TEST_TOWN_MODES : {string}
+	TEST_TOWN_WORDS : {string : boolean}
 	isTestTownName : function(name : string) : boolean
 	removeLabel : function(target : integer) : string
 	-- More car traffic (MORE_TRAFFIC.md Phase 7a: loadScript modifier around the town building updateFn)
@@ -372,6 +373,7 @@ global record SquareStressLogic
 	levelText : function(c : {integer}) : string
 	denseSteps : function(n : integer, passes : integer) : {SquareStressDenseStep}
 	popText : function(pops : {integer : integer}, n : integer) : string
+	popByTargetText : function(pops : {integer : integer}, targets : {integer : number}, n : integer) : string
 	leakLine : function(name : string, label : string, outside : integer, houses : integer, extra? : string) : string
 	--- The variants of the shared Showcase code: the Showcase (v2) and the Lights showcase.
 	SHOWCASE_SPEC : SquareStressShowcaseSpec
@@ -380,6 +382,19 @@ global record SquareStressLogic
 	LIGHTS_EXITFAN_AB : SquareStressShowcaseAb
 	LIGHTS_PER_TYPE : integer
 	lightsMixedSpec : function() : SquareStressShowcaseSpec
+	-- Light plans A/B (SHOWCASE.md "Light plans A/B"): 2x2 X and 3x3 X, twins game / sl_phases / sl_auto, balanced and
+	-- unbalanced sets in turn
+	LIGHTS_AUTO_AB : SquareStressShowcaseAb
+	LIGHTS_PLANS_AB : {SquareStressShowcaseAb}
+	LIGHTS_PLANS_TARGET_POP : number
+	LIGHTS_PLANS_PER_TYPE : integer
+	LIGHTS_PLANS_POPS : {string : number}
+	LIGHTS_PLANS_UNBALANCED : {string : string}
+	lightsPlansDemand : function(typeIndex : integer, k : integer) : string
+	lightsPlansTownPop : function(demand : string, side : string) : number, string
+	lightsPlansSpec : function() : SquareStressShowcaseSpec
+	LIGHTS_PLANS_SPEC : SquareStressShowcaseSpec
+	lightsPlansLabel : function() : string
 	specKinds : function(spec : SquareStressShowcaseSpec) : {string}
 	specTypes : function(spec : SquareStressShowcaseSpec, slot : string) : {SquareStressShowcaseType}
 	specModes : function(spec : SquareStressShowcaseSpec) : {SquareStressShowcaseAb}
@@ -397,7 +412,7 @@ global record SquareStressLogic
 	COMPASS : {string}
 	compassIndex : function(side : string) : integer
 	compassOf : function(deg : number) : string
-	showcaseTownName : function(t : SquareStressShowcaseType, m : SquareStressShowcaseAb, set : integer, side : string, modeNames : boolean) : string
+	showcaseTownName : function(t : SquareStressShowcaseType, m : SquareStressShowcaseAb, set : integer, side : string, modeNames : boolean, word? : string) : string
 	sideCentre : function(tx : number, ty : number, half : number, jx : number, jy : number) : {number}
 	HOUSE_ODD_M : number
 	housePos : function(box : {number}, con : {number}) : {number}, string, boolean
@@ -458,6 +473,8 @@ global record SquareStressGridPoint
 	row : integer
 	col : integer
 	size : integer                -- Showcase: its own TOWN_SIZES index (nil: the batch's size)
+	pop : number                  -- light plans A/B: the people it grows to (nil: the spec's growTarget)
+	townCaps : integer            -- its initial land use capacities when below its size's (the grid stays the size's; nil: the size's)
 end
 
 --- Crossing test: one crossing (stress_crossing construction) of the layout.
@@ -560,6 +577,10 @@ global record SquareStressShowcaseGroup
 	litYes : boolean              -- bench: a lit plain crossing (a light set to Yes at the read when none stands)
 	linkLanes : integer           -- bench: its links' road lanes (0: the arm's own lanes; nil: the spec's linkLanes)
 	pairLanes : integer           -- bench: a highway arm's merge piece, country road of this many road lanes (nil: 6)
+	geom : string                 -- bench: its ring geometry when the test has twins on two ("plain" / "mid", Sheet 4 v5)
+	demand : string               -- light plans A/B (demandMix): "balanced" / "unbalanced" (its set's; nil: none)
+	mix : string                  -- bench Sheet 5: its set's traffic mix ("even" / "straight" / "adjacent"; nil: none)
+	ringMix : boolean             -- bench Sheet 5: the traffic log logs its ring's turning mix and lane use (RINGMIX / RINGLANE)
 end
 
 --- A variant of the shared Showcase code (stress_logic SHOWCASE_SPEC, LIGHTS_SPEC). nil fields: the
@@ -589,7 +610,9 @@ global record SquareStressShowcaseSpec
 	shapeLabel : string           -- Lights showcase: "2x2 X", ... (nil: mixed)
 	perType : integer             -- at most this many sets of each type (nil: as many as fit; the Lights showcase: 3)
 	alternateTwins : boolean      -- every second set's twins placed in reverse order (the Lights showcase)
+	demandMix : boolean           -- light plans A/B: balanced and unbalanced sets in turn (lightsPlansDemand, lightsPlansTownPop)
 	growTarget : number           -- grow every town to about this many people (its own factor from its population; nil: growFactor for all)
+	variant : string              -- " variant=<it>" on the run's first log line ("light_plans"; nil: none)
 	bench : boolean               -- a bench sheet (stress_bench.spec): per-group lights / link lanes, lit counts on the built lines
 	layoutFn : function(w : number, h : number, margin : number, seed : integer) : SquareStressShowcaseLayout  -- the layout instead of showcaseLayout
 end
@@ -602,10 +625,129 @@ global record SquareStressBenchTest
 	towns : {string}              -- compass points of the arms that get a town (rotation 0)
 	twins : {string}              -- zone ab names, in letter order
 	compare : {{string}}          -- the report's comparisons {a, b}: a minus b
+	geoms : {string : integer}    -- twins "<ab>@<geom>": geom -> its variant's index (Sheet 4 v5); nil: every twin the set's variant
 	sets : integer                -- sets wanted
 	litYes : boolean              -- a lit plain crossing (a light set to Yes at the read when none stands)
 	linkLanes : integer           -- link pieces' road lanes (0: the arm's own)
 	pairLanes : integer           -- a highway arm's merge piece: the country road of this many road lanes (nil: 6)
+	mixes : {string}              -- traffic mixes, one per set in turn (bench.LU_MIXES; nil: every town the sheet's pop)
+	ringMix : boolean             -- its twins' traffic log zones log RINGMIX / RINGLANE (ring turning mix, lane use)
+	pops : {string : number}      -- the mixes' town sizes (large / small / even; nil: bench.LU_POPS; Sheet 6: bench.HM_POPS)
+end
+
+--- The city run's cities (stress_bench.CITY.city).
+global record SquareStressBenchCityOpts
+	pairs : integer               -- auto + control pairs (without control: auto cities)
+	size : integer                -- TOWN_SIZES index
+	pop : number                  -- people a city grows to
+	spacing : number              -- m between neighbouring city centres
+	control : boolean             -- a never-enrolled control city beside each auto city
+	layout : string               -- "plain" | "hourglass" | "holes" (stress_grid_streets.lua LAYOUTS; nil: plain)
+	busy : boolean                -- the Busy option (bench.CITY_BUSY: more people, denser weights)
+	swap : boolean                -- Swap roles: the other city of each pair is the auto one
+	weights : {number}            -- level 1..4 weights of the size command (nil: logic.DENSE_WEIGHTS)
+end
+
+--- The City lights options as picked in the window (stress_bench_run br.cityUi; bench.citySheet makes the sheet).
+global record SquareStressBenchCityUi
+	layout : integer              -- bench.CITY_LAYOUTS index
+	busy : boolean
+	baseline : integer            -- bench.CITY_BASELINES index
+	swap : boolean
+	sameSeed : boolean            -- the last city run's seed again (its holes; the Swap roles rerun)
+end
+
+--- A street grid's layout (stress_grid_streets.lua grid.layout).
+global record SquareStressStreetLayout
+	name : string                 -- "plain" | "hourglass" | "holes"
+	n : integer                   -- blocks per side
+	step : number
+	half : number
+	removed : {string : boolean}  -- left-out segments "h:i:j" / "v:i:j"
+	gaps : {{number}}             -- {x0, y0, x1, y1} relative to the center
+	holes : {{integer}}           -- hole centers {i, j} (grid line indices)
+	neck : integer                -- neck streets (hourglass), else 0
+	pattern : integer             -- the holes pattern (holes), else 0
+	x4 : integer                  -- inner crossings with 4 streets
+	t3 : integer                  -- ... with 3 (T at the neck / a hole's edge)
+	gone : integer                -- inner grid points with no street
+	crossings : integer           -- x4 + t3
+end
+
+--- The street grid geometry (stress/stress_grid_streets.lua, plain Lua: the construction's updateFn uses it too).
+global record SquareStressGridStreets
+	LAYOUTS : {string}
+	HOLE_PATTERNS : integer
+	HOLE_COUNT : integer
+	layout : function(half : number, layout : any, pattern? : integer, block? : number) : SquareStressStreetLayout
+	inGap : function(L : SquareStressStreetLayout, px : number, py : number) : boolean
+end
+
+--- The extra keys of a CITY line (stress_bench.cityLine): the layout and the crossings per kind.
+global record SquareStressCityLineExtra
+	layout : string
+	neck : integer
+	holes : integer
+	found4 : integer
+	found3 : integer
+	lit4 : integer
+	lit3 : integer
+	pop : integer                 -- the town's people (residential capacity) at the lights (nil: unread)
+	gapStreets : integer          -- streets found in the layout's gaps after the lock (removed: gapRemoved)
+	gapRemoved : integer
+end
+
+--- One city of the city run (stress_bench.cityPlan): offsets from the map centre.
+global record SquareStressBenchCity
+	id : string                   -- zone id "cityg1v" (auto) / "cityg1b" (control)
+	pair : string                 -- "cityg1"
+	role : string                 -- "auto" | "control"
+	ab : string                   -- the zone's ab: city_auto | city_control (never sent to Smart Lanes)
+	x : number
+	y : number
+	name : string                 -- "City auto 1"
+	half : number                 -- the wide grid's half side
+	pop : number
+	crossings : integer           -- the grid's inner crossings (4-way and, in a funnel layout, 3-way)
+	layout : string               -- the grid's layout (plain / hourglass / holes)
+end
+
+--- The city run's last build (gui/stress_citylights.tl cl.last): its cities and their inner crossings {node, x, y}.
+global record SquareStressCityLightsLast
+	plan : SquareStressBenchCityPlan
+	crossings : {integer : {{number}}}
+	run : string
+	layout : SquareStressStreetLayout   -- the cities' street grid layout (gapCheck)
+	cx : number                       -- the map center the cities are placed around
+	cy : number
+	created : {integer : integer}     -- city index -> town
+end
+
+--- The city run's build (gui/stress_citylights.tl).
+global record SquareStressCityLights
+	build : function(sheet : SquareStressBenchSheet, seed : integer, onDone : function(zones : {SquareStressShowcaseZone}), onAbort : function(why : string)) : boolean
+	enroll : function(sheet : SquareStressBenchSheet, run : string, crossings : {integer : {{number}}}, plan : SquareStressBenchCityPlan) : integer
+	unenroll : function()
+	gapCheck : function(label : string) : integer
+	last : SquareStressCityLightsLast
+end
+
+--- The city run's cities on a map.
+global record SquareStressBenchCityPlan
+	cities : {SquareStressBenchCity}
+	auto : integer
+	control : integer
+	crossings : integer           -- inner crossings in all
+	enrolled : integer            -- of them in the auto cities
+	persons : number
+	half : number
+	layout : string               -- plain / hourglass / holes
+	neck : integer                -- neck streets (hourglass)
+	holes : integer               -- holes per city (holes)
+	x4 : integer                  -- per city: 4-way inner crossings
+	t3 : integer                  -- per city: 3-way inner crossings
+	swap : boolean
+	busy : boolean
 end
 
 --- One bench sheet: one map, one press.
@@ -616,6 +758,27 @@ global record SquareStressBenchSheet
 	version : integer             -- BENCH_START spec=<id>@<version>
 	minKm : number                -- the map side it is planned for
 	slLights : boolean            -- needs Smart Lanes' "No lights at roundabouts and ramps" On
+	tests : {SquareStressBenchTest}
+	button : string               -- its button's label (nil: "Sheet <n>" from its key)
+	pop : number                  -- people per town (nil: bench.POP)
+	pool : boolean                -- the report pools every test's pairs of one comparison (the micro bench)
+	roundRobin : boolean          -- the packer places one set of every test in turn (else every set of a test, then the next)
+	rank : boolean                -- the report ranks every twin mode per test (the micro bench's ring layouts)
+	recordS : number              -- game s recorded (nil: bench.RECORD_S)
+	speed : integer               -- the record's game speed (nil: bench.SPEED)
+	city : SquareStressBenchCityOpts  -- the city run (bench.CITY): cities instead of tests
+	baselineS : number            -- the city run: game s of the record before the enroll
+	shotDist : number             -- the screenshots' camera height (nil: 130 m over a junction)
+end
+
+--- The micro bench's swappable block (stress_bench.MICRO).
+global record SquareStressBenchMicro
+	version : integer
+	title : string
+	pop : number
+	pool : boolean
+	roundRobin : boolean
+	rank : boolean
 	tests : {SquareStressBenchTest}
 end
 
@@ -672,6 +835,7 @@ global record SquareStressBenchSl
 	lights : boolean
 	freeTurn : string
 	phases : string
+	perf : boolean                -- its "Debug: performance log" On (SQPERF window lines)
 end
 
 --- The bench preflight's reads (stress_bench.problems / startLine).
@@ -687,6 +851,9 @@ global record SquareStressBenchInfo
 	slModes : {string}            -- nil: Smart Lanes reported none (older, or no answer)
 	paused : boolean              -- the game speed is 0
 	year : integer
+	cityPlan : SquareStressBenchCityPlan  -- the city run's cities on this map (nil: they do not fit, cityWhy)
+	cityWhy : string
+	perfAll : boolean             -- the DEV master switch square_sqperf_all is active
 end
 
 --- The bench run (gui/stress_bench_run.tl): one sheet from the press to BENCH_DONE.
@@ -698,6 +865,10 @@ global record SquareStressBenchRun
 	planLine : function(key : string) : string
 	check : function(key : string) : {string}
 	start : function(key : string, seed? : integer) : boolean, string
+	cityUi : SquareStressBenchCityUi          -- the City lights options (the window's rows)
+	lastCitySeed : integer                    -- the last city run's seed (Same seed)
+	sheetFor : function(key : string) : SquareStressBenchSheet
+	cityUiSignature : function() : string
 end
 
 --- The bench's pure part (stress/stress_bench.tl).
@@ -715,6 +886,49 @@ global record SquareStressBench
 	BUILD_S_PER_TOWN : number
 	AB : {string : SquareStressShowcaseAb}
 	VARIANTS : {string : SquareStressShowcaseType}
+	MICRO : SquareStressBenchMicro
+	RING_MODES : {string}
+	MID_TWINS : {string}
+	MID_LETTER : {string : string}
+	PLAIN_MID_TWINS : {string}
+	PLAIN_MID_COMPARE : {{string}}
+	PLAIN_MID_COMPARE2 : {{string}}
+	twinMode : function(string) : SquareStressShowcaseAb
+	LU_MIXES : {string}
+	LU_POPS : {string : number}
+	LU_SIDES : {string : {string : string}}
+	mixPop : function(mix : string, side : string, pops? : {string : number}) : number, string
+	HM_POPS : {string : number}
+	CITY : SquareStressBenchSheet
+	CITY_BLOCK : number
+	CITY_SNAP : number
+	CITY_ZONE_LETTER : {string : string}
+	CITY_AB : {string : string}
+	CITY_EVENT_MAX : integer
+	cityLines : function(half : number) : {number}, number
+	cityPlan : function(w : number, h : number, mapMargin : number, sheet : SquareStressBenchSheet) : SquareStressBenchCityPlan, string
+	cityInterior : function(nodes : {{number}}, cx : number, cy : number, half : number, minDeg? : integer) : {{number}}
+	cityPayloads : function(entries : {{number}}) : {{string : any}}
+	cityZone : function(c : SquareStressBenchCity) : SquareStressShowcaseZone
+	cityLine : function(c : SquareStressBenchCity, x : number, y : number, town : integer, found : integer, litBefore : integer, forced : integer, refused : integer, extra? : SquareStressCityLineExtra) : string
+	cityEnrollLine : function(run : string, op : string, cities : integer, nodes : integer, events : integer, baselineS : number, sl : boolean, sheet? : SquareStressBenchSheet) : string
+	CITY_LAYOUTS : {string}
+	CITY_LAYOUT_LABELS : {string}
+	CITY_BASELINES : {number}
+	CITY_BASELINE_LABELS : {string}
+	CITY_AFTER_S : number
+	CITY_BUSY : SquareStressBenchCityOpts
+	citySheet : function(ui : SquareStressBenchCityUi) : SquareStressBenchSheet
+	cityLayout : function(sheet : SquareStressBenchSheet, seed? : integer) : SquareStressStreetLayout
+	cityHolesPattern : function(seed : integer) : integer
+	cityOptionKeys : function(sheet : SquareStressBenchSheet) : string
+	cityOptionsText : function(sheet : SquareStressBenchSheet) : string
+	cityGapLine : function(c : SquareStressBenchCity, label : string, found : integer, removed : integer) : string
+	cityPlanText : function(p : SquareStressBenchCityPlan, why : string, w : number, h : number) : string
+	recordS : function(sheet : SquareStressBenchSheet) : integer
+	speed : function(sheet : SquareStressBenchSheet) : integer
+	setMix : function(t : SquareStressBenchTest, k : integer) : string
+	MID_COMPARE : {{string}}
 	SHEETS : {SquareStressBenchSheet}
 	sheet : function(key : string) : SquareStressBenchSheet
 	shape : function(v : SquareStressShowcaseType, sides : {string}) : SquareStressBenchShape, string
@@ -745,6 +959,7 @@ global record SquareStressLockArea
 	half : number                 -- half the grid's side (logic.gridHalfOfSize)
 	reach : number                -- its streets are looked for this far from its centre at least (its junction's distance; nil: half x 1.41 + LOCK_REACH)
 	zones : {{number}}            -- its junctions' zones {x, y, r}: every street there is locked, whatever its closest town (lock passes, leak checks)
+	target : number               -- light plans A/B: its own growth target (people; nil: the density job's target)
 end
 
 --- One step of a density job (logic.denseSteps).
@@ -777,6 +992,7 @@ global record SquareStressShowcaseAb
 	label : string                -- its words in Showcase town names: "Smart lanes", "Game default", ...
 	note : string
 	litPlainOnly : boolean        -- only for a plain crossing with lights
+	geom : string                 -- bench twins "<ab>@<geom>" (bench.twinMode): the ring geometry, nil otherwise
 end
 
 --- A Showcase group's zone with its A/B mode (stress_logic.showcaseZones; FLOW.md "Showcase zones").
@@ -795,7 +1011,11 @@ global record SquareStressShowcaseZone
 	arms : {{number}}             -- its arms' measured headings {hx, hy} (the read's clusters; the traffic log's corridors)
 	test : string                 -- the bench test it belongs to (BENCH.md; nil outside a bench)
 	variant : string              -- the bench variant label
+	geom : string                 -- the bench twin's ring geometry ("plain" / "mid"; nil: the test has one)
 	approach : number             -- square layouts: its straight approach length along every arm (m; logic.groupApproach; thru)
+	demand : string               -- light plans A/B: its set's demand ("balanced" / "unbalanced"; nil: none)
+	mix : string                  -- bench Sheet 5: its set's traffic mix (nil: none)
+	ringMix : boolean             -- bench Sheet 5: RINGMIX / RINGLANE for its ring
 end
 
 --- One twin of a Showcase set as built (stress_logic.showcaseMatch).
@@ -859,6 +1079,8 @@ global record SquareStressGridOpts
 	points : {SquareStressGridPoint}  -- instead of cols x rows: these points (x, y offsets from the centre, name)
 	skipNoLand : boolean          -- a point that fails the land check is skipped (logged), not the whole grid cancelled (Showcase)
 	batch : boolean               -- batched: grids GRID_BATCH per proposal, their locks across towns, every town in one command (each falls back to one by one)
+	gridLayout : integer          -- our street grid's layout param (stress_grid_streets.lua LAYOUTS index; nil: plain)
+	gridHoles : integer           -- its holes pattern (layout 3)
 end
 
 --- A placement relaxation step (stress_logic.PLACE_STEPS).
@@ -1183,6 +1405,9 @@ global record SquareStressJunctions
 	lastLightsSeed : integer      -- the seed of the last Lights showcase run (nil before the first)
 	lightsSignature : function() : string
 	buildLightsShowcase : function(seed? : integer, shape? : integer)
+	--- Light plans A/B (stress_logic.lightsPlansSpec): 2x2 X and 3x3 X, twins game / sl_phases / sl_auto, balanced and
+	--- unbalanced sets.
+	buildLightPlans : function(seed? : integer)
 	--- Bench (stress_bench.tl): one sheet packed onto the map, built like the Lights showcase. false: not started.
 	buildBench : function(sheet : SquareStressBenchSheet, seed? : integer) : boolean
 	--- Called once a Showcase / Lights showcase / bench run is finished (its growth included): name, seed, layout, zones.
@@ -1461,6 +1686,20 @@ global record SquareStressSlZones
 	--- Smart Lanes' saved zones (fresh {x, y, r, ab, id?, pair?} tables) and their run id; nil when Smart
 	--- Lanes is absent or its state unreadable (GUI thread). For the traffic log after a reload.
 	savedZones : function() : {{string : any}}, string
+	EV_AUTO : string
+	--- "SmartLanes.auto" { op = "all" | "clear", run } (Smart Lanes PLAN.md "Stress Test interface: Keep timing adjusted"):
+	--- the run id (nil when not sent). Logs "[SQST] AUTO_ALL op=all|clear run= by= smart_lanes=yes|no".
+	sendAuto : function(op : string, by : string) : string
+	--- SmartLanes.auto add payloads (stress_bench.cityPayloads), one event each; the events sent.
+	sendAutoNodes : function(payloads : {{string : any}}) : integer
+	--- Traffic-log zones not sent to Smart Lanes (the city run): z.current, logged "[SQST] showcase zones local n= run=".
+	setLocal : function(zones : {SquareStressShowcaseZone}, run : string)
+	--- The session's last sendAuto: {op, run, by} (nil: none yet).
+	autoLast : {string : string}
+	--- Smart Lanes' saved arun (the run of its last all / clear; nil: unreadable or absent).
+	autoAckRun : function() : string
+	--- "Auto re-time: last all, run ..., Smart Lanes acknowledged" (empty before the first send).
+	autoStatus : function() : string
 end
 
 global record SquareStressSlZonesCurrent
@@ -1491,6 +1730,25 @@ global record SquareStressFlowZone
 	armNames : {string}           -- their compass points ("N", "E", ...)
 	test : string                 -- the bench test (nil outside a bench)
 	approach : number             -- m: its straight approach along every arm (square layouts; positional thru), nil: r_measure
+	demand : string               -- light plans A/B: its set's demand (FLOW_ZONE demand=; nil: none)
+	mix : string                  -- bench Sheet 5: its set's traffic mix (FLOW_ZONE mix=; nil: none)
+	ringMix : boolean             -- RINGMIX / RINGLANE lines for its ring (stress_flow ring*)
+end
+
+--- One ring zone's turning mix and lane use, cumulative over a traffic log run (stress_flow.newRing; RINGMIX / RINGLANE).
+global record SquareStressFlowRing
+	arms : integer                -- A: the zone's arms
+	pos : {integer}               -- arm index (the zone's compass order) -> its place in counterclockwise angle order 1..A
+	done : {integer : boolean}    -- drivers counted (once each)
+	tries : {integer : integer}   -- drivers read without both an entry and an exit arm on their path window
+	n : integer                   -- drivers counted (exits + uturn + none)
+	exits : {integer}             -- [k]: drivers that left k arms after their entry arm (k < A)
+	uturn : integer               -- left by their entry arm (k = A)
+	none : integer                -- no entry and exit in the read part of the path after RING_TRIES samples
+	reads : integer               -- path elements read for it
+	capped : integer              -- samples where the sweep's RING_MIX_READS cap left drivers unread
+	lanes : {integer : integer}   -- radius bin (RING_BIN m) -> car samples on its ring edges (RINGLANE)
+	laneCars : integer            -- car samples counted in lanes
 end
 
 --- Zone lookup grid (stress_flow.newIndex).
@@ -1619,6 +1877,24 @@ global record SquareStressFlow
 	THRU_SPEED : number
 	THRU_TRACK_MAX : number
 	THRU_WINDOW : integer
+	RING_MIX_READS : integer
+	RING_LANE_READS : integer
+	RING_WINDOW : integer
+	RING_TRIES : integer
+	RING_ARM_COS : number
+	RING_BIN : number
+	RING_EDGE_DR : number
+	RING_EVERY : integer
+	newRing : function(z : SquareStressFlowZone) : SquareStressFlowRing
+	ringClass : function(z : SquareStressFlowZone, dx : number, dy : number) : integer
+	ringMove : function(get : function(i : integer) : integer, n : integer, cur : integer, w? : integer) : integer, integer
+	ringSteps : function(ring : SquareStressFlowRing, entry : integer, exit : integer, side : string) : integer
+	ringCount : function(ring : SquareStressFlowRing, driver : integer, entry : integer, exit : integer, side : string) : integer
+	ringMiss : function(ring : SquareStressFlowRing, driver : integer)
+	ringEdge : function(z : SquareStressFlowZone, ax : number, ay : number, bx : number, by : number) : boolean
+	ringLane : function(ring : SquareStressFlowRing, d : number)
+	ringMixLine : function(run : integer, s : integer, gt : number, z : SquareStressFlowZone, ring : SquareStressFlowRing, side : string, final : boolean) : string
+	ringLaneLine : function(run : integer, s : integer, gt : number, z : SquareStressFlowZone, ring : SquareStressFlowRing, final : boolean) : string
 	num : function(v : number) : string
 	word : function(s : string) : string
 	list : function(v : {number}, max : integer) : string
@@ -1653,7 +1929,7 @@ global record SquareStressFlow
 	stride : function(target : integer, drivers : integer) : integer
 	targetLine : function(run : integer, s : integer, target : integer, was : integer, read : integer, driversPrev : integer, reason : string) : string
 	townsLines : function(run : integer, s : integer, gt : number, m : {integer : {any}}, coef : number, ms : number,
-		names : function(town : integer) : string) : {string}
+		names : (function(town : integer) : string), pops? : {integer : integer}) : {string}
 	newBus : function() : SquareStressFlowBus
 	busVehicle : function(acc : SquareStressFlowBus, laps : {integer : number}, v : integer, tv : SquareStressFlowTv, stops : integer, gt : number)
 	busLine : function(run : integer, s : integer, gt : number, line : integer, name : string, twin : SquareStressLineTwin,

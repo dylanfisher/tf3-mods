@@ -810,6 +810,7 @@ test("batched grid: street grids GRID_BATCH per proposal, then every town in ONE
 		eq({ ce.transf[4][1], ce.transf[4][2] }, { (k - 1) * 1500 - 8000, 2000 })
 		eq(ce.params.sqst_grid_half, k % 2 == 0 and 3 or 2, "each town's own grid size")
 		eq(ce.params.sqst_grid_ring, 1)
+		eq({ ce.params.sqst_grid_layout, ce.params.sqst_grid_holes }, { nil, nil }, "no layout params unless asked (every older build)")
 	end
 	eq(#creates, 1, "one create command")
 	eq(#creates[1].infos, 12)
@@ -834,6 +835,48 @@ test("batched grid: street grids GRID_BATCH per proposal, then every town in ONE
 	ok(all:find("lights_showcase_towns summary towns=12 created=12 failed=0 skipped=0", 1, true), all)
 	ok(all:find(" batched towns_ms=", 1, true), all)
 	eq(#rt.queue.jobs, 0)
+end)
+
+test("batched grids with a layout (the City lights options): every grid's construction gets the layout and holes params", function()
+	wideGridApi(true)
+	local o = batchOpts(3, 2)
+	o.gridLayout, o.gridHoles = 3, 7
+	towns.createGrid(o, function() end)
+	answerAll(40)
+	local n = 0
+	for _, x in ipairs(sent) do
+		if x.cmd.kind == "build" then
+			for _, ce in ipairs(x.cmd.p.constructionsToAdd) do
+				n = n + 1
+				eq({ ce.params.sqst_grid_layout, ce.params.sqst_grid_holes }, { 3, 7 })
+			end
+		end
+	end
+	eq(n, 3)
+end)
+
+test("a point's own townCaps (the light plans A/B's small towns): its town created at that capacity, its grid the size's; one by one too", function()
+	wideGridApi(true)
+	local o = batchOpts(4, 2)
+	o.points[2].townCaps = 150
+	o.points[3].townCaps = 40
+	towns.createGrid(o, function() end)
+	answerAll(40)
+	local builds, creates = {}, {}
+	for _, x in ipairs(sent) do
+		if x.cmd.kind == "build" then builds[#builds + 1] = x.cmd.p end
+		if x.cmd.kind == "create" then creates[#creates + 1] = x.cmd end
+	end
+	for k, ce in ipairs(builds[1].constructionsToAdd) do eq(ce.params.sqst_grid_half, k % 2 == 0 and 3 or 2, "grid of its size") end
+	local caps = {}
+	for _, info in ipairs(creates[1].infos) do caps[tonumber(info.name:match("%d+"))] = info.initialLandUseCapacities[1] end
+	eq(caps, { 400, 150, 40, 1600 })
+	sent = {}
+	towns.createGrid({ name = "showcase_towns", label = "x", cols = 1, rows = 1, spacing = 1000, size = { caps = 400, spacing = 1000 },
+		useCamera = true, cx = 0, cy = 0, connect = 1, streets = 1, skipNoLand = true,
+		points = { { x = -1000, y = -1000, name = "Grid S1", townCaps = 40 } } }, function() end)
+	answerAll(20)
+	eq(sent[1].cmd.infos[1].initialLandUseCapacities, { 40, 40, 40 })
 end)
 
 test("batched grid: a refused grid batch goes one by one (the refused grid logged); towns the create missed are created one by one", function()

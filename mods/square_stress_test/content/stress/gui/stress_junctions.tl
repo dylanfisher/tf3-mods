@@ -2295,7 +2295,7 @@ local function armLanes(s : ShowState, arm : Arm) : integer
 end
 
 local function showToTown(s : ShowState, arm : Arm) : function(try : integer, why : string) : Builder, {{number}}, string, string
-	return function(_try : integer, why : string) : Builder, {{number}}, string, string
+	return function(try : integer, why : string) : Builder, {{number}}, string, string
 		if arm.town == nil or arm.townPos == nil then return nil, nil, "town missing", nil end
 		if collision(why) then arm.collided = true end
 		local tp = arm.townPos
@@ -2306,8 +2306,19 @@ local function showToTown(s : ShowState, arm : Arm) : function(try : integer, wh
 			-- the town's entry roundabout: its outward arm end (outside the grid square, ours: no own-town check)
 			local p = nodePos(arm.entryNode) or arm.entryPos
 			c = { id = arm.entryNode, x = p[1], y = p[2], z = p[3] or 0, deg = 1, large = true, score = 0 }
-			local b, seg = linkBuilder(arm, c, nil, lock, lock, armLanes(s, arm), arm.pairLanes)
-			return b, seg, nil, nil
+			-- a bench test with its own link road (linkLanes > 0) falls back on a refusal: try 2 copies of the arm's
+			-- street, try 3 the country road of the arm's lanes (sheet 4 v1, 2026-10-13: every 1 + 1 country link from a
+			-- town small arm to its entry was refused, Construction Not Possible, 108 of 108)
+			local country, lanes, variant = lock, armLanes(s, arm), nil as string
+			if try ~= nil and try > 1 and arm.linkLanes ~= nil and arm.linkLanes > 0 then
+				if try == 2 then
+					country, variant = false, "copies of the arm's street"
+				else
+					lanes, variant = nil, "the country road of the arm's lanes"
+				end
+			end
+			local b, seg = linkBuilder(arm, c, nil, lock, country, lanes, arm.pairLanes)
+			return b, seg, nil, variant
 		end
 		if s.spec.square then
 			local pt : {number}
@@ -2496,7 +2507,8 @@ local function showAreas(layout : SquareStressShowcaseLayout, points : {SquareSt
 	for ti = 1, #layout.towns do
 		local t, p = created[ti], points[ti]
 		if t ~= nil and p ~= nil and not (skipped or {})[ti] then
-			local a : SquareStressLockArea = { town = t, label = p.name, x = p.x, y = p.y, half = logic.gridHalfOfSize(layout.towns[ti].size) }
+			local a : SquareStressLockArea = { town = t, label = p.name, x = p.x, y = p.y, half = logic.gridHalfOfSize(layout.towns[ti].size),
+				target = layout.towns[ti].pop }
 			if zonesOf[ti] ~= nil then
 				a.zones = zonesOf[ti]
 				local far = 0.0
@@ -2697,11 +2709,14 @@ end
 
 --- The bench's geometry check of a built twin (BENCH.md "As built": every variant must present what it tests):
 --- a lane drop has a 2-street node whose two streets differ in road lanes; a roundabout / channelized junction one-way
---- streets (its ring, its slip lanes); an interchange one-way carriageways and ramps; a plain crossing a junction node.
---- Reads only the new nodes of the build (not in `before`) within r of its centre. Returns ok, a log text.
+--- streets (its ring, its slip lanes), a ring built with mid nodes (square_roundabouts' sqrb_dev_ring_mid, the entry
+--- ring's sqst_entry_mid; Sheet 4) also at least 4 per gap nodes joining two one-way streets only (mids=); an interchange one-way carriageways and ramps; a plain
+--- crossing a junction node. Reads only the new nodes of the build (not in `before`) within r of its centre. Returns ok,
+--- a log text.
 local function benchGeometry(pl : ShowPlace, g : SquareStressShowcaseGroup) : boolean, string
 	local map = streetMap()
 	local oneWay, two, best : integer, integer, string = 0, 0, nil
+	local mids = 0
 	local seen : {integer : boolean} = {}
 	for n in pairs(nodesNear(pl.x, pl.y, pl.scanR or (pl.est or 100))) do
 		if not (pl.before or {})[n] then
@@ -2710,6 +2725,7 @@ local function benchGeometry(pl : ShowPlace, g : SquareStressShowcaseGroup) : bo
 				two = two + 1
 				local a, b = twoWayLanes(list[1]), twoWayLanes(list[2])
 				if a ~= nil and b ~= nil and a ~= b and best == nil then best = string.format("%d>%d", math.max(a, b), math.min(a, b)) end
+				if a == nil and b == nil then mids = mids + 1 end
 			end
 			for _, e in ipairs(list) do
 				if not seen[e] then
@@ -2723,6 +2739,14 @@ local function benchGeometry(pl : ShowPlace, g : SquareStressShowcaseGroup) : bo
 	local p = pl.case_ ~= nil and pl.case_.params or {}
 	if p.sqst_x_shape == 4 then
 		return best ~= nil, string.format("what=lane_drop two_street_nodes=%d lanes=%s", two, best or "same")
+	end
+	-- mid nodes asked for: square_roundabouts' sqrb_dev_ring_mid n (n per gap) or the entry ring's sqst_entry_mid n + 1;
+	-- 4 arms, so 4 n such nodes
+	local perGap = 0
+	if p.sqrb_dev_ring_mid ~= nil and p.sqrb_dev_ring_mid >= 1 then perGap = math.floor(p.sqrb_dev_ring_mid) end
+	if p.sqst_entry_mid ~= nil and p.sqst_entry_mid >= 2 then perGap = math.floor(p.sqst_entry_mid) - 1 end
+	if g.kind == "rb" and perGap > 0 then
+		return oneWay >= 3 and mids >= 4 * perGap, string.format("what=one_way_streets n=%d mids=%d", oneWay, mids)
 	end
 	if g.kind == "rb" then return oneWay >= 3, string.format("what=one_way_streets n=%d", oneWay) end
 	if g.kind == "ix" then return oneWay >= 4, string.format("what=one_way_streets n=%d", oneWay) end
@@ -2772,8 +2796,8 @@ local function readPlace(s : ShowState, pl : ShowPlace, finish : function())
 		if s.spec.bench and grp ~= nil and z ~= nil then
 			local okG, gOk, gText = pcall(benchGeometry, pl, grp)
 			if not okG then gOk, gText = true, "what=unread" end
-			rt.log(string.format("[SQST] BENCH_TWIN id=%s test=%s ab=%s nodes=%d lit_nodes=%d phase=read geometry=%s %s", z.id, tostring(grp.test),
-				tostring(grp.ab), #joins, #joins - #dark, gOk and "ok" or "bad", gText))
+			rt.log(string.format("[SQST] BENCH_TWIN id=%s test=%s ab=%s nodes=%d lit_nodes=%d phase=read geometry=%s %s%s", z.id, tostring(grp.test),
+				tostring(grp.ab), #joins, #joins - #dark, gOk and "ok" or "bad", gText, grp.geom ~= nil and (" geom=" .. grp.geom) or ""))
 			if not gOk then
 				s.lostGeom[grp.set or -pl.group] = true
 				s.problems[#s.problems + 1] = string.format("%s: geometry does not present its test (%s)", pl.tag, gText)
@@ -3748,9 +3772,30 @@ local function buildRun(spec : SquareStressShowcaseSpec, seedArg? : integer) : b
 	end
 	if spec.shapeLabel ~= nil then extra = extra .. string.format(" shape=%d/%d (%s)", spec.shape or 1, #logic.LIGHTS_SHAPES, spec.shapeLabel)
 	elseif spec.perType ~= nil then
+		-- the spec's own shapes: each distinct kind's types in turn (the mixed spec: every LIGHTS_SHAPES shape)
 		local labels : {string} = {}
-		for _, t in ipairs(logic.LIGHTS_SHAPES) do labels[#labels + 1] = t.label end
+		local seenKind : {string : boolean} = {}
+		for _, kd in ipairs(logic.specKinds(spec)) do
+			if not seenKind[kd] then
+				seenKind[kd] = true
+				for _, t in ipairs(logic.specTypes(spec, kd)) do labels[#labels + 1] = t.label end
+			end
+		end
 		extra = extra .. string.format(" shapes=%s per_shape=%d", (table.concat(labels, ","):gsub(" ", "_")), spec.perType)
+	end
+	if spec.variant ~= nil then extra = extra .. " variant=" .. spec.variant end
+	if spec.demandMix then
+		-- sets per demand (the light plans A/B: tools/flow_report.py splits by the zone lines' demand=) and the town sizes
+		local seen : {integer : boolean} = {}
+		local nB, nU = 0, 0
+		for _, g in ipairs(layout.groups) do
+			if g.set ~= nil and not seen[g.set] then
+				seen[g.set] = true
+				if g.demand == "unbalanced" then nU = nU + 1 else nB = nB + 1 end
+			end
+		end
+		extra = extra .. string.format(" demand=balanced:%d,unbalanced:%d pops=busy:%d,small:%d,tiny:%d unbalanced_sides=E,W:busy,N:small,S:tiny", nB, nU,
+			math.floor(logic.LIGHTS_PLANS_POPS.busy), math.floor(logic.LIGHTS_PLANS_POPS.small), math.floor(logic.LIGHTS_PLANS_POPS.tiny))
 	end
 	if spec.noBusLines then extra = extra .. " bus_lines=no" end
 	-- Lights showcase town entries: a roundabout (our own construction) at each town's side middle (SHOWCASE.md
@@ -4020,6 +4065,15 @@ end
 function jn.buildLightsShowcase(seedArg? : integer, shape? : integer)
 	local spec = shape ~= nil and logic.lightsSpec(shape) or logic.LIGHTS_SPEC
 	buildRun(spec, seedArg)
+end
+
+--- Light plans A/B (stress_logic.lightsPlansSpec, SHOWCASE.md "Light plans A/B"): a 2x2 X and a 3x3 X lit crossroads,
+--- three sets each, every set as three twins: the game's light plan, Smart Lanes' axis plan (sl_phases) and the axis
+--- plan with its timing kept adjusted (sl_auto); balanced sets (towns of about LIGHTS_PLANS_TARGET_POP people) and
+--- unbalanced ones (north town small, south town tiny) in turn. The Lights showcase's build otherwise. (The console
+--- variant "classic", sl_classic as the third twin, is gone with Smart Lanes' classic patterns, 2026-10-16.)
+function jn.buildLightPlans(seedArg? : integer)
+	buildRun(logic.LIGHTS_PLANS_SPEC, seedArg)
 end
 
 --- A bench sheet (stress/stress_bench.tl, plans/square_stress_test/BENCH.md): its tests packed onto the map and

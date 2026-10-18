@@ -30,6 +30,15 @@ local flow : SquareStressFlow = {
 	THRU_SPEED = 20.0,         -- m/s: a car this fast covers the track radius within one interval (thruTrack)
 	THRU_TRACK_MAX = 1200.0,   -- m: the widest track radius (the path window must still reach the junction)
 	THRU_WINDOW = 32,          -- path edges looked at ahead of (and behind) a driver's position (thru)
+	-- Ring lane use (BENCH.md "Sheet 5", FLOW.md "RINGMIX / RINGLANE"): zones with ringMix only, independent of the path thru
+	RING_MIX_READS = 400,      -- drivers per sweep whose path window is read for the turning mix (the rest wait a sample)
+	RING_LANE_READS = 2000,    -- drivers per sweep in a ring's circle whose current path element is read (lane use)
+	RING_WINDOW = 40,          -- path elements looked at each way from the driver's position (turning mix)
+	RING_TRIES = 3,            -- samples a driver is read without an entry and an exit before it counts as none
+	RING_ARM_COS = 0.866,      -- a node outside the ring's circle is on arm k within 30 deg of its heading
+	RING_BIN = 0.5,            -- m: lane use bins of a car's distance from the ring's centre
+	RING_EDGE_DR = 3.0,        -- m: a ring edge's end nodes lie this close to one distance from the centre (arms: radial)
+	RING_EVERY = 6,            -- RINGMIX / RINGLANE every this many samples (cumulative; and at the stop)
 }
 
 ---------------------------------------------------------------------------
@@ -152,7 +161,8 @@ function flow.zonesFromShowcase(list : {SquareStressShowcaseZone}, run : string)
 		if z.built and finite(z.x) and finite(z.y) and finite(z.r) and z.r > 0 then
 			out[#out + 1] = flow.withMeasure({ zone = #out + 1, twin = z.id, pair = z.pair, ab = z.ab, kind = flow.kindOf(z.kind),
 				src = "placement", label = flow.word(z.label), x = z.x, y = z.y, r = z.r, match = z.reason == nil and "yes" or "no",
-				reason = z.reason, idFrom = "showcase", scRun = run, test = z.test, approach = z.approach }, z.arms)
+				reason = z.reason, idFrom = "showcase", scRun = run, test = z.test, approach = z.approach, demand = z.demand, mix = z.mix,
+				ringMix = z.ringMix }, z.arms)
 		end
 	end
 	return out
@@ -160,9 +170,14 @@ end
 
 -- twin letters per A/B mode (stress_logic SHOWCASE_AB: sl a, game b, sl_phases c; the Lights showcase's fourth
 -- twin d: sl_lock since 2026-10-13, Smart Lanes' kerb-locked mode; sl_fan before, still read from older saves)
-local TWIN_ORDER : {string : integer} = { sl = 1, game = 2, sl_phases = 3, sl_fan = 4, sl_lock = 5, sl_exitfan = 6, sl_keeplights = 7 }
+local TWIN_ORDER : {string : integer} = { sl = 1, game = 2, sl_phases = 3, sl_fan = 4, sl_lock = 5, sl_exitfan = 6, sl_keeplights = 7,
+	sl_rturbo = 8, sl_rmatch = 9, sl_rout1 = 10, sl_r2exit = 11, sl_rspiral = 12, sl_rspread = 13, sl_rsplit = 14, sl_rmid = 15,
+	sl_classic = 16, sl_auto = 17, sl_rmid2 = 18, sl_rturbo_in = 19 }
 -- sl_exitfan e: the mixed Lights showcase's third twin; sl_keeplights f: the bench's lights twin (BENCH.md)
-local TWIN_LETTER : {string} = { "a", "b", "c", "d", "d", "e", "f" }
+-- sl_classic u: the light plans A/B's classic-patterns twin until 2026-10-16 (Smart Lanes dropped the classic patterns;
+-- still read from older saves); sl_auto v: its auto re-timing twin (LIGHTS_AUTO_AB)
+-- sl_rmid2 w, sl_rturbo_in y: the bench Sheet 5's ring lane use twins (stress_bench AB)
+local TWIN_LETTER : {string} = { "a", "b", "c", "d", "d", "e", "f", "h", "i", "j", "k", "l", "m", "n", "o", "u", "v", "w", "y" }
 
 --- The zones Smart Lanes saved ({x, y, r, ab, id?, pair?}; r = the Showcase's reach estimate + 20 m pad),
 --- after a reload. Twin ids: the stored id / pair labels (idFrom "sl"); without them (an older Smart Lanes)
@@ -405,6 +420,10 @@ function flow.zoneLine(run : integer, z : SquareStressFlowZone) : string
 	-- keys only added: the positional thru's approach length, the bench test
 	s = s .. string.format(" approach=%s", z.approach ~= nil and string.format("%.0f", z.approach) or "-")
 	if z.test ~= nil then s = s .. " test=" .. flow.word(z.test) end
+	-- the light plans A/B's set demand (balanced / unbalanced)
+	if z.demand ~= nil then s = s .. " demand=" .. flow.word(z.demand) end
+	-- the bench Sheet 5's traffic mix of the set
+	if z.mix ~= nil then s = s .. " mix=" .. flow.word(z.mix) end
 	return s
 end
 
@@ -534,9 +553,10 @@ end
 -- Towns (computeTownsTrafficSpeedMap: {town: {speed, {streets per level}}})
 
 --- The FLOW_TOWNS lines: one scope=all line, then one scope=town line per town (at most TOWN_LINES_MAX,
---- slowest first). names(town) gives a town's name (nil: its id).
+--- slowest first). names(town) gives a town's name (nil: its id). pops (town -> people, its residential person
+--- capacity; nil: unread): pop= on each town line and pop_total= on the all line (keys only added, 2026-10-14).
 function flow.townsLines(run : integer, s : integer, gt : number, m : {integer : {any}}, coef : number, ms : number,
-		names : function(town : integer) : string) : {string}
+		names : (function(town : integer) : string), pops? : {integer : integer}) : {string}
 	local towns : {{any}} = {}
 	local levels : {number} = {}
 	local sum, n = 0.0, 0
@@ -562,6 +582,14 @@ function flow.townsLines(run : integer, s : integer, gt : number, m : {integer :
 	local out : {string} = {}
 	out[1] = string.format("[SQST] FLOW_TOWNS run=%d s=%d gt=%s scope=all towns=%d speed_mean=%s speed_min=%s levels=%s coef=%s ms=%s",
 		run, s, N(gt), #towns, N(n > 0 and sum / n or nil), N(min), flow.list(levels, 12), N(coef), N(ms))
+	if pops ~= nil then
+		local total = 0
+		for _, t in ipairs(towns) do
+			local p = pops[t[1] as integer]
+			if type(p) == "number" then total = total + p end
+		end
+		out[1] = out[1] .. string.format(" pop_total=%d", math.floor(total))
+	end
 	table.sort(towns, function(a : {any}, b : {any}) : boolean
 		local sa, sb = a[2], b[2]
 		if type(sa) ~= "number" then return false end
@@ -575,6 +603,10 @@ function flow.townsLines(run : integer, s : integer, gt : number, m : {integer :
 		out[#out + 1] = string.format("[SQST] FLOW_TOWNS run=%d s=%d gt=%s scope=town town=%d name=%s speed=%s levels=%s",
 			run, s, N(gt), id, flow.word(names ~= nil and names(id) or tostring(id)), N(type(t[2]) == "number" and t[2] as number or nil),
 			flow.list(t[3] as {number}, 12))
+		if pops ~= nil then
+			local p = pops[id]
+			out[#out] = out[#out] .. " pop=" .. (type(p) == "number" and string.format("%d", math.floor(p)) or "-")
+		end
 	end
 	return out
 end
@@ -709,6 +741,180 @@ function flow.statusText(on : boolean, interval : integer, run : integer, sample
 	end
 	local last = lastMs ~= nil and string.format(", last sweep %.1f ms in %d frames, %d drivers", lastMs, lastFrames or 0, drivers or 0) or ", first sweep running"
 	return string.format("On, every %d game s: run %d, %d samples, %d zones%s", interval, run, samples, zones, last)
+end
+
+---------------------------------------------------------------------------
+-- Ring lane use (BENCH.md "Sheet 5", FLOW.md "RINGMIX / RINGLANE"): per ring twin the turning mix of its drivers
+-- (how many arms each passes from its entry to its exit, counted once per driver) and the occupancy of its ring lanes
+-- (car samples by distance from the centre; tools/flow_report.py clusters the distances into lanes). Pure: the sampler
+-- (gui/stress_flow_log.tl) reads the paths and positions.
+
+--- A ring zone's empty counts; nil for a zone with fewer than 2 arms (no corridors read: nothing to classify).
+function flow.newRing(z : SquareStressFlowZone) : SquareStressFlowRing
+	if z == nil or z.arms == nil or #z.arms < 2 then return nil end
+	local idx : {integer} = {}
+	for k = 1, #z.arms do idx[k] = k end
+	local function ang(k : integer) : number
+		local a = atan2(z.arms[k][2], z.arms[k][1])
+		if a < 0 then a = a + 2 * math.pi end
+		return a
+	end
+	table.sort(idx, function(a : integer, b : integer) : boolean
+		local x, y = ang(a), ang(b)
+		if x ~= y then return x < y end
+		return a < b
+	end)
+	local pos : {integer} = {}
+	for p, k in ipairs(idx) do pos[k] = p end
+	local exits : {integer} = {}
+	for k = 1, #z.arms - 1 do exits[k] = 0 end
+	return { arms = #z.arms, pos = pos, done = {}, tries = {}, n = 0, exits = exits, uturn = 0, none = 0, reads = 0, capped = 0,
+		lanes = {}, laneCars = 0 }
+end
+
+--- Where a path node at offset (dx, dy) from a ring zone's centre lies: 0 inside the junction's circle r, k > 0 outside
+--- it within RING_ARM_COS of arm k's heading, -1 elsewhere outside.
+function flow.ringClass(z : SquareStressFlowZone, dx : number, dy : number) : integer
+	local d2 = dx * dx + dy * dy
+	if d2 <= z.r * z.r then return 0 end
+	local d = math.sqrt(d2)
+	local best, bestDot = -1, flow.RING_ARM_COS
+	for k, a in ipairs(z.arms or {}) do
+		local dot = (dx * a[1] + dy * a[2]) / d
+		if dot >= bestDot then best, bestDot = k, dot end
+	end
+	return best
+end
+
+--- A driver's entry and exit arm at a ring from its path window: get(i) is path element i's class (0-based; nil for an
+--- edge or an unreadable element, else ringClass of the node); the first run of inside nodes within w elements of cur
+--- (its position) is the ring, the nearest outside node before it the entry, the nearest after it the exit. nil, nil when
+--- either is missing or not on an arm (a path that ends inside, or the window too short). Each element read once.
+function flow.ringMove(get : function(i : integer) : integer, n : integer, cur : integer, w? : integer) : integer, integer
+	if get == nil or n == nil or cur == nil or n <= 0 then return nil, nil end
+	local win = w or flow.RING_WINDOW
+	local lo, hi = math.max(0, cur - win), math.min(n - 1, cur + win)
+	if lo > hi then return nil, nil end
+	local memo : {integer : integer} = {}
+	local read : {integer : boolean} = {}
+	local function cls(i : integer) : integer
+		if not read[i] then
+			read[i] = true
+			memo[i] = get(i)
+		end
+		return memo[i]
+	end
+	local i0 : integer = nil
+	for i = lo, hi do
+		if cls(i) == 0 then
+			i0 = i
+			break
+		end
+	end
+	if i0 == nil then return nil, nil end
+	local i1 = i0
+	for i = i0 + 1, hi do
+		local c = cls(i)
+		if c == 0 then i1 = i elseif c ~= nil then break end
+	end
+	local entry, exit : integer, integer = nil, nil
+	for i = i0 - 1, lo, -1 do
+		local c = cls(i)
+		if c ~= nil and c ~= 0 then
+			entry = c
+			break
+		end
+	end
+	for i = i1 + 1, hi do
+		local c = cls(i)
+		if c ~= nil and c ~= 0 then
+			exit = c
+			break
+		end
+	end
+	if entry == nil or exit == nil or entry < 1 or exit < 1 then return nil, nil end
+	return entry, exit
+end
+
+--- Arms passed from entry to exit in the ring's travel direction (counterclockwise for right-hand traffic, side
+--- "right"; clockwise for "left"): 1 the first exit .. A the entry arm itself (the U-turn). nil for unknown arms.
+function flow.ringSteps(ring : SquareStressFlowRing, entry : integer, exit : integer, side : string) : integer
+	local pe, px = ring.pos[entry], ring.pos[exit]
+	if pe == nil or px == nil then return nil end
+	local a = ring.arms
+	local k = side == "left" and (pe - px) % a or (px - pe) % a
+	if k == 0 then k = a end
+	return math.floor(k)
+end
+
+--- Counts driver once (entry and exit known): exit<k> or uturn. Returns k (nil: already counted or unknown arms).
+function flow.ringCount(ring : SquareStressFlowRing, driver : integer, entry : integer, exit : integer, side : string) : integer
+	if ring.done[driver] then return nil end
+	local k = flow.ringSteps(ring, entry, exit, side)
+	if k == nil then return nil end
+	ring.done[driver] = true
+	ring.tries[driver] = nil
+	ring.n = ring.n + 1
+	if k >= ring.arms then ring.uturn = ring.uturn + 1 else ring.exits[k] = (ring.exits[k] or 0) + 1 end
+	return k
+end
+
+--- A driver read without both arms: after RING_TRIES such samples it counts once as none.
+function flow.ringMiss(ring : SquareStressFlowRing, driver : integer)
+	if ring.done[driver] then return end
+	local t = (ring.tries[driver] or 0) + 1
+	if t >= flow.RING_TRIES then
+		ring.done[driver] = true
+		ring.tries[driver] = nil
+		ring.n = ring.n + 1
+		ring.none = ring.none + 1
+	else
+		ring.tries[driver] = t
+	end
+end
+
+--- Whether a street edge with end nodes at offsets (ax, ay), (bx, by) from the zone's centre is a ring edge: both ends
+--- inside r, off the centre, at nearly one distance (an arm runs outwards).
+function flow.ringEdge(z : SquareStressFlowZone, ax : number, ay : number, bx : number, by : number) : boolean
+	local da, db = math.sqrt(ax * ax + ay * ay), math.sqrt(bx * bx + by * by)
+	return da <= z.r and db <= z.r and da > 1 and db > 1 and math.abs(da - db) <= flow.RING_EDGE_DR
+end
+
+--- One car sample on a ring edge, d m from the centre.
+function flow.ringLane(ring : SquareStressFlowRing, d : number)
+	if d == nil or d ~= d or d < 0 or d > 1e5 then return end
+	local b = math.floor(d / flow.RING_BIN + 0.5)
+	ring.lanes[b] = (ring.lanes[b] or 0) + 1
+	ring.laneCars = ring.laneCars + 1
+end
+
+--- "[SQST] RINGMIX run= s= zone= twin= pair= ab= gt= arms= dir= n= exit1= .. exit<A-1>= uturn= none= reads= capped=
+--- final= [mix=]": the zone's counts so far in this run (cumulative: the report takes the record window's difference).
+function flow.ringMixLine(run : integer, s : integer, gt : number, z : SquareStressFlowZone, ring : SquareStressFlowRing, side : string,
+		final : boolean) : string
+	local parts : {string} = {}
+	for k = 1, ring.arms - 1 do parts[k] = string.format("exit%d=%d", k, ring.exits[k] or 0) end
+	local l = string.format("[SQST] RINGMIX run=%d s=%d zone=%d %s gt=%s arms=%d dir=%s n=%d %s uturn=%d none=%d reads=%d capped=%d final=%d",
+		run, s, z.zone, twinKeys(z), N(gt), ring.arms, side == "left" and "cw" or "ccw", ring.n, table.concat(parts, " "), ring.uturn, ring.none,
+		ring.reads, ring.capped, final and 1 or 0)
+	if z.mix ~= nil then l = l .. " mix=" .. flow.word(z.mix) end
+	return l
+end
+
+--- "[SQST] RINGLANE run= s= zone= twin= pair= ab= gt= cars= bin_m= radii=<m>:<car samples>,..." (outer first; at most 80
+--- bins, the rest summed as +N): car samples on the ring's edges by distance from the centre, cumulative in this run.
+function flow.ringLaneLine(run : integer, s : integer, gt : number, z : SquareStressFlowZone, ring : SquareStressFlowRing, final : boolean) : string
+	local bins : {integer} = {}
+	for b in pairs(ring.lanes) do bins[#bins + 1] = b end
+	table.sort(bins, function(a : integer, b : integer) : boolean return a > b end)
+	local parts : {string} = {}
+	local rest = 0
+	for i, b in ipairs(bins) do
+		if i <= 80 then parts[#parts + 1] = string.format("%.1f:%d", b * flow.RING_BIN, ring.lanes[b]) else rest = rest + ring.lanes[b] end
+	end
+	if rest > 0 then parts[#parts + 1] = string.format("+%d", rest) end
+	return string.format("[SQST] RINGLANE run=%d s=%d zone=%d %s gt=%s cars=%d bin_m=%.1f radii=%s final=%d", run, s, z.zone, twinKeys(z), N(gt),
+		ring.laneCars, flow.RING_BIN, #parts > 0 and table.concat(parts, ",") or "-", final and 1 or 0)
 end
 
 return flow

@@ -47,6 +47,14 @@ function data()
 				end)(),
 				defaultIndex = 1,
 			},
+			{
+				-- ring mid nodes per quarter (the bench's 3-lane ring with mid nodes; stress_entry_streets entry.midNodes)
+				key = entry.KEYS.mid,
+				name = "Ring mid nodes",
+				uiType = "Button",
+				values = { "None", "1", "2", "3" },
+				defaultIndex = 1,
+			},
 		},
 		updateScript = {
 			fileName = "square_stress_test_entry.script@updateFn",

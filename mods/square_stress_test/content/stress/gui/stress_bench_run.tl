@@ -15,6 +15,8 @@ local towns = ug_require "square_stress_test::/stress/gui/stress_towns.tl" as Sq
 local roads = ug_require "square_stress_test::/stress/gui/stress_roads.tl" as SquareStressRoads
 local fl = ug_require "square_stress_test::/stress/gui/stress_flow_log.tl" as SquareStressFlowLog
 local traffic = ug_require "square_stress_test::/stress/gui/stress_traffic.tl" as SquareStressTraffic
+-- the city run (bench.CITY, BENCH.md "City lights at scale"): its build instead of buildBench, the enroll after its baseline
+local citylights = ug_require "square_stress_test::/stress/gui/stress_citylights.tl" as SquareStressCityLights
 
 local MAP_MARGIN <const> = 400.0      -- stress_junctions MAP_MARGIN
 local POLL_US <const> = 250000        -- the state machine looks every this often
@@ -22,11 +24,25 @@ local ACK_MS <const> = 5000           -- Smart Lanes' answer to the preflight's 
 local REMOVE_MAX_MS <const> = 600000  -- the map clearing may take this long
 local SHOT_GAP_US <const> = 4000000   -- between two screenshots
 local SHOT_SETTLE_US <const> = 2500000  -- after a camera move, before its shot
-local SHOT_DIST <const> = 450.0       -- m: the camera's distance over a junction
+local SHOT_DIST <const> = 130.0       -- m: the camera's distance over a junction (450 m showed only queues, no lanes: 2026-10-14)
 local BUILD_MAX_MS <const> = 5400000  -- the build (towns to growth) may take this long in all
 local STALL_MS <const> = 600000       -- ... and this long without a single log line (no progress)
 
-local br : SquareStressBenchRun = { phase = "idle" }
+local br : SquareStressBenchRun = { phase = "idle", cityUi = { layout = 1, busy = false, baseline = 1, swap = false, sameSeed = false } }
+
+--- A sheet by key; the City lights sheet with the window's options (bench.citySheet; the defaults: the v1 run).
+function br.sheetFor(key : string) : SquareStressBenchSheet
+	local sheet = bench.sheet(key)
+	if sheet ~= nil and sheet.city ~= nil then return bench.citySheet(br.cityUi) end
+	return sheet
+end
+
+--- The City lights options' signature (the window re-renders when one changes).
+function br.cityUiSignature() : string
+	local u = br.cityUi
+	return string.format("%d%s%d%s%s%s", u.layout or 1, tostring(u.busy), u.baseline or 1, tostring(u.swap), tostring(u.sameSeed),
+		tostring(br.lastCitySeed))
+end
 
 -- the run's state in one table (Lua 5.1 upvalue limit)
 local record Run
@@ -57,6 +73,7 @@ local record Run
 	linesSeen : integer       -- rt.lines at the last look (build watchdog)
 	progressUs : integer      -- when the build last logged something
 	recordSpeed : integer     -- the game speed of the record
+	enrolled : boolean        -- the city run: its enroll was sent (after baselineS of the record)
 end
 
 local run : Run = nil
@@ -112,6 +129,8 @@ local function abort(why : string)
 	if run.phase == "warmup" or run.phase == "record" then
 		pcall(fl.setOn, false)
 	end
+	-- the city run: its junctions unenrolled again
+	if run.sheet.city ~= nil and run.enrolled then pcall(citylights.unenroll) end
 	fl.pathThru = true
 	if (run.speed or 1) ~= 1 then pcall(setSpeed, 1) end
 	jn.onRunFinished, jn.onRunAborted, jn.benchActive = nil, nil, false
@@ -126,10 +145,12 @@ function br.status() : string
 	local p = run.phase
 	if p == "warmup" or p == "record" then
 		local gt = gameTime()
-		local need = (p == "warmup" and bench.WARMUP_S or bench.RECORD_S)
+		local need = (p == "warmup" and bench.WARMUP_S or bench.recordS(run.sheet))
 		local done = (gt ~= nil and run.gt0 ~= nil) and (gt - run.gt0) / 1000 or 0
-		return string.format("Bench %s: %s %d of %d game s (speed %d)", run.sheet.key, p == "warmup" and "warm-up" or "recording",
-			math.floor(math.min(done, need)), need, run.speed or 1)
+		local city = ""
+		if run.sheet.city ~= nil and p == "record" then city = run.enrolled and ", automatic timing on" or ", baseline" end
+		return string.format("Bench %s: %s %d of %d game s (speed %d%s)", run.sheet.key, p == "warmup" and "warm-up" or "recording",
+			math.floor(math.min(done, need)), need, run.speed or 1, city)
 	end
 	return string.format("Bench %s: %s", run.sheet.key, p)
 end
@@ -146,7 +167,11 @@ local function readInfo(sheet : SquareStressBenchSheet) : SquareStressBenchInfo
 		info.w, info.h = box.max.x - box.min.x, box.max.y - box.min.y
 	end)
 	if info.w ~= nil and info.w > 0 and info.h ~= nil and info.h > 0 then
-		info.plan = bench.plan(info.w, info.h, MAP_MARGIN, sheet)
+		if sheet.city ~= nil then
+			info.cityPlan, info.cityWhy = bench.cityPlan(info.w, info.h, MAP_MARGIN, sheet)
+		else
+			info.plan = bench.plan(info.w, info.h, MAP_MARGIN, sheet)
+		end
 	end
 	info.busy = rt.busyJob(rt.TEST_JOBS)
 	for _, t in ipairs(sheet.tests) do
@@ -161,18 +186,24 @@ local function readInfo(sheet : SquareStressBenchSheet) : SquareStressBenchInfo
 		local ok, all = pcall(function() : {string : any} return api.engine.config.getModParams() as {string : any} end)
 		local raw = (ok and type(all) == "table") and (all as {string : any})["square_smart_lanes"] or nil
 		info.sl = bench.slSettings(type(raw) == "table" and raw as {string : any} or {})
+		-- the DEV master switch (plans/sqperf/README.md): every SQPERF mod's window lines on
+		info.perfAll = ok and type(all) == "table" and (all as {string : any})["square_sqperf_all"] ~= nil
 	end
 	return info
 end
 
 --- The window's plan line for a sheet on this map.
 function br.planLine(key : string) : string
-	local sheet = bench.sheet(key)
+	local sheet = br.sheetFor(key)
 	if sheet == nil then return "" end
 	local ok, text = pcall(function() : string
 		local w, h : number, number = nil, nil
 		local box = api.engine.terrain.getBoundingBox()
 		w, h = box.max.x - box.min.x, box.max.y - box.min.y
+		if sheet.city ~= nil then
+			local cp, why = bench.cityPlan(w, h, MAP_MARGIN, sheet)
+			return bench.cityPlanText(cp, why, w, h)
+		end
 		return bench.planText(bench.plan(w, h, MAP_MARGIN, sheet), w, h)
 	end)
 	return ok and text or "(the map size could not be read)"
@@ -180,7 +211,7 @@ end
 
 --- What would stop the sheet now (the confirm dialog shows it instead of starting): empty when it can start.
 function br.check(key : string) : {string}
-	local sheet = bench.sheet(key)
+	local sheet = br.sheetFor(key)
 	if sheet == nil then return { "Unknown bench sheet " .. tostring(key) } end
 	if run ~= nil then return { "A bench is running (" .. run.sheet.key .. "): wait for it to finish." } end
 	local info = readInfo(sheet)
@@ -204,11 +235,36 @@ local function startBuild()
 		if run ~= nil and name == run.sheet.id then abort(why) end
 	end
 	phase("build")
+	if run.sheet.city ~= nil then
+		-- the city run: its cities, their lights and zones (gui/stress_citylights.tl); no junction twins, no Smart Lanes zones
+		local sheet = run.sheet
+		local okB = citylights.build(sheet, run.seed, function(zones : {SquareStressShowcaseZone})
+			if run ~= nil and run.sheet == sheet then
+				run.finished = true
+				run.zones = zones
+			end
+		end, function(why : string)
+			if run ~= nil and run.sheet == sheet then abort(why) end
+		end)
+		if not okB then abort("the city build did not start (the cities do not fit, or a build is running)") end
+		return
+	end
 	if not jn.buildBench(run.sheet, run.seed) then abort("the build did not start (see its dialog)") end
 end
 
 local function startShots()
 	run.shots, run.shotIds = {}, {}
+	if run.sheet.city ~= nil then
+		-- one shot over each city
+		for _, z in ipairs(run.zones or {}) do
+			run.shots[#run.shots + 1] = { z.x, z.y }
+			run.shotIds[#run.shotIds + 1] = string.format("city:%s", z.id)
+		end
+		run.shotI = 0
+		run.shotDueUs = nowUs()
+		phase("shots", string.format("n=%d", #run.shots))
+		return
+	end
 	local seen : {string : boolean} = {}
 	for gi, g in ipairs(run.layout ~= nil and run.layout.groups or {}) do
 		local z = run.zones ~= nil and run.zones[gi] or nil
@@ -334,9 +390,10 @@ local function step(now : integer)
 			-- path reads, the sampler's heaviest part (BENCH.md "Thru by position")
 			fl.pathThru = false
 			fl.setOn(true)
-			setSpeed(bench.SPEED)
+			local sp = bench.speed(run.sheet)
+			setSpeed(sp)
 			run.gt0 = gameTime()
-			phase("warmup", string.format("speed=%d", bench.SPEED))
+			phase("warmup", string.format("speed=%d", sp))
 		end
 	elseif p == "warmup" or p == "record" then
 		local gt = gameTime()
@@ -344,16 +401,26 @@ local function step(now : integer)
 		if run.gt0 == nil then run.gt0 = gt end
 		local samples, skipped = fl.counts()
 		if skipped > 0 and run.speed > 1 and not run.steppedDown and p == "warmup" then
-			-- a sweep missed its interval: one speed step down, a fresh sampler run, the warm-up again
+			-- a sweep missed its interval: one speed step down (half: 2x -> 1x, the city run's 4x -> 2x), a fresh sampler
+			-- run, the warm-up again
+			local was = run.speed
+			local down = math.max(1, was // 2)
 			run.steppedDown = true
-			setSpeed(1)
+			setSpeed(down)
 			fl.setOn(false)
 			fl.setOn(true)
 			run.gt0 = gt
-			phase("warmup", string.format("speed=1 (a sample was skipped at %dx)", bench.SPEED))
+			phase("warmup", string.format("speed=%d (a sample was skipped at %dx)", down, was))
 			return
 		end
-		local need = (p == "warmup" and bench.WARMUP_S or bench.RECORD_S) * 1000
+		-- the city run: its enroll once the baseline is recorded (a CITY_ENROLL line splits the report there)
+		if p == "record" and run.sheet.city ~= nil and not run.enrolled and gt - run.gt0 >= (run.sheet.baselineS or 0) * 1000 then
+			run.enrolled = true
+			local last = citylights.last
+			local n = last ~= nil and citylights.enroll(run.sheet, last.run, last.crossings, last.plan) or 0
+			phase("record", string.format("enroll=%d", n))
+		end
+		local need = (p == "warmup" and bench.WARMUP_S or bench.recordS(run.sheet)) * 1000
 		if gt - run.gt0 >= need then
 			if p == "warmup" then
 				run.gt0 = gt
@@ -364,6 +431,12 @@ local function step(now : integer)
 				fl.setOn(false)
 				fl.pathThru = true
 				setSpeed(1)
+				-- the city run: every junction unenrolled again (the written timing stays); its gaps counted once more (a
+				-- funnel layout: a street the town grew into a gap during the record shows as CITY_GAPS at=end)
+				if run.sheet.city ~= nil then
+					citylights.unenroll()
+					pcall(citylights.gapCheck, "end")
+				end
 				phase("stop", string.format("samples=%d skipped=%d", samples, skipped))
 				startShots()
 			end
@@ -387,7 +460,7 @@ local function step(now : integer)
 		if not run.moved then
 			local okC = pcall(function()
 				local cur = api.gui.camera.getCameraData()
-				api.gui.camera.setCameraData(api.type.Vec5f.new(pt[1], pt[2], SHOT_DIST, cur.w, cur.q))
+				api.gui.camera.setCameraData(api.type.Vec5f.new(pt[1], pt[2], run.sheet.shotDist or SHOT_DIST, cur.w, cur.q))
 			end)
 			run.moved = okC
 			if not okC then run.shotI = i + 1 end
@@ -415,7 +488,7 @@ end)
 
 --- Starts sheet `key` (after the window's confirm). false and why when it can't.
 function br.start(key : string, seedArg? : integer) : boolean, string
-	local sheet = bench.sheet(key)
+	local sheet = br.sheetFor(key)
 	if sheet == nil then return false, "unknown sheet" end
 	if run ~= nil then return false, "a bench is running" end
 	local info = readInfo(sheet)
@@ -429,6 +502,9 @@ function br.start(key : string, seedArg? : integer) : boolean, string
 	info.slModes = nil
 	local okT, t = pcall(os.time)
 	local seed = seedArg or logic.showcaseSeed(((okT and t ~= nil) and t or 0) * 1000 + math.floor(nowUs() / 1000))
+	-- City lights, Same seed: the last city run's seed again (its holes; the Swap roles rerun)
+	if seedArg == nil and sheet.city ~= nil and br.cityUi.sameSeed and br.lastCitySeed ~= nil then seed = br.lastCitySeed end
+	if sheet.city ~= nil then br.lastCitySeed = seed end
 	run = { sheet = sheet, info = info, seed = seed, nextUs = 0, t0Us = nowUs(), clearsSeen = rt.queueClears, problems = {}, speed = 1 }
 	-- the other test builds and removals refuse while it runs (stress_hud, buildRun)
 	jn.benchActive = true

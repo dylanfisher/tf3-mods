@@ -292,6 +292,8 @@ test("Lights showcase: one button (every shape, no options) and a short descript
 		end or nil)
 		local b = findButton(tree, "Fill the map with every lit junction shape")
 		ok(b ~= nil, "Lights showcase button")
+		-- the light plans A/B: a second button in the section (SHOWCASE.md "Light plans A/B")
+		ok(findButton(tree, "A focused light-plan A/B") ~= nil, "Light plans A/B button")
 		local all = texts(tree)
 		ok(all:find("\nLights showcase\n", 1, true), all)
 		local from = all:find("Build lights showcase", 1, true)
@@ -303,6 +305,20 @@ test("Lights showcase: one button (every shape, no options) and a short descript
 		end
 		ok(section:find("Keep balance on", 1, true) and section:find("grow once after the links, to about 400 people each", 1, true) and section:find("No bus lines", 1, true)
 			and section:find("2x2 X, 3x3 X, 3x2 X", 1, true), section)
+		ok(section:find("Build light plans A/B", 1, true) and section:find("timing kept adjusted", 1, true) and section:find("about 600 people", 1, true)
+			and section:find("about 150 (\"small\")", 1, true) and section:find("about 40 (\"tiny\")", 1, true) and section:find("90 game minutes", 1, true), section)
+		-- City lights at scale: the bench's city run (BENCH.md "City lights at scale")
+		ok(section:find("\nCity lights at scale\n", 1, true), section)
+		ok(findButton(tree, "City lights at scale: automatic") ~= nil, "City lights button")
+		ok(section:find("6 big grid towns", 1, true) and section:find("15 game minutes as they are", 1, true)
+			and section:find("then 90 more", 1, true) and section:find("Debug: performance log On", 1, true), section)
+		-- its options (BENCH.md "Funnel layouts"): Layout / Baseline choices, Busy / Swap roles checkboxes
+		ok(section:find("\nLayout\nPlain grid\nHourglass\nHoles\n", 1, true) and section:find("\nBaseline\n15 min\n30 min\n", 1, true)
+			and section:find("81 lit crossings each", 1, true) and section:find("Swap roles: run again with the same seed", 1, true), section)
+		-- Auto re-time: all lit junctions / Clear (Smart Lanes' SmartLanes.auto, whole map)
+		ok(section:find("\nAuto re-time\n", 1, true), section)
+		ok(findButton(tree, "Smart Lanes keeps the timing of every lit junction") ~= nil, "Auto re-time all button")
+		ok(findButton(tree, "Stops Smart Lanes' automatic re-timing") ~= nil, "Auto re-time clear button")
 	end
 end)
 

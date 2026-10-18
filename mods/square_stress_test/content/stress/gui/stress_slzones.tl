@@ -31,6 +31,7 @@ local rt = ug_require "square_stress_test::/stress/gui/stress_runtime.tl" as Squ
 local z : SquareStressSlZones = {
 	EVENT_ID = "square_smart_lanes",
 	EV_ZONES = "SmartLanes.zones",
+	EV_AUTO = "SmartLanes.auto",
 	GS_NAME = "square_smart_lanes::/smart_lanes/sl_lanes.gs",
 	ACK_TIMEOUT_MS = 5000,
 	ACK_POLL_MS = 250,
@@ -49,13 +50,13 @@ function z.present() : boolean
 	return ok and type(all) == "table" and type((all as {string : any})["square_smart_lanes"]) == "table"
 end
 
---- Sends one event; false when the command could not be made or sent (logged).
-local function send(payload : {string : any}) : boolean
+--- Sends one event (default: the zones event); false when the command could not be made or sent (logged).
+local function send(payload : {string : any}, event? : string) : boolean
 	local ok, err : boolean, any = pcall(function()
-		local cmd = api.cmd.makeScriptingSendEventCmd("", z.EVENT_ID, z.EV_ZONES, payload)
+		local cmd = api.cmd.makeScriptingSendEventCmd("", z.EVENT_ID, event or z.EV_ZONES, payload)
 		api.cmd.sendCommand(cmd as Command<ICommandData>)
 	end)
-	if not ok then rt.log("[SQST] showcase zones send failed: " .. tostring(err)) end
+	if not ok then rt.log(string.format("[SQST] %s send failed: %s", event == z.EV_AUTO and "auto re-time" or "showcase zones", tostring(err))) end
 	return ok
 end
 
@@ -83,6 +84,40 @@ function z.sendClear(by : string) : string
 	return okS and run or nil
 end
 
+--- Whole-map auto re-timing (Smart Lanes PLAN.md "Stress Test interface: Keep timing adjusted", 2.): op "all" enrolls
+--- every lit junction on the map (at most 1000, Smart Lanes' cap; it logs AUTORETIME op=enroll_all phase=request, then
+--- phase=done from its GUI runtime), op "clear" unenrolls every junction (op=unenroll all=1). The run id has the
+--- zones' form ("s0-<wall s>-<n>"). Junctions lit after an "all" are not enrolled: send it again.
+function z.sendAuto(op : string, by : string) : string
+	if op ~= "all" and op ~= "clear" then return nil end
+	sends = sends + 1
+	local run = logic.slZoneRun(0, wallS(), sends)
+	local okS = send({ op = op, run = run }, z.EV_AUTO)
+	z.autoLast = { op = op, run = okS and run or "-", by = by or "button" }
+	rt.log(string.format("[SQST] AUTO_ALL op=%s run=%s by=%s smart_lanes=%s%s", op, run, by or "button", z.present() and "yes" or "no",
+		okS and "" or " failed=yes"))
+	return okS and run or nil
+end
+
+--- Enrolls single junctions in Smart Lanes' automatic re-timing (the bench's city run, BENCH.md "City lights at
+--- scale"): SmartLanes.auto { op = "add", nodes = {{n, x, y}, ...}, src = "stress" } payloads (at most 60 nodes each:
+--- stress_bench.cityPayloads). Smart Lanes logs AUTORETIME op=enroll ... src=stress per junction. Returns the events sent.
+function z.sendAutoNodes(payloads : {{string : any}}) : integer
+	local sent = 0
+	for _, p in ipairs(payloads or {}) do
+		if send(p, z.EV_AUTO) then sent = sent + 1 end
+	end
+	return sent
+end
+
+--- Traffic-log zones that are not sent to Smart Lanes (the city run's cities: Smart Lanes treats them as any street):
+--- the traffic log measures them as it does a Showcase's (z.current). Logs "[SQST] showcase zones local n= run=".
+function z.setLocal(zones : {SquareStressShowcaseZone}, run : string)
+	sends = sends + 1
+	z.current = { run = run, zones = zones, seq = sends }
+	rt.log(string.format("[SQST] showcase zones local n=%d run=%s (traffic log only, not sent to Smart Lanes)", #zones, run or "-"))
+end
+
 --- One value of Smart Lanes' saved state (state_native:find, else the state copy), nil when unreadable.
 local function savedField(key : string, asTable : boolean) : any
 	if not z.present() then return nil end
@@ -105,6 +140,25 @@ local function savedField(key : string, asTable : boolean) : any
 	end)
 	if not ok then return nil end
 	return v
+end
+
+function z.autoAckRun() : string
+	local v = savedField("arun", false)
+	if type(v) ~= "string" then return nil end
+	return v as string
+end
+
+--- The button's status line: "" before the first send; else the last op, its run and whether Smart Lanes holds it
+--- (its saved arun, the run of its last all / clear).
+function z.autoStatus() : string
+	local l = z.autoLast
+	if l == nil then return "" end
+	local ack = "Smart Lanes not active"
+	if z.present() then
+		ack = z.autoAckRun() == l.run and "acknowledged by Smart Lanes" or "not acknowledged yet (Smart Lanes without auto re-timing, or the game is paused)"
+	end
+	local what = l.op == "all" and "every lit junction enrolled" or "every junction unenrolled"
+	return string.format("Last auto re-time: %s (run %s), %s.", what, l.run, ack)
 end
 
 function z.ackRun() : string

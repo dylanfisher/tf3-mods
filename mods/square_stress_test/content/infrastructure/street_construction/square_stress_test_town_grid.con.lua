@@ -8,6 +8,8 @@ local grid = ug_require "square_stress_test::/stress/stress_grid_streets.lua"
 function data()
 	local halves = {}
 	for i, h in ipairs(grid.HALF) do halves[i] = tostring(2 * h) .. " m" end
+	local patterns = {}
+	for i = 1, grid.HOLE_PATTERNS do patterns[i] = tostring(i) end
 	return {
 		description = {
 			name = "Stress Test town street grid",
@@ -33,6 +35,21 @@ function data()
 				name = "Outer ring",
 				uiType = "Button",
 				values = { "Town street", "Country road" },
+				defaultIndex = 1,
+			},
+			-- the bench's City lights layouts (stress_grid_streets.lua LAYOUTS; BENCH.md "Funnel layouts")
+			{
+				key = grid.KEYS.layout,
+				name = "Layout",
+				uiType = "Button",
+				values = { "Plain", "Hourglass", "Holes" },
+				defaultIndex = 1,
+			},
+			{
+				key = grid.KEYS.holes,
+				name = "Holes pattern",
+				uiType = "Button",
+				values = patterns,
 				defaultIndex = 1,
 			},
 		},

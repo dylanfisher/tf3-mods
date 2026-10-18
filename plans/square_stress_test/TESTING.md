@@ -436,7 +436,7 @@ W/E/N/S"). Every junction is our crossing construction (stress_crossing.lua).
    `crossing_test summary crossings=21 built=21 refused=0 links=36 linked=36 failed=0`. No traffic lights anywhere.
 2. Unfreeze / grow the towns; at speed 4 watch W <-> E traffic straight along the rows and N/S <-> W/E traffic turning.
 3. For the rule: pick a crossing with the Smart Lanes tool (`[SQRL] CONNS` / `CONN` = the game's default), set the lanes
-   with the Crossing Tool (right turns only from the kerb lane, ...), pick it again; note its id (x12 = row 1 col 2:
+   with the Crossing Tool (right turns only from the curb lane, ...), pick it again; note its id (x12 = row 1 col 2:
    3 x 2 lanes). Most useful: x11 (3x3), x12 (3x2), x13 (3x1), x22 (2x2), a collector T (w1 = T 2 / 3).
 4. Lights = Game decides: the same with the game's automatic lights.
 
@@ -804,7 +804,7 @@ unticked, costs on.
    before 1950 ..." and `lights_showcase year=1930 before 1950`; the build goes on.
 2. Look at the map: 4 rows, each one set of 4 twins side by side (Group Na, Nb, Nc, Nd: same crossing, arm roads and
    town sizes); square layout (SHOWCASE.md "In-game run 2026-10-12 #4"): every crossing at 90 deg and axis-aligned
-   (`angle=0`, `sqst_x_angle=1`), its arms COUNTRY roads (no sidewalk kerbs; lanes differing per arm, 1-3 each way);
+   (`angle=0`, `sqst_x_angle=1`), its arms COUNTRY roads (no sidewalk curbs; lanes differing per arm, 1-3 each way);
    a Medium or Large town exactly north / east / south / west of it (T: three), all at one distance; each link one
    straight country road along the axis into the MIDDLE of the town's facing side (where the grid's central street
    meets the perimeter), never a corner, never another town; no roads between groups. Screenshot one set top-down.
@@ -927,7 +927,7 @@ Background: SHOWCASE.md "Faster, simpler Lights showcase + batched building". Se
    No `FLOW_BUS` lines are expected (no bus lines); every pair compares sl / sl_phases / sl_lock with game, and sl
    with sl_lock. **sl_lock twin (2026-10-13)**: the first line `twins sl=N game=N sl_phases=N sl_lock=N`, the zones line
    `by_ab=game:N,sl:N,sl_phases:N,sl_lock:N` and Smart Lanes' `[SQRL] ZONES ... by_ab=` the same (the ack matches:
-   `zones ack=yes`), Smart Lanes' `MODE` lines for the d twins kerb-locked with game phases; towns "Kerb locked
+   `zones ack=yes`), Smart Lanes' `MODE` lines for the d twins curb-locked with game phases; towns "Kerb locked
    <set> <side>"; `make flow`: `sl_lock vs game` and `sl vs sl_lock` rows. **Record** the per-pair table.
 4b. **Town entries + every-driver sampler (2026-10-12, SHOWCASE.md "Town entries")**: rebuild the Lights showcase
    on a fresh 16 km map with Smart Lanes enabled (the entry roundabout is the Stress Test's own construction since
@@ -1132,3 +1132,260 @@ game twin; `[SQRL] APPLY kind=drop ... zid=` at every drop sl twin; `bench_s1 sm
 interval=10 ... thru_m=pos`, FLOW lines with `thru=` > 0 at busy junctions, `FLOW_PATHOFF` once (or `thru_path`
 values); warm-up and record phases at speed 2 (or 1 after a step-down); `BENCH_SHOT` x 5 (3 roundabout twins + 2 drop
 twins) and `BENCH_DONE ok=yes`. Screenshots: the game's `screenshots/` folder, the 5 newest files.
+
+## 6X. Micro bench v2: ring layouts on 2-, 3- and 4-lane roundabouts (rev 2, 2026-10-13; not run in game yet)
+Background: BENCH.md "Micro bench". Mods: Stress Test, Smart Lanes with the six ring layout modes (Apply automatically
+On, No lights at roundabouts and ramps On: the preflight refuses otherwise), Roundabouts & Interchanges. A new free game,
+16 km Blank Slate, right-hand traffic (the rings are built anticlockwise only; left-hand maps are not supported).
+1. Debug window > Towns tab > Bench > **Micro**. **Pass:** the dialog says "32 junctions, 128 towns (~77k people), about 11
+   min to build; 16.0 x 16.0 km map; cut: rb3: 1 of 2 sets, rb2: 1 of 2 sets" (the cut is expected). Press "Run bench".
+2. Leave the game running, unpaused, in front, about 27 minutes, until the Bench status says `Bench micro done (seed N)`.
+3. Say "done". Claude runs `make bench` (draft `.cache/bench/<session>_micro-<seed>.md`, with the ranking tables).
+What Claude checks: `BENCH_START sheet=micro spec=bench_micro@2 ... pop=600 pool=yes rank=yes sl_modes=` with the six
+modes, three `BENCH_TEST` lines (rb4l sets=2/2, rb3 1/2, rb2 1/2), 32 `BENCH_TWIN ... geometry=ok`, `bench_micro summary ...
+built=32 refused=0 ... linked=128`, every mode twin's ring `APPLY ... layout=<mode> zid=microg<k><letter>`, the growth near
+600 people a town, map-wide standing (not a total jam), `BENCH_DONE ok=yes`.
+
+## 6Y. Bench sheet 4 v5: plain rings vs mid-node rings, 2-, 3- and 4-lane, one set each (rev 3, 2026-10-14; not run in game yet)
+Background: BENCH.md "Sheet 4" v5 (v4's live samples: the 4-lane mid-node ring jammed for every twin; v4's checks:
+HISTORY.md). Mods: Stress Test, Smart Lanes with the modes `sl_rsplit` and `sl_rmid` (Apply automatically On, No lights at
+roundabouts and ramps On), Roundabouts & Interchanges (this repo's: Nodes between arms and the dev override). A free
+game, 16 km Blank Slate, right-hand traffic (the v4 map can be reused: the bench clears it).
+1. Debug window > Towns tab > Bench > **Sheet 4**. **Pass:** the dialog says "13 junctions, 52 towns (~21k people), about
+   4.3 min to build; 16.0 x 16.0 km map: everything fits". Press "Run bench".
+2. Leave the game running, unpaused, in front, until `Bench s4 done (seed N)` (about 15 min). Say "done"; Claude runs
+   `make bench`.
+What Claude checks: `BENCH_START sheet=s4 spec=bench_s4@5`; `BENCH_TEST id=rb2v ... groups=5 towns=20`, `id=rb3v` and
+`id=rb4v` `groups=4 towns=16` (twins `game@plain,sl@plain,game@mid,sl_rsplit@mid[,sl_rmid@mid]`); 13 `BENCH_TWIN ...
+geometry=ok`: 6 plain twins (`s4g<k>a`, `b`) `what=one_way_streets n=.. geom=plain` (no mids=), 7 mid twins (`p`, `s`, `t`)
+`... mids=4|4|8 geom=mid`; every zone line `geom=plain|mid`; `bench_s4 summary ... built=13 refused=0 ... linked=52
+unlinked=0 ... sets_mismatch=0`. Smart Lanes: `sl@plain` 2-lane: since Smart Lanes adds the mid nodes itself (its PLAN.md "Smart Lanes adds the mid
+nodes", 2026-10-14) `SPLIT ring=.. edges=.. nodes_added=4`, `WRITE kind=split ... success=true`, then `RSPLIT ... mids=4` and
+`APPLY ... layout=sl_rmid default=one_lane_exits` (its shipped default now, since 2026-10-14 sl_rmid: on this ring nearly
+`sl_rmid@mid`, its nodes at the halves of the ring edges); 3/4-lane `turbo=true` (no layout=, no SPLIT); `sl_rsplit@mid` / `sl_rmid@mid`
+`RSPLIT ... mids=` > 0 and `layout=` their mode; game twins `zone_game`; `BENCH_DONE ok=yes`. The report per test: the
+rows named `<ab>@<geom>` (`sl_rsplit@mid vs game@plain` is the decision question, `game@mid vs game@plain` the nodes' own
+effect), the ranking with its delta against `game@plain`.
+3. With the shots: is `game@mid` slower than `game@plain` on every ring size (the hypothesis: lane changes along segments
+   need the segment length the nodes take away)? Watch a 3- or 4-lane `game@mid` ring at 2x for a minute: do cars change
+   lanes between two nodes, and do they queue in front of a node? Note it for docs/findings either way.
+
+
+## 6Y2. Bench sheet 5: ring lane use, 2- and 4-lane rings under three traffic mixes (2026-10-15; run 2026-10-15: session `2026-10-15_0602_bench-s5-ring-34019`)
+Background: BENCH.md "Sheet 5", square_smart_lanes PLAN.md "Ring lane use" (its TESTING.md LU: what Smart Lanes logs).
+Mods: Stress Test, Smart Lanes with the zone modes `sl_rmid2` and `sl_rturbo_in` (Apply automatically On, No lights at
+roundabouts and ramps On), Roundabouts & Interchanges. A fresh 16 km Blank Slate, right-hand traffic (an earlier bench map
+can be reused: the bench clears it).
+1. Debug window > Towns tab > Bench > **Sheet 5**. **Pass:** the dialog says "24 junctions, 96 towns (~34k people), about
+   8 min to build; 16.0 x 16.0 km map: everything fits". Press "Run bench". (A Smart Lanes without the two modes: a dialog
+   naming them, nothing removed.)
+2. Leave the game running, unpaused, in front, until `Bench s5 done (seed N)`: about 8 min build + Smart Lanes idle +
+   3 min warm-up + 20 min record at 2x (~11 wall min) + shots, **about 25-30 minutes**. Say "done".
+3. Claude runs `make bench` (the draft with the pairs, the ranking, the treatment check and the "Ring lane use" section;
+   default `LOG=last-bench`) and, for the whole log, `make flow LOG=last-bench` (same section, plus the twin tables).
+   `make bench ARGS=--record` only after `BENCH_DONE ok=yes` and the user's go.
+What Claude checks: `BENCH_START sheet=s5 spec=bench_s5@1`; `BENCH_TEST id=lu2 ... twins=game,sl_rturbo,sl_rmid2,sl_rmatch
+... sets=3/3 groups=12 towns=48 ... mixes=even,straight,adjacent pops=large:600,small:100,even:350 ring_mix=yes` and `id=lu4
+... twins=game,sl_rturbo,sl_rturbo_in,sl_rspread`; `by_ab=game:6,sl:0,sl_phases:0,sl_rturbo:6,sl_rmatch:3,sl_rspread:3,
+sl_rmid2:3,sl_rturbo_in:3` (Smart Lanes' `ZONES op=set` line the same); 24 `BENCH_TWIN ... geometry=ok`; zone lines `mix=even`
+(s5g1, s5g4), `straight` (s5g2, s5g5), `adjacent` (s5g3, s5g6); `linked=96 unlinked=0`, `sets_mismatch=0`; FLOW_TOWNS `pop=`
+near 600 / 100 / 350 by the town name's word. Smart Lanes per twin: `sl_rmid2` (s5g1w..s5g3w): `SPLIT ... nodes_added=4 zid=`,
+`WRITE kind=split ... success=true`, `RSPLIT ... mids=4 per_stretch=1`, 8 `APPLY ... layout=sl_rmid2` (4 `mid=yes`), `VERIFY
+same=8`; `sl_rturbo_in` (s5g4y..s5g6y): 4 `APPLY ... layout=sl_rturbo_in ... after=10`; game twins `zone_game`. The sampler:
+one `RINGMIX` and one `RINGLANE` per ring twin every 6 samples and at the stop; no `FLOW_RINGOFF`; `capped=` 0 or low
+(else the 400-driver cap is too small for this load); `none=` a few % at most. The report's lane use: on `lu2` sl_rturbo
+should show the inner lane carrying most cars (the user's complaint), sl_rmid2 both lanes used; on `lu4` sl_rturbo leaves
+o4 (the innermost) nearly empty, sl_rturbo_in fills it. The measured mix bears out each label (no "label not borne out").
+4. With the shots (one per twin of each test's first set: the even set): is the inner entry lane's queue on the sl_rturbo
+   twin longer than on the sl_rmid2 twin? Note it in RESULTS.md with the run.
+
+## 6Y3. Bench sheet 6: the mid-node default (sl_rmid) under heavy traffic (2026-10-15; not run in game yet)
+Background: BENCH.md "Sheet 6"; RESULTS.md verdict "Mid nodes with crossing lane changes under heavy traffic" (bench s5:
+sl_rmid2 gridlocked). Mods: Stress Test, Smart Lanes with the shipped default (2-lane rings with one-lane exits:
+`sl_rmid`, mid nodes it adds itself; zone modes `sl_rmatch`, `sl_rturbo`), Apply automatically On, No lights at roundabouts
+and ramps On; Roundabouts & Interchanges. A fresh 16 km Blank Slate, right-hand traffic.
+1. Debug window > Towns tab > Bench > **Sheet 6**. **Pass:** the dialog says "12 junctions, 48 towns (~29k people) ...
+   everything fits" and "records 30 game minutes of traffic at 2x". Press "Run bench".
+2. Leave it running, unpaused, until `Bench s6 done (seed N)`: ~5 min build + idle + 3 min warm-up + 30 game min at 2x
+   (~15 wall min) + shots, **about 25 minutes**. Say "done".
+3. Claude runs `make bench` (pairs, ranking, treatment and **mode check** lines, the "Ring lane use" section with the
+   **gridlock table**) and `make flow LOG=last-bench`.
+What Claude checks: `BENCH_TEST id=hm2 ... twins=game,sl,sl_rmatch,sl_rturbo ... pops=large:1000,small:200,even:600
+ring_mix=yes`; record_s=1800 on BENCH_START. **The sl twins (s6g1a..s6g3a) must carry the default**: `SPLIT ring= ...
+nodes_added=4 zid=s6g<k>a` (Smart Lanes split the plain ring), `WRITE kind=split ... success=true`, `RSPLIT ... mids=4`,
+4 `APPLY ... layout=sl_rmid default=one_lane_exits zid=s6g<k>a` (+ mid nodes `mid=yes`), `VERIFY same=`. The draft's
+"Mode check, hm2:" line shows it per twin; a twin whose split was refused (`SPLIT ... refused=short`: the XS ring's
+halves under 8 m) is written as `sl_rspiral` and **excluded** ("sl twin: no ring APPLY layout=sl_rmid ..."): if all three
+are, the sheet answers nothing about sl_rmid (tell the Smart Lanes agent: see BENCH.md "Sheet 6", "What Smart Lanes may
+need"). sl_rturbo twins: APPLY `turbo=false layout=sl_rturbo` (matched lanes: turbo needs 2+ lane exits), so `sl_rmatch vs
+sl_rturbo` is marked "identical by design: expected tie" (its spread is the noise of identical twins). Town sizes:
+FLOW_TOWNS `pop=` near 1000 / 200 / 600 by the town name's word (a large town under ~800: the x2.5 size command filled
+less, note it). **Gridlock**: the table "Gridlock per twin" and the verdict lines' "Gridlock: <mode> (<twin>) from game
+min n": a twin in gridlock has its last 6 game min at >= 80 % standing with thru <= 25 % of its set's best window.
+Compare with the shots (one per twin of the even set): both ring lanes full, nothing leaving = gridlock.
+
+## 6Z. Light plans A/B: game vs axis vs classic on 2- and 3-lane crossroads, with Re-time (rev 3, 2026-10-14; run 2026-10-15)
+Result (session `2026-10-15_0355_top-up-488195`, seed 488195, `make flow ARGS='--last'`): axis best on both shapes,
++23 % (2x2 X) / +26 % (3x3 X) thru/min vs game, 3/3 sets each; classic worse than game (2x2 X 84 vs 100 thru/min, 3x3 X
+109 vs 123). The button now builds the auto twin instead (6Z1); this build was the console variant
+`jn.buildLightPlans(nil, "classic")` (`variant=light_plans_classic`) until 2026-10-16, removed with Smart Lanes'
+classic patterns and its `sl_classic` zone mode (its PLAN.md "No classic fallback"). The steps below are history.
+Background: SHOWCASE.md "Light plans A/B", FLOW.md "Light plans and Re-time in the report". Mods: Stress Test, Smart
+Lanes with the `sl_classic` zone mode and Re-time (Apply automatically On, its settings at the defaults); Roundabouts &
+Interchanges not needed. A free game on a fresh **16 km** Blank Slate, year **1950 or later** (Game tab > Date),
+Remove towns > All towns.
+1. Traffic tab > Traffic log: **On, every 10 s** (the bench's interval: every car is seen on its approach, so `thru`
+   counts every pass). Towns tab > Lights showcase > **Build light plans A/B**. **Pass:** `[SQST] lights_showcase: seed=N
+   ... groups=18 sets=6 crossroads=18 twins game=6 sl_phases=6 sl_classic=6 towns=72 (Medium) lights=yes ... grow_target=600
+   shapes=2x2_X,3x3_X per_shape=3 variant=light_plans bus_lines=no entries=roundabout link_lanes=6`, `showcase zones sent n=18
+   ... by_ab=game:6,sl:0,sl_phases:6,sl_classic:6 smart_lanes=yes`, Smart Lanes' `[SQRL] ZONES op=set n=18 ... by_ab=` the
+   same and `zones ack=yes`; later `Light plans A/B done: 18 of 18 lit crossroads built (game 6/6, sl_phases 6/6,
+   sl_classic 6/6), 72 of 72 links; every town then grows to about 600 people ...`, `sets_mismatch=0`, the grow summary's
+   `pop min/mean/max` about 600. **Record** the seed and how long the build took (`lights_showcase finished in X min`).
+2. Smart Lanes per twin: `c` twins (towns "Smart phases <set> <side>") `PHASES ... phases=sl ...` with the axis plan,
+   `u` twins ("Classic phases ...") the classic patterns (`pattern=classic` / Smart Lanes' own word for it), `b` twins
+   `SKIP ... zone=game`. Screenshot the Crossing window of one set's c and u twin (2x2 and 3x3).
+3. Let it run **unpaused at 2x** (4x only when no `FLOW_TARGET ... reason=skipped` line appears): the traffic log
+   restarted by itself after the build (`FLOW_START ... zones=18 src=placement`); the report drops its first 3 game
+   minutes (warm-up). Wait about **8 game minutes** after `finished in`.
+4. Optional, Re-time: open the Smart Lanes tool, select the centre node of one **axis twin per shape** (a "Smart phases"
+   set: e.g. set 1 = 2x2 X and set 2 = 3x3 X) and press **Re-time**; keep it selected for the ~3 game minutes it
+   measures (one junction at a time), until it says the phase lengths were set (`[SQRL] RETIME op=write node=N sent=1`,
+   `LIGHTS src=tool node=N to=retime ... zid=g<k>c`, `RETIME op=probe ... at=cb success=true`). The other axis twins
+   stay as controls. **Record** which twins you re-timed.
+5. Let it run another **12 game minutes** or more (at least 8 after the last Re-time write; the report drops 60 game s
+   after a write), then `make flow ARGS='--last'`. **Pass:** section "Light plans: game vs axis vs classic" with a
+   2x2_X and a 3x3_X block (3 sets per plan each) and one verdict line per shape; no "Excluded pairs" (or only with a
+   reason you can name); with step 4, section "Re-time: before / after" with one block per re-timed set and its verdict
+   line ("re-timed better / worse by ... relative to game"), and its `g<k>+rt` rows in the pair tables. Paste the two
+   sections and the paired comparison's `all` rows. A Re-time the report could not place says "its twin is unknown":
+   paste the `RETIME` and `LIGHTS ... to=retime` lines of that node.
+6. Busy junctions? **Record** the game twins' standing % and queue per arm: about 40-60 % standing and queues on every
+   arm is "busy"; under ~25 % standing on the 3x3 X the towns are too small for it (say so: the target can go up).
+
+## 6Z1. Light plans A/B with the auto twin and unbalanced demand (2026-10-14 (2); ran in game 2026-10-15: session `2026-10-15_0509_light-plans-auto-863105`, 61 game min; results in plans/square_smart_lanes/RESULTS.md "Light plans A/B run 2"; town sizes held (busy 601, small 150, tiny 41); the first auto window ran during the build and was skipped `changed:lanes`, then retried)
+Background: SHOWCASE.md "Auto twin and unbalanced demand", FLOW.md "Auto timing in the report". Mods: Stress Test, Smart
+Lanes **rev 8** with the `sl_auto` zone mode and `SmartLanes.auto` (Apply automatically On, defaults); a free game on a
+fresh **16 km** Blank Slate, year **1950 or later**, Remove towns > All towns.
+1. Traffic tab > Traffic log: **On, every 10 s**. Towns tab > Lights showcase > **Build light plans A/B**. **Pass:**
+   `[SQST] lights_showcase: seed=N ... groups=18 sets=6 crossroads=18 twins game=6 sl_phases=6 sl_auto=6 towns=72 (Medium)
+   lights=yes ... variant=light_plans demand=balanced:3,unbalanced:3 pops=busy:600,small:150,tiny:40 ...`,
+   `showcase zones sent n=18 ... by_ab=game:6,sl:0,sl_phases:6,sl_auto:6 smart_lanes=yes`, Smart Lanes' `[SQRL] ZONES
+   op=set ... by_ab=` the same, `zones ack=yes` (an older Smart Lanes refuses the set: `ack=refused:ab<i>`). Later
+   `Light plans A/B done: 18 of 18 lit crossroads built (game 6/6, sl_phases 6/6, sl_auto 6/6) ...`, `sets_mismatch=0`.
+2. **Town sizes.** The grow lines: the small / tiny towns `(x1 for 150 from capacity=150 ...)` / `(x1 for 40 from
+   capacity=40 ...)`; each town's final line `... pop=<n> target=<t>`; the dense summary's `pop_by_target=40:.../9,
+   150:.../9,600:.../54`. **Record** the min / mean / max per target. A tiny town that came out far above 40, or a
+   town create refused (`lights_showcase_towns ... failed=`), goes to docs/findings/towns.md (the game's smallest
+   town).
+3. **Enrolled.** Within ~30 game s of the build each `v` twin's junction: `[SQRL] AUTORETIME op=enroll node= pos=
+   src=zone total= zid=g<k>v` (18 sets: 6 lines); `b` / `c` twins never.
+4. Let it run **unpaused at 4x for 90 game minutes** after `finished in` (2x when `FLOW_TARGET ... reason=skipped`
+   appears; 60 before Smart Lanes' step B v4). Expect `AUTORETIME op=snapshot` every 120 game s, per `v` twin a first
+   `AUTORETIME op=plan ... result=write|fits ... zid=g<k>v` after 8 snapshots (~16 game min) and then every 10-60 game min,
+   `op=write ... sent=1 ... zid=g<k>v` from then on while the plan moves (v3 ran 3-min windows: `window_start` /
+   `window_end` / `settle` lines, gone with v4).
+5. `make flow ARGS='--last'`. **Pass:** section "Light plans: game vs axis vs auto" with four blocks (2x2_X / 3x3_X x
+   balanced / unbalanced) and a verdict line each; section "Auto timing: as built / settled" with one row per set
+   whose auto twin wrote: settled from the first write + 45 game min (`--auto-settle` default 2700 since v4), `writes
+   (after)` with few late writes (many: rerun the report with `--auto-settle 3600`, or run longer); `sl_auto+as vs sl_phases` / `vs game` rows in the paired comparison;
+   the towns table's small / tiny classes near 150 / 40 at the last sample. Paste the two sections, the paired `all`
+   rows and the towns table. What to read: unbalanced sets should gain most (auto vs axis from as built to settled);
+   on balanced sets auto ~= axis is fine.
+6. Press **Auto re-time > Clear** (`[SQST] AUTO_ALL op=clear run=`, Smart Lanes `AUTORETIME op=unenroll all=1 n=6`).
+
+## 6Z2. Whole-map auto re-time: before / after (2026-10-14 (2); not run in game yet)
+Any map with lit junctions and traffic: e.g. the Lights showcase (Towns tab > Lights showcase) or the light plans build (6Z1), Smart Lanes rev 8.
+1. Traffic log **On, every 10 s**; let it run **15 game minutes** after the build (the "before" window; the report
+   drops the first 3 as warm-up).
+2. Towns tab > Lights showcase > Auto re-time > **All lit junctions**. **Pass:** `[SQST] AUTO_ALL op=all run=s0-...
+   by=button smart_lanes=yes`, Smart Lanes `AUTORETIME op=enroll_all phase=request run=<same>`, then `phase=done ...
+   lit=<n> sent=<n> capped=0` and one `op=enroll ... src=all` per lit junction (`zid=` on the twins); below the buttons
+   "Last auto re-time: every lit junction enrolled (run ...), acknowledged by Smart Lanes".
+3. Run **90 more game minutes** at 4x (30 before Smart Lanes' step B v4), then `make flow ARGS='--last'`. **Pass:**
+   section "Whole-map auto re-time: before / after" naming the run and the enrolled count, a row per kind / type / mode
+   with samples before / after (after = from 45 game min after the request: `--auto-settle` 2700), and the map-wide
+   FLOW_ALL line. With twins (game and Smart Lanes), compare the game twins' change too: the traffic itself drifts
+   between the windows.
+4. **Auto re-time > Clear**: `AUTO_ALL op=clear`, `AUTORETIME op=unenroll all=1 n=<n>`; the status says "every
+   junction unenrolled".
+
+## 6Z3. City lights at scale: automatic timing on every light of big grid cities (2026-10-15; run 1 done: 2026-10-15_0700_bench-s6-midnode-city-lights-872734, ok=yes, results in plans/square_smart_lanes/RESULTS.md "City lights at scale"; run 2 after the Smart Lanes timing fix: 2026-10-15_1950_city-lights-2-778824, ok=yes; twin baselines differ as much as the effect: busier cities and a longer baseline or swapped roles next)
+Background: BENCH.md "City lights at scale", FLOW.md "Auto lights at scale in the report". User: "make every light in the
+big grid cities be auto timer lights so we can see what happens with many at once". Mods: Stress Test, Smart Lanes
+**step B v4** (automatic timing with queue snapshots; Apply automatically On; its **Debug: performance log On**, or enable
+the DEV mod `square_sqperf_all`: the report needs its SQPERF window lines). Roundabouts & Interchanges not needed. A fresh
+**16 km** Blank Slate (the run clears the map and sets 1950).
+1. Debug window > Towns tab > Lights showcase > City lights at scale > **City lights**. **Pass:** the dialog says "6 grid
+   cities (3 auto, 3 control), 486 inner crossings lit (243 enrolled), ~18k people; 16.0 x 16.0 km map" and "records 105
+   game minutes ... at 4x (Smart Lanes' automatic timing starts at the auto cities after 15 of them)". Press "Run bench".
+   (Performance log Off, or a Smart Lanes without sl_auto: a dialog says so, nothing removed.)
+2. Leave it running, unpaused, in front, until `Bench city done (seed N)`: build (6 Large towns, locks, one size command,
+   ~486 light commands one at a time) ~5-8 min, idle, 3 min warm-up, 15 game min baseline, the enroll, 90 game min
+   (105 game min at 4x: ~26 wall min) + 6 shots from 700 m: **about 40 minutes**. The status line says "baseline", then
+   "automatic timing on". Say "done".
+3. Claude runs `make flow LOG=last-bench` (or `make bench`: the same section for a city run).
+What Claude checks: `BENCH_START sheet=city spec=bench_city@1 ... city=yes cities=6 auto=3 control=3 crossings=486
+enrolled=243 baseline_s=900 sl_perf=on`; `bench_city cities=6 ... run=city-<seed>`; the lock and dense summaries
+(`pop=` near 3000); `bench_city_lights: <n> inner crossings found, <d> dark: lights on`; six `[SQST] CITY id=cityg<k>v|b
+... crossings=81 found=81 lit_before= forced= refused=0` (found < 81: the town built over the grid, or the 4 m snap is too
+tight: note it); six `showcase zone ... ab=city_auto|city_control` lines and `showcase zones local n=6`; `BENCH_PHASE ...
+phase=record ... enroll=243` and `CITY_ENROLL run=city-<seed> op=add cities=3 nodes=243 events=5`, then 243
+`AUTORETIME op=enroll ... src=stress` lines (fewer: Smart Lanes refused some: `op=refuse reason=cap`?); `op=snapshot`
+every 120 game s with `src=scan` (more than ~12 junctions watched) and its `max_frame_ms`; first `op=plan` ~16 game min
+after the enroll; `op=write ... sent=1` after that; at the end `AUTO_ALL op=clear by=bench_city` and `op=unenroll all=1
+n=243`. The section "Auto lights at scale": Smart Lanes' cost before / after, the snapshots and their person-list spikes,
+writes per game minute, junctions written, first fits (50 % / 80 %), the six cities before / after, auto minus control,
+and the three pass criteria (no Smart Lanes frame > 5 ms, with the person-list spikes counted apart; mean < 1.5 ms/frame
+at 4x; no auto city > 10 % slower than its baseline). Record the result in plans/square_smart_lanes/RESULTS.md (a run
+entry + a verdict line), the frame times also in docs/findings (the person-list cost at this city size).
+
+## 6Z4. Funnel city: City lights with Hourglass / Holes, Busy, a 30 min baseline and swapped roles (2026-10-15; not run in game yet)
+Background: BENCH.md "Funnel layouts and fairer pairs (v2)", FLOW.md "Auto lights at scale in the report". User: force
+the streets into narrow sections "like an hour glass, or with holes in the grid"; runs 1 and 2 (6Z3) were too quiet and
+their pairs unequal at baseline. Mods and map as 6Z3 (Stress Test, Smart Lanes with sl_auto and its Debug: performance log
+On or DEV SQPERF: all mods; a fresh **16 km** Blank Slate). Two runs, one after the other in the **same game session**
+(the second repeats the first's seed: Same seed is kept only while the game runs).
+
+**Run 1: Hourglass + Busy + 30 min baseline.**
+1. Debug window > Towns tab > Lights showcase > City lights at scale. Below the **City lights** button: Layout **Hourglass**,
+   Baseline **30 min**, check **Busy: about 7500 people per city instead of 3000**, leave **Swap roles** unchecked. Press
+   **City lights**. **Pass:** the dialog says "6 grid cities (3 auto, 3 control, hourglass with a 3-street neck), 450 inner
+   crossings lit (225 enrolled), ~45k people; 16.0 x 16.0 km map." then "Layout: hourglass (a band through the middle
+   where only the 3 central streets go on), 75 lit crossings per city. People: about 7500 wanted per city (Busy; the grid's
+   lots may cap it). Baseline: 30 game min, then 90 after the automatic timing starts. Roles: as usual." and "records 120
+   game minutes of traffic at 4x (Smart Lanes' automatic timing starts at the auto cities after 30 of them) ... About 41
+   minutes". Press "Run bench".
+2. Leave it running, unpaused, in front, until `Bench city done (seed N)` (about 45 minutes: build ~5-8 min, 3 min
+   warm-up, 120 game min at 4x ~30 wall min, shots). Look at one city once the build is done (or at the shots): two grid
+   halves joined by 3 streets through an empty band, houses only along the streets. Say "done" and the seed.
+
+**Run 2: the same with Swap roles.**
+3. Same section: keep Hourglass / 30 min / Busy, check **Swap roles: the other city of each pair gets the automatic
+   timing** and **Same seed as the last city run (N)**. Press **City lights**. **Pass:** the dialog's plan line says
+   "3 control, roles swapped, hourglass ...", the options line ends "Roles: swapped (the other city of each pair is auto).
+   Seed: N (the last city run's)." Press "Run bench", wait for done as in 2. Say "done".
+4. Claude runs `make flow LOG='<run 1 session> <run 2 session>'` (one session holding both runs: `make flow LOG=<it>`).
+
+What Claude checks (per run): `BENCH_START sheet=city spec=bench_city@2 ... record_s=7200 ... pop=7500 ... crossings=450
+enrolled=225 baseline_s=1800 sl_perf=on layout=hourglass busy=1 role_swap=0|1`; `bench_city ... layout=hourglass busy=1
+baseline_s=1800 role_swap= neck_streets=3 holes=0 holes_pattern=0 holes_at=- x4=61 t3=14 weights={0,0,0.25,1}`; the grid
+lines `street grid 800m ... layout=2 holes_pattern=1` and `street grids locked grids=6 edges=1200` (200 a grid, v1 1344:
+fewer means the params arrived; 1344 means the game dropped them, the gap clear then removes 24 a city); the lock
+summary; six `CITY_GAPS ... at=build layout=hourglass gap_streets=0 removed=0` (non-zero: the town or the dropped params
+put streets in the gaps; removed= should match); the dense summary's `pop min/mean/max` (Busy: how far past run 2's ~2070
+the grid takes it); `bench_city_lights: 450 inner crossings found, ... (layout=hourglass found4=366 found3=84)`; six `CITY
+... crossings=75 found=75 ... found4=61 found3=14 lit4=61 lit3=14 pop=<n>` (found < 75 or lit3 < 14: a T was not read or
+refused: note it); `CITY_ENROLL ... nodes=225 ... layout=hourglass busy=1 role_swap=`; after the record six
+`CITY_GAPS ... at=end gap_streets=0`. The report: per run the options line, the layout line (crossings per kind, gap
+streets, people), the snapshots with `fetch_ms` (Smart Lanes with clock=wall), the per-city table (queues should be well
+above run 2's 44-178), **Pairs at baseline** with the gap per pair (and whether the "pairs too unequal" warning shows),
+the pass criteria; then **Swapped roles: runs A and B** with each pair's auto minus control in both runs and the mean.
+Record both runs in plans/square_smart_lanes/RESULTS.md ("City lights at scale" runs 3 and 4: the swapped-roles mean is
+the verdict line), the people per city and any gap streets in docs/findings/towns.md, the fetch_ms at this size in
+docs/findings.
+
+**Holes** (after the hourglass pair, or instead when asked): the same two runs with Layout **Holes** (dialog: "4 holes of
+2 x 2 blocks (placed by the seed, the same in every city), 77 lit crossings per city"; plan "462 inner crossings lit (231
+enrolled)"; `bench_city ... holes=4 holes_pattern=<p> holes_at=i:j,...` the same in both runs thanks to Same seed;
+`CITY ... found4=61 found3=16`).

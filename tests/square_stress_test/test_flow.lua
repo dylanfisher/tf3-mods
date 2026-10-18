@@ -201,6 +201,10 @@ test("FLOW_START / FLOW_ZONE / FLOW_ALL / FLOW_SUMMARY lines carry the FLOW.md k
 		"[SQST] FLOW_START run=2 v=3 interval=30 interval_unit=game_s zones=46 towns=50 buses=12 speed=4 keep_cleared=0 cap=3000 gt=81400000 gt_per_s=1000 src=placement sc_run=s1-2-3 budget_us=2000 target_min=3000 measure_pad=200 corridor_m=30 drive_side=right thru_r=40 thru_track=600 thru_window=32 thru_m=pos ix_corridor_m=50 path_thru=on")
 	local z = f.zonesFromShowcase(F.showcase(), "s1-2-3")[3]
 	eq(f.zoneLine(2, z), "[SQST] FLOW_ZONE run=2 zone=3 kind=x src=placement label=Crossroads x=0 y=1000 r=60 twin=g2a pair=g2 ab=sl sc_run=s1-2-3 id_from=showcase match=no reason=town r_measure=260 measure=circle arms=- approach=-")
+	-- the light plans A/B's set demand (2026-10-14): demand= last
+	local sc = F.showcase()
+	sc[3].demand = "unbalanced"
+	eq(f.zoneLine(2, f.zonesFromShowcase(sc, "s1-2-3")[3]), "[SQST] FLOW_ZONE run=2 zone=3 kind=x src=placement label=Crossroads x=0 y=1000 r=60 twin=g2a pair=g2 ab=sl sc_run=s1-2-3 id_from=showcase match=no reason=town r_measure=260 measure=circle arms=- approach=- demand=unbalanced")
 	local s = f.newSample(0)
 	s.drivers, s.sampled, s.target, s.stride = 3500, 3000, 3000, 2
 	f.addCar(s, {}, 0, 10, 0)
@@ -224,6 +228,12 @@ test("FLOW_TOWNS: one scope=all line (levels summed, mean / min speed, cost), th
 	eq(lines[2], "[SQST] FLOW_TOWNS run=2 s=5 gt=1000 scope=town town=302 name=Grid_S302 speed=0.5 levels=1,1,1,4")
 	eq(lines[3], "[SQST] FLOW_TOWNS run=2 s=5 gt=1000 scope=town town=301 name=Grid_S301 speed=0.8 levels=5,2,1")
 	eq(lines[4], "[SQST] FLOW_TOWNS run=2 s=5 gt=1000 scope=town town=303 name=Grid_S303 speed=- levels=-")
+	-- with the towns' people (2026-10-14): pop= per town ("-" unread), pop_total= on the all line
+	lines = f.townsLines(2, 5, 1000, { [301] = { 0.8, { 5, 2, 1 } }, [302] = { 0.5, { 1, 1, 1, 4 } } }, 1, 4.25,
+		function(t) return "Grid S" .. t end, { [301] = 598, [999] = 7 })
+	eq(lines[1], "[SQST] FLOW_TOWNS run=2 s=5 gt=1000 scope=all towns=2 speed_mean=0.65 speed_min=0.5 levels=6,3,2,4 coef=1 ms=4.25 pop_total=598")
+	eq(lines[2], "[SQST] FLOW_TOWNS run=2 s=5 gt=1000 scope=town town=302 name=Grid_S302 speed=0.5 levels=1,1,1,4 pop=-")
+	eq(lines[3], "[SQST] FLOW_TOWNS run=2 s=5 gt=1000 scope=town town=301 name=Grid_S301 speed=0.8 levels=5,2,1 pop=598")
 end)
 
 test("bus laps: a lap when the first stop's departure moved on (game s); a wiped history restarts; rt from sectionTimes", function()
@@ -927,4 +937,210 @@ test("thru_path gives up when no path element reads (FLOW_PATHOFF once), the pos
 	eq(last.thru_path, "-")
 	ok(last.thru ~= "-", "positional thru still counted")
 	F.pathOf, F.junctionEdges, F.pathLayout = nil, nil, nil
+end)
+
+---------------------------------------------------------------------------
+-- Ring lane use (BENCH.md "Sheet 5", FLOW.md "RINGMIX / RINGLANE")
+
+local ARMS4 = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } }   -- N, E, S, W (the zone's compass order)
+
+local function ringZone(extra)
+	local z = { zone = 1, twin = "s5g1h", pair = "s5g1", ab = "sl_rturbo", kind = "rb", x = 0, y = 0, r = 40, arms = ARMS4, mix = "straight" }
+	for k, v in pairs(extra or {}) do z[k] = v end
+	return z
+end
+
+test("ring mix (pure): arms in counterclockwise order, a node's class (inside / on arm k / elsewhere), entry and exit from the path window, arms passed in the travel direction", function()
+	local fl = flow()
+	local z = ringZone()
+	local ring = fl.newRing(z)
+	-- angle order from +x counterclockwise: E (2), N (1), W (4), S (3)
+	eq(ring.pos, { 2, 1, 4, 3 })
+	eq({ ring.arms, ring.n, ring.exits, ring.uturn, ring.none }, { 4, 0, { 0, 0, 0 }, 0, 0 })
+	eq(fl.newRing(ringZone({ arms = { { 1, 0 } } })), nil, "fewer than 2 arms")
+	local bare = ringZone()
+	bare.arms = nil
+	eq(fl.newRing(bare), nil)
+	eq({ fl.ringClass(z, 10, 10), fl.ringClass(z, 300, 5), fl.ringClass(z, 2, -250), fl.ringClass(z, 200, 200) }, { 0, 2, 3, -1 })
+	-- a path: E arm node, ring nodes, N arm node; edges between read as nil
+	local function getter(list)
+		local reads = 0
+		return function(i) reads = reads + 1 return list[i + 1] end, function() return reads end
+	end
+	local g, reads = getter({ -1, nil, 2, nil, 0, nil, 0, nil, 0, nil, 1, nil, -1 })
+	eq({ fl.ringMove(g, 13, 2) }, { 2, 1 })
+	ok(reads() <= 13, "each element read once: " .. reads())
+	-- the driver already past the ring: the window looks behind
+	eq({ fl.ringMove(getter({ 2, nil, 0, 0, nil, 3, nil, -1 }), 8, 7) }, { 2, 3 })
+	-- a path that ends inside, one without the ring, an exit beyond the window, an exit off every arm
+	eq({ fl.ringMove(getter({ 2, nil, 0, nil, 0 }), 5, 0) }, { nil, nil })
+	eq({ fl.ringMove(getter({ -1, nil, -1 }), 3, 0) }, { nil, nil })
+	eq({ fl.ringMove(getter({ 2, 0, nil, nil, nil, 1 }), 6, 0, 3) }, { nil, nil })
+	eq({ fl.ringMove(getter({ 2, 0, -1 }), 3, 0) }, { nil, nil })
+	-- right-hand traffic (counterclockwise): from E the first exit is N, then W, then S; E itself the U-turn
+	eq({ fl.ringSteps(ring, 2, 1, "right"), fl.ringSteps(ring, 2, 4, "right"), fl.ringSteps(ring, 2, 3, "right"), fl.ringSteps(ring, 2, 2, "right") },
+		{ 1, 2, 3, 4 })
+	-- left-hand traffic (clockwise): from E the first exit is S
+	eq({ fl.ringSteps(ring, 2, 3, "left"), fl.ringSteps(ring, 2, 1, "left") }, { 1, 3 })
+	eq(fl.ringSteps(ring, 2, 9, "right"), nil)
+	-- each driver once; a driver without both arms counts as none on its RING_TRIES-th read
+	eq(fl.ringCount(ring, 7, 2, 1, "right"), 1)
+	eq(fl.ringCount(ring, 7, 2, 3, "right"), nil, "counted already")
+	eq(fl.ringCount(ring, 8, 2, 2, "right"), 4)
+	fl.ringMiss(ring, 9)
+	fl.ringMiss(ring, 9)
+	eq(ring.none, 0)
+	fl.ringMiss(ring, 9)
+	eq({ ring.n, ring.exits, ring.uturn, ring.none }, { 3, { 1, 0, 0 }, 1, 1 })
+	fl.ringMiss(ring, 9)
+	fl.ringMiss(ring, 7)
+	eq(ring.n, 3, "never twice")
+	-- ring edges: both ends inside, off the centre, at one distance; an arm runs outwards
+	ok(fl.ringEdge(z, 30, 0, 0, 30))
+	ok(not fl.ringEdge(z, 30, 0, 0, 38), "8 m apart: an arm")
+	ok(not fl.ringEdge(z, 30, 0, 60, 0), "out of the circle")
+	-- lane use: car samples by distance, 0.5 m bins, the line outer first
+	fl.ringLane(ring, 28.1)
+	fl.ringLane(ring, 27.9)
+	fl.ringLane(ring, 31.6)
+	fl.ringLane(ring, 0 / 0)
+	eq(ring.laneCars, 3)
+	eq(fl.ringLaneLine(1, 6, 70000, z, ring, false),
+		"[SQST] RINGLANE run=1 s=6 zone=1 twin=s5g1h pair=s5g1 ab=sl_rturbo gt=70000 cars=3 bin_m=0.5 radii=31.5:1,28.0:2 final=0")
+	eq(fl.ringMixLine(1, 6, 70000, z, ring, "right", true),
+		"[SQST] RINGMIX run=1 s=6 zone=1 twin=s5g1h pair=s5g1 ab=sl_rturbo gt=70000 arms=4 dir=ccw n=3 exit1=1 exit2=0 exit3=0 uturn=1 none=1 reads=0 capped=0 final=1 mix=straight")
+	local r3 = fl.newRing(ringZone({ arms = { { 1, 0 }, { 0, 1 }, { -1, 0 } }, mix = nil }))
+	ok(fl.ringMixLine(1, 1, 0, ringZone({ mix = nil }), r3, "left", false):find(" arms=3 dir=cw n=0 exit1=0 exit2=0 uturn=0 none=0 ", 1, true))
+end)
+
+--- The ring zone of the sampler tests: centre 0, 0, r 40, four arms; routes from its east arm (nodes 501 out on E,
+--- 502 / 503 / 504 / 505 on the ring at E / N / W / S, 30 m out, then 511 N, 512 W, 513 S, 514 E arm nodes 300 m out);
+--- edges 6xx between (602: ring edge 502 -> 503).
+local function ringWorld()
+	F.nodePos = { [501] = { 300, 2 }, [502] = { 30, 0 }, [503] = { 0, 30 }, [504] = { -30, 0 }, [505] = { 0, -30 },
+		[511] = { 2, 300 }, [512] = { -300, 2 }, [513] = { 2, -300 }, [514] = { 300, -2 } }
+	F.edgeEnds = { [602] = { 502, 503 }, [601] = { 501, 502 } }
+	local routes = {
+		{ 501, 601, 502, 602, 503, 603, 511 },                                      -- E -> N: 1st exit
+		{ 501, 601, 502, 602, 503, 603, 504, 604, 512 },                            -- E -> W: 2nd
+		{ 501, 601, 502, 602, 503, 603, 504, 604, 505, 605, 513 },                  -- E -> S: 3rd
+		{ 501, 601, 502, 602, 503, 603, 504, 604, 505, 605, 502, 606, 514 },        -- E -> E: U-turn
+		{ 501, 601, 502, 602, 503 },                                                -- ends inside: none
+	}
+	-- the drivers at car spot 1 (i % 4 == 0, i % 5 ~= 0: k = i / 4 not a multiple of 5): on the ring edge 602 (path index
+	-- 3), at 28 or 32 m from the centre; route k % 5 (20 drivers each), but half the U-turners' paths end inside
+	F.pathOf = function(i)
+		if i % 4 ~= 0 then return nil end
+		local k = i // 4
+		if k % 10 == 4 then return routes[5], 3 end
+		return routes[k % 5], 3
+	end
+	F.posOf = function(i)
+		if i % 4 ~= 0 then return nil end
+		return i % 8 == 0 and { 0, 28 } or { 0, 32 }
+	end
+	return routes
+end
+
+local function ringLines(kind)
+	local out = {}
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("[SQST] " .. kind .. " ", 1, true) then out[#out + 1] = F.kv(e.msg) end
+	end
+	return out
+end
+
+test("ring mix in the sampler: each driver counted once by its path's entry and exit arm (exit1..3, uturn, none after 3 reads), lane use from cars on ring edges; lines every 6 samples and at the stop, cumulative", function()
+	local rt, fl, slz = F.load()
+	local z = { id = "s5g1h", pair = "s5g1", ab = "sl_rturbo", kind = "rb", label = "RB4 2L", x = 0, y = 0, r = 40, towns = 4, built = true,
+		arms = ARMS4, ringMix = true, mix = "straight", test = "lu2" }
+	slz.current = { run = "s5-1-2", seq = 1, zones = { z } }
+	ringWorld()
+	fl.setInterval(1)   -- 10 game s
+	fl.setOn(true)
+	F.run(rt, 140, 500)   -- 70 game s: 7 samples
+	fl.setOn(false)
+	F.run(rt, 1, 500)
+	local mix = ringLines("RINGMIX")
+	eq(#mix, 2, "s=6 and the stop")
+	local m6, fin = mix[1], mix[2]
+	eq({ m6.s, m6.final, fin.final, fin.twin, fin.ab, fin.arms, fin.dir, fin.mix }, { "6", "0", "1", "s5g1h", "sl_rturbo", "4", "ccw", "straight" })
+	-- 80 drivers at the ring (i % 4 == 0, i % 5 ~= 0): 20 per exit, 10 U-turns; the 10 ending inside count as none after 3 reads
+	eq({ fin.n, fin.exit1, fin.exit2, fin.exit3, fin.uturn, fin.none, fin.capped }, { "80", "20", "20", "20", "10", "10", "0" })
+	ok(tonumber(fin.reads) > 0)
+	local lane = ringLines("RINGLANE")
+	eq(#lane, 2)
+	-- every sample: 40 cars at 28 m and 40 at 32 m on the ring edge
+	local samples = tonumber(F.kv((function()
+		for _, e in ipairs(log_entries()) do if e.msg:find("[SQST] FLOW_SUMMARY", 1, true) and e.msg:find(" final=1", 1, true) then return e.msg end end
+	end)()).samples)
+	eq(lane[2].cars, tostring(80 * samples))
+	eq(lane[2].radii, string.format("32.0:%d,28.0:%d", 40 * samples, 40 * samples))
+	eq(lane[1].cars, tostring(80 * 6))
+	-- a FLOW_ZONE line carries the mix
+	local zl
+	for _, e in ipairs(log_entries()) do if e.msg:find("[SQST] FLOW_ZONE", 1, true) then zl = F.kv(e.msg) end end
+	eq({ zl.twin, zl.mix, zl.test }, { "s5g1h", "straight", "lu2" })
+	F.pathOf, F.posOf, F.nodePos, F.edgeEnds = nil, nil, nil, nil
+end)
+
+test("ring mix: at most RING_MIX_READS drivers a sweep (capped= counts samples that left some), the rest counted in later samples; no ring zone: no lines", function()
+	local rt, fl, slz = F.load()
+	local fmod = flow()
+	local was = fmod.RING_MIX_READS
+	fmod.RING_MIX_READS = 20
+	local z = { id = "s5g1h", pair = "s5g1", ab = "sl_rturbo", kind = "rb", label = "RB4 2L", x = 0, y = 0, r = 40, towns = 4, built = true,
+		arms = ARMS4, ringMix = true, mix = "even", test = "lu2" }
+	slz.current = { run = "s5-1-2", seq = 1, zones = { z } }
+	ringWorld()
+	fl.setInterval(1)
+	fl.setOn(true)
+	F.run(rt, 140, 500)
+	fl.setOn(false)
+	F.run(rt, 1, 500)
+	fmod.RING_MIX_READS = was
+	local mix = ringLines("RINGMIX")
+	local fin = mix[#mix]
+	-- 20 reads a sweep over 7 samples: 140 reads for 70 counted at once + 10 ending inside (3 reads each)
+	ok(tonumber(fin.capped) >= 3, fin.capped)
+	eq({ fin.n, fin.exit1, fin.exit2, fin.exit3, fin.uturn, fin.none }, { "80", "20", "20", "20", "10", "10" })
+	F.pathOf, F.posOf, F.nodePos, F.edgeEnds = nil, nil, nil, nil
+	-- the same drivers in a zone without ringMix: no RINGMIX / RINGLANE
+	clear_logs()
+	reset_modules()
+	F = assert(loadfile("tests/square_stress_test/flow_fake.lua", "t", _ENV))()
+	local rt2, fl2, slz2 = F.load()
+	z.ringMix = nil
+	slz2.current = { run = "s5-1-3", seq = 1, zones = { z } }
+	ringWorld()
+	fl2.setInterval(1)
+	fl2.setOn(true)
+	F.run(rt2, 140, 500)
+	fl2.setOn(false)
+	F.run(rt2, 1, 500)
+	eq(#ringLines("RINGMIX"), 0)
+	eq(#ringLines("RINGLANE"), 0)
+	F.pathOf, F.posOf, F.nodePos, F.edgeEnds = nil, nil, nil, nil
+end)
+
+test("ring mix: no path element reads -> FLOW_RINGOFF once, the lines go on with what was counted (nothing)", function()
+	local rt, fl, slz = F.load()
+	local z = { id = "s5g1h", pair = "s5g1", ab = "sl_rturbo", kind = "rb", label = "RB4 2L", x = 0, y = 0, r = 40, towns = 4, built = true,
+		arms = ARMS4, ringMix = true, test = "lu2" }
+	slz.current = { run = "s5-1-2", seq = 1, zones = { z } }
+	ringWorld()
+	F.pathLayout = "none"
+	fl.setInterval(1)
+	fl.setOn(true)
+	F.run(rt, 140, 500)
+	fl.setOn(false)
+	F.run(rt, 1, 500)
+	F.pathLayout = nil
+	local off = 0
+	for _, e in ipairs(log_entries()) do if e.msg:find("[SQST] FLOW_RINGOFF", 1, true) then off = off + 1 end end
+	eq(off, 1)
+	local fin = ringLines("RINGMIX")
+	eq({ fin[#fin].n, fin[#fin].final }, { "0", "1" })
+	eq(fin[#fin].mix, nil, "no mix= without a mix")
+	F.pathOf, F.posOf, F.nodePos, F.edgeEnds = nil, nil, nil, nil
 end)

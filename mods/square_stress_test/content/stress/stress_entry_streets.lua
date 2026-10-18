@@ -41,7 +41,14 @@ entry.ARM_TEMPLATE = "::/infrastructure/street/country/country_new_large.street_
 entry.ARM_HALF_WIDTH = 15  -- country_new_large: 30 m of lanes
 entry.REACH = 46           -- arm ends: this far from the centre (stress_logic ENTRY_REACH)
 entry.FROM_YEAR = 1940     -- every template exists from 1940 (their yearFrom)
-entry.KEYS = { dir = "sqst_entry_dir", inAxis = "sqst_entry_in_axis", inReach = "sqst_entry_in_reach", ring = "sqst_entry_ring" }
+entry.KEYS = { dir = "sqst_entry_dir", inAxis = "sqst_entry_in_axis", inReach = "sqst_entry_in_reach", ring = "sqst_entry_ring",
+	mid = "sqst_entry_mid" }
+-- Ring mid nodes (the bench's Sheet 4 v4 3-lane ring, bench_rb3m; square_smart_lanes' sl_rsplit / sl_rmid write their
+-- lane changes there): sqst_entry_mid 1 none (the default: the ring as before, byte for byte), 2..4 = 1..3 plain ring
+-- nodes evenly on every quarter between two arms. With the 3-lane ring and its 30 m country large arms only 1 leaves
+-- room: the arm's junction takes about 10 m of ring centreline at each end of a 34.6 m quarter (r asin(15 / 33.5)), so
+-- 1 node leaves ~7 m of free ring on each piece, 2 nodes ~1 m (square_roundabouts asks for 5 m: geom.JUNCTION_PLAN).
+entry.MID_MAX = 3
 -- The inward arm (towards the town's central street) can end shorter: in game 2026-10-13 (log session
 -- 2026-10-13_0018_top-up-598153) every 46 m inward arm still hit the next crossroads of the grid (75 m out) while
 -- the ring arms cleared their T-junctions. sqst_entry_in_axis picks that arm (1 none, 2..5 = +x, +y, -x, -y),
@@ -73,20 +80,51 @@ end
 --- ring's driving direction, clockwise when cw: each quarter reversed, its tangents negated), then the four
 --- arms outwards (the one on axis inAxis, 1..4 in AXES order, ending at inReach instead of REACH). ring: an
 --- entry.RINGS entry (nil: the 2-lane ring).
-function entry.edges(cw, inAxis, inReach, ring)
+local function snap(v)
+	if math.abs(v) < 1e-9 then return 0 end
+	return v
+end
+
+--- The ring of one quarter (axis k to axis k + 1) in n + 1 pieces (n mid nodes), cubic Hermite tangents
+--- r * 4 * tan(theta / 4) per piece (the arc's value; theta = 90 / (n + 1) degrees), in driving order.
+local function quarterPieces(r, k, n, cw, template)
+	local out = {}
+	local a0 = (k - 1) * math.pi / 2
+	local th = (math.pi / 2) / (n + 1)
+	local s = r * 4 * math.tan(th / 4)
+	for q = 0, n do
+		local al, be = a0 + q * th, a0 + (q + 1) * th
+		local p0 = vec(snap(r * math.cos(al)), snap(r * math.sin(al)))
+		local p1 = vec(snap(r * math.cos(be)), snap(r * math.sin(be)))
+		local t0 = vec(snap(-s * math.sin(al)), snap(s * math.cos(al)))
+		local t1 = vec(snap(-s * math.sin(be)), snap(s * math.cos(be)))
+		if cw then
+			table.insert(out, 1, { p1, vec(-t1[1], -t1[2]), p0, vec(-t0[1], -t0[2]), template })
+		else
+			out[#out + 1] = { p0, t0, p1, t1, template }
+		end
+	end
+	return out
+end
+
+function entry.edges(cw, inAxis, inReach, ring, mid)
 	local rg = ring or entry.RINGS[entry.RING_DEFAULT]
 	local r = rg.radius
 	local t = r * 4 * (math.sqrt(2) - 1)
 	local out = {}
 	for k = 1, 4 do
-		local a, b = AXES[k], AXES[k % 4 + 1]
-		-- the anticlockwise tangent at axis (x, y) is (-y, x)
-		if cw then
-			out[#out + 1] = { vec(r * b[1], r * b[2]), vec(t * b[2], -t * b[1]), vec(r * a[1], r * a[2]), vec(t * a[2], -t * a[1]),
-				rg.template }
+		if mid ~= nil and mid > 0 then
+			for _, e in ipairs(quarterPieces(r, k, mid, cw, rg.template)) do out[#out + 1] = e end
 		else
-			out[#out + 1] = { vec(r * a[1], r * a[2]), vec(-t * a[2], t * a[1]), vec(r * b[1], r * b[2]), vec(-t * b[2], t * b[1]),
-				rg.template }
+			local a, b = AXES[k], AXES[k % 4 + 1]
+			-- the anticlockwise tangent at axis (x, y) is (-y, x)
+			if cw then
+				out[#out + 1] = { vec(r * b[1], r * b[2]), vec(t * b[2], -t * b[1]), vec(r * a[1], r * a[2]), vec(t * a[2], -t * a[1]),
+					rg.template }
+			else
+				out[#out + 1] = { vec(r * a[1], r * a[2]), vec(-t * a[2], t * a[1]), vec(r * b[1], r * b[2]), vec(-t * b[2], t * b[1]),
+					rg.template }
+			end
 		end
 	end
 	for k, a in ipairs(AXES) do
@@ -124,12 +162,19 @@ function entry.inward(params)
 	return ax - 1, entry.IN_REACHES[ri]
 end
 
+--- The ring mid nodes per quarter of the params (sqst_entry_mid; missing or out of range: 0).
+function entry.midNodes(params)
+	local i = params ~= nil and tonumber(params[entry.KEYS.mid]) or nil
+	if i == nil or i ~= math.floor(i) or i < 1 or i > entry.MID_MAX + 1 then return 0 end
+	return i - 1
+end
+
 --- The construction result for the params (sqst_entry_dir; missing: anticlockwise; the inward arm's).
 function entry.result(params)
 	local ring, arms = {}, {}
 	local inAxis, inReach = entry.inward(params)
 	local rg = entry.ring(params)
-	for _, e in ipairs(entry.edges(entry.clockwise(params), inAxis, inReach, rg)) do
+	for _, e in ipairs(entry.edges(entry.clockwise(params), inAxis, inReach, rg, entry.midNodes(params))) do
 		if e[5] == rg.template then ring[#ring + 1] = e else arms[#arms + 1] = e end
 	end
 	return {

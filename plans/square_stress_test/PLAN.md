@@ -119,6 +119,18 @@ This mod **deliberately modifies the save** (towns, vehicles, money, date). The 
    draft. Design, sheets, files: `BENCH.md`; in-game steps: TESTING.md 6W. The traffic log's `thru` now counts by
    position (`thru_path` keeps the path count).
 
+9. **Light plans A/B** (built 2026-10-14, rev 3, unreleased; first run 2026-10-15 session `2026-10-15_0355_top-up-488195`:
+   axis +23-26 % thru/min vs game, classic worse than game, 6/6 sets): Towns tab > Lights showcase > Build light plans
+   A/B: 2x2 X and 3x3 X lit crossroads, 3 sets each on a 16 km map, twins game / sl_phases (Smart Lanes' axis plan) /
+   **sl_auto** (the axis plan with Smart Lanes' automatic re-timing, since 2026-10-14 (2); sl_classic, the classic
+   patterns, was the console variant `jn.buildLightPlans(seed, "classic")` until 2026-10-16: removed with Smart Lanes'
+   classic patterns), balanced (~600-people towns) and
+   **unbalanced** sets (north town ~150, south ~40) in turn; `make flow` compares the plans per shape and demand, in an
+   auto twin's settled window, and splits a twin re-timed by hand (Smart Lanes' Re-time) before / after. Next to it the
+   **Auto re-time** buttons (All lit junctions / Clear: Smart Lanes' `SmartLanes.auto`, whole map; `make flow` splits
+   before / after). SHOWCASE.md "Light plans A/B"; steps: TESTING.md 6Z1 (auto twins) and 6Z2 (whole map); not run in
+   game yet.
+
 ## Verified in game vs not (2026-10-10, docs/findings.md "Stress Test probes")
 
 Verified: the window, HUD button and form layout; Add money, Keep balance, Jump to year, speed 8, the Hide all

@@ -59,8 +59,8 @@ local RB_DIR = "mods/square_roundabouts/content/infrastructure/street_constructi
 --- key -> number of values of every param of a square_roundabouts .con.lua (nil when not run from the
 --- repo root). Its ug_require'd modules are loaded from the files as the game would.
 local function conParams(file)
-	if file == logic.SHOWCASE_PLAIN_FILE then
-		-- our own crossing construction
+	if file == logic.SHOWCASE_PLAIN_FILE or file:find("^square_stress_test_") then
+		-- our own constructions (the crossing, the entry roundabout)
 		local h = assert(io.open("mods/square_stress_test/content/infrastructure/street_construction/" .. file .. ".lua"))
 		local src = h:read("a")
 		h:close()
@@ -1110,6 +1110,7 @@ local TWO_WAY3 = lanesOf({ false, false, false, false, true, true, true, true })
 local sameDropLanes  -- a bench test: the lane drop built with one road on both arms (its geometry check fails)
 local noRing         -- a bench test: the roundabout built without one-way streets
 local benchGeo       -- bench tests: rings and channelized junctions get one-way streets at their centre
+local noMids         -- bench tests: a ring asked for mid nodes (sqrb_dev_ring_mid) is built without them (an older square_roundabouts)
 
 --- What is wrong with a link proposal's node configs (stress_nodecfg.problems, plus: an existing node
 --- that keeps a config is listed for removal, and no connection uses a sidewalk lane). {} when nothing.
@@ -1314,7 +1315,18 @@ local function buildJunction(ce)
 		local axes = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } }
 		local ring = {}
 		for k, ax in ipairs(axes) do ring[k] = at(ax[1] * rr, ax[2] * rr) end
-		for k = 1, 4 do edges[newEdge(ring[k], ring[k % 4 + 1])].lanes = ONE_WAY end
+		-- sqst_entry_mid: plain ring nodes on every quarter (none when noMids)
+		local nm = noMids and 0 or geo.midNodes(ce.params)
+		for k = 1, 4 do
+			local prev = ring[k]
+			for q = 1, nm do
+				local a = math.rad(90 * (k - 1) + 90 * q / (nm + 1))
+				local m = at(rr * math.cos(a), rr * math.sin(a))
+				edges[newEdge(prev, m)].lanes = ONE_WAY
+				prev = m
+			end
+			edges[newEdge(prev, ring[k % 4 + 1])].lanes = ONE_WAY
+		end
 		for k, ax in ipairs(axes) do
 			local reach = (inAxis == k and inReach) or logic.ENTRY_REACH
 			edges[newEdge(ring[k], at(ax[1] * reach, ax[2] * reach))].lanes = TWO_WAY
@@ -1337,7 +1349,17 @@ local function buildJunction(ce)
 		if ce.params.sqst_x_shape == 4 and d == 180 and not sameDropLanes then edges[e].lanes = TWO_WAY3 end
 	end
 	-- a square_roundabouts ring / channelized junction: one-way streets at its centre (the bench's geometry check)
-	if benchGeo and base:find("^square_roundabouts") and not noRing then
+	if benchGeo and base:find("^square_roundabouts") and not noRing and (ce.params.sqrb_dev_ring_mid or 0) >= 1 and not noMids then
+		-- a ring with mid nodes (bench_rb2tm, bench_rb4lm): 4 (n + 1) ring nodes, the first joined to the centre's arm
+		local nn = 4 * (math.floor(ce.params.sqrb_dev_ring_mid) + 1)
+		local ring = {}
+		for k = 1, nn do
+			local a = math.rad(360 / nn * (k - 1))
+			ring[k] = at(12 * math.cos(a), 12 * math.sin(a))
+		end
+		for k = 1, nn do edges[newEdge(ring[k], ring[k % nn + 1])].lanes = ONE_WAY end
+		edges[newEdge(c, ring[1])].lanes = TWO_WAY
+	elseif benchGeo and base:find("^square_roundabouts") and not noRing then
 		local r1, r2, r3 = at(10, 0), at(0, 10), at(-10, 0)
 		for _, pr in ipairs({ { r1, r2 }, { r2, r3 }, { r3, r1 } }) do edges[newEdge(pr[1], pr[2])].lanes = ONE_WAY end
 		edges[newEdge(c, r1)].lanes = TWO_WAY
@@ -1378,7 +1400,7 @@ local entryRing      -- Lights showcase towns get the ring at their side middles
 local benchIx         -- bench tests: interchange arms within the reach estimate (buildJunction)
 before_each(function()
 	entryRing = true
-	benchIx, sameDropLanes, noRing, benchGeo = nil, nil, nil, nil
+	benchIx, sameDropLanes, noRing, benchGeo, noMids = nil, nil, nil, nil, nil
 	townLanes, sideShift = nil, nil
 	entryLocks, lockRefuse, lockDelay = {}, nil, nil
 	T, sent, nodes, edges, nextId = 0, {}, {}, {}, 1000
@@ -2783,6 +2805,181 @@ test("mixed Lights showcase build (20 km): all four shapes, three twins, T sets 
 	ok(all:find(" sets_mismatch=0", 1, true), all)
 end)
 
+test("light plans A/B layout: 2x2 X and 3x3 X, 3 sets each, twins game b / sl_phases c / sl_auto v on a 16 km map, every twin once in every position per shape; zones pass Smart Lanes' validator", function()
+	local sp = logic.LIGHTS_PLANS_SPEC
+	eq(sp.perType, 3)
+	eq(sp.growTarget, 600)
+	eq(sp.variant, "light_plans")
+	ok(sp.demandMix)
+	eq({ sp.modes[1].ab, sp.modes[1].twin, sp.modes[2].ab, sp.modes[2].twin, sp.modes[3].ab, sp.modes[3].twin, sp.modes[3].label },
+		{ "game", "b", "sl_phases", "c", "sl_auto", "v", "Auto timing" })
+	ok(sp.modes[3].litPlainOnly)
+	for _, seed in ipairs({ 12, 777, 4242 }) do
+		local L = logic.showcaseLayout(16384, 16384, MARGIN, seed, sp)
+		local n, nt, _, byAb = logic.showcaseCounts(L, sp)
+		eq({ n, nt }, { 18, 72 }, "16 km / " .. seed)
+		eq(byAb, { game = 6, sl_phases = 6, sl_auto = 6 })
+		local sets, pos, per = {}, {}, {}
+		for _, g in ipairs(L.groups) do
+			sets[g.set] = sets[g.set] or {}
+			table.insert(sets[g.set], g)
+			local lbl = g.place.case_.label
+			per[lbl] = (per[lbl] or 0) + 1
+			eq(#g.towns, 4)
+		end
+		eq(per, { ["2x2 X"] = 9, ["3x3 X"] = 9 })
+		for k, list in ipairs(sets) do
+			eq({ list[1].ab, list[2].ab, list[3].ab }, { "game", "sl_phases", "sl_auto" }, "set " .. k)
+			local xs = {}
+			for _, g in ipairs(list) do xs[#xs + 1] = g.place.x end
+			table.sort(xs)
+			local lbl = list[1].place.case_.label
+			pos[lbl] = pos[lbl] or {}
+			for _, g in ipairs(list) do
+				eq(g.place.case_.label, lbl)
+				pos[lbl][g.ab] = pos[lbl][g.ab] or { 0, 0, 0 }
+				local slot = g.place.x == xs[1] and 1 or (g.place.x == xs[2] and 2 or 3)
+				pos[lbl][g.ab][slot] = pos[lbl][g.ab][slot] + 1
+			end
+		end
+		for lbl, byAbPos in pairs(pos) do
+			for ab, c in pairs(byAbPos) do eq(c, { 1, 1, 1 }, lbl .. " " .. ab .. " / " .. seed) end
+		end
+		-- town names say the twin's mode and are test towns (Remove towns > Grid towns)
+		for _, t in ipairs(L.towns) do ok(logic.isTestTownName(t.name), t.name) end
+	end
+	ok(logic.isTestTownName("Classic phases 3 N"))
+	ok(logic.isTestTownName("Auto timing 3 N"))
+	ok(logic.isTestTownName("Auto timing 2 S tiny"))
+	ok(logic.isTestTownName("Game default 4 E busy"))
+	ok(not logic.isTestTownName("Auto timing 2 S huge"))
+	local Z = logic.showcaseZones(logic.showcaseLayout(16384, 16384, MARGIN, 12, sp), 0, 0)
+	eq(#Z, 18)
+	for _, z in ipairs(Z) do
+		if z.ab == "sl_auto" then ok(z.id:match("^g%d+v$"), z.id) end
+		if z.ab == "sl_phases" then ok(z.id:match("^g%d+c$"), z.id) end
+		if z.ab == "game" then ok(z.id:match("^g%d+b$"), z.id) end
+	end
+	local p = logic.slZonesPayload(Z, "s12-1-1")
+	local Zl = dofile("mods/square_smart_lanes/content/smart_lanes/sl_zones.lua")
+	local op, list = Zl.validate(p)
+	eq(op, "set")
+	eq(#list, 18)
+	eq(logic.slZonesByAb(p.zones), Zl.byAbText(list))
+	eq(logic.slZonesByAb(p.zones), "game:6,sl:0,sl_phases:6,sl_auto:6")
+	local every = { { ab = "sl_rmid" }, { ab = "sl_exitfan" }, { ab = "sl_auto" } }
+	eq(logic.slZonesByAb(every), Zl.byAbText(every))
+	eq(logic.slZonesByAb(every), "game:0,sl:0,sl_phases:0,sl_exitfan:1,sl_rmid:1,sl_auto:1")
+	-- sl_classic (Smart Lanes' classic patterns) is gone since 2026-10-16: never sent, counted by neither side
+	ok(not logic.SL_ZONE_AB.sl_classic)
+	local old = { { ab = "sl_phases" }, { ab = "sl_classic" } }
+	eq(logic.slZonesByAb(old), Zl.byAbText(old))
+	eq(logic.slZonesByAb(old), "game:0,sl:0,sl_phases:1")
+	local dropped = select(2, logic.slZonesPayload({ { x = 0, y = 0, r = 50, ab = "sl_classic" } }, "r"))
+	eq(dropped, 1, "an sl_classic zone is left out of the payload")
+	ok(logic.SL_ZONE_AB.sl_auto)
+	-- every mode the Stress Test sends, Smart Lanes accepts
+	for ab in pairs(logic.SL_ZONE_AB) do
+		eq((Zl.validate({ op = "set", zones = { { x = 0, y = 0, r = 50, ab = ab } } })), "set", ab)
+	end
+	-- the twin letters a reload's traffic log falls back to (stress_flow TWIN_LETTER) still know u (older saves)
+	local flow = ug_require "square_stress_test::/stress/stress_flow.tl"
+	local back = flow.zonesFromSaved({ { x = 0, y = 0, r = 90, ab = "game" }, { x = 3000, y = 0, r = 90, ab = "sl_phases" },
+		{ x = 6000, y = 0, r = 90, ab = "sl_classic" }, { x = 0, y = 3000, r = 90, ab = "game" } }, "r1")
+	eq({ back[1].twin, back[2].twin, back[3].twin, back[4].twin }, { "g1b", "g1c", "g1u", "g2b" })
+	back = flow.zonesFromSaved({ { x = 0, y = 0, r = 90, ab = "game" }, { x = 3000, y = 0, r = 90, ab = "sl_phases" },
+		{ x = 6000, y = 0, r = 90, ab = "sl_auto" }, { x = 0, y = 3000, r = 90, ab = "game" } }, "r1")
+	eq({ back[1].twin, back[2].twin, back[3].twin, back[4].twin }, { "g1b", "g1c", "g1v", "g2b" })
+end)
+
+test("light plans A/B demand: balanced and unbalanced sets in turn per shape (2x2 X B,U,B; 3x3 X U,B,U), every twin of a set the same demand; unbalanced towns E/W 600, N 150 (small), S 40 (tiny), created at that capacity on the Medium grid; zone lines say demand=", function()
+	eq({ logic.lightsPlansDemand(1, 1), logic.lightsPlansDemand(1, 2), logic.lightsPlansDemand(1, 3) }, { "balanced", "unbalanced", "balanced" })
+	eq({ logic.lightsPlansDemand(2, 1), logic.lightsPlansDemand(2, 2), logic.lightsPlansDemand(2, 3) }, { "unbalanced", "balanced", "unbalanced" })
+	eq({ logic.lightsPlansTownPop("balanced", "S") }, { 600 })
+	eq({ logic.lightsPlansTownPop("unbalanced", "E") }, { 600, "busy" })
+	eq({ logic.lightsPlansTownPop("unbalanced", "N") }, { 150, "small" })
+	eq({ logic.lightsPlansTownPop("unbalanced", "S") }, { 40, "tiny" })
+	local sp = logic.LIGHTS_PLANS_SPEC
+	for _, seed in ipairs({ 12, 777, 4242 }) do
+		local L = logic.showcaseLayout(16384, 16384, MARGIN, seed, sp)
+		local bySet, perShape, modeDemand = {}, {}, {}
+		for _, g in ipairs(L.groups) do
+			ok(g.demand == "balanced" or g.demand == "unbalanced", tostring(g.demand))
+			if bySet[g.set] ~= nil then eq(g.demand, bySet[g.set], "set " .. g.set) end
+			if bySet[g.set] == nil then
+				bySet[g.set] = g.demand
+				local lbl = g.place.case_.label
+				perShape[lbl] = perShape[lbl] or {}
+				table.insert(perShape[lbl], g.demand:sub(1, 1))
+			end
+			modeDemand[g.ab .. "/" .. g.demand] = (modeDemand[g.ab .. "/" .. g.demand] or 0) + 1
+			for i, ti in ipairs(g.towns) do
+				local t = L.towns[ti]
+				local side = t.name:match(" %d+ (%u%u?)")
+				if g.demand == "balanced" then
+					eq({ t.pop, t.townCaps }, { 600, nil }, t.name)
+					ok(t.name:match(" %u%u?$"), t.name)
+				else
+					local want = ({ E = { 600, nil, "busy" }, W = { 600, nil, "busy" }, N = { 150, 150, "small" }, S = { 40, 40, "tiny" } })[side]
+					eq({ t.pop, t.townCaps }, { want[1], want[2] }, t.name)
+					ok(t.name:find(" " .. want[3] .. "$"), t.name)
+				end
+				eq(t.size, logic.LIGHTS_SIZE, "the grid stays Medium")
+				ok(logic.isTestTownName(t.name), t.name)
+				ok(#t.name <= 30, t.name)
+			end
+		end
+		eq(perShape, { ["2x2 X"] = { "b", "u", "b" }, ["3x3 X"] = { "u", "b", "u" } }, "seed " .. seed)
+		for _, ab in ipairs({ "game", "sl_phases", "sl_auto" }) do
+			eq({ modeDemand[ab .. "/balanced"], modeDemand[ab .. "/unbalanced"] }, { 3, 3 }, ab)
+		end
+	end
+	local Z = logic.showcaseZones(logic.showcaseLayout(16384, 16384, MARGIN, 12, sp), 0, 0)
+	for _, z in ipairs(Z) do
+		ok(z.demand == "balanced" or z.demand == "unbalanced")
+		ok(logic.showcaseZoneLine(z, true):find(" demand=" .. z.demand .. "$"), logic.showcaseZoneLine(z, true))
+	end
+	-- the classic variant (sl_classic twins) is gone with Smart Lanes' classic patterns (2026-10-16)
+	eq(logic.LIGHTS_PLANS_CLASSIC_SPEC, nil)
+	eq(logic.LIGHTS_CLASSIC_AB, nil)
+	-- pops per growth target in the dense summary
+	eq(logic.popByTargetText({ 598, 600, 151, 39, nil }, { 600, 600, 150, 40, 40 }, 5), " pop_by_target=40:39/39/39/1,150:151/151/151/1,600:598/599/600/2")
+	eq(logic.popByTargetText({ 1, 2 }, {}, 2), "")
+	eq(logic.popByTargetText({}, { 40 }, 1), " pop_by_target=40:unread/1")
+end)
+
+test("light plans A/B build (16 km): 18 lit crossroads (2x2 X and 3x3 X), twins game / sl_phases / sl_auto, every town entered and linked, towns at about 600 each, the unbalanced sets' north / south towns created small / tiny with their own targets", function()
+	box = { min = { x = -8192, y = -8192 }, max = { x = 8192, y = 8192 } }
+	lightPref = function() return api.type.enum.TrafficLightPreference.YES end
+	jlogic.LINK_GROUP_MAX = 8
+	jn.buildLightPlans(SEED)
+	run(4000, "Light plans A/B done")
+	local all = logText()
+	ok(all:find(" groups=18 sets=6 crossroads=18 twins game=6 sl_phases=6 sl_auto=6 towns=72 (Medium) lights=yes", 1, true), all)
+	ok(all:find(" grow_target=600 shapes=2x2_X,3x3_X", 1, true), all)
+	ok(all:find(" shapes=2x2_X,3x3_X per_shape=3 variant=light_plans demand=balanced:3,unbalanced:3 pops=busy:600,small:150,tiny:40 unbalanced_sides=E,W:busy,N:small,S:tiny bus_lines=no", 1, true), all)
+	ok(all:find("by_ab=game:6,sl:0,sl_phases:6,sl_auto:6", 1, true), all)
+	ok(all:find(" demand=unbalanced", 1, true) and all:find(" demand=balanced", 1, true), all)
+	local shapes = {}
+	for _, ce in ipairs(constructions()) do shapes[(ce.params.sqst_x_shape or 0) .. "/" .. (ce.params.sqst_x_main or 0) .. "/" .. (ce.params.sqst_x_side or 0)] = true end
+	eq(shapes, { ["1/5/5"] = true, ["1/6/6"] = true })
+	eq(#entryCmds(), 72)
+	eq(linkedLines(), 72)
+	local slz = ug_require "square_stress_test::/stress/gui/stress_slzones.tl"
+	local n = {}
+	for _, z in ipairs(slz.current.zones) do n[z.ab] = (n[z.ab] or 0) + 1 end
+	eq(n, { game = 6, sl_phases = 6, sl_auto = 6 })
+	eq(#growCalls, 1)
+	eq(growCalls[1].target, 600)
+	-- each area its own target: 3 unbalanced sets x 3 twins = 9 small and 9 tiny towns, the rest 600
+	local tg = {}
+	for _, a in ipairs(growCalls[1].areas) do tg[a.target] = (tg[a.target] or 0) + 1 end
+	eq(tg, { [600] = 54, [150] = 9, [40] = 9 })
+	ok(all:find(" sets_mismatch=0", 1, true), all)
+	ok(all:find("Light plans A/B done: 18 of 18 lit crossroads built (game 6/6, sl_phases 6/6, sl_auto 6/6)", 1, true), all)
+	ok(all:find("but in the unbalanced sets the north town to about 150 and the south town to about 40", 1, true), all)
+end)
+
 test("Lights showcase: a given shape builds that one shape with its four twins (lightsSpec), the default press every shape", function()
 	lightsMap()
 	lightPref = function() return api.type.enum.TrafficLightPreference.YES end
@@ -4109,14 +4306,25 @@ test("bench variants: every fixed param one of its construction's values, with t
 		bench_cht = { sqrb_ch_layout = "T", sqrb_ch_main = "Country, medium", sqrb_ch_side = "Country, medium", sqrb_ch_slips = "Near-side corners" },
 		bench_dia = { sqrb_ix_highway = "M", sqrb_ix_cross = "Country, large", sqrb_hx_scale = "S" },
 		bench_drop = { sqst_x_shape = "Straight", sqst_x_main = "Country large", sqst_x_main2 = "Country medium", sqst_x_lights = "Game decides" },
+		bench_rb3 = { sqst_entry_ring = "3 lanes", sqst_entry_dir = "Anticlockwise", sqst_entry_in_axis = "None" },
+		bench_rb4l = { sqrb_lanes = "4", sqrb_arms = "4", sqrb_arm_type = "Country, large", sqrb_signals = "Off" },
+		bench_rb2t = { sqrb_lanes = "2", sqrb_arms = "4", sqrb_arm_type = "Town, small", sqrb_signals = "Off" },
+		bench_rb2tm = { sqrb_lanes = "2", sqrb_arms = "4", sqrb_arm_type = "Town, small", sqrb_signals = "Off" },
+		bench_rb3m = { sqst_entry_ring = "3 lanes", sqst_entry_dir = "Anticlockwise", sqst_entry_mid = "1" },
+		bench_rb4lm = { sqrb_lanes = "4", sqrb_arms = "4", sqrb_arm_type = "Country, large", sqrb_signals = "Off" },
 	}
 	for _, v in pairs(benchlib.VARIANTS) do
 		local counts, labels = conParams(v.file)
 		ok(counts ~= nil, v.file)
 		if counts == nil then return end
 		for k, x in pairs(v.fixed) do
-			ok(counts[k] ~= nil, v.id .. ": " .. k)
-			ok(x >= 1 and x <= (counts[k] or 0), v.id .. ": " .. k .. "=" .. x)
+			if k:find("^sqrb_dev_") then
+				-- square_roundabouts' dev overrides are in no menu (geom.DEV_KEYS; only bench_rb2tm's ring mid nodes)
+				ok(({ bench_rb2tm = 1, bench_rb4lm = 2 })[v.id] == x and k == "sqrb_dev_ring_mid", v.id .. " " .. k)
+			else
+				ok(counts[k] ~= nil, v.id .. ": " .. k)
+				ok(x >= 1 and x <= (counts[k] or 0), v.id .. ": " .. k .. "=" .. x)
+			end
 		end
 		for k, label in pairs(want[v.id]) do eq(labels[k][v.fixed[k]], label, v.id .. " " .. k) end
 	end
@@ -4180,4 +4388,150 @@ test("bench lane drop variant: the crossing's own geometry has the large road (3
 	eq(benchlib.VARIANTS.rb4.fixed.sqrb_arm_type, 5)
 	eq(benchlib.VARIANTS.cht.fixed.sqrb_ch_main, 5)
 	eq(benchlib.VARIANTS.dia.fixed.sqrb_ix_cross, 6)
+end)
+
+test("micro bench v2 (16 km): 2-, 3- and 4-lane rings, 4 sets of 8 twins (game, sl, six ring layouts), every town entered and linked, geometry ok, ids microg, growth to 600", function()
+	box = { min = { x = -8000, y = -8000 }, max = { x = 8000, y = 8000 } }
+	benchGeo = true
+	jlogic.LINK_GROUP_MAX = 8
+	local sheet = benchlib.sheet("micro")
+	ok(jn.buildBench(sheet, SEED))
+	run(6000, sheet.title .. " done")
+	local all = logText()
+	ok(all:find("[SQST] bench_micro: seed=12 map=16000x16000m groups=32 sets=4 rb4l=16 rb3=8 rb2=8 twins game=4 sl=4 sl_rturbo=4 sl_rmatch=4 sl_rout1=4 sl_r2exit=4 sl_rspiral=4 sl_rspread=4 towns=128 (Medium)", 1, true), all:sub(1, 3000))
+	eq(linkedLines(), 128)
+	local _, nGood = all:gsub("%[SQST%] BENCH_TWIN id=microg%d+%a test=rb%w+ ab=[%w_]+ nodes=%d+ lit_nodes=%d+ phase=read geometry=ok what=one_way_streets", "")
+	eq(nGood, 32)
+	ok(all:find(" sets_mismatch=0", 1, true), all)
+	ok(all:find("by_ab=game:4,sl:4,sl_phases:0,sl_rturbo:4,sl_rmatch:4,sl_rout1:4,sl_r2exit:4,sl_rspiral:4,sl_rspread:4", 1, true), all)
+	eq(growCalls[1].target, 600)
+	for _, x in ipairs(sent) do
+		local sp = x.cmd.p.streetProposal
+		if sp and sp.edgesToAdd then eq(cfgProblems(sp), {}) end
+	end
+end)
+
+test("bench sheet 4 v5 (16 km): per ring size twins on the plain and the mid-node ring, one set each, every town entered and linked by a 2 + 2 country road, geometry ok, ids s4g, growth to 400", function()
+	box = { min = { x = -8000, y = -8000 }, max = { x = 8000, y = 8000 } }
+	benchGeo = true
+	jlogic.LINK_GROUP_MAX = 8
+	local sheet = benchlib.sheet("s4")
+	ok(jn.buildBench(sheet, SEED))
+	run(4000, sheet.title .. " done")
+	local all = logText()
+	ok(all:find("[SQST] bench_s4: seed=12 map=16000x16000m groups=13 sets=3 rb2v=5 rb3v=4 rb4v=4 twins game=6 sl=3 sl_rsplit=3 sl_rmid=1 towns=52 (Medium)", 1, true), all:sub(1, 3000))
+	for _, ce in ipairs(constructions()) do
+		if ce.params.sqst_entry_ring ~= nil then
+			eq(ce.params.sqst_entry_ring, 2)
+			ok(ce.params.sqst_entry_mid == nil or ce.params.sqst_entry_mid == 2)
+		elseif ce.params.sqrb_lanes == 3 then
+			eq({ ce.params.sqrb_arm_type, ce.params.sqrb_signals }, { 6, 1 })
+			ok(ce.params.sqrb_dev_ring_mid == nil or ce.params.sqrb_dev_ring_mid == 2)
+		else
+			eq({ ce.params.sqrb_lanes, ce.params.sqrb_arm_type, ce.params.sqrb_signals }, { 2, 1, 1 })
+			ok(ce.params.sqrb_dev_ring_mid == nil or ce.params.sqrb_dev_ring_mid == 1)
+		end
+		eq(ce.transf[1][1], 1, "rotation 0")
+	end
+	eq(#constructions(), 13)
+	eq(#entryCmds(), 52)
+	eq(linkedLines(), 52)
+	-- the fake arms are 1 + 1 lane roads (as Town small): every link piece the 2 + 2 country road (v1's 1 + 1 links were refused in game)
+	local tpl = linkTemplates()
+	ok(next(tpl) ~= nil, "templates")
+	-- (the wide rings' links at their arms' own lanes, linkLanes 0: the fake arms are 1 + 1 for every ring, so country small there)
+	local medium = 0
+	for t in pairs(tpl) do
+		ok(t:find("country_new_medium", 1, true) or t:find("country_old_medium", 1, true) or t:find("country_new_small", 1, true)
+			or t:find("country_old_small", 1, true), t)
+		if t:find("_medium", 1, true) then medium = medium + 1 end
+	end
+	ok(medium > 0, "the town ring's links on the 2 + 2 road")
+	-- the geometry check sees the mid nodes (mids= ring nodes joining two one-way streets only) on every twin
+	-- the mid twins' geometry check sees the nodes (mids=), the plain twins' has none; each line names its geometry
+	local _, nMid = all:gsub("%[SQST%] BENCH_TWIN id=s4g%d+[pst] test=rb%dv ab=[%w_]+ nodes=%d+ lit_nodes=%d+ phase=read geometry=ok what=one_way_streets n=%d+ mids=%d+ geom=mid", "")
+	eq(nMid, 7)
+	local _, nPlain = all:gsub("%[SQST%] BENCH_TWIN id=s4g%d+[ab] test=rb%dv ab=[%w_]+ nodes=%d+ lit_nodes=%d+ phase=read geometry=ok what=one_way_streets n=%d+ geom=plain", "")
+	eq(nPlain, 6)
+	ok(all:find(" geom=mid", 1, true) and all:find("showcase zone id=s4g1p pair=s4g1 ab=game ", 1, true), "zone lines")
+	ok(all:find(" sets_mismatch=0", 1, true), all)
+	ok(all:find("by_ab=game:6,sl:3,sl_phases:0,sl_rsplit:3,sl_rmid:1", 1, true), all:match("by_ab=[^ \n]*"))
+	ok(all:find(" test=rb2v variant=RB_2L_town_mid geom=mid", 1, true), "zone lines")
+	ok(all:find(" test=rb2v variant=RB_2L_town geom=plain", 1, true), "zone lines")
+	ok(all:find("Game default mid 1 N", 1, true) or all:find("Game default mid 1 E", 1, true), "town names say the mode")
+	ok(all:find("Ring split mid 1 N", 1, true) or all:find("Ring split mid 1 E", 1, true), "town names say the mode")
+	eq(growCalls[1].target, 400)
+	for _, x in ipairs(sent) do
+		local sp = x.cmd.p.streetProposal
+		if sp and sp.edgesToAdd then eq(cfgProblems(sp), {}) end
+		local ce = x.cmd.p.constructionsToAdd and x.cmd.p.constructionsToAdd[1]
+		if ce then
+			for _, row in ipairs(ce.transf) do
+				for _, v in ipairs(row) do ok(not (v == 0 and 1 / v < 0), "no -0 in a transform") end
+			end
+		end
+	end
+end)
+
+test("bench sheet 5 (16 km): ring lane use, 2- and 4-lane rings x 4 twins x 3 sets, one traffic mix per set: towns created and grown to their mix's size, zone lines with mix=, letters w / y", function()
+	box = { min = { x = -8000, y = -8000 }, max = { x = 8000, y = 8000 } }
+	benchGeo = true
+	jlogic.LINK_GROUP_MAX = 8
+	local sheet = benchlib.sheet("s5")
+	ok(jn.buildBench(sheet, SEED))
+	run(4000, sheet.title .. " done")
+	local all = logText()
+	ok(all:find("[SQST] bench_s5: seed=12 map=16000x16000m groups=24 sets=6 lu2=12 lu4=12 twins game=6 sl_rturbo=6 sl_rmid2=3 sl_rmatch=3 sl_rturbo_in=3 sl_rspread=3 towns=96 (Medium)", 1, true), all:sub(1, 3000))
+	eq(#constructions(), 24)
+	eq(#entryCmds(), 96)
+	eq(linkedLines(), 96)
+	ok(all:find("by_ab=game:6,sl:0,sl_phases:0,sl_rturbo:6,sl_rmatch:3,sl_rspread:3,sl_rmid2:3,sl_rturbo_in:3", 1, true), all:match("by_ab=[^ \n]*"))
+	for _, m in ipairs({ "even", "straight", "adjacent" }) do
+		local _, nz = all:gsub("%[SQST%] showcase zone id=s5g%d[bhiwym] pair=s5g%d ab=[%w_]+ [^\n]* test=lu[24] variant=[^ ]+ approach=%d+ mix=" .. m .. "\n", "")
+		eq(nz, 8, m)
+	end
+	ok(all:find("showcase zone id=s5g1w pair=s5g1 ab=sl_rmid2 ", 1, true) and all:find("showcase zone id=s5g4y pair=s5g4 ab=sl_rturbo_in ", 1, true), "letters")
+	ok(all:find("Ring mid 2 2 N large", 1, true), "town names say the mode and the size")
+	ok(all:find("Ring turbo in 6 W small", 1, true), "town names say the mode and the size")
+	-- each town grows to its mix's size; the small ones are created at that capacity
+	eq(#growCalls, 1)
+	local tg = {}
+	for _, a in ipairs(growCalls[1].areas) do tg[a.target] = (tg[a.target] or 0) + 1 end
+	eq(tg, { [600] = 32, [100] = 32, [350] = 32 })
+	ok(all:find(" sets_mismatch=0", 1, true), all)
+end)
+
+test("bench sheet 4 v5: a mid-node ring built without its nodes (an older square_roundabouts) fails the geometry check; the plain twins pass", function()
+	box = { min = { x = -8000, y = -8000 }, max = { x = 8000, y = 8000 } }
+	benchGeo, noMids = true, true
+	ok(jn.buildBench(benchlib.sheet("s4"), SEED))
+	run(4000, "done")
+	local all = logText()
+	local _, nBad = all:gsub("%[SQST%] BENCH_TWIN id=s4g%d+[pst] test=rb%dv ab=[%w_]+ nodes=%d+ lit_nodes=%d+ phase=read geometry=bad what=one_way_streets n=%d+ mids=%d+ geom=mid", "")
+	eq(nBad, 7)
+	local _, nOk = all:gsub("%[SQST%] BENCH_TWIN id=s4g%d+[ab] test=rb%dv ab=[%w_]+ nodes=%d+ lit_nodes=%d+ phase=read geometry=ok what=one_way_streets n=%d+ geom=plain", "")
+	eq(nOk, 6)
+	ok(all:find("geometry does not present its test", 1, true), "a problem")
+end)
+
+test("bench sheet 4: a refused 2 + 2 country link falls back to copies of the town street (try 2), every town still linked", function()
+	box = { min = { x = -8000, y = -8000 }, max = { x = 8000, y = 8000 } }
+	benchGeo = true
+	local refused = 0
+	failCmd = function(cmd)
+		local sp = cmd.p.streetProposal
+		if not (sp and sp.edgesToAdd) or isEntryJoin(sp) then return false end
+		for _, seg in ipairs(sp.edgesToAdd) do
+			local t = seg.comp.roadTemplate
+			if t and t:find("country_new_medium", 1, true) then refused = refused + 1 return true end
+		end
+		return false
+	end
+	ok(jn.buildBench(benchlib.sheet("s4"), SEED))
+	run(4000, "done")
+	local all = logText()
+	ok(refused > 0, "medium links refused")
+	eq(linkedLines(), 52)
+	ok(all:find("(copies of the arm's street)", 1, true), "the fallback is logged")
+	ok(all:find(" linked=52 unlinked=0 ", 1, true), all:match("bench_s4 summary[^\n]*"))
 end)

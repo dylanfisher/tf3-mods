@@ -124,7 +124,7 @@ sqrb_tram=2] refused by the check: Construction Not Possible`.
 
 | Seen | Cause (offline evidence) | Fix |
 |---|---|---|
-| E. Roundabout line 4/32 Oval (shape 2, radius size 1 = 15 m, 1 ring lane, 4 arms of country large, no splitter) "Construction Not Possible" | **square_roundabouts geometry, by its engine-fitted model**: `checks.engineModel` (tests/square_roundabouts/checks.lua, fitted to the probe verdicts) flags `arms#1 / arms#3: a junction corner 1.4 m behind its node (> 1.0)`. Sweep of the ring con (shape x radius size x lanes x arms x arm road x splitter x centre x tram, 36 000 builds, 2026-10-12): 84 flagged, every one an oval (shape 2-4), 1 ring lane, radius 10-20 m (sizes 1-3), splitter off, and nearly all with large arm roads (town / country large; a few town medium). square_roundabouts rev 6 is released (mod.io), so nothing was changed there: **reported** (fix in square_roundabouts: grow such ovals like the round ring's arm-room floor, plus a test over that sweep). **Fixed in square_roundabouts rev 7** (2026-10-12): `geom.plan` keeps a plain arm's kerb corner within `geom.ARM_BEHIND_PLAN` (1 m) of its node outside the engine-searched patterns (`geom.radiusSearched`: round and 2:1), so the 168 flagged builds of 1.25-1.75:1 ovals grow 1-3 radius steps; this one 15 -> 20 m; `tests/square_roundabouts/test_oval_arm_room.lua`. Showcase reach tables still cover them (offline) | Showcase: a CNP placement is redrawn once (below) |
+| E. Roundabout line 4/32 Oval (shape 2, radius size 1 = Scale XS 10 m, grown to 15 m by rev 6; 1 ring lane, 4 arms of country large, no splitter) "Construction Not Possible" | **square_roundabouts geometry, by its engine-fitted model**: `checks.engineModel` (tests/square_roundabouts/checks.lua, fitted to the probe verdicts) flags `arms#1 / arms#3: a junction corner 1.4 m behind its node (> 1.0)`. Sweep of the ring con (shape x radius size x lanes x arms x arm road x splitter x centre x tram, 36 000 builds, 2026-10-12, anticlockwise only): 84 flagged, every one an oval (shape 2-4), 1 ring lane, radius 10-20 m (sizes 1-3), splitter off, and nearly all with large arm roads (town / country large; a few town medium). square_roundabouts rev 6 is released (mod.io), so nothing was changed there: **reported** (fix in square_roundabouts: grow such ovals like the round ring's arm-room floor, plus a test over that sweep). **Fixed in square_roundabouts rev 7** (2026-10-12): `geom.plan` keeps a plain arm's curb corner within `geom.ARM_BEHIND_PLAN` (1 m) of its node outside the engine-searched patterns (`geom.radiusSearched`: round and 2:1), so the 168 flagged builds of 1.25-1.75:1 ovals (the 84 above in both directions; rev 6 geometry re-swept 2026-10-14 with direction: 84 anticlockwise + 84 clockwise) grow 1-3 radius steps; this one 15 -> 20 m; `tests/square_roundabouts/test_oval_arm_room.lua`. Showcase reach tables still cover them (offline) | Showcase: a CNP placement is redrawn once (below) |
 | F. 30/32 Hamburger (T arms, road + lights through the centre, oval 5), Group 7 Round (Y arms, splitter, country medium, angle 180), 13/35 Round (Y arms, 4 lanes, radius 5, tram) "Construction Not Possible" | **Not found offline.** updateFn (repo, Lua 5.2 doubles): no error, no NaN / inf, no edge under 1 m, no nodes within 0.5 m (`checks.shortEdges`), no world `-0` under the builder's 0 deg transf (`checks.negativeZeros`; raw `-0` only in tangent x of ring entry 1 and in the island collider / model transf entry 5, both also in placements that built: 19/32, 1/32, 16/32), no overlaps, island clear, engine model clean (13/35 is even "judged": a probe verdict accepted that pattern). `junctionTransf` at 180 deg: (c, s) = (-1, 1.22e-16), rows (-1, 1.2e-16) / (-1.2e-16, -1): no `-0`, and `makeProposalData` with a script transf ignores `-0` anyway (docs/findings.md "Negative zero"). No assertion / Fatal line in stdout.txt near them. Common to 3 of 4: T or Y arms (built Y: only 22/32 and Group 1; no T built in this run) | **Retry**: showPlace gives a refused placement one more check: after "Construction Not Possible" `logic.showcaseRedraw` (same type, same `sqrb_arms` and arm road, reach within the planned one, a draw that differs; 40 tries) logs `refused by the check: Construction Not Possible; redrawn` with the refused params, then the new line `... [params] (redrawn)`; the dialog lists `<tag>: Construction Not Possible, then redrawn (the refused params are in the log)`. **To try in game**: each refused param set alone with the construction menu at 0 deg on a flat spot (Oval 4/32, Hamburger 30/32, Round Y 13/35 and G7 at 180 deg); if red there too, it is square_roundabouts' |
 | G. Interchange line 11/17 Peanut (est 288 m) "Collision (hits 12 other)" | Not the neighbours: offline footprints 11/17 x +-230 m (1668-2128), y +-98 m; 10/17 Parclo two quadrants +-382 m (to 1402, measured 394 m); 12/17 Diamond was built after 11 (send order = line order), +-405 m from 2762 (from 2357). Ground faces / colliders lie inside the edges (the interchanges have no terrainAlignmentLists). 266 m clear on the west, 229 m on the east. The 12 entities are none of town building / street / track / construction (`collisionText`), so something at the spot itself, unknown (desert Blank Slate: asset groups? nodes?) | `collisionText` names an "other" entity by its first component of BASE_NODE, SUBCONSTRUCTION, ASSET_GROUP, FIELD, MODEL_INSTANCE_LIST, EDGE_OBJECT, BRIDGE, INDUSTRY, TOWN, ANIMAL, TERRAIN (`hits 12 other ASSET_GROUP e.g. #1234`; only the first 20 unknown entities of a list are probed, the rest count as plain `other`). **Retry**: a line placement refused with a Collision moves into the larger of its two gaps (`logic.showcaseNudge`: prev = the last built one's measured reach or town A's clearance, next = the next planned one's reach or town B's), at most `SHOW_NUDGE_MAX` 150 m, keeping `SHOW_MIN_GAP`, not under `SHOW_NUDGE_MIN` 20 m: `refused by the check: Collision (...); moved Nm along the line towards the previous one`; its links and the next placement's shift use the moved spot. Groups are not moved (their towns surround them) |
 | H. Bus lines silently skipped: the build left -92.1M, `bus_lines_showcase stopped: balance -92.1M below 1M ...`, the dialog said nothing | runBatch (stress_buslines, shared by Auto bus lines and every test's Traffic) only logged its stop reason | runBatch's summary step shows a dialog when it stopped early: `Bus lines not added: the balance -92.1M is below 1M. Tick Keep balance (Game tab) or add money, then build the Showcase again: its bus lines cannot be added on their own later (Auto bus lines on the Traffic tab adds lines in the towns around the camera).` (title "<test> bus lines"; Auto bus lines: "... then press the button again."). Build with Traffic = Bus lines, costs on and Keep balance off: a dialog up front (`buslines.moneyWarning`), the build goes on |
@@ -309,8 +309,8 @@ and batched building since: section "Faster, simpler Lights showcase + batched b
   node's lane connections, as the Showcase's lights-off proposal; `lights forced on at N`, listed in the dialog). In
   every twin alike, the game twin b included: intended (a lit game default is the baseline; from 1950 the game's AUTO would light such a crossing too, so b stays the game's own lanes and default phases, not an unlit junction). A refused light proposal (e.g. a Smart Lanes change still pending on the node) is not retried; it is logged `<name>: lights on at node N refused` and that twin may stay dark (the log shows it; the dialog only lists the forced placement). Open (TESTING.md 6S step 4): whether Smart Lanes re-plans c / d after such a late light.
 - **Twins**: `LIGHTS_AB` sl a, game b, sl_phases c, **sl_lock d** since 2026-10-13 (user: replaces sl_fan; Smart
-  Lanes' `sl_lock`: its lanes, the game's phases, the kerb turn always locked; sl_lock vs game = the lane layout
-  alone, sl vs sl_lock = the free kerb turn alone; litPlainOnly c / d: always met), built in letter order
+  Lanes' `sl_lock`: its lanes, the game's phases, the curb turn always locked; sl_lock vs game = the lane layout
+  alone, sl vs sl_lock = the free curb turn alone; litPlainOnly c / d: always met), built in letter order
   (stress_flow's fallback twin ids follow it: TWIN_ORDER sl_lock 5, letter d); `SL_ZONE_AB` and `slZonesByAb` know
   sl_fan and sl_lock (`,sl_fan:N`, then `,sl_lock:N`, each only when N > 0, as Smart Lanes' `byAbText`); the payload
   passes Smart Lanes' `sl_zones.lua` validator (test). sl_fan (the fourth twin until 2026-10-13) stays accepted
@@ -719,7 +719,7 @@ e.g. #..)`; fixed the same day with our own entry construction (below, "In-game 
      Then ONE proposal: `constructionsToAdd` = our entry roundabout
      (`square_stress_test_entry.con`, geometry `stress/stress_entry_streets.lua`, `logic.ENTRY_CASE`): **3-lane ring
      first** (user 2026-10-13, "3/4 lanes, whatever is biggest"): `highway_new_large`, the widest country one-way of
-     the base game (3 lanes, 23 m; no 4-lane one-way exists, country or town), centreline 22 m (island kerb 10.5 m,
+     the base game (3 lanes, 23 m; no 4-lane one-way exists, country or town), centreline 22 m (island curb 10.5 m,
      outer edge 33.5 m: the 2-lane ring's footprint +0.5 m, so the block and far-node clearances measured in game
      still hold: ring arms to 46 m clear of the T-junctions, inward 42 m clear of the crossroads; square_roundabouts'
      3-lane ring with large country arms placed at a 19 m centreline in its engine probe,
@@ -923,7 +923,7 @@ Status: implemented 2026-10-13 (rev 2, unreleased), offline-tested; not run in g
 - **Lanes fan where the lane count changes** (lane audit of session `2026-10-13_0205_top-up-61157`, stress_nodecfg
   `nc.pattern`): at a two-street joint of different widths (junction arm 2 lanes -> large country link 3, link ->
   entry roundabout arm) the narrower side's far lane feeds every extra lane of the wider side and they all lead back
-  into it, kerb lanes aligned, nothing crossing; before, the link's third lane was never fed and led nowhere. Junction
+  into it, curb lanes aligned, nothing crossing; before, the link's third lane was never fed and led nowhere. Junction
   nodes (3+ streets) keep one-to-one for the smaller count. The same in every twin; these joints are unlit.
 - **Throughput and queue sides in the traffic log**: FLOW lines carry `thru` / `thru_s` (cars through the junction
   between samples, from each driver's path) and `q_in` / `q_out` (an arm's queue by side of the road). FLOW.md
@@ -989,3 +989,121 @@ Status: implemented 2026-10-13 (rev 2, unreleased), offline-tested; not run in g
   refused one is retried; the read says `its build-time lock never answered` when one never came. The final read
   after the stray check is guarded (an error marks the entry broken) and the step finishes once.
 
+
+## Light plans A/B (user 2026-10-14: "a small simulation for testing these light updates on 2- and 3-lane intersections")
+
+Status: implemented 2026-10-14 (rev 3, unreleased); run once in game 2026-10-15 (session
+`2026-10-15_0355_top-up-488195`, TESTING.md 6Z). The third twin is now the auto timing one (below: "Auto twin and
+unbalanced demand"); the table here describes the classic build (the variant `light_plans_classic` until 2026-10-16,
+removed with Smart Lanes' classic patterns: its PLAN.md "No classic fallback"; Smart Lanes now refuses `sl_classic`).
+
+Smart Lanes now has three light plans for a lit crossroads: the game's default (zone `game`), its new **axis plan**
+(zone `sl_phases`, since Smart Lanes rev 8) and its old **classic patterns** (protected / split / lead-lag, new zone
+mode `sl_classic`, `square_smart_lanes` `sl_zones.lua`). All three use the same lanes except `game`, so `sl_phases` vs
+`sl_classic` is the light plan alone.
+
+What a press of the **Lights showcase** button builds (unchanged): `LIGHTS_SPEC` (= `lightsMixedSpec`): every shape
+(2x2 X, 3x3 X, 3x2 X, T 2x2), 3 sets of each, every set as three twins sl (a) / game (b) / sl_exitfan (e); 16 km map:
+6 sets (18 junctions, 69 towns), 20 km: all 12 (36 junctions, 135 towns); towns about 400 people.
+
+New second button in the same section, **"Build light plans A/B"** (`jn.buildLightPlans`, `logic.LIGHTS_PLANS_SPEC` =
+`lightsPlansSpec()`): the same build code and budget (`buildRun`: batched towns / grids / locks / links, entries, square
+layout, no bus lines), only:
+
+| | Lights showcase | Light plans A/B |
+|---|---|---|
+| shapes | 2x2 X, 3x3 X, 3x2 X, T 2x2 | **2x2 X** (2 lanes each way) and **3x3 X** (3 each way), in turn |
+| sets | 3 per shape | 3 per shape (6 sets, 18 junctions, 72 towns: fits a **16 km** map; seeds 12 / 777 / 4242 tested) |
+| twins | sl a, game b, sl_exitfan e | **game b, sl_phases c (axis plan), sl_classic u (classic patterns)** (`LIGHTS_PLANS_AB`), each once in every position per shape (`alternateTwins`) |
+| towns | ~400 people | **~600 people** (`LIGHTS_PLANS_TARGET_POP`, x1.5 by capacity: busier junctions; 400 left the 3x3 Smart Lanes twins at ~20 % standing in session `2026-10-13_0447_top-up-726115`; the micro bench's 800 neared a jam) |
+| first log line | `... shapes=2x2_X,3x3_X,3x2_X,T_2x2 per_shape=3` | `... twins game=6 sl_phases=6 sl_classic=6 towns=72 (Medium) ... shapes=2x2_X,3x3_X per_shape=3 variant=light_plans bus_lines=no` |
+| summary | `Lights showcase done: ...` | `Light plans A/B done: 18 of 18 lit crossroads built (game 6/6, sl_phases 6/6, sl_classic 6/6) ...` |
+
+Job and log names stay `lights_showcase` (busy guards, `make logs` tags, the entry lines). Town names "Game default
+<set> <side>", "Smart phases <set> <side>" (the axis twins), "Classic phases <set> <side>" (Remove towns > Grid towns
+knows them). Zones `g<k>b` / `g<k>c` / `g<k>u`; the zones line `by_ab=game:6,sl:0,sl_phases:6,sl_classic:6` matches
+Smart Lanes' `byAbText` byte for byte (tested against its `sl_zones.lua`). Letter **u** for sl_classic (a-t are taken:
+stress_flow `TWIN_LETTER`, the bench's mid letters p-t); `stress_flow` `TWIN_ORDER` sl_classic = 16, so a reload's
+fallback set split works. Built in that order (game, sl_phases, sl_classic). Needs Smart Lanes with the `sl_classic`
+zone mode (an older Smart Lanes refuses the whole zone set: `ab<i>`).
+
+**Re-time** (Smart Lanes' tool button: measures 3 game min at the selected lit junction, then changes only its phase
+lengths): pressed by hand on an axis twin. `tools/flow_report.py` finds the write (`[SQRL] RETIME op=write sent=1`),
+joins it to its twin by the node's `zid=` (Smart Lanes appends `zid=` to the write's `LIGHTS ... to=retime` line; a
+`zid=` on the RETIME line itself is read too) and splits that set at the write: before = the plans as built, after =
+from `--retime-settle` (60) game s after it (set `g<k>+rt`). FLOW.md "Light plans and Re-time in the report".
+
+Tests: test_showcase.lua (layout on 16 km for three seeds: 18 groups / 72 towns, modes and letters, every twin once in
+every position per shape, town names, zones validated by Smart Lanes' `sl_zones.lua`, the reload fallback letters;
+the build end to end: shapes, 72 entries and links, zones, growth target 600, summary), test_hud.lua (the second
+button and its hint), tests/tools/test_flow_report.py (light plans section, verdicts, Re-time split).
+
+### Auto twin and unbalanced demand (user 2026-10-14 (2); Smart Lanes rev 8 step B "Keep timing adjusted")
+
+Status: implemented 2026-10-14, offline-tested; not run in game yet (TESTING.md 6Z1, 6Z2). The first run of the build
+above (session `2026-10-15_0355_top-up-488195`, seed 488195: axis +23-26 % thru/min vs game, classic worse than game
+on 6/6 sets) settled the classic patterns, so the third twin is now Smart Lanes' automatic re-timing.
+
+What a press of **Build light plans A/B** builds now (`LIGHTS_PLANS_SPEC` = `lightsPlansSpec()`):
+
+| | |
+|---|---|
+| shapes, sets | as above: 2x2 X and 3x3 X in turn, 3 sets each (6 sets, 18 junctions, 72 towns on a 16 km map) |
+| twins | **game b, sl_phases c (axis plan), sl_auto v (axis plan + "Keep timing adjusted")** (`LIGHTS_PLANS_AB`; `LIGHTS_AUTO_AB`: label "Auto timing", letter **v**: a-u are taken, u = sl_classic), each once in every position per shape |
+| demand | **balanced and unbalanced sets in turn** (`demandMix`, `lightsPlansDemand(shape, k)`): 2x2 X balanced / unbalanced / balanced, 3x3 X unbalanced / balanced / unbalanced: 3 sets of each on a 16 km map; the twins of a set share it, so every twin mode sees both |
+| towns | balanced: every town ~600 (`LIGHTS_PLANS_TARGET_POP`). Unbalanced (`LIGHTS_PLANS_UNBALANCED`, `LIGHTS_PLANS_POPS`): the two towns on the E-W road ~600 ("busy"), the north town ~150 ("small"), the south town ~40 ("tiny") |
+| town names | balanced as before ("Auto timing 2 N"); unbalanced with the word: "Auto timing 2 S tiny", "Game default 3 E busy" (Remove towns > Grid towns knows them: `TEST_TOWN_WORDS`) |
+| first log line | `... twins game=6 sl_phases=6 sl_auto=6 towns=72 (Medium) ... shapes=2x2_X,3x3_X per_shape=3 variant=light_plans demand=balanced:3,unbalanced:3 pops=busy:600,small:150,tiny:40 unbalanced_sides=E,W:busy,N:small,S:tiny bus_lines=no ...` |
+| zone lines | `showcase zone ... demand=balanced\|unbalanced` (last key), `FLOW_ZONE ... demand=`; zones line `by_ab=game:6,sl:0,sl_phases:6,sl_auto:6` (Smart Lanes' `byAbText`: `,sl_auto:n` after `,sl_classic:n`, tested against its `sl_zones.lua`) |
+| summary | `Light plans A/B done: 18 of 18 lit crossroads built (game 6/6, sl_phases 6/6, sl_auto 6/6) ...; every town then grows to about 600 people ..., but in the unbalanced sets the north town to about 150 and the south town to about 40` |
+
+**How a town's size is set** (unchanged mechanism): every town is created with the spec's size (Medium: initial land
+use capacities 400 on an 8 x 8 grid, locked: country ring and links, so it can only build up, never out), then ONE
+forced size command after the links sizes it from its capacity target (`growFactorForCap(target, capacity)`, at least
+x1; a forced command fills initial capacity x factor at once, docs/findings/towns.md). A factor never goes below x1,
+so a town wanted below 400 is **created with that capacity** (`SquareStressGridPoint.townCaps`: 150 / 40 on all three
+land uses; its street grid stays Medium, so every set has the same geometry), and its own growth target is its pop
+(`SquareStressLockArea.target`: factor x1). Logged: the grow lines' `(x1 for 40 from capacity=40 pop=...)`, every
+town's final line `... pop=<n> target=<t>`, the dense summary's `pop_by_target=40:min/mean/max/n,150:...,600:...`; with
+the Traffic log on, every FLOW_TOWNS town line's `pop=` (one engine call per FLOW_TOWNS, at most once per 60 s wall)
+and `make flow`'s town populations per class (busy / small / tiny / other). **Open (TESTING.md 6Z1):** whether the game
+accepts a 40-capacity town and whether it holds ~40 over a 60-minute run (towns grow with transport over years, not
+minutes; a town's start level comes from its residential capacity: > 100 level 2, so the tiny towns start at level 1).
+
+**Classic variant** (removed 2026-10-16 with Smart Lanes' classic patterns and its `sl_classic` zone mode): the console
+`jn.buildLightPlans(seed, "classic")` built the earlier set (twins game / sl_phases / sl_classic, every town balanced,
+`variant=light_plans_classic`). Gone: `LIGHTS_CLASSIC_AB`, `LIGHTS_PLANS_CLASSIC_AB`, `LIGHTS_PLANS_CLASSIC_SPEC`,
+`sl_classic` in `SL_ZONE_AB` / `slZonesByAb`. Kept for older saves and logs: stress_flow `TWIN_ORDER` sl_classic = 16
+(letter u), the town word "Classic phases", tools/flow_report.py's `sl_classic` comparisons.
+
+**Smart Lanes side** (its PLAN.md "Stress Test interface: Keep timing adjusted"): `sl_auto` zones get the axis plan,
+and their lit junction is enrolled (`AUTORETIME op=enroll ... src=zone`) within ~30 game s of its light; since Smart
+Lanes' step B v4 (2026-10-15, its RETIME_PLAN.md "Step B v4") the first write comes after 8 queue snapshots (~16 game
+min), later ones >= 10 game min apart, the cycle moving <= 20 s per write and a long cycle only after two long
+decisions: ~45 game min to settle (before v4: first write after a 180 game s window, >= 5 min apart, ~15-20 min). Clearing the zones does not unenroll: press **Auto re-time > Clear** at the end of a run.
+So a light plans A/B run with the auto twin now lasts **~90 game min** after the build (the window's hint says so), and
+`make flow` compares the settled window from the first write + `--auto-settle` (default **2700** game s since v4, was 900).
+
+### Auto re-time buttons (whole map)
+
+Towns tab > Lights showcase section, a row **Auto re-time** under the light plans: **All lit junctions** sends
+`SmartLanes.auto { op = "all", run }` (Smart Lanes enrolls every lit junction on the map, at most 1000 since its step B
+v4, 256 before; junctions lit
+later are not included: press again), **Clear** sends `{ op = "clear", run }` (every junction unenrolled; written
+timing stays). Logged `[SQST] AUTO_ALL op=all|clear run=<s0-wall-n> by=button smart_lanes=yes|no` (`stress_slzones`
+`sendAuto`; run ids as the zones'). Below the row, once pressed: "Last auto re-time: every lit junction enrolled (run
+...), acknowledged by Smart Lanes" (read back from Smart Lanes' saved `arun`, as the zones' `zrun`) or "not
+acknowledged yet". Here rather than the Traffic tab: the light builds and the before / after run are in this section,
+and the buttons act on Smart Lanes' lights, not on the traffic log; refused during a bench run (`notDuringBench`).
+`make flow` splits a whole-map run at Smart Lanes' `AUTORETIME op=enroll_all phase=done` (FLOW.md "Auto timing in the
+report"). A before / after run on any lit map: 15 game min, press, **90** more (was 30 before Smart Lanes' step B v4).
+
+**City lights at scale** (a row under Auto re-time, user 2026-10-15: "make every light in the big grid cities be auto
+timer lights so we can see what happens with many at once"): one press runs the bench's city run (big grid towns, every
+inner crossing lit, half of them kept re-timed): BENCH.md "City lights at scale", TESTING.md 6Z3.
+
+Tests: test_showcase.lua (twins and letters, demand per set and shape for three seeds, town pops / caps / names, zone
+lines, the classic variant gone, `pop_by_target`, the build end to end with per-town targets 600 / 150 / 40), test_towns.lua
+(`townCaps` at creation, batched and one by one), test_flow.lua (FLOW_ZONE `demand=`, FLOW_TOWNS `pop=`), test_roads.lua
+(`sendAuto`: payloads accepted by Smart Lanes' `sl_auto.lua` validator, AUTO_ALL lines, status), test_hud.lua (the
+buttons and hints), tests/tools/test_flow_report.py (auto settled split, demand, whole map, town classes).
