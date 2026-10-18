@@ -1,0 +1,14 @@
+{
+    "name": "CSS rule crash repro",
+    "summary": "Bug repro for Urban Games: 400 inert stylesheet rules crash the first frame after loading.",
+    "description": "Bug repro, not a gameplay mod. Adds 400 stylesheet rules whose selectors match no component, so nothing in the game changes. With it active, loading a game crashes on the first GUI frame in Component::ComputeStyles. See README.md. No scripts, no other content.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ]
+}
