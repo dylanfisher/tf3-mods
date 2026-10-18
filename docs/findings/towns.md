@@ -220,7 +220,25 @@ Blank Slate, 30 showcase towns, 10 forced increments each (`stdout.txt` 2026-10-
   30 towns (17999 -> 18021); the dev settle now runs forced growth passes by default.
 - **Street lock field:** `BaseEdge.roadDevelopmentLocked` ("prevent towns from updating or extending this road",
   `api/engine.d.tl:109`) is on the edge component a street proposal carries (`SegmentAndEntity.comp`; the move_it
-  mod copies it). Our proposals set it false; the dev lock probe (Showcase v5) sets it true on new edges.
+  mod copies it). Organic Towns sets it on new edges: since §65 (2026-10-15) on every street it builds in a town framed
+  from then on, before that on its shape / forest / motif / zone keys (the dev lock probe, Showcase v5, on all).
+- **No script can set the lock on an existing edge in place (tealdef reading, build 40420, 2026-10-15):**
+  `SimpleStreetProposal` has only `nodesToAdd / edgesToAdd / nodesToRemove / edgesToRemove / edgeObjectsToAdd /
+  edgeObjectsToRemove / nodeConfigsToAdd / nodeConfigsToRemove / node2rcType` (`api/type.d.tl:2765-2800`, doc: "To modify
+  a street, you need to remove all appropriate entities and add them with the correct information", :2761); `api.cmd`
+  has no edge-update command (only `makeWorldBuildProposalCmd` touches streets, `api/cmd.d.tl:961`); the base
+  Player-owned / upgrade tools set it through `builtin.type.ConstructionAction.StreetEdgeNodeModifier`
+  (`base/tealdef/scripts/builtin.d.tl:157-180`, `gui/construction/construction_react_util.tl:3185-3210, 3302-3311`), a GUI
+  construction action no script command reaches. So Organic Towns (§67) rebuilds a game street between its same two
+  nodes with its own component and `roadDevelopmentLocked = true` (move_it's `buildEdgeAbsTangentProposal` pattern: the
+  end nodes' configs removed and re-added with their lane connections and crosswalks re-pointed to the new edge).
+- **A locked rebuild of a housed town street keeps its houses and lots (console probe, 2026-10-15, session
+  `2026-10-15_1936_sqot-glprobe`, base-game save "sub-arctic - line manager test", town 64732):** edge 137154 with 6
+  houses, rebuilt between its same nodes with `roadDevelopmentLocked = true`: pre-check ok, 0 buildings in the
+  collision info, cost 1650; the new edge 176195 is locked and has the same 6 houses and 22 parcels right after and
+  10 s later; the town stayed at 318 buildings. So the D4 rebuild cost (776k) came from something else (a changed
+  geometry or a construction), not from rebuilding a street as such. Organic Towns now locks housed game streets too
+  (`ot_glock.WITH_HOUSES` true), still refusing any pre-check that lists buildings or costs over 250k per edge.
 - **Locked town streets still get houses; the town stops branching off them (Showcase v5, game log 2026-10-12):**
   new edges built with `roadDevelopmentLocked = true` stayed locked (157/157 after 10 steps in each locked town).
   After 10 steps: linear locked 170 houses on our streets, 1 vanilla street attached to them, vs its plain twin 183
@@ -357,6 +375,17 @@ tool "Simulate natural growth" (`mods/square_organic_towns_dev/content/organic_t
   `baseConfig.economy.townDevelopment.townGrowthMinDistrictFraction` (`:136`, engine default not in the scripts;
   the campaign mission 04 sets 1/3) and a maximum that is dampened from 1 toward 0.5 as the district passes 40 % of
   the town and toward 0.4 as it passes 32 % of the map (`:14-17, 509-520`).
+- **Measured spread in a played base-game save (2026-10-15, session `2026-10-15_0759_rci-sqrl`, save "sub-arctic",
+  US towns, Organic Towns not active: 0 `[SQOT]` lines; console `getTown2personCapacitiesMap`, `[RCI]` lines).** 15 towns,
+  417-3964 person capacity. Shares: residential 25-47 %, commercial 20-50 %, industrial 13-41 %. No district passed 50 %
+  of any town (commercial reached exactly 50 % in San Bruno, Moreno Valley and Martha Lake); the biggest towns sit near
+  45 / 28 / 27 (Columbus 41 / 27 / 32, Mount Prospect 47 / 27 / 26). The rebalance cap holds in play: base-game towns
+  vary, but never become clearly lopsided (a 60-70 % district needs a mod).
+- **Used by:** Organic Towns "Town growth: By deliveries" (§66, ot_rci, 2026-10-15): it reads the same usage
+  (`town_util.getCargoSupplyDemands` + `getTownLineUsage`) and re-splits the initial capacities toward it with the
+  initial sum kept, so the game's own total target stays. Unverified in game: whether a lowered initial capacity
+  (target still above the built capacity) ever demolishes buildings, and whether a changed-value
+  `makeTownSetInitialLandUseCapacitiesCmd` rewrites level weights (TESTING.md "Combined test iteration" step 15).
 - **Apply.** `sizeFactors[i] = (current land use + added) / initialLandUseCapacities[i]` and
   `api.cmd.makeTownUpdateSizeCmd(town, sizeFactors, false)` (`:536-550`): `updateAllBuildings = false`, so the town
   developer builds toward the new size at its own pace (the dev tools' forced growth passes `true`). When nothing
@@ -415,7 +444,7 @@ fails). The main mod checked each town every ~48 s (16 towns x `CHECK_S` 3 s rou
   quartiles 245 / 279 / 397 in `0018`, minimum 147 there, 43 and 60 in the other two). The Stress Test sizes the Lights showcase towns with this (x3 for ~1000 people) and logs `pop=` per town;
   that run's numbers will refine the fill for locked, level-shifted grids.
 
-## Listing industries with their type and position (read from tealdefs and base / mod code, 2026-10-12; not verified in a game-script state)
+## Listing industries with their type and position (read from tealdefs and base / mod code, 2026-10-12; verified in a game script 2026-10-13, entry below)
 
 - **List:** `api.engine.getEntitiesWithComponent(api.type.ComponentType.INDUSTRY)` (`api/tealdef/api/engine.d.tl:1713`,
   `ComponentType.INDUSTRY` at `:1654`) returns every industry entity; the base statistics window does the same
@@ -492,7 +521,7 @@ right after town creation; their arms read after the junction builds and a settl
   every fill of a town that was on before its first fill (next run tells which command and whether the reactivate
   holds).
 
-## The map's bounds and script street bridges (research 2026-10-13, not verified in a game-script state)
+## The map's bounds and script street bridges (research 2026-10-13; the bridge verified in game 2026-10-13, see "`makeInitialStreets = false` also drops the roads between towns" below)
 
 - **Map bounds:** `api.engine.terrain.getBoundingBox()` (`api/tealdef/api/engine.d.tl:1754`, `Box2f` with `min` /
   `max`) gives the terrain's extent; square_better_minimap reads it in a GUI script. Organic Towns reads it from its game
@@ -596,7 +625,8 @@ x1-x3.3 for 400 people): that outcome is not yet measured (TESTING.md 6V step 2)
   the game reads it for industries founded later in a running game is unknown.
 - Organic Towns (round 5) sets it false by default ("Streets at industries": Off; log `[SQOT] INDSTREETS choice=
   makeInitialStreets=from->to`). Check in game: a new map with Off has no small street clusters at its industries, and
-  the industries produce.
+  the industries produce. (2026-10-13: the first map with Off also had no roads between its towns: see
+  "`makeInitialStreets = false` also drops the roads between towns" below.)
 
 ## Satellite seeds refused by collisions outside the town's snapshot (2026-10-13, inferred from a log)
 
@@ -617,14 +647,14 @@ x1-x3.3 for 400 people): that outcome is not yet measured (TESTING.md 6V step 2)
   crossing a road without a node is a `Collision`. Organic Towns therefore never joins or crosses a country road: its
   M2 motifs run beside them (PLAN.md 6.3 "Motifs M2"). Open: a dev probe of a D3 on a degree-2 country-road node.
 
-## Listing rail stations with their position and forecourt (read from tealdefs and base files 2026-10-13, not verified in a game-script state)
+## Listing rail stations with their position and forecourt (read from tealdefs and base files 2026-10-13; verified in game 2026-10-13, see "`makeInitialStreets = false` also drops the roads between towns" below)
 
 - **List:** `api.engine.system.stationSystem.getTown2StationsMap()` (every station, keyed by town; also `getStations(town)`,
   `getStation2TownMap()`; `.cache/game/api/tealdef/api/engine/system.d.tl:57-85`). Whether
   `getEntitiesWithComponent(ComponentType.STATION)` may be enumerated is unknown (some component types throw "Cannot loop
   over this component type", findings/gui.md): Organic Towns uses it only as a pcall fallback.
 - **Station -> construction:** `api.engine.system.streetConnectorSystem.getConstructionEntityForStation(station)`
-  (`system.d.tl:252`; base `mission/name_util.tl:11`); a kerbside bus stop has no construction (nil / < 0). A rail station
+  (`system.d.tl:252`; base `mission/name_util.tl:11`); a curbside bus stop has no construction (nil / < 0). A rail station
   is one CONSTRUCTION whose `stations` list holds its STATION entities; `Engine.Component.Station` has no position and no
   cargo flag (`type.d.tl:1319-1336`: tag, terminals, catchmentAreas, pool).
 - **Rail:** `CONSTRUCTION.fileName` under `stations/rail/` (base `stations/rail/modular_station/modular_station.con.lua`;
@@ -651,7 +681,7 @@ x1-x3.3 for 400 people): that outcome is not yet measured (TESTING.md 6V step 2)
   already half way at 1900 (e.g. Organic Towns' grid trend that ran from 1870) makes the earliest start look like a later
   one. Organic Towns recalibrated every era curve to 1900+ (plans/square_organic_towns/PLAN.md 6.3 "Era range 1900+").
 
-## Reading trees near a town; the game has no "keep the forest" rule (read from tealdefs and base / mod code 2026-10-13, NOT verified in a game script)
+## Reading trees near a town; the game has no "keep the forest" rule (read from tealdefs and base / mod code 2026-10-13; the read verified in game 2026-10-13, see "`makeInitialStreets = false` also drops the roads between towns" below)
 
 - **Trees are asset groups.** `api/tealdef/api/engine.d.tl:77-87`: `AssetGroup` is "data attached to assets, in particular
   trees. Assets are grouped together when built together ... Usually comes together with a ModelInstanceList";
@@ -684,3 +714,399 @@ x1-x3.3 for 400 people): that outcome is not yet measured (TESTING.md 6V step 2)
   lists read with a per-group stride under a ~24k read budget, sliced 3 ms per tick; `ot_forest` grid of 50 m cells; FOREST
   debug line with `groups reads trees stride capped dense share p50 p90 listUs us slices err`). The in-game run
   (plans/square_organic_towns/TESTING.md 59) shows whether the read works, what it costs and how dense TF3 forests are.
+
+## Tree-lined town street templates; a town's level-to-capacity weights (read from base files and tealdefs 2026-10-13, NOT verified in a game script)
+
+- **Tree-lined town streets exist as base templates.** `base/content/infrastructure/street/town/town_{old,new}_{small,medium,large}_trees.street_template.lua`
+  (also `town_new_one_way_{small,medium}_trees`; no `xsmall`) are identical to the plain templates (same `laneConfigs`,
+  `streetStyle`, speeds, `roadType = "STREET"`) except `defaultEdgeDecorations = { { "::/infrastructure/edge_addons/alley.edge",
+  false }, { ..., true } }` (a tree row on both sides), the name / icon / menu order, and no `simBuildable = true` (the
+  town developer never builds them; players do, and towns keep developing along them). Era: `town_old_*_trees` 0-1940,
+  `town_new_*_trees` 1940+, like the plain ones. `alley.edge` (`edge_addons/alley.edge.lua`): `repModel` a maple
+  (`mt_mpl_01`), every 10 m at the side (offset -2 m), `requiredTags = { "withSidewalk" }`, incompatible with track /
+  tunnel / bridge / another decoration, `preventParcels = false` (lots and houses stay), modifiers noise -10 %, pollution
+  -50 %, max speed -25 %; `alley_old.edge` (1900-1940) the same tree model. `alley.edge`'s own
+  availability says 1940+; the old trees templates name it before 1940 anyway.
+- **Decorations on a script edge:** `BaseEdge.edgeDecorations : {{integer, boolean}}` (`api/engine.d.tl:120`: decoration
+  id from `api.res.edgeDecorationRep`, side flag); `StreetTemplate.defaultEdgeDecorations : {{ResName, boolean}}`
+  (`api/type.d.tl:5504`, "default edge decorations when newly built": applied by the build tool, presumably not by a raw
+  proposal). The subscribed `undo_tf3_test` track builder converts a template's defaults with
+  `api.res.edgeDecorationRep.find(name)` into the edge's list (`planning/track_builder.script.tl:1016-1031`); Move It
+  copies `edgeDecorations` from the source edge. So a script street proposal that copies a plain edge's BASE_EDGE keeps
+  that edge's (empty) decorations; one that copies a tree-lined edge carries its tree rows.
+- **Country roads stay untouched:** there is no API to restyle or curve an existing road short of removing and re-adding
+  its edges with their node configs (see "Joining a script street to a country-road node").
+- **Per-town building levels:** `api.cmd.makeTownCustomDistributionWeightsCmd(town, levelToCapacityDistributionWeights?)`
+  (`api/cmd.d.tl:845-850`) sets a town's level-to-capacity distribution weights (3 land uses x 4 levels; nil = the
+  default). The town editor builds the defaults from `api.engine.util.town.computeWeightedTargetTownBuildingCapacityPerType`
+  and stores the custom ones on the TOWN component (`town.levelToCapacityDistributionWeights`,
+  `base/content/gui/entity_window/town/town_eow.script.tl:682-747`). Town-wide and saved with the town (it stays after a
+  mod that set it is removed); not local to a core.
+- **Used by:** Organic Towns later-ideas phase (`ot_entry`: the mod's new entry streets along a country road's first stretch
+  out of town take the `_trees` variant with `edgeDecorations` from the template's defaults; `ENTRY` lines; a refused
+  pre-check is re-sent without them). The level weights: since 2026-10-14 late (NEXT_PHASE_BRIEF 39) Organic Towns sets them on a new map's towns under 4.5 persons per building (`LEVELS` lines, ot_upward.levelDecide), never on a town with a player's own weights; still unverified in game (until then: not used, save impact). Run `2026-10-14_0302_sqot-sqrl`: the command was accepted and the weighted target followed the weights, but no level 3-4 building can exist before 1950 (entry "Town buildings of levels 3-4 exist only from 1950 / 1990" below); since NEXT_PHASE_BRIEF 40 only grown towns get them. In-game check: the final
+  all-phases test built none (the map had no country roads, "`makeInitialStreets = false` also drops the roads between
+  towns" below); next:
+  plans/square_organic_towns/TESTING.md "Final-test round test" (entries along virtual roads).
+
+
+## `makeInitialStreets = false` also drops the roads between towns; script bridges, the station read and the tree read work (verified in game 2026-10-13; the roads part inferred from four maps)
+
+Session `2026-10-13_0856_sqot-dev` (new European map, Large, hilly, coast / lakes / rivers / forests, 16 towns, start
+1900; Organic Towns + its dev mod with "Streets at industries: Off", i.e. `makeInitialStreets = false` from preRunFn;
+tour screenshots `.cache/ot_shots/2026-10-13_09-04-47/`):
+
+- **No country roads on that map, but on the earlier ones.** Every town's street snapshot held no street edge whose
+  template isn't a town street (`[SQOT] ROADS town= roads=0 segs=0 fetched=0` for all 16 towns), and the overview shots
+  show no road leaving any town. The tour shots of the three earlier EU runs, all with `makeInitialStreets` at its
+  default true (no INDSTREETS line), show tan dirt country roads between the towns (`.cache/ot_shots/2026-10-13_00-31-06/
+  12-market_weighton-overview.png`, `2026-10-13_01-47-31/12-acton-overview.png`, `2026-10-13_03-50-26/03-ilkeston-
+  overview.png`; Barnard Castle's road to a cluster 1.3 km out). So the generator's town connections are among the
+  "initial streets" `makeInitialStreets` switches (its doc comment only says "Add small streets at the edge of
+  industries", `api/type.d.tl:3554`). Inferred from different maps (one without, three with), not a controlled A/B on one
+  seed. The roads use the base country templates (`base/content/infrastructure/street/country/country_old_*`: dirt-coloured
+  `old_country_*` ground textures, `country = true` in the street template), and join the town at its outermost street
+  nodes, beyond the houses' extent.
+- **Why Organic Towns saw `exits=0` on the maps with roads** (sessions `2026-10-13_0018_top-up-598153`,
+  `2026-10-13_0137_sqot-dev`, `2026-10-13_0232_sqot-dev`, `2026-10-13_0342_sqot`: 59 of 61 STYLE lines `exits=0`, Market
+  Weighton too, with a road straight through it in the shot): its exit test only counted road edges crossing the houses'
+  extent, and the roads start at the town's outer street node beyond it (fixed: ot_shape EXIT_PAD; the road edges are now
+  also read wide around the town, classified by the template's `country` flag, ROADS `wide=`).
+- **Script street bridges build.** Two Organic Towns river bridges went through the proposal pre-check and were built:
+  `BRIDGE outcome=built edges=5 bridgeEdges=1 span=132 type=::/infrastructure/bridge/stone.bridge` (Nelson) and span 144 m
+  (Sevenoaks): a BaseEdge with `type = BaseEdgeType.BRIDGE` + `typeIndex` (the bridge type's index, 4 = stone) in a
+  plain street proposal works (the research entry "Map bounds and script street bridges" above). A small grid quarter
+  was then built on the far bank from the bridge's dead ends (4 of 25 / 3 of 21 sides in the run).
+- **The rail station read works.** After the player built two passenger stations, `stationSystem.getTown2StationsMap()`
+  and the construction's `transf` gave positions and forecourt directions: `[SQOT] STATIONS stations=2 dirs=2 ok=true`;
+  one forecourt faced the town (`side=town`: a 4 x 4 quarter, 13 of 26 sides built), one faced away (`side=away`, the
+  tracks between: nothing built until the round's fix). The "Listing rail stations" entry above is confirmed.
+- **The tree read: cost and densities.** `octree.findEntitiesInCircle(..., ASSET_GROUP)` within 2.1 km listed 1150-1900
+  groups per town in 0.3 ms; reading their `MODEL_INSTANCE_LIST` instances with a stride (2-3) took 11-32 ms per town
+  in 5-12 slices of ~3 ms (`[SQOT] FOREST ... reads=9718 trees=12449 stride=2 ... us=10955 slices=5`). TF3's forests are
+  sparser than one might guess: the 50 m cells with trees read p50 24-28 and p90 60 trees per hectare on a heavily wooded
+  map; a dense-looking forest patch is ~30-60 trees/ha in this read. No `nonTree` instances (every listed group was trees).
+- **`makeInitialStreets = false` from `preRunFn` takes effect** (`[SQOT] INDSTREETS ... makeInitialStreets=true->false
+  applied=true`), and the shots show no house clusters at industries away from towns (the map's industries still started).
+- **A base-game traceback, not a mod's:** `Ignoring Set() on expired ReactRefWrap` with `::/gui/main/selector_react_util.tl(103)`
+  logged once while the game returned to the main menu after the first map generation (08:57:30, before any mod GUI).
+
+## Renaming towns, industries and stops from a game script; the name list and the game language (verified in game 2026-10-13)
+
+Session `2026-10-13_2113_sqot-dev` (new European map, game language English, 16 towns; Organic Towns' landscape names
+and stop names, plans/square_organic_towns/PLAN.md 6.3 "Landscape names and stop names"):
+
+- **`ug_require "::/names/<path>/<dir>/towns.lua"` works in the game-script state** (guiUpdate): the `europe/en` list
+  (929 names) loaded, `loadErr=-`. The list's `streets.lua` loads the same way.
+- **`api.util.getLanguage()` returns a table** `{ mod = <table>, code = "en" }`: read `.code` (`NAMES ... apiLang=en
+  apiRaw=mod:table:_0x9fea54e40,code:en langSource=lang`).
+- **`makeEntitySetNameCmd(entity, name)` sent from guiUpdate with a callback renames towns and industries**: 16 towns and
+  14 industries, `sent=16 ok=30 failed=0 changed=0 timeouts=0` in 6.6 s (2 per tick); the map labels showed the new names.
+  Station groups too: the 32 dev test stops got their `STOPNAME new=` names, no `outcome=failed`.
+- **The engine does not rename industries with their town.** 2 s after the 16 town renames all 14 industries named
+  "<old town> <type>" still carried the old town name (`indPrefixed=14 indEngine=0 indSent=14`); a script that renames
+  towns must rename those industries itself.
+- (Inferred, one stop) a curbside Road Stop built beside a clay pit 3.4 km from the town centre came out with the
+  industry's name for its station group (`TESTSTOP ... name=Whitehill_Clay_Pit`; the dev tool's other 31 stops kept the
+  name the proposal gave them). Organic Towns now leaves such a stop's name alone (`STOPNAME why=industry`).
+
+## A town created with industrial-heavy initial capacities grows almost only industry (verified in game 2026-10-13)
+
+Session `2026-10-13_2113_sqot-dev`, the Organic Towns dev "Industrial satellite probe": `mapgen.createTowns` at a site
+0.9-1.2 km from a town, its `TownInfo.initialLandUseCapacities = { 10, 10, 200 }` (residential, commercial, industrial)
+and the name, then `makeTownCreateCmd`, then three forced growth passes (`makeTownUpdateSizeCmd` x2, x1, x1):
+
+- Ferryhill Works: `SATIND ... initial=10/10/200 landUse=17/17/395 indShare=0.92 buildings=78 onlyIndustry=true`.
+- Ellesmere Port Works (across water from its parent): `landUse=17/14/398 indShare=0.93 buildings=97`.
+- The town keeps the name passed in (`satellite=116951 name=Ferryhill_Works`) and is an ordinary town afterwards (the
+  mod's planner even ran a forest-lane test on it). The capacities are town-wide: there is still no per-area zoning, an
+  industrial quarter beside a town has to be its own town (Organic Towns "Works", ot_works).
+
+## Country-lane edges between town streets in one script proposal build (verified in game 2026-10-13)
+
+Session `2026-10-13_2113_sqot-dev`: Organic Towns' forest lanes (`country_old_small` edges, locked, between new nodes
+that also carry town-street edges of the same proposal, every new node with its BASE_NODE_CONFIG) built three times
+(`FORESTLANE ... outcome=built edges=2` Sandhurst, `edges=6` Whitehill and Henley-in-Arden, 69 / 228 / 474 m). One
+proposal was refused first (`outcome=refused edges=2 msgs=Collision`) and built on the re-send. In the shot the
+6-edge lane read as orange dirt roads inside a small grid of town streets, i.e. a country template shows its own ground
+texture even between town streets. Houses along the lanes were not counted (no LANETEST on them).
+
+## At ~10x forced growth the game builds most of a town's streets and grows into dense forest (inferred from a log + shot, 2026-10-13)
+
+Session `2026-10-13_2113_sqot-dev`, dev SIMGROW 40 simulated years, Brentwood (a forest town at a mountain foot, map
+edge 960 m east): 116 -> 1917 buildings, 48 -> 446 street edges, of which Organic Towns built 105; the game's own
+development built the other ~340 and took the forested slope as readily as the open meadow (shot s3). The mod's later
+plans found its plan pieces already covered by the game's streets (`PLAN edges=0 blocked=20 excluded=15`). So a
+"keep the forest" rule in a script only steers the streets the script builds; the game's own growth has no forest
+rule (entry "Reading trees near a town" above). Locking a street (`roadDevelopmentLocked`) is the one lever on where
+the game hangs its own streets (Showcase v5 entry), now used for Organic Towns' forest-facing streets (unverified).
+
+## Town streets at the far end of a long country lane stay without houses (inferred from a log + shots, 2026-10-13)
+
+Session `2026-10-13_2240_sqot-dev` (new European map, dev SIMGROW 40 simulated years). Organic Towns laid two "lanes
+ahead" at the first simulated build, each a locked `country_old_small` lane from a town dead end with plain unlocked
+town streets at its far end: Verwood (`LEADLANE ... laneEdges=7 laneLen=596 endKind=hamlet endEdges=3`, through forest,
+cover 1.00, far end 680 m out) and Tickhill (`laneEdges=8 laneLen=437 endKind=ribbon endEdges=5`, far end 800 m out).
+Over the 40 years Verwood grew 57 -> 868 buildings (22 -> 292 edges) and Tickhill 88 -> 606: the tour shot of Verwood
+(s9, `2026-10-13_15-53-38_img_9.png`) shows the hamlet T at the lane's end with no house on it, the town's houses all on its core side; Tickhill's
+shot (s15, `img_15`) shows long grey town streets far out beside the road north with few houses. This fits "Houses fill by
+network distance from the core" (Showcase v7 entry): a town street whose only link to the town is a few hundred metres
+of country road (no lots) is far by network distance and waits behind every nearer free lot. A script that wants
+houses out there has to ask for them (DevelopAt at the spot, Organic Towns now does) or wait until the town reaches it.
+
+## The game's own growth surrounds a farm; a fixed 1.5 km industry read misses it on a grown town (inferred from a log + shot, 2026-10-13)
+
+Same session, Budleigh Salterton: 206 -> 2856 buildings, 66 -> 919 street edges in the 40 simulated years, of which
+Organic Towns built 195 (BUILT lines) and the game the other ~720; the town (r = 1854 m at the end) grew all round its
+crop farm (user, tour shot s0). Every one of its 46 CHECK lines said `ind=0`: the mod read industries only within
+1500 m of the town centre, and the farm lay beyond that, so its away-from-industries cost never applied. The game's town
+development has no keep-clear rule around industries (none in its scripts either: `game_mechanics/industries/
+industries.script.tl` only skips a field slot that collides, read from the files, not verified). Organic Towns now reads
+industries out to the town's radius + 900 m and keeps a hard zone around each (PLAN.md 6.3 "Round after the 2240 run").
+
+## Listing industries with their file name works in a game script (verified in game 2026-10-13)
+
+Same session: `getEntitiesWithComponent(INDUSTRY)` -> `getConstructionEntityForSubconstruction` -> `CONSTRUCTION.fileName`
+and the `BOUNDING_VOLUME` centre listed the map's industries from the game-script state (`IND industries=16 ok=true
+us=60`, 17 later, 36-61 µs per listing), and the file name classified a works next to a road stop
+(`STOPNAME ... ind=works`, the stop within 350 m of it). The entry "Listing industries with their type and position"
+above is the recipe.
+
+## The game's own growth over 40 simulated years: round blobs that follow water, ~4.6 persons per building (inferred from a log + shots, 2026-10-13)
+
+Session `2026-10-13_2355_sqot`, the second complete map (log from the third `Init game took`): a new European
+map with 16 towns. Organic Towns Act on Off (`INIT on=false reason=param`), but its preRunFn still set the EU town
+street angle range 0 -> 35 deg (`[SQOT] ANGLE ... angle=0/0->35`), so this is the game's growth at 35 deg, not the
+base default 0 deg. Dev SIMGROW "Quick: 40 years", every town growing (`medium=5 fast=11`), then the tour.
+
+- Persons (residents + jobs) 10399 -> 82055 (x7.9), every town at 0.97-0.98 of its SIMGROW target; buildings
+  2595 -> 17543 (x6.8), **4.3-4.9 persons per building** (median 4.56), 10 buildings / ha (7-12), 0.31 street edges per
+  building (63 per 1000 persons), radius (90 % of buildings) ~17.8 x sqrt(buildings) m.
+- **Round in open country:** spread ratio median 1.19 (1.11-1.68). Only 1 town of 16 had >= 10 % of its buildings
+  beyond 1.5 x the equal-area radius. Edges show short curved dead-end stubs all round (Wem, Chagford, Torpoint, Wigton).
+- **Follows water and slopes on its own:** strips along a river bank (Nelson, spread 1.49), a coast (Framlingham,
+  Erith) and lake shores (Harrogate, Stanhope). It stops at mountain foot slopes (Bromyard, Dawley).
+- A **town-street bridge over a river** with a small cluster on the far bank (Gainsborough, shot
+  `2026-10-13_17-24-56_img_23.png`). Whether map generation or growth made it is unknown.
+- Forest: towns abut forest patches with no cleared ring visible, and forest pockets stay inside some towns. No tree read
+  (main mod off), so the trees growth removed are not counted.
+- Same session, first map, Organic Towns on: the same population growth (x8.0) took 9.7x buildings at 3.0 persons per
+  building and 45 % more street per person. With the extra free frontage (54 % of lots free) the game adds more
+  small buildings instead of denser ones (inferred). Comparison: `plans/square_organic_towns/BASELINE_VANILLA.md`.
+
+## True vanilla growth (base 0° street angle) over 40 simulated years: rectilinear grids, ~6.4 persons per building (inferred from a log + shots, 2026-10-14)
+
+Session `2026-10-14_0119_sqot`, second load (log from the second `Seed text`): a new European map, seed text
+`U8Qxgisp4I`, 16 towns. Organic Towns logged `PRERUN actOn=off writes=none angle=0` and `INIT on=false`: nothing
+written, the base game's 0° street angle (unlike the 2026-10-13 run above, which was at 35°). Dev SIMGROW Quick 40
+years, seed 1, every town growing, Fast fill every 4 years. Same seed loaded with Organic Towns on earlier in the
+session: towns get the same entity ids (61028-61043) and positions, so the runs pair town by town.
+
+- **Rectilinear grids in all 16 towns** (ALLTOWN `orient` orth median 0.74 vs 0.25-0.30 at 35°): square blocks, a
+  diamond grid where the country road enters diagonally, bending only along coasts. Base 0° is the grid look on real
+  maps too, not only on Blank Slate (Probe C).
+- **~6.4 persons per building** (median 6.37, 4.4-7.8; map 42429 / 6547 = 6.5), 7.3 buildings / ha, ~52 persons / ha in
+  the 90 % radius; buildings grew x5.0 for persons x6.1-6.5. Per building the towns got bigger over time (start 4.8 persons
+  per building). At 35° (2026-10-13, another map) it was 4.6: whether the angle or the map causes the difference is
+  not known.
+- **A fifth of the street length stays unhoused**: ALLTOWN `emptyLen` / `streetLen` median 19.7 % (9.9-30.4), empty
+  edges 20 %, 1.6 dead ends per km street, 52 % of lots free. 3.8 m of street per person.
+- **Keeps up with forced growth:** built capacity at 95-99 % of the SIMGROW target at every fill year (99 % at year
+  40); between fills buildings barely grow (~20 a year over 16 towns) at SIMGROW speed. 93 s of sim time for 40 years.
+- **Round, compact:** spread median 1.19 (1.08-1.61), r ~20.9 x sqrt(buildings) m; the one spread town (Chertsey 1.61)
+  has a separate small cluster up a hill.
+- With Organic Towns on (same seed, 35° EU angle, its growth driver): x2.4 the buildings at 2.9 persons per building,
+  2x the street per person, the same people where no dose fill ran. Comparison:
+  `plans/square_organic_towns/BASELINE_VANILLA.md` "Same-seed comparison 2026-10-14".
+
+## A new map's starting towns at a 35° street angle have ~29 % more, smaller buildings than at 0°; DevelopAt's upgradeBuildings left persons per building unchanged (inferred from a log, 2026-10-14)
+
+Session `2026-10-14_0119_sqot` (seed text `U8Qxgisp4I`, the same 16 towns in both loads, see the entry above):
+
+- **The generator's own towns:** the load with Organic Towns on had `townInitialMajorStreetAngleRange` 35 (preRunFn,
+  `[SQOT] ANGLE ... angle=0/0->35`), the vanilla load the base 0. Every starting town had the same persons in both
+  (SIMGROW start `persons=`: 6529 in all, per town identical) but more buildings at 35°: 1702 vs 1320 (+29 %; per town
+  +6 % Penkridge to +52 % Telscombe; 3.8 vs 4.9 persons per building). These counts were taken before any script street
+  of that town: Organic Towns' head-start `HEAD ... round=1` lines (measured before their first build) give the same
+  numbers (Ellesmere 75 vs vanilla 62, Winchcombe 137 vs 90), and the head start built 151 edges in all. So the
+  generator fills a town's capacity with smaller buildings on its curved 35° streets (inferred: one seed, the cause
+  inside the generator not seen). Part of the 35° vs 0° density gap (4.6 vs 6.4 persons per building after 40 years,
+  entries above) is there from the start.
+- **`makeTownDevelopAtCmd(point, false, true)` (upgradeBuildings) did not raise persons per building:** Organic
+  Towns' 3 upward doses (3 points each in a town core, initial capacities restored exactly) logged `UPWARD effect
+  perBuilding=4.00->3.98` (High Wycombe), `2.74->2.74` (Henley-in-Arden), and buildings near the points 46->46, 52->53
+  one to six seconds later. Earlier (Showcase v6, above) the flag showed no clear effect either. A town-wide level
+  weight (`makeTownCustomDistributionWeightsCmd`, entry "Tree-lined town street templates; a town's level-to-capacity
+  weights") is the untested alternative; the Stress Test's created towns with weights {0, 0.1, 0.5, 1} were rebuilt
+  taller and fewer by a forced size command ("A forced size command fills its residential capacity target at once").
+- Used by: Organic Towns, NEXT_PHASE_BRIEF 39 (level weights `LEVELS`, the angle split run in
+  plans/square_organic_towns/TESTING.md).
+
+## Several `makeTownCreateCmd` in a row all build, each town keeps its name; the new ids can't tell them apart (verified in game 2026-10-14)
+
+Session `2026-10-14_0119_sqot`, first load (01:20-01:26Z, Organic Towns on, dev SIMGROW running on the 16 starting
+towns). Organic Towns sent `createTowns` + `makeTownCreateCmd` (one town per command) from guiUpdate for several
+parents within ~2 s: Winchcombe Heath and Penkridge Sands at 01:22:09, then Ringwood Bay, Tickhill-on-Sea, Heywood Works
+and Windermere Sands at 01:22:25.
+
+- **Every command built its town** (callback success after 0.4-2.5 s), and every town carries the name passed in the
+  TownInfo (later CHECK lines: 87691 Winchcombe_Heath, 128852 Penkridge_Sands, 41236 Ringwood_Bay, 146138
+  Tickhill-on-Sea, 93527 Windermere_Sands, 147514 Heywood_Works). Spaces show as `_` in the log only.
+- **New entity ids are not in creation order** (128852 before 87691; 41236 for a later create), and a list diff taken at
+  each send sees the other parents' towns too: the old "a town not in my list" rule gave Penkridge Sands to two parents
+  and Heywood Works to four. Identify a created town by the name you gave it and its position, one creation at a time.
+- **A town founded next to forest grows into it** (user-reported, Winchcombe Heath, founded in a forest clearing at
+  7256:-6911): the new town's first streets and houses come from the game's own growth, which takes forest as readily
+  as open land (see "At ~10x forced growth ... grows into dense forest" above). A script can only choose the site.
+- Used by: Organic Towns `ot_works.identify`, one creation in flight map-wide, the load check that drops wrong claims
+  (`OFFSHOOT` lines), the forest test of every Works / district site (`ot_works.forestShare`).
+
+## Town buildings of levels 3-4 exist only from 1950 / 1990, so level weights can't make a 1900-1940 town taller; at the EU 35° angle the game's own towns keep ~60 % of their lots free (files read + a log, 2026-10-14)
+
+- **Era limits (read from game files):** `base/content/buildings/` has three era folders: `a/` only levels 1-2
+  (`r1 r2 c1 c2 i1 i2`), `b/` levels 1-3, `c/` levels 1-4. `base/content/buildings/townbuildingutil.lua:44-52` sets the
+  availability: era A `yearFrom 0, yearTo 1950`, era B `1950-1990`, era C from 1990 (e.g.
+  `buildings/b/r3/1x1_01/b_res_l3_1x1_01.con.lua`: residential, era B, level 3; `buildings/c/r4/...`: level 4, era C).
+  No climate or region split, no level field on street templates or parcels (`type.d.tl` StreetTemplate / ParcelData).
+- **In game (inferred, one run):** session `2026-10-14_0302_sqot-sqrl` (load 2, map start 1900, 40 dev-simulated
+  years; the dev sim does not move the calendar): Organic Towns set `makeTownCustomDistributionWeightsCmd` weights
+  toward the top levels in all 16 towns (`LEVELS action=set`, e.g. `0.658/0.756/0.87/1`); at the end every town's actual
+  residential capacity (`computeActualTownBuildingCapacityPerType`) was levels 1-2 only (`a:18-35/65-82/0/0`, Penkridge
+  67/33) while the weighted target asked up to 57 % at levels 3-4 (`w:20/23/27/30`). So before 1950 the weights can only
+  shift level 1 against level 2. Not measured: whether they shifted it (no run without weights logs `lvl=`).
+- **Unexplained:** the four biggest towns of that run (Stratford-upon-Avon, Penkridge, Winchcombe, Telscombe) read custom
+  weights like `0.0327/0.0846/0/0` at the end, not the `0.455/...` or `0.658/...` rows the mod sent (one `set` each, no
+  other writer in the game scripts; only the town editor sends that command). Open; probably the FILL restores (entry
+  "Restoring a town's initial capacities writes its custom level weights", 2026-10-15).
+- **Free lots at 35°:** in the same run the towns the mod hardly built in (0-5 % of the edges: Ellesmere Port, Blackwater
+  and Hawley, Ellesmere, Ringwood, Heywood) ended with 58-76 % of their lots free; true vanilla at 0° kept 49-56 %
+  (`2026-10-14_0119_sqot` load 2). A density aim taken from the 0° grid can't be met by the game's own 35° towns.
+- **Used by:** Organic Towns `ot_upward` (LEVELS for grown towns only, LV_MAT), `ot_assess` FREE_AIM 0.55
+  (NEXT_PHASE_BRIEF 40).
+
+## Restoring a town's initial capacities writes its custom level weights (game log 2026-10-15, inferred)
+
+Session `2026-10-14_2347_sqot-dev` load 3 (seed `a`, europe, start 1950, Organic Towns + DEV Quick 40 years). The mod's
+baseline at load read no custom weights on any of the 16 towns (`LEVELS event=base from=firstSight towns=16 custom=0`),
+and LEVELS sent none in the whole run (`ours=0` on every LEVELS line). Yet 11 towns ended with custom weights:
+- **They follow the FILL restores.** The 5 towns that got a dose plus restore in year 1 (Mytham, Dart Head, Padfield,
+  Ashminster Garden City, Trefach) are exactly the 5 with custom weights at the year-1 read (`LEVELS read
+  at=simgrow:year=1 custom=5 changed=5`). Edton got its weights after its first restore (year 4). Every later change
+  in a town's weights followed a restore of that town in the same chunk. The restore is
+  `makeTownSetInitialLandUseCapacitiesCmd` right after `makeTownDevelopAtCmd(point, false, false|true)`. The 3 towns
+  never restored kept none (`c:-`). Milton-under-Edge and Shaw were restored only after the year-40 read.
+- **What they look like:** not an editor's. Rows like `0.453303/0.255125/0.100228/0`, `0.766/0/0/0`,
+  `0.0775/0.0162/0.0107/0`: the largest weight below 1, many decimals, level 4 always 0, often levels 2-3 too. They
+  fell with each restore (Lower Aberarun level 1 0.127 -> 0.078 over 24 years).
+- **The effect:** the weighted target is the unweighted x custom (normalised), and the actual mix follows it:
+  - Edton (699 buildings) `c:0.419/0/0/0` gives `w:` and `a:100/0/0/0`, pb 2.75. Trefach 98/2, Abercoed 80/20.
+  - The never-restored towns read `w:` = `u:` (34/27/22/17) and reached pb 4.0-5.0 with 22-38 % level 3.
+  - The level-4 share (no level 4 before 1990) was built at level 3: `u:34/27/22/17` gives `a:38/24/38/0`.
+- **Not separated:** the restore always follows a DevelopAt dose, so which of the two writes the weights is open
+  (inferred: the restore, the town editor's own size command). The town editor's own rows are normalised to 1 (its
+  "Enable" button: the weighted target / its largest) or carry slider steps of 0.01 (base `town_eow.script.tl`).
+- **Console check (2026-10-15, session `2026-10-15_0234_sqot-dev`, live log):** on the showcase map, town 6000
+  already had custom weights `0.1202/0.0276/0.00036/0`. A restore with its own unchanged initial capacities
+  (`makeTownSetInitialLandUseCapacitiesCmd(T, {initial})`) returned ok=true and left the weights exactly as they were.
+  So a restore with unchanged values doesn't rewrite existing weights. Still open: a restore on a town with no custom
+  weights, a restore with changed values, and `makeTownDevelopAtCmd` alone.
+- **This explains the entry below:** the generated towns' weights at the mod's first sight in runs 0502 / 0613 came
+  from head-start doses before the baseline was taken (likely). So, probably, did the "Unexplained" `0.0327/0.0846/0/0` of run 0302
+  (entry "Town buildings of levels 3-4 ...").
+- **Used by:** Organic Towns `ot_upward.levelOwner` owner `fill` (`editorLike`), LEVELS by maturity and the refill
+  after each restore (`Driver:levelsAfterRestore`, NEXT_PHASE_BRIEF 58). The in-game check is TESTING.md "Combined
+  test iteration" step 7: `LEVELS ... event=refill` and the `LEVELS read` changes after it.
+
+## Starting towns carry custom level weights the mod never sent (game log 2026-10-14, inferred)
+
+Run `2026-10-14_0502_sqot` (seed Z2tNDhy0Ht, Organic Towns + DEV Quick 40 years):
+- The dev ALLTOWN lines show custom level-to-capacity weights (`lvl=... c:0.26/0.11/0/0`) on every one of the 16 towns the map generator founded.
+- Organic Towns never sent any (`ours=0`). The 7 towns the mod created by script show none (`c:-`).
+
+So the engine (or the map generator) appears to set `town.levelToCapacityDistributionWeights` on starting towns itself.
+- A rule that treats any custom weights as the player's (Organic Towns `ot_upward.levelDecide`, `skip=player`) therefore never runs on generated towns.
+- When exactly the weights appear (at map creation, or later) is unverified: probe it by logging the custom weights at load and per SIMGROW chunk.
+- Weights read as custom aren't proof that a player set them.
+
+Second map, run `2026-10-14_0613_sqot` (seed text `a`, 16 generated towns; observed in the log, cause inferred):
+- Again every generated town read custom weights and the mod had sent none (`ours=0`). The 7 towns the mod created
+  read `c:-`.
+- The weights differ per town: level 1 0.08-0.33, level 2 0-0.26, levels 3-4 0. Examples: Haywater `c:0.247/0.004`,
+  Thurgrove `c:0.077/0.081`, Thornby `c:0.267/0`.
+- They steer the building levels. The `weighted` row is the `unweighted` row x custom, normalised (Haywater u 34/27 x
+  c gives w 98/2). The actual capacity mix follows `weighted`: Haywater a 99/1; Thurgrove w 48/52, a 56/44. The four
+  towns with a level-2 weight of 0 had 0 % level-2 capacity after 40 simulated years.
+- Still unverified: when they are set and whether they change with growth. Organic Towns (2026-10-14) saves each
+  town's weights at its first sight of a new map as the engine's baseline and logs `LEVELS read` at load and after
+  each dev Simulate round; the next run on seed `a` should settle it.
+
+
+## The base "Asian" name list is ~100 world megacities, English only, with no landscape words (files read + a log, 2026-10-14)
+
+`base/content/names/asia/asia.names.lua` (map setting "Asian") draws town names from `names/asia/en/towns.lua`: about
+102 of the largest cities of all Asia and the Middle East (Shanghai, Karachi, Tokyo, Istanbul, Riyadh, Baku, Singapore
+…), English only (`languages = { en = "en", fallback = "en" }`). Person names mix the korea / china / japan / russia
+lists. Separate `china`, `japan` and `korea` lists exist beside it. No name carries a landscape word, so a matcher that
+reads a name's words for its site (Organic Towns' Landscape names) finds nothing to match. Session
+`2026-10-14_0814_sqot` load 3 (seed `a`, tropical): `[SQOT] NAMES on=true why=noTags mode=landscape list=asia cls=-
+pool=0 tagged=0 renamed=0`, so the 16 towns kept the game's names (Wenzhou, Jaipur, Nagoya, Manila, Karachi, Shanghai,
+Jeddah, Baku …).
+
+## A growing town's own streets reach a neighbour 1.2 km away and pass its halfway line; a town that doesn't grow gets no new streets of its own (inferred from a log, 2026-10-14)
+
+Session `2026-10-14_1927_sqot`, seed `a`, dev Simulate kept going to 203 simulated years for the 6 towns near the camera
+(calendar held at 1900, Organic Towns on). The script-created towns there got no growth (`SIMGROW final ... rate=0.00
+class=none ... steps=0`) and no Organic Towns job after their founding link.
+
+- **The parents' engine streets ran up to and past the created towns.** East Hornness grew 664 -> 3583 buildings, and
+  its ALLTOWN edges went 222 -> 944, with 17 of them from the mod (BUILT). Its 90 % extent radius grew 476 -> 1225 m,
+  reaching its Works town 1200 m away. Twywath-under-Dun did the same toward Ashworthville (1200 m away): 435 -> 1733
+  edges, 53 by the mod. Nothing in the game's own growth stops at the halfway line between two towns.
+- **The created town itself added no streets.** East Hornness Engine Works kept 40 buildings, and the mod-locked
+  (`roadDevelopmentLocked`) edges in its lot area stayed at 0. Yet its lot edges (town streets within 1.25 x its
+  extent + 50 m) went 13 -> 70. The jumps came as East Hornness' extent passed ~900 m: 13 at r 990, 26 at 1019, 43 at
+  1090, 64 at 1134.
+- **A per-town street read from the town's centre counts its neighbour's streets.** Neither a circle around the centre
+  nor `getClosestTown` tells which town built a street. Measured that way, the Works showed 33 km of street, 31.9 km
+  "empty" (empty = no house of the Works itself; East Hornness' houses don't count). Tell them apart by the houses of
+  every town on each edge (`TOWN_BUILDING` parcels, `streetSegment`).
+- Unverified: whether those streets carry the parent's houses. The log has no per-edge houses of other towns. The dev
+  ALLTOWN `bareLen=` / `foreignLen=` (added 2026-10-14) answer that in the next run.
+- Used by: Organic Towns' held towns (PLAN.md 6.3 "Held towns"): no mod streets in a created town below 120 buildings or
+  in a town whose growth is empty, and a send guard against other towns' plans in a held created town's land.
+
+## New maps place industries 1.2 km or more from the starting towns' centres (inferred from logs, 2026-10-15)
+
+Archived Organic Towns sessions `2026-10-13_0018_top-up-598153` to `2026-10-15_0429_sqot-sqrl` (23 map loads, 15-48
+towns each, europe / usa lists, temperate / dry). Each town's `CHECK ... ind=<n>/<nearest m>/<heavy>` line counts the
+map's industries within 1.5 km of its centre (`ot_industry.forTown`, the town's box centre).
+
+- **No starting town had an industry closer than ~1.2 km.** 0-5 of 16 starting towns per load had any within 1.5 km
+  (seed `a` none at all: 0 of 16 in `2026-10-15_0429_sqot-sqrl` and `2026-10-14_2237_sqot-dev` load 2). The nearest ones
+  were 1236-1577 m out (the towns with a TERRAIN line); only script-created towns (Works beside a factory) sat closer (693-809 m in `2026-10-14_0502_sqot`).
+- So a rule that wants a works next to a starting town (Organic Towns' company town: full score near the centre, 0.4 at
+  1275 m for a heavy works) almost never fires: across these loads 1 town reached 0.4 (81939, heavy works at 1277 m, in
+  `2026-10-14_2237_sqot-dev`), and it was too steep (meanSlope 0.09).
+- Unverified: whether the generator keeps a fixed minimum distance (a `baseConfig` value) or it follows from the map size
+  and the number of towns / industries. The game files' map generator settings would tell.
+- Used by: Organic Towns' company town (`ot_character` `COMPANY_R`), NEXT_PHASE_BRIEF 62 "Not done".
+
+## A script street build without `ctx.player` is free and unowned (game log + console 2026-10-17)
+
+Organic Towns with the dev toggle "Build as player" off (session `2026-10-17_1841_sqot`, live log; a played save):
+
+- **No charge.** `[SQOT] BUILT ... edges=8 cost=63098 balance=1874749->1874749` (19:30) and `edges=2 cost=32467
+  balance=-2056432->-2056432` (19:41): the result's `costs` is still filled, the balance does not move, so no refund
+  is needed. The 40 builds before with `ctx.player` set were charged their cost exactly (`balance` drop = `cost`).
+- **No crash** in the minutes after either build (no `Engine.h:323` assertion). Two builds only; the 2026-10-11 crash
+  that first suggested keeping the player was later traced to new nodes without `BASE_NODE_CONFIG` (above), and every
+  new node gets a config now.
+- **Not player-owned** (new game at $0, session after `2026-10-17_1841_sqot`, 20:0xZ): 35 player-less builds, all
+  `balance=0->0`, no crash. At the join nodes of the last four builds every street segment, the new mod street
+  (ids 103245-104283) and the street it joined, had no `PLAYER_OWNED` component (console `SQOWN node102455: 102459=-
+  104283=- ...`, built from `api.engine.system.streetSystem.getNodeStreetSegments(node)`). No player-context street
+  was checked for comparison, so whether rev 1's (`ctx.player` set) streets were owned, as a player reported, is
+  inferred, not seen.
+- **Console: `api.engine.forEachEntityWithComponent(fn, CT.BASE_EDGE)` is refused** ("cannot loop over component
+  type"); list a node's streets with `getNodeStreetSegments` instead. Clicking a town street logs only `Selected
+  entity 2`, not the edge.

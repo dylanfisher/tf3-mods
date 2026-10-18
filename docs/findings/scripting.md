@@ -178,7 +178,7 @@ all is NOT tested: mods/square_inline_style_probe (60 inline styles, no CSS) exi
   sessions that don't crash (2026-10-10, 2026-10-13_0037): unrelated.
 - Rule counter: run each `.css.lua` `data()` in lupa with a stub `stylesheetutil.makeAdder` that counts the
   comma-separated selector parts, and everything else stubbed by a catch-all metatable (about 40 lines of Python).
-Problem Radar rev 6 ships with 14 rules moved inline (62 → 48); if a load crash shows up with Radar active,
+Problem Radar rev 6 ships with 14 rules moved inline (62 → 48; step 2 on 2026-10-14: 48 → 38, plans/square_problem_radar/PLAN.md); if a load crash shows up with Radar active,
 revert that step with `git apply -R plans/square_problem_radar/inline_styles.patch` (back to the 62-rule
 version that loaded with the full 20-mod set).
 Reconfirmed 2026-10-11 22:25: the same stack (frame 0 in `102fbe0cc`, 4 s after "Collect Lua Garbage") with a
@@ -194,6 +194,14 @@ survive. Reconfirmed in session `c9a75c9c` (fresh start, the large save as the f
 frames 8/10/11 string-exception stack. Control (`99052c78`): the same save with only urbangames_no_costs (no CSS)
 loads. Shared with Urban Games as plans/bugreports/square_css_rule_crash_repro.zip.
 
+2026-10-14 (session `2026-10-14_0502_sqot`, dump `741bd8fd…_0.dmp`, build 40420): the same frames 8/10/11
+stack 1 s after "Collect Lua Garbage" on loading "Empty 2", with the user's 20-mod set at ≈209 mod rules
+(counted with the lupa stub counter, now `make css-rules`; the layer window offset block counted once). The set had loaded at ≈205;
+the 4 new rules of Bulk Bulldozer's status style (a per-mod copy of Smart Lanes' info style) tipped it. Fix:
+one shared 4-rule block that only the first active tool adds (docs/ui-guide.md "Construction toolbar"), with
+the badge colours inline: the set is back to ≈203. Inline `api.gui.StyleSheet` has no `textAutoWrap`,
+`maxSize` or `gravity` (`api/gui.d.tl` StyleSheet), so wrapping and alignment still need class rules.
+
 ## Mod description rendering in game (verified in game 2026-10-11)
 
 The in-game Mod Hub detail view (My Mods → a staging mod) renders `_metadata/description.html` with fewer tags than
@@ -205,8 +213,9 @@ mod.io. Screenshot of Line Editor Undo with a `<p><strong>DEPRECATED:</strong> <
   `</strong>` keeps its leading space ("Undo button</strong> (a curved…" is fine).
 - `<hr>` draws no line in game, at most a gap, although the wiki lists horizontal lines as supported
   (`docs/wiki/modding/general/guidelines.md:189-196`). mod.io draws it.
-- Links (`<a href>`): not tested in game yet. The wiki's list doesn't include them, and console players can't open
-  URLs in game (`moddefinition.md:194`), so a description must read fine without the link.
+- Links (`<a href>`) show as `text (URL)`, and `<img>` is dropped (2026-10-13, Mod Hub tab, Stress Test; details in
+  `findings/publishing.md` "mod.io description HTML"). Console players can't open URLs in game
+  (`moddefinition.md:194`), so a description must read fine with the URL printed after each link.
 
 ## Mod settings tooltips not seen in game (user report 2026-10-11)
 
@@ -271,3 +280,69 @@ Probe `square_sim_tuner_probe` Run A (session `2026-10-12_2328_sqstp`, build 404
 - The same write from a game script's `handleEvent` on the Simulation thread fails with the same error (Run C,
   session `2026-10-12_2343_top-up-563524`). BaseConfig is load-time only: a lever that must change during play
   needs another mechanism. (The game script's handleEvent only fired after `subscribeToEvent("write")`.)
+
+## `api.engine.config.getConfigDict()` returns a list of pairs (verified in game 2026-10-13)
+
+- The tealdef (`api/tealdef/api/engine.d.tl:1804`) says `{ string : string }`, but in a map editor GUI script it
+  returned `{ {key, value}, ... }`: `pairs` gave keys 1, 2, 3 with table values (`[SQMF] configDict 1=table ...`,
+  game log 2026-10-13 ~20:25Z, not archived; the fixed reader works in `2026-10-13_2030_sqmf`). The game's own log of the same game lists
+  `climate: ::/climates/temperate/temperate.clima`, `economy: ::/economy/temperate.eco`, `nameList: ...`.
+  So `dict.climate` is nil: walk the list and match `pair[1] == "climate"` (accept both shapes).
+- `getModParams()` in the same session: `""` (base params, plus `isMapEditor=true` in the editor) and each active
+  mod, `{}` for one without params.
+
+## Animals from a GUI script: spawn and remove yes, move no (user console 2026-10-14; tealdefs + base files)
+
+- **A GUI state can spawn an animal** (user, in-game console, which has `api.gui.*`, 2026-10-14):
+  `api.cmd.sendCommand(api.cmd.makeAnimalSpawnAtCmd("::/animal/cougar/cougar.mdl", api.type.Vec2f.new(x, y)), cb)`
+  made a cougar appear where the mouse was. The callback's `ok` / `resultEntity` were not seen in the pasted output
+  (unconfirmed; Photo Mode logs them: TESTING.md AN2). `lookAt` (optional Vec2f) is "the direction the animal is
+  facing in" (`api/tealdef/api/cmd.d.tl:614-620`).
+- **An existing animal can't be moved**: `makeAnimalSetStateCmd(animal, movementType, targetChangedElapsed,
+  invalidTileElapsed, movementSpeed, angularSpeed)` (`cmd.d.tl:26-39`, `:604-613`) has no position and no target;
+  the component's `worldPosition` / `targetCoord` (`engine.d.tl:47-74`) have no setter. `movementType` is a 0-based
+  index into the model's `metadata.animal.movementTypes` (the entity window reads `movementTypes[movementType + 1]`,
+  `gui/entity_window/animal/animal_eow.script.tl`). A large `targetChangedElapsed` presumably makes it pick a new
+  target of its own (inferred).
+- **Removing one**: `makeCustomEntityDestroyCmd(entity)` on an ANIMAL entity (the campaign's mission_03
+  `init/init.script.tl` despawnAnimals sends it for every animal; a game script there). From a GUI script untested
+  (TESTING.md AN4).
+- Listing: `api.engine.system.animalMoveSystem.forEach(fn)` or the ANIMAL component (`ComponentType.ANIMAL`).
+- The wild species (`base/content/animal/*/*.mdl` `metadata.animal`, `categoryList` = climates): deer, bear, wolf
+  (temperate, subarctic), fox (+ tropical), cougar and eagle (dry), crane (temperate, subarctic, tropical; a flock),
+  gull (all four), salmon (not tropical) and discus fish (tropical; `stickToWater`, `fish = true`). Birds fly at
+  their `movement.heightOffset` (40-60 m). `cow`, `sheep` and `horse` .mdl have no `metadata.animal` (farm props).
+  Correction 2026-10-14 (round 20, read from the file): `animal/draft_horse/draft_horse.mdl` IS an animal:
+  `metadata.animal` with movement types Idle / Walk / Trot / Canter / Gallop, `config.density = 0` (the game never
+  spawns it itself) and `suitableAreas` all 0 (bias 0, every map and area score 0), so no spot scores below 0: it
+  should live anywhere (inferred; Photo Mode's horse groups log it, TESTING.md R20-4). The four discus models
+  `cr_fish_01..04` share one flock function and name ("Discus Fish School").
+- Save impact: a spawned animal is an ordinary base entity, saved with the game and moved and despawned by the
+  engine's own animal system; removing the mod leaves only base animals (nothing of the mod's). It is still a sim
+  change (Photo Mode's Animals are opt-in and say so).
+- **Spawned where the score is negative, land animals die within seconds (game log 2026-10-14_0842_session; the
+  cause inferred from the wiki and the models)**: 18 cougars on desert hills, all `ok=true`: four gone within 6 s,
+  the rest within 25 s, while 10 gulls and 11 eagles lived on. The wiki (modding/environment/animals.md "Suitable
+  Areas"): each animal sums a score from its `metadata.animal.suitableAreas` (bias, height / noise / slope maps,
+  civilisation / forest / predator / shore / water areas); "If an animal gets into an area with negative score, it
+  will try to run away. If it fails to leave the non suitable area it will eventually die" (every land model has a
+  "Dying" movement type with `despawnAtEnd = true`; the ANIMAL component counts `invalidTileElapsed`). The
+  cougar's bias is 5 and its slope map {0.3, 2} -> {0, -1000}: steeper than ~0.31 is negative; Photo Mode had let
+  them stand on 0.45. Deer: bias 0, forest +999, predator -1000 (near wolves / bears / cougars). Fish: bias -2000,
+  water +2001, shore -5000 (open water only). Birds survived anywhere (gulls' inland score is negative too).
+  Photo Mode round 17 scores spots the engine's way and logs each animal's lifetime (TESTING.md AG3 confirms).
+  `baseConfig.animal` (populationDensityMultiplier 1, useLocalSpawning, localTileSize 1000) governs the engine's own
+  spawning; no sign it culls added ones (gulls 10 in one tile lived).
+- **The noise probe reads at least 60 dB on open desert (game log 2026-10-14_2150_r19-test; the scale inferred)**:
+  every cougar click (30 of them, 60 spots each) was refused with "noise 60" by Photo Mode's scoring, on the flat
+  open ground the user picked: `api.util.powerToDecibel(emissionGridSystem.getInterpolatedEmission(p, true,
+  Noise))` came back >= 60 everywhere there, where the cougar's noise map {60, 150} -> {0, -1000} starts. Either
+  the engine scores noise on another scale than the tooltips' dB, or the whole area is loud; untested which. Photo
+  Mode round 20 uses the score only to prefer a spot and never refuses for it (the tab notes that animals in the
+  wrong place die within seconds).
+- Noise for an animal score is in dB as the game's tooltips read it: `api.util.powerToDecibel(api.engine.system.
+  emissionGridSystem.getInterpolatedEmission(Vec2f, true, EmissionGrid.Type.Noise))` (game_tooltips.tl:251-260;
+  that the animal maps use the same dB scale is inferred).
+- `getComponent` on a despawned animal raises "Invalid entity" (0842, pm_animals.lua:248): check
+  `api.engine.entityExists` first. Ids are reused at once (a removed gull's 122618 came back as an eagle).
+- No elk or moose model: the wild species are deer, fox, wolf, bear, cougar, crane, eagle, gull, salmon, discus.

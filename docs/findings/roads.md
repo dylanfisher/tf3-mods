@@ -66,6 +66,40 @@ Found with the probe `square_roundabouts_lanes_probe` (log lines `[SQRB-LANES]`,
 - The Crossing Tool applies each click as one build: `nodeConfigsToRemove = {node}` +
   `nodeConfigsToAdd = {full new config}` (no added/removed streets, cost 0).
   `userModifiedLaneConnections` stays nil after a Crossing Tool edit, so it is not the "edited" marker.
+- **The Crossing Tool offers only junctions, not plain 2-edge nodes** (2026-10-13, Stress Test bench Sheet 4 v3,
+  session of 2026-10-13 00:28 UTC, user screenshot): on a one-way ring with a plain node halfway between each pair of
+  arms (square_roundabouts `sqrb_dev_ring_mid`), the tool drew its blue node circles at the 4 arm junctions only and
+  the mid nodes could not be picked. A script can still write a lane change there: Smart Lanes `sl_rsplit` wrote 3
+  connections (both lanes straight on + outer -> inner) at each mid node, `WRITE ring=4980 ... success=true`,
+  `VERIFY ring=4980 same=8 nodes=8`. So such configs can't be checked or undone with the base tool; the ring's one-way
+  arrows (one per edge: 8 instead of 4) show the nodes exist.
+- **Vehicles change lanes between junctions; the game's 2x2 T gives the left turn to the inner lane only**
+  (2026-10-14, user test in the live session of 2026-10-14 17:29 UTC, archived as that day's 17:29 session): on a
+  medium town street (2 lanes each way) with a street bus stop on the curb about 60 m before a T-junction where the
+  line turns left, the bus pulled out of the stop, moved into the inner lane within the block and turned left, with
+  Smart Lanes' lanes (`5606:s|sf`, node 4796). The game's own connections at the twin T (node 5237, after the Smart
+  Lanes tool's Reset, 12 connections) also give the left turn only from the inner lane (`from=6229:2 to=5068:3/4`;
+  curb lane 6229:1 straight only), and let every turn enter both exit lanes (Smart Lanes pins one). On a much
+  shorter stretch before the junction the bus took a U-turn instead (user observation; which lanes that junction had
+  is unclear, see the next point). So lane changes on segments exist but need room; the room needed is unmeasured.
+- **A build on a junction's arm re-applies the automatic lanes after a Reset** (2026-10-14, same session): moving
+  the stop on the twin's west arm rebuilt it (edge 6229 -> 8158) and Smart Lanes' automatic pass wrote smart lanes
+  to node 5237 again (`APPLY ... node=5237 ... 8158:s|sf`, 17:38:21), although the tool had reset it at 17:33:35.
+- **A replaced arm keeps the junction's lanes; its light phases look made again** (inferred from game logs, read
+  2026-10-17): when a build replaces one arm segment of an existing junction (a stop placed on the arm, a road joined
+  partway along it), the engine carries the junction's config over onto the replacement segment, re-pointed.
+  Evidence: session `2026-10-14_1729_add-money-100m`, T-junction 5237: job 7 wrote Smart Lanes' 8 connections with
+  arm 5265 (17:33:00, `before=12 after=8`, curb turns freed in the same write: `free_turn=2 free_phases=10`); the
+  next build (job 8, 17:33:03, `nodes=2`) replaced 5265 by 6229 and found the lanes already right (`same=1`), and the
+  tool read 8 connections in Smart Lanes' form on 6229 at 17:33:30 (`CONNS node=5237 roads=...6229... conns=8`).
+  Session `2026-10-17_2159_sqrl-sqsg`: crossroads 32350's arm 85407 became 105882 and its 15 game connections read in
+  the same order before and after (`PROBE phases_conns`, also 2026-10-17 00:59). The engine's proposal dump of a
+  refused build there (22:01:25, `ProposalData error: Collision`) lists the kept node's new config with its old pairs
+  first and the replacement segment's pairs after them. But job 8 had to free the same curb turns again (`LIGHTS
+  src=auto node=5237 to=free_turn free_turn=2 free_phases=10`): the rebuild locked them back, so the phases were
+  made again (or their locks reset) while the lanes stayed. Not seen yet: a lit junction with a Smart Lanes phase
+  plan through such a rebuild. Smart Lanes leaves such a junction alone since 2026-10-17 (PLAN.md "Nearby junctions
+  stay as they are"; TESTING.md "NJ").
 - **LaneConnection objects read from a node are read-only** (2026-10-08, `square_smart_lanes` rev 1,
   GUI thread): `lc.segment0, lc.lane0, ... = ...` on an element of
   `getComponent(node, BASE_NODE_CONFIG).laneConnections` raised `cannot write to re[adonly ...]`
@@ -167,9 +201,9 @@ Found with the probe `square_roundabouts_lanes_probe` (log lines `[SQRB-LANES]`,
 Untouched 3x3 crossroads have 36 road connections, but not always "one lane per turn, fanned into every exit lane".
 Seed 488838, Stress Test Showcase twin g3b (`ab=game`, never written; node 331872, a 60/120 degree skewed crossing)
 and a right-angle 3x3 (node 66527, log 2026-10-11_2312): at three approaches one turn (or both) came from **two**
-lanes instead: kerb turn = kerb lane into the exit's two kerb lanes + the next lane into its far lane; far turn =
-the lane next to the far lane into the exit's kerb lane + the far lane into the other two. Per arm in 331872: one
-arm split both turns, one only the kerb turn, one only the far turn, one neither, and the 180-degree-symmetric arms
+lanes instead: curb turn = curb lane into the exit's two curb lanes + the next lane into its far lane; far turn =
+the lane next to the far lane into the exit's curb lane + the far lane into the other two. Per arm in 331872: one
+arm split both turns, one only the curb turn, one only the far turn, one neither, and the 180-degree-symmetric arms
 differed, so geometry alone does not decide it. Movements (approach > exit), their connection counts and the exit
 lanes they reach always matched the one-lane model. Smart Lanes compares the "Game default" badge per movement
 (sl_cross `X.isDefault`) for this reason. Open: picked nodes with `conns=0` (334396, a one-way road's
@@ -196,6 +230,14 @@ the phases: `cfg.trafficLightConfig:clone()`, new `api.type.TrafficLightState.ne
 minDuration, canSkip copied, lockedLanes remapped), assign `.states`, set it on the entry (square_smart_lanes
 `sl_write.lua` W.remapLights, `sl_rules.lua` remapLocked).
 
+### A phases-only light proposal keeps the node id (game log 2026-10-15, Stress Test light plans A/B seed 863105)
+Smart Lanes' automatic re-timing sent 24 phases-only `createTrafficLightProposal` writes (new durations, same
+`lockedLanes` / `canSkip`) to 6 lit crossroads over 61 game minutes; every callback was `success=true` and no
+`AUTORETIME op=reattach` or `op=prune` line followed (the runtime re-finds each enrolled junction by position before
+every check and logs a re-attach when the id at that spot changed). So the node entity survives such a write; keying
+by id would have worked. Whether the running phase restarts and whether drivers re-route on a write is not answered
+by this run (those probes are on the manual Re-time only).
+
 ### Traffic light phases: what the game files show about regeneration (code reading 2026-10-12, in-game checks pending)
 From `base/content/gui/entity_window/double_slip_switch.tl` and a search of all base Lua/Teal and the mods in
 `.cache/`; no in-game evidence yet (square_smart_lanes TESTING.md FK 2-3 will answer the open points).
@@ -207,12 +249,22 @@ From `base/content/gui/entity_window/double_slip_switch.tl` and a search of all 
 - `userModifiedTrafficLightStates` (`api/tealdef/api/engine.d.tl:196`) is never set or read by any base script; only
   the engine handles it, so what it protects is unknown. The community mod undo_tf3_test refuses nodes that have it
   (or `userModifiedLaneConnections`) set (`signals.script.lua:128`). square_smart_lanes copies the read config and
-  leaves the flag as it was (it logs it as `user_modified=` on its phases-only LIGHTS lines).
+  leaves the flag as it was (it logs it as `user_modified=` on its phases-only LIGHTS lines); the engine then sets
+  it anyway ("Phases-only writes set userModifiedTrafficLightStates" below, 2026-10-15).
 - A node-config write (`nodeConfigsToRemove` + `nodeConfigsToAdd`) that changes the connection list does **not**
   make the engine re-make the phases: it used the written stale `lockedLanes` and crashed (section "Traffic light
   phases index the lane connections"). Phases written with the lanes therefore stay as written at that moment.
 - Open: whether a later build next to the node, an edge upgrade, or AUTO lights appearing after a script's read
   re-make the phases (and drop a script's edits).
+- **The Crossing window's light buttons are a player build** (code reading 2026-10-16, not seen in game yet): a light
+  type button (`TrafficLightPreference.YES`) and the None button (`NO`) commit `createTrafficLightProposal(node,
+  config, preference)` through `api.cmd.makeWorldBuildProposalCmd(proposal, nil, false, true)` (`double_slip_switch.tl`
+  `:54-58`, `:480-525`), `playerInitiated = true`, so a game script's `onPostBuildProposal` should see it with
+  `param[4] == true` and no added segments. Which nodes the event's `proposal.proposal` lists (`nodeConfigsToAdd` /
+  `nodeConfigsToRemove`, as a lane click does) is not known; square_smart_lanes logs `AUTORETIME op=new_lights
+  phase=queued src=build ... segs=0 cfgs=<n>` for such a build in All lights mode (TESTING.md AL), which will tell.
+  Scripts' own phases writes use the same call with `playerInitiated = true` (sl_write.lua), so a handler can't tell
+  them from the player's click.
 
 ### Crosswalk entries of a node config (code reading 2026-10-12, mapping not verified in game)
 `BaseNodeConfig.crosswalks : {Entity}` (`api/tealdef/api/engine.d.tl:190`); the record has no other crosswalk field
@@ -227,11 +279,11 @@ treats an entry that is none of the node's segments as a conflict (TESTING.md FK
 The game has no "turn on red" rule; a lane connection either has red (in the phase's `lockedLanes`) or may go. The
 base Crossing window (click a junction: Phase #N boxes, click a lane curve to toggle red / green) can unlock a right
 turn in every phase. In game on a lit T-junction, the unlocked right turners did NOT give way to conflicting traffic
-that had green: an unlocked connection drives as if it had green, with no yielding. The default phases lock the kerb
+that had green: an unlocked connection drives as if it had green, with no yielding. The default phases lock the curb
 turn together with its approach.
 
 Later observations (user, in game 2026-10-12, Lights showcase seed 530609, Smart Lanes "When safe"):
-- **Merging is tolerable:** a freed kerb turn whose exit lane also takes another approach's green straight stream
+- **Merging is tolerable:** a freed curb turn whose exit lane also takes another approach's green straight stream
   (Smart Lanes `kept=merge`) merges into it; the user judged that overall more efficient than holding the turn red.
 - **Pedestrians: mostly avoided, not reliably.** With a crosswalk green at all times, turning cars sometimes slowed
   for pedestrians and sometimes drove through them; mostly they seemed to avoid them. So a turn released across a
@@ -285,7 +337,11 @@ Smart Lanes probe (`[SQRL] PROBE phases`, session `2026-10-12_0753` in `.cache/l
 junctions: 2x2, 3x3, 3x3 x 2x2 crossroads and two T-junctions; user screenshots of the Crossing window agree):
 - **Every default plan has 6 phases**: axis 1 green -> all-red 6 s -> axis 2 green -> all-red 6 s -> pedestrians
   only (every crosswalk green, every vehicle red) 3 s -> all-red 9 s. T-junctions use the same 6-phase shape.
-- **Green durations scale with the junction**: 18.86 / 21.55 / 23.70 / 27.09 s seen (larger roads longer). Every
+- **Green durations scale with the junction**: 18.86 / 21.55 / 23.70 / 27.09 s seen (larger roads longer). Per
+  phase (re-read 2026-10-14 from the same session's `PROBE phases_state` lines): a phase greening two opposite
+  approaches gets 23.70 s at 2 lanes per direction (node 5921, 2x2 X; node 8638's T main road) and 27.09 s at 3
+  (node 4478, 3x3 X; node 8959's T main road); a phase greening one approach (the T's side road) 18.86 s at 2 lanes
+  (8638) and 21.55 s at 3 (8959). Not a 1-4 lane series, and no 1-lane junction was probed. Every
   phase has `canSkip = true`, `minDuration = 1.5`. Fully locked phases are the all-red pauses (the Crossing window
   greys their X icon). `trafficLightType = -1`, `userModifiedTrafficLightStates = false`.
 - **A cycle is ~71-78 s, of which 21 s all-red and 3 s pedestrian-only** (2x2: 23.7+6+23.7+6+3+9 = 71.4 s).
@@ -293,6 +349,27 @@ junctions: 2x2, 3x3, 3x3 x 2x2 crossroads and two T-junctions; user screenshots 
   unlocks the A and C straights, right turns and left turns together), so far turns run against the opposing
   straight; with no yielding ("A connection unlocked in a phase does not give way") they conflict by design.
 - **Crosswalks are the node's edge ids** (`cw_is_edge=y` on all 18 crosswalks probed), one per arm.
+- **Inferred (city run 2026-10-15, session `2026-10-15_0700_bench-s6-midnode-city-lights-872734`, 3x3 crossroads
+  27.1/6/27.1/6/3/9): the crosswalks are green only in the pedestrian phase 5**, red in both axis phases: Smart Lanes'
+  pedestrian floor (25.5 s for a 6-lane crossing) landed on phase 5 alone, none on phases 1 / 3 (`AUTORETIME op=plan
+  ... new=6/6/9/6/26/6`). Not read directly (no `PROBE phases_state` with crosswalk sets of that junction): confirm
+  with a probe of a default plan's `lockedLanes` beyond the connections. Mod fact, same evidence: a curb turn freed
+  by Smart Lanes' Free curb turn Always is unlocked in all six phases, pauses and pedestrian phase included.
+- **Not every default has 6 phases (game log 2026-10-16, session live of `2026-10-16`, archived in `.cache/logs`):**
+  a 1-lane T-junction (node 35512) read 7 phases at each of two Smart Lanes Resets that followed an earlier Reset
+  (`LIGHTS src=reset node=35512 ... states=7`), i.e. the engine's own default there. Smart Lanes now treats any
+  phases with fractional greens, every phase canSkip with minDuration 1.5, as the engine's (`Retime.phasesEngineMade`).
+  Probe: `PROBE phases` on a fresh 1-lane T for the phase list.
+- **A skewed crossroads gets one axis plus a phase per leftover arm (game log 2026-10-17, session
+  `2026-10-17_0057_sqrl-sqsg`, node 32350, `PROBE phases` / `phases_state` at 00:59:40 and 00:59:58):** arms at
+  20.1 / 146.2 / 184.0 / 274.0 deg (A and C 16 deg off a straight line, B and D 52 deg; arm D 2+2 lanes, the others
+  1+1; no crosswalks, 15 connections), `user_modified=false`: **8 phases** 18.86 / 6 / 18.86 / 6 / 15 / 6 / 3 / 9 s,
+  all canSkip, minDuration 1.5. From the locked lanes: phase 1 greens every movement of A and C together (an axis),
+  phase 3 only D's, phase 5 (15 s) only B's, each followed by a 6 s all-red; then the 3 s (here all-red, no crosswalks)
+  and 9 s clearances. So the engine pairs only the two arms that face each other and gives the others a phase each;
+  its greens there are 18.86 s (the 1-lane / one-approach value) and 15 s for B (new value). Smart Lanes' axis plan
+  (PP.AXIS_TOL 45 deg) also finds no second pair there (`plan_fail=no_axis_shape`). One junction: whether the 15 s
+  comes from B's 1 lane or its angle is not known.
 - **Phases survive a Smart Lanes lane write** as durations; lockedLanes are re-pointed (node 5921 read again after
   24 -> 16 connections: same 6 durations).
 
@@ -396,6 +473,17 @@ Confirmed in game by the user on 2026-10-09: with the fix the layout is green at
 - **Probe artifact to avoid:** a `makeProposalData` for a `.con` called from inside the builder's own
   `guiHandleEvent` callback (`builder.proposalCreate`) for that same file is refused anywhere on the map. Don't
   use replays made there as evidence.
+  - *Attribution uncertain (note 2026-10-14):* the logs behind this (Phase 7e fix-up rounds 4-8,
+    `plans/square_roundabouts/probe_p7_{bisect,triage,seed,copy,variants}.log`, `INTERCHANGES.md`) fit the
+    negative zero above at least as well. Every refused replay reused the builder's transform, which is
+    `1/-0/0/0/0/1/…` at 0° in every W line, and was of the highway entry, whose SE on-ramp then got a world
+    `-0` (found in round 13). Every replay that placed either built its own `+0` transform (the bisect and
+    variant sweeps, `rot0=0`: 167 / 167, 49 / 51 with the tool open) or was another file without that tangent
+    (Roundabout Interchange, main roundabout, base cloverleaf, all `+0`). Replays outside the event at the
+    builder's transform (round 6-8 Y lines, the next frame and about 2 s later) were refused as well, so the
+    callback alone does not explain them, and no highway replay ever ran at a non-zero rotation. It is not
+    proven either way: still don't rely on replays inside `builder.proposalCreate`, and if you replay a
+    builder proposal, compare it with the same transform rebuilt with `+0`.
 
 ## Terrain-shaping constructions (verified in game 2026-10-11)
 
@@ -458,7 +546,7 @@ square_roundabouts Roundabout centred there (2-lane ring at 24 m, `country_new_l
   `town_new_large` legs, 75 m from the centre, so 29 m from the arm end), while the left / right far nodes (lit
   T-junctions whose approached leg was the 30 m country ring street) at the same 29 m were clear. So that crossroads'
   area reaches more than 29 m along a leg (16 m half width + about 13 m or more). Inferred, not measured: likely the
-  town street's sidewalk crosswalks and kerb corners of two 32 m streets (country roads have no crosswalks), and it
+  town street's sidewalk crosswalks and curb corners of two 32 m streets (country roads have no crosswalks), and it
   is evaluated with the leg the same proposal removes still there. Both nodes were lit, so the lights don't separate
   them. Keep construction street ends more than ~30 m from a wide town crossroads; the Stress Test now tries the
   inward arm at 46, 42, 38, 36 m with makeProposalData and takes the first that passes.
@@ -483,3 +571,135 @@ Lights showcase entries (removal of the side-middle node and its 3 streets, then
   regenerating the T's connections is possible too). So a ghost of the old config can't be carried over after any
   delay; the Stress Test now switches such nodes' lights off after the join (the game's createTrafficLightProposal,
   preference NO).
+
+## A low road bridge cuts a ship lane (verified in game by the user 2026-10-13)
+
+The user built a low road bridge over a river and tested ships against it: **a low bridge blocks the waterway**.
+Ships can't pass under it, so ship lines through that stretch lose their route. Tested by hand, no log session. Still unmeasured:
+- the clearance a ship needs;
+- whether the line manager's navigable-water layer marks the cut.
+
+Nothing in the API, the bridge definitions (`base/content/infrastructure/bridge/*.bridge.lua`) or the wiki
+documents a clearance rule. For script bridges (Organic Towns `ot_bridge`, deck = higher bank + 4 m until 2026-10-13):
+- don't cross water an active ship line passes through;
+- prefer non-navigable stretches;
+- otherwise build the deck high enough.
+
+## Reading navigability and ship lines (read from the tealdefs and base files 2026-10-13, NOT verified in a game script)
+
+Research for Organic Towns' ship-aware bridges (round R6; plans/square_organic_towns/PLAN.md 6.3 "Forest / gaps /
+bridges round"). `T` = `.cache/game/api/tealdef/api`, `B` = `.cache/game/base/content`.
+- **No navigability query.** `api.engine.terrain.isOnWater(Vec2f)` (T/engine.d.tl:1742-1745) means "below the water
+  level". The water surface is readable as entities: `api.engine.system.riverSystem.getWaterMeshEntities(tile0, tile1)`
+  (T/engine/system.d.tl:490-492), each with a `WaterMesh` component (T/engine.d.tl:1587-1612: `waterLevel`, `vertices`,
+  `depths` per vertex, `contours`); no `ComponentType` name for it was found, so reading it is untested. The line
+  manager's navigable-water layer (B/gui/line_vehicle_mgmt/line_util.tl:1090-1100, `mapColors.navigableWater`,
+  `interpolateNavigableWater`) is drawn by the engine; nothing returns it to Lua.
+- **No readable ship path.** The `SHIP` component (T/engine.d.tl:926-937) has `pathIndex`, `reservedFrom` / `reservedTo`
+  but no edge list; `shipMoveSystem.getShipInfo` only speeds / power. `transportVehicleSystem.getNoPathVehicles()` and
+  `lineSystem.getProblemLines(player)` report a cut route after the fact.
+- **Ship lines:** `lineSystem.getLines()`; a water line has `api.engine.util.line.getLineTransportModesUnion(line)`
+  `[TransportMode.SHIP | SMALL_SHIP]` (the base line manager's test, line_util.tl:2049), or the LINE component's
+  `vehicleInfo.transportModes`; `LINE.stops[i]` = { stationGroup, station (index), terminal }; vehicles:
+  `transportVehicleSystem.getLineVehicles(line)`.
+- **Water level:** `Terrain.waterLevel` (T/engine.d.tl:1233, the heightmap tile entity via
+  `terrain.getHeightmapEntity(Vec2i)`) and `WaterMesh.waterLevel`; assumed 0 elsewhere (map-camera.md). No bridge type
+  field names a clearance.
+- So a script can only test "a ship line has a stop on the water this bridge crosses" (stops near the water body found
+  by a flood fill over isOnWater) as the conservative active-path test. Organic Towns' SHIPS / BRIDGE `ship=` lines
+  (TESTING.md "Forest / gaps / bridges round test") check the reads in game.
+- (In game 2026-10-13, entry below: the ship line read works; the TERRAIN `waterLevel` read gave nothing.)
+
+
+## Ship lines read in a game script; the TERRAIN water level read gave nothing; a high script bridge failed with "Place on Land" (verified / inferred in game 2026-10-13)
+
+Session `2026-10-13_2113_sqot-dev` (one ship line, 3 stops, 1 ship; Organic Towns' ship-aware bridges):
+- **The ship line read works** (verified): `lineSystem.getLines()` + `util.line.getLineTransportModesUnion` found it,
+  its stops through `LINE.stops` -> station group -> station -> construction box, its vehicle through
+  `transportVehicleSystem.getLineVehicles`: `SHIPS lines=1 read=1 stops=3 vehicles=1`.
+- **The water level read gave nothing** (verified): `getHeightmapEntity(Vec2i(0, 0))`'s TERRAIN component had no usable
+  `waterLevel`, the mod fell back to 0 (`waterLevel=0.0 source=default`). Unknown whether the field name or the tile
+  index is wrong.
+- **A high bridge failed at build time** (inferred, one case): Darley Dale's planned street bridge, span 52 m, deck
+  11 m above the assumed water level, approaches 280 m at up to 8 % (`BRIDGE outcome=plan ... deck=11.0 ship=path
+  shipWhy=cap:5629`), passed the pre-check, then failed with empty callback messages (`BRIDGE outcome=failed msgs=`)
+  while the game log printed `ProposalData error: Place on Land` right before the proposal dump. The low bridges built
+  before (spans 132 / 144 m, towns.md "`makeInitialStreets = false` ...") had no raised deck. Which piece the engine
+  wanted on land is not known. No bridge was built in the run, so the river town's ship line (Skegness:
+  `shipPath:highNoFit=3`, no crossing) kept its route.
+- **A second case, and the deck height alone isn't the cause** (2026-10-14, session `2026-10-14_0613_sqot`; inferred).
+  - **The failure:** Upper Oakholme's street bridge (stone, span 112 m, deck 11 m, approach 420 m) passed the pre-check
+    and failed with empty messages (`BRIDGE outcome=failed msgs=`, `FAILED ... cost=443171`). The game log printed
+    `ProposalData error: Place on Land` at 06:17:22, the same second.
+  - **The retry built:** its next try from another dead end had the same deck of 11 m, span 108 m and approach 424 m,
+    and was built.
+  - **Other bridges:** Thurgrove's 128 m bridge at deck 11 was built too.
+  - So a raised deck can build; what the engine wants on land depends on the site, unknown which piece. Run
+    `2026-10-14_0502_sqot` had a third case: Windermere's 112 m first try failed with empty messages (game log not
+    checked for this line).
+
+## How the game lays town bridges: only the generator's connection limit is readable (read from game files 2026-10-14, not tested in game)
+
+Organic Towns' bridge round (vanilla Gainsborough had a town-street bridge in the comparison run `2026-10-13_2355_sqot`,
+BASELINE_VANILLA.md): the only bridge setting in the scripting API is `baseConfig.townConnectionMaxBridgeLength`
+(`api/type.d.tl`, set to 250.0 m in `base/content/base/mod.script.tl:113`, "only connect towns with bridges if distance
+is below this value": the map generator's road connections between towns). The town street templates
+(`base/content/infrastructure/street/town/*.street.lua`) only mark decorations `placeOnBridge`; no setting or script
+says when the game's own town growth builds a bridge or which type it picks. So whether Gainsborough's bridge came from
+map generation (a town connection) or later growth is unknown; a probe would diff the town's bridge edges
+(BaseEdge `type` BRIDGE) between the first frame and a few years of growth.
+
+## Menu placements join short ring pieces: a dissolved construction's 2-edge nodes on ~16-24 m pieces are merged away (in game 2026-10-14; cause inferred)
+
+Roundabouts & Interchanges built 2-lane rings with a plain node half way between every two arms (8 ring edges). Placed
+from the native construction menu, five Town small 4-arm rings at Scale XS-XL, three times:
+- **XS, S, M lost the nodes**: Smart Lanes' build job had 8 new nodes (4 ring + 4 arm ends) and logged `RSPLIT ...
+  len=126 / 159 / 192 mids=0 ... reason=no_mid_nodes`, so the ring pieces of ~16 / 20 / 24 m (half a quarter arc) were
+  joined into one edge per quarter. **L and XL kept them** (`len=280 / 439 mids=4`, jobs of 12 nodes; pieces ~35 / 55 m).
+- A **4 degree tangent corner** at those nodes did **not** keep them (same result).
+- The construction's own updateFn gave 8 ring edges for that param set at every Scale (offline, square_roundabouts
+  test_ring_mid), so the nodes were lost after updateFn.
+- **Script builds keep them**: the Stress Test's bench rings, sent with `Context.cleanupStreetGraph = false`
+  (stress_junctions.tl `context()`), kept 16 m pieces at XS (`BENCH_TWIN ... mids=4`, Smart Lanes `VERIFY same=8`).
+- Inferred cause: the menu's build simplifies the street graph (`Context.cleanupStreetGraph`, "attempts to simplify the
+  base edge and base node graph", api/tealdef/api/type.d.tl:2482) and joins two edges at a free 2-edge node into one
+  where the joined edge stays short enough; the limit lies between ~48 m (joined) and ~70 m (kept) of joined edge. Not
+  from the engine's code: the menu tool is native.
+- So a construction can't leave plain 2-edge nodes on short pieces; a script that needs them adds them itself with
+  `cleanupStreetGraph = false` (Smart Lanes splits the ring edges, square_smart_lanes PLAN.md "Smart Lanes adds the mid
+  nodes").
+
+Evidence: sessions `2026-10-14_0229_sqrl-sqst` (~02:30 UTC, first five), `2026-10-14_0302_sqot-sqrl` (03:03, the
+setting clicked On), and `2026-10-14_0314_sqrl-sqst` (03:15, with the 4 degree corner).
+
+## Reading the street stops on an edge (read from the tealdefs and base files 2026-10-14, NOT verified in a game script)
+
+- **Verified in game 2026-10-14 (live session of 19:03 UTC, Smart Lanes rev 7, T node 4538): a street stop placed on the side street ~25 m out rebuilt its piece (8632 -> 4396) and Smart Lanes read it through `objects` (`APPLY ... open=4396:stop`); removing it gave `open=-` (piece 6025), placing it again `open=5921:stop`.**
+- `BASE_EDGE.objects : {{Engine.Entity, EdgeObjectType}}` (`.cache/game/api/tealdef/api/engine.d.tl:105`) lists the
+  objects on an edge; `EdgeObjectType` has `STOP_LEFT`, `STOP_RIGHT`, `SIGNAL` (`api/type.d.tl:422-428`). The base game
+  tells a placed street stop by `objects[1][2] == STOP_LEFT / STOP_RIGHT` on a proposal's added segment
+  (`base/content/mission/tasks/build_construction/mission_task_build_construction_util.tl:220-238`); the community mod
+  `undo_tf3_test` reads `objects` of built track edges for signals (`entry[1]` entity, `entry[2]` type).
+- Each object entity has an `EDGE_OBJECT` component (`Engine.Component.EdgeObject`, `engine.d.tl:133-144`): `param`
+  ("relative location on the edge, from 0 to 1"; from node0 assumed, not checked), `transf` (world position, Mat4f
+  `getTransl()`), `edgeObjectConstruction`. A street stop entity also has `STATION` (base `mission/name_util.tl:39`).
+- Used by Smart Lanes rev 7 (open exit lanes, `sl_write` `world.stops`). Console check for a hovered / known edge:
+  plans/square_smart_lanes/TESTING.md OE step 6.
+
+## Phases-only writes set userModifiedTrafficLightStates (game logs 2026-10-15)
+A script's phases-only light proposal (`api.engine.util.proposal.createTrafficLightProposal(node, config, preference)`
+on a clone of the read config with new durations, the base Crossing window's own call) makes the engine set
+`BaseNodeConfig.userModifiedTrafficLightStates = true`, so the flag can't tell the player's hand edits from a mod's
+writes (RETIME_PLAN.md open question 5, square_smart_lanes).
+- Evidence: session `2026-10-15_0700_bench-s6-midnode-city-lights-872734`: node 9104 read `user_modified=false`
+  (PROBE line 16842, the game's 27.0945/6/27.0945/6/3/9), Keep timing adjusted wrote it (`LIGHTS src=auto node=9104
+  to=retime ... user_modified=false`, line 22917: the flag of the read before the write), and the next read had
+  `user_modified=true` with the written durations (PROBE line 24688). Session `2026-10-15_1950_city-lights-2-778824`:
+  node 9658's first write logged `user_modified=false` (line 6677), its second `user_modified=true` (line 7806); no
+  hand edit in between.
+- Not seen: whether a lane write that carries phases (node config remove + add with a `trafficLightConfig`) sets it.
+- Consequence (square_smart_lanes "Automatic light timing", sl_allmode.lua `handTimed`): "timed by hand" needs more
+  than the flag: no record of Smart Lanes' own measurement there, whole-second greens (the Crossing window's slider;
+  the game's own greens are fractional), Light phases not Smart Lanes. The tool's Smart lights (2026-10-16) tells
+  its own re-timed phases from a hand edit by a saved signature of the durations it last wrote (sl_auto.lua
+  `durSig`, the 8th field of its last-measured records), not by the flag.

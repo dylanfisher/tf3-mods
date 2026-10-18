@@ -281,7 +281,7 @@ mod.json param `sqperf_log` ("Debug: performance log", Off/On, default Off).
 `square_problem_radar`, `square_industry_flows`, `square_better_minimap`, `square_bulk_bulldozer`,
 `square_smart_lanes`, `square_supply_gaps`, `square_passenger_destinations`,
 `square_better_bus_overlay`, `square_industry_production_label`, `square_no_factory_passengers`,
-`square_full_refund`, `square_line_revert`, and the 13 generated `square_names_us_*` mods (their copy
+`square_full_refund`, `square_line_revert`, `square_photo_mode`, and the 13 generated `square_names_us_*` mods (their copy
 is written by `tools/gen_state_mod.py`; regenerate with `make state-mods`, never hand-edit). DEV:
 `square_sqperf_probe` (has the copy), `square_sqperf_all` (master switch, no copy needed).
 

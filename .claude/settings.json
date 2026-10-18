@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && uv run --quiet tools/game_logs.py save --brief 2>/dev/null || true",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

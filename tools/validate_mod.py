@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from hubconfig import MODS_DIR, WIKI_DIR, is_text_resource  # noqa: E402
 from i18n import summary_line as translation_summary  # noqa: E402
 from sqperf_sync import check_mod as check_sqperf  # noqa: E402
+from tooltips import check_mod as check_tooltips  # noqa: E402
 
 MAX_MOD_BYTES = 500 * 1024 * 1024
 MAX_COVER_BYTES = 8 * 1024 * 1024
@@ -176,10 +177,14 @@ def check_modinfo(mod: Path, report: Report, tags: set[str] | None) -> None:
             report.error("_metadata/0.png exceeds 8 MB")
 
 
-# Tags the in-game mod browser renders (docs/wiki/modding/general/guidelines.md:189-196); the house
+# Tags the in-game mod browser renders (docs/wiki/modding/general/guidelines.md:189-196), plus blockquote and img (mod.io
+# shows them, docs/findings/publishing.md; in game untested; img only in the More-from tiles); the house
 # format for description.html is in branding/README.md "Mod description".
-DESCRIPTION_TAGS = {"p", "h1", "h2", "h3", "h4", "strong", "b", "em", "i", "ul", "ol", "li", "hr", "br", "a"}
-MAX_DESCRIPTION_CHARS = 150_000  # mod.io mod description maxLength (api.mod.io/v1/swagger)
+DESCRIPTION_TAGS = {"p", "h1", "h2", "h3", "h4", "strong", "b", "em", "i", "ul", "ol", "li", "hr", "br", "a", "blockquote", "img"}
+# mod.io rejects a longer description with error 13009 at the Mod Hub upload (docs/findings/publishing.md
+# "Description length", 2026-10-16; the swagger's 150,000 maxLength is not what the upload enforces).
+MAX_DESCRIPTION_CHARS = 50_000
+WARN_DESCRIPTION_CHARS = 40_000
 
 
 def check_description(mod: Path, report: Report) -> None:
@@ -189,7 +194,9 @@ def check_description(mod: Path, report: Report) -> None:
         return
     html = path.read_text(encoding="utf-8")
     if len(html) > MAX_DESCRIPTION_CHARS:
-        report.error(f"description.html is {len(html)} chars, mod.io allows {MAX_DESCRIPTION_CHARS}")
+        report.error(f"description.html is {len(html)} characters, mod.io rejects more than {MAX_DESCRIPTION_CHARS} (error 13009)")
+    elif len(html) > WARN_DESCRIPTION_CHARS:
+        report.warn(f"description.html is {len(html)} characters, close to mod.io's {MAX_DESCRIPTION_CHARS} limit: trim it")
     for tag in sorted({t.lower() for t in re.findall(r"</?\s*([a-zA-Z][a-zA-Z0-9]*)", html)} - DESCRIPTION_TAGS):
         report.warn(f"description.html: <{tag}> is not rendered by the in-game browser")
     # Every piece of text sits in a block: <p>, a heading or a list item. Remove those blocks and the
@@ -293,6 +300,11 @@ def validate(mod: Path, tags: set[str] | None) -> Report:
         report.warn(translations)
     for problem in check_sqperf(mod):  # SQPERF copies match tools/sqperf/ (plans/sqperf/README.md)
         report.error(f"sqperf: {problem}")
+    tips = check_tooltips(mod)  # tooltip lines short enough (tools/tooltips.py, CLAUDE.md "Tooltips")
+    for problem in tips[:5]:
+        report.warn(problem)
+    if len(tips) > 5:
+        report.warn(f"... {len(tips) - 5} more long tooltip lines (make tooltips MOD=mods/{mod.name})")
     return report
 
 

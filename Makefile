@@ -1,7 +1,7 @@
 # TF3 mod hub. All tools are stdlib/PEP 723 scripts run through uv.
 UV := uv run --quiet
 
-.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal covers shots state-towns state-mod state-mods names-browser flags gate test-tools probe-report probe-split hx-dump fork-new fork-status fork-merge fork-finish fork-abort forks-save forks-push sqperf-sync perf audit flow bench logs logs-list logs-grep modio modio-status i18n tooltips
+.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal covers shots state-towns state-mod state-mods names-browser flags gate test-tools probe-report probe-split hx-dump fork-new fork-status fork-merge fork-finish fork-abort forks-save forks-push sqperf-sync perf audit flow bench logs logs-list logs-grep modio modio-status more-from i18n tooltips css-rules site-install site-dev site-media site-build site-deploy
 
 help:
 	@echo "make docs        Re-sync all local docs (wiki + game files)"
@@ -20,18 +20,19 @@ help:
 	@echo "make unlink      Remove those symlinks"
 	@echo "make validate    Check all mods (or MOD=mods/<id>) against wiki rules"
 	@echo "make check       Teal type-check + Lua syntax-check all mods (or MOD=mods/<id>, PATHS='file/dir ...', ARGS=--allow-lua53)"
-	@echo "make test        Run offline unit tests in tests/<modId>/ (all, or MOD=mods/<id>; ARGS="-f FILE -k TEXT")"
-	@echo "make gate MOD=mods/<id> [MOD2=mods/<id>]  check + validate + test, one summary line each (end-of-phase gate)"
+	@echo "make test MOD=mods/<id>  Offline unit tests in tests/<modId>/, quick mode, cached per file (ARGS="-f FILE -k TEXT --full --no-cache")"
+	@echo "make gate MOD=mods/<id> [MOD2=mods/<id>]  check + validate + test --full, one summary line each (end-of-phase gate)"
 	@echo "make covers      Render square-style covers -> mods/<id>/_metadata/0.png (all, or MOD=mods/<id>; ARGS=--no-text)"
 	@echo "make shots       Render gallery slides from plans/<id>/shots/ -> mods/<id>/_metadata/1-<hash>.png... (all, or MOD=mods/<id>)"
 	@echo "make modio [MOD=mods/<id>] [ARGS='--diff --apply --only gallery --force --prune-tags']  Dry-run/sync mod.io text, tags, logo, gallery"
-	@echo "make modio-status [MOD=mods/<id>] [ARGS=--verbose]  Which mods changed since their live mod.io upload (need a Hub update)"
+	@echo "make modio-status [MOD=mods/<id>] [ARGS='--verbose --all']  Which mods changed since their live mod.io upload (need a Hub update; --all adds Towns & Streets + Blank Slate)"
+	@echo "make more-from [MOD=mods/<id>] [ARGS=--published|--refresh|--check]  Write the More from square section (branding/more_from.json) into a description"
 	@echo "make i18n [MOD=mods/<id>] [ARGS='--check --json --missing ru --fix-format --lint-modinfo -v']  strings.json translation report (keys, missing, placeholders)"
 	@echo "make teal        Generate tlconfig.lua for VS Code Teal autocompletion"
 	@echo "make sqperf-sync [MOD=mods/<id>] [ARGS=--check]  Copy tools/sqperf/ into mods using SQPERF (MOD: add it there)"
 	@echo "make perf [LOG=path]  Per-mod [SQPERF] report from the latest stdout.txt (or LOG)"
 	@echo "make audit [LOG=path] [ARGS='--last --src auto --top 5']  Smart Lanes junction audit report ([SQRL] AUDIT lines)"
-	@echo "make flow [LOG=path] [ARGS='--last --warmup 180 --worse-pct 10 --min-samples 5']  Traffic flow A/B report: Showcase twins sl / sl_phases vs game ([SQST] FLOW_* lines)"
+	@echo "make flow [LOG=path] [ARGS='--last --warmup 180 --worse-pct 10 --min-samples 5 --retime-settle 60 --auto-settle 900']  Traffic flow A/B report: Showcase twins sl / sl_phases / sl_auto / ... vs game, light plans per shape and demand, auto timing as built/settled, whole-map auto re-time before/after, Re-time before/after ([SQST] FLOW_* lines)"
 	@echo "make bench [LOG=session] [ARGS='--record --warmup 180']  Stress Test bench report: the last bench sheet's run (default LOG=last-bench) -> draft RESULTS.md entry in .cache/bench/; --record appends it"
 	@echo "                 (perf/audit/flow archive the live log first; LOG= also takes a session name/alias: last, last-crash, last-<tag>, a seed)"
 	@echo "make logs [ARGS='--tag NAME']  Archive the live stdout.txt and crash_dump logs -> .cache/logs/; print the newest sessions"
@@ -44,8 +45,12 @@ help:
 	@echo "make probe-report [LOGS='plans/square_roundabouts/probe_x.log ...']  Parse probe logs (default: the Phase 7 logs present) + print a summary"
 	@echo "make probe-split LOG=plans/square_roundabouts/probe_x.log [ARGS=--uncap]  Which build feature (reach, edge, grade) splits placed vs refused"
 	@echo "make hx-dump KEY='h:1,3,2,2,1,1,1,1,2 ...' [DEV='sqrb_dev_x=1']  Highway Interchange edges (lengths, bridges) per probe key"
-	@echo "make test-tools                                      Unit tests for the state generator tools (tests/tools)"
+	@echo "make test-tools                                      Unit tests for the Python tools (tests/tools)"
 	@echo "make flags [STATE=us_washington] [ARGS='--lookup \"Flag of Oregon.svg\" --key us_oregon']  Fetch + sanitize pinned state flags -> branding/flags/"
+	@echo "make site-dev    Mod microsites (site/, tf3.dylanfisher.com): Astro dev server (installs deps on first run)"
+	@echo "make site-media [ARGS='--force --mod <modId>']  Manifest images -> site/public/media/ WebP (thumb + full, hash-cached)"
+	@echo "make site-build  site-media + astro build -> site/dist/ (pnpm run build)"
+	@echo "make site-deploy Build and push site/dist/ to the public Pages repo (SITE_REMOTE, SITE_BRANCH; DRY_RUN=1 to skip the push)"
 
 docs: docs-wiki docs-game
 
@@ -106,6 +111,9 @@ validate:
 i18n:
 	$(UV) tools/i18n.py $(ARGS) $(MOD)
 
+css-rules:
+	$(UV) tools/css_rules.py $(MODS)
+
 tooltips:
 	$(UV) tools/tooltips.py $(ARGS) $(MOD)
 
@@ -119,7 +127,7 @@ gate:
 	@for m in $(MOD) $(MOD2); do echo "== $$m"; \
 		$(UV) tools/tl_check.py $$m 2>&1 | tail -1; \
 		$(UV) tools/validate_mod.py $$m 2>&1 | tail -1; \
-		$(UV) tests/run_tests.py $$m 2>&1 | grep -E "^ *FAIL|passed" || exit 1; \
+		$(UV) tests/run_tests.py --full $$m 2>&1 | grep -E "^ *FAIL|passed" || exit 1; \
 	done
 
 teal:
@@ -171,6 +179,9 @@ shots:
 modio:
 	$(UV) tools/modio_sync.py $(ARGS) $(MOD)
 
+more-from:
+	$(UV) tools/more_from.py $(ARGS) $(MOD)
+
 modio-status:
 	$(UV) tools/modio_sync.py --release $(ARGS) $(MOD)
 
@@ -207,3 +218,21 @@ hx-dump:
 
 test-tools:
 	uv run --quiet --with lupa python -m unittest discover -s tests/tools $(ARGS)
+
+# ---- Mod microsites (site/: Astro + pnpm; plans/site/PLAN.md) ----
+SITE_PNPM := cd site && pnpm
+
+site-install:
+	@test -d site/node_modules || ($(SITE_PNPM) install --frozen-lockfile)
+
+site-dev: site-install
+	$(SITE_PNPM) exec astro dev
+
+site-media: site-install
+	$(SITE_PNPM) exec node scripts/media.mjs $(ARGS)
+
+site-build: site-install
+	$(SITE_PNPM) run build
+
+site-deploy: site-install
+	cd site && scripts/deploy.sh

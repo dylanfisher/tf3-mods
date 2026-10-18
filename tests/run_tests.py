@@ -5,10 +5,23 @@
 """Run offline unit tests for mod scripts (Lua 5.4 + the game's Teal compiler).
 
 Usage:
-  uv run tests/run_tests.py [-k TEXT] [-f FILE] [-j N] [MOD ...]
+  uv run tests/run_tests.py [-k TEXT] [-f FILE] [-j N] [--full] [--no-cache] MOD ... | --all
 
-MOD is a mod dir (mods/<id>) or a modId; default: every mod that has a
-tests/<modId>/ folder. Runs tests/<modId>/test_*.lua and test_*.tl in name order.
+MOD is a mod dir (mods/<id>) or a modId (--all: every mod that has a tests/<modId>/ folder;
+one mod's work never needs it). Runs tests/<modId>/test_*.lua and test_*.tl in name order.
+
+Result cache: each run records, per test file, every file it read (the test file, mod modules
+through ug_require, loadfile / dofile / io.open / io.lines reads) with its hash, the env vars it
+read (os.getenv) and its test names, in .cache/test_results.json. A file whose last run passed
+and whose inputs are all unchanged (and this runner, tealrt, the mod's .d.tl files, tl.lua and
+TEALRT_LUA) is not run again: it counts as passed and shows on the mod's "cached:" line.
+--no-cache runs everything. A file that opens a file in the repo for writing is never cached (temp files outside it are fine). A -k run never
+records a pass (only some tests ran), but skips files whose recorded names have no match.
+
+Quick and full: sweeps over every parameter combination sample by default (e.g. every 7th case)
+and check every case when TEST_FULL is set: `--full` (make gate) sets it. Tests read
+`os.getenv("TEST_FULL")`. A pass recorded with --full also stands for a later quick run.
+SQRB_FULL=1 (the exhaustive roundabouts sweep) implies TEST_FULL.
 
 Test files run in a fresh sandbox each (globals the test or mod code sets stay
 in that file). Available there, besides the Lua standard library:
@@ -30,8 +43,9 @@ use tests/harness.d.tl for the harness globals.
 file name: `-k short` also hits "... short edges" tests elsewhere); files with no match
 are not listed, but every file still loads. -f TEXT keeps only test files whose name
 contains TEXT (repeatable; e.g. `-f through -f ramps`), so the others never load.
--j N runs N worker processes (default: CPU count; -j 1 runs everything in order in one
-process). Output is printed per file in name order with the time of each test >= 1 s;
+-j N runs N worker processes (default: about one per 2 s of recorded CPU time, at most the
+CPU count, since each worker spends ~0.8 s starting Teal; -j 1 runs everything in order in
+one process). Output is printed per file in name order with the time of each test >= 1 s;
 `print` inside a test is captured and shown under that test. Exit code 1 on any failure.
 
 Sharding: each run records per-test CPU seconds in .cache/test_timings.json. Later runs
@@ -44,21 +58,23 @@ test in the same file; a file that does puts the text "run_tests: no-split" in i
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass, field
 from pathlib import Path
 
 TESTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TESTS_DIR.parent / "tools"))
 from hubconfig import CACHE_DIR, MODS_DIR, ROOT  # noqa: E402
-from tealrt import Teal, def_modules  # noqa: E402
+from tealrt import Teal, def_modules, locate_game_teal  # noqa: E402
 
 HARNESS = r"""
-local compile, mod_id = ...
+local compile, mod_id, note = ...
 local runner = {}
 
 
@@ -156,6 +172,25 @@ function runner.new_sandbox()
   sb.getCurrentModId = function() return mod_id end
   sb.getOwningModId = function() return mod_id end
 
+  -- files and env vars the test reads are noted, so the result cache knows what a pass depends on
+  local function note_read(path) if type(path) == "string" then note("file", path) end end
+  sb.loadfile = function(path, ...) note_read(path) return loadfile(path, ...) end
+  sb.dofile = function(path) note_read(path) return dofile(path) end
+  sb.io = setmetatable({
+    open = function(path, mode, ...)
+      if type(mode) == "string" and mode:find("[wa+]") then note("write", tostring(path)) else note_read(path) end
+      return io.open(path, mode, ...)
+    end,
+    lines = function(path, ...) note_read(path) return io.lines(path, ...) end,
+  }, { __index = io })
+  sb.os = setmetatable({
+    getenv = function(name)
+      local value = os.getenv(name)
+      note("env", tostring(name), value)
+      return value
+    end,
+  }, { __index = os })
+
   local own_prefix = mod_id .. "::"
   local function make_require(from_dir)
     return function(path)
@@ -204,6 +239,8 @@ function runner.run_file(code, chunkname, filter, only, known)
   local okl, lerr = xpcall(chunk, debug.traceback)
   out.printed = sb.take_printed()
   if not okl then out.load_error = lerr return out end
+  out.names = {}
+  for i, t in ipairs(tests) do out.names[i] = t.name end
   local onlySet, knownSet = name_set(only), name_set(known)
   for idx, t in ipairs(tests) do
     local picked = not onlySet or onlySet[t.name] or (knownSet and not knownSet[t.name])
@@ -248,6 +285,39 @@ def trim_traceback(text: str) -> str:
     return "\n".join(keep)
 
 
+@dataclass
+class Deps:
+    """What one test file run read: files (repo path -> hash, None if missing), env vars, any write."""
+    files: dict[str, str | None] = field(default_factory=dict)
+    env: dict[str, str | None] = field(default_factory=dict)
+    writes: bool = False  # opened a file in the repo for writing: never cached
+    scratch: set[str] = field(default_factory=set)  # files written outside the repo
+
+
+def file_hash(data: bytes) -> str:
+    return hashlib.blake2b(data, digest_size=12).hexdigest()
+
+
+def path_hash(path: Path) -> str | None:
+    try:
+        return file_hash(path.read_bytes())
+    except OSError:
+        return None
+
+
+def base_stamp(mod: Path) -> str:
+    """Hash of what every test of the mod depends on besides the files it reads: this runner,
+    tealrt, the mod's Teal definitions, the game's tl.lua and the Lua version."""
+    parts = [path_hash(Path(__file__)), path_hash(TESTS_DIR.parent / "tools" / "tealrt.py"),
+             path_hash(TESTS_DIR / "harness.d.tl"), os.environ.get("TEALRT_LUA", "54")]
+    defs = [*(mod / "content").rglob("*.d.tl"), *((mod / "tealdef").rglob("*") if (mod / "tealdef").is_dir() else [])]
+    parts += [f"{display(p)}={path_hash(p)}" for p in sorted(defs) if p.is_file()]
+    tl_lua = locate_game_teal().tl_lua
+    st = tl_lua.stat()
+    parts.append(f"{tl_lua}:{st.st_size}:{st.st_mtime_ns}")
+    return file_hash("\n".join(map(str, parts)).encode())
+
+
 class ModRunner:
     """One mod's Teal env and harness in this process; runs its test files one at a time."""
 
@@ -262,31 +332,55 @@ class ModRunner:
             raise SystemExit("\n".join(map(str, own_errors))
                              + f"\n[{self.mod_id}] definition files have errors; run `make check MOD={display(mod)}`")
         cache: dict[str, tuple] = {}
+        self.deps: Deps = Deps()
 
         def compile_module(rel: str):
             """Lua callback: content-relative path -> (code, chunkname, error)."""
-            if rel in cache:
-                return cache[rel]
             path = content / rel
             name = display(path)
+            if rel in cache:
+                self.deps.files[name] = cache[rel][1]
+                return cache[rel][0]
             if not path.is_file():
-                result = (None, name, f"no such file {name}")
-            elif path.suffix == ".tl":
-                code, diags = self.teal.gen(self.env, path.read_text(encoding="utf-8-sig"), name)
-                result = (code, name, "\n".join(map(str, diags)) or None)
+                digest, result = None, (None, name, f"no such file {name}")
             else:
-                result = (path.read_text(encoding="utf-8-sig"), name, None)
-            cache[rel] = result
+                raw = path.read_bytes()
+                digest, text = file_hash(raw), raw.decode("utf-8-sig")
+                if path.suffix == ".tl":
+                    code, diags = self.teal.gen(self.env, text, name)
+                    result = (code, name, "\n".join(map(str, diags)) or None)
+                else:
+                    result = (text, name, None)
+            cache[rel] = (result, digest)
+            self.deps.files[name] = digest
             return result
 
-        self.runner = self.teal.lua.eval("load")(HARNESS, "=run_tests")(compile_module, self.mod_id)
+        def note(kind: str, value: str, extra=None):
+            """Lua callback: the test read a file or an env var, or opened a file for writing."""
+            if kind == "env":
+                self.deps.env[value] = None if extra is None else str(extra)
+            elif kind == "write":
+                # a scratch file outside the repo (os.tmpname) doesn't stop caching; its read-back isn't an input
+                path = Path(value).resolve()
+                if path.is_relative_to(ROOT):
+                    self.deps.writes = True
+                else:
+                    self.deps.scratch.add(str(path))
+            elif str(Path(value).resolve()) not in self.deps.scratch:
+                name = display(Path(value))
+                if name not in self.deps.files:
+                    self.deps.files[name] = path_hash(Path(value))
+
+        self.runner = self.teal.lua.eval("load")(HARNESS, "=run_tests")(compile_module, self.mod_id, note)
 
     def run_file(self, tf: Path, filter_text: str | None, only: list[str] | None = None,
                  known: list[str] | None = None) -> dict:
         """Runs one test file (or the shard picked by only/known); returns plain data for the parent."""
         name = display(tf)
         started = time.perf_counter()
-        src = tf.read_text(encoding="utf-8-sig")
+        raw = tf.read_bytes()
+        self.deps = Deps(files={name: file_hash(raw)})
+        src = raw.decode("utf-8-sig")
         if tf.suffix == ".tl":
             code, diags = self.teal.gen(self.env, src, name)
             if code is None:
@@ -299,7 +393,9 @@ class ModRunner:
              "printed": str(r.printed or ""), "secs": float(r.secs)} for r in out.results.values()]
         return {"printed": str(out.printed or ""),
                 "load_error": None if out.load_error is None else str(out.load_error),
-                "results": results, "took": time.perf_counter() - started}
+                "results": results, "took": time.perf_counter() - started,
+                "names": None if out.names is None else [str(n) for n in out.names.values()],
+                "deps": self.deps.files, "env": self.deps.env, "writes": self.deps.writes}
 
 
 def format_file(name: str, shards: list[dict]) -> tuple[int, int, str]:
@@ -355,13 +451,80 @@ def test_files(mod: Path) -> list[Path]:
 # Per-test CPU seconds from earlier runs (gitignored); used to split slow files into shards.
 TIMINGS = CACHE_DIR / "test_timings.json"
 NO_SPLIT = "run_tests: no-split"  # put this in a test file whose tests depend on each other's state
+# Per test file: what its last run read (file hashes, env vars), its test names and whether it all
+# passed (gitignored). A file whose last pass still holds is reported as cached instead of run.
+RESULTS = CACHE_DIR / "test_results.json"
+FULL_ENV = "TEST_FULL"  # set by --full: sweeps that sample in the default quick mode check every case
 
 
-def load_timings() -> dict[str, dict[str, float]]:
+def load_json(path: Path) -> dict:
     try:
-        return json.loads(TIMINGS.read_text())
+        return json.loads(path.read_text())
     except (OSError, ValueError):
         return {}
+
+
+def save_json(path: Path, update: dict, drop: set[str]) -> None:
+    """Merges into the file as it is now (another session may have written it since) and
+    replaces it atomically."""
+    data = load_json(path)
+    data.update(update)
+    for key in drop:
+        data.pop(key, None)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        tmp.write_text(json.dumps(data, indent=0, sort_keys=True))
+        os.replace(tmp, path)
+    except OSError:
+        pass
+
+
+class InputCheck:
+    """Tells whether the files and env vars a recorded run read are unchanged (hashes memoized)."""
+
+    def __init__(self):
+        self.memo: dict[str, str | None] = {}
+
+    def current(self, name: str) -> str | None:
+        if name not in self.memo:
+            path = Path(name)
+            self.memo[name] = path_hash(path if path.is_absolute() else ROOT / path)
+        return self.memo[name]
+
+    def same(self, rec: dict | None, base: str, exact_env: bool) -> bool:
+        """exact_env=False lets a record made with --full stand for a quick run (a superset)."""
+        if not rec or rec.get("base") != base:
+            return False
+        for name, value in rec.get("env", {}).items():
+            now = os.environ.get(name)
+            if now != value and (exact_env or name != FULL_ENV or now is not None):
+                return False
+        return all(self.current(n) == h for n, h in rec.get("deps", {}).items())
+
+
+FULL_TAG = " [full]"
+
+
+def timing_key(tf: Path) -> str:
+    """Quick and full runs of a file record their times apart: full sweeps run many more cases."""
+    return display(tf) + (FULL_TAG if os.environ.get(FULL_ENV) else "")
+
+
+def recorded_times(timings: dict, tf: Path) -> dict | None:
+    """This mode's times, else the other mode's (better than none for planning)."""
+    return timings.get(timing_key(tf)) or timings.get(display(tf)) or timings.get(display(tf) + FULL_TAG)
+
+
+def estimate(jobs: list[tuple[Path, Path]], timings: dict, filter_text: str | None) -> float:
+    """Recorded CPU seconds of the jobs (1 s for a file with no record)."""
+    total = 0.0
+    for _, tf in jobs:
+        times = recorded_times(timings, tf) or {}
+        if filter_text:
+            times = {n: t for n, t in times.items() if filter_text in n}
+        total += sum(times.values()) or 1.0
+    return total
 
 
 def plan(jobs: list[tuple[Path, Path]], timings: dict, workers: int, filter_text: str | None):
@@ -369,7 +532,7 @@ def plan(jobs: list[tuple[Path, Path]], timings: dict, workers: int, filter_text
     into shards no bigger than the slowest single test or half the even share per worker."""
     known = {}
     for _, tf in jobs:
-        times = timings.get(display(tf))
+        times = recorded_times(timings, tf)
         if times and filter_text:
             times = {n: t for n, t in times.items() if filter_text in n}
         known[display(tf)] = times or None
@@ -391,7 +554,7 @@ def plan(jobs: list[tuple[Path, Path]], timings: dict, workers: int, filter_text
             b = min(bins, key=lambda b: b[0])
             b[0] += secs
             b[1].append(n)
-        names = list(timings[display(tf)])
+        names = list(recorded_times(timings, tf))
         for i, (est, only) in enumerate(b for b in bins if b[1]):
             out.append((mod, tf, only, names if i == 0 else None, est))
     return out
@@ -403,14 +566,24 @@ def main() -> None:
     parser.add_argument("-k", dest="filter", help="only tests whose name contains this text")
     parser.add_argument("-f", dest="files", action="append",
                         help="only test files whose name contains this text (repeatable)")
-    parser.add_argument("-j", dest="jobs", type=int, default=os.cpu_count() or 1,
-                        help="worker processes (default: CPU count; 1 = serial, no sharding)")
+    parser.add_argument("-j", dest="jobs", type=int,
+                        help="worker processes (default: sized to the recorded work, at most the CPU count; "
+                             "1 = serial, no sharding)")
+    parser.add_argument("--all", action="store_true", help="every mod that has tests (~30 mods; rarely needed)")
+    parser.add_argument("--full", action="store_true",
+                        help=f"full coverage: sets {FULL_ENV}=1, so sweeps that sample by default check every case")
+    parser.add_argument("--no-cache", action="store_true", help="run every file, even those whose last pass still holds")
     args = parser.parse_args()
 
+    if args.full or os.environ.get("SQRB_FULL"):
+        os.environ[FULL_ENV] = "1"  # the exhaustive SQRB_FULL sweep includes full coverage; workers inherit it
     if args.mods:
         mods = [resolve_mod(m) for m in args.mods]
-    else:
+    elif args.all:
         mods = sorted(p.resolve() for p in MODS_DIR.iterdir() if (TESTS_DIR / p.name).is_dir())
+    else:
+        raise SystemExit("name the mod you work on: make test MOD=mods/<id> (run_tests.py <modId>); "
+                         "--all runs every mod's tests, which one mod's work never needs (CLAUDE.md \"Tests\")")
     jobs = [(mod, tf) for mod in mods for tf in test_files(mod)
             if not args.files or any(f in tf.name for f in args.files)]
     for mod in mods:
@@ -421,44 +594,85 @@ def main() -> None:
 
     started = time.perf_counter()
     passed = failed = 0
-    timings = load_timings()
-    planned = plan(jobs, timings, args.jobs, args.filter)
-    if args.jobs <= 1 or len(planned) <= 1:
-        outputs = {tf: [run_file(mod, tf, args.filter)] for mod, tf in jobs}
+    timings, results = load_json(TIMINGS), load_json(RESULTS)
+    bases = {mod: base_stamp(mod) for mod in mods}
+    inputs = InputCheck()
+    cached: dict[Path, int] = {}  # test file -> tests passed (matching -k)
+    run_jobs = []
+    for mod, tf in jobs:
+        rec = results.get(display(tf))
+        matching = None if not rec or rec.get("names") is None else [
+            n for n in rec["names"] if not args.filter or args.filter in n]
+        if not args.no_cache and rec and rec.get("pass") and not rec.get("writes") \
+                and inputs.same(rec, bases[mod], exact_env=False):
+            if matching:
+                cached[tf] = len(matching)
+            continue
+        if args.filter and matching == [] and inputs.same(rec, bases[mod], exact_env=True):
+            continue  # -k: no test of this file matches, and its names can't have changed
+        run_jobs.append((mod, tf))
+
+    # each worker spends ~0.8 s starting Teal, so small runs get few workers
+    workers = args.jobs or max(1, min(os.cpu_count() or 1, math.ceil(estimate(run_jobs, timings, args.filter) / 2.0)))
+    planned = plan(run_jobs, timings, workers, args.filter)
+    if workers <= 1 or len(planned) <= 1:
+        outputs = {tf: [run_file(mod, tf, args.filter)] for mod, tf in run_jobs}
     else:
-        with ProcessPoolExecutor(max_workers=min(args.jobs, len(planned))) as pool:
+        with ProcessPoolExecutor(max_workers=min(workers, len(planned))) as pool:
             # slowest first, so the long shards don't start last
             futures = [(tf, pool.submit(run_file, mod, tf, args.filter, only, known))
                        for mod, tf, only, known, _ in sorted(planned, key=lambda p: -p[4])]
-            outputs = {tf: [] for _, tf in jobs}
+            outputs = {tf: [] for _, tf in run_jobs}
             for tf, fut in futures:
                 outputs[tf].append(fut.result())
 
+    timing_updates: dict[str, dict] = {}
+    result_updates: dict[str, dict] = {}
     current = None
-    for mod, tf in jobs:
-        shards = outputs[tf]
-        p, f, text = format_file(display(tf), shards)
-        passed += p
-        failed += f
-        if args.filter and not p + f:
-            continue  # -k: files with no matching test stay quiet
-        if mod != current:
-            print(f"[{mod.name}]")
-            current = mod
-        print(text, flush=True)
-        if not any(s.get("load_error") or s.get("compile_errors") for s in shards):
-            # a full run replaces the file's record (drops renamed tests); a -k run updates it
-            rec = timings.setdefault(display(tf), {}) if args.filter else timings.__setitem__(display(tf), {}) or timings[display(tf)]
-            for r in (r for s in shards for r in s["results"]):
-                rec[r["name"]] = round(r["secs"], 3)
-    for key in [k for k in timings if not (ROOT / k).exists()]:
-        del timings[key]  # deleted / renamed test files (e.g. a temporary test_zz_debug.lua)
-    try:
-        TIMINGS.parent.mkdir(parents=True, exist_ok=True)
-        TIMINGS.write_text(json.dumps(timings, indent=0, sort_keys=True))
-    except OSError:
-        pass
-    print(f"{passed} passed, {failed} failed ({time.perf_counter() - started:.1f} s)")
+    for mod in mods:
+        mod_cached = [tf for m, tf in jobs if m == mod and tf in cached]
+        for m, tf in run_jobs:
+            if m != mod:
+                continue
+            shards = outputs[tf]
+            p, f, text = format_file(display(tf), shards)
+            passed += p
+            failed += f
+            if not (args.filter and not p + f):  # -k: files with no matching test stay quiet
+                if mod != current:
+                    print(f"[{mod.name}]")
+                    current = mod
+                print(text, flush=True)
+            broken = any(s.get("load_error") or s.get("compile_errors") for s in shards)
+            if not broken:
+                # a full run replaces the file's record (drops renamed tests); a -k run updates it
+                rec = dict(timings.get(timing_key(tf), {})) if args.filter else {}
+                for r in (r for s in shards for r in s["results"]):
+                    rec[r["name"]] = round(r["secs"], 3)
+                timing_updates[timing_key(tf)] = rec
+            if shards[0].get("names") is not None:
+                deps, env = {}, {}
+                for s in shards:
+                    deps.update(s["deps"])
+                    env.update(s["env"])
+                result_updates[display(tf)] = {
+                    "base": bases[mod], "deps": deps, "env": env, "names": shards[0]["names"],
+                    "writes": any(s["writes"] for s in shards), "passed": p,
+                    "pass": not args.filter and not broken and f == 0 and p > 0}
+        if mod_cached:
+            if mod != current:
+                print(f"[{mod.name}]")
+                current = mod
+            n = sum(cached[tf] for tf in mod_cached)
+            passed += n
+            print(f"  cached: {len(mod_cached)} files, {n} tests passed earlier and read nothing that changed since"
+                  " (--no-cache runs them)")
+    gone = {k for k in {*timings, *results} if not (ROOT / k.removesuffix(FULL_TAG)).exists()}  # deleted / renamed test files
+    save_json(TIMINGS, timing_updates, gone)
+    save_json(RESULTS, result_updates, gone)
+    n_cached = sum(cached.values())
+    print(f"{passed} passed{f' ({n_cached} cached)' if n_cached else ''}, {failed} failed"
+          f" ({time.perf_counter() - started:.1f} s)")
     sys.exit(1 if failed or not passed else 0)
 
 

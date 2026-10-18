@@ -24,7 +24,10 @@ and compares it with the local folder: the live mod.json revision vs the local o
 tells which mods need a Hub update, and which changed without a revision bump.
 
 Usage: uv run tools/modio_sync.py [--apply] [--only text,tags,logo,gallery] [--force] [mods/<id> ...]
-       uv run tools/modio_sync.py --release [--verbose] [mods/<id> ...]
+       uv run tools/modio_sync.py --release [--verbose] [--all] [mods/<id> ...]
+
+--release skips the Towns & Streets mods (square_names_us_*) and Blank Slate unless they are named or --all is
+given: they rarely change and add a modfile download each.
 """
 
 from __future__ import annotations
@@ -602,6 +605,15 @@ def render_release(rows: list[ReleaseRow], verbose: bool, color: bool) -> list[s
     return out
 
 
+# Mods --release leaves out unless named or --all: they rarely change.
+RELEASE_QUIET_PREFIXES = ("square_names_us_",)
+RELEASE_QUIET_IDS = {"square_blank_slate"}
+
+
+def is_release_quiet(mod_id: str) -> bool:
+    return mod_id in RELEASE_QUIET_IDS or mod_id.startswith(RELEASE_QUIET_PREFIXES)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("mods", nargs="*", type=Path, help="mods/<id> folders (default: every mod with a mod.io id)")
@@ -614,6 +626,8 @@ def main() -> None:
     ap.add_argument("--release", action="store_true",
                     help="instead: compare each mod with its live upload and list the ones needing a Hub update")
     ap.add_argument("--verbose", action="store_true", help="--release: list every file, incl. ones only in the upload")
+    ap.add_argument("--all", action="store_true",
+                    help="--release: also check the Towns & Streets mods and Blank Slate (skipped by default)")
     ap.add_argument("--prune-tags", action="store_true", help="remove mod.io tags that modinfo.json doesn't list")
     args = ap.parse_args()
 
@@ -623,7 +637,11 @@ def main() -> None:
 
     dirs = [ROOT / m for m in args.mods] if args.mods else sorted(p for p in MODS_DIR.iterdir() if p.is_dir())
     locals_ = []
+    quiet_skipped = 0
     for d in dirs:
+        if args.release and not args.mods and not args.all and is_release_quiet(d.name):
+            quiet_skipped += 1
+            continue
         if d.name.startswith("square_opt_"):
             if args.mods:
                 print(f"{d.name}: local fork of another author's mod, never published; skipped")
@@ -651,6 +669,8 @@ def main() -> None:
         if tty:
             print("\r\033[K", end="")
         print("\n".join(render_release(rows, args.verbose, tty)))
+        if quiet_skipped:
+            print(f"\n{quiet_skipped} Towns & Streets / Blank Slate mods not checked (--all or MOD=mods/<id> to include)")
         return
     state = json.loads(STATE_FILE.read_text()) if STATE_FILE.is_file() else {}
     before = json.dumps(state, sort_keys=True)

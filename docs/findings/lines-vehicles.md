@@ -45,6 +45,10 @@ Second run (2026-10-10, build 40420, same setup):
   in the probe). One `makeTownCreateCmd` in flight at a time, the next after the callback.
 - **Speed 8 sticks:** `makeGameSetSpeedCmd(8)` → `GAME_SPEED.speedup` 8 after 15 s, while
   `getEstimatedMaximumGameSpeed()` said 23. Speed 16 not tested yet.
+- **`GAME_SPEED.speedup` reads 0 while paused (console, 2026-10-17, live session of that day)**:
+  `api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.GAME_SPEED).speedup` printed `0`
+  paused and `4` at speed x4 (the tealdef's "0 = paused"). Game-script `guiUpdate` keeps running while paused and
+  real-time clocks keep moving, so a mod that must stand still while paused gates on this (Organic Towns rev 2).
 - **Journal booking of 1e9 works** (balance 204M → 1.204B). 3e9 (32-bit overflow) not tested yet.
 - **Emissions (`emissions_zero`) unresolved:** `makeEntitySetEmissionsCmd(e, 0, 0, r, r)` on 10 of 5180
   `EMISSION_EMITTER` entities (that type *is* iterable with `getEntitiesWithComponent`): read-back zero = 0/10 after 2 s
@@ -155,7 +159,7 @@ Sixth run (2026-10-10 07:40–07:45Z, build 40420, a 53k-person map, Traffic tab
   replaced; not proven, and no `[SQST]` line named 152444. Guards added afterwards: every vehicle or line id is
   re-checked (TRANSPORT_VEHICLE / LINE component, PLAYER_OWNED) right before its command, removal waits until the
   sold buses are gone and never deletes a line that still lists vehicles, stop edges with moving sim persons
-  (`getSimPersonsMovingForTransportNetwork`, untested on street edges) and edges near our stops or depot gates
+  (`getSimPersonsMovingForTransportNetwork`; on street edges see "`getSimPersonsMovingForTransportNetwork` on streets" below) and edges near our stops or depot gates
   come last, and every bought bus id and every stop's station group and result entities are logged (`rt.detail`)
   so a future crash entity can be matched against stdout.txt.
 - **Unrelated(?)**: at 06:32:24Z, during a save load (no `[SQST]` line nearby), the Simulation Thread hit
@@ -175,7 +179,8 @@ Probe `mods/square_line_rate_matcher_probe` (log `plans/square_line_manager_plus
   (~0.55 s): the vehicle is `EN_ROUTE` on the line. `findBestLineAndDepotForVehicle(src)` returned the selected line
   and its depot here (single test; it may differ on other lines).
 - **`makeVehicleSendToDepotCmd(v, true)` drops the vehicle from the line at once:** state `GOING_TO_DEPOT`, `line=-1`,
-  `sellOnArrival=true`, and Rate falls immediately. A vehicle heading to the depot is not counted.
+  `sellOnArrival=true`, and Rate falls immediately. A vehicle heading to the depot is not counted. Only the
+  command was probed, not the arrival: see "Sell on arrival crash" below; sell with `makeVehicleSellCmd` instead.
 - `TransportVehicleConfig` capacities are indexed by cargo type id + 1 (`Passengers#0=20`).
 - A button left of A+ via the wrapped `makeIconToggleButton` (order 250) sits left of Line Revert's undo/redo (order 200)
   and both work.
@@ -192,6 +197,23 @@ Probe `mods/square_line_rate_matcher_probe` (log `plans/square_line_manager_plus
   price = 6 x runningCosts (`base/content/base/model_metadata_util.lua:488-552`); `getRunningCost` of an owned
   vehicle (91,440) matched the metadata. Log: `[RateMatcher] clone charged: balance 2062832 -> 1514192 = 548640 for 1
   vehicle(s); store price each 548640`.
+
+## Sell on arrival crash (game log 2026-10-13, inferred, strong)
+
+Session `2026-10-13_2140_sqrl-sqsg-crash` ("sub-arctic - line manager test", build 40420, Line Manager Plus rev 7
+before this fix): at 21:41:39Z the Rate Matcher sent 7 ships of line 183929 to their depot with
+`makeVehicleSendToDepotCmd(v, true)` (callbacks `ok 7/7`). 17 s later the Simulation thread logged `ProposalData error:
+Collision` and then the fatal `Engine.h:323 GetComponentDataIndex` "it != components.end()" for entity 184016,
+component type 71 = `TransportVehicle`; 184016 was a ship being removed (revision 41 -> 42, still listing
+TransportVehicle, Ship, MovePathAircraft, CarriageList, Account, LogBook). Crash save
+`crash_sub-arctic - line manager test_2026-10-13_14-41-57`. Session `2026-10-13_2213_sqrl-sqsg` (same save, the
+fix: `makeVehicleSellCmd`, ids logged) sold the same 7 ships, **184016 among them**, so the crashed ship was one sent
+to be sold on arrival; the sim then ran about 35 s (twice the time to the earlier crash) through two more Rate
+Matcher switches and sells, with no assert, and the player quit to the main menu normally. Telling point: **no base GUI ever sends sell on arrival**: every
+Sell (vehicle window `vehicle.tl:361`, manager `manager_window.tl:2244`, `:5344`, `:7261`, mission tasks) uses
+`makeVehicleSellCmd({...})`, and "Send to depot" passes `false`. Rule: sell with `makeVehicleSellCmd`, never
+`sellOnArrival = true`. Open checks: a longer run with the fix; loading the crash save (ships still sold on arrival)
+should crash again when they reach the depot.
 
 ## Re-sending a vehicle to its own line, departure schedule (verified in game 2026-10-10)
 
@@ -287,6 +309,36 @@ api.type.ComponentType.MODEL_PERSON)`: it raised `Cannot loop over this componen
 fine (8765 persons, 0.5-0.9 ms), and the picked persons got a position (Photo Mode reads `MODEL_PERSON.position`
 with `getComponent`, else the bounding volume; which of the two answered was not logged). List `SIM_PERSON`; don't
 call the MODEL_PERSON listing at all (each failed call logs a traceback).
+
+At 12.5k persons the `SIM_PERSON` listing still fits in a ~2 ms frame (inferred bound, session
+`2026-10-15_1950_city-lights-2-778824`): Smart Lanes' snapshot listed 12 518 persons at ~20:03:05 and SQPERF's
+wall-clock maximum of that step over 20:02:40-20:03:10 was 1.886 ms (`ctx=bg ... auto ... max=1.886`), the list call
+included. The 49 / 81 ms "person-list spikes" of that run were `os.clock` readings (docs/findings/gui.md "Timers and
+threads"). No per-area person query is verified: whether `api.engine.util.octree.findEntitiesInCircle` returns
+`SIM_PERSON` entities is untested (console snippet: plans/square_smart_lanes/TESTING.md "KA v4" step 14).
+
+## `getSimPersonsMovingForTransportNetwork` on streets: persons routed through, cheap; junction nodes often 0 (game log 2026-10-12)
+
+Stress Test probe 11c, session `2026-10-12_0905_top-up-488838` (`.cache/logs`, lines ~18635-18660), congested
+Showcase map, entities near the camera:
+- Street edges: 12 of 12 calls ok, 240-360 persons each (median 315), 32-232 us per call (median 34). Junction
+  nodes: 13 of 13 ok, but median **0** (some 311-709), 29-329 us.
+- Neighboring edges return nearly the same list (same leading ids), and 300+ per edge is far more than the cars on
+  one edge: the list is persons whose **route** passes the entity (demand), not cars on it now. Every one sampled
+  was a driver (600 / 600 on edges). Whether it is complete for the cars on the entity was not checked (no known
+  driver was in the sample: `expectedFound=0/0`).
+- Use: a cheap candidate list of drivers near a junction (query its segments, not only the node), then filter by
+  position and `MOVE_PATH` (square_smart_lanes Re-time, `sl_retimer.lua`). Plans: `plans/square_stress_test/FLOW_PLAN.md`
+  "Probe answers".
+- **On a removed segment it costs ~100 ms and an engine assertion** (session `2026-10-15_0509_light-plans-auto-863105`,
+  05:14:12, inferred from timing, not isolated): Smart Lanes' automatic re-timing asked the routed lists of a junction's
+  segments every 3 s; the Stress Test replaced two of them (306823, 297327) mid-window, and in the same second the Main
+  Thread logged `Engine.h:323 GetComponentDataIndex` "Assertion it != components.end()" for exactly those two ids,
+  "Component Type Index: 0" (the only two such lines in the session), and SQPERF timed that frame of the runtime at
+  249 ms (`ctx=bg slow=auto max=249.0 over=1/25482`). Whether it also throws into Lua is unknown (the call was pcall'd and
+  its error ignored); the cost is the engine's assertion and trace. Check the entity first (`getComponent(e, BASE_EDGE)` pcall'd; `entityExists` is
+  not enough: ids are reused at once) and drop it when gone (`sl_autoretime.lua`: the snapshot skips it, `op=snapshot gone=`;
+  `op=member_gone` before step B v4).
 
 ## A driver's `MOVE_PATH.path.edges` elements are userdata read as `elem.edgeId.entity`; a positional pass count matches the path count (verified from the game log 2026-10-13)
 

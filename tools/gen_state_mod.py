@@ -445,7 +445,8 @@ def description(state: dict, towns: list[dict], cities: dict, streets: list) -> 
         text = text.replace("{{" + k + "}}", v)
     left = re.findall(r"\{\{[A-Z_]+\}\}", text)
     assert not left, f"description.html.tmpl: unknown placeholders {left}"
-    return text
+    from more_from import with_section  # the "More from square" section (branding/more_from.json)
+    return with_section(text, f"square_names_{state['key']}")
 
 
 def contested_map(key: str) -> dict[str, str]:

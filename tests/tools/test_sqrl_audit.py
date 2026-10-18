@@ -107,6 +107,18 @@ class SharedLitTest(unittest.TestCase):
         self.assertIn("shared_lit: an exit lane a straight movement shares", text)
         self.assertLess(sa.kind_order("shared_lit"), sa.kind_order("across"))
 
+    def test_shared_open_is_by_design(self):
+        # sl_audit.lua (rev 7): merges into an open exit road (a stop or the next junction close by) go to forced=
+        log = "  [SQRL] AUDIT_SUMMARY src=auto job=1 audited=1 flagged=0 findings=- forced=shared_lit:2,shared_open:1 skips=-"
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "stdout.txt"
+            p.write_text(log + "\n", encoding="utf-8")
+            rep = sa.parse([p])
+            text = sa.render(rep)
+        self.assertEqual(rep.summary_forced["auto"]["shared_open"], 1)
+        self.assertIn("| auto | shared_open | by design | 1 |", text)
+        self.assertIn("shared_open: an exit lane of an open exit road", text)
+
 
 class ForcedKindsTest(unittest.TestCase):
     def test_turbo_gap_and_forced_weave(self):

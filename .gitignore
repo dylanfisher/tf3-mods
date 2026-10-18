@@ -26,3 +26,8 @@ mods/square_opt_*/
 mods/square_aat_perftest/
 plans/*/original/
 plans/*/*.log
+
+# Organic Towns Name lab data: holds the game's own town-name lists (game content, not ours); regenerate with
+# uv run plans/square_organic_towns/names/export_names.py (data.json: the site's name lab; data.js: the old page)
+plans/square_organic_towns/names/data.json
+plans/square_organic_towns/names/data.js

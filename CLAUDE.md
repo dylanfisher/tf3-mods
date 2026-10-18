@@ -2,30 +2,6 @@
 
 Workspace for developing Transport Fever 3 mods. Each mod lives in `mods/<modId>/` and is symlinked into the game's staging area for live testing. Local, greppable copies of the official docs and game files back all research.
 
-## Layout
-
-```
-mods/<modId>/            one folder per mod (folder name == modId)
-docs/wiki/               TF3 wiki modding manual as Markdown (generated, committed)
-  INDEX.md               every page with its section headings: start here
-  _media/                images + attachment zips (generated, gitignored)
-docs/game/               INDEX.md + MANIFEST.txt of extracted game files (generated, committed)
-docs/findings.md         index of in-game verified facts that override the wiki (one line per finding)
-docs/findings/           the findings themselves, one file per topic (hand-written)
-docs/ui-guide.md         how our mods' windows, buttons and controls look: spacing, widgets, footer (hand-written)
-.cache/game/             text resources extracted from the game install (gitignored)
-.cache/wiki-examples/    text files from the wiki's example/template mod zips (gitignored)
-.cache/subscribed/       copies of your subscribed mod.io mods + INDEX.md (gitignored, `make subscribed`)
-tools/                   sync + mod tooling (Python, run via `uv run` / make)
-mods/square_opt_<id>/    local "SQ Opt" forks of other authors' mods (gitignored, never uploaded)
-forks/<forkId>/          fork upstream snapshots and merge workspace (gitignored)
-.forks-git/              git dir of the private fork backup repo (same working tree; see "Forks")
-plans/<modId>/           design plans and research per mod (never shipped)
-tests/<modId>/           offline unit tests for mod scripts (test_*.lua/.tl), run by tests/run_tests.py
-branding/                "square" cover house style: cover.js (renderer), mods.js (per-mod entries), index.html + states/forks/dev/options.html (gallery pages)
-.claude/agents/          tf3-docs-researcher, tf3-docs-syncer, tf3-mod-scaffolder, tf3-mod-validator, tf3-fork-merger
-```
-
 ## Commands
 
 - `make docs`: regenerate all local docs (`docs-wiki` takes ~1 min, `docs-game` ~5 s). Each run rebuilds from scratch.
@@ -37,18 +13,20 @@ branding/                "square" cover house style: cover.js (renderer), mods.j
 - `make validate [MOD=mods/<id>]`: pre-flight checks against wiki rules.
 - `make i18n [MOD=mods/<id>] [ARGS='--check --lint-modinfo | -v | --missing ru | --fix-format']`: translation report: every `_("...")` key and mod.json param text vs each language in `strings.json`, placeholder mismatches, untranslatable `_()` calls and sentence building, untranslated literals (`-- i18n: keys` / `-- i18n: ignore` markers in `tools/i18n.py`). `--missing LANG` prints the keys a language lacks, `--fix-format` writes the canonical layout. See "Translations".
 - `make tooltips [MOD=mods/<id>] [ARGS=--fix]`: tooltip lines wider than 70 columns (translations 90, CJK counted double) in mod.json params, code literals (`tooltip = "..."`, `setTooltip(...)`) and their strings.json translations. `--fix` re-wraps mod.json param tooltips and their translations (re-keyed). `make validate` shows the first few. See "Tooltips".
+- `make css-rules [MODS='id id ...']`: mod stylesheet rule count for a set of active mods (default: every mod in `mods/`; ids are looked up in `mods/` and `.cache/subscribed/`). Shared leader-marker blocks count once, as in game. The game crashes on load above ~205 (exit 1 above that). Run it before and after any GUI change.
 - `make check [MOD=mods/<id>|PATHS='file/dir ...'] [ARGS=--allow-lua53]`: offline Teal type-check, Lua syntax-check and pre-5.3 lint (Lua 5.3+ constructs fail; the flag skips the lint) with the game's tl.lua.
-- `make test [MOD=mods/<id>] [ARGS="-f FILE -k TEXT -j N"]`: run `tests/<modId>/test_*` against the mod's transpiled modules in parallel processes; slow files are split into shards using the per-test times of earlier runs (`.cache/test_timings.json`). `-f` picks test files by name, `-k` tests by name (harness docs in `tests/run_tests.py`). `SQRB_FULL=1 make test MOD=mods/square_roundabouts` also runs the exhaustive roundabout sweep (a few minutes longer). While developing a mod, run only that mod's tests (`MOD=mods/<id>`); never the full suite or another mod's tests unless its code was touched.
+- `make test MOD=mods/<id> [ARGS="-f FILE -k TEXT --full --no-cache -j N"]`: run `tests/<modId>/test_*` against the mod's transpiled modules. Quick mode by default (sweeps sample their cases); `--full` (what `make gate` runs) checks every case; `SQRB_FULL=1` adds the exhaustive roundabout sweep. Result cache: a test file whose last run passed and read nothing that changed since (files, env vars) is not run again and shows on the mod's `cached:` line (`--no-cache` runs it). Workers are sized to the recorded work; slow files are split into shards by the per-test times of earlier runs (`.cache/test_timings.json`). `-f` picks test files by name, `-k` tests by name (harness docs in `tests/run_tests.py`). Without `MOD=` it refuses (`--all` runs every mod: never needed for one mod's work).
 - `make covers [MOD=mods/<id>] [ARGS=--no-text]`: render the house-style cover to `mods/<id>/_metadata/0.png` with headless Chrome.
-- `make shots [MOD=mods/<id>]`: render gallery slides (`_metadata/1-<hash>.png`, `2-<hash>.png`, …, named by content hash so a Hub upload keeps mod.io's gallery intact; at most 10 per mod, more fail the Hub upload with mod.io error 13003) from the captures in `plans/<id>/shots/`, as defined in `branding/shots.js`.
+- `make shots [MOD=mods/<id>]`: render gallery slides (`_metadata/1-<hash>.png`, `2-<hash>.png`, …, named by content hash so a Hub upload keeps mod.io's gallery intact; at most 9 per mod: 10 two-digit names came out of order on mod.io after a Hub upload, 19+ fail it with mod.io error 13003) from the captures in `plans/<id>/shots/`, as defined in `branding/shots.js`.
 - `make modio [MOD=mods/<id>] [ARGS='--diff --apply --only text,tags,logo,gallery --force --prune-tags']`: compare each published mod's mod.io profile (name, summary, description, tags, `0.png` logo, `1.png`… gallery) with the repo and, with `--apply`, update it through the mod.io API. Dry run by default. Needs `MODIO_TOKEN` in `.hub.env`. Never touches the modfile (the Mod Hub cooks it and writes the metadata the game reads). Sync state lives in `branding/modio_state.json`. `MODIO_TOKEN` is a 1Password `op://` reference, so **never run `make modio` or any `op` command yourself**: ask the user to run it (`! make modio ...`) and paste the output; they approve the 1Password prompt.
-- `make modio-status [MOD=mods/<id>] [ARGS=--verbose]`: download each published mod's live modfile (cached in `.cache/modio/modfiles/`) and compare it with `mods/<id>/`: live vs local `revision` and the changed files, i.e. which mods need a Hub update and which changed without a revision bump. `_metadata` images and texts are profile changes (`make modio`), listed only with `--verbose`. Same token rule as `make modio`.
+- `make more-from [MOD=mods/<id>] [ARGS='--published --refresh --check']`: write the "More from square" section (logo tiles per group, then a one-line Towns & Streets list) into a mod's `description.html`, before the Changelog. Groups: `branding/more_from.json`; order and logo files: `branding/modio_profiles.json`, re-read from our mod.io profile page with `--refresh` (headless Chrome, no token). `--published` does every mod on the profile; State Names descriptions get it from `gen_state_mod.py` too. A newly published mod must be added to a group. See `branding/README.md` "Mod description".
+- `make modio-status [MOD=mods/<id>] [ARGS='--verbose --all']`: download each published mod's live modfile (cached in `.cache/modio/modfiles/`) and compare it with `mods/<id>/`: live vs local `revision` and the changed files, i.e. which mods need a Hub update and which changed without a revision bump. `_metadata` images and texts are profile changes (`make modio`), listed only with `--verbose`. Towns & Streets and Blank Slate are skipped unless named with `MOD=` or `--all` is given. Same token rule as `make modio`.
+- `make site-dev` / `make site-media` / `make site-build` / `make site-deploy`: mod microsites (`site/`, tf3.dylanfisher.com): one landing + research pages per mod, one shared design. Deploy is outward-facing: the user runs it. Working on a mod's page: the `mod-sites` skill.
 - `make teal`: write `tlconfig.lua` for VS Code Teal autocompletion.
 - `make sqperf-sync [MOD=mods/<id>] [ARGS=--check]`: copy the SQPERF module `tools/sqperf/` into every mod that uses it (MOD: add it there); `--check` only reports drift. See `plans/sqperf/README.md`.
-- `make perf [LOG=path] [ARGS='--mod X --last --skip 1']`: per-mod report of the `[SQPERF]` lines in the latest `stdout.txt` (`--last`: the most recent load that has SQPERF lines). Enable the DEV mod `mods/square_sqperf_all` (never upload) to turn every SQPERF mod's debug log on at once.
-- `make audit [LOG=path] [ARGS='--last --src auto|tool|pick --top 5']`: Smart Lanes junction audit report from the latest `stdout.txt`: the `[SQRL] AUDIT` lines grouped by finding (squeeze, shared, across, ramp_ramp, u_turn, unfed, dead, bypassed_turn, weave, lights), the worst junctions per finding with case / shape / detail, `AUDIT_SUMMARY` totals and skip reasons. Run it after the Stress Test's Junction test and Crossing test. See `plans/square_smart_lanes/TESTING.md` "X".
-- `make flow [LOG=path] [ARGS='--last --warmup 180 --worse-pct 10 --min-samples 5 --ignore-reason entry']`: traffic flow A/B report from the Stress Test traffic log (`[SQST] FLOW_*` lines): the Showcase twins compared pairwise (`sl` / `sl_phases` vs `game`, same `pair=`) and pooled per kind / type (speed, % standing, stand time, queue; sign test across pairs), pairs with `match=no` (unless `--ignore-reason` lists all its reasons) or a missing twin excluded, zones worse than game, FLOW_ALL trend, buses, towns; `[SQRL] TOGGLE` blocks as a fallback. Contract: `plans/square_stress_test/FLOW.md`.
-- `make bench [LOG=session] [ARGS='--record --warmup 180']`: Stress Test bench report for the last bench sheet run (default `LOG=last-bench`): per test and comparison Δ km/h, wins / losses, sign / Holm / Wilcoxon p, standing, throughput, a per-twin mode check from Smart Lanes' `zid=` lines, sampler health; writes a draft RESULTS.md entry to `.cache/bench/<session>.md`. `--record` (only after `BENCH_DONE ok=yes`) appends the pairs to `plans/square_smart_lanes/bench_ledger.json` and the entry to `plans/square_smart_lanes/RESULTS.md`. Design: `plans/square_stress_test/BENCH.md`.
+- `uv run tools/gen_photo_looks.py [--check]`: regenerate Photo Mode's 1076 look environments (4 climates x sky x haze x water layers, 4.5 MB) (`mods/square_photo_mode/content/environments/`) from the base climates' env files plus the per-layer deltas; `--check` only reports drift (run it after a game update). See `plans/square_photo_mode/LOOKS.md`.
+- `uv run tools/gen_lens_keyframes.py [--check]`: regenerate Photo Mode's 1131 Lens cutscene keyframe files (`mods/square_photo_mode/content/mission/keyframes/en/sqpm_lens*.lua`) from `content/photo_mode/pm_lensdef.lua`; `--check` only reports drift (run it after changing pm_lensdef).
+- `make perf` / `make audit` / `make flow` / `make bench`: SQPERF, Smart Lanes junction audit, Stress Test flow A/B and bench reports over game logs. Flags and contracts: the `stress-test-reports` skill.
 - `make logs [ARGS='--tag NAME']`, `make logs-list [ARGS='--tag X --crash -v']`, `make logs-grep PAT='regex' [ARGS='--session NAME -C 2']`: archive of past game logs in `.cache/logs/` (`INDEX.md`: one line per session, newest first). The game overwrites `stdout.txt` at every start; every session's log, crash logs included, is archived automatically (SessionStart hook, and `make perf` / `make audit` / `make flow`). `LOG=` / `--session` take a session name or prefix, `last`, `last-crash`, `last-<tag or Stress Test action>` (`last-showcase`, `last-sqrl`), a seed or `live`. Flags: `uv run tools/game_logs.py -h`.
 
 If `.cache/` is missing (fresh clone), run `make docs` before researching.
@@ -69,6 +47,13 @@ Never answer from memory. TF3 differs from TF2 in important ways. Read the `docs
 
 Use `rg` (or `grep -r`) on these paths. `.cache` is gitignored, so pass `--no-ignore` or `-uu` to `rg`.
 
+**Testing a question in the game, cheapest first.** When the docs can't settle how an API call behaves (does it work, what does it return, which argument form), suggest the first step that can answer it, in this order:
+
+1. **Console (the key below Esc):** it runs Lua live, so a function can be tried in seconds instead of building a test mod each time. Lead the answer with a ready-to-paste one-liner. How to write one, the good first tries and what it can't do: `docs/console.md`. Subagents end their report with the snippet.
+2. **A DEV/probe mod**, only when the console can't do it: event handlers, anything over many ticks, stylesheets, load-time code (`runFn`, modifiers), GUI layout.
+
+After a console run, read its `print` output from the live log yourself (`make logs-grep PAT='...' ARGS='--session live'`) instead of asking for a paste, then record the result in `docs/findings/<topic>.md`.
+
 ## TF3-specific facts worth remembering
 
 - `modId` allows only `[a-z0-9_]`. TF3 dropped TF2's `_1` major-version suffix.
@@ -77,21 +62,29 @@ Use `rg` (or `grep -r`) on these paths. `.cache` is gitignored, so pass `--no-ig
 - Some wiki pages carry a "Wip: not yet adapted for TF3" banner, and some text still says "Transport Fever 2". Treat those pages with caution and confirm against game files.
 - Script functions take `captureParams` first: `runFn(captureParams, settings, allModParams)`; the wiki omits it. Param values are 1-based option indices. See `docs/findings.md`.
 - Top-bar buttons (`::MainModButtonAreaExtension`): a base `builtin.ToggleButton` with our white 24 px icon, 8 px padding (the base default: a 40 px tile like the layers button), no inline colour, pressed while the mod's window is open, plus the mod.json param `hudButtonStyle` (Text / Icon, default Icon). See `plans/ui_style/PLAN.md`.
+- Mod scripts run on the game thread: a loop that never ends freezes the game until its watchdog kills it ("Possible hang detected", no Lua error). Every `while` / `repeat` loop, recursion and graph walk over game data (nodes, edges, trees, towns) gets a hard iteration cap and a visited set where it can revisit, plus a guard against zero, negative or NaN steps. Hitting the cap ends the work with a log reason (the step is skipped, never retried in a loop). Large per-tick work gets a time or slice budget. Add a test for the capped case.
 - GUI work follows `docs/ui-guide.md` (narrow windows, consistent gaps, nothing touching, checkboxes for on/off, real buttons for actions). Update the guide when a rule changes.
+- **Default entities first in every UI design:** reuse what the base game uses (base `builtin.*` widgets, base recipes, base classes, base looks such as the entity-window card set inline) before inventing a look; our own style or class only when the game has none, and never at the cost of new stylesheet rules (rule cap). Timetables shows the native look; copy its patterns, not its rules.
+- Status / description text in a construction-menu tool's toolbar ("Nothing selected", selection, results) uses the shared tool info style: a disabled one-value Button param in the group `sq-tool-info`, styled by the shared 4-rule "TOOL INFO STYLE" block that only the first active tool adds (`sl_tool.css.lua`, `bulk_bulldozer.css.lua`, marker `content/square_tool_info/`), never a bare grey button and never a per-mod copy of the rules (rule cap). See `docs/ui-guide.md` "Construction toolbar".
 - Rows of items that may overflow (checkboxes, buttons) go in `builtin.FlowLayout{ children = ... }`, which wraps to the window width; never split rows by a fixed count. See `docs/findings.md`.
 - A mod.json param can't change a stylesheet: `.css.lua` only has `api.gui`/`api.type`, runs in its own Lua state, and no channel from the scripts reaches it (6 tried). Ship variant mods for style options. See `docs/findings.md`.
-- Construction geometry must never contain `-0` (mirroring code makes it): at exactly 0° rotation the builder's transform keeps it and the layout is silently refused ("Construction Not Possible", fine at 1°). Normalise zeros to `+0` before returning from `updateFn`. Script probes can't reproduce it. See `docs/findings.md` "Negative zero".
-- Upload: Mod Hub → My Mods publishes from the staging area to mod.io and validates on upload. Bump `revision` with every update. Text, tags, logo and gallery changes that need no new modfile go through `make modio` instead (mod.io API; Steam auth isn't usable outside the game, so it uses a mod.io personal access token). Step by step: "Releasing updates" below.
+- Construction geometry must never contain `-0` (mirroring code makes it): at exactly 0° rotation the builder's transform keeps it and the layout is silently refused ("Construction Not Possible", fine at 1°). Normalize zeros to `+0` before returning from `updateFn`. Script probes can't reproduce it. See `docs/findings.md` "Negative zero".
+- Upload: Mod Hub → My Mods publishes from the staging area to mod.io and validates on upload. Bump `revision` with every update. **The live revision comes only from `make modio-status`** (the user runs it): git says nothing about what is published, since uploads go from the staging area, often before a commit. Ask for its output before choosing a revision number, adding a Changelog entry to a revision, or writing a Hub changelog line; never infer it from git or game logs. Text, tags, logo and gallery changes that need no new modfile go through `make modio` instead (mod.io API; Steam auth isn't usable outside the game, so it uses a mod.io personal access token). Step by step: the `release-mods` skill.
 
 ## Conventions
 
 - All mods are published as **square**: modId `square_<modname>`, `authors: [{"name": "square", "role": "CREATOR"}]` in modinfo. Never use the owner's real name in IDs, metadata or covers.
+- **American English** for all English text: UI strings, descriptions, plans, findings and docs ("curb", "center", "color", "meter", "neighboring", not "kerb", "centre", "colour", "metre", "neighbouring"). Changing an English UI string changes its translation key: re-key every language. Code identifiers and log tokens keep their names (tools parse the logs).
 - When the docs and the code disagree (CLAUDE.md, a plan, a finding, a README vs what the mods actually do or the game shows), fix the out-of-date side in the same change and say so in the report; never just pick one silently. Subagents report such discrepancies so the main session fixes them.
 - Don't edit generated files (`docs/wiki/**`, `docs/game/**`) by hand. Change the sync tool and rerun it.
 - When a game test contradicts or fills a gap in the docs, add it to the matching `docs/findings/<topic>.md` with the date and evidence (a `.cache/logs` session name), plus its line in the `docs/findings.md` index. Game facts go there, not into agent memory.
 - Plan docs follow `plans/README.md`: `PLAN.md` / `TESTING.md` hold the current state and open work; finished phases and run logs move verbatim to `HISTORY.md`.
 - After `make docs`, `git diff --stat docs/` shows what changed upstream or in a game update.
 - Every mod has a `_metadata/description.html` with a **Changelog** section (newest revision first). Add an entry with every `revision` bump. Headings: `<h2>` only for the Changelog title, `<h4>` for everything else (sections and revision entries). Format and template: `branding/README.md` "Mod description".
+- **Detecting another of our mods:** every mod ships a side-effect-free `content/<modId>_presence.lua` returning `{ modId = "<modId>" }`; another mod tells whether it is active in the current game with `pcall(ug_require, "<modId>::/<modId>_presence.lua")`. `make validate` warns when the marker is missing.
+- **Tests:** run only the tests of the mod being worked on (`make test MOD=mods/<id>`, plus `-f`/`-k` to narrow while iterating). Never run the full suite, including in subagents and before reporting. Another mod's tests are run only when its own files were edited (a mod and its DEV companion, such as `square_organic_towns` + `square_organic_towns_dev`, count as one when both are touched). A change to shared code (e.g. `tools/sqperf/`, the test harness) is the one exception: even then, run only the mods that use it, and only when the change alters behaviour (a State Names template change: one state's tests plus `make test-tools`). Otherwise leave them: their tests run the next time that mod is worked on.
+- **One full run per piece of work:** iterate with `-f`/`-k` in quick mode; run `make gate MOD=mods/<id>` (check, validate, `test --full`) once at the end, not `make test` and then the gate. A subagent puts the gate's summary lines in its report. The orchestrator does not re-run tests a subagent reported green: it reads the report. It runs them only when it edited the mod's files itself afterwards, and then the cache re-runs only the affected test files. Trust `cached`; use `--no-cache` only for timing runs.
+- **Writing tests:** a sweep over parameter combinations samples in quick mode and checks every case when `os.getenv("TEST_FULL")` is set (idiom: `STRIDE = FULL and 1 or 7`, still hitting every value of every param, the defaults and the extremes). Keep each test under ~8 s in full mode (split per entry or scale) so the runner can shard it. Read data files through `loadfile`/`dofile`/`io.open` and env vars through `os.getenv`, which the result cache tracks; a test that writes a file inside the repo is never cached (temp files outside it are fine).
 - Mods follow `docs/wiki/modding/general/guidelines.md`: no whitespace or special characters in names, lowercase preferred, UTF-8 without BOM, DDS textures with mipmaps, WAV at 16-bit/48 kHz, at most 500 MB.
 
 ## Translations
@@ -115,8 +108,9 @@ Mechanics and open in-game checks: `docs/findings.md` "Translations".
   and names the game supplies (industries, cargo, towns, lines, vehicles), which arrive localized.
 - `_metadata/modinfo.json` gets `"localization": { "<lang>": { "name", "summary" } }` for the 12 other languages
   (name ≤ 32, summary ≤ 100). No localized `description`: the Hub would concatenate it into the mod.io description.
-- Style: match the game's own wording where it has a term (`base/strings/<lang>/LC_MESSAGES/base.mo`). German writes
-  "ss", never "ß" (the game does: "Strasse"). ja/zh use full-width punctuation (`、`/`，` `：` `（）`), ko ASCII.
+- Style: match the game's own wording where it has a term (`base/strings/<lang>/LC_MESSAGES/base.mo` in the Steam install; not copied into `.cache/game`). German writes
+  real umlauts ("Städte", never "Staedte") and "ss", never "ß", as the game does ("Strasse"; its de base.mo has
+  ~6400 umlauts and 2 "ß"). ja/zh use full-width punctuation (`、`/`，` `：` `（）`), ko ASCII.
   Shared texts (On/Off, "Debug: performance log" and its SQPERF tooltip) reuse an existing mod's wording.
 - Layouts must fit longer text (de/ru/fr ~40% longer, CJK glyphs wide): size from the translated string, or wrap.
 - Translations are AI-written. Native-speaker corrections from players are welcome: apply them to `strings.json`.
@@ -136,51 +130,16 @@ every language too (`make tooltips MOD=mods/<id> ARGS=--fix` does mod.json param
 
 ## Releasing updates
 
-The user runs every `make modio*` command (1Password prompt); Claude asks for the pasted output.
-
-1. **Before:** `make modio-status` lists which mods differ from their live upload. "Needs a Hub update": ready.
-   "Changed, revision not bumped": bump `revision` in `mod.json` and add a Changelog entry to `description.html` first.
-2. **Upload** those mods in game: Mod Hub → My Mods. The upload dialog has a one-line **Changelog** field: for every
-   mod about to be uploaded, give the user a ready-to-paste line (plain text, about 150 characters at most, no
-   markup) summarising every Changelog entry in `description.html` newer than the live revision (`make modio-status`
-   shows it), e.g. "Rev 3: the vehicle list shows each vehicle's current cargo and load."
-3. **After:** `make modio ARGS=--diff` should say "in sync" (`--verify` also compares the slide bytes). The Hub
-   sends the description and keeps slides named `N-<hash>.png` intact, but an older stale description or `N.png`
-   slides need `make modio ARGS=--apply`. `make modio-status` should now say "Up to date". A fresh upload shows as
-   "Uploaded, waiting for mod.io" until mod.io's scan makes it live. See `docs/findings.md` "Mod Hub uploads and the
-   mod.io gallery".
-
-Changes to slides, the cover or the description alone need no Hub upload: just `make modio ARGS=--apply`.
+The user runs every `make modio*` command (1Password prompt); Claude asks for the pasted output. Checklist (modio-status, Hub upload, Changelog line, sync): the `release-mods` skill.
 
 ## Forks of other authors' mods (SQ Opt)
 
-To improve someone else's mod locally (e.g. performance) and keep taking the author's updates:
+Workflow (fork-new, FORK.md, merging, backup repo, measuring): the `sq-opt-forks` skill. Always:
 
-- `make subscribed`, then `make fork-new UP=<upstreamModId>`. This creates `mods/square_opt_<upstreamModId>/`, display name
-  `SQ Opt: <original name>` (32 chars max), revision 1, marked incompatible with the original, plus a fork-orange cover entry in
-  `branding/mods.js` (render with `make covers MOD=mods/<forkId>`; `branding/README.md` "Local forks"). In game, enable
-  the fork and disable the original.
-- The fork keeps upstream's file layout and changes as few lines as possible: every extra changed line is a future merge
-  conflict. Mark changed code `-- optimized:` and list each change, with its reason, in `plans/<forkId>/FORK.md`. That file
-  is the merge checklist.
-- Updates: `make subscribed` + `make fork-status`. For UPDATE AVAILABLE, use the `tf3-fork-merger` agent: three-way merge
-  against the upstream snapshot in `forks/<forkId>/base/`, conflict resolution, a FORK.md check, `make fork-finish`.
 - Third-party code stays out of this repo. `mods/square_opt_*`, `forks/`, `plans/*/original/` and `mods/square_aat_perftest/`
   are gitignored, and only `plans/<forkId>/` notes are committed. Never upload a fork to mod.io; send improvements to the author.
-- Those paths are backed up in a separate **private** repo (`git@github.com:dylanfisher/tf3-mods-private.git`): its git dir
-  is `.forks-git/` (gitignored here), its working tree is this directory (`core.worktree = ..`), and it tracks only
-  those paths. Plain `git` commands still mean the main repo; pass `--git-dir=.forks-git` for the backup. Save with
-  `make forks-save [MSG='...']` (adds with `-f`, since the main `.gitignore` ignores those paths; a new kind of
-  third-party path goes into `FORK_PATHS` in the Makefile), then `make forks-push`. Only when the user asks.
-- Measuring a change: build a DEV harness with both implementations behind a param and identical timers.
-  `mods/square_aat_perftest` with `plans/zhenya_auto_assign_terminals/PERFTEST.md` and `perf_report.py` is the example.
+- The fork backup repo (`.forks-git/`, private): plain `git` commands mean the main repo. `make forks-save` / `make forks-push` only when the user asks.
 
 ## Mod covers (square house style)
 
-Every mod gets a `_metadata/0.png` cover in the shared **Diagonal Split** look: family teal on the left with title and tagline, a dark field on the right with a flat pictogram in the mod's accent colour, and no creator logo. The full rules are in `branding/README.md`. Read it before drawing a pictogram.
-
-- New mod: add a `Square.register({...})` entry to `branding/mods.js` (id, name matching modinfo, tagline of up to 4 lines (about 32 characters wraps by itself; longer needs `\n` breaks, see `branding/README.md`), an accent distinct from the existing ones, and a pictogram built from the shared CSS classes and helpers). Preview it in `branding/index.html`, then run `make covers MOD=mods/<id>`.
-- Changing the look (palette, layout) happens only in `branding/cover.js`, followed by `make covers` for all mods. Don't hand-edit a single `0.png` or fork the style per mod.
-- After a mod is renamed, update its `name` in `mods.js` and re-render.
-- Gallery slides: drop full-screen captures into `plans/<id>/shots/` (named `NN-slug.jpg`), add a `Square.slides(...)` entry to `branding/shots.js` with crops of just the relevant part, then `make shots MOD=mods/<id>`. See `branding/README.md`.
-
+Every mod gets a `_metadata/0.png` cover in the shared house style, rendered from `branding/` (never hand-edit a `0.png`). New mod, rename, look change or gallery slides: the `mod-covers` skill and `branding/README.md`.

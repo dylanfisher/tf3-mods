@@ -48,13 +48,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 SQRL = re.compile(r"\[SQRL\] (?P<kind>[A-Z_]+) (?P<rest>.*)$")
 KV = re.compile(r"(\w+)=(\S*)")
 # finding kinds in the order sl_audit.lua lists them (A.KINDS); unknown ones sort after
-KINDS = ["squeeze", "shared", "shared_lit", "across", "ramp_ramp", "u_turn", "unfed", "turbo_gap", "dead",
+KINDS = ["squeeze", "shared", "shared_lit", "shared_open", "across", "ramp_ramp", "u_turn", "unfed", "turbo_gap", "dead",
          "bypassed_turn", "weave", "lights", "bad"]
 # kinds sl_audit.lua logs only under forced= because the rule makes them on purpose (never avoidable)
 BY_DESIGN = {
     "shared_lit": "an exit lane a straight movement shares with a turn from another approach at a crossroads "
                   "with traffic lights (the rule keeps its extra straight shares there: the movements run in "
                   "different phases; at unlit crossroads it drops them)",
+    "shared_open": "an exit lane of an open exit road (a street stop or the next junction within 80 m) where "
+                   "the far-side turns fan over the lanes and merge with the movements beside them",
     "turbo_gap": "the ring-out outer lane after a turbo ring's junction with exits and no entry (the outer lane "
                  "is exit-only there, so it stays empty up to the next entry, which joins without giving way)",
 }
@@ -264,7 +266,7 @@ def main() -> None:
     if rep.lines == 0 and not rep.summaries and not rep.skip_lines and not rep.summary_skips:
         where = ", ".join(map(str, paths))
         print(f"No [SQRL] AUDIT / SUMMARY / SKIP lines in {where}.")
-        print("Enable Smart Lanes (Apply automatically On), build junctions (e.g. the Stress Test's Junction test "
+        print("Enable Smart Lanes (Apply automatically to new roads On), build junctions (e.g. the Stress Test's Junction test "
               "and Crossing test) or pick them with the Smart Lanes tool, then run this again.")
         return
     print(render(rep, args.top), end="")

@@ -27,7 +27,8 @@ from hubconfig import MODS_DIR, ROOT  # noqa: E402
 from render_covers import find_chrome, png_size  # noqa: E402
 
 BRANDING = ROOT / "branding"
-MAX_SLIDES = 10  # 19 and 22 failed the Mod Hub upload with mod.io error 13003 FILE_TOO_MANY; 10 worked (docs/findings.md)
+MAX_SLIDES = 9  # 19 and 22 failed the Mod Hub upload with mod.io error 13003 FILE_TOO_MANY; 10 uploaded, but a Hub
+# upload left 10-slide galleries out of order on mod.io (slide 10 second); single-digit names stay in order (docs/findings.md)
 SLIDE_RE = re.compile(r"^(\d+)(?:-[0-9a-f]{8})?$")  # N.png or N-<hash>.png, as modio_sync.py reads them
 
 
@@ -80,7 +81,7 @@ def main() -> None:
             failed = failed or bool(args.mods)
             continue
         if counts[mod_id] > MAX_SLIDES:
-            print(f"skip    {mod_id}: {counts[mod_id]} slides in branding/shots.js, at most {MAX_SLIDES} upload (mod.io 13003)")
+            print(f"skip    {mod_id}: {counts[mod_id]} slides in branding/shots.js, at most {MAX_SLIDES} (more fail or mix up the Hub upload, docs/findings/publishing.md)")
             failed = True
             continue
         for old in meta.glob("*.png"):
