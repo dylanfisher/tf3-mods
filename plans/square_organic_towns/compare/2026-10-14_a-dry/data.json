@@ -1,0 +1,2352 @@
+{
+ "version": 2,
+ "single": true,
+ "seed": "a",
+ "built": "2026-10-14 16:07",
+ "header": {
+  "title": "Seed a, dry (desert): USA names, European style",
+  "h1": "Seed a, dry (desert): USA names, European style",
+  "seed": "a",
+  "subline": "Seed text <b>a</b> \u00b7 one run \u00b7 16 towns (SIMGROW) + 0 created by the mod",
+  "footer": "Images: in-game tour screenshots (the same camera per town), downscaled to JPEG. Metrics: dev mod <code>ALLTOWN</code> after the simulation and <code>SIMGROW town</code> lines. Data: <code>data.json</code>. Built by <code>plans/square_organic_towns/compare/build_compare.py</code>."
+ },
+ "runs": [
+  {
+   "id": "mod-2237-dry",
+   "label": "Mod 2237 dry: USA names, Town style European organic",
+   "dir": "mod-2237-dry",
+   "session": "2026-10-14_2237_sqot-dev",
+   "load": 4,
+   "kind": "mod",
+   "loadAt": "23:04:03",
+   "initS": 27.501687,
+   "simStart": "23:04:11",
+   "simStop": "23:06:06",
+   "init": "INIT on=true reason=- actOn=new region=EU regionSource=setting profile=MED_HILL forceGrid=false lookahead=2 nameList=::/names/usa/usa.names climate=::/climates/dry/dry.clima lock=shape fill=dose2 capsBoost=0 metropolis=auto_from_4000 townSize=game popDensity=1 upward=from1500 levels=pbAim4.5 meadows=on trees=on hangGuard=off params=act_on=2_style=3_lookahead=2_debug_log=2_test_grow=1_start_angle=1_town_layout=2_starting_town_size=1_industry_streets=2_town_names=1_strong_characters=1_satellite_towns=1",
+   "pre": [
+    "[SQOT] ANGLE choice=auto region=EU regionSource=setting nameList=::/names/usa/usa.names climate=::/climates/dry/dry.clima angle=0/0->35 initialRange=35 note=newMapGeneratorUnverified"
+   ],
+   "startLine": "[SQOT_DEV] SIMGROW start mode=quick chunks=- years=40 moveDate=false startYear=1960 upGap=- seed=1 pace=0 scope=all near=- limit=40 bias=true even=true tourWhenDone=true resume=false years=0 towns=16 none=0 slow=0 medium=6 fast=10 minWeight=0.05 stepsPerYear=4 cmdSteps=1 fastFill=true fillEvery=4 fillRatio=0.95 waitMain=true waitMaxS=15 buildRound=true roundBuilds=3 roundMaxS=20 inflight=24 reachM=700 mainPace=check0.25s_cooldownx0.10 speed=1->8 mainVisible=true mainPaused=false buildings=1878",
+   "stopLine": "[SQOT_DEV] SIMGROW stop reason=limit years=40 towns=16 steps=630 fills=157 fails=0 rounds=11 roundBuilds=173 buildings=1878->10496 s=115 sPerYear=2.9 mainPace=restored upGap=- speed=8->1 tour=true mode=quick fillEarly=147",
+   "years": [
+    {
+     "year": 1.0,
+     "s": 2.1,
+     "buildings": "1904(+26)",
+     "cap": "7108/8575(83%)",
+     "filled": "0",
+     "round": "17/16"
+    },
+    {
+     "year": 2.0,
+     "s": 0.6,
+     "buildings": "1923(+45)",
+     "cap": "7174/9793(73%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 3.0,
+     "s": 0.5,
+     "buildings": "1954(+76)",
+     "cap": "7312/11000(66%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 4.0,
+     "s": 10.5,
+     "buildings": "2948(+1070)",
+     "cap": "11087/12111(92%)",
+     "filled": "16",
+     "round": "22/16"
+    },
+    {
+     "year": 5.0,
+     "s": 0.5,
+     "buildings": "2970(+1092)",
+     "cap": "11168/13154(85%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 6.0,
+     "s": 0.6,
+     "buildings": "2997(+1119)",
+     "cap": "11238/14136(80%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 7.0,
+     "s": 0.4,
+     "buildings": "3033(+1155)",
+     "cap": "11371/15748(72%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 8.0,
+     "s": 8.2,
+     "buildings": "3858(+1980)",
+     "cap": "14633/15971(92%)",
+     "filled": "16",
+     "round": "16/16"
+    },
+    {
+     "year": 9.0,
+     "s": 0.6,
+     "buildings": "3881(+2003)",
+     "cap": "14682/16837(87%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 10.0,
+     "s": 0.6,
+     "buildings": "3907(+2029)",
+     "cap": "14771/17711(83%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 11.0,
+     "s": 0.6,
+     "buildings": "3926(+2048)",
+     "cap": "14823/18618(80%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 12.0,
+     "s": 8.0,
+     "buildings": "4680(+2802)",
+     "cap": "18070/19511(93%)",
+     "filled": "16",
+     "round": "16/16"
+    },
+    {
+     "year": 13.0,
+     "s": 0.5,
+     "buildings": "4702(+2824)",
+     "cap": "18174/20379(89%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 14.0,
+     "s": 0.5,
+     "buildings": "4720(+2842)",
+     "cap": "18238/21247(86%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 15.0,
+     "s": 0.5,
+     "buildings": "4734(+2856)",
+     "cap": "18305/22162(83%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 16.0,
+     "s": 8.3,
+     "buildings": "5288(+3410)",
+     "cap": "21811/23042(95%)",
+     "filled": "16",
+     "round": "12/16"
+    },
+    {
+     "year": 17.0,
+     "s": 0.5,
+     "buildings": "5306(+3428)",
+     "cap": "21854/26175(83%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 18.0,
+     "s": 0.4,
+     "buildings": "5327(+3449)",
+     "cap": "21946/24838(88%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 19.0,
+     "s": 0.5,
+     "buildings": "5347(+3469)",
+     "cap": "22013/25734(86%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 20.0,
+     "s": 8.5,
+     "buildings": "5958(+4080)",
+     "cap": "24993/26671(94%)",
+     "filled": "16",
+     "round": "14/16"
+    },
+    {
+     "year": 21.0,
+     "s": 0.6,
+     "buildings": "5965(+4087)",
+     "cap": "25007/27593(91%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 22.0,
+     "s": 0.5,
+     "buildings": "5984(+4106)",
+     "cap": "25060/32772(76%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 23.0,
+     "s": 0.5,
+     "buildings": "6009(+4131)",
+     "cap": "25152/29425(85%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 24.0,
+     "s": 8.3,
+     "buildings": "6655(+4777)",
+     "cap": "27921/30358(92%)",
+     "filled": "15",
+     "round": "10/16"
+    },
+    {
+     "year": 25.0,
+     "s": 0.6,
+     "buildings": "6673(+4795)",
+     "cap": "28025/31330(89%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 26.0,
+     "s": 0.4,
+     "buildings": "6695(+4817)",
+     "cap": "28098/32322(87%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 27.0,
+     "s": 0.5,
+     "buildings": "6708(+4830)",
+     "cap": "28121/33306(84%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 28.0,
+     "s": 9.1,
+     "buildings": "7549(+5671)",
+     "cap": "31577/34288(92%)",
+     "filled": "16",
+     "round": "13/16"
+    },
+    {
+     "year": 29.0,
+     "s": 0.6,
+     "buildings": "7555(+5677)",
+     "cap": "31545/35277(89%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 30.0,
+     "s": 0.6,
+     "buildings": "7580(+5702)",
+     "cap": "31639/36280(87%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 31.0,
+     "s": 0.6,
+     "buildings": "7593(+5715)",
+     "cap": "31664/37321(85%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 32.0,
+     "s": 11.5,
+     "buildings": "8664(+6786)",
+     "cap": "35906/38409(93%)",
+     "filled": "16",
+     "round": "13/16"
+    },
+    {
+     "year": 33.0,
+     "s": 0.6,
+     "buildings": "8681(+6803)",
+     "cap": "35969/39453(91%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 34.0,
+     "s": 0.7,
+     "buildings": "8698(+6820)",
+     "cap": "36029/40493(89%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 35.0,
+     "s": 0.6,
+     "buildings": "8717(+6839)",
+     "cap": "36100/41533(87%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 36.0,
+     "s": 12.6,
+     "buildings": "9693(+7815)",
+     "cap": "39972/42589(94%)",
+     "filled": "16",
+     "round": "22/16"
+    },
+    {
+     "year": 37.0,
+     "s": 0.6,
+     "buildings": "9695(+7817)",
+     "cap": "39987/43651(92%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 38.0,
+     "s": 0.6,
+     "buildings": "9709(+7831)",
+     "cap": "40039/61109(66%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 39.0,
+     "s": 0.6,
+     "buildings": "9727(+7849)",
+     "cap": "40105/45757(88%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 40.0,
+     "s": 11.9,
+     "buildings": "10496(+8618)",
+     "cap": "43420/46803(93%)",
+     "filled": "14",
+     "round": "18/16"
+    }
+   ],
+   "seed": "a",
+   "counts": {
+    "checkWhy": {
+     "open": 18,
+     "demand": 308,
+     "ahead": 24
+    },
+    "builds": {
+     "head": 1,
+     "demand": 188
+    },
+    "builtEdges": {
+     "head": 12,
+     "demand": 1031
+    },
+    "satBuilt": 3,
+    "satWhy": {
+     "noSite": 4,
+     "rare": 5,
+     "hamlet:hamletFallback": 1,
+     "seeded": 2
+    },
+    "districts": 0,
+    "districtsLinked": 0,
+    "districtNone": {
+     "character": 4,
+     "deep": 3,
+     "forest": 4,
+     "rare": 2
+    },
+    "works": 0,
+    "worksLinked": 0,
+    "worksNone": {
+     "character": 4,
+     "deep": 3,
+     "rare": 8
+    },
+    "levelsSet": 1,
+    "levelsClear": 0,
+    "bridgesBuilt": 0,
+    "bridgesRefused": 0,
+    "coastal": 0,
+    "straightCut": 1,
+    "upwardDoses": 6
+   }
+  }
+ ],
+ "towns": [
+  {
+   "nn": "01",
+   "ids": {
+    "mod-2237-dry": 81932
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Las Lomas",
+     "startName": "Las Lomas",
+     "buildingsStart": 66.0,
+     "buildingsEnd": 645.0,
+     "personsStart": 275.0,
+     "personsEnd": 2005.0,
+     "targetEnd": 2061.0,
+     "targetShare": 0.973,
+     "growthBuildings": 9.77,
+     "growthPersons": 7.29,
+     "factor": "1.00->7.49",
+     "rate": 1.54,
+     "class": "fast",
+     "r": 402,
+     "rPerSqrtB": 15.8,
+     "dens": 12.7,
+     "spread": 1.02,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.26/0.29/0.15",
+     "capacity": 1982.0,
+     "edges": 309.0,
+     "streetLen": 16242.0,
+     "emptyLen": 4941.0,
+     "emptyEdges": 108.0,
+     "emptyEdgePct": 35.0,
+     "emptyLenPct": 30.4,
+     "deadEnds": 21.0,
+     "pb": 3.07,
+     "freeLotsPct": 65.4,
+     "streetPerBuilding": 25.2,
+     "edgesPer100B": 47.9,
+     "style": "EU_ORGANIC",
+     "form": "clustered",
+     "shape": "compact",
+     "motifs": "culdesac_pods:1.00:saved",
+     "forest": "0.46:clear",
+     "ind": "0/0",
+     "lvl": "a:64/16/20/0,u:36/29/23/12,w:54/25/21/0,c:0.103676/0.0483271/0.0413052/0",
+     "lvlActual": "64/16/20/0",
+     "orth": 0.26,
+     "lvl2Pct": 16.0,
+     "lvl34Pct": 20.0,
+     "x": -6884.0,
+     "y": 2428.0,
+     "shot": "mod-2237-dry/01-las-lomas.jpg",
+     "personsPerHa": 39.5,
+     "streetPerPerson": 8.1,
+     "deadEndsPerKm": 1.29,
+     "modShare": 42.1
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 130,
+     "builds": 17,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 2,
+      "demand": 17,
+      "ahead": 10
+     },
+     "matLast": 0.11,
+     "demKLast": 0.91,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.49,
+     "forestShareLast": 0.46,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "02",
+   "ids": {
+    "mod-2237-dry": 81933
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Warrenville",
+     "startName": "Warrenville",
+     "buildingsStart": 93.0,
+     "buildingsEnd": 543.0,
+     "personsStart": 340.0,
+     "personsEnd": 2145.0,
+     "targetEnd": 2196.0,
+     "targetShare": 0.977,
+     "growthBuildings": 5.84,
+     "growthPersons": 6.31,
+     "factor": "1.00->6.46",
+     "rate": 1.51,
+     "class": "fast",
+     "r": 382,
+     "rPerSqrtB": 16.4,
+     "dens": 11.8,
+     "spread": 1.09,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.32/0.21/0.23",
+     "capacity": 2184.0,
+     "edges": 221.0,
+     "streetLen": 11943.0,
+     "emptyLen": 3120.0,
+     "emptyEdges": 67.0,
+     "emptyEdgePct": 30.3,
+     "emptyLenPct": 26.1,
+     "deadEnds": 27.0,
+     "pb": 4.02,
+     "freeLotsPct": 55.8,
+     "streetPerBuilding": 22.0,
+     "edgesPer100B": 40.7,
+     "style": "MED_HILL",
+     "form": "fingers",
+     "shape": "fingers",
+     "motifs": "ribbon_village:1.00:saved,hill_climb:1.00:saved,crescent:1.00:derived",
+     "forest": "0.50:clear",
+     "ind": "0/0",
+     "lvl": "a:42/22/36/0,u:35/28/22/14,w:35/28/22/14,c:-",
+     "lvlActual": "42/22/36/0",
+     "orth": 0.32,
+     "lvl2Pct": 22.0,
+     "lvl34Pct": 36.0,
+     "x": 1936.0,
+     "y": 5320.0,
+     "shot": "mod-2237-dry/02-warrenville.jpg",
+     "personsPerHa": 46.7,
+     "streetPerPerson": 5.57,
+     "deadEndsPerKm": 2.26,
+     "modShare": 49.3
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 109,
+     "builds": 22,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 28,
+      "open": 1,
+      "ahead": 2
+     },
+     "matLast": 0.21,
+     "demKLast": 0.82,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.52,
+     "forestShareLast": 0.5,
+     "forestReads": 6
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "03",
+   "ids": {
+    "mod-2237-dry": 81934
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Lyman Flats",
+     "startName": "Lyman Flats",
+     "buildingsStart": 125.0,
+     "buildingsEnd": 599.0,
+     "personsStart": 560.0,
+     "personsEnd": 2947.0,
+     "targetEnd": 3004.0,
+     "targetShare": 0.981,
+     "growthBuildings": 4.79,
+     "growthPersons": 5.26,
+     "factor": "1.00->5.36",
+     "rate": 1.12,
+     "class": "medium",
+     "r": 415,
+     "rPerSqrtB": 17.0,
+     "dens": 11.1,
+     "spread": 1.13,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.26/0.13/0.24",
+     "capacity": 2961.0,
+     "edges": 139.0,
+     "streetLen": 10739.0,
+     "emptyLen": 1458.0,
+     "emptyEdges": 23.0,
+     "emptyEdgePct": 16.5,
+     "emptyLenPct": 13.6,
+     "deadEnds": 8.0,
+     "pb": 4.94,
+     "freeLotsPct": 46.9,
+     "streetPerBuilding": 17.9,
+     "edgesPer100B": 23.2,
+     "style": "MED_HILL",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "hill_climb:0.20:saved,crescent:1.00:derived",
+     "forest": "0.31:hug",
+     "ind": "0/0",
+     "lvl": "a:37/25/38/0,u:34/27/22/17,w:34/27/22/17,c:-",
+     "lvlActual": "37/25/38/0",
+     "orth": 0.26,
+     "lvl2Pct": 25.0,
+     "lvl34Pct": 38.0,
+     "x": -936.0,
+     "y": 6420.0,
+     "shot": "mod-2237-dry/03-lyman-flats.jpg",
+     "personsPerHa": 54.4,
+     "streetPerPerson": 3.64,
+     "deadEndsPerKm": 0.74,
+     "modShare": 14.4
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 20,
+     "builds": 4,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 13,
+      "open": 1,
+      "ahead": 1
+     },
+     "matLast": 0.53,
+     "demKLast": 1.0,
+     "matHalfAt": "2741",
+     "levelsSkip": "dense",
+     "satellites": 0,
+     "forestShareFirst": 0.31,
+     "forestShareLast": 0.31,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "04",
+   "ids": {
+    "mod-2237-dry": 81935
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Lower Pine Forks",
+     "startName": "Lower Pine Forks",
+     "buildingsStart": 101.0,
+     "buildingsEnd": 829.0,
+     "personsStart": 392.0,
+     "personsEnd": 2662.0,
+     "targetEnd": 2728.0,
+     "targetShare": 0.976,
+     "growthBuildings": 8.21,
+     "growthPersons": 6.79,
+     "factor": "1.00->6.96",
+     "rate": 1.54,
+     "class": "fast",
+     "r": 525,
+     "rPerSqrtB": 18.2,
+     "dens": 9.6,
+     "spread": 1.14,
+     "beyondPct": 1.0,
+     "lobes": 1.0,
+     "orient": "0.27/0.20/0.18",
+     "capacity": 2630.0,
+     "edges": 277.0,
+     "streetLen": 17730.0,
+     "emptyLen": 3538.0,
+     "emptyEdges": 62.0,
+     "emptyEdgePct": 22.4,
+     "emptyLenPct": 20.0,
+     "deadEnds": 26.0,
+     "pb": 3.17,
+     "freeLotsPct": 53.3,
+     "streetPerBuilding": 21.4,
+     "edgesPer100B": 33.4,
+     "style": "MED_HILL",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "ribbon_village:0.41:saved,crescent:1.00:derived,hill_road:1.00:derived",
+     "forest": "0.39:deep",
+     "ind": "0/0",
+     "lvl": "a:67/33/0/0,u:34/27/22/17,w:64/35/1/0,c:0.0745299/0.0406838/0.000683761/0",
+     "lvlActual": "67/33/0/0",
+     "orth": 0.27,
+     "lvl2Pct": 33.0,
+     "lvl34Pct": 0,
+     "x": 6616.0,
+     "y": -4752.0,
+     "shot": "mod-2237-dry/04-lower-pine-forks.jpg",
+     "personsPerHa": 30.8,
+     "streetPerPerson": 6.66,
+     "deadEndsPerKm": 1.47,
+     "modShare": 27.8
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 77,
+     "builds": 16,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 23,
+      "open": 1
+     },
+     "matLast": 0.44,
+     "demKLast": 0.75,
+     "matHalfAt": null,
+     "levelsSkip": "deep",
+     "satellites": 0,
+     "forestShareFirst": 0.45,
+     "forestShareLast": 0.39,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "05",
+   "ids": {
+    "mod-2237-dry": 81936
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Ellisfield",
+     "startName": "Ellisfield",
+     "buildingsStart": 71.0,
+     "buildingsEnd": 387.0,
+     "personsStart": 258.0,
+     "personsEnd": 1101.0,
+     "targetEnd": 1120.0,
+     "targetShare": 0.983,
+     "growthBuildings": 5.45,
+     "growthPersons": 4.27,
+     "factor": "1.00->4.34",
+     "rate": 1.25,
+     "class": "medium",
+     "r": 356,
+     "rPerSqrtB": 18.1,
+     "dens": 9.7,
+     "spread": 1.15,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.18/0.20/0.14",
+     "capacity": 1104.0,
+     "edges": 191.0,
+     "streetLen": 12314.0,
+     "emptyLen": 4977.0,
+     "emptyEdges": 84.0,
+     "emptyEdgePct": 44.0,
+     "emptyLenPct": 40.4,
+     "deadEnds": 22.0,
+     "pb": 2.85,
+     "freeLotsPct": 62.2,
+     "streetPerBuilding": 31.8,
+     "edgesPer100B": 49.4,
+     "style": "EU_ORGANIC",
+     "form": "radiating",
+     "shape": "cross",
+     "motifs": "village_green:1.00:saved,crescent:1.00:derived",
+     "forest": "0.46:hug",
+     "ind": "0/0",
+     "lvl": "a:100/0/0/0,u:42/34/24/0,w:100/0/0/0,c:0.647059/0/0/0",
+     "lvlActual": "100/0/0/0",
+     "orth": 0.18,
+     "lvl2Pct": 0.0,
+     "lvl34Pct": 0,
+     "x": -3512.0,
+     "y": -820.0,
+     "shot": "mod-2237-dry/05-ellisfield.jpg",
+     "personsPerHa": 27.6,
+     "streetPerPerson": 11.18,
+     "deadEndsPerKm": 1.79,
+     "modShare": 36.6
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 70,
+     "builds": 14,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 2,
+      "demand": 20,
+      "ahead": 2
+     },
+     "matLast": 0.0,
+     "demKLast": 1.0,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.48,
+     "forestShareLast": 0.46,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "06",
+   "ids": {
+    "mod-2237-dry": 81937
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Alkaliboro",
+     "startName": "Alkaliboro",
+     "buildingsStart": 152.0,
+     "buildingsEnd": 577.0,
+     "personsStart": 535.0,
+     "personsEnd": 1691.0,
+     "targetEnd": 1715.0,
+     "targetShare": 0.986,
+     "growthBuildings": 3.8,
+     "growthPersons": 3.16,
+     "factor": "1.00->3.44",
+     "rate": 1.07,
+     "class": "medium",
+     "r": 475,
+     "rPerSqrtB": 19.8,
+     "dens": 8.2,
+     "spread": 1.24,
+     "beyondPct": 2.0,
+     "lobes": 1.0,
+     "orient": "0.24/0.25/0.14",
+     "capacity": 1688.0,
+     "edges": 289.0,
+     "streetLen": 16170.0,
+     "emptyLen": 5069.0,
+     "emptyEdges": 105.0,
+     "emptyEdgePct": 36.3,
+     "emptyLenPct": 31.3,
+     "deadEnds": 22.0,
+     "pb": 2.93,
+     "freeLotsPct": 63.9,
+     "streetPerBuilding": 28.0,
+     "edgesPer100B": 50.1,
+     "style": "MED_HILL",
+     "form": "sprawling",
+     "shape": "compact",
+     "motifs": "crossroads_hamlet:1.00:saved,crescent:1.00:derived",
+     "forest": "0.40:hug",
+     "ind": "0/0",
+     "lvl": "a:76/24/0/0,u:38/30/24/8,w:74/26/0/0,c:0.641667/0.225/0/0",
+     "lvlActual": "76/24/0/0",
+     "orth": 0.24,
+     "lvl2Pct": 24.0,
+     "lvl34Pct": 0,
+     "x": -6436.0,
+     "y": -7380.0,
+     "shot": "mod-2237-dry/06-alkaliboro.jpg",
+     "personsPerHa": 23.9,
+     "streetPerPerson": 9.56,
+     "deadEndsPerKm": 1.36,
+     "modShare": 39.8
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 115,
+     "builds": 26,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 29,
+      "open": 2
+     },
+     "matLast": 0.0,
+     "demKLast": 1.0,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.44,
+     "forestShareLast": 0.4,
+     "forestReads": 7
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "07",
+   "ids": {
+    "mod-2237-dry": 81938
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Hadleyboro",
+     "startName": "Hadleyboro",
+     "buildingsStart": 93.0,
+     "buildingsEnd": 496.0,
+     "personsStart": 357.0,
+     "personsEnd": 2281.0,
+     "targetEnd": 2326.0,
+     "targetShare": 0.981,
+     "growthBuildings": 5.33,
+     "growthPersons": 6.39,
+     "factor": "1.00->6.52",
+     "rate": 1.45,
+     "class": "fast",
+     "r": 413,
+     "rPerSqrtB": 18.5,
+     "dens": 9.3,
+     "spread": 1.18,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.26/0.26/0.16",
+     "capacity": 2288.0,
+     "edges": 159.0,
+     "streetLen": 10894.0,
+     "emptyLen": 2376.0,
+     "emptyEdges": 38.0,
+     "emptyEdgePct": 23.9,
+     "emptyLenPct": 21.8,
+     "deadEnds": 16.0,
+     "pb": 4.61,
+     "freeLotsPct": 54.8,
+     "streetPerBuilding": 22.0,
+     "edgesPer100B": 32.1,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "culdesac_pods:1.00:saved,crescent:1.00:derived,hill_road:1.00:derived",
+     "forest": "0.34:hug",
+     "ind": "0/0",
+     "lvl": "a:40/23/37/0,u:35/28/22/15,w:35/28/22/15,c:-",
+     "lvlActual": "40/23/37/0",
+     "orth": 0.26,
+     "lvl2Pct": 23.0,
+     "lvl34Pct": 37.0,
+     "x": -1576.0,
+     "y": -2304.0,
+     "shot": "mod-2237-dry/07-hadleyboro.jpg",
+     "personsPerHa": 42.6,
+     "streetPerPerson": 4.78,
+     "deadEndsPerKm": 1.47,
+     "modShare": 25.8
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 41,
+     "builds": 5,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 13,
+      "open": 1,
+      "ahead": 2
+     },
+     "matLast": 0.15,
+     "demKLast": 0.88,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.34,
+     "forestShareLast": 0.34,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "08",
+   "ids": {
+    "mod-2237-dry": 81939
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Grand Flats",
+     "startName": "Grand Flats",
+     "buildingsStart": 172.0,
+     "buildingsEnd": 966.0,
+     "personsStart": 709.0,
+     "personsEnd": 3249.0,
+     "targetEnd": 3320.0,
+     "targetShare": 0.979,
+     "growthBuildings": 5.62,
+     "growthPersons": 4.58,
+     "factor": "1.00->4.71",
+     "rate": 1.17,
+     "class": "medium",
+     "r": 564,
+     "rPerSqrtB": 18.2,
+     "dens": 9.7,
+     "spread": 1.17,
+     "beyondPct": 1.0,
+     "lobes": 1.0,
+     "orient": "0.23/0.15/0.17",
+     "capacity": 3038.0,
+     "edges": 268.0,
+     "streetLen": 20989.0,
+     "emptyLen": 4447.0,
+     "emptyEdges": 56.0,
+     "emptyEdgePct": 20.9,
+     "emptyLenPct": 21.2,
+     "deadEnds": 34.0,
+     "pb": 3.14,
+     "freeLotsPct": 56.4,
+     "streetPerBuilding": 21.7,
+     "edgesPer100B": 27.7,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "ribbon_village:1.00:saved,crossroads_hamlet:1.00:saved,crescent:1.00:derived",
+     "forest": "0.52:deep",
+     "ind": "0/0",
+     "lvl": "a:76/24/0/0,u:34/27/22/17,w:76/24/0/0,c:0.139101/0.0435662/0/0",
+     "lvlActual": "76/24/0/0",
+     "orth": 0.23,
+     "lvl2Pct": 24.0,
+     "lvl34Pct": 0,
+     "x": 4084.0,
+     "y": 7076.0,
+     "shot": "mod-2237-dry/08-grand-flats.jpg",
+     "personsPerHa": 32.5,
+     "streetPerPerson": 6.46,
+     "deadEndsPerKm": 1.62,
+     "modShare": 18.7
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 50,
+     "builds": 6,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 15,
+      "open": 1,
+      "ahead": 1
+     },
+     "matLast": 0.7,
+     "demKLast": 0.43,
+     "matHalfAt": "2810",
+     "levelsSkip": "deep",
+     "satellites": 1,
+     "forestShareFirst": 0.52,
+     "forestShareLast": 0.52,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "09",
+   "ids": {
+    "mod-2237-dry": 81940
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Tuckerville",
+     "startName": "Tuckerville",
+     "buildingsStart": 141.0,
+     "buildingsEnd": 845.0,
+     "personsStart": 644.0,
+     "personsEnd": 2856.0,
+     "targetEnd": 2915.0,
+     "targetShare": 0.98,
+     "growthBuildings": 5.99,
+     "growthPersons": 4.43,
+     "factor": "1.00->4.55",
+     "rate": 1.24,
+     "class": "medium",
+     "r": 507,
+     "rPerSqrtB": 17.5,
+     "dens": 10.4,
+     "spread": 1.15,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.26/0.19/0.18",
+     "capacity": 2657.0,
+     "edges": 309.0,
+     "streetLen": 21107.0,
+     "emptyLen": 6658.0,
+     "emptyEdges": 107.0,
+     "emptyEdgePct": 34.6,
+     "emptyLenPct": 31.5,
+     "deadEnds": 27.0,
+     "pb": 3.14,
+     "freeLotsPct": 57.6,
+     "streetPerBuilding": 25.0,
+     "edgesPer100B": 36.6,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "ribbon_village:1.00:saved,crescent:1.00:derived",
+     "forest": "0.44:deep",
+     "ind": "0/0",
+     "lvl": "a:76/24/0/0,u:34/27/22/17,w:76/24/0/0,c:0.143718/0.0455431/0/0",
+     "lvlActual": "76/24/0/0",
+     "orth": 0.26,
+     "lvl2Pct": 24.0,
+     "lvl34Pct": 0,
+     "x": 3816.0,
+     "y": -6364.0,
+     "shot": "mod-2237-dry/09-tuckerville.jpg",
+     "personsPerHa": 35.3,
+     "streetPerPerson": 7.39,
+     "deadEndsPerKm": 1.28,
+     "modShare": 28.5
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 88,
+     "builds": 18,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 25,
+      "open": 1,
+      "ahead": 1
+     },
+     "matLast": 0.48,
+     "demKLast": 0.61,
+     "matHalfAt": null,
+     "levelsSkip": "deep",
+     "satellites": 1,
+     "forestShareFirst": 0.47,
+     "forestShareLast": 0.44,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "10",
+   "ids": {
+    "mod-2237-dry": 81941
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Mesa Butte",
+     "startName": "Mesa Butte",
+     "buildingsStart": 74.0,
+     "buildingsEnd": 551.0,
+     "personsStart": 316.0,
+     "personsEnd": 1780.0,
+     "targetEnd": 1823.0,
+     "targetShare": 0.976,
+     "growthBuildings": 7.45,
+     "growthPersons": 5.63,
+     "factor": "1.00->5.77",
+     "rate": 1.01,
+     "class": "medium",
+     "r": 497,
+     "rPerSqrtB": 21.2,
+     "dens": 7.1,
+     "spread": 1.31,
+     "beyondPct": 6.0,
+     "lobes": 1.0,
+     "orient": "0.36/0.27/0.18",
+     "capacity": 1815.0,
+     "edges": 172.0,
+     "streetLen": 10280.0,
+     "emptyLen": 1216.0,
+     "emptyEdges": 24.0,
+     "emptyEdgePct": 14.0,
+     "emptyLenPct": 11.8,
+     "deadEnds": 21.0,
+     "pb": 3.29,
+     "freeLotsPct": 52.4,
+     "streetPerBuilding": 18.7,
+     "edgesPer100B": 31.2,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "crescent:1.00:derived,hill_road:1.00:derived",
+     "forest": "0.29:clear",
+     "ind": "0/0",
+     "lvl": "a:59/30/12/0,u:38/30/24/8,w:52/36/12/0,c:0.124031/0.0852713/0.0290698/0",
+     "lvlActual": "59/30/12/0",
+     "orth": 0.36,
+     "lvl2Pct": 30.0,
+     "lvl34Pct": 12.0,
+     "x": 4744.0,
+     "y": -1924.0,
+     "shot": "mod-2237-dry/10-mesa-butte.jpg",
+     "personsPerHa": 22.9,
+     "streetPerPerson": 5.78,
+     "deadEndsPerKm": 2.04,
+     "modShare": 44.2
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 76,
+     "builds": 11,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 19,
+      "open": 1,
+      "ahead": 2
+     },
+     "matLast": 0.01,
+     "demKLast": 1.0,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.29,
+     "forestShareLast": 0.29,
+     "forestReads": 4
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "11",
+   "ids": {
+    "mod-2237-dry": 81942
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Mirrorton Cove",
+     "startName": "Mirrorton Cove",
+     "buildingsStart": 82.0,
+     "buildingsEnd": 392.0,
+     "personsStart": 284.0,
+     "personsEnd": 1467.0,
+     "targetEnd": 1494.0,
+     "targetShare": 0.982,
+     "growthBuildings": 4.78,
+     "growthPersons": 5.17,
+     "factor": "1.00->5.26",
+     "rate": 1.44,
+     "class": "fast",
+     "r": 337,
+     "rPerSqrtB": 17.0,
+     "dens": 11.0,
+     "spread": 1.09,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.29/0.29/0.20",
+     "capacity": 1479.0,
+     "edges": 152.0,
+     "streetLen": 9020.0,
+     "emptyLen": 2514.0,
+     "emptyEdges": 54.0,
+     "emptyEdgePct": 35.5,
+     "emptyLenPct": 27.9,
+     "deadEnds": 14.0,
+     "pb": 3.77,
+     "freeLotsPct": 56.9,
+     "streetPerBuilding": 23.0,
+     "edgesPer100B": 38.8,
+     "style": "MED_HILL",
+     "form": "clustered",
+     "shape": "compact",
+     "motifs": "harbour_crescent:1.00:saved,ribbon_village:1.00:saved",
+     "forest": "0.25:hug",
+     "ind": "0/0",
+     "lvl": "a:48/25/27/0,u:39/31/30/0,w:39/31/30/0,c:-",
+     "lvlActual": "48/25/27/0",
+     "orth": 0.29,
+     "lvl2Pct": 25.0,
+     "lvl34Pct": 27.0,
+     "x": -6792.0,
+     "y": -1368.0,
+     "shot": "mod-2237-dry/11-mirrorton-cove.jpg",
+     "personsPerHa": 41.2,
+     "streetPerPerson": 6.15,
+     "deadEndsPerKm": 1.55,
+     "modShare": 30.9
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 47,
+     "builds": 12,
+     "failed": 0,
+     "straight": 1,
+     "levels": null,
+     "checkWhy": {
+      "demand": 21,
+      "open": 1
+     },
+     "matLast": 0.0,
+     "demKLast": 1.0,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.28,
+     "forestShareLast": 0.25,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "12",
+   "ids": {
+    "mod-2237-dry": 81943
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Otterford Heights",
+     "startName": "Otterford Heights",
+     "buildingsStart": 233.0,
+     "buildingsEnd": 907.0,
+     "personsStart": 991.0,
+     "personsEnd": 9552.0,
+     "targetEnd": 9844.0,
+     "targetShare": 0.97,
+     "growthBuildings": 3.89,
+     "growthPersons": 9.64,
+     "factor": "1.00->9.93",
+     "rate": 1.81,
+     "class": "fast",
+     "r": 1209,
+     "rPerSqrtB": 40.1,
+     "dens": 2.0,
+     "spread": 4.09,
+     "beyondPct": 62.0,
+     "lobes": 2.0,
+     "orient": "0.24/0.18/0.23",
+     "capacity": 7439.0,
+     "edges": 230.0,
+     "streetLen": 17494.0,
+     "emptyLen": 4387.0,
+     "emptyEdges": 59.0,
+     "emptyEdgePct": 25.7,
+     "emptyLenPct": 25.1,
+     "deadEnds": 16.0,
+     "pb": 8.2,
+     "freeLotsPct": 59.4,
+     "streetPerBuilding": 19.3,
+     "edgesPer100B": 25.4,
+     "style": "MED_HILL",
+     "form": "clustered",
+     "shape": "compact",
+     "motifs": "headland_street:0.68:drawn",
+     "forest": "0.34:hug",
+     "ind": "0/0",
+     "lvl": "a:0/18/82/0,u:34/27/22/17,w:16/21/27/36,c:0.455/0.592/0.769/1",
+     "lvlActual": "0/18/82/0",
+     "orth": 0.24,
+     "lvl2Pct": 18.0,
+     "lvl34Pct": 82.0,
+     "x": -240.0,
+     "y": -36.0,
+     "shot": "mod-2237-dry/12-otterford-heights.jpg",
+     "personsPerHa": 20.8,
+     "streetPerPerson": 1.83,
+     "deadEndsPerKm": 0.91,
+     "modShare": 0.9
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 2,
+     "builds": 1,
+     "failed": 0,
+     "straight": 0,
+     "levels": "set k=0.50 pb=6.35",
+     "checkWhy": {
+      "demand": 13
+     },
+     "matLast": 1.0,
+     "demKLast": 0.18,
+     "matHalfAt": "3419",
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.34,
+     "forestShareLast": 0.34,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "13",
+   "ids": {
+    "mod-2237-dry": 81944
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Port Turkey",
+     "startName": "Port Turkey",
+     "buildingsStart": 129.0,
+     "buildingsEnd": 771.0,
+     "personsStart": 446.0,
+     "personsEnd": 3022.0,
+     "targetEnd": 3091.0,
+     "targetShare": 0.978,
+     "growthBuildings": 5.98,
+     "growthPersons": 6.78,
+     "factor": "1.00->6.93",
+     "rate": 1.87,
+     "class": "fast",
+     "r": 476,
+     "rPerSqrtB": 17.1,
+     "dens": 10.8,
+     "spread": 1.58,
+     "beyondPct": 5.0,
+     "lobes": 1.0,
+     "orient": "0.37/0.16/0.21",
+     "capacity": 3062.0,
+     "edges": 200.0,
+     "streetLen": 15050.0,
+     "emptyLen": 3291.0,
+     "emptyEdges": 46.0,
+     "emptyEdgePct": 23.0,
+     "emptyLenPct": 21.9,
+     "deadEnds": 23.0,
+     "pb": 3.97,
+     "freeLotsPct": 52.1,
+     "streetPerBuilding": 19.5,
+     "edgesPer100B": 25.9,
+     "style": "MED_HILL",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "hill_climb:1.00:saved,crescent:1.00:derived",
+     "forest": "0.29:hug",
+     "ind": "0/0",
+     "lvl": "a:42/21/36/0,u:34/27/22/17,w:38/24/38/0,c:0.0540243/0.0336273/0.0530595/0",
+     "lvlActual": "42/21/36/0",
+     "orth": 0.37,
+     "lvl2Pct": 21.0,
+     "lvl34Pct": 36.0,
+     "x": -368.0,
+     "y": -6284.0,
+     "shot": "mod-2237-dry/13-port-turkey.jpg",
+     "personsPerHa": 42.4,
+     "streetPerPerson": 4.98,
+     "deadEndsPerKm": 1.53,
+     "modShare": 10.5
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 21,
+     "builds": 3,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 14,
+      "open": 1
+     },
+     "matLast": 0.7,
+     "demKLast": 0.76,
+     "matHalfAt": "2820",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.29,
+     "forestShareLast": 0.29,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "14",
+   "ids": {
+    "mod-2237-dry": 81945
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "San Felipe",
+     "startName": "San Felipe",
+     "buildingsStart": 92.0,
+     "buildingsEnd": 591.0,
+     "personsStart": 340.0,
+     "personsEnd": 2574.0,
+     "targetEnd": 2647.0,
+     "targetShare": 0.972,
+     "growthBuildings": 6.42,
+     "growthPersons": 7.57,
+     "factor": "1.00->7.79",
+     "rate": 1.84,
+     "class": "fast",
+     "r": 472,
+     "rPerSqrtB": 19.4,
+     "dens": 8.5,
+     "spread": 1.21,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.42/0.26/0.20",
+     "capacity": 2604.0,
+     "edges": 192.0,
+     "streetLen": 13392.0,
+     "emptyLen": 3540.0,
+     "emptyEdges": 51.0,
+     "emptyEdgePct": 26.6,
+     "emptyLenPct": 26.4,
+     "deadEnds": 17.0,
+     "pb": 4.41,
+     "freeLotsPct": 59.3,
+     "streetPerBuilding": 22.7,
+     "edgesPer100B": 32.5,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "ribbon_village:0.41:saved,crescent:1.00:derived,hill_road:1.00:derived",
+     "forest": "0.35:clear",
+     "ind": "0/0",
+     "lvl": "a:36/25/39/0,u:34/27/22/17,w:34/27/22/17,c:-",
+     "lvlActual": "36/25/39/0",
+     "orth": 0.42,
+     "lvl2Pct": 25.0,
+     "lvl34Pct": 39.0,
+     "x": -7200.0,
+     "y": 5524.0,
+     "shot": "mod-2237-dry/14-san-felipe.jpg",
+     "personsPerHa": 36.8,
+     "streetPerPerson": 5.2,
+     "deadEndsPerKm": 1.27,
+     "modShare": 34.4
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 66,
+     "builds": 13,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 22,
+      "open": 1,
+      "ahead": 1
+     },
+     "matLast": 0.45,
+     "demKLast": 0.63,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.39,
+     "forestShareLast": 0.35,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "15",
+   "ids": {
+    "mod-2237-dry": 81946
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Middle Fork",
+     "startName": "Middle Fork",
+     "buildingsStart": 134.0,
+     "buildingsEnd": 663.0,
+     "personsStart": 469.0,
+     "personsEnd": 2791.0,
+     "targetEnd": 2863.0,
+     "targetShare": 0.975,
+     "growthBuildings": 4.95,
+     "growthPersons": 5.95,
+     "factor": "1.00->6.10",
+     "rate": 1.55,
+     "class": "fast",
+     "r": 472,
+     "rPerSqrtB": 18.3,
+     "dens": 9.5,
+     "spread": 1.24,
+     "beyondPct": 4.0,
+     "lobes": 1.0,
+     "orient": "0.27/0.23/0.22",
+     "capacity": 2850.0,
+     "edges": 221.0,
+     "streetLen": 13580.0,
+     "emptyLen": 3196.0,
+     "emptyEdges": 58.0,
+     "emptyEdgePct": 26.2,
+     "emptyLenPct": 23.5,
+     "deadEnds": 20.0,
+     "pb": 4.3,
+     "freeLotsPct": 53.3,
+     "streetPerBuilding": 20.5,
+     "edgesPer100B": 33.3,
+     "style": "EU_ORGANIC",
+     "form": "radiating",
+     "shape": "cross",
+     "motifs": "crescent:1.00:derived",
+     "forest": "0.52:clear",
+     "ind": "0/0",
+     "lvl": "a:39/22/38/0,u:34/27/22/17,w:34/27/22/17,c:-",
+     "lvlActual": "39/22/38/0",
+     "orth": 0.27,
+     "lvl2Pct": 22.0,
+     "lvl34Pct": 38.0,
+     "x": 1728.0,
+     "y": 2012.0,
+     "shot": "mod-2237-dry/15-middle-fork.jpg",
+     "personsPerHa": 39.8,
+     "streetPerPerson": 4.87,
+     "deadEndsPerKm": 1.47,
+     "modShare": 37.6
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 83,
+     "builds": 12,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 20,
+      "open": 1,
+      "ahead": 1
+     },
+     "matLast": 0.59,
+     "demKLast": 0.7,
+     "matHalfAt": "2854",
+     "levelsSkip": "dense",
+     "satellites": 0,
+     "forestShareFirst": 0.52,
+     "forestShareLast": 0.52,
+     "forestReads": 4
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "16",
+   "ids": {
+    "mod-2237-dry": 81947
+   },
+   "m": {
+    "mod-2237-dry": {
+     "name": "Los Cerritos",
+     "startName": "Los Cerritos",
+     "buildingsStart": 120.0,
+     "buildingsEnd": 734.0,
+     "personsStart": 418.0,
+     "personsEnd": 3568.0,
+     "targetEnd": 3654.0,
+     "targetShare": 0.976,
+     "growthBuildings": 6.12,
+     "growthPersons": 8.54,
+     "factor": "1.00->8.74",
+     "rate": 1.69,
+     "class": "fast",
+     "r": 475,
+     "rPerSqrtB": 17.5,
+     "dens": 10.3,
+     "spread": 1.17,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.25/0.17/0.17",
+     "capacity": 3639.0,
+     "edges": 227.0,
+     "streetLen": 16004.0,
+     "emptyLen": 3449.0,
+     "emptyEdges": 50.0,
+     "emptyEdgePct": 22.0,
+     "emptyLenPct": 21.6,
+     "deadEnds": 28.0,
+     "pb": 4.96,
+     "freeLotsPct": 55.8,
+     "streetPerBuilding": 21.8,
+     "edgesPer100B": 30.9,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "ribbon_village:0.33:saved,crescent:1.00:derived,hill_road:1.00:derived",
+     "forest": "0.42:clear",
+     "ind": "0/0",
+     "lvl": "a:38/24/38/0,u:34/27/22/17,w:34/27/22/17,c:-",
+     "lvlActual": "38/24/38/0",
+     "orth": 0.25,
+     "lvl2Pct": 24.0,
+     "lvl34Pct": 38.0,
+     "x": -3512.0,
+     "y": 3128.0,
+     "shot": "mod-2237-dry/16-los-cerritos.jpg",
+     "personsPerHa": 50.3,
+     "streetPerPerson": 4.49,
+     "deadEndsPerKm": 1.75,
+     "modShare": 21.1
+    }
+   },
+   "x": {
+    "mod-2237-dry": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 48,
+     "builds": 9,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 16,
+      "open": 1,
+      "ahead": 1
+     },
+     "matLast": 0.81,
+     "demKLast": 0.33,
+     "matHalfAt": "2932",
+     "levelsSkip": "dense",
+     "satellites": 0,
+     "forestShareFirst": 0.47,
+     "forestShareLast": 0.42,
+     "forestReads": 4
+    }
+   },
+   "samePos": {
+    "mod-2237-dry": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  }
+ ],
+ "extraTowns": {
+  "mod-2237-dry": []
+ },
+ "summary": {
+  "buildingsStart": {
+   "mod-2237-dry": {
+    "q": [
+     89.5,
+     110.5,
+     135.75,
+     66.0,
+     233.0
+    ],
+    "sum": 1878.0
+   }
+  },
+  "buildingsEnd": {
+   "mod-2237-dry": {
+    "q": [
+     549.0,
+     622.0,
+     785.5,
+     387.0,
+     966.0
+    ],
+    "sum": 10496.0
+   }
+  },
+  "personsStart": {
+   "mod-2237-dry": {
+    "q": [
+     334.0,
+     405.0,
+     541.25,
+     258.0,
+     991.0
+    ],
+    "sum": 7334.0
+   }
+  },
+  "personsEnd": {
+   "mod-2237-dry": {
+    "q": [
+     1948.75,
+     2618.0,
+     2965.75,
+     1101.0,
+     9552.0
+    ],
+    "sum": 45691.0
+   }
+  },
+  "growthBuildings": {
+   "mod-2237-dry": {
+    "q": [
+     4.91,
+     5.73,
+     6.195,
+     3.8,
+     9.77
+    ],
+    "sum": 94.39
+   }
+  },
+  "growthPersons": {
+   "mod-2237-dry": {
+    "q": [
+     5.0225,
+     6.13,
+     6.915,
+     3.16,
+     9.64
+    ],
+    "sum": 97.76
+   }
+  },
+  "targetShare": {
+   "mod-2237-dry": {
+    "q": [
+     0.9758,
+     0.9775,
+     0.981,
+     0.97,
+     0.986
+    ],
+    "sum": 15.64
+   }
+  },
+  "r": {
+   "mod-2237-dry": {
+    "q": [
+     410.25,
+     473.5,
+     499.5,
+     337,
+     1209
+    ],
+    "sum": 7977
+   }
+  },
+  "rPerSqrtB": {
+   "mod-2237-dry": {
+    "q": [
+     17.075,
+     18.15,
+     18.725,
+     15.8,
+     40.1
+    ],
+    "sum": 310.1
+   }
+  },
+  "dens": {
+   "mod-2237-dry": {
+    "q": [
+     9.1,
+     9.7,
+     10.85,
+     2.0,
+     12.7
+    ],
+    "sum": 151.7
+   }
+  },
+  "spread": {
+   "mod-2237-dry": {
+    "q": [
+     1.1375,
+     1.17,
+     1.24,
+     1.02,
+     4.09
+    ],
+    "sum": 21.96
+   }
+  },
+  "beyondPct": {
+   "mod-2237-dry": {
+    "q": [
+     0.0,
+     0.0,
+     2.5,
+     0.0,
+     62.0
+    ],
+    "sum": 81.0
+   }
+  },
+  "lobes": {
+   "mod-2237-dry": {
+    "q": [
+     1.0,
+     1.0,
+     1.0,
+     1.0,
+     2.0
+    ],
+    "sum": 17.0
+   }
+  },
+  "edges": {
+   "mod-2237-dry": {
+    "q": [
+     186.25,
+     221.0,
+     270.25,
+     139.0,
+     309.0
+    ],
+    "sum": 3556.0
+   }
+  },
+  "streetLen": {
+   "mod-2237-dry": {
+    "q": [
+     11680.75,
+     14315.0,
+     16555.0,
+     9020.0,
+     21107.0
+    ],
+    "sum": 232948.0
+   }
+  },
+  "emptyLen": {
+   "mod-2237-dry": {
+    "q": [
+     2968.5,
+     3493.5,
+     4570.5,
+     1216.0,
+     6658.0
+    ],
+    "sum": 58177.0
+   }
+  },
+  "emptyEdgePct": {
+   "mod-2237-dry": {
+    "q": [
+     22.3,
+     25.95,
+     34.7,
+     14.0,
+     44.0
+    ],
+    "sum": 436.9
+   }
+  },
+  "emptyLenPct": {
+   "mod-2237-dry": {
+    "q": [
+     21.5,
+     24.3,
+     28.525,
+     11.8,
+     40.4
+    ],
+    "sum": 394.5
+   }
+  },
+  "deadEnds": {
+   "mod-2237-dry": {
+    "q": [
+     16.75,
+     21.5,
+     26.25,
+     8.0,
+     34.0
+    ],
+    "sum": 342.0
+   }
+  },
+  "pb": {
+   "mod-2237-dry": {
+    "q": [
+     3.14,
+     3.87,
+     4.46,
+     2.85,
+     8.2
+    ],
+    "sum": 64.77
+   }
+  },
+  "freeLotsPct": {
+   "mod-2237-dry": {
+    "q": [
+     53.3,
+     56.1,
+     59.325,
+     46.9,
+     65.4
+    ],
+    "sum": 905.5
+   }
+  },
+  "streetPerBuilding": {
+   "mod-2237-dry": {
+    "q": [
+     20.25,
+     21.9,
+     23.5,
+     17.9,
+     31.8
+    ],
+    "sum": 360.5
+   }
+  },
+  "edgesPer100B": {
+   "mod-2237-dry": {
+    "q": [
+     30.1,
+     32.9,
+     39.275,
+     23.2,
+     50.1
+    ],
+    "sum": 559.1
+   }
+  },
+  "capacity": {
+   "mod-2237-dry": {
+    "q": [
+     1940.25,
+     2617.0,
+     2980.25,
+     1104.0,
+     7439.0
+    ],
+    "sum": 43420.0
+   }
+  },
+  "personsPerHa": {
+   "mod-2237-dry": {
+    "q": [
+     30.0,
+     38.15,
+     42.45,
+     20.8,
+     54.4
+    ],
+    "sum": 587.5
+   }
+  },
+  "streetPerPerson": {
+   "mod-2237-dry": {
+    "q": [
+     4.8475,
+     5.675,
+     6.8425,
+     1.83,
+     11.18
+    ],
+    "sum": 96.64
+   }
+  },
+  "deadEndsPerKm": {
+   "mod-2237-dry": {
+    "q": [
+     1.2875,
+     1.47,
+     1.6525,
+     0.74,
+     2.26
+    ],
+    "sum": 23.8
+   }
+  },
+  "orth": {
+   "mod-2237-dry": {
+    "q": [
+     0.2475,
+     0.26,
+     0.2975,
+     0.18,
+     0.42
+    ],
+    "sum": 4.48
+   }
+  },
+  "lvl2Pct": {
+   "mod-2237-dry": {
+    "q": [
+     21.75,
+     24.0,
+     25.0,
+     0.0,
+     33.0
+    ],
+    "sum": 356.0
+   }
+  },
+  "lvl34Pct": {
+   "mod-2237-dry": {
+    "q": [
+     0.0,
+     31.5,
+     38.0,
+     0,
+     82.0
+    ],
+    "sum": 403.0
+   }
+  },
+  "modShare": {
+   "mod-2237-dry": {
+    "q": [
+     20.5,
+     29.7,
+     38.15,
+     0.9,
+     49.3
+    ],
+    "sum": 462.6
+   }
+  }
+ },
+ "notes": {
+  "auto": [
+   "<b>Mod 2237 dry: USA names, Town style European organic</b>: buildings 1,878 -> 10,496, persons 45,691, pb (median) 3.87, free lots 56.1 %, street 5.675 m per person."
+  ]
+ },
+ "runRows": [
+  [
+   "Street orientation orth / radial / ring (median)",
+   "0.26 / 0.20 / 0.18"
+  ],
+  [
+   "Sim time (s) / per year",
+   "115 / 2.9"
+  ],
+  [
+   "Persons vs target at the end (SIMGROW cap)",
+   "43420/46803(93%)"
+  ],
+  [
+   "Mod-built street edges: head start / demand (builds)",
+   "12 / 1031 (1 / 188)"
+  ],
+  [
+   "Mod-built share of the 16 towns' edges",
+   "29 %"
+  ],
+  [
+   "SIMGROW build rounds / round builds",
+   "11 / 173"
+  ],
+  [
+   "CHECK outcomes",
+   "demand 308, ahead 24, open 18"
+  ],
+  [
+   "Satellites built (decisions)",
+   "3 (rare 5, noSite 4, seeded 2, hamlet:hamletFallback 1)"
+  ],
+  [
+   "Districts / Works created (linked)",
+   "0 (0) / 0 (0)"
+  ],
+  [
+   "District / Works not founded (why)",
+   "character 4, forest 4, deep 3, rare 2 / rare 8, character 4, deep 3"
+  ],
+  [
+   "Bridges built / refused, coastal picks",
+   "0 / 0, 0"
+  ],
+  [
+   "Level weights set / cleared, upward doses",
+   "1 / 0, 6"
+  ],
+  [
+   "Straight-run edges cut",
+   "1"
+  ]
+ ]
+}

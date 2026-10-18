@@ -1,0 +1,1463 @@
+{
+ "generator": "tools/ot_preview.py",
+ "facets": [
+  {
+   "key": "set",
+   "label": "Set",
+   "values": [
+    {
+     "value": "styles",
+     "label": "Style cases"
+    },
+    {
+     "value": "shapes",
+     "label": "Town shapes"
+    },
+    {
+     "value": "site",
+     "label": "Automatic style (site)"
+    }
+   ]
+  },
+  {
+   "key": "style",
+   "label": "Style",
+   "values": [
+    {
+     "value": "NA_GRID",
+     "label": "NA grid"
+    },
+    {
+     "value": "NA_SUBURB",
+     "label": "NA suburb"
+    },
+    {
+     "value": "EU_ORGANIC",
+     "label": "EU organic"
+    },
+    {
+     "value": "EU_EXTENSION",
+     "label": "EU extension"
+    },
+    {
+     "value": "MED_HILL",
+     "label": "MED hill"
+    },
+    {
+     "value": "MED_ENSANCHE",
+     "label": "MED ensanche"
+    },
+    {
+     "value": "JP_DENSE",
+     "label": "JP dense"
+    },
+    {
+     "value": "NORDIC",
+     "label": "Nordic"
+    },
+    {
+     "value": "SUPERBLOCK",
+     "label": "Superblock"
+    }
+   ]
+  },
+  {
+   "key": "terrain",
+   "label": "Terrain",
+   "values": [
+    {
+     "value": "flat",
+     "label": "flat"
+    },
+    {
+     "value": "hillside",
+     "label": "hillside"
+    },
+    {
+     "value": "river",
+     "label": "river"
+    },
+    {
+     "value": "coast",
+     "label": "coast"
+    }
+   ]
+  },
+  {
+   "key": "variant",
+   "label": "Variant",
+   "values": [
+    {
+     "value": "plain",
+     "label": "irregular growth"
+    },
+    {
+     "value": "even",
+     "label": "even (irregular growth off)"
+    },
+    {
+     "value": "core",
+     "label": "from a town core"
+    },
+    {
+     "value": "round",
+     "label": "round core"
+    },
+    {
+     "value": "grid",
+     "label": "small grid core"
+    }
+   ]
+  },
+  {
+   "key": "shape",
+   "label": "Town shape",
+   "values": [
+    {
+     "value": "compact",
+     "label": "compact"
+    },
+    {
+     "value": "linear",
+     "label": "linear"
+    },
+    {
+     "value": "cross",
+     "label": "cross"
+    },
+    {
+     "value": "fingers",
+     "label": "fingers"
+    },
+    {
+     "value": "fan",
+     "label": "fan"
+    },
+    {
+     "value": "twin",
+     "label": "twin"
+    },
+    {
+     "value": "lens",
+     "label": "lens"
+    },
+    {
+     "value": "ridge",
+     "label": "ridge"
+    }
+   ]
+  },
+  {
+   "key": "region",
+   "label": "Region",
+   "values": [
+    {
+     "value": "EU",
+     "label": "EU"
+    },
+    {
+     "value": "US",
+     "label": "US"
+    }
+   ]
+  }
+ ],
+ "items": [
+  {
+   "file": "eu_extension_coast.svg",
+   "set": "styles",
+   "style": "EU_EXTENSION",
+   "terrain": "coast",
+   "variant": "plain",
+   "title": "EU extension \u00b7 coast"
+  },
+  {
+   "file": "eu_extension_coast_core.svg",
+   "set": "styles",
+   "style": "EU_EXTENSION",
+   "terrain": "coast",
+   "variant": "core",
+   "title": "EU extension \u00b7 coast (from a town core)"
+  },
+  {
+   "file": "eu_extension_flat.svg",
+   "set": "styles",
+   "style": "EU_EXTENSION",
+   "terrain": "flat",
+   "variant": "plain",
+   "title": "EU extension \u00b7 flat"
+  },
+  {
+   "file": "eu_extension_flat_even.svg",
+   "set": "styles",
+   "style": "EU_EXTENSION",
+   "terrain": "flat",
+   "variant": "even",
+   "title": "EU extension \u00b7 flat (even (irregular growth off))"
+  },
+  {
+   "file": "eu_extension_hillside.svg",
+   "set": "styles",
+   "style": "EU_EXTENSION",
+   "terrain": "hillside",
+   "variant": "plain",
+   "title": "EU extension \u00b7 hillside"
+  },
+  {
+   "file": "eu_extension_hillside_core.svg",
+   "set": "styles",
+   "style": "EU_EXTENSION",
+   "terrain": "hillside",
+   "variant": "core",
+   "title": "EU extension \u00b7 hillside (from a town core)"
+  },
+  {
+   "file": "eu_extension_river.svg",
+   "set": "styles",
+   "style": "EU_EXTENSION",
+   "terrain": "river",
+   "variant": "plain",
+   "title": "EU extension \u00b7 river"
+  },
+  {
+   "file": "eu_extension_river_core.svg",
+   "set": "styles",
+   "style": "EU_EXTENSION",
+   "terrain": "river",
+   "variant": "core",
+   "title": "EU extension \u00b7 river (from a town core)"
+  },
+  {
+   "file": "eu_organic_coast.svg",
+   "set": "styles",
+   "style": "EU_ORGANIC",
+   "terrain": "coast",
+   "variant": "plain",
+   "title": "EU organic \u00b7 coast"
+  },
+  {
+   "file": "eu_organic_coast_core.svg",
+   "set": "styles",
+   "style": "EU_ORGANIC",
+   "terrain": "coast",
+   "variant": "core",
+   "title": "EU organic \u00b7 coast (from a town core)"
+  },
+  {
+   "file": "eu_organic_flat.svg",
+   "set": "styles",
+   "style": "EU_ORGANIC",
+   "terrain": "flat",
+   "variant": "plain",
+   "title": "EU organic \u00b7 flat"
+  },
+  {
+   "file": "eu_organic_flat_even.svg",
+   "set": "styles",
+   "style": "EU_ORGANIC",
+   "terrain": "flat",
+   "variant": "even",
+   "title": "EU organic \u00b7 flat (even (irregular growth off))"
+  },
+  {
+   "file": "eu_organic_hillside.svg",
+   "set": "styles",
+   "style": "EU_ORGANIC",
+   "terrain": "hillside",
+   "variant": "plain",
+   "title": "EU organic \u00b7 hillside"
+  },
+  {
+   "file": "eu_organic_hillside_core.svg",
+   "set": "styles",
+   "style": "EU_ORGANIC",
+   "terrain": "hillside",
+   "variant": "core",
+   "title": "EU organic \u00b7 hillside (from a town core)"
+  },
+  {
+   "file": "eu_organic_river.svg",
+   "set": "styles",
+   "style": "EU_ORGANIC",
+   "terrain": "river",
+   "variant": "plain",
+   "title": "EU organic \u00b7 river"
+  },
+  {
+   "file": "eu_organic_river_core.svg",
+   "set": "styles",
+   "style": "EU_ORGANIC",
+   "terrain": "river",
+   "variant": "core",
+   "title": "EU organic \u00b7 river (from a town core)"
+  },
+  {
+   "file": "jp_dense_coast.svg",
+   "set": "styles",
+   "style": "JP_DENSE",
+   "terrain": "coast",
+   "variant": "plain",
+   "title": "JP dense \u00b7 coast"
+  },
+  {
+   "file": "jp_dense_coast_core.svg",
+   "set": "styles",
+   "style": "JP_DENSE",
+   "terrain": "coast",
+   "variant": "core",
+   "title": "JP dense \u00b7 coast (from a town core)"
+  },
+  {
+   "file": "jp_dense_flat.svg",
+   "set": "styles",
+   "style": "JP_DENSE",
+   "terrain": "flat",
+   "variant": "plain",
+   "title": "JP dense \u00b7 flat"
+  },
+  {
+   "file": "jp_dense_flat_even.svg",
+   "set": "styles",
+   "style": "JP_DENSE",
+   "terrain": "flat",
+   "variant": "even",
+   "title": "JP dense \u00b7 flat (even (irregular growth off))"
+  },
+  {
+   "file": "jp_dense_hillside.svg",
+   "set": "styles",
+   "style": "JP_DENSE",
+   "terrain": "hillside",
+   "variant": "plain",
+   "title": "JP dense \u00b7 hillside"
+  },
+  {
+   "file": "jp_dense_hillside_core.svg",
+   "set": "styles",
+   "style": "JP_DENSE",
+   "terrain": "hillside",
+   "variant": "core",
+   "title": "JP dense \u00b7 hillside (from a town core)"
+  },
+  {
+   "file": "jp_dense_river.svg",
+   "set": "styles",
+   "style": "JP_DENSE",
+   "terrain": "river",
+   "variant": "plain",
+   "title": "JP dense \u00b7 river"
+  },
+  {
+   "file": "jp_dense_river_core.svg",
+   "set": "styles",
+   "style": "JP_DENSE",
+   "terrain": "river",
+   "variant": "core",
+   "title": "JP dense \u00b7 river (from a town core)"
+  },
+  {
+   "file": "med_ensanche_coast.svg",
+   "set": "styles",
+   "style": "MED_ENSANCHE",
+   "terrain": "coast",
+   "variant": "plain",
+   "title": "MED ensanche \u00b7 coast"
+  },
+  {
+   "file": "med_ensanche_coast_core.svg",
+   "set": "styles",
+   "style": "MED_ENSANCHE",
+   "terrain": "coast",
+   "variant": "core",
+   "title": "MED ensanche \u00b7 coast (from a town core)"
+  },
+  {
+   "file": "med_ensanche_flat.svg",
+   "set": "styles",
+   "style": "MED_ENSANCHE",
+   "terrain": "flat",
+   "variant": "plain",
+   "title": "MED ensanche \u00b7 flat"
+  },
+  {
+   "file": "med_ensanche_flat_even.svg",
+   "set": "styles",
+   "style": "MED_ENSANCHE",
+   "terrain": "flat",
+   "variant": "even",
+   "title": "MED ensanche \u00b7 flat (even (irregular growth off))"
+  },
+  {
+   "file": "med_ensanche_hillside.svg",
+   "set": "styles",
+   "style": "MED_ENSANCHE",
+   "terrain": "hillside",
+   "variant": "plain",
+   "title": "MED ensanche \u00b7 hillside"
+  },
+  {
+   "file": "med_ensanche_hillside_core.svg",
+   "set": "styles",
+   "style": "MED_ENSANCHE",
+   "terrain": "hillside",
+   "variant": "core",
+   "title": "MED ensanche \u00b7 hillside (from a town core)"
+  },
+  {
+   "file": "med_ensanche_river.svg",
+   "set": "styles",
+   "style": "MED_ENSANCHE",
+   "terrain": "river",
+   "variant": "plain",
+   "title": "MED ensanche \u00b7 river"
+  },
+  {
+   "file": "med_ensanche_river_core.svg",
+   "set": "styles",
+   "style": "MED_ENSANCHE",
+   "terrain": "river",
+   "variant": "core",
+   "title": "MED ensanche \u00b7 river (from a town core)"
+  },
+  {
+   "file": "med_hill_coast.svg",
+   "set": "styles",
+   "style": "MED_HILL",
+   "terrain": "coast",
+   "variant": "plain",
+   "title": "MED hill \u00b7 coast"
+  },
+  {
+   "file": "med_hill_coast_core.svg",
+   "set": "styles",
+   "style": "MED_HILL",
+   "terrain": "coast",
+   "variant": "core",
+   "title": "MED hill \u00b7 coast (from a town core)"
+  },
+  {
+   "file": "med_hill_flat.svg",
+   "set": "styles",
+   "style": "MED_HILL",
+   "terrain": "flat",
+   "variant": "plain",
+   "title": "MED hill \u00b7 flat"
+  },
+  {
+   "file": "med_hill_flat_even.svg",
+   "set": "styles",
+   "style": "MED_HILL",
+   "terrain": "flat",
+   "variant": "even",
+   "title": "MED hill \u00b7 flat (even (irregular growth off))"
+  },
+  {
+   "file": "med_hill_hillside.svg",
+   "set": "styles",
+   "style": "MED_HILL",
+   "terrain": "hillside",
+   "variant": "plain",
+   "title": "MED hill \u00b7 hillside"
+  },
+  {
+   "file": "med_hill_hillside_core.svg",
+   "set": "styles",
+   "style": "MED_HILL",
+   "terrain": "hillside",
+   "variant": "core",
+   "title": "MED hill \u00b7 hillside (from a town core)"
+  },
+  {
+   "file": "med_hill_river.svg",
+   "set": "styles",
+   "style": "MED_HILL",
+   "terrain": "river",
+   "variant": "plain",
+   "title": "MED hill \u00b7 river"
+  },
+  {
+   "file": "med_hill_river_core.svg",
+   "set": "styles",
+   "style": "MED_HILL",
+   "terrain": "river",
+   "variant": "core",
+   "title": "MED hill \u00b7 river (from a town core)"
+  },
+  {
+   "file": "na_grid_coast.svg",
+   "set": "styles",
+   "style": "NA_GRID",
+   "terrain": "coast",
+   "variant": "plain",
+   "title": "NA grid \u00b7 coast"
+  },
+  {
+   "file": "na_grid_coast_core.svg",
+   "set": "styles",
+   "style": "NA_GRID",
+   "terrain": "coast",
+   "variant": "core",
+   "title": "NA grid \u00b7 coast (from a town core)"
+  },
+  {
+   "file": "na_grid_flat.svg",
+   "set": "styles",
+   "style": "NA_GRID",
+   "terrain": "flat",
+   "variant": "plain",
+   "title": "NA grid \u00b7 flat"
+  },
+  {
+   "file": "na_grid_flat_core.svg",
+   "set": "styles",
+   "style": "NA_GRID",
+   "terrain": "flat",
+   "variant": "core",
+   "title": "NA grid \u00b7 flat (from a town core)"
+  },
+  {
+   "file": "na_grid_flat_even.svg",
+   "set": "styles",
+   "style": "NA_GRID",
+   "terrain": "flat",
+   "variant": "even",
+   "title": "NA grid \u00b7 flat (even (irregular growth off))"
+  },
+  {
+   "file": "na_grid_hillside.svg",
+   "set": "styles",
+   "style": "NA_GRID",
+   "terrain": "hillside",
+   "variant": "plain",
+   "title": "NA grid \u00b7 hillside"
+  },
+  {
+   "file": "na_grid_hillside_core.svg",
+   "set": "styles",
+   "style": "NA_GRID",
+   "terrain": "hillside",
+   "variant": "core",
+   "title": "NA grid \u00b7 hillside (from a town core)"
+  },
+  {
+   "file": "na_grid_river.svg",
+   "set": "styles",
+   "style": "NA_GRID",
+   "terrain": "river",
+   "variant": "plain",
+   "title": "NA grid \u00b7 river"
+  },
+  {
+   "file": "na_grid_river_core.svg",
+   "set": "styles",
+   "style": "NA_GRID",
+   "terrain": "river",
+   "variant": "core",
+   "title": "NA grid \u00b7 river (from a town core)"
+  },
+  {
+   "file": "na_suburb_coast.svg",
+   "set": "styles",
+   "style": "NA_SUBURB",
+   "terrain": "coast",
+   "variant": "plain",
+   "title": "NA suburb \u00b7 coast"
+  },
+  {
+   "file": "na_suburb_coast_core.svg",
+   "set": "styles",
+   "style": "NA_SUBURB",
+   "terrain": "coast",
+   "variant": "core",
+   "title": "NA suburb \u00b7 coast (from a town core)"
+  },
+  {
+   "file": "na_suburb_flat.svg",
+   "set": "styles",
+   "style": "NA_SUBURB",
+   "terrain": "flat",
+   "variant": "plain",
+   "title": "NA suburb \u00b7 flat"
+  },
+  {
+   "file": "na_suburb_flat_core.svg",
+   "set": "styles",
+   "style": "NA_SUBURB",
+   "terrain": "flat",
+   "variant": "core",
+   "title": "NA suburb \u00b7 flat (from a town core)"
+  },
+  {
+   "file": "na_suburb_flat_even.svg",
+   "set": "styles",
+   "style": "NA_SUBURB",
+   "terrain": "flat",
+   "variant": "even",
+   "title": "NA suburb \u00b7 flat (even (irregular growth off))"
+  },
+  {
+   "file": "na_suburb_hillside.svg",
+   "set": "styles",
+   "style": "NA_SUBURB",
+   "terrain": "hillside",
+   "variant": "plain",
+   "title": "NA suburb \u00b7 hillside"
+  },
+  {
+   "file": "na_suburb_hillside_core.svg",
+   "set": "styles",
+   "style": "NA_SUBURB",
+   "terrain": "hillside",
+   "variant": "core",
+   "title": "NA suburb \u00b7 hillside (from a town core)"
+  },
+  {
+   "file": "na_suburb_river.svg",
+   "set": "styles",
+   "style": "NA_SUBURB",
+   "terrain": "river",
+   "variant": "plain",
+   "title": "NA suburb \u00b7 river"
+  },
+  {
+   "file": "na_suburb_river_core.svg",
+   "set": "styles",
+   "style": "NA_SUBURB",
+   "terrain": "river",
+   "variant": "core",
+   "title": "NA suburb \u00b7 river (from a town core)"
+  },
+  {
+   "file": "nordic_coast.svg",
+   "set": "styles",
+   "style": "NORDIC",
+   "terrain": "coast",
+   "variant": "plain",
+   "title": "Nordic \u00b7 coast"
+  },
+  {
+   "file": "nordic_coast_core.svg",
+   "set": "styles",
+   "style": "NORDIC",
+   "terrain": "coast",
+   "variant": "core",
+   "title": "Nordic \u00b7 coast (from a town core)"
+  },
+  {
+   "file": "nordic_flat.svg",
+   "set": "styles",
+   "style": "NORDIC",
+   "terrain": "flat",
+   "variant": "plain",
+   "title": "Nordic \u00b7 flat"
+  },
+  {
+   "file": "nordic_flat_even.svg",
+   "set": "styles",
+   "style": "NORDIC",
+   "terrain": "flat",
+   "variant": "even",
+   "title": "Nordic \u00b7 flat (even (irregular growth off))"
+  },
+  {
+   "file": "nordic_hillside.svg",
+   "set": "styles",
+   "style": "NORDIC",
+   "terrain": "hillside",
+   "variant": "plain",
+   "title": "Nordic \u00b7 hillside"
+  },
+  {
+   "file": "nordic_hillside_core.svg",
+   "set": "styles",
+   "style": "NORDIC",
+   "terrain": "hillside",
+   "variant": "core",
+   "title": "Nordic \u00b7 hillside (from a town core)"
+  },
+  {
+   "file": "nordic_river.svg",
+   "set": "styles",
+   "style": "NORDIC",
+   "terrain": "river",
+   "variant": "plain",
+   "title": "Nordic \u00b7 river"
+  },
+  {
+   "file": "nordic_river_core.svg",
+   "set": "styles",
+   "style": "NORDIC",
+   "terrain": "river",
+   "variant": "core",
+   "title": "Nordic \u00b7 river (from a town core)"
+  },
+  {
+   "file": "shapes/eu_extension_compact_flat.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "compact",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU extension \u00b7 compact \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_extension_compact_flat_round.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "compact",
+   "terrain": "flat",
+   "variant": "round",
+   "title": "EU extension \u00b7 compact \u00b7 flat (round core)"
+  },
+  {
+   "file": "shapes/eu_extension_cross_flat.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "cross",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU extension \u00b7 cross \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_extension_cross_flat_round.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "cross",
+   "terrain": "flat",
+   "variant": "round",
+   "title": "EU extension \u00b7 cross \u00b7 flat (round core)"
+  },
+  {
+   "file": "shapes/eu_extension_fan_flat.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "fan",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU extension \u00b7 fan \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_extension_fan_flat_round.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "fan",
+   "terrain": "flat",
+   "variant": "round",
+   "title": "EU extension \u00b7 fan \u00b7 flat (round core)"
+  },
+  {
+   "file": "shapes/eu_extension_fingers_flat.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "fingers",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU extension \u00b7 fingers \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_extension_fingers_flat_round.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "fingers",
+   "terrain": "flat",
+   "variant": "round",
+   "title": "EU extension \u00b7 fingers \u00b7 flat (round core)"
+  },
+  {
+   "file": "shapes/eu_extension_lens_flat.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "lens",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU extension \u00b7 lens \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_extension_lens_flat_round.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "lens",
+   "terrain": "flat",
+   "variant": "round",
+   "title": "EU extension \u00b7 lens \u00b7 flat (round core)"
+  },
+  {
+   "file": "shapes/eu_extension_linear_flat.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "linear",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU extension \u00b7 linear \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_extension_linear_flat_round.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "linear",
+   "terrain": "flat",
+   "variant": "round",
+   "title": "EU extension \u00b7 linear \u00b7 flat (round core)"
+  },
+  {
+   "file": "shapes/eu_extension_ridge_flat.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "ridge",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU extension \u00b7 ridge \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_extension_ridge_flat_round.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "ridge",
+   "terrain": "flat",
+   "variant": "round",
+   "title": "EU extension \u00b7 ridge \u00b7 flat (round core)"
+  },
+  {
+   "file": "shapes/eu_extension_twin_flat.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "twin",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU extension \u00b7 twin \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_extension_twin_flat_round.svg",
+   "set": "shapes",
+   "style": "EU_EXTENSION",
+   "shape": "twin",
+   "terrain": "flat",
+   "variant": "round",
+   "title": "EU extension \u00b7 twin \u00b7 flat (round core)"
+  },
+  {
+   "file": "shapes/eu_organic_compact_flat.svg",
+   "set": "shapes",
+   "style": "EU_ORGANIC",
+   "shape": "compact",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU organic \u00b7 compact \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_organic_cross_flat.svg",
+   "set": "shapes",
+   "style": "EU_ORGANIC",
+   "shape": "cross",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU organic \u00b7 cross \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_organic_fan_flat.svg",
+   "set": "shapes",
+   "style": "EU_ORGANIC",
+   "shape": "fan",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU organic \u00b7 fan \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_organic_fingers_flat.svg",
+   "set": "shapes",
+   "style": "EU_ORGANIC",
+   "shape": "fingers",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU organic \u00b7 fingers \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_organic_lens_flat.svg",
+   "set": "shapes",
+   "style": "EU_ORGANIC",
+   "shape": "lens",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU organic \u00b7 lens \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_organic_linear_flat.svg",
+   "set": "shapes",
+   "style": "EU_ORGANIC",
+   "shape": "linear",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU organic \u00b7 linear \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_organic_ridge_flat.svg",
+   "set": "shapes",
+   "style": "EU_ORGANIC",
+   "shape": "ridge",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU organic \u00b7 ridge \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/eu_organic_twin_flat.svg",
+   "set": "shapes",
+   "style": "EU_ORGANIC",
+   "shape": "twin",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "EU organic \u00b7 twin \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/med_hill_compact_flat.svg",
+   "set": "shapes",
+   "style": "MED_HILL",
+   "shape": "compact",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "MED hill \u00b7 compact \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/med_hill_cross_flat.svg",
+   "set": "shapes",
+   "style": "MED_HILL",
+   "shape": "cross",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "MED hill \u00b7 cross \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/med_hill_fan_flat.svg",
+   "set": "shapes",
+   "style": "MED_HILL",
+   "shape": "fan",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "MED hill \u00b7 fan \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/med_hill_fingers_flat.svg",
+   "set": "shapes",
+   "style": "MED_HILL",
+   "shape": "fingers",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "MED hill \u00b7 fingers \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/med_hill_lens_flat.svg",
+   "set": "shapes",
+   "style": "MED_HILL",
+   "shape": "lens",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "MED hill \u00b7 lens \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/med_hill_linear_flat.svg",
+   "set": "shapes",
+   "style": "MED_HILL",
+   "shape": "linear",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "MED hill \u00b7 linear \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/med_hill_ridge_flat.svg",
+   "set": "shapes",
+   "style": "MED_HILL",
+   "shape": "ridge",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "MED hill \u00b7 ridge \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/med_hill_twin_flat.svg",
+   "set": "shapes",
+   "style": "MED_HILL",
+   "shape": "twin",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "MED hill \u00b7 twin \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_grid_compact_flat.svg",
+   "set": "shapes",
+   "style": "NA_GRID",
+   "shape": "compact",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA grid \u00b7 compact \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_grid_cross_flat.svg",
+   "set": "shapes",
+   "style": "NA_GRID",
+   "shape": "cross",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA grid \u00b7 cross \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_grid_fan_flat.svg",
+   "set": "shapes",
+   "style": "NA_GRID",
+   "shape": "fan",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA grid \u00b7 fan \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_grid_fingers_flat.svg",
+   "set": "shapes",
+   "style": "NA_GRID",
+   "shape": "fingers",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA grid \u00b7 fingers \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_grid_lens_flat.svg",
+   "set": "shapes",
+   "style": "NA_GRID",
+   "shape": "lens",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA grid \u00b7 lens \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_grid_linear_flat.svg",
+   "set": "shapes",
+   "style": "NA_GRID",
+   "shape": "linear",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA grid \u00b7 linear \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_grid_ridge_flat.svg",
+   "set": "shapes",
+   "style": "NA_GRID",
+   "shape": "ridge",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA grid \u00b7 ridge \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_grid_twin_flat.svg",
+   "set": "shapes",
+   "style": "NA_GRID",
+   "shape": "twin",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA grid \u00b7 twin \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_suburb_compact_flat.svg",
+   "set": "shapes",
+   "style": "NA_SUBURB",
+   "shape": "compact",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA suburb \u00b7 compact \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_suburb_cross_flat.svg",
+   "set": "shapes",
+   "style": "NA_SUBURB",
+   "shape": "cross",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA suburb \u00b7 cross \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_suburb_fan_flat.svg",
+   "set": "shapes",
+   "style": "NA_SUBURB",
+   "shape": "fan",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA suburb \u00b7 fan \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_suburb_fingers_flat.svg",
+   "set": "shapes",
+   "style": "NA_SUBURB",
+   "shape": "fingers",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA suburb \u00b7 fingers \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_suburb_lens_flat.svg",
+   "set": "shapes",
+   "style": "NA_SUBURB",
+   "shape": "lens",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA suburb \u00b7 lens \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_suburb_linear_flat.svg",
+   "set": "shapes",
+   "style": "NA_SUBURB",
+   "shape": "linear",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA suburb \u00b7 linear \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_suburb_ridge_flat.svg",
+   "set": "shapes",
+   "style": "NA_SUBURB",
+   "shape": "ridge",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA suburb \u00b7 ridge \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/na_suburb_twin_flat.svg",
+   "set": "shapes",
+   "style": "NA_SUBURB",
+   "shape": "twin",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "NA suburb \u00b7 twin \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/nordic_compact_flat.svg",
+   "set": "shapes",
+   "style": "NORDIC",
+   "shape": "compact",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "Nordic \u00b7 compact \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/nordic_cross_flat.svg",
+   "set": "shapes",
+   "style": "NORDIC",
+   "shape": "cross",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "Nordic \u00b7 cross \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/nordic_fan_flat.svg",
+   "set": "shapes",
+   "style": "NORDIC",
+   "shape": "fan",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "Nordic \u00b7 fan \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/nordic_fingers_flat.svg",
+   "set": "shapes",
+   "style": "NORDIC",
+   "shape": "fingers",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "Nordic \u00b7 fingers \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/nordic_lens_flat.svg",
+   "set": "shapes",
+   "style": "NORDIC",
+   "shape": "lens",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "Nordic \u00b7 lens \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/nordic_linear_flat.svg",
+   "set": "shapes",
+   "style": "NORDIC",
+   "shape": "linear",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "Nordic \u00b7 linear \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/nordic_ridge_flat.svg",
+   "set": "shapes",
+   "style": "NORDIC",
+   "shape": "ridge",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "Nordic \u00b7 ridge \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "shapes/nordic_twin_flat.svg",
+   "set": "shapes",
+   "style": "NORDIC",
+   "shape": "twin",
+   "terrain": "flat",
+   "variant": "grid",
+   "title": "Nordic \u00b7 twin \u00b7 flat (small grid core)"
+  },
+  {
+   "file": "site/eu_coast_t1.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "coast",
+   "town": "1",
+   "title": "EU \u00b7 coast \u00b7 town 1"
+  },
+  {
+   "file": "site/eu_coast_t2.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "coast",
+   "town": "2",
+   "title": "EU \u00b7 coast \u00b7 town 2"
+  },
+  {
+   "file": "site/eu_coast_t3.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "coast",
+   "town": "3",
+   "title": "EU \u00b7 coast \u00b7 town 3"
+  },
+  {
+   "file": "site/eu_flat_t1.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "flat",
+   "town": "1",
+   "title": "EU \u00b7 flat \u00b7 town 1"
+  },
+  {
+   "file": "site/eu_flat_t2.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "flat",
+   "town": "2",
+   "title": "EU \u00b7 flat \u00b7 town 2"
+  },
+  {
+   "file": "site/eu_flat_t3.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "flat",
+   "town": "3",
+   "title": "EU \u00b7 flat \u00b7 town 3"
+  },
+  {
+   "file": "site/eu_hillside_t1.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "hillside",
+   "town": "1",
+   "title": "EU \u00b7 hillside \u00b7 town 1"
+  },
+  {
+   "file": "site/eu_hillside_t2.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "hillside",
+   "town": "2",
+   "title": "EU \u00b7 hillside \u00b7 town 2"
+  },
+  {
+   "file": "site/eu_hillside_t3.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "hillside",
+   "town": "3",
+   "title": "EU \u00b7 hillside \u00b7 town 3"
+  },
+  {
+   "file": "site/eu_river_t1.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "river",
+   "town": "1",
+   "title": "EU \u00b7 river \u00b7 town 1"
+  },
+  {
+   "file": "site/eu_river_t2.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "river",
+   "town": "2",
+   "title": "EU \u00b7 river \u00b7 town 2"
+  },
+  {
+   "file": "site/eu_river_t3.svg",
+   "set": "site",
+   "region": "EU",
+   "terrain": "river",
+   "town": "3",
+   "title": "EU \u00b7 river \u00b7 town 3"
+  },
+  {
+   "file": "site/us_coast_t1.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "coast",
+   "town": "1",
+   "title": "US \u00b7 coast \u00b7 town 1"
+  },
+  {
+   "file": "site/us_coast_t2.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "coast",
+   "town": "2",
+   "title": "US \u00b7 coast \u00b7 town 2"
+  },
+  {
+   "file": "site/us_coast_t3.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "coast",
+   "town": "3",
+   "title": "US \u00b7 coast \u00b7 town 3"
+  },
+  {
+   "file": "site/us_flat_t1.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "flat",
+   "town": "1",
+   "title": "US \u00b7 flat \u00b7 town 1"
+  },
+  {
+   "file": "site/us_flat_t2.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "flat",
+   "town": "2",
+   "title": "US \u00b7 flat \u00b7 town 2"
+  },
+  {
+   "file": "site/us_flat_t3.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "flat",
+   "town": "3",
+   "title": "US \u00b7 flat \u00b7 town 3"
+  },
+  {
+   "file": "site/us_hillside_t1.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "hillside",
+   "town": "1",
+   "title": "US \u00b7 hillside \u00b7 town 1"
+  },
+  {
+   "file": "site/us_hillside_t2.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "hillside",
+   "town": "2",
+   "title": "US \u00b7 hillside \u00b7 town 2"
+  },
+  {
+   "file": "site/us_hillside_t3.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "hillside",
+   "town": "3",
+   "title": "US \u00b7 hillside \u00b7 town 3"
+  },
+  {
+   "file": "site/us_river_t1.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "river",
+   "town": "1",
+   "title": "US \u00b7 river \u00b7 town 1"
+  },
+  {
+   "file": "site/us_river_t2.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "river",
+   "town": "2",
+   "title": "US \u00b7 river \u00b7 town 2"
+  },
+  {
+   "file": "site/us_river_t3.svg",
+   "set": "site",
+   "region": "US",
+   "terrain": "river",
+   "town": "3",
+   "title": "US \u00b7 river \u00b7 town 3"
+  },
+  {
+   "file": "superblock_coast.svg",
+   "set": "styles",
+   "style": "SUPERBLOCK",
+   "terrain": "coast",
+   "variant": "plain",
+   "title": "Superblock \u00b7 coast"
+  },
+  {
+   "file": "superblock_coast_core.svg",
+   "set": "styles",
+   "style": "SUPERBLOCK",
+   "terrain": "coast",
+   "variant": "core",
+   "title": "Superblock \u00b7 coast (from a town core)"
+  },
+  {
+   "file": "superblock_flat.svg",
+   "set": "styles",
+   "style": "SUPERBLOCK",
+   "terrain": "flat",
+   "variant": "plain",
+   "title": "Superblock \u00b7 flat"
+  },
+  {
+   "file": "superblock_flat_core.svg",
+   "set": "styles",
+   "style": "SUPERBLOCK",
+   "terrain": "flat",
+   "variant": "core",
+   "title": "Superblock \u00b7 flat (from a town core)"
+  },
+  {
+   "file": "superblock_flat_even.svg",
+   "set": "styles",
+   "style": "SUPERBLOCK",
+   "terrain": "flat",
+   "variant": "even",
+   "title": "Superblock \u00b7 flat (even (irregular growth off))"
+  },
+  {
+   "file": "superblock_hillside.svg",
+   "set": "styles",
+   "style": "SUPERBLOCK",
+   "terrain": "hillside",
+   "variant": "plain",
+   "title": "Superblock \u00b7 hillside"
+  },
+  {
+   "file": "superblock_hillside_core.svg",
+   "set": "styles",
+   "style": "SUPERBLOCK",
+   "terrain": "hillside",
+   "variant": "core",
+   "title": "Superblock \u00b7 hillside (from a town core)"
+  },
+  {
+   "file": "superblock_river.svg",
+   "set": "styles",
+   "style": "SUPERBLOCK",
+   "terrain": "river",
+   "variant": "plain",
+   "title": "Superblock \u00b7 river"
+  },
+  {
+   "file": "superblock_river_core.svg",
+   "set": "styles",
+   "style": "SUPERBLOCK",
+   "terrain": "river",
+   "variant": "core",
+   "title": "Superblock \u00b7 river (from a town core)"
+  }
+ ]
+}

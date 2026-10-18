@@ -1,0 +1,3898 @@
+{
+ "version": 2,
+ "single": true,
+ "seed": "a",
+ "built": "2026-10-14 12:43",
+ "header": {
+  "title": "Seed a, 203 simulated years",
+  "h1": "Seed a, 203 simulated years",
+  "seed": "a",
+  "subline": "Seed text <b>a</b> \u00b7 one run \u00b7 18 towns (SIMGROW) + 4 created by the mod",
+  "footer": "Images: in-game tour screenshots (the same camera per town), downscaled to JPEG. Metrics: dev mod <code>ALLTOWN</code> after the simulation and <code>SIMGROW town</code> lines. Data: <code>data.json</code>. Built by <code>plans/square_organic_towns/compare/build_compare.py</code>."
+ },
+ "runs": [
+  {
+   "id": "mod-1927-203y",
+   "label": "Mod 1927, 203 simulated years (6 towns near camera, calendar 1900)",
+   "dir": "mod-1927-203y",
+   "session": "2026-10-14_1927_sqot",
+   "load": 1,
+   "kind": "mod",
+   "loadAt": "19:28:45",
+   "initS": 30.420242,
+   "simStart": "19:35:28",
+   "simStop": "19:41:20",
+   "init": "INIT on=true reason=- actOn=new region=EU regionSource=nameList profile=EU_ORGANIC forceGrid=false lookahead=2 nameList=::/names/europe/europe.names climate=::/climates/temperate/temperate.clima lock=shape fill=dose2 capsBoost=0 metropolis=auto_from_4000 townSize=game popDensity=1 upward=from1500 levels=pbAim4.5 meadows=on trees=on hangGuard=off params=act_on=2_style=1_lookahead=2_debug_log=2_test_grow=1_start_angle=1_town_layout=2_starting_town_size=1_industry_streets=2_town_names=1_satellite_towns=1",
+   "pre": [
+    "[SQOT] ANGLE choice=auto region=EU regionSource=nameList nameList=::/names/europe/europe.names climate=::/climates/temperate/temperate.clima angle=0/0->35 initialRange=35 note=newMapGeneratorUnverified"
+   ],
+   "startLine": "[SQOT_DEV] SIMGROW start mode=custom chunks=- years=0 moveDate=false startYear=1900 upGap=- seed=1 pace=0 scope=near near=793,2652,r4000 limit=0 bias=true even=true tourWhenDone=false resume=true years=76 towns=6 none=2 slow=0 medium=1 fast=3 minWeight=0.05 stepsPerYear=4 cmdSteps=1 fastFill=true fillEvery=4 fillRatio=0.95 waitMain=true waitMaxS=15 buildRound=true roundBuilds=3 roundMaxS=20 inflight=24 reachM=700 mainPace=check0.25s_cooldownx0.10 speed=1->8 mainVisible=true mainPaused=false buildings=5827",
+   "stopLine": "[SQOT_DEV] SIMGROW stop reason=button years=203 towns=6 steps=1274 fills=250 fails=0 rounds=51 roundBuilds=242 buildings=722->16287 s=747 sPerYear=3.7 mainPace=restored upGap=- speed=8->1 tour=false mode=custom fillEarly=213",
+   "years": [
+    {
+     "year": 1.0,
+     "s": 2.7,
+     "buildings": "2022(+32)",
+     "cap": "7103/8473(84%)",
+     "filled": "0",
+     "round": "15/16"
+    },
+    {
+     "year": 2.0,
+     "s": 0.5,
+     "buildings": "2041(+51)",
+     "cap": "7194/9474(76%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 3.0,
+     "s": 0.5,
+     "buildings": "2062(+72)",
+     "cap": "7227/10690(68%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 4.0,
+     "s": 11.1,
+     "buildings": "3234(+1244)",
+     "cap": "11120/11736(95%)",
+     "filled": "16",
+     "round": "21/16"
+    },
+    {
+     "year": 5.0,
+     "s": 0.6,
+     "buildings": "3259(+1269)",
+     "cap": "11212/12683(88%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 6.0,
+     "s": 0.5,
+     "buildings": "3283(+1293)",
+     "cap": "11298/14534(78%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 7.0,
+     "s": 0.5,
+     "buildings": "3300(+1310)",
+     "cap": "11335/14552(78%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 8.0,
+     "s": 8.9,
+     "buildings": "4147(+2157)",
+     "cap": "14405/15350(94%)",
+     "filled": "14",
+     "round": "20/16"
+    },
+    {
+     "year": 9.0,
+     "s": 0.6,
+     "buildings": "4167(+2177)",
+     "cap": "14478/16186(89%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 10.0,
+     "s": 0.5,
+     "buildings": "4196(+2206)",
+     "cap": "14556/17029(85%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 11.0,
+     "s": 0.5,
+     "buildings": "4227(+2237)",
+     "cap": "14641/17921(82%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 12.0,
+     "s": 12.7,
+     "buildings": "5304(+3314)",
+     "cap": "18056/18758(96%)",
+     "filled": "16",
+     "round": "23/16"
+    },
+    {
+     "year": 13.0,
+     "s": 0.5,
+     "buildings": "5323(+3333)",
+     "cap": "18108/19563(93%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 14.0,
+     "s": 0.7,
+     "buildings": "5348(+3358)",
+     "cap": "18179/21850(83%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 15.0,
+     "s": 0.6,
+     "buildings": "5370(+3380)",
+     "cap": "18268/21205(86%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 16.0,
+     "s": 12.1,
+     "buildings": "6249(+4259)",
+     "cap": "21509/22042(98%)",
+     "filled": "15",
+     "round": "21/16"
+    },
+    {
+     "year": 17.0,
+     "s": 0.6,
+     "buildings": "6270(+4280)",
+     "cap": "21580/22920(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 18.0,
+     "s": 0.6,
+     "buildings": "6294(+4304)",
+     "cap": "21688/23737(91%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 19.0,
+     "s": 0.6,
+     "buildings": "6327(+4337)",
+     "cap": "21836/30576(71%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 20.0,
+     "s": 10.5,
+     "buildings": "7242(+5252)",
+     "cap": "24437/25377(96%)",
+     "filled": "14",
+     "round": "15/16"
+    },
+    {
+     "year": 21.0,
+     "s": 0.6,
+     "buildings": "7264(+5274)",
+     "cap": "24524/26274(93%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 22.0,
+     "s": 0.6,
+     "buildings": "7283(+5293)",
+     "cap": "24598/29604(83%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 23.0,
+     "s": 0.6,
+     "buildings": "7299(+5309)",
+     "cap": "24659/28117(88%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 24.0,
+     "s": 13.6,
+     "buildings": "8393(+6403)",
+     "cap": "28152/28982(97%)",
+     "filled": "15",
+     "round": "21/16"
+    },
+    {
+     "year": 25.0,
+     "s": 0.6,
+     "buildings": "8416(+6426)",
+     "cap": "28242/37959(74%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 26.0,
+     "s": 0.5,
+     "buildings": "8436(+6446)",
+     "cap": "28300/30682(92%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 27.0,
+     "s": 0.6,
+     "buildings": "8443(+6453)",
+     "cap": "28328/31538(90%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 28.0,
+     "s": 12.1,
+     "buildings": "9229(+7239)",
+     "cap": "30891/32507(95%)",
+     "filled": "13",
+     "round": "17/16"
+    },
+    {
+     "year": 29.0,
+     "s": 0.6,
+     "buildings": "9244(+7254)",
+     "cap": "30956/33485(92%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 30.0,
+     "s": 0.6,
+     "buildings": "9256(+7266)",
+     "cap": "31002/45709(68%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 31.0,
+     "s": 0.7,
+     "buildings": "9269(+7279)",
+     "cap": "31034/35388(88%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 32.0,
+     "s": 16.0,
+     "buildings": "10658(+8668)",
+     "cap": "35224/36296(97%)",
+     "filled": "14",
+     "round": "15/16"
+    },
+    {
+     "year": 33.0,
+     "s": 0.9,
+     "buildings": "10677(+8687)",
+     "cap": "35283/37209(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 34.0,
+     "s": 0.6,
+     "buildings": "10698(+8708)",
+     "cap": "35368/38146(93%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 35.0,
+     "s": 0.8,
+     "buildings": "10719(+8729)",
+     "cap": "35453/39132(91%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 36.0,
+     "s": 12.5,
+     "buildings": "11753(+9763)",
+     "cap": "38796/40127(97%)",
+     "filled": "14",
+     "round": "16/16"
+    },
+    {
+     "year": 37.0,
+     "s": 1.0,
+     "buildings": "11766(+9776)",
+     "cap": "38832/41158(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 38.0,
+     "s": 0.8,
+     "buildings": "11796(+9806)",
+     "cap": "38922/63330(61%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 39.0,
+     "s": 0.8,
+     "buildings": "11815(+9825)",
+     "cap": "38992/43204(90%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 40.0,
+     "s": 16.5,
+     "buildings": "13192(+11202)",
+     "cap": "43027/44188(97%)",
+     "filled": "15",
+     "round": "18/16"
+    },
+    {
+     "year": 41.0,
+     "s": 0.4,
+     "buildings": "3284(+2602)",
+     "cap": "11327/11736(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 42.0,
+     "s": 0.6,
+     "buildings": "3292(+2610)",
+     "cap": "11355/11927(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 43.0,
+     "s": 0.6,
+     "buildings": "3300(+2618)",
+     "cap": "11371/12151(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 44.0,
+     "s": 4.2,
+     "buildings": "3603(+2921)",
+     "cap": "12255/12384(99%)",
+     "filled": "4",
+     "round": "0/4"
+    },
+    {
+     "year": 45.0,
+     "s": 0.3,
+     "buildings": "3605(+2923)",
+     "cap": "12267/12627(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 46.0,
+     "s": 0.6,
+     "buildings": "3607(+2925)",
+     "cap": "12279/12881(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 47.0,
+     "s": 0.3,
+     "buildings": "3611(+2929)",
+     "cap": "12290/13145(93%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 48.0,
+     "s": 6.4,
+     "buildings": "3926(+3244)",
+     "cap": "13240/13422(99%)",
+     "filled": "4",
+     "round": "2/4"
+    },
+    {
+     "year": 49.0,
+     "s": 0.4,
+     "buildings": "3931(+3249)",
+     "cap": "13251/13692(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 50.0,
+     "s": 0.3,
+     "buildings": "3935(+3253)",
+     "cap": "13264/13969(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 51.0,
+     "s": 0.5,
+     "buildings": "3939(+3257)",
+     "cap": "13275/14220(93%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 52.0,
+     "s": 8.5,
+     "buildings": "4251(+3569)",
+     "cap": "14320/14461(99%)",
+     "filled": "4",
+     "round": "3/4"
+    },
+    {
+     "year": 53.0,
+     "s": 0.4,
+     "buildings": "4258(+3576)",
+     "cap": "14352/14685(98%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 54.0,
+     "s": 0.3,
+     "buildings": "4303(+3581)",
+     "cap": "14587/15137(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 55.0,
+     "s": 0.3,
+     "buildings": "4307(+3585)",
+     "cap": "14603/15376(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 56.0,
+     "s": 6.0,
+     "buildings": "4586(+3864)",
+     "cap": "15449/15623(99%)",
+     "filled": "4",
+     "round": "4/4"
+    },
+    {
+     "year": 57.0,
+     "s": 0.3,
+     "buildings": "4586(+3864)",
+     "cap": "15449/15878(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 58.0,
+     "s": 0.3,
+     "buildings": "4589(+3867)",
+     "cap": "15468/16143(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 59.0,
+     "s": 0.2,
+     "buildings": "4595(+3873)",
+     "cap": "15493/16417(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 60.0,
+     "s": 6.9,
+     "buildings": "4903(+4181)",
+     "cap": "16530/16700(99%)",
+     "filled": "4",
+     "round": "1/4"
+    },
+    {
+     "year": 61.0,
+     "s": 0.4,
+     "buildings": "4905(+4183)",
+     "cap": "16537/16994(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 62.0,
+     "s": 0.4,
+     "buildings": "4907(+4185)",
+     "cap": "16543/17285(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 63.0,
+     "s": 0.3,
+     "buildings": "4908(+4186)",
+     "cap": "16538/17577(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 64.0,
+     "s": 7.2,
+     "buildings": "5214(+4492)",
+     "cap": "17678/17846(99%)",
+     "filled": "4",
+     "round": "2/4"
+    },
+    {
+     "year": 65.0,
+     "s": 0.6,
+     "buildings": "5216(+4494)",
+     "cap": "17688/18100(98%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 66.0,
+     "s": 0.6,
+     "buildings": "5216(+4494)",
+     "cap": "17685/18352(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 67.0,
+     "s": 0.6,
+     "buildings": "5221(+4499)",
+     "cap": "17705/18588(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 68.0,
+     "s": 5.9,
+     "buildings": "5478(+4756)",
+     "cap": "18602/18831(99%)",
+     "filled": "4",
+     "round": "0/4"
+    },
+    {
+     "year": 69.0,
+     "s": 0.8,
+     "buildings": "5480(+4758)",
+     "cap": "18609/19080(98%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 70.0,
+     "s": 0.6,
+     "buildings": "5482(+4760)",
+     "cap": "18616/19335(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 71.0,
+     "s": 0.6,
+     "buildings": "5483(+4761)",
+     "cap": "18611/19598(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 72.0,
+     "s": 7.3,
+     "buildings": "5814(+5092)",
+     "cap": "19668/19868(99%)",
+     "filled": "4",
+     "round": "0/4"
+    },
+    {
+     "year": 73.0,
+     "s": 0.8,
+     "buildings": "5817(+5095)",
+     "cap": "19688/20145(98%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 74.0,
+     "s": 1.2,
+     "buildings": "5822(+5100)",
+     "cap": "19722/20431(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 75.0,
+     "s": 0.8,
+     "buildings": "5823(+5101)",
+     "cap": "19743/20724(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 77.0,
+     "s": 0.3,
+     "buildings": "6026(+5304)",
+     "cap": "20540/21336(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 78.0,
+     "s": 0.8,
+     "buildings": "6029(+5307)",
+     "cap": "20562/21641(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 79.0,
+     "s": 0.8,
+     "buildings": "6027(+5305)",
+     "cap": "20558/21942(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 80.0,
+     "s": 11.5,
+     "buildings": "6503(+5781)",
+     "cap": "21932/22210(99%)",
+     "filled": "4",
+     "round": "2/4"
+    },
+    {
+     "year": 81.0,
+     "s": 0.8,
+     "buildings": "6506(+5784)",
+     "cap": "21949/22471(98%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 82.0,
+     "s": 0.8,
+     "buildings": "6510(+5788)",
+     "cap": "21974/22738(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 83.0,
+     "s": 0.8,
+     "buildings": "6512(+5790)",
+     "cap": "21979/22988(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 84.0,
+     "s": 6.2,
+     "buildings": "6749(+6027)",
+     "cap": "22636/23234(97%)",
+     "filled": "3",
+     "round": "1/4"
+    },
+    {
+     "year": 85.0,
+     "s": 0.8,
+     "buildings": "6751(+6029)",
+     "cap": "22653/23485(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 86.0,
+     "s": 0.8,
+     "buildings": "6755(+6033)",
+     "cap": "22687/23741(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 87.0,
+     "s": 0.8,
+     "buildings": "6759(+6037)",
+     "cap": "22717/24003(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 88.0,
+     "s": 8.0,
+     "buildings": "6986(+6264)",
+     "cap": "23409/24270(96%)",
+     "filled": "2",
+     "round": "2/4"
+    },
+    {
+     "year": 89.0,
+     "s": 0.4,
+     "buildings": "6981(+6259)",
+     "cap": "23435/24543(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 90.0,
+     "s": 0.8,
+     "buildings": "6986(+6264)",
+     "cap": "23456/24822(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 91.0,
+     "s": 0.8,
+     "buildings": "6992(+6270)",
+     "cap": "23499/25108(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 92.0,
+     "s": 9.2,
+     "buildings": "7458(+6736)",
+     "cap": "24910/25399(98%)",
+     "filled": "4",
+     "round": "2/4"
+    },
+    {
+     "year": 93.0,
+     "s": 0.8,
+     "buildings": "7461(+6739)",
+     "cap": "24936/25698(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 94.0,
+     "s": 0.8,
+     "buildings": "7465(+6743)",
+     "cap": "24973/26003(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 95.0,
+     "s": 0.8,
+     "buildings": "7470(+6748)",
+     "cap": "25016/26315(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 96.0,
+     "s": 11.6,
+     "buildings": "7921(+7199)",
+     "cap": "26330/26634(99%)",
+     "filled": "4",
+     "round": "3/4"
+    },
+    {
+     "year": 97.0,
+     "s": 0.8,
+     "buildings": "7920(+7198)",
+     "cap": "26332/26946(98%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 98.0,
+     "s": 0.8,
+     "buildings": "7925(+7203)",
+     "cap": "26359/27251(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 99.0,
+     "s": 0.8,
+     "buildings": "7930(+7208)",
+     "cap": "26427/74242(36%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 100.0,
+     "s": 2.9,
+     "buildings": "7987(+7265)",
+     "cap": "26607/27734(96%)",
+     "filled": "1",
+     "round": "0/4"
+    },
+    {
+     "year": 101.0,
+     "s": 0.8,
+     "buildings": "7985(+7263)",
+     "cap": "26609/28000(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 102.0,
+     "s": 0.8,
+     "buildings": "7989(+7267)",
+     "cap": "26645/28271(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 103.0,
+     "s": 0.8,
+     "buildings": "7992(+7270)",
+     "cap": "26674/28522(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 104.0,
+     "s": 10.6,
+     "buildings": "8413(+7691)",
+     "cap": "28003/28769(97%)",
+     "filled": "3",
+     "round": "0/4"
+    },
+    {
+     "year": 105.0,
+     "s": 1.6,
+     "buildings": "8417(+7695)",
+     "cap": "28013/29020(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 106.0,
+     "s": 0.7,
+     "buildings": "8421(+7699)",
+     "cap": "28048/29276(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 107.0,
+     "s": 0.7,
+     "buildings": "8424(+7702)",
+     "cap": "28084/29536(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 108.0,
+     "s": 11.3,
+     "buildings": "8982(+8260)",
+     "cap": "29455/29800(99%)",
+     "filled": "4",
+     "round": "0/4"
+    },
+    {
+     "year": 109.0,
+     "s": 1.3,
+     "buildings": "8986(+8264)",
+     "cap": "29481/30069(98%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 110.0,
+     "s": 0.9,
+     "buildings": "8985(+8263)",
+     "cap": "29480/30342(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 111.0,
+     "s": 0.8,
+     "buildings": "8988(+8266)",
+     "cap": "29522/30620(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 112.0,
+     "s": 4.6,
+     "buildings": "8989(+8267)",
+     "cap": "29563/30903(96%)",
+     "filled": "0",
+     "round": "4/4"
+    },
+    {
+     "year": 113.0,
+     "s": 0.7,
+     "buildings": "8992(+8270)",
+     "cap": "29591/31191(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 114.0,
+     "s": 0.8,
+     "buildings": "8991(+8269)",
+     "cap": "29594/31484(94%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 115.0,
+     "s": 0.8,
+     "buildings": "8993(+8271)",
+     "cap": "29621/31782(93%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 116.0,
+     "s": 12.5,
+     "buildings": "9578(+8856)",
+     "cap": "31450/32085(98%)",
+     "filled": "4",
+     "round": "0/4"
+    },
+    {
+     "year": 117.0,
+     "s": 1.3,
+     "buildings": "9580(+8858)",
+     "cap": "31482/32394(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 118.0,
+     "s": 0.7,
+     "buildings": "9582(+8860)",
+     "cap": "31537/32709(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 119.0,
+     "s": 0.7,
+     "buildings": "9585(+8863)",
+     "cap": "31584/33029(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 120.0,
+     "s": 5.8,
+     "buildings": "9843(+9121)",
+     "cap": "32296/33355(97%)",
+     "filled": "1",
+     "round": "1/4"
+    },
+    {
+     "year": 121.0,
+     "s": 0.7,
+     "buildings": "9849(+9127)",
+     "cap": "32359/33661(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 122.0,
+     "s": 0.7,
+     "buildings": "9845(+9123)",
+     "cap": "32364/33918(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 123.0,
+     "s": 0.6,
+     "buildings": "9849(+9127)",
+     "cap": "32395/34177(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 124.0,
+     "s": 7.6,
+     "buildings": "10255(+9533)",
+     "cap": "33717/34439(98%)",
+     "filled": "3",
+     "round": "0/4"
+    },
+    {
+     "year": 125.0,
+     "s": 0.9,
+     "buildings": "10256(+9534)",
+     "cap": "33747/34705(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 126.0,
+     "s": 0.7,
+     "buildings": "10260(+9538)",
+     "cap": "33763/34975(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 127.0,
+     "s": 0.6,
+     "buildings": "10262(+9540)",
+     "cap": "33793/35224(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 128.0,
+     "s": 5.4,
+     "buildings": "10475(+9753)",
+     "cap": "34576/35468(97%)",
+     "filled": "1",
+     "round": "3/4"
+    },
+    {
+     "year": 129.0,
+     "s": 0.4,
+     "buildings": "10479(+9757)",
+     "cap": "34611/35715(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 130.0,
+     "s": 0.7,
+     "buildings": "10481(+9759)",
+     "cap": "34657/35966(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 131.0,
+     "s": 0.6,
+     "buildings": "10484(+9762)",
+     "cap": "34684/36220(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 132.0,
+     "s": 7.3,
+     "buildings": "10676(+9954)",
+     "cap": "35358/36477(97%)",
+     "filled": "3",
+     "round": "0/4"
+    },
+    {
+     "year": 133.0,
+     "s": 0.8,
+     "buildings": "10677(+9955)",
+     "cap": "35377/36738(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 134.0,
+     "s": 0.6,
+     "buildings": "10679(+9957)",
+     "cap": "35420/37002(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 135.0,
+     "s": 0.6,
+     "buildings": "10683(+9961)",
+     "cap": "35452/37270(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 136.0,
+     "s": 9.1,
+     "buildings": "10944(+10222)",
+     "cap": "36306/37541(97%)",
+     "filled": "2",
+     "round": "1/4"
+    },
+    {
+     "year": 137.0,
+     "s": 0.8,
+     "buildings": "10948(+10226)",
+     "cap": "36333/37816(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 138.0,
+     "s": 0.7,
+     "buildings": "10950(+10228)",
+     "cap": "36367/38095(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 139.0,
+     "s": 0.8,
+     "buildings": "10951(+10229)",
+     "cap": "36397/38378(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 140.0,
+     "s": 8.4,
+     "buildings": "11333(+10611)",
+     "cap": "37472/38664(97%)",
+     "filled": "3",
+     "round": "0/4"
+    },
+    {
+     "year": 141.0,
+     "s": 1.1,
+     "buildings": "11338(+10616)",
+     "cap": "37515/38954(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 142.0,
+     "s": 0.8,
+     "buildings": "11342(+10620)",
+     "cap": "37537/39249(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 143.0,
+     "s": 0.8,
+     "buildings": "11346(+10624)",
+     "cap": "37572/39547(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 144.0,
+     "s": 7.8,
+     "buildings": "11792(+11070)",
+     "cap": "38623/39850(97%)",
+     "filled": "2",
+     "round": "0/4"
+    },
+    {
+     "year": 145.0,
+     "s": 0.9,
+     "buildings": "11794(+11072)",
+     "cap": "38651/40157(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 146.0,
+     "s": 0.8,
+     "buildings": "11799(+11077)",
+     "cap": "38686/40468(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 147.0,
+     "s": 0.8,
+     "buildings": "11801(+11079)",
+     "cap": "38720/40784(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 148.0,
+     "s": 8.9,
+     "buildings": "12203(+11481)",
+     "cap": "40003/41100(97%)",
+     "filled": "3",
+     "round": "0/4"
+    },
+    {
+     "year": 149.0,
+     "s": 1.1,
+     "buildings": "12205(+11483)",
+     "cap": "40041/41382(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 150.0,
+     "s": 0.8,
+     "buildings": "12207(+11485)",
+     "cap": "40091/41630(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 151.0,
+     "s": 0.8,
+     "buildings": "12206(+11484)",
+     "cap": "40082/41881(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 152.0,
+     "s": 24.7,
+     "buildings": "12632(+11910)",
+     "cap": "41215/42134(98%)",
+     "filled": "2",
+     "round": "0/4"
+    },
+    {
+     "year": 153.0,
+     "s": 1.0,
+     "buildings": "12633(+11911)",
+     "cap": "41228/42391(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 154.0,
+     "s": 0.8,
+     "buildings": "12636(+11914)",
+     "cap": "41264/42650(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 155.0,
+     "s": 0.8,
+     "buildings": "12632(+11910)",
+     "cap": "41271/42912(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 156.0,
+     "s": 7.5,
+     "buildings": "12743(+12021)",
+     "cap": "41618/43160(96%)",
+     "filled": "1",
+     "round": "2/4"
+    },
+    {
+     "year": 157.0,
+     "s": 0.6,
+     "buildings": "12748(+12026)",
+     "cap": "41655/43396(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 158.0,
+     "s": 0.8,
+     "buildings": "12750(+12028)",
+     "cap": "41688/43635(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 159.0,
+     "s": 0.8,
+     "buildings": "12753(+12031)",
+     "cap": "41721/43876(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 160.0,
+     "s": 6.9,
+     "buildings": "13007(+12285)",
+     "cap": "42423/44119(96%)",
+     "filled": "2",
+     "round": "2/4"
+    },
+    {
+     "year": 161.0,
+     "s": 1.0,
+     "buildings": "13008(+12286)",
+     "cap": "42439/44365(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 162.0,
+     "s": 0.8,
+     "buildings": "13006(+12284)",
+     "cap": "42446/44613(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 163.0,
+     "s": 0.8,
+     "buildings": "13006(+12284)",
+     "cap": "42485/44864(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 164.0,
+     "s": 11.3,
+     "buildings": "13382(+12660)",
+     "cap": "43770/45118(97%)",
+     "filled": "2",
+     "round": "2/4"
+    },
+    {
+     "year": 165.0,
+     "s": 0.9,
+     "buildings": "13385(+12663)",
+     "cap": "43798/45374(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 166.0,
+     "s": 0.8,
+     "buildings": "13389(+12667)",
+     "cap": "43827/45633(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 167.0,
+     "s": 0.8,
+     "buildings": "13391(+12669)",
+     "cap": "43853/45894(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 168.0,
+     "s": 6.7,
+     "buildings": "13562(+12840)",
+     "cap": "44327/46158(96%)",
+     "filled": "1",
+     "round": "0/4"
+    },
+    {
+     "year": 169.0,
+     "s": 0.8,
+     "buildings": "13561(+12839)",
+     "cap": "44354/46425(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 170.0,
+     "s": 0.9,
+     "buildings": "13563(+12841)",
+     "cap": "44393/46695(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 171.0,
+     "s": 0.8,
+     "buildings": "13561(+12839)",
+     "cap": "44404/46967(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 172.0,
+     "s": 10.4,
+     "buildings": "14032(+13310)",
+     "cap": "45994/47243(97%)",
+     "filled": "3",
+     "round": "0/4"
+    },
+    {
+     "year": 173.0,
+     "s": 1.0,
+     "buildings": "14035(+13313)",
+     "cap": "46025/47521(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 174.0,
+     "s": 0.8,
+     "buildings": "14035(+13313)",
+     "cap": "46025/47803(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 175.0,
+     "s": 0.8,
+     "buildings": "14033(+13311)",
+     "cap": "46031/48087(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 176.0,
+     "s": 4.4,
+     "buildings": "14185(+13463)",
+     "cap": "46492/48375(96%)",
+     "filled": "1",
+     "round": "0/4"
+    },
+    {
+     "year": 177.0,
+     "s": 0.8,
+     "buildings": "14187(+13465)",
+     "cap": "46514/48665(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 178.0,
+     "s": 0.8,
+     "buildings": "14190(+13468)",
+     "cap": "46542/48959(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 179.0,
+     "s": 0.8,
+     "buildings": "14192(+13470)",
+     "cap": "46579/49256(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 180.0,
+     "s": 9.6,
+     "buildings": "14644(+13922)",
+     "cap": "47972/49557(97%)",
+     "filled": "2",
+     "round": "0/4"
+    },
+    {
+     "year": 181.0,
+     "s": 1.0,
+     "buildings": "14645(+13923)",
+     "cap": "48007/49860(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 182.0,
+     "s": 0.8,
+     "buildings": "14648(+13926)",
+     "cap": "48043/50152(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 183.0,
+     "s": 0.9,
+     "buildings": "14645(+13923)",
+     "cap": "48040/50423(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 184.0,
+     "s": 6.4,
+     "buildings": "14926(+14204)",
+     "cap": "48910/50659(97%)",
+     "filled": "2",
+     "round": "0/4"
+    },
+    {
+     "year": 185.0,
+     "s": 0.9,
+     "buildings": "14927(+14205)",
+     "cap": "48929/50897(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 186.0,
+     "s": 0.8,
+     "buildings": "14930(+14208)",
+     "cap": "48975/51137(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 187.0,
+     "s": 0.7,
+     "buildings": "14934(+14212)",
+     "cap": "49001/51379(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 188.0,
+     "s": 9.8,
+     "buildings": "15417(+14695)",
+     "cap": "50442/51624(98%)",
+     "filled": "2",
+     "round": "0/4"
+    },
+    {
+     "year": 189.0,
+     "s": 1.3,
+     "buildings": "15421(+14699)",
+     "cap": "50465/51870(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 190.0,
+     "s": 0.8,
+     "buildings": "15425(+14703)",
+     "cap": "50513/52119(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 191.0,
+     "s": 0.8,
+     "buildings": "15429(+14707)",
+     "cap": "50570/52370(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 192.0,
+     "s": 4.5,
+     "buildings": "15430(+14708)",
+     "cap": "50600/52599(96%)",
+     "filled": "0",
+     "round": "1/4"
+    },
+    {
+     "year": 193.0,
+     "s": 1.1,
+     "buildings": "15434(+14712)",
+     "cap": "50642/52824(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 194.0,
+     "s": 0.8,
+     "buildings": "15435(+14713)",
+     "cap": "50663/53051(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 195.0,
+     "s": 0.8,
+     "buildings": "15438(+14716)",
+     "cap": "50688/53279(95%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 196.0,
+     "s": 10.3,
+     "buildings": "15832(+15110)",
+     "cap": "51877/53509(97%)",
+     "filled": "3",
+     "round": "1/4"
+    },
+    {
+     "year": 197.0,
+     "s": 1.0,
+     "buildings": "15835(+15113)",
+     "cap": "51908/53741(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 198.0,
+     "s": 0.8,
+     "buildings": "15838(+15116)",
+     "cap": "51939/53975(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 199.0,
+     "s": 0.8,
+     "buildings": "15841(+15119)",
+     "cap": "51967/54210(96%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 200.0,
+     "s": 11.7,
+     "buildings": "16285(+15563)",
+     "cap": "53154/54448(98%)",
+     "filled": "2",
+     "round": "1/4"
+    },
+    {
+     "year": 201.0,
+     "s": 0.7,
+     "buildings": "16285(+15563)",
+     "cap": "53170/54687(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 202.0,
+     "s": 0.8,
+     "buildings": "16288(+15566)",
+     "cap": "53197/54928(97%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 203.0,
+     "s": 0.8,
+     "buildings": "16287(+15565)",
+     "cap": "53229/55171(96%)",
+     "filled": "0",
+     "round": "-"
+    }
+   ],
+   "seed": "a",
+   "counts": {
+    "checkWhy": {
+     "demand": 616,
+     "open": 125,
+     "ahead": 72,
+     "mature": 12
+    },
+    "builds": {
+     "demand": 295
+    },
+    "builtEdges": {
+     "demand": 1817
+    },
+    "satBuilt": 12,
+    "satWhy": {
+     "hamlet:hamletFallback": 3,
+     "seeded": 8,
+     "rare": 4,
+     "-": 13,
+     "hamlet": 1
+    },
+    "districts": 4,
+    "districtsLinked": 4,
+    "districtNone": {
+     "character": 2,
+     "forest": 14,
+     "rare": 6,
+     "noSite": 6
+    },
+    "works": 2,
+    "worksLinked": 2,
+    "worksNone": {
+     "character": 2,
+     "rare": 9
+    },
+    "levelsSet": 0,
+    "levelsClear": 0,
+    "bridgesBuilt": 3,
+    "bridgesRefused": 0,
+    "coastal": 1,
+    "straightCut": 2,
+    "upwardDoses": 28
+   }
+  }
+ ],
+ "towns": [
+  {
+   "nn": "01",
+   "ids": {
+    "mod-1927-203y": 60255
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Lower Fellhaven",
+     "startName": "Lower Fellhaven",
+     "buildingsStart": 118.0,
+     "buildingsEnd": 976.0,
+     "personsStart": 397.0,
+     "personsEnd": 3519.0,
+     "targetEnd": 3614.0,
+     "targetShare": 0.974,
+     "growthBuildings": 8.27,
+     "growthPersons": 8.86,
+     "factor": "1.00->9.10",
+     "rate": 1.9,
+     "class": "fast",
+     "r": 1792,
+     "rPerSqrtB": 57.4,
+     "dens": 1.0,
+     "spread": 2.37,
+     "beyondPct": 16.0,
+     "lobes": 2.0,
+     "orient": "0.26/0.20/0.16",
+     "capacity": 3559.0,
+     "edges": 506.0,
+     "streetLen": 36210.0,
+     "emptyLen": 20389.0,
+     "emptyEdges": 276.0,
+     "emptyEdgePct": 54.5,
+     "emptyLenPct": 56.3,
+     "deadEnds": 49.0,
+     "pb": 3.65,
+     "freeLotsPct": 74.2,
+     "streetPerBuilding": 37.1,
+     "edgesPer100B": 51.8,
+     "style": "JP_DENSE",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "ribbon_village:1.00:saved",
+     "forest": "0.16:clear",
+     "ind": "0/0",
+     "lvl": "a:55/45/0/0,u:34/27/22/17,w:49/51/0/0,c:0.0466654/0.0484979/0/0",
+     "lvlActual": "55/45/0/0",
+     "orth": 0.26,
+     "lvl2Pct": 45.0,
+     "lvl34Pct": 0,
+     "x": -2012.0,
+     "y": -2748.0,
+     "shot": "mod-1927-203y/01-lower-fellhaven.jpg",
+     "personsPerHa": 3.5,
+     "streetPerPerson": 10.29,
+     "deadEndsPerKm": 1.35,
+     "modShare": 16.0
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 81,
+     "builds": 17,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 26,
+      "open": 1,
+      "ahead": 1,
+      "mature": 12
+     },
+     "matLast": 0.98,
+     "demKLast": 0.11,
+     "matHalfAt": "2855",
+     "levelsSkip": "player",
+     "satellites": 0,
+     "forestShareFirst": 0.22,
+     "forestShareLast": 0.16,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "02",
+   "ids": {
+    "mod-1927-203y": 60256
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Twywath-under-Dun",
+     "startName": "Twywath-under-Dun",
+     "buildingsStart": 287.0,
+     "buildingsEnd": 7049.0,
+     "personsStart": 907.0,
+     "personsEnd": 22436.0,
+     "targetEnd": 22537.0,
+     "targetShare": 0.996,
+     "growthBuildings": 24.56,
+     "growthPersons": 24.74,
+     "factor": "1.00->25.44",
+     "rate": 1.03,
+     "class": "medium",
+     "r": 1496,
+     "rPerSqrtB": 17.8,
+     "dens": 10.0,
+     "spread": 1.18,
+     "beyondPct": 1.0,
+     "lobes": 2.0,
+     "orient": "0.24/0.17/0.17",
+     "capacity": 21557.0,
+     "edges": 1733.0,
+     "streetLen": 126961.0,
+     "emptyLen": 16128.0,
+     "emptyEdges": 249.0,
+     "emptyEdgePct": 14.4,
+     "emptyLenPct": 12.7,
+     "deadEnds": 77.0,
+     "pb": 3.06,
+     "freeLotsPct": 54.0,
+     "streetPerBuilding": 18.0,
+     "edgesPer100B": 24.6,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "ribbon_village:0.75:saved,crescent:1.00:derived,bridgehead_quarter:1.00:derived",
+     "forest": "0.16:hug",
+     "ind": "0/0",
+     "lvl": "a:66/34/0/0,u:34/27/22/17,w:63/37/0/0,c:0.119726/0.0718358/0/0",
+     "lvlActual": "66/34/0/0",
+     "orth": 0.24,
+     "lvl2Pct": 34.0,
+     "lvl34Pct": 0,
+     "x": -1696.0,
+     "y": 44.0,
+     "shot": "mod-1927-203y/02-twywath-under-dun.jpg",
+     "personsPerHa": 31.9,
+     "streetPerPerson": 5.66,
+     "deadEndsPerKm": 0.61,
+     "modShare": 6.7
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [
+      "Ashworthville"
+     ],
+     "worksLinked": true,
+     "districtLinked": false,
+     "bridges": [
+      "built span 152 m"
+     ],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 116,
+     "builds": 16,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 65,
+      "open": 3
+     },
+     "matLast": 1.0,
+     "demKLast": 0.34,
+     "matHalfAt": "2692",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.29,
+     "forestShareLast": 0.16,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "03",
+   "ids": {
+    "mod-1927-203y": 60257
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Aberdart-on-Redwater",
+     "startName": "Aberdart-on-Redwater",
+     "buildingsStart": 145.0,
+     "buildingsEnd": 1127.0,
+     "personsStart": 560.0,
+     "personsEnd": 3466.0,
+     "targetEnd": 3565.0,
+     "targetShare": 0.972,
+     "growthBuildings": 7.77,
+     "growthPersons": 6.19,
+     "factor": "1.00->6.42",
+     "rate": 1.48,
+     "class": "fast",
+     "r": 717,
+     "rPerSqrtB": 21.4,
+     "dens": 7.0,
+     "spread": 1.32,
+     "beyondPct": 2.0,
+     "lobes": 2.0,
+     "orient": "0.23/0.19/0.13",
+     "capacity": 3543.0,
+     "edges": 334.0,
+     "streetLen": 24344.0,
+     "emptyLen": 4812.0,
+     "emptyEdges": 69.0,
+     "emptyEdgePct": 20.7,
+     "emptyLenPct": 19.8,
+     "deadEnds": 29.0,
+     "pb": 3.14,
+     "freeLotsPct": 53.7,
+     "streetPerBuilding": 21.6,
+     "edgesPer100B": 29.6,
+     "style": "EU_EXTENSION",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "crossroads_hamlet:0.70:drawn,crescent:1.00:derived",
+     "forest": "0.15:clear",
+     "ind": "0/0",
+     "lvl": "a:90/10/0/0,u:34/27/22/17,w:88/12/0/0,c:0.104847/0.0139456/0/0",
+     "lvlActual": "90/10/0/0",
+     "orth": 0.23,
+     "lvl2Pct": 10.0,
+     "lvl34Pct": 0,
+     "x": -5500.0,
+     "y": -5320.0,
+     "shot": "mod-1927-203y/03-aberdart-on-redwater.jpg",
+     "personsPerHa": 21.5,
+     "streetPerPerson": 7.02,
+     "deadEndsPerKm": 1.19,
+     "modShare": 26.6
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [
+      "Aberdart Grange (shore)"
+     ],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": true,
+     "bridges": [
+      "built span 132 m"
+     ],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 89,
+     "builds": 19,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 34,
+      "open": 2
+     },
+     "matLast": 0.97,
+     "demKLast": 0.4,
+     "matHalfAt": "2862",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.15,
+     "forestShareLast": 0.08,
+     "forestReads": 6
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "04",
+   "ids": {
+    "mod-1927-203y": 60258
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "West Arunmouth",
+     "startName": "West Arunmouth",
+     "buildingsStart": 104.0,
+     "buildingsEnd": 1006.0,
+     "personsStart": 392.0,
+     "personsEnd": 3056.0,
+     "targetEnd": 3153.0,
+     "targetShare": 0.969,
+     "growthBuildings": 9.67,
+     "growthPersons": 7.8,
+     "factor": "1.00->8.04",
+     "rate": 1.83,
+     "class": "fast",
+     "r": 618,
+     "rPerSqrtB": 19.5,
+     "dens": 8.4,
+     "spread": 1.23,
+     "beyondPct": 3.0,
+     "lobes": 1.0,
+     "orient": "0.23/0.23/0.19",
+     "capacity": 3135.0,
+     "edges": 316.0,
+     "streetLen": 21933.0,
+     "emptyLen": 5962.0,
+     "emptyEdges": 90.0,
+     "emptyEdgePct": 28.5,
+     "emptyLenPct": 27.2,
+     "deadEnds": 26.0,
+     "pb": 3.12,
+     "freeLotsPct": 54.2,
+     "streetPerBuilding": 21.8,
+     "edgesPer100B": 31.4,
+     "style": "EU_ORGANIC",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "crossroads_hamlet:1.00:saved,crescent:1.00:derived,bridgehead_quarter:1.00:derived",
+     "forest": "0.21:hug",
+     "ind": "0/0",
+     "lvl": "a:81/19/0/0,u:34/27/22/17,w:79/21/0/0,c:0.0767212/0.0208398/0/0",
+     "lvlActual": "81/19/0/0",
+     "orth": 0.23,
+     "lvl2Pct": 19.0,
+     "lvl34Pct": 0,
+     "x": -7256.0,
+     "y": 4896.0,
+     "shot": "mod-1927-203y/04-west-arunmouth.jpg",
+     "personsPerHa": 25.5,
+     "streetPerPerson": 7.18,
+     "deadEndsPerKm": 1.19,
+     "modShare": 25.6
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [
+      "built span 92 m"
+     ],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 81,
+     "builds": 13,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 30,
+      "open": 1,
+      "ahead": 3
+     },
+     "matLast": 0.74,
+     "demKLast": 0.5,
+     "matHalfAt": "2915",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.27,
+     "forestShareLast": 0.21,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "05",
+   "ids": {
+    "mod-1927-203y": 60259
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Little Merthorpe",
+     "startName": "Little Merthorpe",
+     "buildingsStart": 73.0,
+     "buildingsEnd": 1980.0,
+     "personsStart": 258.0,
+     "personsEnd": 5799.0,
+     "targetEnd": 5825.0,
+     "targetShare": 0.996,
+     "growthBuildings": 27.12,
+     "growthPersons": 22.48,
+     "factor": "1.00->25.55",
+     "rate": 1.79,
+     "class": "fast",
+     "r": 961,
+     "rPerSqrtB": 21.6,
+     "dens": 6.8,
+     "spread": 2.41,
+     "beyondPct": 7.0,
+     "lobes": 2.0,
+     "orient": "0.27/0.19/0.18",
+     "capacity": 5630.0,
+     "edges": 508.0,
+     "streetLen": 37678.0,
+     "emptyLen": 5350.0,
+     "emptyEdges": 75.0,
+     "emptyEdgePct": 14.8,
+     "emptyLenPct": 14.2,
+     "deadEnds": 34.0,
+     "pb": 2.84,
+     "freeLotsPct": 52.1,
+     "streetPerBuilding": 19.0,
+     "edgesPer100B": 25.7,
+     "style": "MED_HILL",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "ribbon_village:1.00:saved,crescent:1.00:derived",
+     "forest": "0.21:hug",
+     "ind": "0/0",
+     "lvl": "a:100/0/0/0,u:34/27/22/17,w:100/0/0/0,c:0.203642/0.000413907/0/0",
+     "lvlActual": "100/0/0/0",
+     "orth": 0.27,
+     "lvl2Pct": 0.0,
+     "lvl34Pct": 0,
+     "x": 2804.0,
+     "y": 144.0,
+     "shot": "mod-1927-203y/05-little-merthorpe.jpg",
+     "personsPerHa": 20.0,
+     "streetPerPerson": 6.5,
+     "deadEndsPerKm": 0.9,
+     "modShare": 21.7
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 110,
+     "builds": 17,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 2,
+      "demand": 63,
+      "ahead": 2
+     },
+     "matLast": 1.0,
+     "demKLast": 0.57,
+     "matHalfAt": "2746",
+     "levelsSkip": "player",
+     "satellites": 0,
+     "forestShareFirst": 0.24,
+     "forestShareLast": 0.21,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "06",
+   "ids": {
+    "mod-1927-203y": 60260
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Swainby",
+     "startName": "Swainby",
+     "buildingsStart": 126.0,
+     "buildingsEnd": 3601.0,
+     "personsStart": 535.0,
+     "personsEnd": 10641.0,
+     "targetEnd": 10692.0,
+     "targetShare": 0.995,
+     "growthBuildings": 28.58,
+     "growthPersons": 19.89,
+     "factor": "1.00->21.15",
+     "rate": 1.5,
+     "class": "fast",
+     "r": 1045,
+     "rPerSqrtB": 17.4,
+     "dens": 10.5,
+     "spread": 1.16,
+     "beyondPct": 1.0,
+     "lobes": 1.0,
+     "orient": "0.26/0.17/0.22",
+     "capacity": 10282.0,
+     "edges": 959.0,
+     "streetLen": 69133.0,
+     "emptyLen": 11562.0,
+     "emptyEdges": 168.0,
+     "emptyEdgePct": 17.5,
+     "emptyLenPct": 16.7,
+     "deadEnds": 58.0,
+     "pb": 2.86,
+     "freeLotsPct": 51.2,
+     "streetPerBuilding": 19.2,
+     "edgesPer100B": 26.6,
+     "style": "MED_HILL",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "crossroads_hamlet:1.00:saved,village_green:1.00:saved,crescent:1.00:derived",
+     "forest": "0.05:none",
+     "ind": "0/0",
+     "lvl": "a:91/9/0/0,u:34/27/22/17,w:88/12/0/0,c:0.0835335/0.0112271/0/0",
+     "lvlActual": "91/9/0/0",
+     "orth": 0.26,
+     "lvl2Pct": 9.0,
+     "lvl34Pct": 0,
+     "x": 364.0,
+     "y": 2640.0,
+     "shot": "mod-1927-203y/06-swainby.jpg",
+     "personsPerHa": 31.0,
+     "streetPerPerson": 6.5,
+     "deadEndsPerKm": 0.84,
+     "modShare": 25.4
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 244,
+     "builds": 42,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 87,
+      "open": 2
+     },
+     "matLast": 1.0,
+     "demKLast": 0.6,
+     "matHalfAt": "2744",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.2,
+     "forestShareLast": 0.05,
+     "forestReads": 10
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "07",
+   "ids": {
+    "mod-1927-203y": 60261
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Oakwater-on-Sea",
+     "startName": "Oakwater-on-Sea",
+     "buildingsStart": 92.0,
+     "buildingsEnd": 1021.0,
+     "personsStart": 357.0,
+     "personsEnd": 2795.0,
+     "targetEnd": 2872.0,
+     "targetShare": 0.973,
+     "growthBuildings": 11.1,
+     "growthPersons": 7.83,
+     "factor": "1.00->8.09",
+     "rate": 1.92,
+     "class": "fast",
+     "r": 573,
+     "rPerSqrtB": 17.9,
+     "dens": 9.9,
+     "spread": 1.21,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.27/0.19/0.15",
+     "capacity": 2862.0,
+     "edges": 334.0,
+     "streetLen": 22332.0,
+     "emptyLen": 4879.0,
+     "emptyEdges": 88.0,
+     "emptyEdgePct": 26.3,
+     "emptyLenPct": 21.8,
+     "deadEnds": 26.0,
+     "pb": 2.8,
+     "freeLotsPct": 55.2,
+     "streetPerBuilding": 21.9,
+     "edgesPer100B": 32.7,
+     "style": "EU_ORGANIC",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "ribbon_village:1.00:saved,crescent:1.00:derived",
+     "forest": "0.15:hug",
+     "ind": "0/0",
+     "lvl": "a:99/1/0/0,u:34/27/22/17,w:99/1/0/0,c:0.104609/0.000725821/0/0",
+     "lvlActual": "99/1/0/0",
+     "orth": 0.27,
+     "lvl2Pct": 1.0,
+     "lvl34Pct": 0,
+     "x": -3968.0,
+     "y": 2568.0,
+     "shot": "mod-1927-203y/07-oakwater-on-sea.jpg",
+     "personsPerHa": 27.1,
+     "streetPerPerson": 7.99,
+     "deadEndsPerKm": 1.16,
+     "modShare": 34.1
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 114,
+     "builds": 17,
+     "failed": 0,
+     "straight": 2,
+     "levels": null,
+     "checkWhy": {
+      "demand": 32,
+      "open": 1,
+      "ahead": 1
+     },
+     "matLast": 0.59,
+     "demKLast": 0.52,
+     "matHalfAt": "2851",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.18,
+     "forestShareLast": 0.15,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "08",
+   "ids": {
+    "mod-1927-203y": 60262
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Ashkirk St Brannoc",
+     "startName": "Ashkirk St Brannoc",
+     "buildingsStart": 189.0,
+     "buildingsEnd": 1067.0,
+     "personsStart": 709.0,
+     "personsEnd": 3332.0,
+     "targetEnd": 3408.0,
+     "targetShare": 0.978,
+     "growthBuildings": 5.65,
+     "growthPersons": 4.7,
+     "factor": "1.00->4.84",
+     "rate": 1.18,
+     "class": "medium",
+     "r": 694,
+     "rPerSqrtB": 21.2,
+     "dens": 7.1,
+     "spread": 1.25,
+     "beyondPct": 6.0,
+     "lobes": 1.0,
+     "orient": "0.30/0.23/0.16",
+     "capacity": 3349.0,
+     "edges": 295.0,
+     "streetLen": 21688.0,
+     "emptyLen": 4577.0,
+     "emptyEdges": 64.0,
+     "emptyEdgePct": 21.7,
+     "emptyLenPct": 21.1,
+     "deadEnds": 33.0,
+     "pb": 3.14,
+     "freeLotsPct": 54.3,
+     "streetPerBuilding": 20.3,
+     "edgesPer100B": 27.6,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "ribbon_village:0.75:saved,crescent:1.00:derived",
+     "forest": "0.16:hug",
+     "ind": "0/0",
+     "lvl": "a:79/21/0/0,u:34/27/22/17,w:77/23/0/0,c:0.136939/0.0398295/0/0",
+     "lvlActual": "79/21/0/0",
+     "orth": 0.3,
+     "lvl2Pct": 21.0,
+     "lvl34Pct": 0,
+     "x": 1436.0,
+     "y": 6640.0,
+     "shot": "mod-1927-203y/08-ashkirk-st-brannoc.jpg",
+     "personsPerHa": 22.0,
+     "streetPerPerson": 6.51,
+     "deadEndsPerKm": 1.52,
+     "modShare": 38.3
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 113,
+     "builds": 18,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 32,
+      "open": 2,
+      "ahead": 2
+     },
+     "matLast": 0.86,
+     "demKLast": 0.39,
+     "matHalfAt": "2896",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.23,
+     "forestShareLast": 0.16,
+     "forestReads": 6
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "09",
+   "ids": {
+    "mod-1927-203y": 60263
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "East Hornness",
+     "startName": "East Hornness",
+     "buildingsStart": 165.0,
+     "buildingsEnd": 3583.0,
+     "personsStart": 644.0,
+     "personsEnd": 15612.0,
+     "targetEnd": 15676.0,
+     "targetShare": 0.996,
+     "growthBuildings": 21.72,
+     "growthPersons": 24.24,
+     "factor": "1.00->24.44",
+     "rate": 1.36,
+     "class": "fast",
+     "r": 1226,
+     "rPerSqrtB": 20.5,
+     "dens": 7.6,
+     "spread": 1.56,
+     "beyondPct": 15.0,
+     "lobes": 2.0,
+     "orient": "0.26/0.19/0.15",
+     "capacity": 15402.0,
+     "edges": 944.0,
+     "streetLen": 66210.0,
+     "emptyLen": 10069.0,
+     "emptyEdges": 161.0,
+     "emptyEdgePct": 17.1,
+     "emptyLenPct": 15.2,
+     "deadEnds": 51.0,
+     "pb": 4.3,
+     "freeLotsPct": 55.4,
+     "streetPerBuilding": 18.5,
+     "edgesPer100B": 26.3,
+     "style": "NORDIC",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "ribbon_village:0.75:saved,peninsula_tip:1.00:saved,crescent:1.00:derived",
+     "forest": "0.02:none",
+     "ind": "0/0",
+     "lvl": "a:38/62/0/0,u:34/27/22/17,w:34/27/22/17,c:-",
+     "lvlActual": "38/62/0/0",
+     "orth": 0.26,
+     "lvl2Pct": 62.0,
+     "lvl34Pct": 0,
+     "x": 4340.0,
+     "y": 3204.0,
+     "shot": "mod-1927-203y/09-east-hornness.jpg",
+     "personsPerHa": 33.1,
+     "streetPerPerson": 4.24,
+     "deadEndsPerKm": 0.77,
+     "modShare": 7.2
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [
+      "East Hornness Engine Works"
+     ],
+     "worksLinked": true,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": true,
+     "character": false,
+     "builtEdges": 68,
+     "builds": 14,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 62,
+      "open": 1
+     },
+     "matLast": 1.0,
+     "demKLast": 0.18,
+     "matHalfAt": "2693",
+     "levelsSkip": "dense",
+     "satellites": 0,
+     "forestShareFirst": 0.17,
+     "forestShareLast": 0.02,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "10",
+   "ids": {
+    "mod-1927-203y": 60264
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "North Mytdale",
+     "startName": "North Mytdale",
+     "buildingsStart": 77.0,
+     "buildingsEnd": 1003.0,
+     "personsStart": 316.0,
+     "personsEnd": 2691.0,
+     "targetEnd": 2756.0,
+     "targetShare": 0.976,
+     "growthBuildings": 13.03,
+     "growthPersons": 8.52,
+     "factor": "1.00->8.72",
+     "rate": 1.49,
+     "class": "fast",
+     "r": 524,
+     "rPerSqrtB": 16.5,
+     "dens": 11.6,
+     "spread": 1.21,
+     "beyondPct": 2.0,
+     "lobes": 1.0,
+     "orient": "0.25/0.22/0.15",
+     "capacity": 2690.0,
+     "edges": 475.0,
+     "streetLen": 26404.0,
+     "emptyLen": 8946.0,
+     "emptyEdges": 191.0,
+     "emptyEdgePct": 40.2,
+     "emptyLenPct": 33.9,
+     "deadEnds": 38.0,
+     "pb": 2.68,
+     "freeLotsPct": 67.3,
+     "streetPerBuilding": 26.3,
+     "edgesPer100B": 47.4,
+     "style": "EU_ORGANIC",
+     "form": "clustered",
+     "shape": "compact",
+     "motifs": "-",
+     "forest": "0.23:clear",
+     "ind": "0/0",
+     "lvl": "a:82/18/0/0,u:34/27/22/17,w:77/23/0/0,c:0.06499/0.019002/0/0",
+     "lvlActual": "82/18/0/0",
+     "orth": 0.25,
+     "lvl2Pct": 18.0,
+     "lvl34Pct": 0,
+     "x": -2412.0,
+     "y": 7324.0,
+     "shot": "mod-1927-203y/10-north-mytdale.jpg",
+     "personsPerHa": 31.2,
+     "streetPerPerson": 9.81,
+     "deadEndsPerKm": 1.44,
+     "modShare": 36.6
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [
+      "North Mytdale Chase (shore)"
+     ],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": true,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 174,
+     "builds": 26,
+     "failed": 1,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 38,
+      "ahead": 4
+     },
+     "matLast": 0.49,
+     "demKLast": 0.58,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 1,
+     "forestShareFirst": 0.23,
+     "forestShareLast": 0.14,
+     "forestReads": 7
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "11",
+   "ids": {
+    "mod-1927-203y": 60265
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Strathwood-in-the-Vale",
+     "startName": "Strathwood-in-the-Vale",
+     "buildingsStart": 91.0,
+     "buildingsEnd": 451.0,
+     "personsStart": 284.0,
+     "personsEnd": 1256.0,
+     "targetEnd": 1280.0,
+     "targetShare": 0.981,
+     "growthBuildings": 4.96,
+     "growthPersons": 4.42,
+     "factor": "1.00->4.51",
+     "rate": 1.2,
+     "class": "medium",
+     "r": 377,
+     "rPerSqrtB": 17.7,
+     "dens": 10.1,
+     "spread": 1.12,
+     "beyondPct": 2.0,
+     "lobes": 1.0,
+     "orient": "0.34/0.24/0.14",
+     "capacity": 1271.0,
+     "edges": 159.0,
+     "streetLen": 11494.0,
+     "emptyLen": 3748.0,
+     "emptyEdges": 57.0,
+     "emptyEdgePct": 35.8,
+     "emptyLenPct": 32.6,
+     "deadEnds": 14.0,
+     "pb": 2.82,
+     "freeLotsPct": 57.7,
+     "streetPerBuilding": 25.5,
+     "edgesPer100B": 35.3,
+     "style": "NA_GRID",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "ribbon_village:0.26:drawn,crossroads_hamlet:0.70:drawn",
+     "forest": "0.21:clear",
+     "ind": "0/0",
+     "lvl": "a:82/18/0/0,u:40/32/27/0,w:78/22/0/0,c:0.178295/0.0503876/0/0",
+     "lvlActual": "82/18/0/0",
+     "orth": 0.34,
+     "lvl2Pct": 18.0,
+     "lvl34Pct": 0,
+     "x": 4280.0,
+     "y": -6416.0,
+     "shot": "mod-1927-203y/11-strathwood-in-the-vale.jpg",
+     "personsPerHa": 28.2,
+     "streetPerPerson": 9.15,
+     "deadEndsPerKm": 1.22,
+     "modShare": 35.8
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [
+      "Strathwood Mill (shore)"
+     ],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": true,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 57,
+     "builds": 10,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "demand": 20,
+      "ahead": 9
+     },
+     "matLast": 0.0,
+     "demKLast": 1.0,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 1,
+     "forestShareFirst": 0.21,
+     "forestShareLast": 0.17,
+     "forestReads": 4
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "12",
+   "ids": {
+    "mod-1927-203y": 60266
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Wheatgrove",
+     "startName": "Wheatgrove",
+     "buildingsStart": 57.0,
+     "buildingsEnd": 564.0,
+     "personsStart": 257.0,
+     "personsEnd": 1945.0,
+     "targetEnd": 2001.0,
+     "targetShare": 0.972,
+     "growthBuildings": 9.89,
+     "growthPersons": 7.57,
+     "factor": "1.00->7.78",
+     "rate": 1.62,
+     "class": "fast",
+     "r": 448,
+     "rPerSqrtB": 18.9,
+     "dens": 8.9,
+     "spread": 1.13,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.30/0.17/0.16",
+     "capacity": 1990.0,
+     "edges": 190.0,
+     "streetLen": 13278.0,
+     "emptyLen": 4001.0,
+     "emptyEdges": 62.0,
+     "emptyEdgePct": 32.6,
+     "emptyLenPct": 30.1,
+     "deadEnds": 32.0,
+     "pb": 3.53,
+     "freeLotsPct": 56.5,
+     "streetPerBuilding": 23.5,
+     "edgesPer100B": 33.7,
+     "style": "EU_ORGANIC",
+     "form": "radiating",
+     "shape": "cross",
+     "motifs": "village_green:1.00:saved,crescent:1.00:derived",
+     "forest": "0.21:hug",
+     "ind": "0/0",
+     "lvl": "a:70/30/0/0,u:37/29/23/11,w:65/35/0/0,c:0.0604525/0.0318171/0/0",
+     "lvlActual": "70/30/0/0",
+     "orth": 0.3,
+     "lvl2Pct": 30.0,
+     "lvl34Pct": 0,
+     "x": 7124.0,
+     "y": -616.0,
+     "shot": "mod-1927-203y/12-wheatgrove.jpg",
+     "personsPerHa": 30.8,
+     "streetPerPerson": 6.83,
+     "deadEndsPerKm": 2.41,
+     "modShare": 38.4
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 73,
+     "builds": 10,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 13,
+      "open": 1,
+      "ahead": 20
+     },
+     "matLast": 0.11,
+     "demKLast": 0.91,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 1,
+     "forestShareFirst": 0.23,
+     "forestShareLast": 0.21,
+     "forestReads": 4
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "13",
+   "ids": {
+    "mod-1927-203y": 60267
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "South Woodbottom",
+     "startName": "South Woodbottom",
+     "buildingsStart": 129.0,
+     "buildingsEnd": 552.0,
+     "personsStart": 446.0,
+     "personsEnd": 2098.0,
+     "targetEnd": 2146.0,
+     "targetShare": 0.978,
+     "growthBuildings": 4.28,
+     "growthPersons": 4.7,
+     "factor": "1.00->4.81",
+     "rate": 1.24,
+     "class": "medium",
+     "r": 407,
+     "rPerSqrtB": 17.3,
+     "dens": 10.6,
+     "spread": 1.15,
+     "beyondPct": 5.0,
+     "lobes": 1.0,
+     "orient": "0.24/0.21/0.17",
+     "capacity": 2055.0,
+     "edges": 239.0,
+     "streetLen": 14432.0,
+     "emptyLen": 3780.0,
+     "emptyEdges": 70.0,
+     "emptyEdgePct": 29.3,
+     "emptyLenPct": 26.2,
+     "deadEnds": 24.0,
+     "pb": 3.72,
+     "freeLotsPct": 66.4,
+     "streetPerBuilding": 26.1,
+     "edgesPer100B": 43.3,
+     "style": "EU_ORGANIC",
+     "form": "clustered",
+     "shape": "compact",
+     "motifs": "village_green:1.00:saved",
+     "forest": "0.25:hug",
+     "ind": "0/0",
+     "lvl": "a:46/54/0/0,u:36/28/23/13,w:44/56/0/0,c:0.0812759/0.105528/0/0",
+     "lvlActual": "46/54/0/0",
+     "orth": 0.24,
+     "lvl2Pct": 54.0,
+     "lvl34Pct": 0,
+     "x": 5516.0,
+     "y": -3240.0,
+     "shot": "mod-1927-203y/13-south-woodbottom.jpg",
+     "personsPerHa": 40.3,
+     "streetPerPerson": 6.88,
+     "deadEndsPerKm": 1.66,
+     "modShare": 36.4
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 87,
+     "builds": 8,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 8,
+      "open": 1,
+      "ahead": 26
+     },
+     "matLast": 0.14,
+     "demKLast": 0.89,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.26,
+     "forestShareLast": 0.25,
+     "forestReads": 4
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "14",
+   "ids": {
+    "mod-1927-203y": 60268
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Ulfhurst",
+     "startName": "Ulfhurst",
+     "buildingsStart": 101.0,
+     "buildingsEnd": 620.0,
+     "personsStart": 340.0,
+     "personsEnd": 1616.0,
+     "targetEnd": 1648.0,
+     "targetShare": 0.981,
+     "growthBuildings": 6.14,
+     "growthPersons": 4.75,
+     "factor": "1.00->5.20",
+     "rate": 1.37,
+     "class": "fast",
+     "r": 490,
+     "rPerSqrtB": 19.7,
+     "dens": 8.2,
+     "spread": 1.19,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.25/0.23/0.22",
+     "capacity": 1654.0,
+     "edges": 247.0,
+     "streetLen": 14840.0,
+     "emptyLen": 5205.0,
+     "emptyEdges": 90.0,
+     "emptyEdgePct": 36.4,
+     "emptyLenPct": 35.1,
+     "deadEnds": 35.0,
+     "pb": 2.67,
+     "freeLotsPct": 55.7,
+     "streetPerBuilding": 23.9,
+     "edgesPer100B": 39.8,
+     "style": "EU_ORGANIC",
+     "form": "radiating",
+     "shape": "cross",
+     "motifs": "ribbon_village:1.00:saved,crescent:1.00:derived",
+     "forest": "0.16:hug",
+     "ind": "0/0",
+     "lvl": "a:99/1/0/0,u:38/31/25/6,w:99/1/0/0,c:0.172739/0.00183486/0/0",
+     "lvlActual": "99/1/0/0",
+     "orth": 0.25,
+     "lvl2Pct": 1.0,
+     "lvl34Pct": 0,
+     "x": 5004.0,
+     "y": 6388.0,
+     "shot": "mod-1927-203y/14-ulfhurst.jpg",
+     "personsPerHa": 21.4,
+     "streetPerPerson": 9.18,
+     "deadEndsPerKm": 2.36,
+     "modShare": 48.6
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 120,
+     "builds": 21,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 37,
+      "open": 2,
+      "ahead": 1
+     },
+     "matLast": 0.0,
+     "demKLast": 1.0,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 1,
+     "forestShareFirst": 0.2,
+     "forestShareLast": 0.16,
+     "forestReads": 6
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "15",
+   "ids": {
+    "mod-1927-203y": 60269
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Acden",
+     "startName": "Acden",
+     "buildingsStart": 132.0,
+     "buildingsEnd": 723.0,
+     "personsStart": 469.0,
+     "personsEnd": 2224.0,
+     "targetEnd": 2276.0,
+     "targetShare": 0.977,
+     "growthBuildings": 5.48,
+     "growthPersons": 4.74,
+     "factor": "1.00->4.85",
+     "rate": 1.19,
+     "class": "medium",
+     "r": 477,
+     "rPerSqrtB": 17.8,
+     "dens": 10.1,
+     "spread": 1.15,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.22/0.21/0.23",
+     "capacity": 2183.0,
+     "edges": 236.0,
+     "streetLen": 16294.0,
+     "emptyLen": 3600.0,
+     "emptyEdges": 53.0,
+     "emptyEdgePct": 22.5,
+     "emptyLenPct": 22.1,
+     "deadEnds": 25.0,
+     "pb": 3.02,
+     "freeLotsPct": 58.6,
+     "streetPerBuilding": 22.5,
+     "edgesPer100B": 32.6,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "village_green:0.80:drawn,crescent:1.00:derived",
+     "forest": "0.32:clear",
+     "ind": "0/0",
+     "lvl": "a:81/19/0/0,u:35/28/22/14,w:79/21/0/0,c:0.136689/0.0355939/0/0",
+     "lvlActual": "81/19/0/0",
+     "orth": 0.22,
+     "lvl2Pct": 19.0,
+     "lvl34Pct": 0,
+     "x": 1780.0,
+     "y": -3508.0,
+     "shot": "mod-1927-203y/15-acden.jpg",
+     "personsPerHa": 31.1,
+     "streetPerPerson": 7.33,
+     "deadEndsPerKm": 1.53,
+     "modShare": 38.6
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [
+      "Acden Ford (shore)"
+     ],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": true,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 91,
+     "builds": 16,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 30,
+      "open": 1,
+      "ahead": 2
+     },
+     "matLast": 0.21,
+     "demKLast": 0.83,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 1,
+     "forestShareFirst": 0.32,
+     "forestShareLast": 0.28,
+     "forestReads": 5
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "16",
+   "ids": {
+    "mod-1927-203y": 60270
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Mytmouth-under-Edge",
+     "startName": "Mytmouth-under-Edge",
+     "buildingsStart": 104.0,
+     "buildingsEnd": 1127.0,
+     "personsStart": 418.0,
+     "personsEnd": 4044.0,
+     "targetEnd": 4169.0,
+     "targetShare": 0.97,
+     "growthBuildings": 10.84,
+     "growthPersons": 9.67,
+     "factor": "1.00->9.97",
+     "rate": 1.91,
+     "class": "fast",
+     "r": 655,
+     "rPerSqrtB": 19.5,
+     "dens": 8.4,
+     "spread": 1.26,
+     "beyondPct": 1.0,
+     "lobes": 1.0,
+     "orient": "0.31/0.21/0.19",
+     "capacity": 3927.0,
+     "edges": 412.0,
+     "streetLen": 23294.0,
+     "emptyLen": 5097.0,
+     "emptyEdges": 108.0,
+     "emptyEdgePct": 26.2,
+     "emptyLenPct": 21.9,
+     "deadEnds": 38.0,
+     "pb": 3.48,
+     "freeLotsPct": 54.1,
+     "streetPerBuilding": 20.7,
+     "edgesPer100B": 36.6,
+     "style": "EU_ORGANIC",
+     "form": "fingers",
+     "shape": "fingers",
+     "motifs": "hill_climb:1.00:saved,village_green:1.00:saved,crescent:1.00:derived",
+     "forest": "0.20:deep",
+     "ind": "0/0",
+     "lvl": "a:65/35/0/0,u:34/27/22/17,w:64/36/0/0,c:0.042465/0.0237056/0/0",
+     "lvlActual": "65/35/0/0",
+     "orth": 0.31,
+     "lvl2Pct": 35.0,
+     "lvl34Pct": 0,
+     "x": 724.0,
+     "y": -6788.0,
+     "shot": "mod-1927-203y/16-mytmouth-under-edge.jpg",
+     "personsPerHa": 30.0,
+     "streetPerPerson": 5.76,
+     "deadEndsPerKm": 1.63,
+     "modShare": 48.3
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 199,
+     "builds": 31,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 39,
+      "open": 2,
+      "ahead": 1
+     },
+     "matLast": 1.0,
+     "demKLast": 0.33,
+     "matHalfAt": "2839",
+     "levelsSkip": "deep",
+     "satellites": 1,
+     "forestShareFirst": 0.35,
+     "forestShareLast": 0.2,
+     "forestReads": 8
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "17",
+   "ids": {
+    "mod-1927-203y": 114207
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "Ashworthville",
+     "startName": "Ashworthville",
+     "buildingsStart": 31.0,
+     "buildingsEnd": 37.0,
+     "personsStart": 220.0,
+     "personsEnd": null,
+     "targetEnd": null,
+     "targetShare": null,
+     "growthBuildings": 1.19,
+     "growthPersons": null,
+     "factor": "1.00->1.00",
+     "rate": 0.0,
+     "class": "none",
+     "r": 199,
+     "rPerSqrtB": 32.8,
+     "dens": 3.0,
+     "spread": 2.03,
+     "beyondPct": 35.0,
+     "lobes": 1.0,
+     "orient": "0.27/0.13/0.15",
+     "capacity": 204.0,
+     "edges": 352.0,
+     "streetLen": 26056.0,
+     "emptyLen": 24817.0,
+     "emptyEdges": 336.0,
+     "emptyEdgePct": 95.5,
+     "emptyLenPct": 95.2,
+     "deadEnds": 21.0,
+     "pb": 5.51,
+     "freeLotsPct": 92.3,
+     "streetPerBuilding": 704.2,
+     "edgesPer100B": 951.4,
+     "style": "-",
+     "form": "-",
+     "shape": "-",
+     "motifs": "-",
+     "forest": "-",
+     "ind": "0/0",
+     "lvl": "a:100/0/0/0,u:100/0/0/0,w:100/0/0/0,c:-",
+     "lvlActual": "100/0/0/0",
+     "orth": 0.27,
+     "lvl2Pct": 0.0,
+     "lvl34Pct": 0,
+     "x": -885.03,
+     "y": 928.49,
+     "shot": "mod-1927-203y/17-ashworthville.jpg",
+     "personsPerHa": null,
+     "streetPerPerson": null,
+     "deadEndsPerKm": 0.81,
+     "modShare": 0.0
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 0,
+     "builds": 0,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 17
+     },
+     "matLast": 0.0,
+     "demKLast": 1.0,
+     "matHalfAt": null,
+     "levelsSkip": null,
+     "satellites": 0,
+     "forestShareFirst": null,
+     "forestShareLast": null,
+     "forestReads": 0
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "18",
+   "ids": {
+    "mod-1927-203y": 126366
+   },
+   "m": {
+    "mod-1927-203y": {
+     "name": "East Hornness Engine Works",
+     "startName": "East Hornness Engine Works",
+     "buildingsStart": 40.0,
+     "buildingsEnd": 40.0,
+     "personsStart": 220.0,
+     "personsEnd": null,
+     "targetEnd": null,
+     "targetShare": null,
+     "growthBuildings": 1.0,
+     "growthPersons": null,
+     "factor": "1.00->1.00",
+     "rate": 0.0,
+     "class": "none",
+     "r": 207,
+     "rPerSqrtB": 32.8,
+     "dens": 3.0,
+     "spread": 2.33,
+     "beyondPct": 42.0,
+     "lobes": 1.0,
+     "orient": "0.23/0.18/0.19",
+     "capacity": 196.0,
+     "edges": 456.0,
+     "streetLen": 32998.0,
+     "emptyLen": 31930.0,
+     "emptyEdges": 442.0,
+     "emptyEdgePct": 96.9,
+     "emptyLenPct": 96.8,
+     "deadEnds": 34.0,
+     "pb": 4.9,
+     "freeLotsPct": 92.4,
+     "streetPerBuilding": 825.0,
+     "edgesPer100B": 1140.0,
+     "style": "-",
+     "form": "-",
+     "shape": "-",
+     "motifs": "-",
+     "forest": "-",
+     "ind": "0/0",
+     "lvl": "a:100/0/0/0,u:100/0/0/0,w:100/0/0/0,c:-",
+     "lvlActual": "100/0/0/0",
+     "orth": 0.23,
+     "lvl2Pct": 0.0,
+     "lvl34Pct": 0,
+     "x": 4173.23,
+     "y": 4392.35,
+     "shot": "mod-1927-203y/18-east-hornness-engine-works.jpg",
+     "personsPerHa": null,
+     "streetPerPerson": null,
+     "deadEndsPerKm": 1.03,
+     "modShare": 0.0
+    }
+   },
+   "x": {
+    "mod-1927-203y": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 0,
+     "builds": 0,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 17
+     },
+     "matLast": 0.0,
+     "demKLast": 1.0,
+     "matHalfAt": null,
+     "levelsSkip": null,
+     "satellites": 0,
+     "forestShareFirst": null,
+     "forestShareLast": null,
+     "forestReads": 0
+    }
+   },
+   "samePos": {
+    "mod-1927-203y": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  }
+ ],
+ "extraTowns": {
+  "mod-1927-203y": [
+   {
+    "id": 139282,
+    "name": "Acden Ford",
+    "buildings": 84.0,
+    "edges": 50.0,
+    "r": 193,
+    "pb": 2.76,
+    "emptyEdges": 28.0,
+    "ind": "0/0",
+    "shot": "mod-1927-203y/x-acden-ford.jpg"
+   },
+   {
+    "id": 157526,
+    "name": "North Mytdale Chase",
+    "buildings": 80.0,
+    "edges": 32.0,
+    "r": 167,
+    "pb": 2.91,
+    "emptyEdges": 9.0,
+    "ind": "0/0",
+    "shot": "mod-1927-203y/x-north-mytdale-chase.jpg"
+   },
+   {
+    "id": 216742,
+    "name": "Strathwood Mill",
+    "buildings": 70.0,
+    "edges": 30.0,
+    "r": 168,
+    "pb": 3.27,
+    "emptyEdges": 16.0,
+    "ind": "0/0",
+    "shot": "mod-1927-203y/x-strathwood-mill.jpg"
+   },
+   {
+    "id": 128277,
+    "name": "Aberdart Grange",
+    "buildings": 78.0,
+    "edges": 175.0,
+    "r": 264,
+    "pb": 2.9,
+    "emptyEdges": 146.0,
+    "ind": "0/0",
+    "shot": "mod-1927-203y/x-aberdart-grange.jpg"
+   }
+  ]
+ },
+ "summary": {
+  "buildingsStart": {
+   "mod-1927-203y": {
+    "q": [
+     80.5,
+     104.0,
+     131.25,
+     31.0,
+     287.0
+    ],
+    "sum": 2061.0
+   }
+  },
+  "buildingsEnd": {
+   "mod-1927-203y": {
+    "q": [
+     578.0,
+     1004.5,
+     1127.0,
+     37.0,
+     7049.0
+    ],
+    "sum": 26527.0
+   }
+  },
+  "personsStart": {
+   "mod-1927-203y": {
+    "q": [
+     292.0,
+     394.5,
+     518.5,
+     220.0,
+     907.0
+    ],
+    "sum": 7729.0
+   }
+  },
+  "personsEnd": {
+   "mod-1927-203y": {
+    "q": [
+     2192.5,
+     3194.0,
+     4482.75,
+     1256.0,
+     22436.0
+    ],
+    "sum": 86530.0
+   }
+  },
+  "growthBuildings": {
+   "mod-1927-203y": {
+    "q": [
+     5.5225,
+     8.97,
+     12.5475,
+     1.0,
+     28.58
+    ],
+    "sum": 201.25
+   }
+  },
+  "growthPersons": {
+   "mod-1927-203y": {
+    "q": [
+     4.7475,
+     7.815,
+     12.225,
+     4.42,
+     24.74
+    ],
+    "sum": 171.1
+   }
+  },
+  "targetShare": {
+   "mod-1927-203y": {
+    "q": [
+     0.9728,
+     0.9775,
+     0.9845,
+     0.969,
+     0.996
+    ],
+    "sum": 15.68
+   }
+  },
+  "r": {
+   "mod-1927-203y": {
+    "q": [
+     455.25,
+     595.5,
+     900.0,
+     199,
+     1792
+    ],
+    "sum": 12906
+   }
+  },
+  "rPerSqrtB": {
+   "mod-1927-203y": {
+    "q": [
+     17.8,
+     19.5,
+     21.35,
+     16.5,
+     57.4
+    ],
+    "sum": 407.7
+   }
+  },
+  "dens": {
+   "mod-1927-203y": {
+    "q": [
+     7.025,
+     8.4,
+     10.075,
+     1.0,
+     11.6
+    ],
+    "sum": 142.2
+   }
+  },
+  "spread": {
+   "mod-1927-203y": {
+    "q": [
+     1.165,
+     1.22,
+     1.5,
+     1.12,
+     2.41
+    ],
+    "sum": 26.26
+   }
+  },
+  "beyondPct": {
+   "mod-1927-203y": {
+    "q": [
+     1.0,
+     2.0,
+     6.75,
+     0.0,
+     42.0
+    ],
+    "sum": 138.0
+   }
+  },
+  "lobes": {
+   "mod-1927-203y": {
+    "q": [
+     1.0,
+     1.0,
+     1.75,
+     1.0,
+     2.0
+    ],
+    "sum": 23.0
+   }
+  },
+  "edges": {
+   "mod-1927-203y": {
+    "q": [
+     259.0,
+     343.0,
+     498.25,
+     159.0,
+     1733.0
+    ],
+    "sum": 8695.0
+   }
+  },
+  "streetLen": {
+   "mod-1927-203y": {
+    "q": [
+     17642.5,
+     23819.0,
+     35407.0,
+     11494.0,
+     126961.0
+    ],
+    "sum": 605579.0
+   }
+  },
+  "emptyLen": {
+   "mod-1927-203y": {
+    "q": [
+     4635.75,
+     5277.5,
+     11188.75,
+     3600.0,
+     31930.0
+    ],
+    "sum": 174852.0
+   }
+  },
+  "emptyEdgePct": {
+   "mod-1927-203y": {
+    "q": [
+     20.95,
+     27.4,
+     36.25,
+     14.4,
+     96.9
+    ],
+    "sum": 630.9
+   }
+  },
+  "emptyLenPct": {
+   "mod-1927-203y": {
+    "q": [
+     20.125,
+     24.15,
+     33.575,
+     12.7,
+     96.8
+    ],
+    "sum": 598.9
+   }
+  },
+  "deadEnds": {
+   "mod-1927-203y": {
+    "q": [
+     26.0,
+     33.5,
+     38.0,
+     14.0,
+     77.0
+    ],
+    "sum": 644.0
+   }
+  },
+  "pb": {
+   "mod-1927-203y": {
+    "q": [
+     2.845,
+     3.13,
+     3.62,
+     2.67,
+     5.51
+    ],
+    "sum": 61.24
+   }
+  },
+  "freeLotsPct": {
+   "mod-1927-203y": {
+    "q": [
+     54.125,
+     55.55,
+     64.45,
+     51.2,
+     92.4
+    ],
+    "sum": 1105.3
+   }
+  },
+  "streetPerBuilding": {
+   "mod-1927-203y": {
+    "q": [
+     20.4,
+     22.2,
+     25.95,
+     18.0,
+     825.0
+    ],
+    "sum": 1895.1
+   }
+  },
+  "edgesPer100B": {
+   "mod-1927-203y": {
+    "q": [
+     28.1,
+     33.2,
+     42.425,
+     24.6,
+     1140.0
+    ],
+    "sum": 2636.4
+   }
+  },
+  "capacity": {
+   "mod-1927-203y": {
+    "q": [
+     2006.25,
+     2998.5,
+     3835.0,
+     196.0,
+     21557.0
+    ],
+    "sum": 85489.0
+   }
+  },
+  "personsPerHa": {
+   "mod-1927-203y": {
+    "q": [
+     21.875,
+     29.1,
+     31.125,
+     3.5,
+     40.3
+    ],
+    "sum": 428.6
+   }
+  },
+  "streetPerPerson": {
+   "mod-1927-203y": {
+    "q": [
+     6.5,
+     6.95,
+     8.28,
+     4.24,
+     10.29
+    ],
+    "sum": 116.83
+   }
+  },
+  "deadEndsPerKm": {
+   "mod-1927-203y": {
+    "q": [
+     0.9325,
+     1.205,
+     1.5275,
+     0.61,
+     2.41
+    ],
+    "sum": 23.62
+   }
+  },
+  "orth": {
+   "mod-1927-203y": {
+    "q": [
+     0.24,
+     0.26,
+     0.27,
+     0.22,
+     0.34
+    ],
+    "sum": 4.73
+   }
+  },
+  "lvl2Pct": {
+   "mod-1927-203y": {
+    "q": [
+     3.0,
+     18.5,
+     33.0,
+     0.0,
+     62.0
+    ],
+    "sum": 376.0
+   }
+  },
+  "lvl34Pct": {
+   "mod-1927-203y": {
+    "q": [
+     0.0,
+     0.0,
+     0.0,
+     0,
+     0
+    ],
+    "sum": 0
+   }
+  },
+  "modShare": {
+   "mod-1927-203y": {
+    "q": [
+     17.425,
+     30.35,
+     37.875,
+     0.0,
+     48.6
+    ],
+    "sum": 484.3
+   }
+  }
+ },
+ "notes": {
+  "auto": [
+   "<b>Mod 1927, 203 simulated years (6 towns near camera, calendar 1900)</b>: buildings 2,061 -> 26,527, persons 86,530, pb (median) 3.13, free lots 55.55 %, street 6.95 m per person."
+  ]
+ },
+ "runRows": [
+  [
+   "Street orientation orth / radial / ring (median)",
+   "0.26 / 0.20 / 0.17"
+  ],
+  [
+   "Sim time (s) / per year",
+   "747 / 3.7"
+  ],
+  [
+   "Persons vs target at the end (SIMGROW cap)",
+   "53229/55171(96%)"
+  ],
+  [
+   "Mod-built street edges: head start / demand (builds)",
+   "0 / 1817 (0 / 295)"
+  ],
+  [
+   "Mod-built share of the 16 towns' edges",
+   "21 %"
+  ],
+  [
+   "SIMGROW build rounds / round builds",
+   "51 / 242"
+  ],
+  [
+   "CHECK outcomes",
+   "demand 616, open 125, ahead 72, mature 12"
+  ],
+  [
+   "Satellites built (decisions)",
+   "12 (- 13, seeded 8, rare 4, hamlet:hamletFallback 3, hamlet 1)"
+  ],
+  [
+   "Districts / Works created (linked)",
+   "4 (4) / 2 (2)"
+  ],
+  [
+   "District / Works not founded (why)",
+   "forest 14, rare 6, noSite 6, character 2 / rare 9, character 2"
+  ],
+  [
+   "Bridges built / refused, coastal picks",
+   "3 / 0, 1"
+  ],
+  [
+   "Level weights set / cleared, upward doses",
+   "0 / 0, 28"
+  ],
+  [
+   "Straight-run edges cut",
+   "2"
+  ]
+ ]
+}

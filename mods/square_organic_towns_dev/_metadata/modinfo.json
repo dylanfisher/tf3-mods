@@ -1,0 +1,16 @@
+{
+    "name": "DEV Organic Towns Tools",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Test tools for Organic Towns: grow now, city types, dry run, undo.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Developer tools for the Organic Towns mod (needs it enabled): town inspector, grow now, grow by city type, fast-forward, dry run, undo last increment, pause the main driver. Output goes to stdout.txt as [SQOT_DEV] lines. See plans/square_organic_towns/TESTING.md \"Dev tools\".",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

@@ -1,0 +1,166 @@
+{
+  "modId": "square_organic_towns",
+  "revision": 4,
+  "severityAdd": "None",
+  "severityRemove": "Warning",
+  "visible": true,
+  "cosmetic": false,
+  "preRunScript": {
+    "fileName": "square_organic_towns::/mod.script@preRunFn"
+  },
+  "runScript": {
+    "fileName": "square_organic_towns::/mod.script@runFn"
+  },
+  "params": [
+    {
+      "key": "act_on",
+      "name": "Act on",
+      "tooltip": "Which towns get new streets in their region's style. New\ntowns only: towns founded after the mod was added to this\nsave (on a new map, every town). All towns: existing towns\ntoo. Off: the mod does nothing.",
+      "uiType": "ComboBox",
+      "values": [
+        "Off",
+        "New towns only",
+        "All towns"
+      ],
+      "defaultIndex": 1
+    },
+    {
+      "key": "start_angle",
+      "name": "Vanilla town street angles",
+      "tooltip": "Sets the game's own street angles for town layouts, by the\nmap's region: Automatic picks straight grids for North\nAmerica and Oceania, irregular streets for Europe and the\nMediterranean. Applies to new towns (a new map's starting\ntowns) and to the game's own street growth, not when Act on\nis Off. Existing saves: only towns founded later and later\ngrowth. Game default: no change.",
+      "uiType": "ComboBox",
+      "values": [
+        "Automatic (by region)",
+        "Grid",
+        "Mixed",
+        "Organic",
+        "Game default"
+      ],
+      "defaultIndex": 0
+    },
+    {
+      "key": "starting_town_size",
+      "name": "Starting town size",
+      "tooltip": "Shrinks the towns the map generator places on a new map, so\nthe head start and growth have room to shape each town.\nSmaller: x0.6, Small: x0.35 of the game's Population setting.\nA test: it may lower only the residents, not the streets.\nPick it when you create a new map; keep Game size on an\nexisting save. Game size: no change.",
+      "uiType": "ComboBox",
+      "values": [
+        "Game size",
+        "Smaller",
+        "Small"
+      ],
+      "defaultIndex": 0
+    },
+    {
+      "key": "industry_streets",
+      "name": "Streets at industries",
+      "tooltip": "Off: a new map's industries get none of the small streets the\nmap generator lays at their edge, so towns don't fill them with\na cluster of houses next to the works. Game default: the game's\nstreets. Only affects new maps; an existing save keeps its streets.",
+      "uiType": "ComboBox",
+      "values": [
+        "Off",
+        "Game default"
+      ],
+      "defaultIndex": 1
+    },
+    {
+      "key": "town_names",
+      "name": "Town and stop names",
+      "tooltip": "Landscape names: on a new map every town gets a new name\nmade up from its region, climate and map: the name list's\nlanguage with the town's coast, river, hills and trees\n(palms and reefs in the tropics, birch and fells in the\nnorth). Rivers and lakes are named too, satellite towns\nfit their site. New road stops get a street name that\nfits their spot. Game names: the game's names. Lists without\na generator (Asian, Chinese, Korean, Polish, Russian) keep\nthe game's names. Towns of older saves are never renamed.",
+      "uiType": "ComboBox",
+      "values": [
+        "Landscape names",
+        "Game names"
+      ],
+      "defaultIndex": 0
+    },
+    {
+      "key": "town_growth",
+      "name": "Town growth",
+      "tooltip": "By deliveries: each town's mix of residential, commercial and\nindustrial follows what you deliver, so towns can grow clearly\nlopsided: a town fed with industrial cargo grows mostly\nindustry, one served only by passenger lines mostly homes.\nIt changes the mix as the town grows, not how fast it grows.\nFollows Act on. Removing the mod keeps the towns as they are.\nGame default: the game evens each town's mix out.",
+      "uiType": "ComboBox",
+      "values": [
+        "By deliveries",
+        "Game default"
+      ],
+      "defaultIndex": 0
+    },
+    {
+      "key": "satellite_towns",
+      "name": "Satellite towns",
+      "tooltip": "On a new map some grown towns found small separate towns nearby,\none at a time and spread over the years: residential districts\nand industrial Works, linked by a road. They only grow further\nwhen you serve them with transport. Off: none are founded; towns\nfounded already stay as they are.",
+      "uiType": "ComboBox",
+      "values": [
+        "On",
+        "Residential only",
+        "Industrial only",
+        "Off"
+      ],
+      "defaultIndex": 0
+    },
+    {
+      "key": "strong_characters",
+      "name": "Strong town characters",
+      "tooltip": "On a new map 1-3 towns on a striking site get a strong character:\na hilltop village, a clifftop strip, a harbor cove, a riverside\ntown, a street village, a company town, a garden city, an island\ntown, or a new town with roundabouts (needs Roundabouts &\nInterchanges). About a third of the towns build up their center\nonce grown. Off: none of this; deep forest towns stay as they are.",
+      "uiType": "Button",
+      "values": [
+        "On",
+        "Off"
+      ],
+      "defaultIndex": 0
+    },
+    {
+      "key": "style",
+      "name": "Town style",
+      "tooltip": "Automatic: the towns' look follows the map's name list.\nPick a region to choose it apart from the names, e.g. US\nnames with European organic towns. Each town still fits its\nstyle to its site within the region's mix: flat open land\ngrows grids and suburbs; coasts, hills and valleys denser,\nwinding streets. The climate adds its own bias. North\nAmerican grid: every town grows a grid. Mixed: all regions\nalike. Town names always follow the name list.\nWith Roundabouts & Interchanges, towns also build some one-way\nroundabouts from about 1960 (none in dense Japanese towns).",
+      "uiType": "ComboBox",
+      "values": [
+        "Automatic",
+        "North American grid",
+        "European organic",
+        "Mediterranean",
+        "Nordic",
+        "North American suburbs and grid",
+        "East Asian",
+        "Japanese",
+        "Mixed"
+      ],
+      "defaultIndex": 0
+    },
+    {
+      "key": "town_layout",
+      "name": "Town layout",
+      "tooltip": "How organic or gridded towns are laid out. Organic: winding\nstreets, gridded towns and districts stay a minority and grow\nmore common in later years. Gridded: more planned grid towns\nand straighter outer districts. Old town centers keep their\nstreets; it applies to new towns and new outer districts.",
+      "uiType": "ComboBox",
+      "values": [
+        "Very organic",
+        "Organic",
+        "Mixed",
+        "Gridded",
+        "Very gridded"
+      ],
+      "defaultIndex": 1
+    },
+    {
+      "key": "lookahead",
+      "name": "Growth lookahead",
+      "tooltip": "How far ahead of demand towns get new streets. Small: a few\nblocks just before the free lots run out. Large: bigger\nincrements, earlier.",
+      "uiType": "ComboBox",
+      "values": [
+        "Small",
+        "Medium",
+        "Large"
+      ],
+      "defaultIndex": 1
+    },
+    {
+      "key": "debug_log",
+      "name": "Debug log",
+      "tooltip": "Off: normal play. On: Organic Towns writes every town check\nand planning step to the game's log file (stdout.txt, lines\nstarting with [SQOT]). Builds are always logged.",
+      "uiType": "Button",
+      "values": [
+        "Off",
+        "On"
+      ],
+      "defaultIndex": 0
+    }
+  ]
+}

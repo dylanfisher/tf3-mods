@@ -1,0 +1,2459 @@
+{
+ "version": 2,
+ "single": true,
+ "seed": "Z2tNDhy0Ht",
+ "built": "2026-10-13 22:33",
+ "header": {
+  "title": "Organic Towns 0502: maturity retune, seed Z2tNDhy0Ht",
+  "h1": "Organic Towns 0502: maturity retune, seed Z2tNDhy0Ht",
+  "seed": "Z2tNDhy0Ht",
+  "subline": "Seed text <b>Z2tNDhy0Ht</b> \u00b7 one run \u00b7 16 towns (SIMGROW) + 7 created by the mod",
+  "footer": "Images: in-game tour screenshots (the same camera per town), downscaled to JPEG. Metrics: dev mod <code>ALLTOWN</code> after the simulation and <code>SIMGROW town</code> lines. Data: <code>data.json</code>. Built by <code>plans/square_organic_towns/compare/build_compare.py</code>."
+ },
+ "runs": [
+  {
+   "id": "mod",
+   "label": "Mod 0502 (maturity retune, seed Z2tNDhy0Ht)",
+   "dir": "mod",
+   "session": "2026-10-14_0502_sqot",
+   "load": 1,
+   "kind": "mod",
+   "loadAt": "05:14:56",
+   "initS": 30.968134,
+   "simStart": "05:16:07",
+   "simStop": "05:19:58",
+   "init": "INIT on=true reason=- actOn=new region=EU regionSource=nameList profile=EU_ORGANIC forceGrid=false lookahead=2 nameList=::/names/europe/europe.names climate=::/climates/temperate/temperate.clima lock=shape fill=dose2 capsBoost=0 metropolis=auto_from_4000 townSize=game popDensity=1 upward=from1500 levels=pbAim4.5 meadows=on trees=on hangGuard=off params=act_on=2_style=1_lookahead=2_debug_log=2_test_grow=1_start_angle=1_town_layout=2_starting_town_size=1_industry_streets=2_town_names=1_satellite_towns=1",
+   "pre": [
+    "[SQOT] ANGLE choice=auto region=EU regionSource=nameList nameList=::/names/europe/europe.names climate=::/climates/temperate/temperate.clima angle=0/0->35 initialRange=35 note=newMapGeneratorUnverified"
+   ],
+   "startLine": "[SQOT_DEV] SIMGROW start mode=quick chunks=- years=40 moveDate=false startYear=1900 upGap=- seed=1 pace=0 scope=all near=- limit=40 bias=true even=true tourWhenDone=true resume=false years=0 towns=16 none=0 slow=0 medium=8 fast=8 minWeight=0.05 stepsPerYear=4 cmdSteps=1 fastFill=true fillEvery=4 fillRatio=0.95 waitMain=true waitMaxS=15 buildRound=true roundBuilds=6 roundMaxS=20 inflight=24 reachM=700 mainPace=check0.25s_cooldownx0.10 speed=4->8 mainVisible=true mainPaused=false buildings=2552",
+   "stopLine": "[SQOT_DEV] SIMGROW stop reason=limit years=40 towns=16 steps=632 fills=142 fails=0 rounds=10 roundBuilds=189 buildings=2552->20722 s=231 sPerYear=5.8 mainPace=restored upGap=- speed=8->4 tour=true mode=quick fillEarly=133",
+   "years": [
+    {
+     "year": 1.0,
+     "s": 0.5,
+     "buildings": "2583(+31)",
+     "cap": "9852/11983(82%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 2.0,
+     "s": 0.5,
+     "buildings": "2610(+58)",
+     "cap": "9983/13928(72%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 3.0,
+     "s": 0.5,
+     "buildings": "2637(+85)",
+     "cap": "10092/15726(64%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 4.0,
+     "s": 14.0,
+     "buildings": "3474(+922)",
+     "cap": "13213/17191(77%)",
+     "filled": "7",
+     "round": "32/16"
+    },
+    {
+     "year": 5.0,
+     "s": 0.5,
+     "buildings": "3494(+942)",
+     "cap": "13266/18576(71%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 6.0,
+     "s": 0.6,
+     "buildings": "3520(+968)",
+     "cap": "13360/20001(67%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 7.0,
+     "s": 0.5,
+     "buildings": "3554(+1002)",
+     "cap": "13496/21372(63%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 8.0,
+     "s": 23.3,
+     "buildings": "5923(+3371)",
+     "cap": "20886/27052(77%)",
+     "filled": "13",
+     "round": "4/16"
+    },
+    {
+     "year": 9.0,
+     "s": 0.6,
+     "buildings": "5932(+3380)",
+     "cap": "20937/27822(75%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 10.0,
+     "s": 0.6,
+     "buildings": "5959(+3407)",
+     "cap": "21017/28759(73%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 11.0,
+     "s": 0.6,
+     "buildings": "5978(+3426)",
+     "cap": "21057/30400(69%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 12.0,
+     "s": 19.6,
+     "buildings": "7702(+5150)",
+     "cap": "26501/32399(82%)",
+     "filled": "11",
+     "round": "32/16"
+    },
+    {
+     "year": 13.0,
+     "s": 0.6,
+     "buildings": "7727(+5175)",
+     "cap": "26579/34571(77%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 14.0,
+     "s": 0.6,
+     "buildings": "7753(+5201)",
+     "cap": "26679/36613(73%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 15.0,
+     "s": 0.6,
+     "buildings": "7783(+5231)",
+     "cap": "26768/38827(69%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 16.0,
+     "s": 20.6,
+     "buildings": "9743(+7191)",
+     "cap": "33117/40916(81%)",
+     "filled": "15",
+     "round": "17/16"
+    },
+    {
+     "year": 17.0,
+     "s": 0.6,
+     "buildings": "9761(+7209)",
+     "cap": "33188/43122(77%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 18.0,
+     "s": 0.6,
+     "buildings": "9776(+7224)",
+     "cap": "33268/45595(73%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 19.0,
+     "s": 0.7,
+     "buildings": "9805(+7253)",
+     "cap": "33407/47745(70%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 20.0,
+     "s": 20.1,
+     "buildings": "11653(+9101)",
+     "cap": "39342/50006(79%)",
+     "filled": "16",
+     "round": "30/16"
+    },
+    {
+     "year": 21.0,
+     "s": 1.0,
+     "buildings": "11674(+9122)",
+     "cap": "39438/52482(75%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 22.0,
+     "s": 0.7,
+     "buildings": "11696(+9144)",
+     "cap": "39550/54815(72%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 23.0,
+     "s": 0.8,
+     "buildings": "11716(+9164)",
+     "cap": "39604/57152(69%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 24.0,
+     "s": 20.5,
+     "buildings": "13356(+10804)",
+     "cap": "44922/59611(75%)",
+     "filled": "16",
+     "round": "19/16"
+    },
+    {
+     "year": 25.0,
+     "s": 1.0,
+     "buildings": "13364(+10812)",
+     "cap": "44927/62191(72%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 26.0,
+     "s": 0.8,
+     "buildings": "13379(+10827)",
+     "cap": "44955/64617(70%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 27.0,
+     "s": 0.9,
+     "buildings": "13403(+10851)",
+     "cap": "45065/67017(67%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 28.0,
+     "s": 21.5,
+     "buildings": "15300(+12748)",
+     "cap": "51303/69477(74%)",
+     "filled": "16",
+     "round": "8/16"
+    },
+    {
+     "year": 29.0,
+     "s": 1.3,
+     "buildings": "15305(+12753)",
+     "cap": "51323/72046(71%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 30.0,
+     "s": 0.8,
+     "buildings": "15312(+12760)",
+     "cap": "51343/74778(69%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 31.0,
+     "s": 0.9,
+     "buildings": "15330(+12778)",
+     "cap": "51403/77178(67%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 32.0,
+     "s": 24.5,
+     "buildings": "16999(+14447)",
+     "cap": "56779/79633(71%)",
+     "filled": "16",
+     "round": "10/16"
+    },
+    {
+     "year": 33.0,
+     "s": 0.9,
+     "buildings": "17015(+14463)",
+     "cap": "56836/82202(69%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 34.0,
+     "s": 0.8,
+     "buildings": "17029(+14477)",
+     "cap": "56883/84802(67%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 35.0,
+     "s": 0.9,
+     "buildings": "17045(+14493)",
+     "cap": "56946/87441(65%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 36.0,
+     "s": 22.4,
+     "buildings": "18914(+16362)",
+     "cap": "62965/90114(70%)",
+     "filled": "16",
+     "round": "16/16"
+    },
+    {
+     "year": 37.0,
+     "s": 0.8,
+     "buildings": "18935(+16383)",
+     "cap": "63028/92540(68%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 38.0,
+     "s": 0.8,
+     "buildings": "18950(+16398)",
+     "cap": "63069/95067(66%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 39.0,
+     "s": 0.8,
+     "buildings": "18965(+16413)",
+     "cap": "63127/97638(65%)",
+     "filled": "0",
+     "round": "-"
+    },
+    {
+     "year": 40.0,
+     "s": 23.1,
+     "buildings": "20722(+18170)",
+     "cap": "68983/100272(69%)",
+     "filled": "16",
+     "round": "21/16"
+    }
+   ],
+   "seed": "Z2tNDhy0Ht",
+   "counts": {
+    "checkWhy": {
+     "open": 32,
+     "demand": 340,
+     "ahead": 34
+    },
+    "builds": {
+     "head": 24,
+     "demand": 192
+    },
+    "builtEdges": {
+     "head": 116,
+     "demand": 1288
+    },
+    "satBuilt": 10,
+    "satWhy": {
+     "hamlet:hamletFallback": 2,
+     "rare": 4,
+     "hamlet": 1,
+     "seeded": 7,
+     "noSite": 1,
+     "-": 5,
+     "otherTown": 1
+    },
+    "districts": 5,
+    "districtsLinked": 4,
+    "districtNone": {
+     "character": 2,
+     "noSite": 2,
+     "forest": 6,
+     "rare": 3
+    },
+    "works": 2,
+    "worksLinked": 2,
+    "worksNone": {
+     "character": 2,
+     "rare": 11
+    },
+    "levelsSet": 0,
+    "levelsClear": 0,
+    "bridgesBuilt": 3,
+    "bridgesRefused": 1,
+    "coastal": 2,
+    "straightCut": 10,
+    "upwardDoses": 18
+   }
+  }
+ ],
+ "towns": [
+  {
+   "nn": "01",
+   "ids": {
+    "mod": 61408
+   },
+   "m": {
+    "mod": {
+     "name": "Darley Dale",
+     "startName": "Darley Dale",
+     "buildingsStart": 188.0,
+     "buildingsEnd": 1334.0,
+     "personsStart": 718.0,
+     "personsEnd": 4017.0,
+     "targetEnd": 4109.0,
+     "targetShare": 0.978,
+     "growthBuildings": 7.1,
+     "growthPersons": 5.59,
+     "factor": "1.00->5.74",
+     "rate": 1.43,
+     "class": "fast",
+     "r": 814,
+     "rPerSqrtB": 22.3,
+     "dens": 6.4,
+     "spread": 1.4,
+     "beyondPct": 15.0,
+     "lobes": 1.0,
+     "orient": "0.30/0.19/0.18",
+     "capacity": 4077.0,
+     "edges": 347.0,
+     "streetLen": 24612.0,
+     "emptyLen": 3441.0,
+     "emptyEdges": 50.0,
+     "emptyEdgePct": 14.4,
+     "emptyLenPct": 14.0,
+     "deadEnds": 31.0,
+     "pb": 3.06,
+     "freeLotsPct": 50.8,
+     "streetPerBuilding": 18.4,
+     "edgesPer100B": 26.0,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "harbour_crescent:1.00:saved,crescent:1.00:derived,hill_road:1.00:derived",
+     "forest": "0.23:hug",
+     "ind": "0/0",
+     "lvl": "a:79/21/0/0,u:34/27/22/17,w:74/26/0/0,c:0.231748/0.0813053/0/0",
+     "lvlActual": "79/21/0/0",
+     "orth": 0.3,
+     "lvl2Pct": 21.0,
+     "lvl34Pct": 0,
+     "x": 7284.0,
+     "y": -6528.0,
+     "shot": "mod/01-darley-dale.jpg",
+     "personsPerHa": 19.3,
+     "streetPerPerson": 6.13,
+     "deadEndsPerKm": 1.26,
+     "modShare": 26.8
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 93,
+     "builds": 13,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "demand": 23,
+      "ahead": 2
+     },
+     "matLast": 1.0,
+     "demKLast": 0.61,
+     "matHalfAt": "2713",
+     "levelsSkip": "player",
+     "satellites": 0,
+     "forestShareFirst": 0.33,
+     "forestShareLast": 0.23,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "02",
+   "ids": {
+    "mod": 61409
+   },
+   "m": {
+    "mod": {
+     "name": "Windermere",
+     "startName": "Windermere",
+     "buildingsStart": 184.0,
+     "buildingsEnd": 1311.0,
+     "personsStart": 717.0,
+     "personsEnd": 5796.0,
+     "targetEnd": 5924.0,
+     "targetShare": 0.978,
+     "growthBuildings": 7.12,
+     "growthPersons": 8.08,
+     "factor": "1.00->8.26",
+     "rate": 1.43,
+     "class": "fast",
+     "r": 2370,
+     "rPerSqrtB": 65.4,
+     "dens": 0.7,
+     "spread": 2.66,
+     "beyondPct": 33.0,
+     "lobes": 3.0,
+     "orient": "0.24/0.17/0.16",
+     "capacity": 4874.0,
+     "edges": 562.0,
+     "streetLen": 39825.0,
+     "emptyLen": 19586.0,
+     "emptyEdges": 279.0,
+     "emptyEdgePct": 49.6,
+     "emptyLenPct": 49.2,
+     "deadEnds": 53.0,
+     "pb": 3.72,
+     "freeLotsPct": 68.1,
+     "streetPerBuilding": 30.4,
+     "edgesPer100B": 42.9,
+     "style": "EU_ORGANIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "harbour_crescent:1.00:saved,crescent:1.00:derived",
+     "forest": "0.23:hug",
+     "ind": "0/0",
+     "lvl": "a:37/63/0/0,u:34/27/22/17,w:41/59/0/0,c:0.094196/0.135585/0/0",
+     "lvlActual": "37/63/0/0",
+     "orth": 0.24,
+     "lvl2Pct": 63.0,
+     "lvl34Pct": 0,
+     "x": 208.0,
+     "y": -4540.0,
+     "shot": "mod/02-windermere.jpg",
+     "personsPerHa": 3.3,
+     "streetPerPerson": 6.87,
+     "deadEndsPerKm": 1.33,
+     "modShare": 13.9
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [
+      "Windermere Green (shore)"
+     ],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": true,
+     "bridges": [
+      "built span 140 m"
+     ],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 78,
+     "builds": 10,
+     "failed": 1,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "demand": 19,
+      "ahead": 2
+     },
+     "matLast": 1.0,
+     "demKLast": 0.19,
+     "matHalfAt": "2931",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.23,
+     "forestShareLast": 0.21,
+     "forestReads": 2
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "03",
+   "ids": {
+    "mod": 61410
+   },
+   "m": {
+    "mod": {
+     "name": "Ellesmere Port",
+     "startName": "Ellesmere Port",
+     "buildingsStart": 156.0,
+     "buildingsEnd": 748.0,
+     "personsStart": 554.0,
+     "personsEnd": 2693.0,
+     "targetEnd": 2758.0,
+     "targetShare": 0.976,
+     "growthBuildings": 4.79,
+     "growthPersons": 4.86,
+     "factor": "1.00->4.98",
+     "rate": 1.03,
+     "class": "medium",
+     "r": 590,
+     "rPerSqrtB": 21.6,
+     "dens": 6.8,
+     "spread": 1.3,
+     "beyondPct": 7.0,
+     "lobes": 1.0,
+     "orient": "0.17/0.17/0.18",
+     "capacity": 2674.0,
+     "edges": 235.0,
+     "streetLen": 17266.0,
+     "emptyLen": 4382.0,
+     "emptyEdges": 65.0,
+     "emptyEdgePct": 27.7,
+     "emptyLenPct": 25.4,
+     "deadEnds": 23.0,
+     "pb": 3.57,
+     "freeLotsPct": 55.6,
+     "streetPerBuilding": 23.1,
+     "edgesPer100B": 31.4,
+     "style": "MED_HILL",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "crescent:1.00:derived",
+     "forest": "0.13:hug",
+     "ind": "0/0",
+     "lvl": "a:60/40/0/0,u:34/27/22/17,w:54/46/0/0,c:0.175868/0.147476/0/0",
+     "lvlActual": "60/40/0/0",
+     "orth": 0.17,
+     "lvl2Pct": 40.0,
+     "lvl34Pct": 0,
+     "x": -6752.0,
+     "y": 988.0,
+     "shot": "mod/03-ellesmere-port.jpg",
+     "personsPerHa": 24.6,
+     "streetPerPerson": 6.41,
+     "deadEndsPerKm": 1.33,
+     "modShare": 16.2
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 38,
+     "builds": 6,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "demand": 18
+     },
+     "matLast": 0.48,
+     "demKLast": 0.79,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 1,
+     "forestShareFirst": 0.2,
+     "forestShareLast": 0.13,
+     "forestReads": 2
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "04",
+   "ids": {
+    "mod": 61411
+   },
+   "m": {
+    "mod": {
+     "name": "Kirkby Lonsdale",
+     "startName": "Kirkby Lonsdale",
+     "buildingsStart": 158.0,
+     "buildingsEnd": 752.0,
+     "personsStart": 613.0,
+     "personsEnd": 2483.0,
+     "targetEnd": 2534.0,
+     "targetShare": 0.98,
+     "growthBuildings": 4.76,
+     "growthPersons": 4.05,
+     "factor": "1.00->4.13",
+     "rate": 1.1,
+     "class": "medium",
+     "r": 489,
+     "rPerSqrtB": 17.8,
+     "dens": 10.0,
+     "spread": 1.21,
+     "beyondPct": 4.0,
+     "lobes": 1.0,
+     "orient": "0.26/0.28/0.20",
+     "capacity": 2520.0,
+     "edges": 254.0,
+     "streetLen": 18270.0,
+     "emptyLen": 4640.0,
+     "emptyEdges": 68.0,
+     "emptyEdgePct": 26.8,
+     "emptyLenPct": 25.4,
+     "deadEnds": 31.0,
+     "pb": 3.35,
+     "freeLotsPct": 59.6,
+     "streetPerBuilding": 24.3,
+     "edgesPer100B": 33.8,
+     "style": "EU_EXTENSION",
+     "form": "radiating",
+     "shape": "cross",
+     "motifs": "village_green:1.00:saved,ring_road:1.00:saved,crescent:1.00:derived",
+     "forest": "0.24:hug",
+     "ind": "0/0",
+     "lvl": "a:60/40/0/0,u:34/27/22/17,w:51/49/0/0,c:0.22233/0.215534/0/0",
+     "lvlActual": "60/40/0/0",
+     "orth": 0.26,
+     "lvl2Pct": 40.0,
+     "lvl34Pct": 0,
+     "x": 4936.0,
+     "y": 4056.0,
+     "shot": "mod/04-kirkby-lonsdale.jpg",
+     "personsPerHa": 33.1,
+     "streetPerPerson": 7.36,
+     "deadEndsPerKm": 1.7,
+     "modShare": 38.2
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [
+      "Kirkby Lonsdale Quarry"
+     ],
+     "worksLinked": true,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 97,
+     "builds": 13,
+     "failed": 0,
+     "straight": 4,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "ahead": 6,
+      "demand": 18
+     },
+     "matLast": 0.39,
+     "demKLast": 0.77,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 1,
+     "forestShareFirst": 0.27,
+     "forestShareLast": 0.2,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "05",
+   "ids": {
+    "mod": 61413
+   },
+   "m": {
+    "mod": {
+     "name": "Haslemere",
+     "startName": "Haslemere",
+     "buildingsStart": 63.0,
+     "buildingsEnd": 509.0,
+     "personsStart": 253.0,
+     "personsEnd": 1338.0,
+     "targetEnd": 1365.0,
+     "targetShare": 0.98,
+     "growthBuildings": 8.08,
+     "growthPersons": 5.29,
+     "factor": "1.00->5.39",
+     "rate": 1.14,
+     "class": "medium",
+     "r": 390,
+     "rPerSqrtB": 17.3,
+     "dens": 10.7,
+     "spread": 1.25,
+     "beyondPct": 1.0,
+     "lobes": 1.0,
+     "orient": "0.31/0.30/0.25",
+     "capacity": 1310.0,
+     "edges": 210.0,
+     "streetLen": 12047.0,
+     "emptyLen": 3452.0,
+     "emptyEdges": 63.0,
+     "emptyEdgePct": 30.0,
+     "emptyLenPct": 28.7,
+     "deadEnds": 27.0,
+     "pb": 2.57,
+     "freeLotsPct": 58.9,
+     "streetPerBuilding": 23.7,
+     "edgesPer100B": 41.3,
+     "style": "EU_ORGANIC",
+     "form": "wide",
+     "shape": "lens",
+     "motifs": "harbour_crescent:1.00:saved,village_green:1.00:saved,crescent:1.00:derived",
+     "forest": "0.20:hug",
+     "ind": "0/0",
+     "lvl": "a:97/3/0/0,u:40/32/27/0,w:96/4/0/0,c:0.208614/0.00807537/0/0",
+     "lvlActual": "97/3/0/0",
+     "orth": 0.31,
+     "lvl2Pct": 3.0,
+     "lvl34Pct": 0,
+     "x": 5428.0,
+     "y": -2268.0,
+     "shot": "mod/05-haslemere.jpg",
+     "personsPerHa": 28.0,
+     "streetPerPerson": 9.0,
+     "deadEndsPerKm": 2.24,
+     "modShare": 48.1
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 101,
+     "builds": 13,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "ahead": 6,
+      "demand": 15
+     },
+     "matLast": 0.0,
+     "demKLast": 1.0,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.21,
+     "forestShareLast": 0.2,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "06",
+   "ids": {
+    "mod": 61414
+   },
+   "m": {
+    "mod": {
+     "name": "Burgess Hill",
+     "startName": "Burgess Hill",
+     "buildingsStart": 183.0,
+     "buildingsEnd": 1300.0,
+     "personsStart": 777.0,
+     "personsEnd": 3982.0,
+     "targetEnd": 4061.0,
+     "targetShare": 0.981,
+     "growthBuildings": 7.1,
+     "growthPersons": 5.12,
+     "factor": "1.00->5.36",
+     "rate": 1.27,
+     "class": "medium",
+     "r": 829,
+     "rPerSqrtB": 23.0,
+     "dens": 6.0,
+     "spread": 1.5,
+     "beyondPct": 11.0,
+     "lobes": 1.0,
+     "orient": "0.24/0.16/0.15",
+     "capacity": 3960.0,
+     "edges": 370.0,
+     "streetLen": 25633.0,
+     "emptyLen": 6119.0,
+     "emptyEdges": 95.0,
+     "emptyEdgePct": 25.7,
+     "emptyLenPct": 23.9,
+     "deadEnds": 30.0,
+     "pb": 3.05,
+     "freeLotsPct": 52.9,
+     "streetPerBuilding": 19.7,
+     "edgesPer100B": 28.5,
+     "style": "EU_EXTENSION",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "crossroads_hamlet:1.00:saved,ribbon_village:1.00:saved,crescent:1.00:derived",
+     "forest": "0.15:clear",
+     "ind": "0/0",
+     "lvl": "a:71/29/0/0,u:34/27/22/17,w:66/34/0/0,c:0.268953/0.138989/0/0",
+     "lvlActual": "71/29/0/0",
+     "orth": 0.24,
+     "lvl2Pct": 29.0,
+     "lvl34Pct": 0,
+     "x": -7296.0,
+     "y": 5380.0,
+     "shot": "mod/06-burgess-hill.jpg",
+     "personsPerHa": 18.5,
+     "streetPerPerson": 6.44,
+     "deadEndsPerKm": 1.17,
+     "modShare": 27.0
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 100,
+     "builds": 14,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "demand": 22,
+      "ahead": 1
+     },
+     "matLast": 1.0,
+     "demKLast": 0.55,
+     "matHalfAt": "2973",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.21,
+     "forestShareLast": 0.15,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "07",
+   "ids": {
+    "mod": 61415
+   },
+   "m": {
+    "mod": {
+     "name": "Tickhill",
+     "startName": "Tickhill",
+     "buildingsStart": 183.0,
+     "buildingsEnd": 1003.0,
+     "personsStart": 729.0,
+     "personsEnd": 3278.0,
+     "targetEnd": 3346.0,
+     "targetShare": 0.98,
+     "growthBuildings": 5.48,
+     "growthPersons": 4.5,
+     "factor": "1.00->4.62",
+     "rate": 1.09,
+     "class": "medium",
+     "r": 594,
+     "rPerSqrtB": 18.7,
+     "dens": 9.1,
+     "spread": 1.17,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.20/0.23/0.24",
+     "capacity": 3332.0,
+     "edges": 283.0,
+     "streetLen": 19513.0,
+     "emptyLen": 3567.0,
+     "emptyEdges": 50.0,
+     "emptyEdgePct": 17.7,
+     "emptyLenPct": 18.3,
+     "deadEnds": 24.0,
+     "pb": 3.32,
+     "freeLotsPct": 49.1,
+     "streetPerBuilding": 19.5,
+     "edgesPer100B": 28.2,
+     "style": "EU_ORGANIC",
+     "form": "radiating",
+     "shape": "cross",
+     "motifs": "village_green:1.00:saved,crescent:1.00:derived",
+     "forest": "0.20:hug",
+     "ind": "0/0",
+     "lvl": "a:63/37/0/0,u:34/27/22/17,w:58/42/0/0,c:0.234187/0.171687/0/0",
+     "lvlActual": "63/37/0/0",
+     "orth": 0.2,
+     "lvl2Pct": 37.0,
+     "lvl34Pct": 0,
+     "x": -5024.0,
+     "y": 7324.0,
+     "shot": "mod/07-tickhill.jpg",
+     "personsPerHa": 29.6,
+     "streetPerPerson": 5.95,
+     "deadEndsPerKm": 1.23,
+     "modShare": 33.9
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 96,
+     "builds": 17,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "demand": 26,
+      "ahead": 2
+     },
+     "matLast": 0.85,
+     "demKLast": 0.78,
+     "matHalfAt": "2838",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.23,
+     "forestShareLast": 0.2,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "08",
+   "ids": {
+    "mod": 61416
+   },
+   "m": {
+    "mod": {
+     "name": "Heywood",
+     "startName": "Heywood",
+     "buildingsStart": 132.0,
+     "buildingsEnd": 642.0,
+     "personsStart": 431.0,
+     "personsEnd": 1872.0,
+     "targetEnd": 1906.0,
+     "targetShare": 0.982,
+     "growthBuildings": 4.86,
+     "growthPersons": 4.34,
+     "factor": "1.00->4.42",
+     "rate": 1.15,
+     "class": "medium",
+     "r": 506,
+     "rPerSqrtB": 20.0,
+     "dens": 8.0,
+     "spread": 1.2,
+     "beyondPct": 1.0,
+     "lobes": 1.0,
+     "orient": "0.34/0.22/0.12",
+     "capacity": 1831.0,
+     "edges": 236.0,
+     "streetLen": 16443.0,
+     "emptyLen": 5033.0,
+     "emptyEdges": 79.0,
+     "emptyEdgePct": 33.5,
+     "emptyLenPct": 30.6,
+     "deadEnds": 30.0,
+     "pb": 2.85,
+     "freeLotsPct": 58.7,
+     "streetPerBuilding": 25.6,
+     "edgesPer100B": 36.8,
+     "style": "EU_ORGANIC",
+     "form": "radiating",
+     "shape": "cross",
+     "motifs": "ribbon_village:1.00:saved,crescent:1.00:derived",
+     "forest": "0.31:hug",
+     "ind": "0/0",
+     "lvl": "a:91/9/0/0,u:37/29/24/10,w:89/11/0/0,c:0.360313/0.0443864/0/0",
+     "lvlActual": "91/9/0/0",
+     "orth": 0.34,
+     "lvl2Pct": 9.0,
+     "lvl34Pct": 0,
+     "x": 7072.0,
+     "y": 188.0,
+     "shot": "mod/08-heywood.jpg",
+     "personsPerHa": 23.2,
+     "streetPerPerson": 8.78,
+     "deadEndsPerKm": 1.82,
+     "modShare": 30.5
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [
+      "Heywood Sawmills"
+     ],
+     "worksLinked": true,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 72,
+     "builds": 13,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "demand": 21,
+      "ahead": 1
+     },
+     "matLast": 0.02,
+     "demKLast": 0.99,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.36,
+     "forestShareLast": 0.31,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "09",
+   "ids": {
+    "mod": 61417
+   },
+   "m": {
+    "mod": {
+     "name": "Birchwood",
+     "startName": "Birchwood",
+     "buildingsStart": 99.0,
+     "buildingsEnd": 737.0,
+     "personsStart": 382.0,
+     "personsEnd": 2036.0,
+     "targetEnd": 2081.0,
+     "targetShare": 0.978,
+     "growthBuildings": 7.44,
+     "growthPersons": 5.33,
+     "factor": "1.00->5.69",
+     "rate": 1.22,
+     "class": "medium",
+     "r": 465,
+     "rPerSqrtB": 17.1,
+     "dens": 10.8,
+     "spread": 1.13,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.27/0.18/0.15",
+     "capacity": 2062.0,
+     "edges": 220.0,
+     "streetLen": 16262.0,
+     "emptyLen": 3553.0,
+     "emptyEdges": 50.0,
+     "emptyEdgePct": 22.7,
+     "emptyLenPct": 21.8,
+     "deadEnds": 21.0,
+     "pb": 2.8,
+     "freeLotsPct": 55.4,
+     "streetPerBuilding": 22.1,
+     "edgesPer100B": 29.9,
+     "style": "NORDIC",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "crescent:1.00:derived",
+     "forest": "0.31:clear",
+     "ind": "0/0",
+     "lvl": "a:100/0/0/0,u:36/29/23/12,w:100/0/0/0,c:0.243113/0/0/0",
+     "lvlActual": "100/0/0/0",
+     "orth": 0.27,
+     "lvl2Pct": 0.0,
+     "lvl34Pct": 0,
+     "x": -3456.0,
+     "y": 3820.0,
+     "shot": "mod/09-birchwood.jpg",
+     "personsPerHa": 29.9,
+     "streetPerPerson": 7.99,
+     "deadEndsPerKm": 1.29,
+     "modShare": 28.2
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": false,
+     "districts": [
+      "Birchwood Bay (shore)"
+     ],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": true,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 62,
+     "builds": 10,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "demand": 18,
+      "ahead": 2
+     },
+     "matLast": 0.15,
+     "demKLast": 0.92,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.31,
+     "forestShareLast": 0.28,
+     "forestReads": 2
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "10",
+   "ids": {
+    "mod": 61418
+   },
+   "m": {
+    "mod": {
+     "name": "Ellesmere",
+     "startName": "Ellesmere",
+     "buildingsStart": 131.0,
+     "buildingsEnd": 2177.0,
+     "personsStart": 526.0,
+     "personsEnd": 5904.0,
+     "targetEnd": 6076.0,
+     "targetShare": 0.972,
+     "growthBuildings": 16.62,
+     "growthPersons": 11.22,
+     "factor": "1.00->12.01",
+     "rate": 1.9,
+     "class": "fast",
+     "r": 898,
+     "rPerSqrtB": 19.2,
+     "dens": 8.6,
+     "spread": 1.24,
+     "beyondPct": 2.0,
+     "lobes": 1.0,
+     "orient": "0.29/0.21/0.18",
+     "capacity": 5944.0,
+     "edges": 655.0,
+     "streetLen": 43577.0,
+     "emptyLen": 8895.0,
+     "emptyEdges": 151.0,
+     "emptyEdgePct": 23.1,
+     "emptyLenPct": 20.4,
+     "deadEnds": 73.0,
+     "pb": 2.73,
+     "freeLotsPct": 53.6,
+     "streetPerBuilding": 20.0,
+     "edgesPer100B": 30.1,
+     "style": "EU_ORGANIC",
+     "form": "radiating",
+     "shape": "cross",
+     "motifs": "village_green:1.00:saved,crescent:1.00:derived",
+     "forest": "0.38:hug",
+     "ind": "0/0",
+     "lvl": "a:97/3/0/0,u:34/27/22/17,w:96/4/0/0,c:0.0718734/0.00271882/0/0",
+     "lvlActual": "97/3/0/0",
+     "orth": 0.29,
+     "lvl2Pct": 3.0,
+     "lvl34Pct": 0,
+     "x": 792.0,
+     "y": 5300.0,
+     "shot": "mod/10-ellesmere.jpg",
+     "personsPerHa": 23.3,
+     "streetPerPerson": 7.38,
+     "deadEndsPerKm": 1.68,
+     "modShare": 32.1
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [
+      "Ellesmere Cross (shore)"
+     ],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": true,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 210,
+     "builds": 39,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "open": 1,
+      "demand": 41,
+      "ahead": 2
+     },
+     "matLast": 1.0,
+     "demKLast": 0.51,
+     "matHalfAt": "2994",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.38,
+     "forestShareLast": 0.19,
+     "forestReads": 7
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "11",
+   "ids": {
+    "mod": 61419
+   },
+   "m": {
+    "mod": {
+     "name": "Budleigh Salterton",
+     "startName": "Budleigh Salterton",
+     "buildingsStart": 189.0,
+     "buildingsEnd": 1912.0,
+     "personsStart": 762.0,
+     "personsEnd": 6176.0,
+     "targetEnd": 6309.0,
+     "targetShare": 0.979,
+     "growthBuildings": 10.12,
+     "growthPersons": 8.1,
+     "factor": "1.00->8.28",
+     "rate": 1.97,
+     "class": "fast",
+     "r": 803,
+     "rPerSqrtB": 18.4,
+     "dens": 9.4,
+     "spread": 1.12,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.21/0.21/0.18",
+     "capacity": 6226.0,
+     "edges": 622.0,
+     "streetLen": 45517.0,
+     "emptyLen": 11346.0,
+     "emptyEdges": 163.0,
+     "emptyEdgePct": 26.2,
+     "emptyLenPct": 24.9,
+     "deadEnds": 43.0,
+     "pb": 3.26,
+     "freeLotsPct": 60.1,
+     "streetPerBuilding": 23.8,
+     "edgesPer100B": 32.5,
+     "style": "EU_EXTENSION",
+     "form": "sprawling",
+     "shape": "compact",
+     "motifs": "village_green:1.00:saved,crescent:1.00:derived,bridgehead_quarter:1.00:derived",
+     "forest": "0.18:hug",
+     "ind": "0/0",
+     "lvl": "a:73/27/0/0,u:34/27/22/17,w:69/31/0/0,c:0.179487/0.079416/0/0",
+     "lvlActual": "73/27/0/0",
+     "orth": 0.21,
+     "lvl2Pct": 27.0,
+     "lvl34Pct": 0,
+     "x": -4452.0,
+     "y": -6824.0,
+     "shot": "mod/11-budleigh-salterton.jpg",
+     "personsPerHa": 30.5,
+     "streetPerPerson": 7.37,
+     "deadEndsPerKm": 0.94,
+     "modShare": 20.3
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [
+      "built span 156 m"
+     ],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 126,
+     "builds": 13,
+     "failed": 0,
+     "straight": 6,
+     "levels": null,
+     "checkWhy": {
+      "demand": 20,
+      "ahead": 3
+     },
+     "matLast": 1.0,
+     "demKLast": 0.4,
+     "matHalfAt": "3196",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.34,
+     "forestShareLast": 0.18,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "12",
+   "ids": {
+    "mod": 61420
+   },
+   "m": {
+    "mod": {
+     "name": "Henley-in-Arden",
+     "startName": "Henley-in-Arden",
+     "buildingsStart": 129.0,
+     "buildingsEnd": 661.0,
+     "personsStart": 464.0,
+     "personsEnd": 1924.0,
+     "targetEnd": 1956.0,
+     "targetShare": 0.984,
+     "growthBuildings": 5.12,
+     "growthPersons": 4.15,
+     "factor": "1.00->4.27",
+     "rate": 1.03,
+     "class": "medium",
+     "r": 480,
+     "rPerSqrtB": 18.7,
+     "dens": 9.1,
+     "spread": 1.21,
+     "beyondPct": 2.0,
+     "lobes": 1.0,
+     "orient": "0.30/0.27/0.20",
+     "capacity": 1928.0,
+     "edges": 188.0,
+     "streetLen": 14179.0,
+     "emptyLen": 3658.0,
+     "emptyEdges": 51.0,
+     "emptyEdgePct": 27.1,
+     "emptyLenPct": 25.8,
+     "deadEnds": 16.0,
+     "pb": 2.92,
+     "freeLotsPct": 51.0,
+     "streetPerBuilding": 21.5,
+     "edgesPer100B": 28.4,
+     "style": "EU_EXTENSION",
+     "form": "linear",
+     "shape": "linear",
+     "motifs": "crossroads_hamlet:1.00:saved,ribbon_village:1.00:saved,crescent:1.00:derived",
+     "forest": "0.26:hug",
+     "ind": "0/0",
+     "lvl": "a:87/13/0/0,u:36/29/23/11,w:86/14/0/0,c:0.334513/0.0557522/0/0",
+     "lvlActual": "87/13/0/0",
+     "orth": 0.3,
+     "lvl2Pct": 13.0,
+     "lvl34Pct": 0,
+     "x": -3308.0,
+     "y": -1652.0,
+     "shot": "mod/12-henley-in-arden.jpg",
+     "personsPerHa": 26.6,
+     "streetPerPerson": 7.37,
+     "deadEndsPerKm": 1.13,
+     "modShare": 46.3
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 87,
+     "builds": 10,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 15,
+      "open": 3,
+      "ahead": 2
+     },
+     "matLast": 0.07,
+     "demKLast": 0.97,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 1,
+     "forestShareFirst": 0.28,
+     "forestShareLast": 0.26,
+     "forestReads": 2
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "13",
+   "ids": {
+    "mod": 61421
+   },
+   "m": {
+    "mod": {
+     "name": "Bexhill-on-Sea",
+     "startName": "Bexhill-on-Sea",
+     "buildingsStart": 181.0,
+     "buildingsEnd": 3010.0,
+     "personsStart": 651.0,
+     "personsEnd": 10607.0,
+     "targetEnd": 10978.0,
+     "targetShare": 0.966,
+     "growthBuildings": 16.63,
+     "growthPersons": 16.29,
+     "factor": "1.00->9.88",
+     "rate": 1.85,
+     "class": "fast",
+     "r": 1452,
+     "rPerSqrtB": 26.5,
+     "dens": 4.5,
+     "spread": 1.94,
+     "beyondPct": 34.0,
+     "lobes": 2.0,
+     "orient": "0.29/0.16/0.18",
+     "capacity": 9339.0,
+     "edges": 859.0,
+     "streetLen": 61774.0,
+     "emptyLen": 10916.0,
+     "emptyEdges": 172.0,
+     "emptyEdgePct": 20.0,
+     "emptyLenPct": 17.7,
+     "deadEnds": 51.0,
+     "pb": 3.1,
+     "freeLotsPct": 56.6,
+     "streetPerBuilding": 20.5,
+     "edgesPer100B": 28.5,
+     "style": "MED_HILL",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "crossroads_hamlet:0.70:drawn,crescent:1.00:derived",
+     "forest": "0.11:hug",
+     "ind": "0/0",
+     "lvl": "a:62/38/0/0,u:34/27/22/17,w:70/30/0/0,c:0.260049/0.114028/0/0",
+     "lvlActual": "62/38/0/0",
+     "orth": 0.29,
+     "lvl2Pct": 38.0,
+     "lvl34Pct": 0,
+     "x": 3812.0,
+     "y": -6908.0,
+     "shot": "mod/13-bexhill-on-sea.jpg",
+     "personsPerHa": 16.0,
+     "streetPerPerson": 5.82,
+     "deadEndsPerKm": 0.83,
+     "modShare": 7.1
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [
+      "Bexhill-on-Sea End (shore)"
+     ],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": true,
+     "bridges": [],
+     "coastal": true,
+     "character": false,
+     "builtEdges": 61,
+     "builds": 11,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 20,
+      "ahead": 1
+     },
+     "matLast": 1.0,
+     "demKLast": 0.48,
+     "matHalfAt": "2809",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.11,
+     "forestShareLast": 0.05,
+     "forestReads": 2
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "14",
+   "ids": {
+    "mod": 61423
+   },
+   "m": {
+    "mod": {
+     "name": "Skegness",
+     "startName": "Skegness",
+     "buildingsStart": 184.0,
+     "buildingsEnd": 1427.0,
+     "personsStart": 771.0,
+     "personsEnd": 4635.0,
+     "targetEnd": 4758.0,
+     "targetShare": 0.974,
+     "growthBuildings": 7.76,
+     "growthPersons": 6.01,
+     "factor": "1.00->6.19",
+     "rate": 1.43,
+     "class": "fast",
+     "r": 650,
+     "rPerSqrtB": 17.2,
+     "dens": 10.7,
+     "spread": 1.08,
+     "beyondPct": 0.0,
+     "lobes": 1.0,
+     "orient": "0.26/0.18/0.21",
+     "capacity": 4699.0,
+     "edges": 395.0,
+     "streetLen": 29680.0,
+     "emptyLen": 6473.0,
+     "emptyEdges": 93.0,
+     "emptyEdgePct": 23.5,
+     "emptyLenPct": 21.8,
+     "deadEnds": 35.0,
+     "pb": 3.29,
+     "freeLotsPct": 52.4,
+     "streetPerBuilding": 20.8,
+     "edgesPer100B": 27.7,
+     "style": "EU_ORGANIC",
+     "form": "radiating",
+     "shape": "cross",
+     "motifs": "ribbon_village:0.75:saved,crescent:1.00:derived",
+     "forest": "0.22:hug",
+     "ind": "0/0",
+     "lvl": "a:67/33/0/0,u:34/27/22/17,w:62/38/0/0,c:0.193327/0.116781/0/0",
+     "lvlActual": "67/33/0/0",
+     "orth": 0.26,
+     "lvl2Pct": 33.0,
+     "lvl34Pct": 0,
+     "x": -6604.0,
+     "y": -3708.0,
+     "shot": "mod/14-skegness.jpg",
+     "personsPerHa": 34.9,
+     "streetPerPerson": 6.4,
+     "deadEndsPerKm": 1.18,
+     "modShare": 23.0
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": true,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 91,
+     "builds": 14,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 24,
+      "ahead": 2
+     },
+     "matLast": 1.0,
+     "demKLast": 0.65,
+     "matHalfAt": "3128",
+     "levelsSkip": "player",
+     "satellites": 1,
+     "forestShareFirst": 0.26,
+     "forestShareLast": 0.22,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "15",
+   "ids": {
+    "mod": 61424
+   },
+   "m": {
+    "mod": {
+     "name": "High Wycombe",
+     "startName": "High Wycombe",
+     "buildingsStart": 134.0,
+     "buildingsEnd": 1001.0,
+     "personsStart": 463.0,
+     "personsEnd": 2681.0,
+     "targetEnd": 2748.0,
+     "targetShare": 0.976,
+     "growthBuildings": 7.47,
+     "growthPersons": 5.79,
+     "factor": "1.00->5.94",
+     "rate": 1.56,
+     "class": "fast",
+     "r": 633,
+     "rPerSqrtB": 20.0,
+     "dens": 8.0,
+     "spread": 1.24,
+     "beyondPct": 1.0,
+     "lobes": 1.0,
+     "orient": "0.28/0.21/0.21",
+     "capacity": 2613.0,
+     "edges": 269.0,
+     "streetLen": 19401.0,
+     "emptyLen": 3122.0,
+     "emptyEdges": 45.0,
+     "emptyEdgePct": 16.7,
+     "emptyLenPct": 16.1,
+     "deadEnds": 23.0,
+     "pb": 2.61,
+     "freeLotsPct": 53.9,
+     "streetPerBuilding": 19.4,
+     "edgesPer100B": 26.9,
+     "style": "EU_ORGANIC",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "ribbon_village:1.00:saved,peninsula_tip:0.77:saved,crescent:1.00:derived,bridgehead_quarter:1.00:derived",
+     "forest": "0.13:hug",
+     "ind": "0/0",
+     "lvl": "a:88/12/0/0,u:34/27/22/17,w:87/13/0/0,c:0.300191/0.0449331/0/0",
+     "lvlActual": "88/12/0/0",
+     "orth": 0.28,
+     "lvl2Pct": 12.0,
+     "lvl34Pct": 0,
+     "x": 2692.0,
+     "y": -2404.0,
+     "shot": "mod/15-high-wycombe.jpg",
+     "personsPerHa": 21.3,
+     "streetPerPerson": 7.24,
+     "deadEndsPerKm": 1.19,
+     "modShare": 20.1
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": false,
+     "districts": [],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [
+      "built span 144 m"
+     ],
+     "coastal": true,
+     "character": false,
+     "builtEdges": 54,
+     "builds": 13,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 21,
+      "ahead": 2
+     },
+     "matLast": 0.46,
+     "demKLast": 0.76,
+     "matHalfAt": null,
+     "levelsSkip": "young",
+     "satellites": 0,
+     "forestShareFirst": 0.25,
+     "forestShareLast": 0.13,
+     "forestReads": 3
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  },
+  {
+   "nn": "16",
+   "ids": {
+    "mod": 61425
+   },
+   "m": {
+    "mod": {
+     "name": "Chipping Campden",
+     "startName": "Chipping Campden",
+     "buildingsStart": 258.0,
+     "buildingsEnd": 2198.0,
+     "personsStart": 1268.0,
+     "personsEnd": 38215.0,
+     "targetEnd": 39364.0,
+     "targetShare": 0.971,
+     "growthBuildings": 8.52,
+     "growthPersons": 30.14,
+     "factor": "1.00->17.46",
+     "rate": 1.63,
+     "class": "fast",
+     "r": 872,
+     "rPerSqrtB": 18.6,
+     "dens": 9.2,
+     "spread": 1.27,
+     "beyondPct": 6.0,
+     "lobes": 1.0,
+     "orient": "0.24/0.19/0.19",
+     "capacity": 11594.0,
+     "edges": 631.0,
+     "streetLen": 44723.0,
+     "emptyLen": 7746.0,
+     "emptyEdges": 118.0,
+     "emptyEdgePct": 18.7,
+     "emptyLenPct": 17.3,
+     "deadEnds": 29.0,
+     "pb": 5.27,
+     "freeLotsPct": 56.7,
+     "streetPerBuilding": 20.3,
+     "edgesPer100B": 28.7,
+     "style": "EU_ORGANIC",
+     "form": "shore",
+     "shape": "shore",
+     "motifs": "ring_road:0.15:drawn,village_green:0.77:drawn,crescent:1.00:derived",
+     "forest": "0.20:hug",
+     "ind": "0/0",
+     "lvl": "a:4/96/0/0,u:34/27/22/17,w:6/94/0/0,c:0.00852105/0.137855/0/0",
+     "lvlActual": "4/96/0/0",
+     "orth": 0.24,
+     "lvl2Pct": 96.0,
+     "lvl34Pct": 0,
+     "x": 736.0,
+     "y": 448.0,
+     "shot": "mod/16-chipping-campden.jpg",
+     "personsPerHa": 160.1,
+     "streetPerPerson": 1.17,
+     "deadEndsPerKm": 0.65,
+     "modShare": 6.0
+    }
+   },
+   "x": {
+    "mod": {
+     "satelliteBuilt": false,
+     "districts": [
+      "Chipping Sands (shore)"
+     ],
+     "works": [],
+     "worksLinked": false,
+     "districtLinked": false,
+     "bridges": [],
+     "coastal": false,
+     "character": false,
+     "builtEdges": 38,
+     "builds": 7,
+     "failed": 0,
+     "straight": 0,
+     "levels": null,
+     "checkWhy": {
+      "demand": 19
+     },
+     "matLast": 1.0,
+     "demKLast": 0.7,
+     "matHalfAt": "3509",
+     "levelsSkip": "dense",
+     "satellites": 0,
+     "forestShareFirst": 0.2,
+     "forestShareLast": 0.13,
+     "forestReads": 2
+    }
+   },
+   "samePos": {
+    "mod": true
+   },
+   "category": "unrated",
+   "verdict": ""
+  }
+ ],
+ "extraTowns": {
+  "mod": [
+   {
+    "id": 35248,
+    "name": "Birchwood Bay",
+    "buildings": 93.0,
+    "edges": 41.0,
+    "r": 164,
+    "pb": 2.48,
+    "emptyEdges": 16.0,
+    "ind": "0/0",
+    "shot": "mod/x-birchwood-bay.jpg"
+   },
+   {
+    "id": 107170,
+    "name": "Ellesmere Cross",
+    "buildings": 91.0,
+    "edges": 28.0,
+    "r": 172,
+    "pb": 2.54,
+    "emptyEdges": 10.0,
+    "ind": "0/0",
+    "shot": "mod/x-ellesmere-cross.jpg"
+   },
+   {
+    "id": 43730,
+    "name": "Chipping Sands",
+    "buildings": 87.0,
+    "edges": 146.0,
+    "r": 181,
+    "pb": 2.36,
+    "emptyEdges": 120.0,
+    "ind": "0/0",
+    "shot": "mod/x-chipping-sands.jpg"
+   },
+   {
+    "id": 131915,
+    "name": "Windermere Green",
+    "buildings": 84.0,
+    "edges": 54.0,
+    "r": 167,
+    "pb": 2.74,
+    "emptyEdges": 29.0,
+    "ind": "0/0",
+    "shot": "mod/x-windermere-green.jpg"
+   },
+   {
+    "id": 131961,
+    "name": "Bexhill-on-Sea End",
+    "buildings": 68.0,
+    "edges": 190.0,
+    "r": 208,
+    "pb": 2.76,
+    "emptyEdges": 170.0,
+    "ind": "0/0",
+    "shot": "mod/x-bexhill-on-sea-end.jpg"
+   },
+   {
+    "id": 193693,
+    "name": "Heywood Sawmills",
+    "buildings": 39.0,
+    "edges": 20.0,
+    "r": 118,
+    "pb": 5.31,
+    "emptyEdges": 6.0,
+    "ind": "0/0",
+    "shot": "mod/x-heywood-sawmills.jpg"
+   },
+   {
+    "id": 188158,
+    "name": "Kirkby Lonsdale Quarry",
+    "buildings": 33.0,
+    "edges": 31.0,
+    "r": 160,
+    "pb": 6.45,
+    "emptyEdges": 23.0,
+    "ind": "0/0",
+    "shot": "mod/x-kirkby-lonsdale-quarry.jpg"
+   }
+  ]
+ },
+ "summary": {
+  "buildingsStart": {
+   "mod": {
+    "q": [
+     131.75,
+     169.5,
+     184.0,
+     63.0,
+     258.0
+    ],
+    "sum": 2552.0
+   }
+  },
+  "buildingsEnd": {
+   "mod": {
+    "q": [
+     745.25,
+     1151.5,
+     1548.25,
+     509.0,
+     3010.0
+    ],
+    "sum": 20722.0
+   }
+  },
+  "personsStart": {
+   "mod": {
+    "q": [
+     463.75,
+     632.0,
+     737.25,
+     253.0,
+     1268.0
+    ],
+    "sum": 10079.0
+   }
+  },
+  "personsEnd": {
+   "mod": {
+    "q": [
+     2371.25,
+     3630.0,
+     5823.0,
+     1338.0,
+     38215.0
+    ],
+    "sum": 97637.0
+   }
+  },
+  "growthBuildings": {
+   "mod": {
+    "q": [
+     5.39,
+     7.28,
+     8.19,
+     4.76,
+     16.63
+    ],
+    "sum": 128.97
+   }
+  },
+  "growthPersons": {
+   "mod": {
+    "q": [
+     4.77,
+     5.46,
+     8.085,
+     4.05,
+     30.14
+    ],
+    "sum": 128.86
+   }
+  },
+  "targetShare": {
+   "mod": {
+    "q": [
+     0.9755,
+     0.978,
+     0.98,
+     0.966,
+     0.984
+    ],
+    "sum": 15.63
+   }
+  },
+  "r": {
+   "mod": {
+    "q": [
+     501.75,
+     641.5,
+     839.75,
+     390,
+     2370
+    ],
+    "sum": 12835
+   }
+  },
+  "rPerSqrtB": {
+   "mod": {
+    "q": [
+     18.25,
+     18.95,
+     21.775,
+     17.1,
+     65.4
+    ],
+    "sum": 361.8
+   }
+  },
+  "dens": {
+   "mod": {
+    "q": [
+     6.7,
+     8.85,
+     9.55,
+     0.7,
+     10.8
+    ],
+    "sum": 128.0
+   }
+  },
+  "spread": {
+   "mod": {
+    "q": [
+     1.1925,
+     1.24,
+     1.325,
+     1.08,
+     2.66
+    ],
+    "sum": 21.92
+   }
+  },
+  "beyondPct": {
+   "mod": {
+    "q": [
+     0.75,
+     2.0,
+     8.0,
+     0.0,
+     34.0
+    ],
+    "sum": 117.0
+   }
+  },
+  "lobes": {
+   "mod": {
+    "q": [
+     1.0,
+     1.0,
+     1.0,
+     1.0,
+     3.0
+    ],
+    "sum": 19.0
+   }
+  },
+  "edges": {
+   "mod": {
+    "q": [
+     235.75,
+     315.0,
+     577.0,
+     188.0,
+     859.0
+    ],
+    "sum": 6336.0
+   }
+  },
+  "streetLen": {
+   "mod": {
+    "q": [
+     17060.25,
+     22062.5,
+     40763.0,
+     12047.0,
+     61774.0
+    ],
+    "sum": 448722.0
+   }
+  },
+  "emptyLen": {
+   "mod": {
+    "q": [
+     3563.5,
+     4836.5,
+     8033.25,
+     3122.0,
+     19586.0
+    ],
+    "sum": 105929.0
+   }
+  },
+  "emptyEdgePct": {
+   "mod": {
+    "q": [
+     19.675,
+     24.6,
+     27.25,
+     14.4,
+     49.6
+    ],
+    "sum": 403.4
+   }
+  },
+  "emptyLenPct": {
+   "mod": {
+    "q": [
+     18.15,
+     22.85,
+     25.5,
+     14.0,
+     49.2
+    ],
+    "sum": 381.3
+   }
+  },
+  "deadEnds": {
+   "mod": {
+    "q": [
+     23.75,
+     30.0,
+     37.0,
+     16.0,
+     73.0
+    ],
+    "sum": 540.0
+   }
+  },
+  "pb": {
+   "mod": {
+    "q": [
+     2.8375,
+     3.08,
+     3.3275,
+     2.57,
+     5.27
+    ],
+    "sum": 51.47
+   }
+  },
+  "freeLotsPct": {
+   "mod": {
+    "q": [
+     52.775,
+     55.5,
+     58.75,
+     49.1,
+     68.1
+    ],
+    "sum": 893.4
+   }
+  },
+  "streetPerBuilding": {
+   "mod": {
+    "q": [
+     19.925,
+     21.15,
+     23.725,
+     18.4,
+     30.4
+    ],
+    "sum": 353.1
+   }
+  },
+  "edgesPer100B": {
+   "mod": {
+    "q": [
+     28.35,
+     29.3,
+     32.825,
+     26.0,
+     42.9
+    ],
+    "sum": 501.6
+   }
+  },
+  "capacity": {
+   "mod": {
+    "q": [
+     2405.5,
+     3646.0,
+     5141.5,
+     1310.0,
+     11594.0
+    ],
+    "sum": 68983.0
+   }
+  },
+  "personsPerHa": {
+   "mod": {
+    "q": [
+     20.8,
+     25.6,
+     30.05,
+     3.3,
+     160.1
+    ],
+    "sum": 522.2
+   }
+  },
+  "streetPerPerson": {
+   "mod": {
+    "q": [
+     6.3325,
+     7.055,
+     7.3725,
+     1.17,
+     9.0
+    ],
+    "sum": 107.68
+   }
+  },
+  "deadEndsPerKm": {
+   "mod": {
+    "q": [
+     1.16,
+     1.245,
+     1.4175,
+     0.65,
+     2.24
+    ],
+    "sum": 20.97
+   }
+  },
+  "orth": {
+   "mod": {
+    "q": [
+     0.24,
+     0.265,
+     0.2925,
+     0.17,
+     0.34
+    ],
+    "sum": 4.2
+   }
+  },
+  "lvl2Pct": {
+   "mod": {
+    "q": [
+     11.25,
+     28.0,
+     38.5,
+     0.0,
+     96.0
+    ],
+    "sum": 464.0
+   }
+  },
+  "lvl34Pct": {
+   "mod": {
+    "q": [
+     0.0,
+     0.0,
+     0.0,
+     0,
+     0
+    ],
+    "sum": 0
+   }
+  },
+  "modShare": {
+   "mod": {
+    "q": [
+     19.125,
+     26.9,
+     32.55,
+     6.0,
+     48.1
+    ],
+    "sum": 417.7
+   }
+  }
+ },
+ "notes": {
+  "keyNotes": [
+   "<b>Map:</b> seed <code>Z2tNDhy0Ht</code>, not the comparison seed <code>U8Qxgisp4I</code>: no town pairs with the 0119 / 0302 runs; compare map-level medians only. Start 2552 buildings (0119 / 0302: 1701), SIMGROW year-40 target 100272 persons (0302: 42969; Chipping Campden alone 39364, growth x16.95).",
+   "<b>Speed:</b> Quick 231 s = 30 quiet years 21.8 s + 10 fill years 209.6 s (fillS 197.8, roundS 181.1 overlapping, sizesS 6.9). The fill forces ~1800 buildings per fill year at ~90 buildings/s; 18170 added in all (0302: 6238). Per 1000 buildings added: 12.7 s (0119 14.5 s, 0302 28 s): no regression, a bigger job. Builds inside the rounds took 1.6 s median (0119 / 0302: 0.34 s): they share the frames with the early fill.",
+   "<b>Young towns branch out again:</b> all 226 CHECKs under 1800 persons read <code>mat=0.00 demK=1.00</code>; <code>why=free</code> 0 of 406 (0302: 235 of 279); 116 demand builds in the first 20 years, 189 round builds; the mod built 22 % of the edges (0119 24 %, 0302 11 %).",
+   "<b>Grown towns did not build up:</b> mat passed 0.5 at 2700-3500 persons on 9 towns and demK fell to 0.19-0.70, but pb median 3.08 (0119 2.94, 0302 6.33; aim 4-5 for grown towns); only Chipping Campden 5.27. LEVELS set 0: <code>skip=young</code> early, then <code>skip=player</code> on 8 grown towns, because every original town carries engine-set custom level weights (ALLTOWN <code>c:</code>) the mod never sent.",
+   "<b>Offshoots:</b> 10 satellite seeds (+2 grow builds), 5 districts (Chipping Sands, Bexhill-on-Sea End, Windermere Green, Ellesmere Cross, Birchwood Bay; all kind shore; 4 linked, Chipping Sands swallowed by its parent, link why=back), 2 Works (Kirkby Lonsdale Quarry, Heywood Sawmills; both linked). All <code>how=name+pos</code>, 7 distinct ids, forest 0.03-0.16. 0 OFFSHOOT turns: every CHECK needed streets, so the decisions ran at demand builds.",
+   "<b>Form:</b> spread median 1.24 [1.19-1.32] (0119 1.19, 0302 1.12); 5 towns >= 1.3 (Windermere 2.66, Bexhill-on-Sea 1.94, Burgess Hill 1.50, Darley Dale 1.40, Ellesmere Port 1.30). Bridges 3 built / 1 failed, coastal picks 2, lead lanes 3, no stops on the map."
+  ],
+  "auto": [
+   "<b>Mod 0502 (maturity retune, seed Z2tNDhy0Ht)</b>: buildings 2,552 -> 20,722, persons 97,637, pb (median) 3.08, free lots 55.5 %, street 7.055 m per person."
+  ]
+ },
+ "runRows": [
+  [
+   "Street orientation orth / radial / ring (median)",
+   "0.27 / 0.20 / 0.18"
+  ],
+  [
+   "Sim time (s) / per year",
+   "231 / 5.8"
+  ],
+  [
+   "Persons vs target at the end (SIMGROW cap)",
+   "68983/100272(69%)"
+  ],
+  [
+   "Mod-built street edges: head start / demand (builds)",
+   "116 / 1288 (24 / 192)"
+  ],
+  [
+   "Mod-built share of the 16 towns' edges",
+   "22 %"
+  ],
+  [
+   "SIMGROW build rounds / round builds",
+   "10 / 189"
+  ],
+  [
+   "CHECK outcomes",
+   "demand 340, ahead 34, open 32"
+  ],
+  [
+   "Satellites built (decisions)",
+   "10 (seeded 7, - 5, rare 4, hamlet:hamletFallback 2, hamlet 1, noSite 1, otherTown 1)"
+  ],
+  [
+   "Districts / Works created (linked)",
+   "5 (4) / 2 (2)"
+  ],
+  [
+   "District / Works not founded (why)",
+   "forest 6, rare 3, character 2, noSite 2 / rare 11, character 2"
+  ],
+  [
+   "Bridges built / refused, coastal picks",
+   "3 / 1, 2"
+  ],
+  [
+   "Level weights set / cleared, upward doses",
+   "0 / 0, 18"
+  ],
+  [
+   "Straight-run edges cut",
+   "10"
+  ]
+ ]
+}

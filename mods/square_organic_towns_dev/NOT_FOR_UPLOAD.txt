@@ -1,0 +1,10 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_organic_towns_dev holds test tools for square_organic_towns (which must be enabled): a town inspector,
+Grow now (next increments + forced growth), growth in any of the nine city types, fast-forward of all towns,
+a dry run with markers, undo of the last increment, and pause / debug switches for the main mod's driver.
+Every step is one "[SQOT_DEV] ..." line in stdout.txt. How to run: plans/square_organic_towns/TESTING.md
+"Dev tools".
+
+Never publish it to mod.io (Mod Hub > My Mods would offer it because `make link` puts it in the staging
+area). It builds and removes streets and grows towns: use a throwaway save and keep backups.

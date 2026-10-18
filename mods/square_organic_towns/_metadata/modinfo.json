@@ -1,0 +1,66 @@
+{
+    "name": "Organic Towns: Cities that Grow",
+    "summary": "Towns grow streets in a style that fits their region, terrain and era.",
+    "description": "Towns grow streets in a style that fits their region, terrain and era. On a new map: landscape names, satellite towns and a few strong town characters.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": "",
+    "localization": {
+        "ru": {
+            "name": "Органичные города: живой рост",
+            "summary": "Города прокладывают улицы в стиле своего региона, рельефа и эпохи."
+        },
+        "de": {
+            "name": "Organische Städte, die wachsen",
+            "summary": "Städte bauen Strassen im Stil ihrer Region, ihres Geländes und ihrer Epoche."
+        },
+        "fr": {
+            "name": "Villes organiques qui poussent",
+            "summary": "Les villes tracent leurs rues selon leur région, leur relief et leur époque."
+        },
+        "es": {
+            "name": "Ciudades orgánicas que crecen",
+            "summary": "Las ciudades trazan calles al estilo de su región, su terreno y su época."
+        },
+        "it": {
+            "name": "Città organiche che crescono",
+            "summary": "Le città tracciano strade nello stile della loro regione, del terreno e dell'epoca."
+        },
+        "nl": {
+            "name": "Organische steden die groeien",
+            "summary": "Steden leggen straten aan in de stijl van hun regio, terrein en tijdperk."
+        },
+        "pl": {
+            "name": "Organiczne miasta, które rosną",
+            "summary": "Miasta budują ulice w stylu swojego regionu, terenu i epoki."
+        },
+        "pt_BR": {
+            "name": "Cidades orgânicas que crescem",
+            "summary": "As cidades traçam ruas no estilo de sua região, terreno e época."
+        },
+        "ja": {
+            "name": "オーガニックタウン：成長する街",
+            "summary": "町が地域・地形・時代に合った様式で道路を伸ばします。"
+        },
+        "ko": {
+            "name": "유기적 도시: 자라나는 도시",
+            "summary": "도시가 지역, 지형, 시대에 맞는 방식으로 도로를 넓혀 갑니다."
+        },
+        "zh_CN": {
+            "name": "有机城镇：会生长的城市",
+            "summary": "城镇按照所在地区、地形和年代的风格修建街道。"
+        },
+        "zh_TW": {
+            "name": "有機城鎮：會生長的城市",
+            "summary": "城鎮依照所在地區、地形和年代的風格修建街道。"
+        }
+    }
+}
