@@ -1,5 +1,9 @@
 # Supply Gap Overview: in-game release checklist
 
+Status: open. Written for rev 1 (2026-10-09); rev 4 is released, but no box here is ticked off yet. Keep as
+the regression checklist. Since rev 4 starved buildings show a red question mark (`question_red`) where
+this file says "exclamation".
+
 What is still unverified after the Phase 2 spike (PLAN "Release cleanup"). The log is quiet now: one
 `[SQSG] INIT` line, one `[SQSG] LOAD saved=... tries=N` line per load, `[SQSG] saved on=...` when the
 checkbox changes, plus `[SQSG] ERR ...` lines on failures.

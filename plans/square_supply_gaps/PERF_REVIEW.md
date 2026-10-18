@@ -1,5 +1,8 @@
 # Supply Gap Overview: performance review
 
+Status: changes done 2026-10-09 and shipped; the in-game confirmation (`TESTING.md` step 9, DEBUG run) is
+still open. Stays here (not `history/`): mod code and `tests/square_supply_gaps/test_perf_bench.lua` link it.
+
 ## 2026-10-09
 
 Context: the whole tick runs on the **Main (GUI) thread** (`react.enqueueJoin` from `onStepTimer`, 1 s),

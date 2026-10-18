@@ -1,15 +1,26 @@
 {
     "modId": "square_supply_gaps",
-    "revision": 4,
+    "revision": 6,
     "severityAdd": "None",
     "severityRemove": "Warning",
     "visible": true,
     "cosmetic": true,
     "params": [
         {
+            "key": "hudButtonStyle",
+            "name": "Top bar button",
+            "tooltip": "How the Supply Gaps button in the top-left bar looks.\nText: the word \"Gaps\" without a frame. Icon: a house icon\non a dark tile, like the game's data layers button.",
+            "uiType": "Button",
+            "values": [
+                "Text",
+                "Icon"
+            ],
+            "defaultIndex": 1
+        },
+        {
             "key": "sqperf_log",
             "name": "Debug: performance log",
-            "tooltip": "Off: normal play. On: every 30 s, Supply Gaps writes how long its overlay ticks, window and area labels took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "tooltip": "Off: normal play. On: every 30 s, Supply Gaps writes how\nlong its overlay ticks, window and area labels took to the\ngame's log file (stdout.txt, lines starting with [SQPERF]).\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.",
             "uiType": "Button",
             "values": [
                 "Off",

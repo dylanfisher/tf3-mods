@@ -120,6 +120,9 @@ local record Styles
 	content : StyleSheet  -- R::SupplyGapsContent: 320 px wide content
 	ridge : StyleSheet    -- ridge Button padding
 	ridgeOn : StyleSheet  -- ridge Button text while the overlay is on
+	ridgeIconButton : StyleSheet  -- "Icon" ridge ToggleButton: 8 px padding (a 40 px tile)
+	ridgeIcon : StyleSheet        -- "Icon" ridge icon: 24 px (colour from the base ToggleButton rules)
+	ridgeIconButtonOn : StyleSheet  -- the same while the overlay is on: a green contour (Ok)
 	dim : StyleSheet      -- legend lines and the "Options" heading
 	scope : StyleSheet    -- scope line
 end
@@ -131,10 +134,24 @@ local function styles() : Styles
 		content.padding = api.type.Vec4f.new(4, 8, 8, 8)
 		local ridge = api.gui.StyleSheet.new()
 		ridge.padding = api.type.Vec4f.new(2, 8, 2, 8)
+		-- "Icon" ridge ToggleButton: only its size inline (8 px padding: a 40 px tile like the
+		-- layers and Timetables buttons in game); tile, pressed and hover states and the white icon come from
+		-- the base ToggleButton rules (builtin.css.lua:138-240).
+		-- While the overlay is on, the button's contour (the base border image, invisible except on
+		-- hover: builtin.css.lua:138-158, 203-207) is drawn in the base Ok green instead of tinting the icon.
+		-- Inline, so it replaces the hover contour while on.
+		local colors = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data as {string : {number}}
+		local ridgeIconButton = api.gui.StyleSheet.new()
+		ridgeIconButton.padding = api.type.Vec4f.new(8, 8, 8, 8)
+		local ridgeIconButtonOn = styleutil.makeStyle{ borderColor = colors.Ok }
+		ridgeIconButtonOn.padding = api.type.Vec4f.new(8, 8, 8, 8)
 		stylesCache = {
 			content = content,
 			ridge = ridge,
 			ridgeOn = styleutil.makeStyle{ color = { 0.45, 0.85, 0.55, 1.0 } },
+			ridgeIconButton = ridgeIconButton,
+			ridgeIconButtonOn = ridgeIconButtonOn,
+			ridgeIcon = styleutil.makeStyle{ size = { 24, 24 } },
 			dim = styleutil.makeStyle{ color = { 0.75, 0.75, 0.75, 1.0 } },
 			scope = styleutil.makeStyle{ color = { 0.85, 0.85, 0.85, 1.0 } },
 		}
@@ -348,16 +365,43 @@ local record SupplyGapsWindowParam
 	onClose : function()
 end
 
+-- Window fields differ by platform: the PS5 build rejects `closable` and react.lua makeUserdata then fails
+-- the whole UI (docs/findings/gui.md "Window fields differ by platform"). Each field is tried once on a spare
+-- Window param object; a field this platform rejects is left out and logged once. Nodes and meta aren't tried.
+local windowFieldOk : {string : boolean} = {}
+local function platformWindow<T>(p : T) : T
+	local t = p as {string : any}
+	for k, v in pairs(t) do
+		if k ~= "content" and k ~= "header" and k ~= "meta" then
+			local key = k .. "=" .. (v is boolean and tostring(v) or type(v))
+			if windowFieldOk[key] == nil then
+				local made, ud = pcall(function() : {string : any}
+					local reactApi = ((api as table).gui as table).react as table
+					local builtins = (reactApi.params as table).builtin as table
+					return ((builtins.Window as table).new as function() : {string : any})()
+				end)
+				-- no spare object to try on: keep the field, as before this guard
+				windowFieldOk[key] = not made or pcall(function() ud[k] = v end)
+				if not windowFieldOk[key] then
+					log.warning("[SupplyGaps] this platform's Window rejects '" .. key .. "'; left out")
+				end
+			end
+			if not windowFieldOk[key] then t[k] = nil end
+		end
+	end
+	return p
+end
+
 local SupplyGapsWindow = react.RegisterWrapperRecipe("SupplyGapsWindow", builtin.Window, function(params : SupplyGapsWindowParam) : TreeNodeId
 	-- WindowParam: builtin.d.tl:1186-1210
-	return builtin.Window{
+	return builtin.Window(platformWindow{
 		id = WINDOW_ID,
 		title = _("Supply Gap Overview"),
 		closable = true,
 		movable = true,
 		onClose = params.onClose,
 		content = SupplyGapsContent({ meta = { styleSheet = styles().content } }),
-	}
+	})
 end)
 
 local function closeWindow()
@@ -389,11 +433,31 @@ local toggleWindow = perf:wrap("click_toggle", function()
 	if not ok then log.message(LOG_PREFIX .. "ERR toggleWindow " .. tostring(m)) end
 end)
 
+-- Ridge button in the "Icon" style (mod.json hudButtonStyle): house with a minus badge, gaps@2x.tga 48x48
+-- (tools/render_icon_ridge.py), shown at 24 UI px like the base layers icon and Better Minimap's map icon.
+local RIDGE_ICON <const> = "square_supply_gaps::/supply_gaps/gui/gaps.tga"
+
+--- mod.json hudButtonStyle: { "Text", "Icon" } (1-based index; default Icon). Missing or unreadable = Icon.
+--- Read once per mount: mod params are fixed per game.
+local function ridgeIconSetting() : boolean
+	local ok, all = pcall(function() : {string : any} return api.engine.config.getModParams() as {string : any} end)
+	local mine = ok and type(all) == "table" and all["square_supply_gaps"] as {string : any} or nil
+	local v = type(mine) == "table" and mine["hudButtonStyle"] or nil
+	return v ~= 1
+end
+
 --- A plugin recipe's root must be a layout (MainModButtonArea mounts plugins as BoxLayout children).
 --- SQPERF section "ridge_render" (GUI thread).
 local SupplyGapsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "SupplyGapsRidgePlugin", perf:wrap("ridge_render", function() : TreeNodeId
 	-- Hooks first, unconditionally.
 	local isMapEditorRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean return api.gui.game.isMapEditor() end)
+	local iconRef : ReactRefT<boolean> = react.useRefLazy(ridgeIconSetting)
+	-- The "Icon" ToggleButton is pressed while the window is open, however it was closed.
+	local openState = react.useState(false) as ReactStateT<boolean>
+	local function syncOpen()
+		local open = windowOpen()
+		if open ~= openState:old() then openState:set(open) end
+	end
 	local onState = engine_react_util.useStepStateTimer(function() : boolean return overlay.session.on end, WINDOW_POLL)
 	-- onStep/onStepTimer run on worker threads ("Main Pool N"); mission markers and the camera are
 	-- GUI-thread only (a direct call crashed the game), so the work is joined onto the main thread.
@@ -402,6 +466,7 @@ local SupplyGapsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area.Ma
 	end, overlay.TICK)
 	react.onStep(function()
 		if isMapEditorRef:get() then return end
+		if iconRef:get() then syncOpen() end
 		if not load.done then react.enqueueJoin(loadCheck, "SupplyGaps:load") end
 		if overlay.session.on then react.enqueueJoin(stepCheck, "SupplyGaps:stepCheck") end
 	end)
@@ -420,10 +485,31 @@ local SupplyGapsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area.Ma
 		return nil
 	end
 	local on = onState:old() == true
+	local tooltip = _("Supply Gap Overview")
+	if iconRef:get() then
+		-- "Icon" style: a base ToggleButton like the data layers button next to it (layers_button_ridge.tl:
+		-- 529-539) and Timetables' ridge button, pressed while the window is open; a green contour
+		-- while the overlay is on (the text turns green).
+		return hbox({
+			builtin.ToggleButton{
+				meta = { class = on and "sqsg-ridge-icon-button, sqsg-ridge-on" or "sqsg-ridge-icon-button",
+					styleSheet = on and styles().ridgeIconButtonOn or styles().ridgeIconButton, tooltip = tooltip },
+				content = builtin.ImageView{
+					meta = { class = "sqsg-ridge-icon", styleSheet = styles().ridgeIcon },
+					path = RIDGE_ICON,
+				},
+				value = openState:old() and 1 or 0,
+				onValueChange = function(__ : integer)
+					toggleWindow()
+					syncOpen()
+				end,
+			},
+		}, "sqsg-ridge")
+	end
 	return hbox({
 		builtin.Button{
 			meta = { class = on and "sqsg-ridge-button, sqsg-ridge-on" or "sqsg-ridge-button", styleSheet = styles().ridge,
-				tooltip = _("Supply Gap Overview: town buildings that miss a cargo") },
+				tooltip = tooltip },
 			content = text(on and _("Gaps: on") or _("Gaps"), nil, on and styles().ridgeOn or nil),
 			onClick = toggleWindow,
 		},
