@@ -211,6 +211,15 @@ test("other tools: no lines by default; On draws bus and train lines, no air or 
 	ok(lines and n == 1)
 end)
 
+test("ACTION_CUSTOM tools (Smart Lanes, Bulk Bulldozer) get no Line routes toggle: they draw their own descriptor", function()
+	load({})
+	local sl = { action = "ACTION_CUSTOM", resName = "smart_lanes", params = { { key = "sqrl_apply" } } }
+	F.defs = { sl }
+	F.cru.forEachDefinition(function() end, {})
+	eq(#sl.params, 1, "no toggle added")
+	eq(sl.params[1].key, "sqrl_apply")
+end)
+
 test("each toggle Off leaves out only its part", function()
 	load({})
 	local res, lines = render(STOP, { sqbbo_lines = 1 })

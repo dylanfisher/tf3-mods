@@ -18,6 +18,8 @@
 --   tool or the crosswalk tool, a non-selectable
 --   LineViewer with all bus and tram lines is appended to its children (same builtin the station window uses,
 --   station_group.tl:958-967). Precedent for wrapping ActionDescriptor: square_supply_gaps sg_patch.lua.
+--   ACTION_CUSTOM tools (Smart Lanes, Bulk Bulldozer, base custom tools) get no toggle: they render their own
+--   descriptor from their recipe (construction.tl:401-424), so the lines could not be drawn there.
 -- * construction_react_util.forEachDefinition: adds the overlay toggles (CheckBoxes above Underground) to those
 --   definitions (and a "Line routes" toggle, Off by default, to every other tool); getActionParams skips each part
 --   whose toggle is Off ("Overlay toggles" below).
@@ -685,7 +687,13 @@ local function withOptions(list, options)
 	return out
 end
 
+-- ACTION_CUSTOM tools draw their own ActionDescriptor from their recipe (construction.tl:401-424), not the menu's
+-- "construction-menu-" one, so the lines never showed there: no toggle (player report 2026-10-16, Smart Lanes tool;
+-- appending the viewer to their own descriptor drew nothing either).
+local CUSTOM_ACTION = "ACTION_CUSTOM"
+
 local function addOptions(definition)
+	if definition.action == CUSTOM_ACTION then return end
 	local options
 	if LINES_ONLY_ACTIONS[definition.action] then
 		options = { linesOption() }
