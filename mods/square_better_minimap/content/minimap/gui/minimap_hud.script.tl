@@ -107,6 +107,20 @@ local function icon24Style() : StyleSheet
 	return styleutil.makeStyle{ size = { 24, 24 }, color = colors().NeutralLightest }
 end
 
+--- Top-bar "Icon" button (mod.json hudButtonStyle): a base ToggleButton like the data layers button
+--- (layers_button_ridge.tl:529-539) and Timetables' ridge button, so the tile, its pressed (AccentMedium)
+--- and hover states and the white icon all come from the base rules (builtin.css.lua:138-240). Only the
+--- size is ours, inline: 8 px padding (the base default) around the 24 px icon, a 40 px tile like the
+--- layers and Timetables buttons in game. No colour here: an inline colour would override the states.
+local function ridgeToggleStyle() : StyleSheet
+	local st = api.gui.StyleSheet.new()
+	st.padding = api.type.Vec4f.new(8, 8, 8, 8)
+	return st
+end
+local function ridgeIconStyle() : StyleSheet
+	return styleutil.makeStyle{ size = { 24, 24 } }
+end
+
 --- Shift hover (phase 7): the other types' faded marker. Overrides the minimap-industry-icon rule's tile
 --- (BaseDark at 0.75) with a fainter one and fades the cargo icon through the tint's alpha.
 local function mutedIconStyle(size : integer) : StyleSheet
@@ -141,7 +155,9 @@ local ARROW_PX <const> = 16
 -- Sign of ImageView.rotation: 1 if positive turns clockwise on screen. Not documented and the base
 -- game only uses symmetric turns (180), so this is the one value to flip if the arrow turns mirrored.
 local ARROW_ROT_SIGN <const> = 1
-local WINDOW_MIN_TOP <const> = 0.06      -- keep the window's top edge below the HUD ridge (screen fraction)
+-- Lowest top edge a remembered window may have (screen fraction). 0: the game lets the player drag
+-- the window to the very top, and 0.06 moved such a window ~45 px down on every restore.
+local WINDOW_MIN_TOP <const> = 0
 -- Where a window without a remembered position opens: its top-right anchor (CSS anchorPoint {1, 0})
 -- in screen fractions, right edge, below the top bar. Always passed as initialX/Y, like entity
 -- windows (view_manager.tl:310-311); no CSS gravity (that is the dialogs' alternative to initialX/Y,
@@ -2470,6 +2486,33 @@ local MinimapFilterContent = react.RegisterRecipe("MinimapFilterContent", perf:w
 	return vbox(rows, "minimap-filter-root")
 end))
 
+-- Window fields differ by platform: the PS5 build rejects `closable` and react.lua makeUserdata then fails
+-- the whole UI (docs/findings/gui.md "Window fields differ by platform"). Each field is tried once on a spare
+-- Window param object; a field this platform rejects is left out and logged once. Nodes and meta aren't tried.
+local windowFieldOk : {string : boolean} = {}
+local function platformWindow<T>(p : T) : T
+	local t = p as {string : any}
+	for k, v in pairs(t) do
+		if k ~= "content" and k ~= "header" and k ~= "meta" then
+			local key = k .. "=" .. (v is boolean and tostring(v) or type(v))
+			if windowFieldOk[key] == nil then
+				local made, ud = pcall(function() : {string : any}
+					local reactApi = ((api as table).gui as table).react as table
+					local builtins = (reactApi.params as table).builtin as table
+					return ((builtins.Window as table).new as function() : {string : any})()
+				end)
+				-- no spare object to try on: keep the field, as before this guard
+				windowFieldOk[key] = not made or pcall(function() ud[k] = v end)
+				if not windowFieldOk[key] then
+					log.warning("[Minimap] this platform's Window rejects '" .. key .. "'; left out")
+				end
+			end
+			if not windowFieldOk[key] then t[k] = nil end
+		end
+	end
+	return p
+end
+
 MinimapFilterWindow = react.RegisterWrapperRecipe("MinimapFilterWindow", builtin.Window, perf:wrap("filter_window_render", function(params : FilterWindowParam) : TreeNodeId
 	react.onMount(function()
 		filterWindowMounted = true
@@ -2478,7 +2521,7 @@ MinimapFilterWindow = react.RegisterWrapperRecipe("MinimapFilterWindow", builtin
 		filterWindowMounted = false
 		logm("filter window unmounted")
 	end)
-	return builtin.Window{
+	return builtin.Window(platformWindow{
 		meta = { class = "minimap-window" }, -- stylesheet Window!minimap-window (anchor)
 		id = FILTER_WINDOW_ID,
 		title = _("Industry filter"),
@@ -2490,7 +2533,7 @@ MinimapFilterWindow = react.RegisterWrapperRecipe("MinimapFilterWindow", builtin
 		initialY = params.initialY,
 		onClose = params.onClose,
 		content = MinimapFilterContent(),
-	}
+	})
 end))
 
 local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content_render", function() : TreeNodeId
@@ -2832,7 +2875,7 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, per
 		windowMoved = true
 		setPinned(true)
 	end
-	return builtin.Window(winParams)
+	return builtin.Window(platformWindow(winParams))
 end))
 
 local function showWindow(wa : Builtin.WindowAPI)
@@ -2921,13 +2964,21 @@ end
 local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "MinimapHudPlugin", perf:wrap("hud_render", function() : TreeNodeId
 	-- Hooks first, unconditionally (same order as square_problem_radar's plugin).
 	-- Also mounts in the map editor (game.tl mounts MainModButtonArea there too).
-	-- mod.json hudButtonStyle: { "Text", "Icon" }; read once per mount (mod params are fixed per game).
+	-- mod.json hudButtonStyle: { "Text", "Icon" }, default Icon (rev 9; missing = Icon too); read once per
+	-- mount (mod params are fixed per game).
 	local hudIconRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean
 		local v = modParam("hudButtonStyle")
-		logm(string.format("setting: hudButtonStyle=%s (raw %s)", v == 2 and "icon" or "text", tostring(v)))
-		return v == 2
+		logm(string.format("setting: hudButtonStyle=%s (raw %s)", v ~= 1 and "icon" or "text", tostring(v)))
+		return v ~= 1
 	end)
 	local guardDue = useMainThreadTick(GUARD_SECONDS)
+	-- The "Icon" ToggleButton is pressed while the minimap is shown (read in the guard tick, main thread:
+	-- isShown calls api.gui).
+	local shownState = react.useState(false) as ReactStateT<boolean>
+	local function syncShown()
+		local shown = windowMounted and isShown()
+		if shown ~= shownState:old() then shownState:set(shown) end
+	end
 	-- Fallback for the pinned case: if anything but us hid the pinned window (e.g. the engine's
 	-- ESC handling hides windows itself), show it again at once. Runs here because this button is
 	-- always mounted and visible, unlike the window.
@@ -2935,20 +2986,25 @@ local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainMod
 		if not guardDue() then return end
 		local tPerf = perfStep:start()
 		guardTick()
+		syncShown()
 		perfStep:stop("guard", tPerf)
 	end)
 	-- A plugin root must be a layout (MainModButtonArea mounts plugins as BoxLayout children).
 	local button : TreeNodeId
 	if hudIconRef:get() then
-		-- "Icon" style: map icon on the base's dark button tile (stylesheet minimap-hud-icon-button).
-		button = builtin.Button{
-			meta = { class = "minimap-hud-icon-button", tooltip = _("Show or hide the minimap") },
-			content = builtin.ImageView{ meta = { class = "minimap-hud-icon", styleSheet = icon24Style() }, path = HUD_ICON },
-			onClick = toggleWindowClick,
+		-- "Icon" style: map icon on a base ToggleButton, pressed while the minimap is shown.
+		button = builtin.ToggleButton{
+			meta = { class = "minimap-hud-icon-button", tooltip = _("Better Minimap"), styleSheet = ridgeToggleStyle() },
+			content = builtin.ImageView{ meta = { class = "minimap-hud-icon", styleSheet = ridgeIconStyle() }, path = HUD_ICON },
+			value = shownState:old() and 1 or 0,
+			onValueChange = function(__ : integer)
+				toggleWindowClick()
+				syncShown()
+			end,
 		}
 	else
 		button = builtin.Button{
-			meta = { class = "minimap-hud-button", tooltip = _("Show or hide the minimap") },
+			meta = { class = "minimap-hud-button", tooltip = _("Better Minimap") },
 			content = text(_("Map")),
 			onClick = toggleWindowClick,
 		}

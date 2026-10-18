@@ -1,6 +1,6 @@
 {
     "modId": "square_better_minimap",
-    "revision": 8,
+    "revision": 11,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -9,18 +9,18 @@
         {
             "key": "hudButtonStyle",
             "name": "Top bar button",
-            "tooltip": "How the minimap's button in the top-left bar looks. Text: the word \"Map\" without a frame. Icon: a map icon on a dark tile, like the game's data layers button.",
+            "tooltip": "How the minimap's button in the top-left bar looks. Text:\nthe word \"Map\" without a frame. Icon: a map icon on a dark\ntile, like the game's data layers button.",
             "uiType": "Button",
             "values": [
                 "Text",
                 "Icon"
             ],
-            "defaultIndex": 0
+            "defaultIndex": 1
         },
         {
             "key": "showArrow",
             "name": "View direction arrow",
-            "tooltip": "Show an arrow in the minimap's camera box that points where the camera is looking.",
+            "tooltip": "Show an arrow in the minimap's camera box that points where\nthe camera is looking.",
             "uiType": "Button",
             "values": [
                 "On",
@@ -31,7 +31,7 @@
         {
             "key": "sqperf_log",
             "name": "Debug: performance log",
-            "tooltip": "Off: normal play. On: every 30 s, Better Minimap writes how long its map builds, camera box updates and window renders took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "tooltip": "Off: normal play. On: every 30 s, Better Minimap writes how\nlong its map builds, camera box updates and window renders\ntook to the game's log file (stdout.txt, lines starting with\n[SQPERF]). Only for tracking down slowdowns; leave it Off\notherwise. Slow calls are always logged briefly, whatever\nthis setting.",
             "uiType": "Button",
             "values": [
                 "Off",
