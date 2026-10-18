@@ -1,0 +1,34 @@
+---
+// Every page of a mod microsite: breadcrumb, mod hero, section navigation, then the page. A section's sub-page
+// (KindDef.items) passes `item` too: the breadcrumb then links back to the section. The mod's accent (branding/mods.js)
+// is set here once, as --mod-accent around the whole page (bg-mod, bg-mod-art read it).
+import Breadcrumb from "@/components/site/Breadcrumb.astro";
+import ModHero from "@/components/site/ModHero.astro";
+import SectionNav from "@/components/site/SectionNav.astro";
+import type { Section, TocEntry } from "@/components/sections/types";
+import { sectionHref, type ModInfo } from "@/lib/mods";
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props { mod: ModInfo; section?: Section; item?: { title: string; description?: string }; toc?: TocEntry[] }
+const { mod, section, item, toc } = Astro.props;
+const crumbs = [
+  { label: "Mods", href: "/" },
+  { label: mod.name, href: section ? mod.href : undefined },
+  ...(section ? [{ label: section.title, href: item ? sectionHref(mod, section) : undefined }] : []),
+  ...(item ? [{ label: item.title }] : []),
+];
+const title = [item?.title, section?.title, mod.name].filter(Boolean).join(" · ");
+---
+<BaseLayout
+  title={title}
+  description={item?.description || section?.description || mod.summary}
+  width={section?.width ?? "page"}
+  image={mod.cover?.full.url}
+>
+  <div class="contents" style={mod.accent ? `--mod-accent: ${mod.accent}` : undefined}>
+    <Breadcrumb items={crumbs} />
+    <ModHero mod={mod} variant={section ? "compact" : "full"} />
+    <SectionNav mod={mod} active={section?.slug} width={section?.width ?? "page"} toc={toc} />
+    <slot />
+  </div>
+</BaseLayout>

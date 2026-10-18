@@ -1,0 +1,35 @@
+---
+// Sub-pages of a section: /<mod-slug>/<section>/<item>/, for every section whose kind declares items()
+// (src/components/sections/types.ts KindDef.items / itemComponent).
+import { getSections } from "@/components/sections/resolve";
+import type { AnyKind, Section, SectionItem } from "@/components/sections/types";
+import PageHeader from "@/components/site/PageHeader.astro";
+import ModLayout from "@/layouts/ModLayout.astro";
+import { getMods, type ModInfo } from "@/lib/mods";
+import { assertSlug } from "@/lib/slug";
+
+export function getStaticPaths() {
+  return getMods().flatMap((mod) =>
+    getSections(mod).flatMap(({ section, kind }) => {
+      if (!kind.items) return [];
+      if (!kind.itemComponent) throw new Error(`Section kind '${section.kind}' declares items() without an itemComponent`);
+      const items = kind.items({ mod, section });
+      const seen = new Set<string>();
+      for (const it of items) {
+        assertSlug(it.slug, `${mod.id}/${section.slug} item`);
+        if (seen.has(it.slug)) throw new Error(`${mod.id}/${section.slug}: duplicate item slug '${it.slug}'`);
+        seen.add(it.slug);
+      }
+      return items.map((item) => ({ params: { mod: mod.slug, section: section.slug, item: item.slug }, props: { mod, section, kind, item } }));
+    }),
+  );
+}
+
+interface Props { mod: ModInfo; section: Section; kind: AnyKind; item: SectionItem }
+const { mod, section, kind, item } = Astro.props;
+const Body = kind.itemComponent!;
+---
+<ModLayout mod={mod} section={section} item={item}>
+  <PageHeader title={item.title} description={item.description} stats={item.stats} />
+  <Body mod={mod} section={section} item={item} />
+</ModLayout>

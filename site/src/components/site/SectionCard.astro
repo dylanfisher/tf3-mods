@@ -1,0 +1,26 @@
+---
+// Link card to one research section: image slot, title, description, key facts. The image slot is always there so
+// cards line up: the section's thumb, or generated title art (TitleArt) in the brand teal and the mod's accent.
+import type { Stat } from "@/lib/define-mod";
+import { chipClass } from "@/lib/chip";
+import CardLink from "./CardLink.astro";
+import StatRow from "./StatRow.astro";
+import TitleArt from "./TitleArt";
+interface Props { href: string; title: string; description: string; stats?: Stat[]; badge?: string; thumb?: string }
+const { href, title, description, stats = [], badge, thumb } = Astro.props;
+---
+<CardLink href={href}>
+  {thumb ? (
+    <img src={thumb} alt="" loading="lazy" decoding="async" class="aspect-[16/7] w-full border-b border-border bg-chip object-cover" />
+  ) : (
+    <TitleArt title={title} aspect={16 / 7} className="aspect-[16/7] border-b border-border" />
+  )}
+  <div class="flex flex-1 flex-col gap-1.5 p-4">
+    <div class="flex items-start justify-between gap-2">
+      <h3 class="font-semibold text-brand-text">{title}</h3>
+      {badge && <span class={chipClass("outline", "shrink-0 py-0 text-muted-foreground")}>{badge}</span>}
+    </div>
+    <p class="text-dense text-muted-foreground">{description}</p>
+    <StatRow stats={stats} class="mt-auto pt-1" />
+  </div>
+</CardLink>

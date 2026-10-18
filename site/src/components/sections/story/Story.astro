@@ -1,0 +1,84 @@
+---
+// Generic kind "story": resolves the blocks' images (media build), adds the mod's changelog to a timeline, then renders
+// an article (chapters; their contents list is the "On this page" menu in the page tabs, KindDef.toc; only charts and
+// sliders hydrate) or hands the entries to StoryList (timeline /
+// list, filterable). The source (StorySource in ./types.ts) is checked by ./source.ts.
+import Inline from "@/components/site/Inline";
+import { chipClass } from "@/lib/chip";
+import { getMedia } from "@/lib/media";
+import type { SectionProps } from "../types";
+import { isInteractive, type ResolvedBlock, type ResolvedChapter, type ResolvedImage } from "./model";
+import { changelogChapters } from "./source";
+import { StoryBlock } from "./StoryBlocks";
+import StoryList from "./StoryList";
+import { deltaRows } from "./table-rows";
+import type { Block, StoryImage, StorySource } from "./types";
+
+type Props = SectionProps<StorySource>;
+const { mod, section } = Astro.props;
+const src = section.source;
+const where = `story ${mod.id}/${section.slug}`;
+
+function image<T extends StoryImage>(i: T): T & ResolvedImage {
+  const e = getMedia(mod.id, i.src);
+  if (!e) throw new Error(`${where}: image ${i.src} is not built (declare it in the section's media, then make site-media)`);
+  return { ...i, thumb: e.thumb.url, full: e.full.url, w: e.thumb.width, h: e.thumb.height, fw: e.full.width };
+}
+function resolve(b: Block): ResolvedBlock {
+  if (b.type === "figure") return { type: "figure", image: image({ src: b.src, caption: b.caption }) };
+  if (b.type === "gallery") return { type: "gallery", images: b.images.map(image) };
+  if (b.type === "compare") return { type: "compare", before: image(b.before), after: image(b.after), caption: b.caption };
+  if (b.type === "pairs") return { type: "pairs", columns: b.columns, pairs: b.pairs.map((p) => ({ before: image(p.before), after: image(p.after), caption: p.caption })) };
+  if (b.type === "mosaic") return { type: "mosaic", images: b.images.map(image), size: b.size, lead: b.lead };
+  if (b.type === "deltas") {
+    const { table, rows, ...rest } = b;
+    return { ...rest, rows: table ? deltaRows(table, where) : rows ?? [] };
+  }
+  return b;
+}
+const plain = (s: string) => s.replace(/\*\*|`/g, "");
+function blockText(b: Block): string {
+  switch (b.type) {
+    case "p": return b.text;
+    case "list": return b.items.join(" ");
+    case "parts": return b.parts.map((p) => `${p.label} ${p.text}`).join(" ");
+    case "steps": return b.steps.map((s) => `${s.title} ${s.text}`).join(" ");
+    case "facts": return b.facts.map((f) => `${f.value} ${f.label}`).join(" ");
+    case "table": return [...b.head, ...b.rows.flat()].join(" ");
+    case "pairs": return b.pairs.map((p) => p.caption ?? "").join(" ");
+    case "mosaic": return b.images.map((i) => i.caption ?? "").join(" ");
+    default: return "";
+  }
+}
+
+const changelog = changelogChapters(mod, src);
+const chapters: ResolvedChapter[] = [...src.chapters, ...changelog].map((c) => ({
+  ...c,
+  blocks: (c.blocks ?? []).map(resolve),
+  text: plain([c.title, c.summary ?? "", ...(c.blocks ?? []).map(blockText)].join(" ")),
+}));
+const tagLabel = (k: string) => src.tags?.find((t) => t.key === k)?.label ?? (k === src.changelog?.tag ? "Revision" : k);
+const tags = [...(src.tags ?? []), ...(src.changelog && !src.tags?.some((t) => t.key === src.changelog!.tag) ? [{ key: src.changelog.tag, label: "Revision" }] : [])];
+---
+{src.intro?.map((p) => <p class="mb-3 max-w-[72ch]"><Inline text={p} /></p>)}
+{src.layout === "article" ? (
+  <div class="mt-4 flex min-w-0 flex-col gap-10">
+      {chapters.map((c) => (
+        <section id={c.id} class="scroll-mt-chrome-pad">
+          <h2 class="text-xl font-semibold tracking-tight text-balance">{c.title}</h2>
+          {(c.date || c.tags?.length) && (
+            <div class="mt-1 flex flex-wrap items-center gap-1.5 text-hint text-muted-foreground">
+              {c.date && <span class="tabular-nums">{c.date}</span>}
+              {c.tags?.map((t) => <span class={chipClass()}>{tagLabel(t)}</span>)}
+            </div>
+          )}
+          {c.summary && <p class="mt-2 max-w-[72ch] text-lead text-muted-foreground"><Inline text={c.summary} /></p>}
+          <div class="mt-3.5 flex flex-col gap-3.5">
+            {c.blocks.map((b) => (isInteractive(b) ? <StoryBlock client:visible block={b} /> : <StoryBlock block={b} />))}
+          </div>
+        </section>
+      ))}
+  </div>
+) : (
+  <StoryList client:load chapters={chapters} tags={tags} layout={src.layout} storageKey={`${mod.id}/${section.slug}/list`} />
+)}

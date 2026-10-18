@@ -1,0 +1,29 @@
+---
+// Kind "run-compare", section page: every comparison in a filterable list; each links to its sub-page.
+import Inline from "@/components/site/Inline";
+import { itemHref } from "@/lib/mods";
+import type { SectionProps } from "../types";
+import CompareList, { type ListEntry } from "./CompareList";
+import { loadEntries } from "./load";
+import { DEFAULT_RUN } from "./source";
+import type { RunCompareSource } from "./types";
+
+type Props = SectionProps<RunCompareSource>;
+const { mod, section } = Astro.props;
+const src = section.source;
+const entries: ListEntry[] = loadEntries({ mod, section }).map((e) => ({
+  slug: e.slug,
+  href: itemHref(mod, section, e),
+  title: e.title,
+  seed: e.seed,
+  date: e.date,
+  built: e.built,
+  single: e.single,
+  counts: e.counts,
+  thumb: e.thumb?.thumb,
+  runs: e.runs.map((r) => ({ label: r.label, kind: r.kind, session: r.session, load: r.load })),
+}));
+const kinds = Object.entries(src.runKinds ?? {}).map(([value, k]) => ({ value, label: k.label, outline: !!k.outline }));
+---
+<CompareList client:load entries={entries} kinds={kinds} runName={src.runName ?? DEFAULT_RUN} storageKey={`${mod.id}/${section.slug}/list`} />
+{src.listNote && <p class="mt-4 text-hint text-muted-foreground"><Inline text={src.listNote} /></p>}

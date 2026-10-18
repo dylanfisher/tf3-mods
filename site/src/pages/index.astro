@@ -1,0 +1,41 @@
+---
+import AccentBar from "@/components/site/AccentBar.astro";
+import CardLink from "@/components/site/CardLink.astro";
+import ModCover from "@/components/site/ModCover.astro";
+import StatRow from "@/components/site/StatRow.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { plural } from "@/lib/format";
+import { getMods } from "@/lib/mods";
+
+const mods = getMods();
+---
+<BaseLayout>
+  <div class="mb-6 flex flex-col gap-1">
+    <h1 class="text-display font-semibold tracking-tight">Transport Fever 3 mods</h1>
+    <p class="max-w-[64ch] text-muted-foreground">
+      Mods by square: what each one does, and the research behind it: comparisons, test maps, labs and previews.
+    </p>
+  </div>
+  {/* each card is its mod's accent scope (bar, title art) */}
+  <div class="card-grid gap-3.5">
+    {mods.map((m) => (
+      <CardLink href={m.href} style={m.accent ? `--mod-accent: ${m.accent}` : undefined}>
+        <ModCover mod={m} class="border-b border-border" />
+        <div class="flex flex-1 flex-col gap-1 p-4">
+          <h2 class="flex items-center gap-2 font-semibold">
+            <AccentBar class="h-3.5" />
+            <span class="group-hover:text-brand-text">{m.name}</span>
+          </h2>
+          <p class="text-dense text-muted-foreground">{m.tagline}</p>
+          <StatRow
+            class="mt-auto pt-2"
+            stats={[
+              { label: plural(m.sections.length, "research page", "research pages"), value: m.sections.length },
+              ...(m.modio ? [{ label: "on mod.io", value: "✓", tone: "brand" as const }] : [{ label: "not released yet", value: "·" }]),
+            ]}
+          />
+        </div>
+      </CardLink>
+    ))}
+  </div>
+</BaseLayout>

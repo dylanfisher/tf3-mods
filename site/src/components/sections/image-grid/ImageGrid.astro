@@ -1,0 +1,56 @@
+---
+// Generic kind "image-grid": every image of the section in a filterable grid (React island), with optional facets
+// (filters, group by, a rows x columns matrix) and a zoomable lightbox. The source (ImageGridSource in ./types.ts) is
+// checked by ./source.ts.
+import path from "node:path";
+import ImageBrowser from "./ImageBrowser";
+import { getMediaGlob } from "@/lib/media";
+import { stripModPrefix } from "@/lib/media-core";
+import { readJson } from "@/lib/repo";
+import type { SectionProps } from "../types";
+import type { BrowserImage, Facet, ImageGridOptions, ImageGridSource, ImageManifest } from "./types";
+
+type Props = SectionProps<ImageGridSource>;
+const { mod, section } = Astro.props;
+const src = section.source;
+
+const manifest = src.manifest ? readJson<ImageManifest>(src.manifest) : undefined;
+if (src.manifest && !manifest) throw new Error(`image-grid ${mod.id}/${section.slug}: no manifest at ${src.manifest}`);
+const mdir = src.manifest ? src.manifest.replace(/[^/]*$/, "") : "";
+// item files are relative to the manifest (may climb out of its folder: "../shots/x.jpg")
+const described = new Map((manifest?.items ?? []).map((it, i) => [path.posix.normalize(mdir + it.file), { ...it, order: i }] as const));
+
+const images: BrowserImage[] = getMediaGlob(mod.id, section.media ?? []).map((e, i) => {
+  const parts = stripModPrefix(mod.id, e.src).split("/");
+  const name = parts.at(-1)!.replace(/\.[^.]+$/, "");
+  const folder = parts.slice(0, -1).join("/") || ".";
+  const d = described.get(e.src);
+  const facets: Record<string, string> = { folder };
+  if (d) for (const [k, v] of Object.entries(d)) if (k !== "file" && k !== "title" && k !== "order" && v != null && v !== "") facets[k] = String(v);
+  return {
+    id: e.src,
+    name,
+    title: d?.title || name,
+    folder,
+    order: d ? d.order : 100000 + i,
+    facets,
+    thumb: e.thumb.url,
+    full: e.full.url,
+    w: e.thumb.width,
+    h: e.thumb.height,
+    fw: e.full.width,
+  };
+});
+
+const folders = [...new Set(images.map((i) => i.folder))];
+let facets: Facet[] = src.facets ?? manifest?.facets ?? [];
+if (!facets.length && folders.length > 1) facets = [{ key: "folder", label: "Folder", values: folders.map((f) => ({ value: f, label: f })) }];
+const options: ImageGridOptions = {
+  facets,
+  groupBy: src.groupBy ?? (facets.length === 1 ? facets[0].key : undefined),
+  matrix: src.matrix,
+  size: src.size,
+  view: src.view,
+};
+---
+<ImageBrowser client:visible images={images} options={options} storageKey={`${mod.id}/${section.slug}/images`} />

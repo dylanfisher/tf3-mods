@@ -1,0 +1,16 @@
+---
+// Generic kind "placeholder": the section is planned; shows what it will hold and a preview of its media.
+import ImageGrid from "./image-grid/ImageGrid.astro";
+import type { SectionProps } from "./types";
+
+type Props = SectionProps;
+const { mod, section } = Astro.props;
+const hasMedia = (section.media?.length ?? 0) > 0;
+---
+<div class="mb-6 rounded-xl border border-dashed border-muted-foreground/60 p-4">
+  <p class="font-medium">This page is coming soon.</p>
+  <p class="text-dense text-muted-foreground">
+    The interactive version is being moved here.{hasMedia && " Meanwhile, the images it will use:"}
+  </p>
+</div>
+{hasMedia && <ImageGrid mod={mod} section={{ ...section, source: {} }} />}

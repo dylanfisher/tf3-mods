@@ -1,0 +1,53 @@
+---
+// The mod's pages: Overview + every research section, in a full-width bar that sticks under the site header (theme
+// --spacing-subnav; other sticky parts of a page sit below it at top-chrome). The tabs scroll sideways inside
+// themselves on narrow screens; a section with anchors (KindDef.toc) adds an "On this page" menu at the end of the row.
+import { ChevronDown } from "lucide-react";
+import type { TocEntry } from "@/components/sections/types";
+import type { PageWidth } from "@/lib/define-mod";
+import { sectionHref, type ModInfo } from "@/lib/mods";
+interface Props { mod: ModInfo; active?: string; width?: PageWidth; toc?: TocEntry[] }
+const { mod, active, width = "page", toc = [] } = Astro.props;
+const items = [{ slug: "", title: "Overview", href: mod.href }, ...mod.sections.map((s) => ({ slug: s.slug, title: s.title, href: sectionHref(mod, s) }))];
+---
+<div class="sticky top-header z-30 mx-[calc(50%-50vw)] mb-6 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+  <div class:list={["mx-auto flex h-subnav items-stretch gap-3 px-4", width === "wide" ? "max-w-wide" : "max-w-page"]}>
+    <nav aria-label={`${mod.name} pages`} class="-ml-3 min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]">
+      <ul class="flex h-full w-max gap-1">
+        {items.map((i) => {
+          const on = (active ?? "") === i.slug;
+          return (
+            <li>
+              <a
+                href={i.href}
+                aria-current={on ? "page" : undefined}
+                class:list={[
+                  "-mb-px flex h-full items-center border-b-2 px-3 text-sm whitespace-nowrap transition-colors",
+                  on ? "border-brand font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+                ]}
+              >{i.title}</a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+    {toc.length > 0 && (
+      <details class="relative flex shrink-0 items-center" data-toc>
+        <summary class="flex h-subnav cursor-pointer list-none items-center gap-1 text-sm whitespace-nowrap text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+          On this page <ChevronDown className="size-4" aria-hidden="true" />
+        </summary>
+        <ol class="absolute top-full right-0 mt-1 flex max-h-[calc(100dvh-var(--spacing-chrome-pad))] w-72 max-w-[calc(100vw-2rem)] flex-col gap-0.5 overflow-auto rounded-xl border border-border bg-popover p-2 text-dense shadow-lg">
+          {toc.map((t) => <li><a href={`#${t.id}`} class="block rounded-md px-2 py-1 text-foreground hover:bg-accent">{t.title}</a></li>)}
+        </ol>
+      </details>
+    )}
+  </div>
+</div>
+<script>
+  // "On this page": close after a pick, on Escape and on a click elsewhere
+  for (const d of document.querySelectorAll<HTMLDetailsElement>("details[data-toc]")) {
+    d.addEventListener("click", (e) => { if ((e.target as Element).closest("a")) d.open = false; });
+    document.addEventListener("click", (e) => { if (!d.contains(e.target as Node)) d.open = false; });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") d.open = false; });
+  }
+</script>

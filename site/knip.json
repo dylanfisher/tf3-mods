@@ -1,0 +1,22 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/pages/**/*.{astro,mdx}",
+    "src/mods/*/mod.ts",
+    "src/mods/*/kinds.ts",
+    "src/mods/*/*.mdx",
+    "scripts/*.mjs"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx,astro,mdx}",
+    "scripts/**/*.mjs"
+  ],
+  "ignore": [
+    "src/components/ui/**"
+  ],
+  "ignoreDependencies": [
+    "shadcn",
+    "tw-animate-css",
+    "tailwindcss"
+  ]
+}

@@ -1,0 +1,12 @@
+---
+import type { Stat } from "@/lib/define-mod";
+import StatRow from "./StatRow.astro";
+interface Props { title: string; description?: string; stats?: Stat[] }
+const { title, description, stats = [] } = Astro.props;
+---
+<div class="mb-5 flex flex-col gap-1.5">
+  <h1 class="text-2xl font-semibold tracking-tight text-balance wrap-anywhere">{title}</h1>
+  {description && <p class="max-w-[72ch] text-muted-foreground">{description}</p>}
+  <StatRow stats={stats} />
+  <slot />
+</div>

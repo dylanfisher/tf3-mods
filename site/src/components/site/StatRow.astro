@@ -1,0 +1,17 @@
+---
+// Key/value facts in a wrapping row: "16 towns · 3 runs". Values in ink, labels muted, tabular numbers.
+import type { Stat } from "@/lib/define-mod";
+interface Props { stats: Stat[]; class?: string }
+const { stats, class: cls } = Astro.props;
+const tone: Record<string, string> = { up: "text-up", down: "text-down", warn: "text-warn", brand: "text-brand-text", default: "text-foreground" };
+---
+{stats.length > 0 && (
+  <dl class:list={["flex flex-wrap gap-x-3 gap-y-0.5 text-hint text-muted-foreground tabular-nums", cls]}>
+    {stats.map((s) => (
+      <div class="flex gap-1">
+        <dd class:list={["font-semibold", tone[s.tone ?? "default"]]}>{s.value}</dd>
+        <dt>{s.label}</dt>
+      </div>
+    ))}
+  </dl>
+)}

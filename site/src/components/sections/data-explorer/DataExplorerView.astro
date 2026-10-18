@@ -1,0 +1,37 @@
+---
+// Kind "data-explorer", one dataset (sub-page): notes, the columns that are the same in every row, then the explorer
+// island, which fetches the data file the kind publishes (KindDef.files -> /data/<mod>/<section>/<file>).
+import Inline from "@/components/site/Inline";
+import { chipClass } from "@/lib/chip";
+import { dataFileHref } from "@/lib/mods";
+import type { ItemProps } from "../types";
+import Explorer from "./Explorer";
+import type { LoadedDataset } from "./load";
+import type { DataExplorerSource, ExplorerConfig } from "./types";
+
+type Props = ItemProps<DataExplorerSource>;
+const { mod, section, item } = Astro.props;
+const src = section.source;
+const d = item.data as LoadedDataset;
+const label = (k: string) => src.columns?.[k]?.label ?? k;
+const valueLabel = (k: string, v: string) => src.columns?.[k]?.values?.[v] ?? v;
+const config: ExplorerConfig = {
+  unit: d.def.unit ?? src.unit ?? { one: "row", many: "rows" },
+  outcome: d.def.outcome ?? src.outcome,
+  columns: src.columns ?? {},
+  breakdown: d.def.breakdown,
+  measure: d.def.measure,
+  order: d.def.order ?? [],
+  hide: d.def.hide ?? [],
+};
+const constant = Object.entries(d.table.constant);
+---
+{d.def.notes?.map((p) => <p class="mb-3 max-w-[72ch]"><Inline text={p} /></p>)}
+{constant.length > 0 && (
+  <div class="mb-5 flex flex-wrap items-center gap-1.5 text-hint text-muted-foreground">
+    <span>Same in every row:</span>
+    {constant.map(([k, v]) => <span class={chipClass()}>{label(k)}: {valueLabel(k, v)}</span>)}
+  </div>
+)}
+<Explorer client:load url={dataFileHref(mod, section, d.def.file)} config={config} storageKey={`${mod.id}/${section.slug}/${d.slug}`} />
+<p class="mt-4 text-hint text-muted-foreground">Source table: <code>{d.table.source}</code>, {d.table.modified}.</p>

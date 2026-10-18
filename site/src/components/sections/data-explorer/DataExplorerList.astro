@@ -1,0 +1,49 @@
+---
+// Kind "data-explorer", section page: intro, an overview chart (pass / fail per dataset, each bar links to its page)
+// and the datasets as cards, by group.
+import BarChart from "@/components/site/charts/BarChart";
+import Inline from "@/components/site/Inline";
+import SectionCard from "@/components/site/SectionCard.astro";
+import { itemHref } from "@/lib/mods";
+import type { SectionProps } from "../types";
+import { datasetStats, loadDatasets } from "./load";
+import type { DataExplorerSource } from "./types";
+
+type Props = SectionProps<DataExplorerSource>;
+const { mod, section } = Astro.props;
+const src = section.source;
+const sets = loadDatasets({ mod, section });
+const groups = src.groups?.length ? src.groups : [{ key: "", title: "" }];
+const groupTitle = (k?: string) => src.groups?.find((g) => g.key === k)?.title;
+const withOutcome = sets.filter((d) => d.pass != null && !d.def.outcome);
+---
+{src.intro?.map((p) => <p class="mb-3 max-w-[72ch]"><Inline text={p} /></p>)}
+{src.outcome && withOutcome.length > 1 && (
+  <BarChart
+    client:visible
+    className="my-5"
+    title={src.overviewTitle ?? `${src.outcome.passLabel} and ${src.outcome.failLabel.toLowerCase()} per dataset`}
+    series={[{ label: src.outcome.passLabel, tone: "pass" }, { label: src.outcome.failLabel, tone: "fail" }]}
+    rows={withOutcome.map((d) => ({
+      key: d.slug,
+      label: d.def.title,
+      values: [d.pass!, d.fail!],
+      href: itemHref(mod, section, d),
+      hint: [groupTitle(d.def.group), d.table.modified].filter(Boolean).join(" · "),
+    }))}
+    rowHeader="Dataset"
+    footer="Every bar opens its dataset."
+  />
+)}
+{groups.map((g) => {
+  const list = sets.filter((d) => (g.key ? d.def.group === g.key : true));
+  return list.length > 0 && (
+    <section class="mt-7">
+      {g.title && <h2 class="mb-1 text-lg font-semibold tracking-tight">{g.title}</h2>}
+      {"description" in g && g.description && <p class="mb-3 max-w-[72ch] text-dense text-muted-foreground"><Inline text={g.description} /></p>}
+      <div class="card-grid gap-3.5">
+        {list.map((d) => <SectionCard href={itemHref(mod, section, d)} title={d.def.title} description={d.def.description} stats={datasetStats(d, src)} />)}
+      </div>
+    </section>
+  );
+})}

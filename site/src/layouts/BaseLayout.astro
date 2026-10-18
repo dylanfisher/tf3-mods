@@ -1,0 +1,48 @@
+---
+import "@/styles/theme.css";
+import SiteFooter from "@/components/site/SiteFooter.astro";
+import SiteHeader from "@/components/site/SiteHeader.astro";
+import Lightbox from "@/components/site/Lightbox";
+import type { PageWidth } from "@/lib/define-mod";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** content width: "page" 1100px (default) or "wide" 1400px */
+  width?: PageWidth;
+  image?: string;
+}
+const { title, description = "Transport Fever 3 mods by square: what they do and the research behind them.", width = "page", image } = Astro.props;
+const fullTitle = title ? `${title} · square TF3 mods` : "square · TF3 mods";
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    {image && <meta property="og:image" content={new URL(image, Astro.site)} />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Apply the saved theme before first paint (no flash). -->
+    <script is:inline>
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+  </head>
+  <body class="flex min-h-dvh flex-col">
+    <SiteHeader />
+    <main class:list={["mx-auto w-full flex-1 px-4 pt-6 pb-8", width === "wide" ? "max-w-wide" : "max-w-page"]}>
+      <slot />
+    </main>
+    <SiteFooter />
+    <Lightbox client:idle />
+  </body>
+</html>

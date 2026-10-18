@@ -1,0 +1,10 @@
+---
+// A whole-card link: bordered panel, brand border on hover and focus. Home mod cards and section cards share it.
+interface Props { href: string; style?: string }
+const { href, style } = Astro.props;
+---
+<a
+  href={href}
+  style={style}
+  class="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground transition-colors hover:border-brand focus-visible:border-brand focus-visible:outline-none"
+><slot /></a>

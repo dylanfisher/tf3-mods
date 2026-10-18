@@ -1,0 +1,49 @@
+---
+import { getSections, sectionCard } from "@/components/sections/resolve";
+import Mosaic, { type MosaicImage } from "@/components/site/Mosaic";
+import SectionCard from "@/components/site/SectionCard.astro";
+import ModLayout from "@/layouts/ModLayout.astro";
+import { getMedia } from "@/lib/media";
+import { getLanding, getMods, sectionHref, type ModInfo } from "@/lib/mods";
+
+export function getStaticPaths() {
+  return getMods().map((mod) => ({ params: { mod: mod.slug }, props: { mod } }));
+}
+
+interface Props { mod: ModInfo }
+const { mod } = Astro.props;
+const Landing = await getLanding(mod);
+const cards = getSections(mod).map((r) => sectionCard(mod, r));
+// Landing highlights (manifest `highlights`): the first image large, the rest as a mosaic, each opening in the lightbox
+// with a link to its section.
+const highlights: MosaicImage[] = (mod.manifest.highlights ?? []).map((h) => {
+  const e = getMedia(mod.id, h.src);
+  if (!e) throw new Error(`${mod.id}: highlight ${h.src} is not built (make site-media)`);
+  const s = h.section ? mod.sections.find((x) => x.slug === h.section) : undefined;
+  return {
+    id: h.src, title: h.caption ?? "", thumb: e.thumb.url, full: e.full.url, w: e.thumb.width, h: e.thumb.height, fw: e.full.width,
+    ...(s ? { href: sectionHref(mod, s), hrefLabel: s.title } : {}),
+  };
+});
+---
+<ModLayout mod={mod}>
+  {highlights.length > 0 && (
+    <div class="mb-8">
+      <Mosaic client:visible images={highlights} size="l" lead />
+    </div>
+  )}
+  {Landing && (
+    <div class="prose-site prose-columns mb-10">
+      <Landing />
+    </div>
+  )}
+  {cards.length > 0 && (
+    <section>
+      <h2 class="mb-1 text-lg font-semibold tracking-tight">Research</h2>
+      <p class="mb-3 text-dense text-muted-foreground">Pages from building the mod: tests, comparisons and tools.</p>
+      <div class="card-grid gap-3.5">
+        {cards.map((c) => <SectionCard {...c} />)}
+      </div>
+    </section>
+  )}
+</ModLayout>

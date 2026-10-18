@@ -1,0 +1,11 @@
+---
+// The publisher's mod.io profile comes from branding/modio_profiles.json (getSiteProfile), not a copied URL.
+import { getSiteProfile } from "@/lib/mods";
+const { profileUrl } = getSiteProfile();
+---
+<footer class="mt-16 border-t border-border">
+  <div class="mx-auto flex max-w-wide flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-muted-foreground">
+    <span>Transport Fever 3 mods by square</span>
+    {profileUrl && <a class="hover:text-foreground" href={profileUrl}>square on mod.io</a>}
+  </div>
+</footer>

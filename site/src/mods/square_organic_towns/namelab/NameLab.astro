@@ -1,0 +1,17 @@
+---
+// Kind "square_organic_towns/name-lab": the Name lab island, fed by the data asset (./data-file.ts).
+import NameLab from "./NameLab.tsx";
+import { NAME_DATA_URL } from "./data-file.ts";
+import type { SectionProps } from "@/components/sections/types";
+
+type Props = SectionProps;
+const { section } = Astro.props;
+---
+{NAME_DATA_URL ? (
+  <NameLab client:only="react" dataUrl={NAME_DATA_URL} />
+) : (
+  <p class="text-muted-foreground">
+    No name data yet: run <code>uv run plans/square_organic_towns/names/export_names.py</code>, then rebuild.
+  </p>
+)}
+<noscript><p class="text-muted-foreground">The {section.title} needs JavaScript.</p></noscript>

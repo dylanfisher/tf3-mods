@@ -1,0 +1,37 @@
+---
+// Kind "run-compare", one comparison (sub-page): the viewer island (unit viewer, gallery, summary, run table, extra
+// units) with the static run cards and key points passed in as children, so the island places them in the section's
+// order (RunCompareSource.order, viewer first by default); then the section's footer note.
+import Inline from "@/components/site/Inline";
+import { RUN_TEXT, runColor } from "@/lib/run-colors";
+import type { ItemProps } from "../types";
+import CompareViewer from "./CompareViewer";
+import { buildModel } from "./load";
+import type { CompareEntry, RunCompareSource } from "./types";
+
+type Props = ItemProps<RunCompareSource>;
+const { mod, section, item } = Astro.props;
+const entry = item.data as CompareEntry;
+const model = buildModel({ mod, section }, entry);
+---
+<CompareViewer client:load model={model}>
+  <div class="card-grid-fit gap-3 card-min-260">
+    {entry.runs.map((r, i) => (
+      <div class="min-w-0 rounded-xl border border-border bg-card px-4 py-3">
+        <h3 class:list={["mb-1 font-semibold wrap-anywhere", RUN_TEXT[runColor(i)]]}>{r.label}</h3>
+        {r.card.map((line) => <p class="my-1 text-hint wrap-anywhere text-muted-foreground"><Inline text={line} /></p>)}
+      </div>
+    ))}
+  </div>
+
+  {entry.keyNotes.length > 0 && (
+    <div class="my-4 rounded-lg border border-l-4 border-border border-l-brand bg-card px-4 py-3">
+      <b class="font-semibold">Key points</b>
+      <ul class="mt-1.5 list-disc pl-5 text-subhead">
+        {entry.keyNotes.map((n) => <li class="my-1 wrap-anywhere"><Inline text={n} /></li>)}
+      </ul>
+    </div>
+  )}
+</CompareViewer>
+
+{section.source.footer && <p class="mt-9 text-hint text-muted-foreground wrap-anywhere"><Inline text={section.source.footer} /></p>}

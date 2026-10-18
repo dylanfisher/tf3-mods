@@ -1,0 +1,20 @@
+---
+import { getSections, sectionStats, type ResolvedSection } from "@/components/sections/resolve";
+import PageHeader from "@/components/site/PageHeader.astro";
+import ModLayout from "@/layouts/ModLayout.astro";
+import { getMods, type ModInfo } from "@/lib/mods";
+
+export function getStaticPaths() {
+  return getMods().flatMap((mod) => getSections(mod).map((r) => ({ params: { mod: mod.slug, section: r.section.slug }, props: { mod, r } })));
+}
+
+interface Props { mod: ModInfo; r: ResolvedSection }
+const { mod, r } = Astro.props;
+const { section, kind } = r;
+const Body = kind.component;
+const toc = kind.toc?.({ mod, section }) ?? [];
+---
+<ModLayout mod={mod} section={section} toc={toc}>
+  <PageHeader title={section.title} description={section.description} stats={sectionStats(mod, r)} />
+  <Body mod={mod} section={section} />
+</ModLayout>

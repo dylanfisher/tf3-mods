@@ -1,0 +1,248 @@
+/*
+ * The one theme of the site. Every page and component styles itself with Tailwind utilities against these
+ * tokens; there is no per-page CSS. Base palette: the Organic Towns hub (warm off-white / near-black) with
+ * the mod posters' brand teal. Light and dark from one declaration per token (light-dark()), following the system,
+ * or a data-theme="light" | "dark" override on <html> set by the theme toggle (src/lib/theme.ts; BaseLayout's init
+ * script applies the saved choice before first paint).
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* `dark:` utilities follow the same rule as the tokens: explicit dark, or system dark unless forced light. */
+@custom-variant dark {
+  :root[data-theme="dark"] & { @slot; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) & { @slot; } }
+}
+
+/*
+ * ---- Raw palette: light-dark(<light>, <dark>) per token, declared once ----
+ * light-dark() follows the element's color-scheme: "light dark" (the system's) by default, forced by the theme
+ * toggle's data-theme="light" | "dark" on <html>. The `dark:` variant above follows the same rule.
+ */
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#f6f5f1, #15181b);
+  --panel: light-dark(#ffffff, #1e2226);
+  --ink: light-dark(#1d2125, #e7e9ea);
+  --muted: light-dark(#5f6870, #9aa3ab);
+  --line: light-dark(#dcdad3, #30363c);
+  /*
+   * Brand teal = the mod posters' family color (branding/cover.js BRAND / INK_ON_BRAND), the same in both schemes.
+   * --brand is the FILL (buttons, pressed toggles, selected chips, focus ring, logo square, bars), always with
+   * --onbrand text on it (5.6:1). --brand-text is the brand as TEXT (links, card titles, text-brand-text): a darker
+   * shade of the same hue in light mode, 4.5:1 or more on bg (4.9), panel (5.4) and chip (4.5); in dark mode the fill
+   * itself passes as text (5.8:1 on bg, 5.2 on panel, 4.6 on chip).
+   */
+  --brand: #2fa48f;
+  --onbrand: #0f1d1b;
+  --brand-text: light-dark(#227768, #2fa48f);
+  --chip: light-dark(#ecebe6, #272c31);
+  /* run colors (comparisons: run 0..3, src/lib/run-colors.ts) */
+  --c0: light-dark(#0e7a6d, #4cc3b1);
+  --c1: light-dark(#8a5a12, #e0ab5c);
+  --c2: light-dark(#5b4bb7, #a99cf0);
+  --c3: light-dark(#a3365a, #ec8fae);
+  /* deltas */
+  --up: light-dark(#2c7a3f, #6cc489);
+  --down: light-dark(#b23a2e, #f08a7c);
+  --warn: light-dark(#946200, #e3b55b);
+  /*
+   * Chart outcome pair (charts in components/site/charts/): pass = the brand teal, fail = orange. Checked with the
+   * dataviz validator as an adjacent pair on the panel (light #fff: CVD dE 12.7, normal 26.4, both >= 3:1; dark #1e2226:
+   * CVD 12.6, normal 26.3). Green/red (--up/--down) fails the CVD check (dE 3.7 light, 2.3 dark), so charts never use it.
+   * A single-series bar is --chart-pass too. Labels next to the marks stay in text tokens.
+   */
+  --chart-pass: #2fa48f;
+  --chart-fail: light-dark(#eb6834, #d95926);
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+/* ---- shadcn semantic tokens, mapped onto the palette (same in both schemes) ---- */
+:root {
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--panel);
+  --card-foreground: var(--ink);
+  --popover: var(--panel);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: var(--onbrand);
+  --secondary: var(--chip);
+  --secondary-foreground: var(--ink);
+  --muted-foreground: var(--muted);
+  /* shadcn's "accent" is the hover/selected surface, not our brand accent */
+  --accent-surface: var(--chip);
+  --destructive: var(--down);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--brand-text); /* focus outlines need 3:1; the fill teal is 2.8:1 on the light bg */
+  --chart-1: var(--c0);
+  --chart-2: var(--c1);
+  --chart-3: var(--c2);
+  --chart-4: var(--c3);
+  --chart-5: var(--muted);
+  --radius: 0.75rem;
+  /*
+   * --mod-accent: the mod's accent (branding/mods.js), unset unless a mod has one. Set once per scope: ModLayout around
+   * a mod's pages, each home-page card for its mod. Read through bg-mod (accent bars; brand teal without an accent)
+   * and bg-mod-art (TitleArt's second color field; the warm run-1 tone without an accent).
+   */
+}
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--chip);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent-surface);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /*
+   * site palette names, for direct use: bg-panel, text-ink, bg-chip, text-run-1, text-up ...
+   * Brand: bg-brand / border-brand / accent-brand (fill) with text-on-brand on it; text-brand-text for brand-colored
+   * text. Never text-brand (the fill fails text contrast in light mode).
+   */
+  --color-panel: var(--panel);
+  --color-ink: var(--ink);
+  --color-line: var(--line);
+  --color-chip: var(--chip);
+  --color-brand: var(--brand);
+  --color-on-brand: var(--onbrand);
+  --color-brand-text: var(--brand-text);
+  --color-mod: var(--mod-accent, var(--brand));
+  --color-mod-art: var(--mod-accent, var(--c1));
+  --color-run-0: var(--c0);
+  --color-run-1: var(--c1);
+  --color-run-2: var(--c2);
+  --color-run-3: var(--c3);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-warn: var(--warn);
+  --color-chart-pass: var(--chart-pass);
+  --color-chart-fail: var(--chart-fail);
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.67);
+  --radius-lg: calc(var(--radius) * 0.83);
+  --radius-xl: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.33);
+  --radius-3xl: calc(var(--radius) * 1.67);
+  --radius-4xl: calc(var(--radius) * 2);
+
+  /* page widths: prose landing, standard, wide (comparison viewers); one big shot (max-w-shot) */
+  --container-page: 1100px;
+  --container-wide: 1400px;
+  --container-shot: 1120px;
+  /* sticky page chrome: the site header, then a mod's page tabs (SectionNav) under it. Anything else sticky on a mod
+     page sits below both: top-chrome (flush) or top-chrome-pad (with a gap); its max height subtracts the same. */
+  --spacing-header: 3rem;
+  --spacing-subnav: 2.5rem;
+  --spacing-chrome: calc(var(--spacing-header) + var(--spacing-subnav));
+  --spacing-chrome-pad: calc(var(--spacing-chrome) + 1rem);
+
+  /*
+   * Type scale beside Tailwind's (text-sm, text-lg, text-2xl ... stay as they are). Font size only: the line height
+   * is inherited. Root size 15px. Names are registered with cn (src/lib/utils.ts) so merging keeps them apart from
+   * text colors; a new step goes into both places.
+   */
+  --text-tag: 0.75rem; /* chips, tags, badges, thumbnail captions */
+  --text-meta: 0.8rem; /* key hints, list meta, flags, small labels */
+  --text-hint: 0.84rem; /* hints, stats, table heads, notes */
+  --text-dense: 0.9rem; /* tables, card descriptions, empty states */
+  --text-subhead: 0.95rem; /* small headings (card titles in islands, dialog titles) */
+  --text-lead: 1.05rem; /* hero tagline, a name in a result card */
+  --text-display: 1.85rem; /* page titles (home, mod landing) */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans antialiased;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+  }
+  /* everything that opens the site lightbox (src/lib/lightbox.ts) */
+  [data-lightbox] {
+    cursor: zoom-in;
+  }
+  code, kbd, pre {
+    @apply font-mono;
+    font-size: 0.86em;
+    overflow-wrap: anywhere;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/*
+ * Card grids: as many columns of at least --card-min (default 300px, card-min-<px> to change) as fit, never wider than
+ * the box. card-grid leaves empty tracks at the end of a short row; card-grid-fit stretches the cards to fill it.
+ */
+@utility card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--card-min, 300px)), 1fr));
+}
+@utility card-grid-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--card-min, 300px)), 1fr));
+}
+@utility card-min-* {
+  --card-min: calc(--value(integer) * 1px);
+}
+
+/* Landing copy rendered from MDX: the only "content" styling, scoped to the .prose-site wrapper. */
+@utility prose-site {
+  & > * + * { margin-top: 0.85em; }
+  & h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; margin-top: 1.6em; }
+  & h3 { font-size: var(--text-lead); font-weight: 600; margin-top: 1.3em; }
+  & p, & li { color: var(--ink); }
+  & ul { list-style: disc; padding-left: 1.25em; }
+  & ol { list-style: decimal; padding-left: 1.25em; }
+  & li + li { margin-top: 0.3em; }
+  & a { color: var(--brand-text); text-underline-offset: 3px; }
+  & a:hover { text-decoration: underline; }
+  & strong { font-weight: 600; }
+  & code { background: var(--chip); padding: 0.05em 0.35em; border-radius: 4px; }
+}
+
+/* Landing overview in two columns from lg up, across the full page width; headings stay with their text. */
+@utility prose-columns {
+  @media (width >= 64rem) {
+    columns: 2;
+    column-gap: 3rem;
+    & > :first-child { margin-top: 0; }
+    & h2, & h3 { break-after: avoid; break-inside: avoid; }
+    & p, & li, & ul, & ol { break-inside: avoid-column; orphans: 3; widows: 3; }
+  }
+}

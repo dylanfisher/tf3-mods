@@ -1,0 +1,6 @@
+---
+// The mod's accent bar next to its name (bg-mod: the --mod-accent in scope, else brand teal). Height by class.
+interface Props { class?: string }
+const { class: cls } = Astro.props;
+---
+<span class:list={["w-1 shrink-0 rounded-full bg-mod", cls]} aria-hidden="true"></span>

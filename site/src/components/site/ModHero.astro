@@ -1,0 +1,41 @@
+---
+// Mod header. "full" on the landing (cover, name, tagline, summary, links), "compact" on section pages. The accent
+// bar is bg-mod: ModLayout sets the mod's --mod-accent around the page.
+import { buttonVariants } from "@/components/ui/button";
+import { chipClass } from "@/lib/chip";
+import type { ModInfo } from "@/lib/mods";
+import AccentBar from "./AccentBar.astro";
+import ModCover from "./ModCover.astro";
+interface Props { mod: ModInfo; variant?: "full" | "compact" }
+const { mod, variant = "full" } = Astro.props;
+const full = variant === "full";
+// Without a real cover the title-art tile stays small, so it never takes a phone screen.
+const big = full && !!mod.cover;
+---
+<div class:list={["mb-5 flex gap-4", big ? "flex-col sm:flex-row sm:items-center sm:gap-6" : full ? "items-center sm:gap-6" : "items-center"]}>
+  <a href={mod.href} class:list={["block shrink-0 overflow-hidden rounded-xl border border-border", big ? "w-full sm:w-[340px]" : full ? "w-28 sm:w-56" : "w-24 sm:w-32"]}>
+    <ModCover mod={mod} size={full ? "full" : "thumb"} eager />
+  </a>
+  <div class="flex min-w-0 flex-col gap-1.5">
+    <div class="flex items-center gap-2">
+      <AccentBar class="h-4" />
+      {full ? (
+        <h1 class="text-display leading-tight font-semibold tracking-tight wrap-anywhere">{mod.name}</h1>
+      ) : (
+        <a href={mod.href} class="text-lg leading-tight font-semibold tracking-tight hover:text-brand-text wrap-anywhere">{mod.name}</a>
+      )}
+    </div>
+    <p class:list={["text-muted-foreground", full && "text-lead"]}>{mod.tagline}</p>
+    {full && mod.summary && mod.summary !== mod.tagline && <p class="max-w-[60ch]">{mod.summary}</p>}
+    {full && (
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        {mod.modio ? (
+          <a href={mod.modio.url} class={buttonVariants({ size: "lg" })}>Get it on mod.io</a>
+        ) : (
+          <span class={chipClass("outline", "px-2.5 py-0.5 text-sm text-muted-foreground")}>Not released yet</span>
+        )}
+        {mod.manifest.links?.map((l) => <a href={l.href} class={buttonVariants({ variant: "outline", size: "lg" })}>{l.label}</a>)}
+      </div>
+    )}
+  </div>
+</div>
