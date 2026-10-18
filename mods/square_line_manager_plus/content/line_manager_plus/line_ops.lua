@@ -96,9 +96,20 @@ local function blockReason(comp)
 	return core.blockReason(stops and #stops or 0, core.missingCount(stops, stationCount))
 end
 
-local function entryView(ctx, tooltip)
+--- English key of the reason why `comp` can't be reversed, beyond blockReason: with stop 1 kept first, 2 stops reverse
+--- to themselves (the line already runs both ways).
+local function reverseReason(comp)
+	if comp and comp.stops and #comp.stops < 3 then
+		return "Reversing needs at least 3 stops: with 2, the line already runs both ways." -- i18n: keys
+	end
+	return nil
+end
+
+--- The entry's { enabled, tooltip }; `extraReason(comp)` (optional) adds an entry-specific English reason.
+local function entryView(ctx, tooltip, extraReason)
 	if isBusy() then return { enabled = false, tooltip = tooltip } end
-	local reason = blockReason(readLine(ctx.line))
+	local comp = readLine(ctx.line)
+	local reason = blockReason(comp) or (extraReason and extraReason(comp))
 	if reason then return { enabled = false, tooltip = _(reason) } end -- i18n: ignore
 	return { enabled = true, tooltip = tooltip }
 end
@@ -181,9 +192,15 @@ function M.reverse(ctx)
 	local comp = checkedLine(ctx)
 	if not comp then return end
 	local params, line = ctx.params, ctx.line
+	local reason = reverseReason(comp)
+	if reason then
+		actions.feedback(params, _(reason), false) -- i18n: ignore
+		return
+	end
 	local rev, snap = M.reversed(line, comp)
 	if undo_core.equal(rev, snap) then
-		actions.feedback(params, _("Line Manager Plus: reversing doesn't change this line."), false)
+		-- a mirror-image route such as A, B, C, B
+		actions.feedback(params, _("Line Manager Plus: this line visits the same stops in both directions, so reversing doesn't change it."), false)
 		return
 	end
 	local built = undo_core.build(rev, api.type)
@@ -221,7 +238,8 @@ function M.install(_replacementApi, _params)
 		id = "reverse", order = 200, label = "Reverse line", icon = ICON_REVERSE, -- i18n: keys label
 		view = function(ctx)
 			return entryView(ctx,
-				_("Serve the stops in the opposite order. Stop 1 stays first; terminals are chosen for the new direction."))
+				_("Serve the stops in the opposite order. Stop 1 stays first; terminals are chosen for the new direction."),
+				reverseReason)
 		end,
 		run = M.reverse,
 	})

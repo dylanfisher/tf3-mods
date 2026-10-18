@@ -3,11 +3,15 @@
 -- missing field, shims ReplaceRecipe, reads the estimate setting), detection (the Send to Line popover only: other
 -- recipes, missing hovered state, missing selection, nil params, a ref argument pass through untouched; an error
 -- passes through and is logged once), the swap (every other field kept, the previous function called once), the list
--- recipe (BoxLayout root: the vanilla list with its untouched params, then the panel), and the panel (nothing while no
--- line is hovered; the line's name, vehicles and stats while hovered; the estimate only with the setting On; a deleted
--- line or a stats error: no panel text, logged once; polling sets the state only on a change).
+-- recipe (BoxLayout root with the vanilla list ALONE and its untouched params: nothing beside it in the card, so the
+-- rows keep their width and nothing moves under the mouse), and the info block as a callout outside the card (the
+-- game's callout overlay: nothing opened while no line is hovered; opened once per hovered line with the line's name,
+-- vehicles and stats, parent = the list node, right of the card in the left half of the screen and left of it in the
+-- right half; the estimate only with the setting On; closed on unhover, for a deleted line, on a stats error (logged
+-- once) and on unmount; a missing callout overlay or a broken hover state is logged once), and the callout recipe
+-- (BoxLayout root, a padded Component around the TextView with the map hover block's class, the gap on the card side).
 
-local react, builtin, pop, list, recipeFns, hook, world, prevCalls, RAPI_CALLS, baseRecipes
+local react, builtin, pop, list, recipeFns, hook, world, prevCalls, RAPI_CALLS, baseRecipes, callouts
 
 local function format(s, vars)
 	return (s:gsub("{(%w+)}", function(k) return tostring(vars[k]) end))
@@ -18,7 +22,8 @@ local function setup(opts)
 	reset_modules()
 	clear_logs()
 	recipeFns, prevCalls, RAPI_CALLS = {}, {}, {}
-	hook = { state = nil, step = nil }
+	hook = { refs = {}, step = nil, unmount = nil, x = 0.3, expired = false }
+	callouts = { opened = {}, closed = {}, current = nil }
 	world = {
 		lines = { [1] = { 11, 12 } },
 		vehicles = { [11] = 100, [12] = 200, [21] = 100 },
@@ -29,7 +34,10 @@ local function setup(opts)
 		type = {
 			ComponentType = { LINE = "LINE", TRANSPORT_VEHICLE = "TV" },
 			Clock = { new = function() return { getTime = function() return 1e9 end } end },
+			Vec2f = { new = function(x, y) return { x = x, y = y } end },
+			Vec4f = { new = function(a, b, c, d) return { a, b, c, d } end },
 		},
+		gui = { StyleSheet = { new = function() return {} end } },
 		engine = {
 			entityExists = function(e) return world.lines[e] ~= nil end,
 			getComponent = function(e, ct)
@@ -71,21 +79,32 @@ local function setup(opts)
 			return r
 		end,
 		GetRecipeName = function(fn) return names[fn] end,
-		useState = function(init)
-			if not hook.state then
-				local st = { v = init, sets = 0 }
-				function st:old() return self.v end
-				function st:set(v) self.v = v; self.sets = self.sets + 1 end
-				hook.state = st
+		useSelfRef = function()
+			if not hook.self then
+				hook.self = {
+					get = function() return { getPosition = function(_n, gx, gy)
+						return { x = hook.x + (gx - 0.5) * 0.2, y = gy }
+					end } end,
+					hasExpired = function() return hook.expired end,
+				}
 			end
-			return hook.state
+			return hook.self
+		end,
+		useRef = function(init)
+			local r = { v = init }
+			function r:get() return self.v end
+			function r:set(v) self.v = v end
+			hook.refs[#hook.refs + 1] = r
+			return r
 		end,
 		onStep = function(fn) hook.step = fn end,
+		onUnmount = function(fn) hook.unmount = fn end,
 	}
 	builtin = {
 		type = { Orientation = { Vertical = "V", Horizontal = "H" } },
 		BoxLayout = function(p) return { kind = "BoxLayout", orientation = p.orientation, children = p.children } end,
 		TextView = function(p) return { kind = "TextView", class = p.meta and p.meta.class, text = p.text } end,
+		Component = function(p) return { kind = "Component", meta = p.meta, layout = p.layout } end,
 	}
 	-- the base recipes the test needs: the vanilla list and another popover
 	baseRecipes = {
@@ -152,15 +171,10 @@ local function stl(selection)
 	}
 end
 
--- render the List node (as the engine would), then return { listNode, panelNode }
+-- render the List node (as the engine would): its root BoxLayout (this registers its onStep / onUnmount)
 local function renderList(node)
 	eq(node.recipe, "SquareLmpStlList")
 	return recipeFns.SquareLmpStlList(node.p)
-end
-
-local function renderPanel(node)
-	eq(node.recipe, "SquareLmpStlPanel")
-	return recipeFns.SquareLmpStlPanel(node.p)
 end
 
 local STATS = "Vehicles on this line: 2\n1× Bus A\n1× Bus B\n"
@@ -282,113 +296,201 @@ test("wrapper: an error while deciding passes through untouched and warns once",
 	eq(warnings("[LineManagerPlus] list info: swap"), 1)
 end)
 
--- list and panel -----------------------------------------------------------------------------------------------------
+-- list and info block ------------------------------------------------------------------------------------------------
 
-local function swapped(selection, params)
+-- the game's callout overlay, as callout_container.tl: one callout; close(parent) only closes the parent's own
+local function calloutRef()
+	local capi = {
+		open = function(params)
+			callouts.opened[#callouts.opened + 1] = params
+			callouts.current = params
+		end,
+		close = function(parent)
+			callouts.closed[#callouts.closed + 1] = parent
+			if callouts.current and callouts.current.parent == parent then callouts.current = nil end
+		end,
+	}
+	return { get = function() return { getApi = function() return capi end } end }
+end
+
+local function swapped(selection, params, noCallouts)
 	list.install(rapi(), params)
 	local p = stl(selection)
+	if not noCallouts then p.params.commonParams.gameCtx = { calloutContainerRef = calloutRef() } end
 	local q = pop.PopoverWindowContent(p).args[1]
 	return p, q
 end
 
-test("list: horizontal BoxLayout root, the vanilla list with its untouched params first, then the panel", function()
+local function hover(p, line)
+	p.params.commonParams.sendToLineHoveredLineState.v = line
+	hook.step()
+end
+
+-- render the callout's recipe as the container does (callout_container.tl:122-140)
+local function renderCallout(params)
+	eq(react.GetRecipeName(params.recipe), "SquareLmpInfoCallout")
+	local out = recipeFns.SquareLmpInfoCallout(params.recipeParam)
+	eq(out.kind, "BoxLayout") -- a recipe root is a layout, never a Component (memory: react-recipe-must-return-layout)
+	local comp = out.children[1]
+	eq(comp.kind, "Component")
+	eq(comp.layout.kind, "BoxLayout")
+	return comp.layout.children[1], comp.meta.styleSheet.padding
+end
+
+test("list: a vertical BoxLayout root with the vanilla list alone, its params untouched (nothing beside it)", function()
 	setup()
 	local p, q = swapped()
 	local out = renderList(q.recipe(q.params))
 	eq(out.kind, "BoxLayout")
-	eq(out.orientation, "H")
-	eq(#out.children, 2)
+	eq(out.orientation, "V")
+	eq(#out.children, 1)
 	eq(out.children[1].recipe, "SendToLineSelection")
 	ok(out.children[1].p == p.params)
-	eq(out.children[2].recipe, "SquareLmpStlPanel")
-	ok(out.children[2].p.commonParams == p.params.commonParams)
-	ok(out.children[2].p.selection == p.params.selection)
 end)
 
-test("panel: nothing hovered renders an empty BoxLayout and builds no stats", function()
+test("block: nothing hovered opens nothing and builds no stats", function()
 	setup()
 	local listCalls = 0
 	local get = api.engine.system.transportVehicleSystem.getLineVehicles
 	api.engine.system.transportVehicleSystem.getLineVehicles = function(l) listCalls = listCalls + 1; return get(l) end
 	local _p, q = swapped()
-	local panel = renderList(q.recipe(q.params)).children[2]
-	local out = renderPanel(panel)
-	eq(out.kind, "BoxLayout")
-	eq(#out.children, 0)
+	renderList(q.recipe(q.params))
 	hook.step()
 	hook.step()
-	eq(hook.state.sets, 0) -- still nil: no set, no re-render
+	eq(#callouts.opened, 0)
+	eq(#callouts.closed, 0)
 	eq(listCalls, 0)
+	hook.unmount()
+	eq(#callouts.closed, 0) -- nothing shown: nothing to close
 end)
 
-test("panel: a hovered line shows its name, vehicles and stats with the estimate (setting On)", function()
+test("block: a hovered line opens one callout right of the card with name, vehicles, stats and the estimate", function()
 	setup()
 	local p, q = swapped({ 21 })
-	local panel = renderList(q.recipe(q.params)).children[2]
-	renderPanel(panel)
-	p.params.commonParams.sendToLineHoveredLineState.v = 1
+	renderList(q.recipe(q.params))
+	hover(p, 1)
 	hook.step()
-	eq(hook.state:old(), 1)
-	hook.step()
-	eq(hook.state.sets, 1) -- unchanged: no second set
-	local out = renderPanel(panel)
-	eq(#out.children, 1)
-	local tv = out.children[1]
+	eq(#callouts.opened, 1) -- unchanged hover: opened once
+	local c = callouts.opened[1]
+	ok(c.parent == hook.self)
+	eq(c.gravity.x, 1); eq(c.gravity.y, 0) -- the list's top-right corner
+	eq(c.anchor.x, 0); eq(c.anchor.y, 0) -- the block's top-left corner
+	eq(c.recipeParam.onRight, true)
+	ok(c.recipeParamCompareFn(c.recipeParam, { text = c.recipeParam.text, onRight = true, gap = list.GAP }))
+	ok(not c.recipeParamCompareFn(c.recipeParam, { text = "other", onRight = true, gap = list.GAP }))
+	local tv, pad = renderCallout(c)
 	eq(tv.kind, "TextView")
 	eq(tv.class, list.PANEL_CLASS)
+	ok(list.PANEL_CLASS:find("sq-lmp-stli", 1, true) ~= nil) -- the map hover block's class and rule (lmp.css.lua)
+	eq(pad[1], 0); eq(pad[2], 0); eq(pad[3], 0); eq(pad[4], list.GAP) -- the gap on the card's (left) side
 	ok(tv.text:find("^Bus Line 1\nVehicles on this line: 2\n1× Bus A\n1× Bus B\n") ~= nil, tv.text)
 	-- vehicle 21 (on line 2) adds its 40: capacity 80 -> 120, frequency 90 s * 2/3, rate 4321 * 120/80
 	ok(tv.text:find("Capacity: 80 → ~120", 1, true) ~= nil, tv.text)
 	ok(tv.text:find("Frequency: 1:30 → ~1:00", 1, true) ~= nil, tv.text)
 	ok(tv.text:find("Rate: 4321 → ~6482", 1, true) ~= nil, tv.text)
-	-- unhover: the panel goes away
-	p.params.commonParams.sendToLineHoveredLineState.v = nil
+	-- unhover: closed, by our own parent
+	hover(p, nil)
+	eq(#callouts.closed, 1)
+	ok(callouts.closed[1] == hook.self)
+	eq(callouts.current, nil)
 	hook.step()
-	eq(#renderPanel(panel).children, 0)
+	eq(#callouts.closed, 1) -- still nothing hovered: no second close
 	eq(warnings(), 0)
 end)
 
-test("panel: with the estimate setting Off the same text as the plain stats", function()
+test("block: a card in the right half of the screen gets the block on its left", function()
 	setup()
-	local p, q = swapped({ 21 }, { send_to_line_estimate = 1 })
-	local panel = renderList(q.recipe(q.params)).children[2]
-	renderPanel(panel)
-	p.params.commonParams.sendToLineHoveredLineState.v = 1
-	hook.step()
-	eq(renderPanel(panel).children[1].text, "Bus Line 1\n" .. STATS)
+	hook.x = 0.7
+	local p, q = swapped()
+	renderList(q.recipe(q.params))
+	hover(p, 1)
+	local c = callouts.opened[1]
+	eq(c.gravity.x, 0); eq(c.anchor.x, 1)
+	eq(c.recipeParam.onRight, false)
+	local _tv, pad = renderCallout(c)
+	eq(pad[2], list.GAP); eq(pad[4], 0)
 end)
 
-test("panel: a line without a name shows the stats alone", function()
+test("block: moving to another row re-opens it with that line's text; unmount closes it", function()
+	setup()
+	world.lines[2] = { 21 }
+	world.names[2] = "Bus Line 2"
+	local p, q = swapped()
+	renderList(q.recipe(q.params))
+	hover(p, 1)
+	hover(p, 2)
+	eq(#callouts.opened, 2)
+	ok(callouts.opened[2].recipeParam.text:find("^Bus Line 2\n") ~= nil)
+	hook.unmount()
+	eq(callouts.current, nil)
+	eq(#callouts.closed, 1)
+end)
+
+test("block: on unmount with the list node already gone, nothing is called on it (the overlay drops it)", function()
+	setup()
+	local p, q = swapped()
+	renderList(q.recipe(q.params))
+	hover(p, 1)
+	hook.expired = true
+	hook.unmount()
+	eq(#callouts.closed, 0)
+	eq(warnings(), 0)
+end)
+
+test("block: with the estimate setting Off the same text as the plain stats", function()
+	setup()
+	local p, q = swapped({ 21 }, { send_to_line_estimate = 1 })
+	renderList(q.recipe(q.params))
+	hover(p, 1)
+	eq(callouts.opened[1].recipeParam.text, "Bus Line 1\n" .. STATS)
+end)
+
+test("panelText: a line without a name shows the stats alone", function()
 	setup()
 	world.names[1] = nil
 	eq(list.panelText(1, nil), STATS)
 end)
 
-test("panel: a deleted line or a depot shows nothing, no warning", function()
+test("block: a deleted line or a depot opens nothing (closes), no warning", function()
 	setup()
 	local p, q = swapped()
-	local panel = renderList(q.recipe(q.params)).children[2]
-	renderPanel(panel)
-	p.params.commonParams.sendToLineHoveredLineState.v = 77
-	hook.step()
-	eq(#renderPanel(panel).children, 0)
+	renderList(q.recipe(q.params))
+	hover(p, 1)
+	hover(p, 77)
+	eq(#callouts.opened, 1)
+	eq(callouts.current, nil)
 	eq(warnings(), 0)
 end)
 
-test("panel: a stats error shows nothing and logs once; a broken hover state logs once", function()
+test("block: a stats error opens nothing and logs once; a broken hover state logs once and closes", function()
 	setup()
 	local p, q = swapped()
-	local panel = renderList(q.recipe(q.params)).children[2]
-	renderPanel(panel)
+	renderList(q.recipe(q.params))
 	world.failList = true
-	p.params.commonParams.sendToLineHoveredLineState.v = 1
-	hook.step()
-	for _i = 1, 3 do eq(#renderPanel(panel).children, 0) end
+	hover(p, 1)
+	for _i = 1, 3 do hook.step() end
+	eq(#callouts.opened, 0)
 	eq(warnings("[LineManagerPlus] list info: stats"), 1)
+	world.failList = false
+	world.names[2] = "Bus Line 2"
+	world.lines[2] = { 21 }
+	hover(p, 2)
+	eq(#callouts.opened, 1)
 	p.params.commonParams.sendToLineHoveredLineState = {} -- no :old()
 	hook.step()
 	hook.step()
 	eq(warnings("[LineManagerPlus] list info: hover"), 1)
+	eq(callouts.current, nil)
+end)
+
+test("block: no callout overlay in the game context logs once, the list still renders", function()
+	setup()
+	local p, q = swapped(nil, nil, true)
+	eq(#renderList(q.recipe(q.params)).children, 1)
+	hover(p, 1)
+	hover(p, nil)
+	hover(p, 1)
+	eq(warnings("[LineManagerPlus] list info: callout"), 1)
 end)
 
 test("panelText: the cached stats list is not changed (name added to a copy)", function()

@@ -124,6 +124,16 @@ test("capture: an expired lineState (closed manager window) is not read", functi
 	eq(capture.expired(nil), false)
 end)
 
+test("capture: expired line / vehicle manager refs (closed manager window) are not read", function()
+	local reads = 0
+	local function expired()
+		return { hasExpired = function() return true end, get = function() reads = reads + 1; error("get() on expired") end }
+	end
+	eq(capture.selectedLineCount({ lineManagerStateRef = expired() }), 0)
+	eq(capture.selectedVehicles({ vehicleManagerStateRef = expired() }), {})
+	eq(reads, 0)
+end)
+
 test("capture: installs once and keeps the previous wrapper in the chain", function()
 	local prev = line_util.makeLineActionDescriptor
 	local chained = 0

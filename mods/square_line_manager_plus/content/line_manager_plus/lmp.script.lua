@@ -2,13 +2,22 @@
 --   * "send_to_line_info" (stli.lua): target line's vehicles and stats under the Send to Line hover text.
 --   * "send_to_line_estimate" (stli_estimate.lua): before -> after estimate in that text (needs the one above).
 --   * "line_undo" (undo.lua): Undo / Redo buttons in the line editor (the former Line Editor Undo mod).
---   * "line_dot_tooltip" (line_dot.lua): the line's vehicles and stats in the tooltip of its colour dot in the line list.
---   * "send_to_line_list_info" (stl_list.lua): a panel right of the Send to Line list with the hovered line's info
+--   * "line_list_hover_info" (line_list_hover.lua): hovering a row of the Line Manager's line list shows the line's
+--     info block outside the window (vehicles by model and stats), the same callout as the one below (lmp_callout.lua).
+--   * "send_to_line_list_info" (stl_list.lua): a block right of the Send to Line list with the hovered line's info
 --     (with the before -> after estimate when "send_to_line_estimate" is On; it reads that param itself).
 --   * "line_actions" (line_ops.lua): a "Line actions" button right of A+ (lmp_actions.lua) with Duplicate line and
---     Reverse line. Later menu entries (Line Rate Matcher) register with lmp_actions too.
+--     Reverse line.
+--   * "line_rate_matcher" (rate_matcher.lua + rate_matcher_*.tl): "Match line rate" in the Line actions menu opens the
+--     Rate Matcher window (the former Line Rate Matcher mod; needs "line_actions" On).
 --   * "map_shift_click" (map_shift_click.lua): Shift-click one of your lines on the map (or empty map while a line
 --     window is open) opens the Line Manager on it. lmp_line.res.lua tracks the open line windows.
+--   * "line_map_hover_info" (line_hover.lua): with the Line Manager open (normal mode), the line's vehicles and stats
+--     under the map hover text of a line ("Select <line>."), as the Send to Line one but without the estimate.
+--   * "vehicle_list_cargo" (vehicle_cargo.lua): each row of the vehicle list shows the vehicle's current cargo
+--     (icon, fill/capacity) between its name and its picture.
+--   * "vehicle_list_hover_info" (vehicle_hover.lua): hovering a vehicle's picture in the vehicle list shows the
+--     vehicle's info block outside the window (line, parts by model, speed, power, age, condition, costs).
 -- Each feature has its own mod setting (values {"Off", "On"}, default On) and its own module, required and
 -- installed in its own pcall: a feature that fails to load or install is logged once and never stops the others.
 -- Features that need the manager's commonParams or a button next to A+ use the shared groundwork instead of wrapping
@@ -68,12 +77,22 @@ local FEATURES = {
 		module = "square_line_manager_plus::/line_manager_plus/stli_estimate.lua" },
 	{ key = "line_undo", name = "undo", module = "square_line_manager_plus::/line_manager_plus/undo.lua",
 		standDown = undoStandDown },
-	{ key = "line_dot_tooltip", name = "dot tooltip", module = "square_line_manager_plus::/line_manager_plus/line_dot.lua" },
+	{ key = "line_list_hover_info", name = "list hover",
+		module = "square_line_manager_plus::/line_manager_plus/line_list_hover.lua" },
 	{ key = "send_to_line_list_info", name = "list info",
 		module = "square_line_manager_plus::/line_manager_plus/stl_list.lua" },
 	{ key = "line_actions", name = "line ops", module = "square_line_manager_plus::/line_manager_plus/line_ops.lua" },
+	-- an entry in the Line actions menu; needs line_actions On (rate_matcher.lua checks it)
+	{ key = "line_rate_matcher", name = "rate matcher",
+		module = "square_line_manager_plus::/line_manager_plus/rate_matcher.lua" },
 	{ key = "map_shift_click", name = "map shift click",
 		module = "square_line_manager_plus::/line_manager_plus/map_shift_click.lua" },
+	{ key = "line_map_hover_info", name = "map hover",
+		module = "square_line_manager_plus::/line_manager_plus/line_hover.lua" },
+	{ key = "vehicle_list_cargo", name = "vehicle cargo",
+		module = "square_line_manager_plus::/line_manager_plus/vehicle_cargo.lua" },
+	{ key = "vehicle_list_hover_info", name = "vehicle hover",
+		module = "square_line_manager_plus::/line_manager_plus/vehicle_hover.lua" },
 }
 
 -- per feature key: "installed" | "off" | "stood down" | "not installed" | "failed"
@@ -111,6 +130,12 @@ local function doReplace(replacementApi)
 			warnOnce(f.name, err)
 		end
 	end
+	-- no setting: the vehicle list's name column takes the spare width (vehicle_columns.lua, with lmp.css.lua's
+	-- always-on column rules)
+	local okCols, errCols = pcall(function()
+		ug_require("square_line_manager_plus::/line_manager_plus/vehicle_columns.lua").install(replacementApi)
+	end)
+	if not okCols then warnOnce("vehicle columns", errCols) end
 	perf:phase("install", t0)
 end
 

@@ -60,7 +60,8 @@ end
 --- before reading, engine_react_util.tl:146). The captured commonParams outlive their manager window: when the
 --- window closes and another opens, our buttons render and step before the new window's descriptor call replaces
 --- them. :old() on such a state returns nil but the engine prints "Calling Old() on expired ReactStateWrap returns
---- nil" plus a stack traceback to stdout.txt every time (docs/findings.md "Expired react states"), so check first.
+--- nil" plus a stack traceback to stdout.txt every time (docs/findings.md "Expired react states"), so check first:
+--- editedLine (lineState), selectedLineCount (lineManagerStateRef) and selectedVehicles (vehicleManagerStateRef) do.
 --- A value without hasExpired (a plain table) counts as live.
 function M.expired(s)
 	if s == nil then return false end
@@ -78,19 +79,23 @@ function M.editedLine(p)
 	return ls and ls.entityAndRevision and ls.entityAndRevision.entity or nil
 end
 
---- Number of lines selected in the line list (0 without params).
+--- Number of lines selected in the line list (0 without params, and when that manager window has closed).
 function M.selectedLineCount(p)
 	p = p or current
-	local st = p and p.lineManagerStateRef and p.lineManagerStateRef:get()
+	local ref = p and p.lineManagerStateRef
+	if ref == nil or M.expired(ref) then return 0 end
+	local st = ref:get()
 	return st and st.lineListEntitiesSelected and #st.lineListEntitiesSelected or 0
 end
 
---- Entities of the vehicles selected in the vehicle list ({} without params), as manager_window.tl:62-69
---- getSelectedVehicleEntities.
+--- Entities of the vehicles selected in the vehicle list ({} without params, and when that manager window has
+--- closed), as manager_window.tl:62-69 getSelectedVehicleEntities.
 function M.selectedVehicles(p)
 	p = p or current
 	local out = {}
-	local st = p and p.vehicleManagerStateRef and p.vehicleManagerStateRef:get()
+	local ref = p and p.vehicleManagerStateRef
+	if ref == nil or M.expired(ref) then return out end
+	local st = ref:get()
 	local sel = st and st.vehicleListEntitiesSelected
 	if type(sel) ~= "table" then return out end
 	for _i, ear in ipairs(sel) do

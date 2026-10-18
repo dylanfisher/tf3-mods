@@ -11,8 +11,7 @@
 -- Injectors: rows.register{ id = "undo", order = -100, build = function(ctx) return { node, ... } or nil end }.
 -- ctx = { params = the captured commonParams (lmp_capture) }. Each build runs in its own pcall: a failing injector
 -- drops only its own nodes and is logged once. Sorted by order, then by registration; registering an id again
--- replaces it. Orders in use: -100 undo (Undo, Redo). Planned: the Line Rate Matcher before undo, the "Line actions"
--- popover button after A+.
+-- replaces it. Orders in use: -100 undo (Undo, Redo), 100 the "Line actions" popover button (lmp_actions.lua).
 --
 -- install() reads the current function at install time, so other mods' wrappers (Auto Assign Terminals) stay in the
 -- chain, and wraps only once. SQPERF section "toggle_button" (the wrapper, the base function included).

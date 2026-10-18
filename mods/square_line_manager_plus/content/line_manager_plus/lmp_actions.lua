@@ -1,6 +1,6 @@
 -- Line Manager Plus, the "Line actions" button (PLAN.md decision D1): one toggle button right of Auto-Rename (A+) in
 -- the line editor's toolbar that opens a small popover menu. Features add entries to that menu instead of more
--- toolbar icons (Duplicate / Reverse line today, line_ops.lua; the Line Rate Matcher later).
+-- toolbar icons (Duplicate / Reverse line, line_ops.lua; Match line rate, rate_matcher.lua).
 --
 -- Entries: actions.register{ id, order, label = "English key", icon = path, view = fn(ctx) -> { enabled, tooltip },
 -- run = fn(ctx) }. ctx = { params = the manager's commonParams (lmp_capture), line = the edited line entity }.

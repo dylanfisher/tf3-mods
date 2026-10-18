@@ -1,8 +1,11 @@
-# Line Manager Plus: in-game test (revision 1)
+# Line Manager Plus: in-game test
 
-Nothing below has been seen in game yet. Record the results here (date, build, language) and move confirmed facts
-to `docs/findings.md`. The undo checklist is Line Editor Undo's (`plans/square_line_revert/TESTING.md`, runs 1-2 passed
-there); the Send to Line part was never run in game.
+Status: rev 5 (2026-10-11). Phases 1-5 and Shift-click: user "looks good" 2026-10-11 (no detailed ticks); their
+sections stay as the regression checklist. Record results under "Results" (date, build, language) and move confirmed
+game facts to `docs/findings.md`. Passed one-off checks and old results: HISTORY.md.
+
+Open checks (not yet run in game): "Phase 2: line list, line info on hover" (rework), "Expired line state", "Line Rate
+Matcher", "Map: line info on hover". The vehicle list features of revs 3-5 have no section yet (PLAN.md "Open work").
 
 ## Setup
 
@@ -73,8 +76,13 @@ Change them in the mod selection when loading the save (settings only change on 
 - [ ] **Line editor: Undo and Redo buttons** Off: no undo/redo buttons, A+ in its usual place; log
       `[LineManagerPlus] undo: off (mod setting)`; Send to Line info still works.
 - [ ] Both Off: nothing changes in the Line Manager; no errors.
+- [ ] **Line actions: Match line rate** (`line_rate_matcher`) Off: the Line actions menu has only Duplicate and
+      Reverse; log `[LineManagerPlus] rate matcher: off (mod setting)`. With **Line editor: Line actions button** Off
+      (and Match line rate On): no button; log `[LineManagerPlus] rate matcher: needs the Line actions button
+      (line_actions Off), not installed`.
 - [ ] **Debug: performance log** On: `[SQPERF] mod=square_line_manager_plus ctx=gui` summary every 30 s while using
-      both features (sections `tooltip`, `view`, `button_render`, `click`, `descriptor`, `toggle_button`).
+      both features (sections `tooltip`, `view`, `button_render`, `click`, `descriptor`, `toggle_button`; with the Rate
+      Matcher window open `rate_matcher_step`, `rate_matcher_render`, `rate_matcher_click`).
 - [ ] Settings dialog: the three settings' names and tooltips are translated (check one other language).
 
 ## Coexistence with Line Editor Undo
@@ -107,51 +115,49 @@ Change them in the mod selection when loading the save (settings only change on 
       Send to Line block are translated, the stat names match the Line Manager's own labels, CJK renders (also "×"
       and "·").
 
-## Phase 1: shared groundwork (2026-10-10; 2026-10-11 user: looks good)
+## Phase 2: line list, line info on hover (reworked 2026-10-11; not yet run)
 
-Undo now gets the manager params from `lmp_capture.lua` and its row slot from `lmp_rows.lua` instead of wrapping the
-two base functions itself. Nothing should look or behave differently; there are no new settings or texts.
+Setting **Line list: line info on hover** (`line_list_hover_info`, default On; replaces rev 1's first build, the stats
+under the colour dot's tooltip, `line_dot_tooltip`). Expect at GUI start `[LineManagerPlus] list hover: installed`
+and no `dot tooltip` line. The block is the Send to Line list's (Phase 4), drawn by the shared `lmp_callout.lua`, as a
+callout on the game's mouse-transparent callout overlay. Hook: `builtin.ColumnDesc` for the line list's column; the
+row recipe gets `meta.onMouseOver` and a ref holder, no extra node (line_list_hover.lua header).
+Unverified in game: that a plain function works as the column's cell recipe, that `meta.onMouseOver` on the row
+fires for the whole row (also over its buttons) without false/true pairs while the mouse moves inside it, and the
+18 px gap.
 
-- [ ] Log at GUI start: `[LineManagerPlus] undo: installed`, and no `[LineManagerPlus] capture:` or `rows:` warning
-      during the whole session.
-- [ ] Row still reads [Undo][Redo][A+][paint] ··· [Buy Vehicles], same look as before; none with several lines
-      selected, none in the depot panel, none in other button rows (vehicle toolbar, other windows with an A+-like
-      toggle).
-- [ ] Quick undo pass: delete a stop, Undo, Redo, Shift+click Undo. Each acts once; tooltips count as before.
-- [ ] Close and re-open the Line Manager, switch lines: buttons follow the edited line (the capture keeps the newest
-      window's params).
-- [ ] With Auto Assign Terminals enabled (it wraps the same two base functions): both work, in either load order.
-- [ ] Line Editor Undo rev 5 enabled too: still exactly one set of buttons (LMP's), as verified before.
-- [ ] **Debug: performance log** On: the SQPERF summary still has `descriptor` and `toggle_button` (now timed by the
-      shared wrappers).
-
-## Phase 2: line stats on the colour dot (2026-10-10; 2026-10-11 user: looks good)
-
-Setting **Line list: stats on the color dot** (`line_dot_tooltip`, default On). Expect at GUI start
-`[LineManagerPlus] dot tooltip: installed`.
-
-- [ ] Line Manager, line list: hover a line's **colour dot**. The tooltip reads "Open Line Window", then the line's
-      vehicles by model ("Vehicles on this line: N", "k× Model" rows, at most 5 + "other models") and the stats row
-      (Capacity · Utilization · Frequency · Rate), matching the statistics row at the bottom for that line.
-      **Key check:** the stats appear in the first tooltip shown. (The text is added when the mouse enters the dot, a
-      moment before the tooltip delay ends. If only "Open Line Window" shows, or the stats appear only after moving
-      the mouse off and back on, note it: the fallback is building the text at render for the hovered row.)
-- [ ] Hovering anywhere else on the row (name, buttons, empty space) behaves exactly as vanilla: the same tooltips,
-      the row's hover highlight and its rename / locate / delete buttons appear as before.
-- [ ] The dot looks and sits exactly as before (size, vertical centre, hover/active colours, selected-row colours);
-      compare with the setting Off.
-- [ ] Clicking the dot still opens the line window; clicking the row still selects the line.
-- [ ] Line with 0 vehicles: "No vehicles on this line." plus the stats row. Cargo line and passenger line both sensible.
-- [ ] Depot rows: unchanged (they have no dot).
-- [ ] Other places with a line colour dot are unchanged: vehicle rows in the manager, station window, town / sim
-      person window, statistics lines (also UI Overhaul's line and industry cards, if enabled).
-- [ ] Moving the mouse quickly down the list across many dots: no stutter.
-- [ ] Delete a line while hovering its dot (or right after): no error.
+- [ ] **Key check (layout):** open the Line Manager. The line list looks exactly as before with the setting On and Off:
+      row height and width, the scrollbar, the checkbox, colour dot, name, notification icons; the rename / locate /
+      delete buttons appear on hover as before; selected-row and hover colours. If the list is broken or empty, note the
+      log (`[LineManagerPlus] list hover: column` / `row` warnings) and switch the setting Off.
+- [ ] **Key check (hover):** hover a line's row anywhere (checkbox, dot, name, empty space, the icons on the right): a
+      dark block appears **at once** (no tooltip delay) **outside the Line Manager, to its right**, its top level
+      with the hovered row, in the same darker blue as the Send to Line list's block. Contents: the line's name,
+      "Vehicles on this line: N" with "k× Model" rows, then Capacity · Utilization · Frequency · Rate (no arrows);
+      numbers match the statistics row at the bottom for that line. It stays steady while the mouse moves within the
+      row (note any blink when crossing the buttons).
+- [ ] Gap: the block sits just outside the window frame, not overlapping it (note the gap in px if it looks too large
+      or overlaps; `M.GAP` = 18 in line_list_hover.lua).
+- [ ] Move down the list: the block follows row by row (note a one-frame blink between rows, if any). Leave the list
+      (to the search field, the header, the vehicle card, outside the window): the block goes. Scroll with the wheel
+      while hovering: the block follows the row or goes; never left behind on its own.
+- [ ] Move the Line Manager to the **right half** of the screen: the block opens **left of the window**. Near the
+      bottom edge it stays on screen.
+- [ ] The list works as before: click a row selects the line; checkboxes; the colour dot opens the line window; rename,
+      locate, delete (also delete the hovered line: the block goes, no error); double-click follows the line; search
+      and filters; the game's "Select Line" / "Open Line Window" tooltips still appear after their delay.
+- [ ] Depot rows: no block. A line with 0 vehicles: "No vehicles on this line." plus the stats row.
+- [ ] Close the Line Manager while a block shows (Esc, or the toolbar button): the block goes with it, no block left on
+      screen (a "CalloutContainer: parent node has been destroyed" warning in stdout is harmless; note it).
+- [ ] Other tables unchanged: the vehicle list in the manager, statistics, station / depot vehicle tables.
+- [ ] Send to Line from the manager while hovering the list: the popover's own block works (Phase 4); the two never
+      show at once.
+- [ ] Moving the mouse quickly down a long list: no stutter.
 - [ ] With Auto Assign Terminals and UI Overhaul enabled: everything above still works; no `[LineManagerPlus]` warning.
-- [ ] Setting Off: log `[LineManagerPlus] dot tooltip: off (mod setting)`, the dot shows "Open Line Window" only.
-- [ ] **Debug: performance log** On: SQPERF summary has section `dot_tooltip` after hovering dots. The settings
-      dialog shows the new setting translated (one other language), and the debug tooltip's new wording.
-- [ ] Other language: the stats lines translated, CJK renders.
+- [ ] Setting Off: log `[LineManagerPlus] list hover: off (mod setting)`, no block, the list as vanilla.
+- [ ] **Debug: performance log** On: SQPERF summary has section `list_hover` after hovering rows. The settings
+      dialog shows the new setting name and tooltip translated (one other language).
+- [ ] Other language: the block's lines translated, CJK renders.
 
 ## Phase 3: Send to Line before → after estimate (2026-10-10; 2026-10-11 user: looks good)
 
@@ -186,22 +192,37 @@ info** On). Expect at GUI start `[LineManagerPlus] estimate: installed` after `s
 Setting **Send to Line list: line info panel** (`send_to_line_list_info`, default On). Expect at GUI start
 `[LineManagerPlus] list info: installed` (or `installed (estimate off: mod setting)` with the estimate Off).
 
+2026-10-11 rework (user report: the panel inside the card squeezed the list, names clipped, hovering a row's right part
+flickered): the card has a fixed 440 px width (popover_react_util.css.lua:14-17), so the panel now opens as a
+**callout outside the card** on the game's callout overlay (the layer of the entity windows' card callouts), which is
+mouse-transparent. Unverified in game: that the overlay draws above the popover and passes the mouse through.
+
 - [ ] Line Manager, select vehicles, click **Send to Line**: the popup (title "Send to Line", First Stop combo box, the
-      list of lines) opens exactly as before, at the same place and size, with **no panel** yet.
-- [ ] Hover a row: a dark block (same colour as the map info block) appears **right of the list**, top aligned with the
-      header: the line's name, "Vehicles on this line: N" with "k× Model" rows, then Capacity · Utilization ·
-      Frequency · Rate, with "→ ~after" arrows for vehicles not already on that line. Numbers match the map hover on
-      the same line. Move to another row: the panel follows at once (if it lags a step or flickers between rows,
-      note it). Leave the list: the panel goes away. **Key check:** does the window shrink back when it goes? (If it
-      stays wide, note it: the fallback is a fixed-width panel slot.)
+      list of lines) opens exactly as vanilla, same place and **same width**, full line names, the scrollbar at the
+      card's right edge, and **no block** yet.
+- [ ] **Key check (flicker):** hover a row on its **left** part, then its **middle**, then its **right** part next to
+      the scrollbar: a dark block appears **outside the card, to its right** (8 px gap, top aligned with the card's
+      top), in **the same darker blue as the map hover info block** (compare with hovering the line on the map in Send
+      to Line mode). It stays steady anywhere on the row: no flicker, the row keeps its hover highlight, line names are
+      never clipped, the card never changes width. Contents: the line's name, "Vehicles on this line: N" with
+      "k× Model" rows, then Capacity · Utilization · Frequency · Rate, with "→ ~after" arrows for vehicles not
+      already on that line; numbers match the map hover on the same line.
+- [ ] Move to another row: the block follows at once (note a one-frame blink between rows, if any). Leave the list
+      (to the header, the combo box, outside): the block goes away. Close the popup (Esc, click outside, send to a
+      line): the block goes with it, no block left on screen, no "CalloutContainer: parent node has been destroyed"
+      warning in stdout (if there is one, note it; harmless).
+- [ ] Move the Line Manager so the popup is in the **right half** of the screen: the block opens **left of the card**
+      instead, not covering the rows. Near a screen edge it stays on screen.
 - [ ] The list doesn't move or change: row width, scroll position (scroll down, hover, the list stays where it was),
       hover highlight and the map highlight of the hovered line, clicking a row sends the vehicles and closes the
       popup, the First Stop combo box opens and changes, the "only visible lines" toggle works, Esc and a click outside
       close it.
-- [ ] Hovering the panel itself or clicking on it does not close the popup (it is inside the popover) and does nothing.
+- [ ] The block takes no mouse: moving the mouse onto it doesn't change anything in the list; clicking on it acts as a
+      click outside the card (the popup closes, as when clicking beside it).
+- [ ] While the block shows, an entity window card callout (hover a card info icon in a station window, if one is
+      open) replaces it: hovering a list row again brings ours back.
 - [ ] A line with 0 vehicles: "No vehicles on this line." plus the stats row. A long model name or long line name:
-      the panel grows, the text isn't cut. With the popup near the right edge of the screen (manager window moved
-      right, or a small resolution): does the panel reach past the edge? (Not handled; note how far.)
+      the block grows, the text isn't cut.
 - [ ] Popup opened from the **line window** (Send to Line there, `openWithVehicleEntities`): same panel.
 - [ ] Other popovers unchanged, no panel: the stop's "Select Terminals" popover in the line editor, the auto-rename
       dialog, the configure-lines popover, any toolbar popover. Also with **UI Overhaul** and **Easy Terminal
@@ -239,8 +260,10 @@ Setting **Line editor: Line actions button** (`line_actions`, default On). Expec
       (1 change); **one Undo click restores the original order and terminals**; Redo reverses again.
 - [ ] Reverse a train line with waypoints and a line on one-way roads: if the reversed line has no path, the game shows
       its line problem; Undo takes it back. Note what happened.
-- [ ] Undo feature Off (setting): Reverse still works (no Undo button). Reverse a 2-stop line without waypoints where
-      the terminals don't change: message "reversing doesn't change this line", no change.
+- [ ] Undo feature Off (setting): Reverse still works (no Undo button). A 2-stop line: Reverse is greyed out with the
+      tooltip "Reversing needs at least 3 stops: with 2, the line already runs both ways." A mirror-image route
+      (A, B, C, B): Reverse gives "this line visits the same stops in both directions, so reversing doesn't change it",
+      no change.
 - [ ] Failure cases: a line with 1 stop (both entries greyed out, tooltip "The line needs at least 2 stops."); demolish
       a station of a line, then open the menu (greyed out, "A station of this line no longer exists."). Clicking twice
       fast: only one command is sent.
@@ -261,6 +284,72 @@ skip an expired state (docs/findings.md "Expired react states").
       several times: no `stack traceback` with `lmp_capture` / `undo.lua` / `lmp_actions.lua` and no `Calling Old() on
       expired ReactStateWrap` line in stdout.txt.
 - [ ] Undo / Redo and the Line actions button still appear for the edited line right after reopening.
+
+## Line Rate Matcher (merged from square_line_rate_matcher, 2026-10-11, not yet run)
+
+The former mod Line Rate Matcher (rev 1, never published) is now the feature **Line actions: Match line rate**
+(`line_rate_matcher`, MERGE_RM_PLAN.md): an entry in the Line actions menu instead of its own button left of A+. The
+window itself is unchanged. Design history: RATE_MATCHER.md (the former PLAN.md), history/RM_PROBE.md, rm_probe_run*.log.
+**Apply buys and sells vehicles**: use a test save (the probe's WC Logs save is ideal).
+
+Setup: Line Manager Plus only. **Disable Line Rate Matcher** if it is still in the mod list (it is retired), and the
+DEV **Line Rate Matcher Probe** (`square_line_rate_matcher_probe`): it mounts its own "RM" row next to A+. The log
+filter `LineManagerPlus` now covers it: `[LineManagerPlus] rate matcher: installed` at GUI start, then `open line ...`,
+`timing line ...`, `price ...`, `clone charged ...` (formerly `[RateMatcher] ...`).
+
+Merge checks:
+
+- [ ] The Line actions menu (list icon right of A+, one selected line) has a first entry **Match line rate** with the
+      clock-and-box icon, above Duplicate and Reverse; its tooltip explains it. Click: the menu closes and the Rate
+      Matcher window opens, titled with the line's name, looking and working as before (opaque, placed right of
+      centre, right-aligned columns, no sort caret, no grey highlight when hovering or pressing a column header).
+- [ ] Clicking Match line rate again for the same line brings the window to the front and re-reads the line; for
+      another line the window switches to that line.
+- [ ] A protected (mission) line: no Line actions button, so no Match line rate (the old button showed there;
+      accepted with the merge).
+- [ ] **No tracebacks**: leave the Rate Matcher window open, close the Line Manager, wait a minute (the window
+      re-reads every 2 s), press Apply once: stdout.txt has no `stack traceback` and no `Calling Old() on expired
+      ReactStateWrap` (the old mod printed ~70 per session). Then reopen the Line Manager on the line: Apply again adds
+      the new vehicles to the manager's vehicle list.
+- [ ] Settings: see "Mod settings" (Off, and Line actions button Off).
+- [ ] **Performance** (Debug: performance log On, Rate Matcher window open on the biggest line you have, ~1 min idle,
+      then a few target keystrokes): `make perf ARGS='--mod square_line_manager_plus'` shows `rate_matcher_step` about
+      once per frame with a tiny mean (most frames do nothing; every 2 s one Rate + vehicles read), and
+      `rate_matcher_render` only a few times while idle (renders only when Rate or the vehicles change), once per
+      keystroke while typing; no `slow=rate_matcher_*` lines. With the window closed, no `rate_matcher_*` section
+      counts up. (Offline, 2026-10-11, 100 vehicles / 200 other lines / 300 models: step 0.4 µs, live refresh
+      0.2 ms, render 0.6 ms, open 3.8 ms in the test harness's Lua; the game's engine calls cost more.)
+
+From the former checklist (phase 3f, the last state tested 2026-10-11):
+
+| # | Step | Expect |
+|---|---|---|
+| f1 | **Right edges** | The stats row's last cell, both tables (incl. the selected row's highlight) and the three panels end at the same right edge; nothing pokes out of a panel |
+| f2 | **Tags** | "suggested" (top table, next to the target box) and "best" are plain light-blue text, the colour of the Line Manager's Balance value; no background; "suggested" not cut off |
+| f3 | **Disabled Apply** | After "Bought 1 vehicle for this line." Apply is an outlined button with readable dimmed text; enabled again it is the filled primary button |
+| f4 | Widths | If f1 is off by a constant, the assumption that a StyleSheet `size` excludes padding is wrong: say roughly how much |
+
+Core checks (condensed):
+
+| # | Step | Expect |
+|---|---|---|
+| 1 | Select **WC Logs** (2 ships, Rate 66), Match line rate | Target **101** "suggested", rows "3 · +1 · 99" (checked, "suggested") and "4 · +2 · 132". Log `open line ...`, `timing line ...`, `price ...` |
+| 2 | Alignment | Headers over their columns, numbers right-aligned, both tables the same width, nothing cut off |
+| 3 | Select | Click anywhere on a row or its check box: it becomes selected, the Apply line changes; same in the comparison (its rows replace the plan table). Header clicks don't sort |
+| 4 | Price | "3 · +1" Price = the store price; after Apply `clone charged: ... = X` matches |
+| 5 | Cost/yr, Cost per unit | Cost/yr = running + purchase over the lifespan (tooltip shows both); Cost per unit = Cost/yr ÷ ≈ Rate |
+| 6 | Compare models | Per-model figures differ when the timing line has a share at stops > 0; "best" on the cheapest |
+| 7 | Estimate vs reality (optional) | Switch model, wait 1-3 s: real Rate vs the promised ≈ Rate |
+| 8 | Type `33` (no Enter) | Rows update while typing, focus stays; "1 · -1 · 33", Price negative |
+| 9 | Apply buy / sell / model switch / Replace window / passenger line / train / mission vehicles / reopen / close Line Manager | Vehicle list follows, Rate updates within 1-3 s, hints for passengers / trains / mission vehicles |
+| 10 | Spacing | Room above "Compare models" and above the buttons; both headings alike |
+
+After the run: `grep -E 'LineManagerPlus\] rate matcher.*(failed|further failures)|ERROR' stdout.txt` should be empty.
+
+Unverified in game (from the former mod): `builtin.DataTable` height with few rows and its click / check box / style
+class handling; the two right-aligned rules; `getLineCargoInfo` section vs drive times (the estimate depends on them);
+`makeVehicleReplaceCmd` switches and money checks (a 2026-10-11 switch of 3 replaced + 3 bought logged `failed 0/6`,
+probably the all-or-nothing money check).
 
 ## Map: Shift-click a line (moved from Passenger Destinations, 2026-10-11; 2026-10-11 user: ready after two games)
 
@@ -283,10 +372,28 @@ shift click: open the Line Manager for line N (clicked M)`.
 - [ ] Setting **Map: Shift-click a line opens the Line Manager** Off (on load): Shift-click a line opens the line
       window; log `[LineManagerPlus] map shift click: off (mod setting)`.
 
-## Results
+## Map: line info on hover (2026-10-11, not yet run)
 
-- 2026-10-11, phases 1-5: user: looks good (no detailed checklist results).
-- 2026-10-11, Map: Shift-click a line (with Passenger Destinations rev 5): user played two games, ready (no detailed
-  checklist results).
+Expect at GUI start `[LineManagerPlus] map hover: installed`. Open the Line Manager (normal mode: line list, no
+Send to Line), hover lines on the map.
+
+- [ ] The replacement takes effect: below the game's "Select <line>." text, our block (vehicles by model, then
+      Capacity · Utilization · Frequency · Rate), the same look as the Send to Line block (darker box, 4 px gap).
+- [ ] Numbers match the Send to Line hover / the line list hover block / the footer for the same line; no "→ ~" arrows.
+- [ ] Line with 0 vehicles: "No vehicles on this line." plus the stats row. Cargo and passenger lines, a train line.
+- [ ] Clicking a line still selects it (sound, list scrolls); stations still show "Create new line…", depots
+      their texts; with a line selected, hovering another line still shows the block.
+- [ ] Send to Line mode: still the Send to Line block with the estimate (separate recipe); segment / move-stop modes
+      unchanged ("Select section", etc.).
+- [ ] Line Manager closed: the map hover of a line is the game's usual one (no block, nothing logged).
+- [ ] Hovering quickly across many lines and along one line: no stutter (SQPERF section `map_hover` with
+      **Debug: performance log** On).
+- [ ] A line deleted while hovering it: no error.
+- [ ] Setting **Map: line info on hover** Off (on load): only "Select <line>."; log
+      `[LineManagerPlus] map hover: off (mod setting)`. With **Send to Line: target line info** Off and this On, the
+      map hover still shows the block.
+- [ ] A long translated text (de/ru) and CJK: the block wraps within the tooltip's max width.
+
+## Results
 
 (paste `[LineManagerPlus]` / `[LineRevert]` lines, screenshots, problems)

@@ -1,55 +1,55 @@
 {
     "name": "Line Manager Plus",
-    "summary": "Undo and redo for the line editor, plus the target line's vehicles and stats in Send to Line.",
-    "description": "Undo and redo edits of a line's stops in the line manager, and see the target line's vehicles and statistics while sending vehicles with Send to Line. Replaces Line Editor Undo. GUI only: stores nothing in the savegame.",
+    "summary": "Line info on hover, Shift-click a line to manage it, undo/redo, line actions and rate matching.",
+    "description": "See any line's vehicles and statistics by hovering it in the line list, on the map or in Send to Line (with a before/after estimate), Shift-click a line on the map to open it in the line manager, undo and redo stop edits, duplicate or reverse a line, and size a line's fleet to its supply. Replaces Line Editor Undo. GUI only: stores nothing in the savegame.",
     "localization": {
         "ru": {
             "name": "Управление маршрутами Plus",
-            "summary": "Отмена и повтор в редакторе маршрутов, а также транспорт и статистика маршрута при отправке."
+            "summary": "Сведения о маршруте при наведении, Shift+щелчок открывает маршрут, отмена/повтор, действия, оборот."
         },
         "de": {
             "name": "Linien-Manager Plus",
-            "summary": "Rückgängig und Erneut im Linieneditor, dazu Fahrzeuge und Werte der Ziellinie bei „Linie zuweisen“."
+            "summary": "Linieninfo beim Überfahren, Shift+Klick öffnet die Linie, Rückgängig/Erneut, Linienaktionen, Rate."
         },
         "fr": {
             "name": "Gestionnaire de lignes Plus",
-            "summary": "Annuler et Rétablir dans l'éditeur de ligne, et véhicules et stats de la ligne cible à l'envoi."
+            "summary": "Infos de ligne au survol, Maj+clic ouvre la ligne, annuler/rétablir, actions de ligne, taux."
         },
         "es": {
             "name": "Gestor de líneas Plus",
-            "summary": "Deshacer y rehacer en el editor de líneas, y vehículos y datos de la línea al enviar a la línea."
+            "summary": "Info de línea al pasar el ratón, Mayús+clic abre la línea, deshacer/rehacer, acciones, ajustar tasa."
         },
         "it": {
             "name": "Gestore linea Plus",
-            "summary": "Annulla e Ripeti nell'editor linee, più veicoli e dati della linea di destinazione in Invia a linea."
+            "summary": "Info linea al passaggio del mouse, Maiusc+clic apre la linea, annulla/ripeti, azioni linea, indice."
         },
         "nl": {
             "name": "Lijnbeheer Plus",
-            "summary": "Ongedaan maken en opnieuw in de lijneditor, plus voertuigen en cijfers van de doellijn."
+            "summary": "Lijninfo bij aanwijzen, Shift+klik opent de lijn, ongedaan maken/opnieuw, lijnacties, aantal."
         },
         "pl": {
             "name": "Zarządca linii Plus",
-            "summary": "Cofnij i ponów w edytorze linii oraz pojazdy i dane linii docelowej przy „Wyślij na linię”."
+            "summary": "Informacje o linii po najechaniu, Shift+klik otwiera linię, cofnij/ponów, akcje linii, wydolność."
         },
         "pt_BR": {
             "name": "Administrador da Linha Plus",
-            "summary": "Desfazer e refazer no editor de linhas, mais veículos e dados da linha de destino ao enviar."
+            "summary": "Info da linha ao passar o mouse, Shift+clique abre a linha, desfazer/refazer, ações, ajuste de taxa."
         },
         "ja": {
             "name": "路線マネージャー Plus",
-            "summary": "路線エディターに元に戻す／やり直しを追加し、「路線へ送る」で送り先路線の車両と統計を表示します。"
+            "summary": "ホバーで路線情報、Shift+クリックで路線を開く、元に戻す／やり直し、路線アクション、割合の調整。"
         },
         "ko": {
             "name": "노선 관리자 Plus",
-            "summary": "노선 편집기에 실행 취소/다시 실행을 추가하고, 노선으로 보내기에서 대상 노선의 차량과 통계를 표시합니다."
+            "summary": "마우스를 올리면 노선 정보, Shift+클릭으로 노선 열기, 실행 취소/다시 실행, 노선 작업, 비율 맞추기."
         },
         "zh_CN": {
             "name": "线路管理器 Plus",
-            "summary": "为线路编辑器添加撤销和重做，并在“派送到线路”时显示目标线路的车辆和统计。"
+            "summary": "悬停显示线路信息、Shift+单击打开线路、撤销/重做、线路操作、比率匹配。"
         },
         "zh_TW": {
             "name": "路線調度視窗 Plus",
-            "summary": "為路線編輯器加入復原與重做，並在「派遣至路線」時顯示目標路線的車輛與統計。"
+            "summary": "懸停顯示路線資訊、Shift+點擊開啟路線、復原/重做、路線操作、比率匹配。"
         }
     },
     "authors": [

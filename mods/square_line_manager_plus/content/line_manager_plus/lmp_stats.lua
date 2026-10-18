@@ -1,6 +1,7 @@
 -- Line Manager Plus, shared line stats: the one stli_core model (vehicles by model; Capacity, Utilization, Frequency,
 -- Rate) behind every feature that shows a line's numbers, so they share its 1 s cache per line and its fallbacks.
--- Users: stli.lua (Send to Line hover text on the map, with the before -> after estimate), line_dot.lua (tooltip of the colour dot in the line list).
+-- Users: stli.lua (Send to Line hover text on the map, with the before -> after estimate), line_list_hover.lua (the info block of
+-- the hovered row of the line list), line_hover.lua (the Line Manager's normal map hover text of a line), stl_list.lua.
 -- The model is built on first use (api is complete by then); the base modules only the stats need are optional:
 -- a missing one costs the stats (stats.lines errors, the caller falls back to vanilla), never a feature's install.
 -- Clock and engine reads only: safe on every thread. Failures inside the model are logged once per kind as

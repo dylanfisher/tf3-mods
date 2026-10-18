@@ -1,5 +1,61 @@
-<p>Additions to the line manager in one mod: Undo and Redo buttons for editing a line's stops, the target line's vehicles and numbers (and how sending changes them) while you send vehicles to another line, on the map and in the Send to Line list, the same details when you hover a line's colour dot in the line list, a Line actions button to duplicate or reverse a line, and Shift-click on the map to open the line manager on a line. Each one can be switched off on its own in the mod settings.</p>
+<p>Get to any line faster and see how it is doing without opening it. <strong>Shift-click a line on the map</strong> to open it straight in the line manager, and <strong>hover any line</strong> (in the line manager's list, on the map while the line manager is open, or in the Send to Line list and on the map while sending) for an instant info box with its vehicles, Capacity, Utilization, Frequency and Rate. While you send vehicles, the box also shows what sending them would change.</p>
+<p>The line manager's vehicle list also shows <strong>what each vehicle carries right now</strong>, so you can spot the empty ones at a glance, gives vehicle names a <strong>wider column</strong> so more of a long name fits, and <strong>hovering a vehicle's picture</strong> shows its line, parts (every locomotive and wagon of a train), speed, condition and costs. On top of that: a Line actions menu with Match line rate (size a line's fleet to the cargo it serves), Duplicate line and Reverse line, and Undo and Redo buttons for editing a line's stops. Each feature can be switched off on its own in the mod settings.</p>
 <p><strong>Replaces Line Editor Undo.</strong> Line Manager Plus includes everything Line Editor Undo does. If you use Line Editor Undo, disable it and enable Line Manager Plus instead. The game warns you when both are enabled; if you keep both anyway, only one set of undo buttons appears.</p>
+<h4>Map: Shift-click a line</h4>
+<ul>
+<li><strong>Shift-click one of your lines</strong> on the map to open the line manager on it, without the line window first. A plain click still opens the line window.</li>
+<li>With a line window open, <strong>Shift-click empty ground or water</strong> to open the line manager on that line (the line drawn by the window can't be clicked itself, so a click on it lands on the ground below).</li>
+<li>Works on the plain map and with entity windows open. Vehicles, stations and other companies' lines open their usual window; builders and the line manager keep Shift for themselves.</li>
+</ul>
+<h4>Line list: line info on hover</h4>
+<ul>
+<li>Hover <strong>a line in the line manager's line list</strong>, anywhere on its row: an info box right outside the line manager (left of it when the window is on the right of the screen), level with the row, shows the line's name, vehicles by model and its Capacity, Utilization, Frequency and Rate, the same details and look as in the Send to Line list. It appears at once, with no tooltip delay, and goes when the mouse leaves the row.</li>
+<li>The list itself works exactly as before: selecting, the checkboxes, the rename, locate and delete buttons, scrolling, search and the game's tooltips. Depot rows show no info box.</li>
+</ul>
+<h4>Vehicle list: current cargo and longer names</h4>
+<ul>
+<li>Every vehicle in the line manager's vehicle list shows its <strong>current load</strong> between its name and its picture: the cargo's icon and how full it is, e.g. "6/25". An empty vehicle shows a greyed "0/25", so you can see at once which trucks run empty, or pick the empty one when you take vehicles off a line.</li>
+<li>The numbers are for the whole vehicle. A vehicle with several cargo types aboard, like a mixed train or a ship, shows up to three cargo icons, fullest first, and "+1", "+2" for any more; the column only takes room for as many icons as the line's vehicles can carry. Hover the load to see every type with its own load, and any space not yet given to a cargo. Updates every second.</li>
+<li>The load is part of the row and lights up with it. Renaming works as before (the pen sits between the name and the load).</li>
+<li>The picture column is only as wide as the widest picture in the list, and the name column takes the rest: on bus, truck and plane lines long vehicle names show almost in full, while train lines keep room for their pictures (cut off at the right beyond about 120 px). This one has no setting: it always applies.</li>
+</ul>
+<h4>Vehicle list: vehicle info on hover</h4>
+<ul>
+<li>Hover a vehicle's picture in the line manager's vehicle list to see a box next to the line manager with the vehicle's name, its line (or In Depot / Going to Depot) and its <strong>parts</strong>: every locomotive and wagon of a train, e.g. "Big Boy, Tender, 12× Boxcar".</li>
+<li>Below that: top speed (of its slowest part), power, weight, age, condition, running costs per year, current value and last year's balance.</li>
+</ul>
+<h4>Map: line info on hover</h4>
+<ul>
+<li>With the line manager open, <strong>hover one of your lines on the map</strong>: below the game's "Select Bus Line 1." text you see the line's vehicles by model and its Capacity, Utilization, Frequency and Rate, the same details as in Send to Line (without the before → after estimate, since nothing is being sent).</li>
+<li>Clicking the line still selects it as before. Stations, depots and the other hover texts are unchanged.</li>
+</ul>
+<h4>Send to Line: target line info</h4>
+<ul>
+<li>Select vehicles in the line manager, click <strong>Send to Line</strong> and hover a line on the map: below the game's "Send 3 vehicles to Bus Line 1." text you see the line's <strong>vehicles</strong>, grouped by model ("3× Foo", "1× Bar", the largest groups first), or "No vehicles on this line."</li>
+<li>The line's <strong>Capacity, Utilization, Frequency and Rate</strong>, worked out with the same game functions as the statistics row at the bottom of the line manager, so the numbers match.</li>
+<li><strong>Before → after estimate</strong>: the same text also shows what sending the selected vehicles would do, e.g. "Capacity: 40 → ~80", "Frequency: 7 min 19 s → ~4 min 53 s", "Rate: 66 → ~132". Frequency assumes the new vehicles are about as fast as the line's; rate grows with the added capacity. The "~" marks an estimate, and Utilization stays the current value (it depends on demand the game can't predict). Vehicles already on that line don't count; if some selected vehicles can't carry the line's cargo, a line says how many.</li>
+<li><strong>In the Send to Line list</strong> too: hover a line in the list that the Send to Line button opens, and an info box appears outside the popup, right next to it (left of it when the popup is on the right of the screen), with the line's name, vehicles by model and Capacity, Utilization, Frequency and Rate, and the same before → after estimate. The list itself works exactly as before.</li>
+<li>Works for passenger and cargo lines of every transport type.</li>
+</ul>
+<h4>Line actions: Duplicate and Reverse line</h4>
+<ul>
+<li>A <strong>Line actions</strong> button (a list icon) right of the Auto-Rename button of a single selected line opens a small menu: Match line rate (below), Duplicate line and Reverse line.</li>
+<li><strong>Duplicate line</strong> makes a new line with the same stops and every stop setting (terminals, waypoints, load mode, waiting times, cargo settings), named "Bus Line 1 (copy)" ("(copy 2)" and so on if that name is taken), with a new colour picked the way the game picks one for a new line. It starts without vehicles: send some with Send to Line or buy new ones. The line manager then switches to the copy.</li>
+<li><strong>Reverse line</strong> serves the stops in the opposite order. Stop 1 stays first, waypoints follow their stretch of the route, and terminals are chosen anew for the new direction (for example the bus stop on the other side of the street). The vehicles stay on the line. With the Undo button on, one Undo takes the reverse back.</li>
+<li>Greyed out, with the reason in the tooltip, for a line with fewer than 2 stops or a demolished station. Reverse line needs at least 3 stops: a line with 2 already runs both ways. If the game refuses the change, a message says so and the line stays as it was.</li>
+</ul>
+<h4>Line actions: Match line rate</h4>
+<p>A logging camp makes 101 logs a year and your ship line moves 66 with 2 ships? Match line rate shows that 3 ships reach about 99 and 4 about 132, what each option costs, and whether another ship model would carry the logs for less. Nothing is bought or sold until you press Apply.</p>
+<ul>
+<li><strong>Match line rate</strong>, first in the Line actions menu (needs the Line actions button), opens a window titled with the line's name. Check the target, pick a row in the options table or a model in the comparison, and press <strong>Apply</strong>. Clicking it again brings the window to the front.</li>
+<li><strong>Line stats</strong>: Rate, vehicles, Rate per vehicle and running costs per year, the same numbers the line manager and the vehicle windows show.</li>
+<li><strong>Supply</strong>: for each cargo the line loads, what the producers in reach of its loading stops can make per year, what they actually produced and how much other lines already take there. The target follows the cargo that needs the most vehicles.</li>
+<li><strong>Target</strong>: suggested from the supply, or type your own Rate per year, with - and + buttons and a Suggested button to go back.</li>
+<li><strong>Options table</strong>: vehicle counts around the target with the change, the estimated Rate, the price (new vehicles minus what the leaving ones sell for), the yearly cost (running costs plus purchase prices spread over the lifespan) and the cost per unit carried. The count closest to the target is marked "suggested".</li>
+<li><strong>Compare models</strong>: the line's model next to up to 5 other buyable models of the same kind that carry the cargo, each with the count it needs and its costs. The lowest cost per unit is marked "best". Click a model to see its options.</li>
+<li><strong>Apply</strong>: buys copies of the line's vehicle straight onto this line, sells the newest vehicles at once (as the game's Sell button), or switches the whole fleet to another model (replaced in place like the game's Replace window, plus extra vehicles bought or surplus ones sold). The line above the buttons says what Apply will do, and the window re-reads the line afterwards.</li>
+<li><strong>Replace window</strong>: opens the game's own Replace Vehicles window for the line's vehicles, if you prefer to pick there.</li>
+</ul>
 <h4>Line editor: Undo and Redo</h4>
 <ul>
 <li><strong>Undo button</strong> (a curved-arrow icon) left of the Auto-Rename button of a single selected line: each click undoes one edit (adding, removing or moving a stop, a waypoint, a terminal, load mode, waiting times or cargo settings), most recent first.</li>
@@ -8,41 +64,18 @@
 <li><strong>Tooltips</strong> name the edit the next click undoes or redoes and how many changes you made since opening the line. Up to 50 steps are kept; Shift+click always reaches the start.</li>
 <li>The history starts each time you open a line, and is cleared when you switch to another line or close the line manager.</li>
 </ul>
-<h4>Send to Line: target line info</h4>
-<ul>
-<li>Select vehicles in the line manager, click <strong>Send to Line</strong> and hover a line on the map: below the game's "Send 3 vehicles to Bus Line 1." text you see the line's <strong>vehicles</strong>, grouped by model ("3× Foo", "1× Bar", the largest groups first), or "No vehicles on this line."</li>
-<li>The line's <strong>Capacity, Utilization, Frequency and Rate</strong>, worked out with the same game functions as the statistics row at the bottom of the line manager, so the numbers match.</li>
-<li><strong>Before → after estimate</strong>: the same text also shows what sending the selected vehicles would do, e.g. "Capacity: 40 → ~80", "Frequency: 7 min 19 s → ~4 min 53 s", "Rate: 66 → ~132". Frequency assumes the new vehicles are about as fast as the line's; rate grows with the added capacity. The "~" marks an estimate, and Utilization stays the current value (it depends on demand the game can't predict). Vehicles already on that line don't count; if some selected vehicles can't carry the line's cargo, a line says how many.</li>
-<li><strong>In the Send to Line list</strong> too: hover a line in the list that the Send to Line button opens, and a panel right of the list shows its name, vehicles by model and Capacity, Utilization, Frequency and Rate, with the same before → after estimate. The list itself works exactly as before.</li>
-<li>Works for passenger and cargo lines of every transport type.</li>
-</ul>
-<h4>Line list: stats on the colour dot</h4>
-<ul>
-<li>Hover the <strong>colour dot</strong> of a line in the line manager's line list: below the game's "Open Line Window" tooltip you see the line's vehicles by model and its Capacity, Utilization, Frequency and Rate, the same details as in Send to Line.</li>
-<li>Only the dot: hovering anywhere else on the row works as before, and clicking the dot still opens the line window.</li>
-</ul>
-<h4>Line actions: Duplicate and Reverse line</h4>
-<ul>
-<li>A <strong>Line actions</strong> button (a list icon) right of the Auto-Rename button of a single selected line opens a small menu.</li>
-<li><strong>Duplicate line</strong> makes a new line with the same stops and every stop setting (terminals, waypoints, load mode, waiting times, cargo settings), named "Bus Line 1 (copy)" ("(copy 2)" and so on if that name is taken), with a new colour picked the way the game picks one for a new line. It starts without vehicles: send some with Send to Line or buy new ones. The line manager then switches to the copy.</li>
-<li><strong>Reverse line</strong> serves the stops in the opposite order. Stop 1 stays first, waypoints follow their stretch of the route, and terminals are chosen anew for the new direction (for example the bus stop on the other side of the street). The vehicles stay on the line. With the Undo button on, one Undo takes the reverse back.</li>
-<li>Greyed out, with the reason in the tooltip, for a line with fewer than 2 stops or a demolished station. If the game refuses the change, a message says so and the line stays as it was.</li>
-</ul>
-<h4>Map: Shift-click a line</h4>
-<ul>
-<li><strong>Shift-click one of your lines</strong> on the map to open the line manager on it, without the line window first. A plain click still opens the line window.</li>
-<li>With a line window open, <strong>Shift-click empty ground or water</strong> to open the line manager on that line (the line drawn by the window can't be clicked itself, so a click on it lands on the ground below).</li>
-<li>Works on the plain map and with entity windows open. Vehicles, stations and other companies' lines open their usual window; builders and the line manager keep Shift for themselves.</li>
-</ul>
 <h4>Settings</h4>
 <ul>
 <li><strong>Send to Line: target line info</strong> (On by default).</li>
 <li><strong>Send to Line: before/after estimate</strong> (On by default; on the map it needs the target line info On).</li>
 <li><strong>Line editor: Undo and Redo buttons</strong> (On by default).</li>
-<li><strong>Line list: stats on the color dot</strong> (On by default).</li>
+<li><strong>Line list: line info on hover</strong> (On by default).</li>
 <li><strong>Send to Line list: line info panel</strong> (On by default).</li>
 <li><strong>Line editor: Line actions button</strong> (On by default).</li>
+<li><strong>Line actions: Match line rate</strong> (On by default; needs the Line actions button On).</li>
 <li><strong>Map: Shift-click a line opens the Line Manager</strong> (On by default).</li>
+<li><strong>Map: line info on hover</strong> (On by default).</li>
+<li><strong>Vehicle list: current cargo</strong> (On by default).</li>
 <li><strong>Debug: performance log</strong> (Off by default): only for tracking down slowdowns.</li>
 </ul>
 <h4>Notes</h4>
@@ -50,11 +83,62 @@
 <li>GUI only: the undo history lives in memory and nothing is stored in the savegame. Safe to add to or remove from existing saves. A duplicated or reversed line is an ordinary game line that stays as it is without the mod.</li>
 <li>Only stops and the line's stop settings are undone. Name, colour and vehicles are left alone. If a station from the state you go back to has been demolished, nothing is changed and a message explains why.</li>
 <li>The game's own hover texts and tooltips are kept exactly as they are; if anything about a line can't be read, only the game's text is shown.</li>
+<li>Match line rate's Apply only sends the game's own buy, assign, send-to-depot and replace commands, the same ones you could give by hand. Rates for the line's own model scale exactly with the number of vehicles; rates for other models are estimates from their capacity, speed and loading speed, marked with ≈.</li>
+<li>Match line rate: passenger lines get no supply target (type the Rate you want). Trains, multiple units and lines that mix vehicle types get no model comparison; adding and removing copies still works. Lines with mission vehicles can't switch models.</li>
 <li>Translated into all game languages.</li>
 </ul>
 <hr>
+<h4>More from <a href="https://mod.io/g/transportfever3/u/square17">square</a></h4>
+<p><strong>Most popular</strong></p>
+<p><a href="https://mod.io/g/transportfever3/m/better-roundabouts"><img src="https://thumb.modcdn.io/mods/4547/6436837/crop_640x360/0.7.png" alt="Roundabouts &amp; Interchanges" width="200"></a> <a href="https://mod.io/g/transportfever3/m/smart-lanes"><img src="https://thumb.modcdn.io/mods/32eb/6436842/crop_640x360/0.10.png" alt="Smart Lanes" width="200"></a> <a href="https://mod.io/g/transportfever3/m/better-minimap"><img src="https://thumb.modcdn.io/mods/b785/6433435/crop_640x360/0.14.png" alt="Better Minimap" width="200"></a> <a href="https://mod.io/g/transportfever3/m/problem-radar"><img src="https://thumb.modcdn.io/mods/673d/6433425/crop_640x360/0.11.png" alt="Problem Radar" width="200"></a></p>
+<p><strong>Lines and passengers</strong></p>
+<p><a href="https://mod.io/g/transportfever3/m/passenger-destinations"><img src="https://thumb.modcdn.io/mods/499f/6439426/crop_640x360/0.5.png" alt="Passenger Destinations" width="200"></a> <a href="https://mod.io/g/transportfever3/m/better-bus-overlay"><img src="https://thumb.modcdn.io/mods/4c89/6438695/crop_640x360/0.8.png" alt="Better Bus Overlay" width="200"></a> <a href="https://mod.io/g/transportfever3/m/bigger-line-dots"><img src="https://thumb.modcdn.io/mods/d8ab/6433433/crop_640x360/0.5.png" alt="Bigger Line Dots" width="200"></a> <a href="https://mod.io/g/transportfever3/m/no-factory-passengers"><img src="https://thumb.modcdn.io/mods/5856/6433427/crop_640x360/0.5.png" alt="No Factory Passengers" width="200"></a></p>
+<p><strong>Industry and supply</strong></p>
+<p><a href="https://mod.io/g/transportfever3/m/industry-flows"><img src="https://thumb.modcdn.io/mods/0148/6433431/crop_640x360/0.7.png" alt="Industry Flows" width="200"></a> <a href="https://mod.io/g/transportfever3/m/industry-production-label"><img src="https://thumb.modcdn.io/mods/e6fd/6433429/crop_640x360/0.8.png" alt="Industry Production Label" width="200"></a> <a href="https://mod.io/g/transportfever3/m/supply-gap-overview"><img src="https://thumb.modcdn.io/mods/9488/6438590/crop_640x360/0.6.png" alt="Supply Gap Overview" width="200"></a></p>
+<p><strong>Roads and building</strong></p>
+<p><a href="https://mod.io/g/transportfever3/m/bulk-bulldozer"><img src="https://thumb.modcdn.io/mods/2c53/6434884/crop_640x360/0.5.png" alt="Bulk Bulldozer" width="200"></a> <a href="https://mod.io/g/transportfever3/m/early-one-way-roads"><img src="https://thumb.modcdn.io/mods/4d86/6434729/crop_640x360/0.3.png" alt="Early One-way Roads" width="200"></a> <a href="https://mod.io/g/transportfever3/m/full-refund-window"><img src="https://thumb.modcdn.io/mods/71c2/6436087/crop_640x360/0.7.png" alt="Full Refund Window" width="200"></a> <a href="https://mod.io/g/transportfever3/m/organic-towns-cities-that-grow"><img src="https://thumb.modcdn.io/mods/7404/6456748/crop_640x360/0.1.png" alt="Organic Towns: Cities that Grow" width="200"></a></p>
+<p><strong>Screenshots and camera</strong></p>
+<p><a href="https://mod.io/g/transportfever3/m/photo-mode-aerials-camera"><img src="https://thumb.modcdn.io/mods/5fcc/6452024/crop_640x360/0.1.png" alt="Photo Mode: Aerials &amp; Camera" width="200"></a></p>
+<p><strong>Testing tools</strong></p>
+<p><a href="https://mod.io/g/transportfever3/m/stress-test-debug-tool"><img src="https://thumb.modcdn.io/mods/683c/6439728/crop_640x360/0.2.png" alt="Stress Test Debug Tool" width="200"></a></p>
+<p><strong>Towns &amp; Streets</strong>: <a href="https://mod.io/g/transportfever3/m/california-towns-streets">California</a> · <a href="https://mod.io/g/transportfever3/m/texas-towns-streets">Texas</a> · <a href="https://mod.io/g/transportfever3/m/alaska-towns-streets">Alaska</a> · <a href="https://mod.io/g/transportfever3/m/florida-towns-streets">Florida</a> · <a href="https://mod.io/g/transportfever3/m/pennsylvania-towns-streets">Pennsylvania</a> · <a href="https://mod.io/g/transportfever3/m/new-york-towns-streets">New York</a> · <a href="https://mod.io/g/transportfever3/m/washington-towns-streets">Washington</a> · <a href="https://mod.io/g/transportfever3/m/arizona-towns-streets">Arizona</a> · <a href="https://mod.io/g/transportfever3/m/minnesota-towns-streets">Minnesota</a> · <a href="https://mod.io/g/transportfever3/m/hawaii-towns-streets">Hawaii</a> · <a href="https://mod.io/g/transportfever3/m/colorado-towns-streets">Colorado</a> · <a href="https://mod.io/g/transportfever3/m/oregon-towns-streets">Oregon</a> · <a href="https://mod.io/g/transportfever3/m/new-mexico-towns-streets">New Mexico</a></p>
+<hr>
 <h2>Changelog</h2>
+<h4>Revision 8 (2026-10-17)</h4>
+<ul>
+<li>Controller (PlayStation 5): the Line Rate Matcher window now takes the controller focus when it opens, the d-pad moves between its controls, and the back button (Circle) closes it. Before, the window opened but ignored the controller and couldn't be closed.</li>
+</ul>
+<h4>Revision 7 (2026-10-13)</h4>
+<ul>
+<li>Fixed: removing vehicles with "Match line rate" (or the sold part of a model switch) could crash the game a few seconds later, when a vehicle sent to the depot to be sold on arrival got there (seen with ships). Surplus vehicles are now sold at once, as with the game's own Sell button.</li>
+<li>Stability: the vehicle list's cargo column and the Line Rate Matcher check that each vehicle and line still exists right before every game call and command, so a vehicle sold or replaced in the meantime is skipped instead of reaching the game. Aimed at a reported crash ("Assertion 'it != components.end()' failed").</li>
+</ul>
+<h4>Revision 6 (2026-10-12)</h4>
+<ul>
+<li>Vehicle list: a vehicle with several cargo types aboard shows up to three cargo icons instead of one icon and "+1". Lines with a single cargo keep the narrow column.</li>
+<li>Fixed: opening the Line Rate Matcher window crashed the UI on PlayStation 5 ("Could not assign value to userdata 'closable'"). The window now leaves out any window option the platform doesn't support (such as its X button); its Close button still closes it.</li>
+</ul>
+<h4>Revision 5 (2026-10-11)</h4>
+<ul>
+<li>The vehicle list's columns adapt to the vehicles: the picture column is only as wide as the widest picture, and the name column takes the rest, so long names on bus, truck and plane lines show almost in full.</li>
+<li>Uses fewer style rules (25 instead of 33), which leaves more room for other UI mods.</li>
+</ul>
+<h4>Revision 4 (2026-10-11)</h4>
+<ul>
+<li>New: hovering a vehicle's picture in the vehicle list shows a box with its line, its parts (every locomotive and wagon of a train), top speed, power, weight, age, condition, running costs, value and last year's balance. Setting "Vehicle list: vehicle info on hover", On by default.</li>
+<li>The vehicle list's name column is wider and the picture column narrower, so more of a long vehicle name fits.</li>
+<li>The load column is more compact: one cargo icon (the fullest; "+1", "+2" for more types), the number right next to it, and loads like "20/20" no longer cut off.</li>
+<li>The settings' tooltips are broken into short lines instead of one very wide box.</li>
+</ul>
+<h4>Revision 3 (2026-10-11)</h4>
+<ul>
+<li>New: the line manager's vehicle list shows each vehicle's current cargo (icon and load, e.g. 6/25, greyed when empty) between its name and its picture. Setting "Vehicle list: current cargo", On by default.</li>
+</ul>
+<h4>Revision 2 (2026-10-11)</h4>
+<ul>
+<li>Fixed: deleting a line with the mouse still on its row in the line list left that line's info box on screen and slowed the game to a few FPS until another line was hovered. The box now closes as soon as its line is deleted or the line manager closes.</li>
+</ul>
 <h4>Revision 1 (2026-10-10)</h4>
 <ul>
-<li>First release: Line Editor Undo's undo and redo buttons, the new target line info for Send to Line (map hover and a panel next to the Send to Line list) with a before → after estimate, line stats on the colour dot in the line list, a Line actions button with Duplicate line and Reverse line, and Shift-click a line on the map to open the line manager, each with its own setting.</li>
+<li>First release: Shift-click a line on the map to open it in the line manager; an instant line info box (vehicles by model, Capacity, Utilization, Frequency, Rate) when you hover a line in the line manager's list, on the map while the line manager is open, and in the Send to Line list and map, with a before → after estimate while sending; a Line actions menu with Match line rate (sizes a line's fleet to its supply), Duplicate line and Reverse line; and Line Editor Undo's Undo and Redo buttons. Each with its own setting.</li>
 </ul>

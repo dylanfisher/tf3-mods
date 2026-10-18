@@ -13,7 +13,7 @@
 -- * install: every step in pcall; if VMSendToLine is missing or no longer a recipe, nothing is replaced.
 -- * render: the vanilla node and our lines are each built in pcall; any error or a hovered entity that is not a
 --   line leaves the vanilla tooltip alone. Each failure kind is logged once ("[LineManagerPlus] send to line: ...").
--- Stats of a line come from lmp_stats.lua (the stli_core model shared with the colour dot tooltip, line_dot.lua),
+-- Stats of a line come from lmp_stats.lua (the stli_core model shared with the line list hover block, line_list_hover.lua),
 -- cached for 1 s, so hovering costs one lookup per line per second.
 --
 -- Before -> after estimate (setting send_to_line_estimate, installed by stli_estimate.lua through enableEstimate):

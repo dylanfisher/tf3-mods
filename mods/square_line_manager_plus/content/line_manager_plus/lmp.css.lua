@@ -1,6 +1,6 @@
--- Line Manager Plus styles: the Send to Line info block, the Send to Line list panel and the Line actions menu
--- (end of file) and the undo feature's buttons (copied from Line Editor Undo, square_line_revert, with its
--- own recipe name, so both mods' rules can coexist). Every rule is scoped under our own recipe
+-- Line Manager Plus styles: the Send to Line info block, the Send to Line list panel, the Line actions menu and the
+-- Rate Matcher window (end of file) and the undo feature's buttons (copied from Line Editor Undo, square_line_revert, with its
+-- own recipe name, so both mods' rules can coexist). Every rule but the vehicle list's 3 column rules is scoped under our own recipe (or window id)
 -- (R::SquareLmpUndoButton, used for both Undo and Redo, undo.lua makeButtonRecipe), so nothing here touches base UI
 -- or other mods. The rules apply only while the undo feature renders its buttons; with it Off they match nothing. One scope keeps
 -- the rule count low (docs/findings.md "Load crash above ~200 mod stylesheet rules"). .css.lua files are picked up by extension
@@ -59,20 +59,17 @@ function data()
 	-- Send to Line info block (stli.lua TOOLTIP_CLASS): base gives it the tooltip look (game.css.lua:108-120,
 	-- AccentDark at transparency VeryLow); ours is halfway between the darkest accent step and the dark base navy
 	-- (default_colors.gres.lua:37,44; AccentVeryDark alone was too close to the vanilla shade in game) with a
-	-- 4 px gap to the vanilla tooltip above (margin top, right, bottom, left). Scoped to our recipe.
+	-- 4 px gap to the vanilla tooltip above (margin top, right, bottom, left). Scoped to our recipes: the same block in
+	-- the Line Manager's normal map hover text (line_hover.lua, R::SquareLmpLineHoverInfo) is the second part, the line
+	-- info callout (lmp_callout.lua PANEL_CLASS, R::SquareLmpInfoCallout: the Send to Line list's block outside the
+	-- popover and the line list's block outside the Line Manager) the third, so all of them are the same darker blue
+	-- (3 selectors; the 4 px top margin is harmless for the callout).
 	do
 		local transparency = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/transparency.gres")).data
-		a("R::SquareLmpSendToLineInfo TextView!sq-lmp-stli", {
+		a("R::SquareLmpSendToLineInfo TextView!sq-lmp-stli, R::SquareLmpLineHoverInfo TextView!sq-lmp-stli, "
+			.. "R::SquareLmpInfoCallout TextView!sq-lmp-stli", {
 			backgroundColor1 = color_util.withTransparencyRaw(color_util.mixColorsRaw(colorDefault.AccentVeryDark, colorDefault.BaseDark, 0.5), transparency.VeryLow),
 			margin = { 4, 0, 0, 0 },
-		})
-		-- Send to Line list panel (stl_list.lua PANEL_CLASS): the same colour, right of the list. Margins (top, right,
-		-- bottom, left) line it up with the list's header (line_vehicle_mgmt.css.lua:993-998, margin 8 top) and keep 8 px
-		-- to the window edge; gravity 0,0 = top-left, not stretched to the list's height. One rule.
-		a("R::SquareLmpStlPanel TextView!sq-lmp-stl-panel", {
-			backgroundColor1 = color_util.withTransparencyRaw(color_util.mixColorsRaw(colorDefault.AccentVeryDark, colorDefault.BaseDark, 0.5), transparency.VeryLow),
-			margin = { 8, 8, 8, 0 },
-			gravity = { 0, 0 },
 		})
 	end
 
@@ -83,6 +80,83 @@ function data()
 		gravity = { -1, 0.5 },
 		margin = { 4, 8, 4, 8 },
 	})
+
+	-- Vehicle list columns (rev 5, player request 2026-10-11: use the room short pictures leave for the name). The
+	-- picture column sizes to its content (vanilla: 240 px fixed, picture at most 180, line_vehicle_mgmt.css.lua
+	-- :924-944), the picture capped at PICTURE_MAX; the name column has the table's weight (vehicle_columns.lua) and
+	-- takes the rest. VehicleName loses its fixed 206 px: between NAME_MIN and NAME_MAX, filling its cell (vanilla
+	-- gravity). 3 rules, always on (also with the cargo feature Off); DataTable in the selector makes them more specific
+	-- than the vanilla rules they override. (Rev 4: name 266 px, picture column 180 px, both fixed.)
+	local PICTURE_MAX, NAME_MIN, NAME_MAX = 120, 120, 320
+	a("R::VehicleManager DataTable R::VehicleName", {
+		size = { -1, -1 }, minSize = { NAME_MIN, -1 }, maxSize = { NAME_MAX, -1 },
+	})
+	a("R::VehicleManager DataTable R::VehicleIcon", { size = { -1, -1 } })
+	a("R::VehicleManager DataTable R::VehicleIcon Button!icon", { maxSize = { PICTURE_MAX, -1 } })
+
+	-- Vehicle list: current cargo (vehicle_cargo.lua), 7 rules, all under our recipes (SquareLmpVehicleNameCell, the
+	-- vanilla name cell + our badge; SquareLmpVehicleCargo, the badge), so with the feature Off nothing matches. The
+	-- cell stretches over the name column and VehicleName fills what the badge leaves; the badge's width class is an
+	-- inline size (vehicle_cargo.lua cellRender; rev 4 had one rule pair per class). Selectors by recipe name only: a
+	-- class on a wrapper Component did not match in game (2026-10-11). The badge's background fills it and takes the
+	-- row's vanilla highlight / selected colours by class, so no colour here. An empty vehicle's text is greyed (the
+	-- disabled text grey, builtin.css.lua:111).
+	do
+		local BADGE = "R::SquareLmpVehicleCargo"
+		local PAD = 4 -- the badge background's left and right padding (vehicle_cargo.lua M.BADGE_PAD, the same value)
+		a("R::VehicleManager R::SquareLmpVehicleNameCell", { gravity = { -1, -1 } })
+		a("R::VehicleManager " .. BADGE, { gravity = { -1, -1 } })
+		a("R::VehicleManager " .. BADGE .. " Component!sq-lmp-vcargo", {
+			gravity = { -1, -1 },
+			padding = { 0, PAD, 0, PAD },
+		})
+		-- icon slots: an icon or a blank of its size (vehicle_cargo.lua M.ICON_W = 20, no margin), the text left-aligned
+		-- after them, so the numbers of all rows start at the same place
+		a("R::VehicleManager " .. BADGE .. " ImageView!sq-lmp-vcargo-icon, R::VehicleManager " .. BADGE
+			.. " R::Component!sq-lmp-vcargo-gap", {
+			size = { 20, 20 },
+			margin = { 0, 0, 0, 0 },
+		})
+		a("R::VehicleManager " .. BADGE .. " TextView!sq-lmp-vcargo-text", {
+			gravity = { -1, 0.5 },
+			textAlignment = { 0, 0.5 },
+			-- the base "Table::Content TextView" margin is 4 on every side (builtin.css.lua:1443): 2 px after the icon,
+			-- none on the right (vehicle_cargo.lua M.TEXT_W). In game 2026-10-11 those 8 px plus the icon's 3 px margin cut
+			-- "10/20" to "10/2" and left a wide gap after the icon.
+			margin = { 4, 0, 4, 2 },
+		})
+		a("R::VehicleManager " .. BADGE .. " TextView!sq-lmp-vcargo-empty", {
+			color = colorDefault.NeutralMedium,
+		})
+	end
+
+	-- Rate Matcher window (rate_matcher_window.tl WINDOW_ID; "Match line rate" in the Line actions menu), 6 rules
+	-- (4 calls, the second and fourth with 2 comma parts; every part counts). Everything else there is an inline StyleSheet.
+	-- Opaque background: the default Window rule's BaseDarkMedium without its VeryLow transparency
+	-- (builtin.css.lua:16, 1946-1953), as the base dialogs (popover_react_util.css.lua:10-12); placed a little right
+	-- of centre so the Line Manager's line list stays visible. Numeric DataTable header items and cells are
+	-- "right-aligned": the base rule is scoped to the statistics window (statistics.css.lua:386-391), so its two parts
+	-- are repeated for our window (inline StyleSheets have no gravity / textAlignment). The header's sort caret
+	-- (builtin.css.lua:1483-1486) is hidden: the tables don't sort (visibility "none", entity_window_util.css.lua:145).
+	do
+		local W = "#squarelineratematcher.window"
+		a(W, {
+			gravity = { 0.62, 0.45 },
+			anchorPoint = { 0.5, 0.5 },
+			backgroundColor1 = colorDefault.BaseDarkMedium,
+		})
+		a(W .. " DataTable::HeaderItem !right-aligned, " .. W .. " !right-aligned TextView", {
+			gravity = { -1, -1 },
+			textAlignment = { 1, 0.5 },
+		})
+		a(W .. " DataTable::SortButton::Icon", {
+			visibility = "none",
+		})
+		-- and the headers don't light up on hover or press (builtin.css.lua:1501-1509): clicking them does nothing
+		a(W .. " DataTable::HeaderItem!table-header:hover, " .. W .. " DataTable::HeaderItem!table-header:active", {
+			backgroundColor = colorDefault.Invisible,
+		})
+	end
 
 	return result
 end

@@ -1,3 +1,5 @@
+Status: done 2026-10-11 (run 1 analysed in PROBE_RESULTS.md; Balance dropped, PLAN.md D8). Log: ../probe_run1.log.
+
 # Balance probe (mods/square_lmp_probe)
 
 DEV ONLY, never upload. Phase 6 of `PLAN.md`: answers the three probe questions of "5. Balance vehicles" before
