@@ -1,0 +1,66 @@
+{
+    "name": "Photo Mode: Aerials & Camera",
+    "summary": "Drone tours, 12-400 mm lenses, light, weather, 1,000+ looks, wildlife and 4x screenshots.",
+    "description": "A camera window for screenshots: subjects and photographer's shots, drone tours, lenses from 12 to 400 mm, light, weather and over 1,000 looks, wildlife, saved views and setups, High graphics mode and screenshots at up to 4x your resolution. Your own settings, light and weather come back when you are done.",
+    "localization": {
+        "ru": {
+            "name": "Фоторежим: аэросъёмка и камера",
+            "summary": "Облёты дрона, объективы 12–400 мм, свет, погода, 1000+ образов, животные и скриншоты 4x."
+        },
+        "de": {
+            "name": "Fotomodus: Luftbilder & Kamera",
+            "summary": "Drohnenflüge, Objektive 12–400 mm, Licht, Wetter, über 1000 Looks, Tiere und 4x-Screenshots."
+        },
+        "fr": {
+            "name": "Mode photo : aérien & caméra",
+            "summary": "Vols de drone, objectifs 12–400 mm, lumière, météo, 1000+ ambiances, faune et captures 4x."
+        },
+        "es": {
+            "name": "Modo foto: aéreas y cámara",
+            "summary": "Vuelos de dron, objetivos de 12–400 mm, luz, clima, más de 1000 estilos, fauna y capturas 4x."
+        },
+        "it": {
+            "name": "Modalità foto: voli e camera",
+            "summary": "Voli col drone, obiettivi 12–400 mm, luce, meteo, oltre 1000 stili, fauna e screenshot 4x."
+        },
+        "nl": {
+            "name": "Fotomodus: luchtbeelden & camera",
+            "summary": "Droneroutes, lenzen van 12–400 mm, licht, weer, 1000+ looks, dieren en 4x-screenshots."
+        },
+        "pl": {
+            "name": "Tryb foto: z lotu ptaka i kamera",
+            "summary": "Loty dronem, obiektywy 12–400 mm, światło, pogoda, 1000+ stylów, zwierzęta i zrzuty 4x."
+        },
+        "pt_BR": {
+            "name": "Modo foto: aéreas e câmera",
+            "summary": "Voos de drone, lentes de 12–400 mm, luz, clima, mais de 1000 visuais, fauna e capturas 4x."
+        },
+        "ja": {
+            "name": "フォトモード：空撮＆カメラ",
+            "summary": "ドローン飛行、12～400mmレンズ、光、天気、1000以上のルック、動物、4倍スクリーンショット。"
+        },
+        "ko": {
+            "name": "사진 모드: 항공 촬영 & 카메라",
+            "summary": "드론 투어, 12-400mm 렌즈, 빛, 날씨, 1000개 이상의 룩, 야생 동물, 4배 스크린샷."
+        },
+        "zh_CN": {
+            "name": "拍照模式：航拍与相机",
+            "summary": "无人机巡游、12–400毫米镜头、光线、天气、1000多种风格、野生动物和4倍截图。"
+        },
+        "zh_TW": {
+            "name": "拍照模式：空拍與相機",
+            "summary": "無人機巡遊、12–400毫米鏡頭、光線、天氣、1000多種風格、野生動物和4倍截圖。"
+        }
+    },
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

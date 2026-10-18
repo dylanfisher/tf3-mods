@@ -1,0 +1,15 @@
+<p><strong>DEV ONLY - NOT FOR UPLOAD.</strong> Never publish this mod to mod.io. It is a developer switch for Photo Mode and does nothing useful for players.</p>
+<p>While it is enabled, the Camera tab's Orbit right after a jump plays an orbit cutscene attached to that subject (a vehicle's carriage or a model entity; round 13), else, with the view closer than 450 m, around the static anchor nearest the view's centre (round 16), and Start on the Tour tab in Aerials plays a chain of cutscene flights whose keys are attached to anchors Photo Mode picks over places of interest, turning away from the map edge (round 15 / 16; its keyframe files are in this mod). Both write what they found to stdout.txt. It has no scripts and no settings.</p>
+<h4>Notes</h4>
+<ul>
+<li>Plan and test steps: plans/square_photo_mode/PLAN.md "Round 13" / "Round 15" / "Round 16 camera" and TESTING.md CB2 / CD4 / CE in the mod hub repository.</li>
+</ul>
+<hr>
+<h2>Changelog</h2>
+<h4>Revision 1 (dev, never uploaded)</h4>
+<ul>
+<li>Round 16: the fly files are one per heading and turn (sqpm_fly_&lt;0-7&gt;_&lt;0-4&gt;.lua: turning 90 or 45 degrees left, straight, 45 or 90 right over one flight), so a chain turns away from the map edge; Orbit with no subject jumped to circles a static anchor near the view's centre.</li>
+<li>Round 15: the cutscene aerial (content/mission/keyframes[/en]/sqpm_fly_0..7.lua, one straight flight per heading, each key attached to its own placeholder), played by Photo Mode's Tour Start in Aerials.</li>
+<li>Round 13: the attached orbit cutscene (Orbit after a jump), attached to the subject's carriage or model entity; the Aerials cutscene flight (keys file) retired: the GUI state has no io.</li>
+<li>New: switch for Photo Mode's cutscene flight prototype.</li>
+</ul>

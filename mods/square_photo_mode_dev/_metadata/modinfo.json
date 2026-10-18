@@ -1,0 +1,16 @@
+{
+    "name": "DEV Photo Mode: cutscene test",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Turns on Photo Mode's attached orbit cutscene prototype.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. While it is enabled, Photo Mode's Orbit right after a jump plays an orbit cutscene attached to the subject (a prototype) and logs what it found. It has no scripts and changes nothing else.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

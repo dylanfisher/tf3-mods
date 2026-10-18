@@ -1,0 +1,14 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_photo_mode_dev is Photo Mode's DEV switch (plans/square_photo_mode/PLAN.md "Round 13",
+TESTING.md CB2). It has no scripts and no params. Photo Mode looks for its presence marker
+(square_photo_mode_dev::/square_photo_mode_dev_presence.lua); while it is enabled, the Camera tab's Orbit
+right after a jump plays an orbit cutscene attached to the subject jumped to (its carriage or model entity;
+gui/pm_cutscene.lua; round 16: else around a static anchor near the view's centre), Start on the Tour tab in
+Aerials plays a chain of cutscene flights from this mod's content/mission/keyframes[/en]/sqpm_fly_<h>_<t>.lua
+(h 0-7 the heading, t 0-4 the turn from 90 degrees left to 90 right; round 15 / 16, TESTING.md CD4 / CE), and it
+logs "[PhotoMode] cutscene ..." lines.
+
+Never publish it to mod.io (Mod Hub > My Mods would offer it because `make link` puts it in the staging
+area). When done: disable it in the game's mod list (quit to the main menu first before removing its
+staging link; see docs/findings.md).
