@@ -66,6 +66,10 @@ local KEY_STATUS <const> = "bulk_bulldozer_status"
 -- hideLabel share one horizontal row; a named group gets a separator line before it).
 local GROUP_ACTIONS <const> = "bulk_bulldozer_actions"
 local GROUP_FILTERS <const> = "bulk_bulldozer_filters"
+-- the status chip's group: its id is the class bulk_bulldozer.css.lua scopes its rules under, so the
+-- chip reads as plain text, as Smart Lanes' info block (sl_tool.css.lua). Dashes: the stylesheet
+-- parser reads class names as [%a%d-]+ only (docs/findings/gui.md "CSS class names")
+local GROUP_INFO <const> = "sq-tool-info"
 
 -- What the selection shows: the hover preview (nothing selected), a stroke being painted
 -- (LMB held, adding), the selection waiting for "Bulldoze" (LMB released), or the
@@ -389,7 +393,9 @@ end
 local function takeSample(s : Selection, x : number, y : number, r : number, f : BulkBulldozerFilters) : boolean
 	local tPerf = perf:start()
 	local ok, res = pcall(gather.sample, x, y, r, f, s.ctx, s.cache)
-	perf:stop("sample", tPerf)
+	-- Wall ms (SQPERF's Clock): res.seconds is os.clock, which reads 3-6x high under load
+	-- (docs/findings/gui.md "Timers and threads").
+	local ms = perf:stop("sample", tPerf)
 	if not ok then
 		logMsg("sample failed: " .. tostring(res))
 		return false
@@ -397,10 +403,10 @@ local function takeSample(s : Selection, x : number, y : number, r : number, f :
 	s.samples = s.samples + 1
 	if res.seconds > s.worst then s.worst = res.seconds end
 	if res.truncated then s.truncated = true end
-	if res.seconds > SLOW_SAMPLE and os.clock() - s.slowLoggedAt >= 1.0 then
+	if ms > SLOW_SAMPLE * 1000 and os.clock() - s.slowLoggedAt >= 1.0 then
 		s.slowLoggedAt = os.clock()
 		logMsg(string.format("slow sample: %.1f ms (r = %d m, %d edges, %d constructions in query)",
-			res.seconds * 1000, math.floor(r), res.edgeHits, res.conHits))
+			ms, math.floor(r), res.edgeHits, res.conHits))
 	end
 	local before = sel.count(s.stroke)
 	local skippedBefore = 0
@@ -588,6 +594,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 	local refRmbPress = react.useRef(nil) as ReactRefT<RmbPress>     -- last RMB press position
 	local refRenderActive = react.useRef(false) as ReactRefT<boolean> -- isActive at the last render
 	local refLayerDownAt = react.useRef(nil) as ReactRefT<number>     -- os.clock() the world layer unmounted
+	local refLayerUp = react.useRef(false) as ReactRefT<boolean>      -- world layer mounted: this entry is the selected tool
 	-- The next LMB release is ignored (it ends a press that RMB cleared or that came mid-commit).
 	local refSkipRelease = react.useRef(false) as ReactRefT<boolean>
 	local refSample = react.useRef(nil) as ReactRefT<Sample>
@@ -867,6 +874,15 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 			logMsg("world layer unmounted")
 			resetAll("tool switched", true)
 		end
+		-- isActive stays true for every entry of the shown tab in mouse mode (construction.tl:313, 413:
+		-- the menu mounts each entry's recipe), so with another tool of Road → Tools selected (Smart
+		-- Lanes) the brush below would sample under the cursor every frame. Only the selected entry's
+		-- world layer is mounted (construction.tl:4489-4501).
+		if not refLayerUp:get() then
+			publishIfChanged()
+			perf:stop("step", tStep)
+			return
+		end
 
 		-- Cursor follow (the ring re-renders only when the cursor moved).
 		if api.gui.mouse.hasTerrainPosition() then
@@ -1093,6 +1109,7 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 		-- clears the selection (here or in onStep), so a same-frame re-binding never does.
 		react.onMount(function()
 			pcall(function()
+				refLayerUp:set(true)
 				local downAt = refLayerDownAt:get()
 				refLayerDownAt:set(nil)
 				if downAt ~= nil and os.clock() - downAt >= LAYER_GONE_SECONDS then
@@ -1102,7 +1119,10 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 			end)
 		end)
 		react.onUnmount(function()
-			pcall(function() refLayerDownAt:set(os.clock()) end)
+			pcall(function()
+				refLayerUp:set(false)
+				refLayerDownAt:set(os.clock())
+			end)
 		end)
 		local cur = cursorState:old()
 		local r = radiusState:old()
@@ -1413,16 +1433,18 @@ local Ret = {
 				checkEnabledFn = alwaysEnabled,
 			},
 			{
-				-- Status chip under the buttons: a one-value Button kept "Disabled" (not clickable,
-				-- grey; the Overpass Builder shows its build errors as disabled Buttons,
+				-- Status chip under the buttons: a one-value Button kept "Disabled" (not clickable;
+				-- the Overpass Builder shows its build errors as disabled Buttons,
 				-- overpass_probe.script.tl:6093-6098) whose content is the self-updating
-				-- BulkBulldozerStatus recipe. No group: no separator between it and the buttons.
+				-- BulkBulldozerStatus recipe. Its own group (GROUP_INFO): bulk_bulldozer.css.lua
+				-- turns the grey button into plain left-aligned text, the Smart Lanes info style.
 				key = KEY_STATUS,
 				name = _("Selection"),
 				tooltip = _("What is selected. Right-click or Clear empties the selection."),
 				values = { _("Selection") },
 				defaultIndex = 1,
 				hideLabel = true,
+				group = GROUP_INFO,
 				uiType = api.type.enum.ScriptParamType.Button,
 				yearFrom = 0,
 				yearTo = 0,

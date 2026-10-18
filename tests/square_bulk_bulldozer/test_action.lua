@@ -259,6 +259,27 @@ test("world layer unmounted and not remounted: cleared on the next step (tool sw
 	eq(selection(), nil, "cleared after the layer stayed gone")
 end)
 
+test("another tool of the tab selected (world layer never mounted): steps read no cursor and sample nothing", function()
+	local cursorReads, queries = 0, 0
+	api.gui.mouse.hasTerrainPosition = function() cursorReads = cursorReads + 1; return true end
+	api.gui.mouse.getTerrainPosition = function() return { x = 100, y = 100, z = 0 } end
+	api.type.Vec3f = { new = function(x, y, z) return { x = x, y = y, z = z } end }
+	api.type.Vec2f = { new = function(x, y) return { x = x, y = y } end }
+	api.engine.util.octree = { findEntitiesInCircle = function() queries = queries + 1; return {} end }
+	-- isActive stays true for every entry of the shown tab (mouse mode).
+	local p = render(newParam(true))
+	mouseHandler(p)   -- actionFn registered, but its layer is not mounted
+	for _ = 1, 3 do for _, f in ipairs(h.steps) do f() end end
+	eq(cursorReads, 0)
+	eq(queries, 0)
+	eq(selection(), nil, "no hover preview")
+	-- The entry is selected: its world layer mounts and the hover preview samples.
+	h.mounts[#h.mounts]()
+	for _, f in ipairs(h.steps) do f() end
+	ok(cursorReads > 0, "cursor read once the layer is up")
+	ok(queries > 0, "hover sample once the layer is up")
+end)
+
 test("toolbar sync: an unticked Roads box survives a remount (never re-ticked by defaults)", function()
 	local p = render(newParam(true))
 	-- The player unticks Roads (onChangeFn → EV_FILTER), category 3.

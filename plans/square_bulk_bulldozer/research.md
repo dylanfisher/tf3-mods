@@ -1,5 +1,7 @@
 # Bulk Bulldozer (`square_bulk_bulldozer`): research notes
 
+Status: done 2026-10-07 (research for rev 1). Still the evidence base: the mod code cites it as "research §N".
+
 Evidence for `PLAN.md`. Paths are relative to the repo root; `.cache` is gitignored (search with `rg -uu`). "Verified" means a base-game or shipped-mod source does exactly this; "inferred" means the API declares it but no source in the repo uses it that way; "unknown" means it needs an in-game test (listed in PLAN.md "Open questions").
 
 ## 1. How a mod adds a tool with an options bar

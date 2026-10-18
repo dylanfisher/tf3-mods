@@ -146,7 +146,9 @@ test("status chip: disabled one-value Button whose content is the status recipe"
 	eq(p.uiType, "Button")
 	eq(p.location, "Toolbar")
 	eq(p.hideLabel, true)
-	eq(p.group, nil, "no group: no separator between the buttons and the chip")
+	-- own group: the class bulk_bulldozer.css.lua scopes its plain-text rules under (Smart Lanes style)
+	eq(p.group, "sq-tool-info")
+	ok(not p.group:find("[^%w%-]"), "a CSS class: letters, digits and dashes only")
 	eq(p.checkEnabledFn({}), "Disabled")
 	eq(p.makeCompactButtonFn(1).recipe, "BulkBulldozerStatus")
 	fired = {}

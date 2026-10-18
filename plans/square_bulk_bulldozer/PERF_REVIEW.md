@@ -1,3 +1,5 @@
+Status: done 2026-10-08 (shipped in rev 2). Its in-game check list moved to `../TESTING.md` §7.
+
 # Bulk Bulldozer: performance review (2026-10-08)
 
 Scope: everything in `mods/square_bulk_bulldozer/content/bulk_bulldozer/`. The mod is GUI-only (no game
@@ -41,13 +43,3 @@ numbers above), one overlay-reuse test in `test_action.lua`.
 - Mouse event logging (one line per non-Moved event, Moved summarised every 0.5 s): debug output, not hot.
 - Wide construction query (r + 100 m) is needed to find industries whose access roads must be protected;
   only its per-entity cost was reduced.
-
-## In-game check list
-
-- [ ] Hover a 200 m brush across the densest city: `slow sample` lines (> 4 ms) are fewer / lower than before;
-      no visible stutter every ~100 ms while moving.
-- [ ] Paint a long stroke up to the 400 cap over a town with a 100-200 m brush: the red overlay grows
-      smoothly, no hitch per sample; release → overlay turns to the selection colour once.
-- [ ] Selection results unchanged: industry access roads still `Skipped: industry`, other players' objects
-      `other player`, station roads `part of a construction`, your stations selected with Stations & depots on.
-- [ ] Bulldoze: the commit log line counts and costs look as before.

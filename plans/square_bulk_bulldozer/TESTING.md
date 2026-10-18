@@ -2,11 +2,9 @@
 
 One ordered checklist for the whole mod (from PLAN.md "In-game test checklist"). Not shipped. Work top to bottom; later sections assume the earlier ones passed. Use a **copy** of a save.
 
-**Current build (Phase 3 + user decision 2026-10-07):** §1-6 apply (§1-3 were never run, so do them first; their questions still matter). **One mode only (Paint), always select then confirm:** strokes only select (releasing LMB removes nothing; the selection stays highlighted and later strokes add to it); the toolbar button **Bulldoze** removes the whole selection. **Clear**, RMB or ESC clear it. **Toolbar rework (2026-10-07):** [Bulldoze] [Clear] sit side by side, a grey status chip under them shows the live selection (it replaced the selection lines of the cursor tooltip, which now only has the radius, a right-click hint, skip reasons and the debug octree line). §1 has the new checks. **There is no undo: use a save copy.** Default proposal mode is the base **two-step** (`bb_commit.COMBINED_PROPOSAL = false`: constructions first, then the edges via `makeSegmentsRemoveProposal`); §4 asks to retest a few cases with `true`.
-
-**Feedback round (2026-10-07, research §12), test first:** (1) one **Roads** CheckBox (default on) replaces "Your roads" / "Town roads" and takes every street that is yours or unowned (town roads, roads left over from a roundabout); (2) **right click** now clears on the RMB release (the press never reached the tool, see the log lines below); an RMB **drag** (camera) keeps the selection; (3) **closing / switching the tool empties the selection** and the status chip. Checks: §1 (Roads), §3 (Roads), §5 (RMB, closing).
-
-**Highlight fix (2026-10-07):** the selection is now shown in the world (research §11): a **red tint/outline** from the engine on selected objects (light coral, fainter, for the hover preview before anything is selected) **plus red lines** along selected roads/tracks and a **red circle** on each selected construction's centre. Do **§3a** first.
+Status: rev 4 released. Every check below is still unticked (see PLAN.md "Open work"); the dated notes about
+the 2026-10-07 builds moved to `HISTORY.md`. Since rev 3 the `mouse ...` log lines appear only with the mod
+setting "Debug: performance log" On.
 
 Report back every `[BulkBulldozer]` log line (or a representative excerpt), plus the answers marked **Q**.
 
@@ -168,6 +166,18 @@ In a campaign mission save with a non-bulldozable object:
 
 - [ ] A 200 m brush dragged over the densest city stays smooth.
 - [ ] Log the worst sample time (target < 2 ms).
+
+Moved from `PERF_REVIEW.md` (rev 2 changes, 2026-10-08):
+
+### In-game check list (rev 2 perf review)
+
+- [ ] Hover a 200 m brush across the densest city: `slow sample` lines (> 4 ms) are fewer / lower than before;
+      no visible stutter every ~100 ms while moving.
+- [ ] Paint a long stroke up to the 400 cap over a town with a 100-200 m brush: the red overlay grows
+      smoothly, no hitch per sample; release → overlay turns to the selection colour once.
+- [ ] Selection results unchanged: industry access roads still `Skipped: industry`, other players' objects
+      `other player`, station roads `part of a construction`, your stations selected with Stations & depots on.
+- [ ] Bulldoze: the commit log line counts and costs look as before.
 
 ## 8. Save safety (P4)
 
