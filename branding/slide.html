@@ -10,6 +10,7 @@
 <script src="cover.js"></script>
 <script src="mods.js"></script>
 <script src="slide.js"></script>
+<script src="postcard.js"></script>
 <script src="shots.js"></script>
 </head>
 <body>
@@ -17,7 +18,7 @@
   const q = new URLSearchParams(location.search);
   const mod = Square.MODS.find(m => m.id === q.get('mod'));
   const slide = (Square.SLIDES[q.get('mod')] || [])[Number(q.get('n')) - 1];
-  document.head.insertAdjacentHTML('beforeend', `<style>${Square.slideCss}</style>`);
+  document.head.insertAdjacentHTML('beforeend', `<style>${Square.slideCss}${Square.postcardCss}</style>`);
   if (mod && slide) document.body.innerHTML = Square.renderSlide(mod, slide);
   else document.body.textContent = 'unknown slide: ' + location.search;
 </script>

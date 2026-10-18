@@ -8,6 +8,8 @@
 //            split: share of the diagonal given to "before", default 0.5; darkChips: both labels dark)
 //   stack   { items: [{src, crop}, {src, crop}], labels }      same UI, two states
 //   table   { head: [col1, col2], rows: [[a, b], ...] }         text card, no capture
+//   collage { items: [{src, crop, x, y, w, rot, label}], print? }  free placement (centre x/y, width in slide px)
+//   any layout: badges: [{ big, small, x, y, w }] result cards; table: { head, rows, top } a table card on top
 // title: 2-4 words, sub: one short line. English only.
 
 Square.slides('square_bigger_line_dots', [
@@ -58,20 +60,23 @@ Square.slides('square_no_factory_passengers', [
 
 Square.slides('square_problem_radar', [
   // Captures 2026-10-10 (rev 6). Radar window x 1076-4050, y 684-2052; fleet window x 2064-4080, y 672-2064.
+  // Rev 10 (2026-10-14): 11/13/16/17 are those captures with the redesigned window pasted over the old one at the
+  // same place and scale (user screenshots of the new UI, pasted by plans/square_problem_radar/shots/overlay_rev10.py). The new fleet
+  // window is shorter: x 2066-4079, y 674-1788.
   { title: 'Every problem, one list', sub: 'Vehicles, lines, stations, fleet and money',
-    media: { src: '01-all-tab.jpg', crop: [1064, 676, 3000, 1392] } },
+    media: { src: '11-all-tab.jpg', crop: [1064, 676, 3000, 1392] } },
   { title: 'Old and worn vehicles', sub: 'Upg opens the fleet of that vehicle\'s line',
     media: { src: '02-fleet-tab-upg.jpg', crop: [1064, 676, 3000, 1392] } },
   { title: 'Upgrade a tired fleet', sub: 'Line stats, last year\'s money, every model',
-    media: { src: '03-fleet-window-trucks.jpg', crop: [2066, 664, 2030, 1412] } },
+    media: { src: '13-fleet-window.jpg', crop: [2066, 662, 2030, 1140] } },
   { title: 'Pick the new model', sub: 'In the game\'s own Replace Vehicles window',
     media: { src: '04-replace-vehicles.jpg', crop: [1580, 196, 2996, 1784] } },
   { title: 'Lines losing money', sub: 'A year of losses, ranked by severity',
     media: { src: '05-economy-tooltip.jpg', crop: [1064, 676, 3204, 1392] } },
   { title: 'Snooze what you accept', sub: 'Zz hides an alert for a month up to 5 years',
-    media: { src: '06-snoozed.jpg', crop: [1064, 676, 3000, 1392] } },
+    media: { src: '16-snoozed.jpg', crop: [1064, 676, 3000, 1392] } },
   { title: 'Off, List or Notify', sub: 'Choose how each alert reaches you',
-    media: { src: '07-settings.jpg', crop: [1064, 676, 3000, 1392] } },
+    media: { src: '17-settings.jpg', crop: [1064, 676, 3000, 1392] } },
 ]);
 
 Square.slides('square_better_minimap', [
@@ -140,7 +145,7 @@ Square.slides('square_roundabouts', [
   // Rev 6 gallery, captures 2026-10-10 (18-33 world shots, 40-44 settings panels; their empty map is
   // never shown). Settings panel crops: x 56-934; menu strip y 2406-2624. Order changed throughout:
   // `make modio ARGS=--apply` replaces the whole gallery. Kept to 10: the Hub failed with mod.io error 13003
-  // FILE_TOO_MANY at 22 and at 19 slides (docs/findings.md).
+  // FILE_TOO_MANY at 22 and at 19 slides (docs/findings.md). Now 9 at most (tools/render_shots.py MAX_SLIDES).
   { title: 'Rings, junctions, interchanges', sub: 'Seven entries in the Road menu',
     media: { layout: 'inset', at: 'bl', insetW: 1000,
              main: { src: '20-horizon-mix.jpg', crop: [0, 720, 5120, 2160] },
@@ -161,10 +166,6 @@ Square.slides('square_roundabouts', [
     media: { layout: 'inset', at: 'tr', insetW: 440,
              main: { src: '14-top-down-variety.jpg', crop: [1668, 608, 1360, 880] },
              inset: { src: '42-settings-channel.jpg', crop: [56, 1183, 878, 1441] } } },
-  { title: 'Roundabout interchange', sub: 'A ring on bridges over the highway',
-    media: { layout: 'inset', at: 'tr', insetW: 440,
-             main: { src: '22-interchange-ring-closeup.jpg', crop: [1760, 200, 2800, 2600] },
-             inset: { src: '43-settings-interchange.jpg', crop: [56, 1085, 878, 1539] } } },
   { title: 'Dumbbell or two-bridge', sub: 'Two roundabouts, or one ring on two bridges',
     media: { src: '23-dumbbell-magic-chain.jpg', crop: [240, 320, 2680, 2560] } },
   { title: 'Parclo and Diamond', sub: 'Highway interchanges with one-way ramps',
@@ -186,6 +187,50 @@ Square.slides('square_line_revert', [
     media: { src: '01-undo-tooltip-many.jpg', crop: [208, 1616, 2064, 680] } },
   { title: 'Step back, then redo', sub: 'Redo puts it back; Shift+click reverts all',
     media: { src: '03-undo-stop-removed.jpg', crop: [208, 1616, 2160, 520] } },
+]);
+
+Square.slides('square_line_manager_plus', [
+  // Captures 2026-10-11 (rev 1). Line Manager window x 208-1576, y 200-2600; other mods' buttons sit in the top
+  // strip (y < 150) and top centre (x 1400-1660, y < 140): crops stay clear of both.
+  { title: 'Every line, one hover away', sub: 'Hover a line on the map; Shift-click to manage it',
+    media: { src: '01-map-hover-bus.jpg', crop: [2300, 880, 1960, 1260] } },
+  // 16 (rev 5, 2026-10-11): 5120x2880, a furniture truck line's vehicle list with the adaptive columns: a long
+  // vehicle name runs up to the load, the picture column only as wide as the pictures. Line Manager x 205-1575; from
+  // the line list to the line's stops (y 640-2150), both ends faded. Replaces 15 (rev 4's fixed columns).
+  { title: 'Loads at a glance, rebalanced columns', sub: 'See capacity directly from the line window and more space for vehicle names',
+    media: { src: '16-vehicle-list-long-names.jpg', crop: [205, 640, 1370, 1510], fade: [0.14, 0.18] } },
+  // 14 (rev 3 final, 2026-10-11): 5120x2880, a bus line's vehicle list, the third bus's picture hovered: the info
+  // box right of the Line Manager (x 1600-2750, y 1230-1525). One wide strip rendered too small, so a stack: the
+  // vehicle rows (hovered one last), then the box.
+  { title: 'Hover any vehicle', sub: 'Its line, parts, speed, condition and costs at a glance',
+    media: { layout: 'stack', gap: 28, labels: ['Hover its picture', 'Vehicle info'],
+             items: [{ src: '14-vehicle-hover.jpg', crop: [205, 1080, 1360, 215] },
+                     { src: '14-vehicle-hover.jpg', crop: [1595, 1222, 1165, 310] }] } },
+  // 10-13 (rev 3, 2026-10-11): 5120x2880, one Line Manager vehicle list per vehicle type; rows from y 1075, 68 px
+  // each, list x 225-1225 (names, cargo, the vehicle picture; the locate pins left out).
+  { title: 'Trucks, planes, trains', sub: 'Every carrier, every cargo, mixed loads too',
+    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Trucks', 'Planes', 'Train, two cargos', 'Log trucks'],
+             items: [{ src: '10-cargo-trucks.jpg', crop: [225, 1211, 1000, 340] },
+                     { src: '11-cargo-planes.jpg', crop: [225, 1075, 1000, 340] },
+                     { src: '12-cargo-train.jpg', crop: [225, 1075, 1000, 72] },
+                     { src: '13-cargo-logs.jpg', crop: [225, 1075, 1000, 205] }] } },
+  { title: 'Hover any line in the list', sub: 'Its fleet and stats, right beside the Line Manager',
+    media: { src: '02-list-row-hover.jpg', crop: [200, 200, 2580, 750] } },
+  { title: 'Know where you send', sub: 'Capacity, frequency and rate, before and after',
+    media: { src: '03-send-list-estimate.jpg', crop: [300, 1052, 2190, 830] } },
+  { title: 'Preview every send', sub: 'Hover the target line on the map: before and after',
+    media: { src: '04-send-map-estimate.jpg', crop: [1680, 820, 1980, 1280] } },
+  // 05: a 1538x616 close-up (current build: Match line rate first, Reverse greyed out on a 2-stop line).
+  { title: 'Duplicate, reverse, match', sub: 'One menu, next to Undo and Redo',
+    media: { src: '05-line-actions-menu.jpg', srcW: 1538, crop: [72, 36, 1346, 468] } },
+  { title: 'Match line rate', sub: 'Fleet sized to the cargo in reach, cheapest model marked',
+    media: { src: '06-rate-matcher.jpg', crop: [2156, 536, 2036, 1512] } },
+  // 07/08: same camera, 5 stops (Undo tooltip) and 3 stops after two Undos (Redo tooltip). Line editor panel
+  // x 208-1576 from y 1620; the Undo tooltip runs to x 2140; stops 3 and 5 on the map at x 2730-2830, y 1580-1700.
+  { title: 'Undo any stop edit', sub: 'Shift+click Undo reverts it all; Redo brings it back',
+    media: { layout: 'stack', labels: ['Undo', 'Redo'],
+             items: [{ src: '07-undo-tooltip.jpg', crop: [208, 1540, 2760, 680] },
+                     { src: '08-redo-tooltip.jpg', crop: [208, 1540, 2760, 680] }] } },
 ]);
 
 Square.slides('square_names_us_washington', [
@@ -381,20 +426,62 @@ Square.slides('square_names_us_texas', [
 ]);
 
 Square.slides('square_smart_lanes', [
-  // 'Find it' slide moved to the front: every slide number shifted, so delete all mod.io gallery
-  // media before the next update (README "Gallery slides").
-  { title: 'Find it under Tools', sub: 'Road menu, Tools tab, by the Crossing Tool',
-    media: { layout: 'inset', at: 'tr', insetW: 460,
-             main: { src: '02-ring-select.jpg', crop: [980, 1600, 3160, 1200] },
-             inset: { src: '02-ring-select.jpg', crop: [3760, 2408, 332, 212] } } },
+  // Rev 8 (2026-10-16): three slides in front for the rev 8 features (Smart lights, automatic light timing, Record
+  // traffic), then six earlier ones. Dropped for them: "From one ring to a city" (a second test-map collage),
+  // "Works with traffic lights" (lanes fitted to the game's phases: superseded by Smart lights; its crossroads is the
+  // timing slide's scene) and "Built for rush hour" (its busy road is the Record traffic slide's scene).
+  // 19-23 are in-game panel captures at 2x (srcW = their width); the game's Account / Vice President HUD below each
+  // panel is cropped off. 20-panel-game-default.jpg shows the old badge "Game default (kept)": only its Smart lanes
+  // button is used. Numbers: RESULTS.md "Verdicts" ("Light plans: axis (rev 8) vs game default": +23 % / +26 %
+  // cars/min on lit 2x2 / 3x3 crossroads, 6 of 6 sets) and the earlier ones as before.
+  // Rev 8 (user 2026-10-16): the first slide shows both offerings at once: smart lanes (the junction hover) and
+  // Smart lights (the Crossing window with the 4-phase plan, the tool's info with both checks), one number each
+  // (+16 cars a minute: RESULTS.md, as "Roundabouts keep moving"; +23-26 %: the light plans A/B).
+  { title: '<span style="font-size:72px;line-height:80px;white-space:nowrap">Smart lanes +<br>Smart lights</span>', sub: 'Lanes that fit every junction, light phases that fit the lanes',
+    media: { layout: 'collage', items: [
+      { src: '03-junction-hover.jpg', crop: [1000, 400, 2760, 1760], x: 1080, y: 330, w: 560, rot: -2, label: 'Smart lanes' },
+      { src: '21-crossing-smart-phases.jpg', srcW: 1308, crop: [54, 14, 1200, 935], x: 1630, y: 290, w: 480, rot: 2 },
+      { src: '22-panel-smart-lights.jpg', srcW: 944, crop: [56, 690, 830, 300], x: 1600, y: 820, w: 560, rot: 1 }],
+      // the Crossing window's own title stays readable: its caption is a badge under it, not a corner chip
+      badges: [{ big: 'Smart lights', small: 'Improved 4-phase plan: one green per road', x: 1390, y: 490 },
+               { big: '+16 cars/min', small: 'through two-lane roundabouts', x: 840, y: 660 },
+               { big: '+23-26 %', small: 'cars a minute at lit crossroads', x: 840, y: 820 }] } },
+  { title: 'Lights that keep up', sub: 'Keep timing adjusted gives more green where cars keep waiting',
+    media: { layout: 'collage', items: [
+      { src: '07-crossing-phases.jpg', crop: [1100, 300, 2700, 2100], x: 1460, y: 400, w: 780 },
+      { src: '19-settings-panel.jpg', srcW: 972, crop: [56, 40, 878, 1195], x: 1010, y: 560, w: 420, rot: -2, },
+      { src: '22-panel-smart-lights.jpg', srcW: 944, crop: [56, 382, 822, 96], x: 1500, y: 870, w: 620, rot: 1 }] } },
+  { title: 'Record traffic anywhere', sub: 'Vehicles per minute at any junction or roundabout, up to 20 at once',
+    media: { layout: 'collage', items: [
+      { src: '04-busy-road.jpg', crop: [0, 40, 5000, 2800], x: 1330, y: 330, w: 1000 },
+      { src: '22-panel-smart-lights.jpg', srcW: 944, crop: [56, 545, 830, 380], x: 1070, y: 790, w: 500, rot: -2, label: 'Recording', dark: true },
+      { src: '23-panel-recorded.jpg', srcW: 970, crop: [48, 560, 882, 490], x: 1600, y: 800, w: 500, rot: 2, label: 'Recorded' }] } },
+  { title: 'Extensively tested', sub: 'Whole maps of twin towns: Smart Lanes against the game\'s lanes',
+    media: { layout: 'collage', items: [
+      { src: '10-bench-map.jpg', crop: [0, 0, 4640, 2520], x: 1330, y: 400, w: 1040 },
+      { src: '08-bench-group.jpg', crop: [1200, 60, 2800, 2500], x: 1000, y: 790, w: 360, rot: -3, label: 'Test group' },
+      { src: '09-roundabout-top.jpg', crop: [1200, 120, 2800, 2500], x: 1340, y: 820, w: 360, rot: 2, label: 'Roundabout' },
+      { src: '07-crossing-phases.jpg', crop: [1600, 720, 1920, 1714], x: 1680, y: 790, w: 360, rot: -2, label: 'Lit crossroads' }] } },
+  // Rev 5 (2026-10-14): the 2-lane town roundabout default (sl_rmid). Smart Lanes adds a node half way between the arms
+  // and does every lane change there (orange); the arm junctions (teal) only take exits and entries. 18-ring-mid-nodes.jpg
+  // is a 2928 px wide capture (srcW). Numbers: RESULTS.md, bench s4 v5 (mid-only on the mid-node ring vs the game on a
+  // plain ring, one pair).
+  { title: 'Smarter small roundabouts', sub: 'Cars change lanes at a new node between the arms, never at the exits',
+    media: { src: '18-ring-mid-nodes.jpg', srcW: 2928, crop: [330, 100, 2260, 1900],
+             badges: [{ big: '+47 %', small: 'more cars through', x: 1500, y: 740, w: 330 },
+                      { big: '12.4 km/h', small: 'vs 8.0 with game lanes', x: 1500, y: 875, w: 330 }] } },
+  { title: 'Roundabouts keep moving', sub: '+16 cars a minute through two-lane roundabouts in tests',
+    media: { src: '09-roundabout-top.jpg', crop: [1040, 0, 3080, 2640] } },
+  { title: 'Works on its own', sub: 'On by default: build a junction and it gets smart lanes',
+    media: { src: '06-roundabout-queue.jpg', crop: [380, 330, 4230, 2000] } },
+  // Inset: the rev 8 tool's Smart lanes button (20-panel-game-default.jpg, top row only; a multi selection shows the
+  // lane row alone).
+  { title: 'A whole district at once', sub: 'Shift+click junctions and roads, then Smart lanes for them all',
+    media: { layout: 'inset', at: 'bl', insetW: 460,
+             main: { src: '16-district-select.jpg', crop: [980, 80, 3400, 2020] },
+             inset: { src: '20-panel-game-default.jpg', srcW: 966, crop: [74, 60, 822, 96] } } },
   { title: 'Lanes that never cross', sub: 'Each entry lane gets its own ring lane and exit',
     media: { src: '03-junction-hover.jpg', crop: [1000, 400, 2760, 1760] } },
-  { title: 'Junction or whole ring', sub: 'Apply or Reset with the Smart Lanes tool',
-    media: { layout: 'inset', at: 'bl', insetW: 400,
-             main: { src: '02-ring-select.jpg', crop: [1600, 560, 2560, 1600] },
-             inset: { src: '02-ring-select.jpg', crop: [56, 1912, 880, 680] } } },
-  { title: 'Every lane, shown', sub: 'Coloured lines show each connection',
-    media: { src: '01-ring-lanes.jpg', crop: [1600, 760, 1760, 1160] } },
 ]);
 
 Square.slides('square_supply_gaps', [
@@ -506,4 +593,121 @@ Square.slides('square_stress_test', [
     media: { src: '03-game-tab.jpg', crop: [1560, 400, 2000, 2120] } },
   { title: 'Towers in every block', sub: 'Benchmark mods on the busiest map you can',
     media: { src: '06-closeup.jpg', crop: [973, 154, 2611, 2304] } },
+]);
+
+Square.slides('square_organic_towns', [
+  // 01, 10-15: Retina captures 2026-10-12..14 (5120x2880; 11-forest-edge is a 2336-wide crop with drawn arrows,
+  // 12 the Blank Slate test map). 20-*-vanilla / 20-*-mod: the game's 2560x1440 tour shots of one town (entity id
+  // in the name) on the same temperate seed after the same 40 simulated years (OT Dev Simulate + Tour): vanilla from
+  // session 2026-10-14_0640_sqrl-sqsg load 2, the mod from 2026-10-16_1846_sqot load 2. 30-extra-*: that run's Works
+  // and district towns (127368 Wheatden Timber Yard, 140715 Brantmerehall, 176691 New Seven Oaks). Names in the table: its NAME lines.
+  { title: 'Towns that fit the land', sub: 'Streets wind along hills, rivers and shores',
+    media: { src: '01-valley-town.jpg', crop: [400, 600, 3600, 2200] } },
+  { title: 'Organic, not a grid', sub: 'One town, same seed, after 40 years',
+    media: { layout: 'wipe', labels: ['Vanilla', 'Organic Towns'], srcW: 2560, split: 0.42,
+             before: '20-60262-vanilla.jpg', after: '20-60262-mod.jpg', crop: [700, 300, 1150, 950] } },
+  // 30-extra-127368: Wheatden (left), its Timber Yard Works (middle) and the saw mill by the lake (right).
+  { title: 'Industry shapes the town', sub: 'Towns keep clear of the works and grow with your deliveries',
+    media: { src: '30-extra-127368.jpg', srcW: 2560, crop: [100, 180, 2100, 1180],
+      badges: [{ big: 'Room to grow', small: 'No streets where farms,\nmines and mills expand', x: 860, y: 870, w: 330 },
+               { big: 'Deliveries', small: 'Industrial cargo makes a mill\ntown, passengers a home town', x: 1220, y: 870, w: 380 }] } },
+  { title: 'Satellite towns', sub: 'Grown towns found districts and Works of their own',
+    media: { layout: 'collage', items: [
+      { src: '10-tickhill.jpg', crop: [480, 240, 3680, 2080], x: 1330, y: 320, w: 940, rot: -1.5, label: 'Tickhill-on-Sea, a shore district' },
+      { src: '30-extra-176691.jpg', srcW: 2560, crop: [600, 0, 1500, 1000], x: 1120, y: 800, w: 600, rot: 2, label: 'New Seven Oaks, a district' },
+      { src: '30-extra-140715.jpg', srcW: 2560, crop: [569, 0, 853, 910], x: 1650, y: 780, w: 400, rot: -2, label: 'Brantmerehall, a district' }] } },
+  // Stop names from the STOPNAME lines of session 2026-10-16_1846_sqot (Two Waters, 60256) and 2026-10-14 runs
+  // (Livestock Farm Gate, North Harbor Blvd).
+  { title: 'Fitting street names', sub: 'Every new stop named after its own spot, never twice',
+    media: { layout: 'collage', items: [
+      { src: '20-60256-mod.jpg', srcW: 2560, crop: [560, 300, 1500, 600], x: 1340, y: 240, w: 960, rot: 0, label: 'Two Waters' }],
+      table: { top: 470, head: ['A stop by', 'gets the name'], rows: [
+        ['the river bridge', 'Arun Bridge'],
+        ['the far end of the bridge', 'Bridge End'],
+        ['the hilltop', 'Beacon Hill'],
+        ['the road to the next town', 'Brynhaven Lane'],
+        ['a livestock farm', 'Livestock Farm Gate']] } } },
+  { title: 'Around the forest', sub: 'Towns grow into open fields and keep the woods',
+    media: { src: '11-forest-edge.jpg', srcW: 2336, crop: [250, 100, 1850, 2000] } },
+  { title: 'Every town its own form', sub: 'Long, radiating, clustered or along the shore',
+    media: { layout: 'collage', items: [
+      { src: '20-60261-mod.jpg', srcW: 2560, crop: [1000, 100, 700, 1300], x: 1040, y: 540, w: 420, rot: -2, label: 'Long' },
+      { src: '20-60263-mod.jpg', srcW: 2560, crop: [950, 250, 1050, 900], x: 1560, y: 290, w: 520, rot: 2, label: 'Island town' },
+      { src: '20-60266-mod.jpg', srcW: 2560, crop: [850, 450, 750, 800], x: 1450, y: 790, w: 360, rot: -1, label: 'Radiating' },
+      { src: '20-60267-mod.jpg', srcW: 2560, crop: [850, 400, 850, 750], x: 1745, y: 760, w: 300, rot: 3, label: 'Clustered' }] } },
+  { title: 'Names from the landscape', sub: 'Every town named after its own site',
+    media: { layout: 'table', head: ['Town', 'Named for'], rows: [
+      ['Two Waters', 'a bend where the river doubles back'],
+      ['Watersmeet', 'two rivers meeting'],
+      ['Hornholt Isle', 'a wooded spit in a lake'],
+      ['Merehythe-on-Redwater', 'a landing on Redwater lake'],
+      ['Dovemouth-in-the-Forest', 'the mouth of the Dove, in the woods'],
+      ['Seachurch Cove', 'a church by a sheltered cove']] } },
+  // 40-var-*: tour shots from the compare pages (plans/square_organic_towns/compare/): tropical (Asian list), dry,
+  // US names (92 years and 1960), 203 years, a 1950 start and two more seeds. Numbers: every "SIMGROW stop" line in
+  // .cache/logs (2026-10-16): 66 runs, 814 towns (sum of towns=), 40 to 203 simulated years.
+  { title: 'Tested town by town', sub: 'Many seeds, climates, eras and name lists',
+    media: { layout: 'collage', print: true, items: [
+      { src: '40-var-01.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 953, y: 195, w: 285, rot: -2.5, label: 'Tropical' },
+      { src: '40-var-02.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 1197, y: 210, w: 285, rot: 1.5, label: 'Dry' },
+      { src: '40-var-03.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 1473, y: 190, w: 285, rot: -1 },
+      { src: '40-var-04.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 1717, y: 205, w: 285, rot: 2.5, label: '203 years' },
+      { src: '40-var-05.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 953, y: 425, w: 285, rot: 2 },
+      { src: '40-var-06.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 1197, y: 410, w: 285, rot: -1.5, label: 'US names' },
+      { src: '40-var-07.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 1473, y: 430, w: 285, rot: 1, label: 'From 1950' },
+      { src: '40-var-08.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 1717, y: 415, w: 285, rot: -2 },
+      { src: '40-var-09.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 953, y: 650, w: 285, rot: -1 },
+      { src: '40-var-10.jpg', srcW: 1600, crop: [320, 135, 960, 630], x: 1197, y: 640, w: 285, rot: 2 },
+      { src: '40-var-11.jpg', srcW: 1400, crop: [280, 118, 840, 551], x: 1473, y: 655, w: 285, rot: -2.5 },
+      { src: '12-flat-town.jpg', crop: [700, 300, 3550, 2100], x: 1717, y: 645, w: 285, rot: 1.5, label: 'Blank Slate' }],
+      badges: [{ big: '66', small: 'simulated test runs', x: 830, y: 800, w: 300 },
+               { big: '814', small: 'towns grown and compared', x: 1180, y: 800, w: 320 },
+               { big: '40-203', small: 'years per run', x: 1550, y: 800, w: 290 }] } },
+]);
+
+// Photo Mode: its own postcard style (postcard.js): big tilted postcards of real Photo Mode pictures, a teal note
+// with the title, and the window that made the picture as a taped card. Photos are 2560x1440 (srcW defaults to
+// 2560 there); UI cards are window screenshots at their own size (srcW given).
+Square.slides('square_photo_mode', [
+  { title: 'Every view,<br>a postcard', sub: 'Light, weather, looks, lenses, tours and wildlife in one window', style: 'postcard',
+    media: { bg: 2, note: { x: 70, y: 150, w: 600, rot: -3 },
+             photos: [
+               { src: '05-neon-intersection.jpg', x: 1420, y: 360, w: 780, rot: 6, caption: 'Neon dusk', stamp: false },
+               { src: '01-deer-herd-rain.jpg', x: 1500, y: 760, w: 760, rot: -5, caption: 'A herd in the rain', stamp: false },
+               { src: '02-golden-town-market.jpg', x: 1110, y: 560, w: 900, rot: -1.5, caption: 'Golden hour over the market' } ] } },
+  { title: 'Find the shot', sub: 'Random subjects and 15 photographer\'s shots: bridges, skylines, tunnel portals', style: 'postcard',
+    media: { note: { x: 60, y: 70, w: 560, rot: -3 },
+             photos: [{ src: '07-forest-mine-aerial.jpg', crop: [700, 380, 1600, 900], x: 1190, y: 520, w: 1240, rot: 2, caption: 'Ore train through the pines' }],
+             uis: [{ src: 'ui-subjects.jpg', srcW: 1316, crop: [40, 300, 1210, 1000], x: 340, y: 800, w: 470, rot: -4 }] } },
+  { title: 'Zoom 24 to 400 mm', sub: 'Lens view frames any object; long lenses stack the city', style: 'postcard',
+    media: { note: { x: 60, y: 70, w: 560, rot: -3 },
+             photos: [{ src: '03-telephoto-city.jpg', x: 1190, y: 520, w: 1240, rot: -2, caption: 'Downtown at 400 mm' }],
+             uis: [{ src: 'ui-camera.jpg', srcW: 1338, crop: [60, 935, 1200, 860], x: 340, y: 810, w: 480, rot: 4 }] } },
+  { title: 'Over 1,000 looks', sub: 'Mix a sky, a haze and a water look: Neon dusk, Golden glow, Dust storm', style: 'postcard',
+    media: { note: { x: 60, y: 70, w: 560, rot: -3 },
+             photos: [{ src: '05-neon-intersection.jpg', x: 1190, y: 520, w: 1240, rot: 2, caption: 'Neon dusk on the edge of town' }],
+             uis: [{ src: 'ui-weather.jpg', srcW: 1362, crop: [60, 380, 1260, 480], x: 350, y: 820, w: 500, rot: -4 }] } },
+  { title: 'Paint with light', sub: 'Golden and blue hour, time-lapse, season, sun direction', style: 'postcard',
+    media: { note: { x: 60, y: 70, w: 560, rot: -3 },
+             photos: [{ src: '06-snowy-ridges.jpg', x: 1190, y: 520, w: 1240, rot: -2, caption: 'First snow, low sun' }],
+             uis: [{ src: 'ui-light.jpg', srcW: 1344, crop: [50, 380, 1210, 1050], x: 330, y: 800, w: 430, rot: 4 }] } },
+  { title: 'Rain, haze and storms', sub: 'Clouds, cloud height, rain and a low cloud veil, live', style: 'postcard',
+    media: { note: { x: 60, y: 70, w: 560, rot: -3 },
+             photos: [{ src: '04-canyon-haze.jpg', x: 1190, y: 520, w: 1240, rot: 2, caption: 'Dust over the canyon' }],
+             uis: [{ src: 'ui-weather.jpg', srcW: 1362, crop: [60, 1180, 1260, 600], x: 350, y: 820, w: 480, rot: -4 }] } },
+  { title: 'Bring in the wildlife', sub: 'Herds, flocks and schools placed right where you look', style: 'postcard',
+    media: { note: { x: 60, y: 70, w: 560, rot: -3 },
+             photos: [{ src: '01-deer-herd-rain.jpg', x: 1190, y: 520, w: 1240, rot: -2, caption: 'Red deer, pink rain' }],
+             uis: [{ src: 'ui-animals.jpg', srcW: 1340, crop: [40, 270, 1200, 760], x: 340, y: 820, w: 480, rot: 4 }] } },
+  { title: 'Sit back for a tour', sub: 'Aerials over towns, rivers and rail, ground level, or a lens tour', style: 'postcard',
+    media: { note: { x: 60, y: 70, w: 560, rot: -3 },
+             photos: [{ src: '07-forest-mine-aerial.jpg', crop: [0, 0, 2560, 1440], x: 1190, y: 520, w: 1240, rot: 2, caption: 'Golden flight over the forest' }],
+             uis: [{ src: 'ui-tour.jpg', srcW: 1386, crop: [40, 290, 1240, 880], x: 340, y: 815, w: 470, rot: -4 }] } },
+  { title: 'Keep the shot', sub: 'Saved views and setups, High graphics, 1x, 2x and 4x screenshots', style: 'postcard',
+    media: { bg: 1, note: { x: 60, y: 70, w: 560, rot: -3 },
+             photos: [
+               { src: '04-canyon-haze.jpg', x: 1380, y: 380, w: 820, rot: 5, caption: 'Saved view 3', stamp: false },
+               { src: '02-golden-town-market.jpg', x: 1150, y: 600, w: 960, rot: -2, caption: 'Setup: Dust at sunset', capLeft: true } ],
+             uis: [{ src: 'ui-settings.jpg', srcW: 1348, crop: [40, 260, 1200, 960], x: 340, y: 790, w: 440, rot: 4 },
+                   { src: 'ui-views.jpg', srcW: 1452, crop: [60, 270, 1200, 520], x: 1640, y: 880, w: 400, rot: -5 }] } },
 ]);

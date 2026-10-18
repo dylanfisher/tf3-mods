@@ -5,6 +5,7 @@
 //   accent   the mod's accent colour, used inside the pictogram
 //   glyph    returns SVG markup in an 800x800 box; use the classes from cover.js
 //            (ink / acc / cut / cutf / sink / sacc / scut / sep / under) and helpers on S.
+//   optional deprecated: true or the replacement's display name; draws the red DEPRECATED sash (README "Deprecated mods").
 //   optional titleLines (fixed title lines instead of the automatic wrap) and overlay(S, o) (markup in cover
 //   coordinates drawn above the pictogram; o.dx = pictogram shift when the title is off). Both are used by
 //   Square.stateCover (README "State series"); one-off mods normally need neither.
@@ -170,6 +171,7 @@ Square.register({
 
 Square.register({
   id: 'square_line_revert', name: 'Line Editor Undo', tagline: 'Undo and redo line stop edits', accent: '#C964E8',
+  deprecated: 'Line Manager Plus',
   // A counter-clockwise undo hook arrow over a line with three stops, one stop in accent (the edit
   // being taken back).
   glyph: S => `
@@ -181,7 +183,7 @@ Square.register({
 });
 
 Square.register({
-  id: 'square_smart_lanes', name: 'Smart Lanes', tagline: 'Lane discipline on roundabouts', accent: '#3FD6EE',
+  id: 'square_smart_lanes', name: 'Smart Lanes', tagline: 'Lane discipline at every junction', accent: '#3FD6EE',
   // Top view of a two-lane ring with a dashed lane divider and a two-lane exit arm at the top: two
   // accent arrows leave the ring side by side, each from its own ring lane into its own exit lane.
   glyph: S => {
@@ -300,10 +302,9 @@ Square.register({
 });
 
 Square.register({
-  id: 'square_line_manager_plus', name: 'Line Manager Plus', tagline: 'Undo edits, know where you send', accent: '#D9B98C',
-  // Both features over one line with three stops: Line Editor Undo's counter-clockwise undo hook (accent, top
-  // left) and Send to Line Info's ink tooltip bubble with an accent "i" and three knocked-out text rows, its tail
-  // pointing at the line (top right).
+  id: 'square_line_manager_plus', name: 'Line Manager Plus', tagline: 'Better line ergonomics,\nat a glance stats,\nundo/redo,\nrate matching', accent: '#D9B98C',
+  // Over one line with three stops: the line info box shown on hover (ink bubble with an accent "i" and three
+  // knocked-out text rows, its tail pointing at the line, top right) and the undo hook (accent, top left).
   glyph: S => `
     <rect class="ink" x="100" y="660" width="600" height="40" rx="20"/>
     ${[160, 400, 640].map(x => `<circle class="ink sep" cx="${x}" cy="680" r="56"/>
@@ -319,21 +320,40 @@ Square.register({
 });
 
 Square.register({
-  id: 'square_line_rate_matcher', name: 'Line Rate Matcher', tagline: 'Right-size lines to their supply', accent: '#8A7FD1',
-  // Supply equals transport: an industry (left) and a cargo ship on the water (right) with an accent equals sign
-  // between them, i.e. the line's Rate matched to what the producer makes.
-  glyph: S => `
-    ${S.factory(0, 336, .78)}
-    ${S.ground(-10, 292, 570)}
-    <rect class="acc" x="318" y="404" width="108" height="46" rx="23"/>
-    <rect class="acc" x="318" y="492" width="108" height="46" rx="23"/>
-    <rect class="ink" x="536" y="330" width="44" height="90" rx="12"/>
-    <rect class="ink" x="508" y="390" width="120" height="120" rx="18"/>
-    <rect class="cut" x="528" y="420" width="32" height="32" rx="8"/>
-    <rect class="cut" x="576" y="420" width="32" height="32" rx="8"/>
-    <rect class="ink" x="646" y="440" width="114" height="70" rx="12"/>
-    <path class="ink" d="M478 520 H800 L754 592 Q746 604 730 604 H536 Q520 604 513 592 Z"/>
-    <path class="sink" d="M494 660 q 38 -26 76 0 t 76 0 t 76 0 t 76 0" stroke-width="22" stroke-linecap="round"/>`,
+  id: 'square_photo_mode', name: 'Photo Mode: Aerials & Camera', tagline: 'Aerials, lenses, light\nand wildlife', accent: '#8FD3FF',
+  // Public name (modinfo) is the full one; the cover title and the slides' note keep the short name (the window title).
+  shortName: 'Photo Mode', titleLines: ['Photo Mode'],
+  // A camera (ink body, viewfinder hump, knocked-out flash window) with an accent lens, and an accent
+  // four-point sparkle top right: aim the camera, every graphics setting at its highest for the shot.
+  glyph: S => {
+    const spark = (cx, cy, r) => `<path class="acc" d="M${cx} ${cy - r} Q${cx + r * .18} ${cy - r * .18} ${cx + r} ${cy} Q${cx + r * .18} ${cy + r * .18} ${cx} ${cy + r} Q${cx - r * .18} ${cy + r * .18} ${cx - r} ${cy} Q${cx - r * .18} ${cy - r * .18} ${cx} ${cy - r} Z"/>`;
+    return `
+    <path class="ink" d="M250 270 L292 190 H468 L510 270 Z" stroke="var(--ink)" stroke-width="30" stroke-linejoin="round"/>
+    <rect class="ink" x="80" y="250" width="600" height="420" rx="64"/>
+    <rect class="cut" x="560" y="310" width="72" height="44" rx="14"/>
+    <circle class="cut" cx="380" cy="460" r="172"/>
+    <circle class="acc" cx="380" cy="460" r="130"/>
+    <circle class="cut" cx="380" cy="460" r="62"/>
+    <circle class="ink" cx="340" cy="420" r="18"/>
+    <circle class="cut" cx="660" cy="150" r="118"/>
+    ${spark(660, 150, 100)}`;
+  },
+});
+
+Square.register({
+  id: 'square_organic_towns', name: 'Organic Towns: Cities that Grow', tagline: 'Shaped by hills,\nrivers and shores', accent: '#C98A9B',
+  titleLines: ['Organic Towns:', 'Cities that Grow'],
+  // An ink mountain with a knocked-out snow cap, and accent houses along a winding ink street at its foot:
+  // towns that grow with the land.
+  glyph: S => {
+    const house = (x, y, s) => `<path class="acc sep" stroke-linejoin="round"
+      d="M${x - 40 * s} ${y + 40 * s} V${y - 6 * s} L${x} ${y - 48 * s} L${x + 40 * s} ${y - 6 * s} V${y + 40 * s} Z"/>`;
+    return `
+    <path class="ink" stroke="var(--ink)" stroke-width="40" stroke-linejoin="round" d="M80 520 L300 150 L470 420 L590 260 L740 520 Z"/>
+    <path class="cut" stroke="var(--cut)" stroke-width="20" stroke-linejoin="round" d="M300 150 L372 270 L330 250 L300 290 L262 245 L232 265 Z"/>
+    <path class="sink" d="M40 750 C 200 640, 330 770, 470 690 S 680 620, 770 700" stroke-width="46" stroke-linecap="round"/>
+    ${[[160, 620, 1.3], [320, 630, 1.5], [490, 600, 1.6], [650, 610, 1.35]].map(([x, y, s]) => house(x, y, s)).join('')}`;
+  },
 });
 
 // US State Names series: one line per state, same cover every time (cover.js stateCover, README "State series").

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slide Options</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="gallery.css">
+<style>
+  .slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr)); gap: 16px;
+            background: #1b2129; padding: 16px; border-radius: 10px; }
+  .opt { background: var(--card); border-radius: 10px; padding: 10px 10px 12px; }
+  .frame { position: relative; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; cursor: zoom-in; }
+  .frame > .slide { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .opt .label { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 600; margin: 12px 8px 6px; }
+  .opt .label::after { content: ""; flex: 1; height: 1px; background: #4a5462; }
+  .opt .note { color: var(--muted); font-size: 13px; margin: 6px 8px 0; }
+  dialog .frame { cursor: zoom-out; }
+  body.only { background: #18202a; overflow: hidden; }
+  body.only main { display: none; }
+</style>
+<script src="cover.js"></script>
+<script src="mods.js"></script>
+<script src="slide.js"></script>
+<script src="shots.js"></script>
+<script src="gallery.js"></script>
+</head>
+<body>
+<main>
+  <h1>Square: slide options</h1>
+  <p>Candidate gallery slides, drawn with <code>slide.js</code>. Preview only: a slide reaches
+    <code>_metadata/</code> once its entry is copied into <code>shots.js</code> and <code>make shots</code> runs
+    (at most 10 slides per mod). Click a slide to see it large. <code>?only=&lt;label&gt;</code> renders one slide
+    at 1920x1080.</p>
+</main>
+<dialog id="lb"></dialog>
+<script>
+  // ---------- Smart Lanes, October 2026 batch (captures 04-12) ----------
+  const SL = 'square_smart_lanes';
+  // Crops (capture pixels, 5120x2880), HUD, FPS counter and the Esc/F9 overlay left out.
+  const C = {
+    mapBench:  { src: '10-bench-map.jpg', crop: [0, 0, 4640, 2520] },
+    benchPlus: { src: '10-bench-map.jpg', crop: [1800, 760, 1560, 1393] },
+    mapShow:   { src: '05-showcase-map.jpg', crop: [0, 0, 4640, 2520] },
+    showPlus:  { src: '05-showcase-map.jpg', crop: [1960, 700, 1640, 1464] },
+    group:     { src: '08-bench-group.jpg', crop: [480, 40, 4560, 2560] },
+    groupSq:   { src: '08-bench-group.jpg', crop: [1200, 60, 2800, 2500] },
+    town:      { src: '11-grid-town.jpg', crop: [1100, 160, 2700, 2410] },
+    rbQueue:   { src: '06-roundabout-queue.jpg', crop: [480, 0, 4520, 2640] },
+    rbQueueSq: { src: '06-roundabout-queue.jpg', crop: [1200, 0, 2800, 2500] },
+    rbTop:     { src: '09-roundabout-top.jpg', crop: [1200, 120, 2800, 2500] },
+    cross:     { src: '07-crossing-phases.jpg', crop: [1600, 720, 1920, 1714] },
+  };
+  const at = (c, x, y, w, rot, label) => ({ ...c, x, y, w, rot, label });
+  // The measured results (plans/square_smart_lanes/RESULTS.md "Verdicts": A/B twin junctions, Smart Lanes vs the
+  // game's own lanes, 9 sets each, every set won; sign p = 0.004).
+  const RES = [
+    { big: '+28.5 km/h', small: 'Slip-lane T junctions\n9 of 9 test sets' },
+    { big: '+16 cars/min', small: 'Two-lane roundabouts\n9 of 9 test sets' },
+    { big: '+9.2 km/h', small: 'Lit T junctions\n9 of 9 test sets' },
+  ];
+  const badgeRow = (y, x0 = 812, w = 336, gap = 16) => RES.map((b, i) => ({ ...b, x: x0 + i * (w + gap), y, w }));
+  const RES_TABLE = { head: ['Smart Lanes vs game lanes', '9 of 9 sets'], rows: [
+    ['Slip-lane T junctions', '+28.5 km/h'], ['Two-lane roundabouts', '+16 cars/min'], ['Lit T junctions', '+9.2 km/h']] };
+  // A fan of cards around a pivot below the slide: angles in degrees, R = radius to the card centres.
+  const fan = (cards, px, py, R, angles, w) => cards.map((c, i) => {
+    const a = angles[i] * Math.PI / 180;
+    return at(c, px + R * Math.sin(a), py - R * Math.cos(a), w, angles[i], c.label);
+  });
+
+  const OPTIONS = [
+    { label: 'A', name: 'Testing: cascading deck',
+      note: 'Five test captures stacked like a loose deck, each card offset so part of every setup shows; the three headline results as badges along the bottom.',
+      slide: { title: 'Tested, not guessed', sub: 'Twin junctions: Smart Lanes vs the game\'s lanes',
+        media: { layout: 'collage', items: [
+          at(C.mapBench, 1110, 230, 640, -5), at(C.mapShow, 1580, 240, 600, 4),
+          at(C.rbQueue, 1150, 520, 600, 3), at(C.cross, 1620, 520, 500, -3),
+          at(C.group, 1370, 650, 580, -1)],
+          badges: badgeRow(850) } } },
+    { label: 'B', name: 'Testing: fanned hand',
+      note: 'Five captures fanned out like a hand of cards, each with a chip naming the setup; results badges below.',
+      slide: { title: 'Measured in traffic', sub: 'Twin junctions: Smart Lanes vs the game\'s lanes',
+        media: { layout: 'collage', items: fan([
+          { ...C.groupSq, label: 'Test group' }, { ...C.rbQueueSq, label: 'Roundabout' },
+          { ...C.benchPlus, label: 'Test map' }, { ...C.cross, label: 'Lit crossroads' },
+          { ...C.town, label: 'Grid town' }], 1320, 1520, 1180, [-18, -9, 0, 9, 18], 400),
+          badges: badgeRow(790) } } },
+    { label: 'C', name: 'Testing: grid mosaic',
+      note: 'Six tight cut-outs in a 3x2 grid, labelled, with one results badge under each column. Tidy, the most readable at thumbnail size.',
+      slide: { title: 'Tested, not guessed', sub: 'Twin junctions: Smart Lanes vs the game\'s lanes',
+        media: { layout: 'collage', items: [
+          at(C.benchPlus, 980, 270, 336, 0, 'Test map'), at(C.groupSq, 1332, 270, 336, 0, 'Test group'),
+          at(C.town, 1684, 270, 336, 0, 'Grid town'),
+          at(C.rbTop, 980, 586, 336, 0, 'Roundabout'), at(C.cross, 1332, 586, 336, 0, 'Lit crossroads'),
+          at(C.rbQueueSq, 1684, 586, 336, 0, 'Rush hour')],
+          badges: badgeRow(770) } } },
+    { label: 'D', name: 'Testing: photo pile + results table',
+      note: 'Captures dropped in a pile with white photo borders in the top half, the results as the house table card underneath.',
+      slide: { title: 'Measured in traffic', sub: 'Every result from A/B twin junctions on test maps',
+        media: { layout: 'collage', print: true, items: [
+          at(C.mapShow, 1010, 230, 440, -7), at(C.town, 1700, 220, 340, 6),
+          at(C.rbQueue, 1420, 200, 440, 3), at(C.group, 1160, 410, 430, 4),
+          at(C.cross, 1600, 420, 330, -4)],
+          table: { ...RES_TABLE, top: 640 } } } },
+    { label: 'E', name: 'Testing: whole map + zoomed cut-outs',
+      note: 'The full bench map as the backdrop, three zoomed-in cut-outs (one test group, a roundabout, a lit crossroads) overlapping its lower edge. No numbers; the headline carries the claim.',
+      slide: { title: 'Tested on whole maps', sub: 'Twin towns: one with Smart Lanes, one with the game\'s lanes',
+        media: { layout: 'collage', items: [
+          at(C.mapBench, 1330, 400, 1040, 0),
+          at(C.groupSq, 1000, 790, 360, -3, 'Test group'), at(C.rbTop, 1340, 820, 360, 2, 'Roundabout'),
+          at(C.cross, 1680, 790, 360, -2, 'Lit crossroads')] } } },
+    { label: 'F', name: 'Testing: deck + table (no badges)',
+      note: 'Variant of A: a tighter deck of four on the right half, the results table card overlapping its lower edge.',
+      slide: { title: 'Tested, not guessed', sub: 'Twin junctions: Smart Lanes vs the game\'s lanes',
+        media: { layout: 'collage', items: [
+          at(C.mapBench, 1180, 220, 620, -4), at(C.rbQueue, 1580, 260, 560, 5),
+          at(C.cross, 1150, 450, 440, 3), at(C.group, 1560, 470, 560, -2)],
+          table: { ...RES_TABLE, top: 660 } } } },
+    { label: 'G', name: 'Many junctions at once (capture 12)',
+      note: 'The tool with 19 city junctions selected and their lane overlays; the Smart Lanes panel as the inset.',
+      slide: { title: 'A whole district at once', sub: 'Select many junctions, then Apply or Reset',
+        media: { layout: 'inset', at: 'bl', insetW: 380,
+          main: { src: '12-multi-select.jpg', crop: [440, 0, 3160, 1880] },
+          inset: { src: '12-multi-select.jpg', crop: [56, 1912, 880, 680] } } } },
+    { label: 'H', name: 'Busy roundabout (capture 6)',
+      note: 'Street-level view of a two-lane roundabout under load, skyline behind. Sub quotes the roundabout result.',
+      slide: { title: 'Roundabouts keep moving', sub: '+16 cars a minute through two-lane roundabouts in tests',
+        media: { src: '06-roundabout-queue.jpg', crop: [480, 0, 4520, 2640] } } },
+    { label: 'H2', name: 'Busy roundabout, top-down (capture 9)',
+      note: 'Alternative to H: the top-down two-lane roundabout with crosswalks and traffic.',
+      slide: { title: 'Roundabouts keep moving', sub: '+16 cars a minute through two-lane roundabouts in tests',
+        media: { src: '09-roundabout-top.jpg', crop: [1040, 0, 3080, 2640] } } },
+    { label: 'I', name: 'Lights: the game\'s phases (capture 7)',
+      note: 'A lit crossroads with queues; the game\'s Crossing window (phases 1-6) as the inset. Smart Lanes keeps the game\'s light phases (its own planner tested worse and was dropped).',
+      slide: { title: 'Works with traffic lights', sub: 'Lanes that fit the game\'s own light phases',
+        media: { layout: 'inset', at: 'tr', insetW: 400,
+          main: { src: '07-crossing-phases.jpg', crop: [1200, 120, 2560, 2480] },
+          inset: { src: '07-crossing-phases.jpg', crop: [3840, 40, 1200, 1220] } } } },
+    { label: 'J', name: 'Rush hour (capture 4)',
+      note: 'Street-level, a four-lane road packed both ways towards the skyline.',
+      slide: { title: 'Built for rush hour', sub: 'Stress-tested in dense traffic on every junction shape',
+        media: { src: '04-busy-road.jpg', crop: [0, 40, 5000, 2800] } } },
+  ];
+
+  // ---------- page ----------
+  document.head.insertAdjacentHTML('beforeend', `<style>${Square.slideCss}</style>`);
+  const current = Square.SLIDES[SL];
+  Square.slides(SL, OPTIONS.map(o => o.slide));  // resolves capture paths; shots.js's list is kept in `current`
+  const candidates = Square.SLIDES[SL];
+  Square.SLIDES[SL] = current;
+  const mod = Square.MODS.find(m => m.id === SL);
+  const q = new URLSearchParams(location.search);
+
+  if (q.get('only')) {
+    document.body.classList.add('only');
+    const i = OPTIONS.findIndex(o => o.label === q.get('only'));
+    document.body.insertAdjacentHTML('beforeend', i < 0 ? 'unknown option' : Square.renderSlide(mod, candidates[i]));
+  } else {
+    const main = document.querySelector('main');
+    main.insertAdjacentHTML('afterbegin', `<nav>${Gallery.PAGES.map(p => `<a href="${p.href}"${p.href === 'slide_options.html' ? ' aria-current="page"' : ''}>${p.label}</a>`).join('')}</nav>`);
+    const card = (k, label, note, slide) => `<div class="opt"><div class="frame" data-k="${k}">${Square.renderSlide(mod, slide)}</div>
+      <div class="label">${label}</div>${note ? `<div class="note">${note}</div>` : ''}</div>`;
+    main.insertAdjacentHTML('beforeend', `
+      <h2>Smart Lanes: candidates</h2>
+      <p>New captures 04-12 in <code>plans/square_smart_lanes/shots/</code>. A-F are variations of one "testing" slide
+        (pick one); G-J are single-shot slides (H and H2 are alternatives). Results are from
+        <code>plans/square_smart_lanes/RESULTS.md</code> "Verdicts". The mod has ${current.length} slides now, so up to
+        ${10 - current.length} can be added.</p>
+      <div class="slides">${OPTIONS.map((o, i) => card('c' + i, `${o.label}. ${o.name}`, o.note, candidates[i])).join('')}</div>
+      <h2>Smart Lanes: current slides (shots.js)</h2>
+      <div class="slides">${current.map((s, i) => card('s' + i, `${i + 1}. ${s.title}`, '', s)).join('')}</div>`);
+    const scale = () => document.querySelectorAll('.frame').forEach(f => {
+      f.firstElementChild.style.transform = `scale(${f.clientWidth / 1920})`;
+    });
+    const lb = document.getElementById('lb');
+    document.addEventListener('click', e => {
+      const f = e.target.closest('main .frame');
+      if (!f) return;
+      const k = f.dataset.k, slide = k[0] === 'c' ? candidates[+k.slice(1)] : current[+k.slice(1)];
+      lb.innerHTML = `<div class="frame">${Square.renderSlide(mod, slide)}</div>`;
+      lb.showModal();
+      scale();
+    });
+    lb.addEventListener('click', () => lb.close());
+    addEventListener('resize', scale);
+    scale();
+  }
+</script>
+</body>
+</html>

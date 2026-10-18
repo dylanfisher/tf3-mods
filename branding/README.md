@@ -18,9 +18,11 @@ Every mod ships under the creator name **square** (modId `square_<name>`, modinf
 |---|---|
 | `cover.js` | The renderer: palette, layout, pictogram helpers (`factory`, `ground`, `arrowHead`). Change the look here, and it changes for every mod. |
 | `mods.js` | One `Square.register({...})` per mod: id, name, tagline, accent, pictogram. |
-| `index.html` | Gallery: every cover in a mod-browser mock. Open it in a browser (`open branding/index.html`). |
+| `index.html`, `states.html`, `forks.html`, `dev.html`, `options.html` | Gallery pages, one per group, linked by a nav bar: published mods (and deprecated ones), State series, SQ Opt forks, DEV mods, and logo options (candidate pictograms not yet in `mods.js`). Open with `open branding/index.html`. |
+| `gallery.css`, `gallery.js` | Shared look and code of the gallery pages (nav, Title text toggle, card grid, lightbox). A page's mods come from the `filter` in `gallery.js` `PAGES`. |
+| `photo_mode.html`, `postcard.js` | Photo Mode launch kit: its postcard slide style, the 9 slides, the 1920×1080 poster (its cover, `Square.COVERS`) and name ideas. |
 | `render.html` | A single cover at exactly 1920×1080, which `make covers` screenshots. |
-| `fonts/` | Overpass 600/800 and Overpass Mono 700 (OFL), so renders work offline. |
+| `fonts/` | Overpass 600/800, Overpass Mono 700 and Caveat 600 (OFL), so renders work offline. |
 | `flags/` | Sanitized state flags for the State series (`<stateKey>.svg`) and `SOURCES.json`, which pins each one (Commons page, URL, sha1, licence, author, aspect). Written by `make flags`; never edit by hand. |
 
 ## Adding a cover for a new mod
@@ -28,7 +30,7 @@ Every mod ships under the creator name **square** (modId `square_<name>`, modinf
 1. Add a `Square.register({...})` entry to `mods.js`:
    - `id`: the modId, which is also the folder name.
    - `name`: exactly the `name` in `_metadata/modinfo.json`.
-   - `tagline`: about 32 characters at most, in English, sentence case, no full stop. It says what the player gets, not how the mod works.
+   - `tagline`: up to 4 lines, in English, sentence case, no full stop. It says what the player gets, not how the mod works. Shorter reads better at thumbnail size: up to about 32 characters wraps by itself into one or two lines; a longer tagline needs a `\n` at each break, with every line clear of the diagonal (lines lower down hold fewer characters). Line Manager Plus uses 4.
    - `accent`: a colour that's distinct from the other mods (see the palette below).
    - `glyph(S)`: the pictogram, drawn in an 800×800 box.
 2. Open `index.html` and check the cover in the mod-browser grid at thumbnail size.
@@ -38,7 +40,7 @@ Every mod ships under the creator name **square** (modId `square_<name>`, modinf
 
 - **Canvas**: 1920×1080. The diagonal runs at 45°, from (1540, 0) to (460, 1080), with a 16 px teal stripe 70 px to its right.
 - **Family teal** `#2FA48F` with a soft white-to-black sheen on the title side. The pictogram side is dark `#18202a`.
-- **Title**: top-left (first baseline at y=200, x=108), Overpass 800, 130 px, colour `#0f1d1b`. **Tagline**: Overpass 600, 74 px, 75 % opacity, 120 px below the last title line. Both wrap to the room left of the diagonal at each line (estimated per character in `cover.js`), so short names stay on one line; a tagline that doesn't fit splits into two with the longer half on top (first space past the middle). A `\n` in the tagline forces the break there instead (Better Minimap).
+- **Title**: top-left (first baseline at y=200, x=108), Overpass 800, 130 px, colour `#0f1d1b`. **Tagline**: Overpass 600, 74 px, 75 % opacity, 120 px below the last title line. Both wrap to the room left of the diagonal at each line (estimated per character in `cover.js`), so short names stay on one line; a tagline that doesn't fit splits into two with the longer half on top (first space past the middle). A `\n` in the tagline forces the break there instead (Better Minimap), and allows up to 4 lines (Line Manager Plus).
 - **No creator logo**: covers and slides carry no "square" mark. The shared teal, diagonal and type are the family signal.
 - **Pictogram**: 640 px, on the dark side.
 
@@ -77,10 +79,11 @@ Every mod ships under the creator name **square** (modId `square_<name>`, modinf
 | Passenger Destinations | `#FF8A65` coral (lighter and pinker than the roundabout orange, more orange than the No Factory Passengers red) |
 | Stress Test Debug Tool | `#F048D8` hot magenta (more saturated than the Full Refund pink, redder than the Line Editor Undo orchid) |
 | Line Manager Plus | `#D9B98C` sand (paler and greyer than the ambers and the gold, yellower than the coral) |
-| Line Rate Matcher | `#8A7FD1` slate violet (greyer and bluer than the Early One-way Roads purple, more violet than the royal blue) |
+| Photo Mode | `#8FD3FF` pale sky blue (lighter and softer than the Bigger Line Dots blue, paler and less green than the Smart Lanes cyan) |
+| Organic Towns: Cities that Grow | `#C98A9B` dusty rose |
 | State series (`<State> Towns & Streets`) | The flag's main colour (Washington `#00843D`), or a secondary one when the main is generic (Arizona `#CE5C17`, the copper star; Florida `#C60013`, the red saltire; Colorado `#00205B`, the blue bands; California `#5C462B`, the bear brown, since its red and green are taken; Texas `#BF0A30`, the flag red, since its blue is exactly Colorado's; Alaska `#FFB612`, the gold stars, since its dark blue is close to Colorado's; New York `#ECC875`, the seal's gold, since its blue field is close to Colorado's and its red to Texas's; Minnesota `#52C9E8`, the 2024 flag's light blue, since its dark blue is close to Colorado's; New Mexico `#0095B6`, turquoise (the state gem), since the Zia red is Texas's and its yellow sits next to Alaska's gold and the hazard yellow; Oregon `#2C5E3F`, Douglas fir green (the state tree), since the navy is close to Colorado's and the gold to Alaska's and New York's; Pennsylvania `#1F5290`, the seal shield's sea blue, since its blue field is exactly Colorado's and the seal's gold, red and green sit next to Alaska's/New York's, Texas's and Washington's; Hawaii `#D63384`, hibiscus pink (not a flag colour), since the flag's navy is close to Colorado's and its red to Florida's and Texas's). Recorded only; the series pictogram is all ink and the flag sticker carries the colour, so state accents may repeat or sit close to other mods. |
 
-Pick the next mod's accent away from these, for example dusty rose `#C98A9B`. Avoid the family teal `#2FA48F`, the fork orange `#E2873B` and the DEV grey `#8E9BAE`.
+Pick the next mod's accent away from these, for example olive `#A8A15A`. Avoid the family teal `#2FA48F`, the fork orange `#E2873B`, the DEV grey `#8E9BAE` and the deprecated sash red `#D9443A`.
 
 ## Local forks (SQ Opt)
 
@@ -112,18 +115,35 @@ The US State Names mods (`square_names_us_<state>`, plan in `plans/square_state_
 3. Add one line to `mods.js`, with `id` at the start of a line (`render_covers.py` finds mods that way):
    `Square.stateCover({ id: 'square_names_us_oregon', state: 'Oregon', flag: 'us_oregon.svg', flagAspect: 1.6667, accent: '#002A86' });`
    `flagAspect` is the `aspect` from `SOURCES.json`; `accent` is the flag's main colour (for the palette table only).
-4. Check it in `index.html`, then `make covers MOD=mods/square_names_us_oregon`. A state name longer than about 14 characters ("North Carolina", "South Dakota") still fits on the first line; check it anyway.
+4. Check it in `states.html`, then `make covers MOD=mods/square_names_us_oregon`. A state name longer than about 14 characters ("North Carolina", "South Dakota") still fits on the first line; check it anyway.
+
+## Deprecated mods
+
+A mod we no longer maintain (usually because another mod took over its features) keeps its own cover and gets a **red DEPRECATED sash** across the top-right corner, drawn above everything else. The cover keeps its colours so players still recognise it; the sash only covers the corner of the pictogram. Sash red `#D9443A` (`DEPRECATED` in `cover.js`), white Overpass 800 "DEPRECATED" with letter spacing, two thin white edge lines and a drop shadow. With a replacement, a second line reads "Use <name>".
+
+- Cover: add `deprecated: '<Replacement display name>'` (or `deprecated: true` when there is none) to the mod's entry in `mods.js`, then `make covers MOD=mods/<id>`. Change the sash only in `cover.js` (`sash`), for every deprecated mod at once. Don't use the sash red for anything else.
+- Description: the very first block of `description.html` is the notice, then an `<hr>`, then the usual description. The notice is one `<p>` that starts with the bold caps label; the rest is plain text right after `</strong>` (no `<em>`: the game ignores it and drops the space between `</strong>` and `<em>`, see `docs/findings.md` "Mod description rendering in game"). The `<hr>` separates it on mod.io; in game it shows no line:
+
+  ```html
+  <p><strong>DEPRECATED:</strong> Old Mod is no longer updated. Use New Mod instead: it has the same X, plus Y.</p>
+  <hr>
+  ```
+
+  Once the replacement is live on mod.io, link its name: `<a href="https://mod.io/g/transportfever3/m/<name-id>">New Mod</a>`.
+- Cover and description alone need no Hub upload: `make modio ARGS=--apply` (CLAUDE.md "Releasing updates"). Deprecation doesn't bump `revision` unless the mod itself changes.
+- Current: Line Editor Undo → Line Manager Plus (link to add once live: `https://mod.io/g/transportfever3/m/line-manager-plus`).
 
 ## Gallery slides (`_metadata/1-<hash>.png`, `2-<hash>.png`, …)
 
 Same family as the cover: the teal panel on the left carries the mod name, a 2–4 word headline and one short line; the right side shows a crop of a real game capture on the dark field. `slide.js` draws them, `shots.js` holds the per-mod list, and `make shots MOD=mods/<id>` renders them as `N-<hash>.png` (first 8 hex digits of the file's sha256; older copies and stale higher-numbered slides are removed; `0.png` is never touched).
 
 - **Captures**: full-screen, Retina 5120×2880, saved to `plans/<id>/shots/NN-slug.jpg` (never shipped). English UI, same UI scale, no other mods in frame.
-- **Crop to the point**: `crop: [x, y, w, h]` in capture pixels. Show the window, label or area the slide is about, never the whole screen. The quickest way to find coordinates is a 1280-wide preview (multiply by 4).
-- **Layouts**: `single` (one crop), `inset` (scene plus a UI crop overlapping a corner, e.g. the panel that produced it, or a zoom of a small HUD element; `insetW` sets its width, and optional `insetY` centres it at that fraction of the slide height instead of the corner), `wipe` (two same-camera captures split on a 45° diagonal, labelled Off/On), `stack` (the same UI in two states, labelled).
+- **Crop to the point**: `crop: [x, y, w, h]` in capture pixels. Show the window, label or area the slide is about, never the whole screen. The quickest way to find coordinates is a 1280-wide preview (multiply by 4). A source that is not a 5120-wide capture (a cropped or edited panel image) needs its width as `srcW` next to `crop`, or it is scaled as if it were 5120 wide.
+- **Layouts**: `single` (one crop), `inset` (scene plus a UI crop overlapping a corner, e.g. the panel that produced it, or a zoom of a small HUD element; `insetW` sets its width, and optional `insetY` centres it at that fraction of the slide height instead of the corner), `wipe` (two same-camera captures split on a 45° diagonal, labelled Off/On), `stack` (the same UI in two or more states or variants, labelled; items share a width, heights may differ, optional `gap` and `chips: 'after'`). Any crop can take `fade: [top, bottom]` (fractions of its height) to dissolve a tall window's ends. `collage` places crops freely (centre, width, rotation, optional chip label, `print: true` for white photo borders), e.g. a pile of test setups; any layout can add `badges` (big number plus a short line, for measured results) and a `table` card. Candidates are previewed on `slide_options.html` before they go into `shots.js`.
 - Keep headlines to what the player gets, like the cover tagline.
+- **A mod's own slide style**: a slide with `style: '<name>'` is drawn by `Square.SLIDE_STYLES[<name>]` instead of the teal panel (`slide.js` `renderSlide`). `postcard.js` adds `postcard` (Photo Mode: big tilted postcards with a handwritten Caveat caption, stamp and postmark over a blurred copy of the photo, a teal title note, taped UI cards; `media.photos`, `uis`, `note`, see its header). Preview and the poster: `photo_mode.html` (`?slide=N`, `?poster` render one at 1920×1080). The poster is also Photo Mode's cover: `Square.COVERS[<modId>]` (postcard.js) replaces the house cover in `render.html`, so `make covers MOD=mods/square_photo_mode` writes it as `_metadata/0.png`; the gallery pages (`index.html`) still show the house cover card for it.
 - **10 or more slides get zero-padded numbers** (`01-<hash>.png` … `22-<hash>.png`): the Mod Hub sorts the gallery by file name as text, so `10`–`19` showed before `2` (Roundabouts, 22 slides). `make shots` pads to the width of the slide count; `make modio` uploads under the same names.
-- **At most 10 slides per mod.** 22 and 19 failed the Hub upload with mod.io error 13003 `FILE_TOO_MANY`; 10 worked (`docs/findings.md`). `make shots` refuses more.
+- **At most 9 slides per mod.** 22 and 19 failed the Hub upload with mod.io error 13003 `FILE_TOO_MANY`; 10 uploaded, but every 10-slide gallery came out of order on mod.io after a Hub upload (slide 10 second), while every mod with 9 or fewer stayed in order (`docs/findings/publishing.md`, 2026-10-14). `make shots` refuses more.
 - **Hashed names keep the gallery intact.** `make modio ARGS=--apply` uploads slides as `N-<hash>.png` (a changed slide gets a new URL; re-using `1.png` kept showing the old picture from caches), and the local files carry the same names. With those names a Mod Hub update leaves mod.io's gallery as it is (Blank Slate rev 3, `docs/findings.md` "Mod Hub uploads and the mod.io gallery"). With plain `N.png` names it didn't: the Hub added new numbers next to old ones (Problem Radar rev 2 showed the settings slide twice) and stored copies that differed from the local files. `make modio ARGS='--diff --verify'` compares mod.io's originals byte for byte; `--apply` replaces the whole gallery when they differ.
 
 ## Mod description (`_metadata/description.html`)
@@ -131,14 +151,15 @@ Same family as the cover: the teal panel on the left carries the mod name, a 2�
 Every mod ships its description as `_metadata/description.html`. When that file exists the game uses it instead of modinfo's `description`, both in the in-game browser and on mod.io (`docs/wiki/modding/general/moddefinition.md:28,176`). The Mod Hub changelog field takes only one line, so **the changelog lives in the description**. Every mod has one, and every update that bumps `revision` adds an entry.
 
 - **Every piece of text sits in a block**: prose in `<p>`, headings in `<h2>`/`<h4>` (see Headings), list entries in `<li>`. No loose text between tags, and no `<br>` to fake paragraphs.
-- **Formatting**: only what the in-game browser renders: `<p>`, `<h1>`–`<h4>`, `<strong>`, `<ul>`/`<ol>`/`<li>`, `<hr>` (`docs/wiki/modding/general/guidelines.md:189-196`; the wiki lists only Header 1–3, so check that `<h4>` renders in game). No tables, images or video; those go in the gallery slides. mod.io caps the description at 150,000 characters (`api.mod.io/v1/swagger`, mod `description.maxLength`).
+- **Formatting**: only what the in-game browser renders: `<p>`, `<h1>`–`<h4>`, `<strong>`, `<ul>`/`<ol>`/`<li>`, `<hr>` (draws a line on mod.io only; in game it shows no line) (`docs/wiki/modding/general/guidelines.md:189-196`; the wiki lists only Header 1–3, so check that `<h4>` renders in game). `<blockquote>` (for a quote or a callout) shows as a box with a left border on mod.io, as on Pay Your Tolls; in game it is untested, so it must read fine as a plain paragraph. No tables, images or video; those go in the gallery slides (what mod.io accepts beyond that, e.g. linked image tiles: `docs/findings/publishing.md` "mod.io description HTML"). mod.io rejects a description over 50,000 characters (error 13009 at the Hub upload, `docs/findings/publishing.md` "Description length"; the swagger's 150,000 is not what the upload enforces). Keep it well under: `make validate` warns above 40,000 and errors above 50,000.
 - **Headings**: `<h2>` is used once, for the Changelog title. Every other heading is an `<h4>`: the section titles (Features, Settings, Notes) and each revision entry in the Changelog. No `<h1>` or `<h3>`.
 - **Structure**, in this order:
   1. One or two `<p>` paragraphs on what the player gets (same voice as the cover tagline).
   2. `<h4>Features</h4>` with a `<ul>` of what it shows or does.
   3. `<h4>Settings</h4>` when `mod.json` has `params`: each option by its exact in-game name, and its default.
   4. `<h4>Notes</h4>` for caveats and save compatibility ("reads the game state only, safe to add to or remove from existing saves" where true).
-  5. `<hr>` then `<h2>Changelog</h2>`. Each revision gets an `<h4>` (`Revision N`, plus the upload date as `YYYY-MM-DD`) and a `<ul>` of changes, **newest first**. Start each item with New, Changed or Fixed.
+  5. `<hr>` then `<h4>More from square</h4>`: written by `make more-from MOD=mods/<id>`, never by hand. Logo tiles (each mod's mod.io logo at 200 px, linked to its page) per group of `branding/more_from.json`, most popular first, then mod.io profile order; the Towns & Streets mods as one line of text links. The mod itself is left out. Run `--refresh` after publishing a new mod or replacing a logo (the logo's mod.io filename changes), add new mods to a group, then re-run `make more-from ARGS=--published` (every published mod; the State Names generator adds it to their descriptions as well). The tiles show on mod.io only (images are untested in game).
+  6. `<hr>` then `<h2>Changelog</h2>`. Each revision gets an `<h4>` (`Revision N`, plus the upload date as `YYYY-MM-DD`) and a `<ul>` of changes, **newest first**. Start each item with New, Changed or Fixed.
 - The description is English only: mod.io holds one description per mod. Translated name and summary go in modinfo's `localization` block (CLAUDE.md "Translations"). Name settings by their English in-game text.
 - Keep modinfo's `description` as a short plain-text fallback (the summary plus one sentence). The `summary` stays ≤100 characters on a single line.
 - `make validate` warns when `description.html` is missing, has no Changelog heading, has no entry for the current `revision`, has text outside `<p>`/heading/`<li>` blocks, uses `<h2>` for anything but the Changelog, uses `<h1>`/`<h3>`, or uses tags the game doesn't render.

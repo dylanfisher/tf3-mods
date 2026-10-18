@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEV Covers</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="gallery.css">
+<script src="cover.js"></script>
+<script src="mods.js"></script>
+<script src="gallery.js"></script>
+</head>
+<body>
+<main>
+  <h1>Square: DEV mods</h1>
+  <p>Test harnesses and probes, never uploaded: DEV grey or a group colour with the lab flask (<code>devCover</code>). Rules are in <code>branding/README.md</code> "DEV mods".</p>
+</main>
+<script>
+  const dev = Gallery.mods('dev.html');
+  const groups = [...Object.keys(Square.DEV_GROUPS), undefined];
+  Gallery.page({ current: 'dev.html', sections: groups
+    .map(g => ({ title: g ? `Group: ${g}` : 'Ungrouped', items: Gallery.cards(dev.filter(m => m.group === g)) }))
+    .filter(s => s.items.length) });
+</script>
+</body>
+</html>

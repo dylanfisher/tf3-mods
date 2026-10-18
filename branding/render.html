@@ -3,18 +3,22 @@
 <head>
 <meta charset="utf-8">
 <title>Cover Render</title>
-<!-- One cover at exactly 1920x1080, for headless screenshots (tools/render_covers.py).
+<!-- One cover at exactly 1920x1080, for headless screenshots (tools/render_covers.py); Square.COVERS[mod] (postcard.js) replaces the house cover for that mod.
      Query: ?mod=<modId>[&text=0] -->
 <link rel="stylesheet" href="fonts.css">
 <style>html, body { margin: 0; background: #18202a; overflow: hidden; } body > svg { display: block; position: fixed; top: 0; left: 0; }</style>
 <script src="cover.js"></script>
 <script src="mods.js"></script>
+<script src="postcard.js"></script>
 </head>
 <body>
 <script>
   const q = new URLSearchParams(location.search);
   const mod = Square.MODS.find(m => m.id === q.get('mod'));
-  if (mod) document.body.innerHTML = Square.render(mod, { text: q.get('text') !== '0' });
+  // A mod with its own cover style (Square.COVERS, postcard.js: Photo Mode) is drawn by it instead.
+  const custom = mod && Square.COVERS && Square.COVERS[mod.id];
+  if (custom) document.head.insertAdjacentHTML('beforeend', `<style>${Square.postcardCss}</style>`);
+  if (mod) document.body.innerHTML = custom ? custom(mod) : Square.render(mod, { text: q.get('text') !== '0' });
   else document.body.textContent = 'unknown mod: ' + q.get('mod');
 </script>
 </body>

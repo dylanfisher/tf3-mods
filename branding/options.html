@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logo Options</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="gallery.css">
+<script src="cover.js"></script>
+<script src="mods.js"></script>
+<script src="gallery.js"></script>
+</head>
+<body>
+<main>
+  <h1>Square: logo options</h1>
+  <p>Candidate pictograms for a mod, drawn with the shared classes. Preview only: a cover keeps the glyph in <code>mods.js</code> until one is copied there.</p>
+</main>
+<script>
+  // Line Manager Plus logo candidates (800x800 glyph box, classes from cover.js).
+  const stops = (y = 680, xs = [160, 400, 640]) => `
+    <rect class="ink" x="${xs[0] - 60}" y="${y - 20}" width="${xs[xs.length - 1] - xs[0] + 120}" height="40" rx="20"/>
+    ${xs.map(x => `<circle class="ink sep" cx="${x}" cy="${y}" r="56"/><circle class="cut" cx="${x}" cy="${y}" r="20"/>`).join('')}`;
+  const cursor = (x, y, s) => `<path class="acc sep" stroke-linejoin="round" transform="translate(${x} ${y}) scale(${s})"
+    d="M0 0 V300 L70 236 L118 340 Q124 352 136 347 L176 330 Q188 324 182 312 L134 210 H226 Z"/>`;
+  const LMP_OPTIONS = [
+    { label: 'A. Current', note: 'Hover info bubble and undo hook over a line (mods.js today).' },
+    { label: 'B. Pointer + rate card', note: 'The cursor hovers the line; its info card shows rising rate bars, next to the undo hook.',
+      glyph: () => `
+        ${stops(560, [140, 400, 660])}
+        <g transform="translate(-10 40) scale(.85)">
+          <path class="sacc" d="M170 220 H220 A92 92 0 0 1 220 404 H160" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="acc" d="M50 220 L176 140 Q194 130 194 150 V290 Q194 310 176 300 Z" stroke="var(--acc)" stroke-width="20" stroke-linejoin="round"/>
+        </g>
+        <path class="ink sep" d="M340 40 H720 A40 40 0 0 1 760 80 V360 A40 40 0 0 1 720 400 H440 L400 460 L360 400 H340 A40 40 0 0 1 300 360 V80 A40 40 0 0 1 340 40 Z"/>
+        <circle class="acc" cx="368" cy="106" r="28"/>
+        <rect class="cut" x="414" y="90" width="200" height="32" rx="16"/>
+        ${[[350, 110], [442, 170], [534, 140], [626, 220]].map(([x, h]) => `<rect class="acc" x="${x}" y="${350 - h}" width="64" height="${h}" rx="14"/>`).join('')}
+        ${cursor(412, 572, .68)}` },
+    { label: 'C. Line list + pop-out', note: 'The line manager list with the hovered row in accent and its info box beside it.',
+      glyph: () => `
+        <rect class="ink" x="110" y="110" width="330" height="600" rx="40"/>
+        <rect class="acc" x="136" y="300" width="278" height="90" rx="24"/>
+        ${[170, 300, 430, 560].map(y => `<circle class="cut" cx="184" cy="${y + 45}" r="24"/>
+        <rect class="cut" x="226" y="${y + 31}" width="${y === 300 ? 160 : 140}" height="28" rx="14"/>`).join('')}
+        <path class="ink sep" d="M510 200 H740 A40 40 0 0 1 780 240 V480 A40 40 0 0 1 740 520 H510 A40 40 0 0 1 470 480 V370 L420 345 L470 320 V240 A40 40 0 0 1 510 200 Z"/>
+        <rect class="cut" x="510" y="240" width="200" height="30" rx="15"/>
+        <rect class="cut" x="510" y="290" width="140" height="30" rx="15"/>
+        ${[[510, 90], [590, 130], [670, 110]].map(([x, h]) => `<rect class="acc" x="${x}" y="${480 - h}" width="56" height="${h}" rx="12"/>`).join('')}` },
+    { label: 'D. Line + plus', note: 'The simplest read of the name: a line with stops and a big accent plus.',
+      glyph: () => `
+        <rect class="acc" x="340" y="80" width="120" height="420" rx="60"/>
+        <rect class="acc" x="190" y="230" width="420" height="120" rx="60"/>
+        ${stops()}` },
+    { label: 'E. Line actions menu', note: 'The list button with its dropdown: Match line rate, Duplicate, Reverse.',
+      glyph: () => `
+        <rect class="ink" x="120" y="20" width="170" height="170" rx="34"/>
+        ${[58, 93, 128].map(y => `<rect class="cut" x="158" y="${y}" width="94" height="24" rx="12"/>`).join('')}
+        <rect class="ink sep" x="200" y="140" width="580" height="480" rx="40"/>
+        <rect class="acc" x="248" y="196" width="104" height="28" rx="14"/><rect class="acc" x="248" y="246" width="104" height="28" rx="14"/>
+        <rect class="sacc" x="254" y="336" width="66" height="66" rx="12" stroke-width="20"/>
+        <rect class="acc sep" x="284" y="366" width="70" height="70" rx="12"/>
+        <rect class="acc" x="248" y="480" width="76" height="26" rx="13"/><path class="acc" d="M314 458 L362 493 L314 528 Z"/>
+        <rect class="acc" x="276" y="540" width="76" height="26" rx="13"/><path class="acc" d="M286 518 L238 553 L286 588 Z"/>
+        ${[[218, 340], [369, 280], [516, 320]].map(([y, w]) => `<rect class="cut" x="400" y="${y}" width="${w * .9}" height="36" rx="18"/>`).join('')}
+        ${stops(700)}` },
+    { label: 'F. Shift-click', note: 'A Shift keycap and a clicking cursor on the line: open it in one step.',
+      glyph: () => `
+        <rect class="ink" x="60" y="60" width="270" height="270" rx="48"/>
+        <path class="cut" stroke="var(--cut)" stroke-width="16" stroke-linejoin="round" d="M195 116 L284 212 H240 V280 H150 V212 H106 Z"/>
+        ${stops(560, [140, 400, 660])}
+        ${[[-150, -10], [-110, -110], [-10, -150]].map(([dx, dy]) => `<path class="sacc" d="M${430 + dx * .45} ${530 + dy * .45} L${430 + dx * .8} ${530 + dy * .8}" stroke-width="26" stroke-linecap="round"/>`).join('')}
+        ${cursor(420, 572, .68)}` },
+  ];
+  // Organic Towns: flat icon candidates to replace the photo card (2026-10-16).
+  const house = (x, y, s, cls = 'ink sep') => `<path class="${cls}" stroke-linejoin="round"
+    d="M${x - 40 * s} ${y + 40 * s} V${y - 6 * s} L${x} ${y - 48 * s} L${x + 40 * s} ${y - 6 * s} V${y + 40 * s} Z"/>`;
+  const road = (d, cls = 'sink', w = 46) => `<path class="${cls}" d="${d}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const OT_OPTIONS = [
+    { label: 'A. Photo card (replaced by C)', note: 'The real valley town as a rounded card, like Better Minimap.',
+      glyph: () => `<image href="../plans/square_organic_towns/shots/01-valley-town.jpg" x="-62.5" y="-237.5" width="875" height="1250" preserveAspectRatio="xMidYMid slice"/>` },
+    { label: 'B. Winding streets', note: 'Top view: curving streets branching like a real old town, accent houses between them.',
+      glyph: () => `
+        ${road('M70 640 C 240 580, 260 400, 420 370 S 640 250, 730 110')}
+        ${road('M420 370 C 470 490, 580 530, 720 610')}
+        ${road('M262 470 C 210 370, 150 300, 90 200')}
+        ${road('M560 300 C 600 360, 660 380, 740 360', 'sink', 34)}
+        ${[[300, 250, -18], [520, 190, -30], [560, 430, 22], [330, 560, -12], [150, 400, 30], [610, 690, 18], [700, 470, 10]].map(([x, y, r]) =>
+          `<rect class="acc" x="${x - 38}" y="${y - 38}" width="76" height="76" rx="16" transform="rotate(${r} ${x} ${y})"/>`).join('')}` },
+    { label: 'C. Town at the foot of the hills (in use)', note: 'A mountain, accent houses along a winding street below it: towns that fit the land.',
+      glyph: () => `
+        <path class="ink" stroke="var(--ink)" stroke-width="40" stroke-linejoin="round" d="M80 520 L300 150 L470 420 L590 260 L740 520 Z"/>
+        <path class="cut" stroke="var(--cut)" stroke-width="20" stroke-linejoin="round" d="M300 150 L372 270 L330 250 L300 290 L262 245 L232 265 Z"/>
+        ${road('M40 750 C 200 640, 330 770, 470 690 S 680 620, 770 700')}
+        ${[[160, 620, 1.3], [320, 630, 1.5], [490, 600, 1.6], [650, 610, 1.35]].map(([x, y, s]) => house(x, y, s, 'acc sep')).join('')}` },
+    { label: 'D. Leaf with street veins', note: 'An accent leaf whose veins are knocked-out streets: organic growth, read as a town plan.',
+      glyph: () => `<g transform="rotate(-24 400 400)">
+        <path class="acc" d="M400 50 C 660 170, 730 480, 400 750 C 70 480, 140 170, 400 50 Z"/>
+        ${road('M400 740 C 388 540, 418 320, 400 130', 'scut', 30)}
+        ${road('M398 570 C 470 530, 540 470, 590 400', 'scut', 24)}
+        ${road('M402 430 C 330 390, 270 340, 230 270', 'scut', 24)}
+        ${road('M399 300 C 450 270, 500 230, 530 180', 'scut', 24)}
+        ${road('M396 620 C 330 590, 270 540, 220 480', 'scut', 24)}
+        ${[[470, 380], [320, 480], [490, 560], [320, 300]].map(([x, y]) => `<rect class="cut" x="${x - 18}" y="${y - 18}" width="36" height="36" rx="8"/>`).join('')}</g>` },
+    { label: 'E. Grid becomes organic', note: 'Rigid ink grid blocks on the left turn into a round accent town of curving streets.',
+      glyph: () => `
+        ${[0, 1, 2].map(i => [0, 1, 2].map(j => `<rect class="ink" x="${50 + i * 105}" y="${245 + j * 105}" width="82" height="82" rx="12"/>`).join('')).join('')}
+        <circle class="acc" cx="590" cy="400" r="200"/>
+        ${road('M400 330 C 510 390, 630 290, 800 360', 'scut', 30)}
+        ${road('M410 490 C 520 430, 640 530, 790 470', 'scut', 30)}
+        ${road('M560 190 C 510 320, 640 420, 580 610', 'scut', 30)}` },
+    { label: 'F. Town and its satellites', note: 'A big round town of winding streets, linked by roads to two small accent satellite towns.',
+      glyph: () => `
+        ${road('M430 520 C 520 560, 560 610, 610 640', 'sacc', 34)}
+        ${road('M470 300 C 540 250, 590 220, 640 200', 'sacc', 28)}
+        <circle class="ink" cx="300" cy="400" r="230"/>
+        ${road('M100 330 C 220 400, 340 280, 520 350', 'scut', 30)}
+        ${road('M120 500 C 240 430, 360 540, 500 480', 'scut', 30)}
+        ${road('M300 180 C 250 310, 360 420, 290 620', 'scut', 30)}
+        <circle class="acc" cx="650" cy="650" r="105"/>
+        ${road('M560 620 C 620 660, 680 600, 740 640', 'scut', 24)}
+        <circle class="acc" cx="670" cy="190" r="72"/>
+        ${road('M610 210 C 650 170, 700 220, 735 180', 'scut', 20)}` },
+    { label: 'G. Cities that grow', note: 'A sprout rising out of a row of houses: the name in one picture.',
+      glyph: () => `
+        ${road('M400 590 C 400 480, 375 400, 400 300', 'sacc', 36)}
+        <path class="acc" d="M396 400 C 300 400, 210 340, 190 230 C 300 230, 380 290, 396 400 Z"/>
+        <path class="acc" d="M404 330 C 470 260, 560 220, 650 240 C 620 330, 520 370, 404 330 Z"/>
+        ${house(230, 640, 1.25)}${house(570, 640, 1.25)}${house(400, 610, 1.7)}
+        <rect class="ink" x="90" y="700" width="620" height="36" rx="18"/>` },
+    { label: 'H. River town', note: 'An accent river bend with houses following its banks on both sides.',
+      glyph: () => `
+        ${road('M330 40 C 480 230, 260 430, 420 560 S 680 600, 780 760', 'sacc', 100)}
+        ${[[510, 200, 1.4], [560, 380, 1.5], [660, 500, 1.3], [250, 330, 1.4], [270, 540, 1.5], [450, 700, 1.4]].map(([x, y, s]) => house(x, y, s)).join('')}` },
+  ];
+  const ot = Square.MODS.find(m => m.id === 'square_organic_towns');
+  const lmp = Square.MODS.find(m => m.id === 'square_line_manager_plus');
+  Gallery.page({ current: 'options.html', sections: [
+    { title: 'Organic Towns: Cities that Grow', items: OT_OPTIONS.map(o => ({
+      mod: { ...ot, glyph: o.glyph || ot.glyph }, title: o.label, note: o.note })) },
+    { title: 'Line Manager Plus', items: LMP_OPTIONS.map(o => ({
+      mod: { ...lmp, glyph: o.glyph || lmp.glyph }, title: o.label, note: o.note })) },
+  ] });
+</script>
+</body>
+</html>

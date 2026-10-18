@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Mode Launch</title>
+<!-- Photo Mode launch kit: the 9 postcard gallery slides (shots.js 'square_photo_mode', drawn by postcard.js), the
+     share poster and name ideas. ?slide=<1-9> renders one slide and ?poster the poster (Photo Mode's cover), both 1920x1080,
+     for headless screenshots (make shots renders the slides through slide.html the same way). -->
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="gallery.css">
+<style>
+  .slides { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr)); gap: 16px;
+            background: #1b2129; padding: 16px; border-radius: 10px; }
+  .opt { background: var(--card); border-radius: 10px; padding: 10px 10px 12px; }
+  .frame { position: relative; overflow: hidden; border-radius: 6px; cursor: zoom-in; }
+  .frame > div { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .opt .label { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 600; margin: 12px 8px 4px; }
+  .opt .label::after { content: ""; flex: 1; height: 1px; background: #4a5462; }
+  .opt .note { color: var(--muted); font-size: 13px; margin: 4px 8px 0; }
+  .poster-wrap { display: grid; grid-template-columns: minmax(0, 760px) 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { .poster-wrap { grid-template-columns: 1fr; } }
+  .names { width: 100%; border-collapse: collapse; }
+  .names td { padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+  .names td:first-child { font-weight: 800; white-space: nowrap; }
+  .names td:last-child { color: var(--muted); }
+  dialog .frame { cursor: zoom-out; }
+  body.only { background: #18202a; overflow: hidden; }
+  body.only main { display: none; }
+</style>
+<script src="cover.js"></script>
+<script src="mods.js"></script>
+<script src="slide.js"></script>
+<script src="postcard.js"></script>
+<script src="shots.js"></script>
+<script src="gallery.js"></script>
+</head>
+<body>
+<main>
+  <nav id="nav"></nav>
+  <h1>Photo Mode: launch kit</h1>
+  <p>Nine gallery slides and a share poster in Photo Mode's own postcard style (<code>branding/postcard.js</code>):
+    real pictures taken with the mod as big, slightly tilted postcards, each with the window that made it taped
+    beside it. The slides live in <code>shots.js</code> like every other mod's; <code>make shots
+    MOD=mods/square_photo_mode</code> writes them to <code>_metadata/1-&lt;hash&gt;.png</code> … <code>9-…</code>.
+    Pictures and window captures: <code>plans/square_photo_mode/shots/</code>. Click a slide to see it large.</p>
+
+  <h2>Poster and cover</h2>
+  <div class="poster-wrap">
+    <div class="opt"><div class="frame" id="posterFrame" style="aspect-ratio: 16 / 9"></div>
+      <div class="note">1920×1080 on the house cover (teal field, title, tagline) with postcards in place of the pictogram, the same size and ratio as every cover: it is Photo Mode's <code>_metadata/0.png</code> (mod.io logo, shown at 320×180) and works for sharing. <code>make covers MOD=mods/square_photo_mode</code> renders it there; <code>?poster</code> shows it alone.</div><div class="frame" id="thumb" style="width:320px;height:180px;margin:10px 8px 0;cursor:default"></div><div class="note">At mod.io thumbnail size (320×180).</div></div>
+    <div>
+      <h2 style="margin-top:0">Name ideas</h2>
+      <p>Public name of the mod (modinfo <code>name</code>, at most 32 characters; the cover and slides follow
+        <code>mods.js</code>). "Photo Mode" is what players search for; a subtitle can carry the character.</p>
+      <table class="names" id="names"></table>
+    </div>
+  </div>
+
+  <h2>Gallery slides</h2>
+  <div class="slides" id="slides"></div>
+</main>
+<dialog id="lb"></dialog>
+<script>
+  const S = Square, ID = 'square_photo_mode';
+  const mod = S.MODS.find(m => m.id === ID);
+  const slides = S.SLIDES[ID];
+  document.head.insertAdjacentHTML('beforeend', `<style>${S.slideCss}${S.postcardCss}</style>`);
+
+  // The poster is Photo Mode's cover (Square.COVERS in postcard.js): 1920x1080 like every mod's _metadata/0.png.
+  const poster = () => S.COVERS[ID](mod);
+
+  const q = new URLSearchParams(location.search);
+  if (q.has('slide') || q.has('poster')) {
+    document.body.classList.add('only');
+    document.body.insertAdjacentHTML('beforeend', q.has('poster') ? poster()
+      : S.renderSlide(mod, slides[Number(q.get('slide')) - 1]));
+  } else {
+    document.getElementById('nav').innerHTML = Gallery.PAGES.map(p =>
+      `<a href="${p.href}"${p.href === 'photo_mode.html' ? ' aria-current="page"' : ''}>${p.label}</a>`).join('');
+    const frame = (el, html, w, h) => {
+      el.innerHTML = `<div style="width:${w}px;height:${h}px">${html}</div>`;
+      const fit = () => { el.firstChild.style.transform = `scale(${el.clientWidth / w})`; };
+      new ResizeObserver(fit).observe(el); fit();
+    };
+    frame(document.getElementById('posterFrame'), poster(), 1920, 1080);
+    frame(document.getElementById('thumb'), poster(), 1920, 1080);
+    const box = document.getElementById('slides');
+    box.innerHTML = slides.map((sl, i) => `<div class="opt"><div class="frame" data-i="${i}" style="aspect-ratio:16/9"></div>
+      <div class="label">${i + 1}. ${sl.title.replace('<br>', ' ')}</div><div class="note">${sl.sub}</div></div>`).join('');
+    box.querySelectorAll('.frame').forEach(el => frame(el, S.renderSlide(mod, slides[+el.dataset.i]), 1920, 1080));
+    const lb = document.getElementById('lb');
+    document.addEventListener('click', e => {
+      const f = e.target.closest('main .frame');
+      if (!f) return;
+      lb.innerHTML = '<div class="frame"></div>';
+      if (f.id === 'thumb') return;
+      const big = lb.firstChild, isPoster = f.id === 'posterFrame';
+      big.style.aspectRatio = '16 / 9';
+      lb.showModal();
+      frame(big, isPoster ? poster() : S.renderSlide(mod, slides[+f.dataset.i]), 1920, 1080);
+    });
+    lb.addEventListener('click', () => lb.close());
+
+    const NAMES = [
+      ['Photo Mode: Aerials & Camera', 'Chosen public name (modinfo, all 13 languages); "Photo Mode" stays the short name in game and on the cover.'],
+      ['Photo Mode', 'What players type into the mod browser; the short name.'],
+      ['Photo Mode: Lens & Light', 'Keeps the search term and names the two things it does best.'],
+      ['Postcard Mode', 'Matches the gallery look; every view becomes a postcard.'],
+      ['Wish You Were Here', 'The poster line as a name: warm, memorable, a little playful.'],
+      ['Golden Hour', 'The shot everyone wants; light and weather are the heart of the mod.'],
+      ['Cinematic Camera', 'Leads with lenses, orbits and tours for video makers.'],
+      ['Picture Perfect', 'Says the outcome, not the tools.'],
+      ['Viewfinder', 'One word, camera-native, fits the stamp and the pictogram.'],
+      ['Scenic Camera', 'Landscapes, aerials and wildlife; reads well next to the cover.'],
+      ['Shutter', 'Short and punchy; pairs with the 1x/2x/4x screenshot buttons.'],
+      ['Photo Studio', 'Suggests a full kit (looks, setups, animals) rather than one button.'],
+    ];
+    document.getElementById('names').innerHTML = NAMES.map(([n, r]) => `<tr><td>${n}</td><td>${r}</td></tr>`).join('');
+  }
+</script>
+</body>
+</html>

@@ -73,6 +73,26 @@
   }
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
+  // ---------- Deprecated sash ----------
+  // Mods we no longer maintain get a red sash across the top-right corner, drawn above everything else. The cover
+  // keeps its colours so it stays recognisable; the sash only covers the corner of the pictogram.
+  // mod.deprecated: true, or the replacement mod's display name ("Use <name>" on a second line).
+  const DEPRECATED = '#D9443A';
+  function sash(deprecated) {
+    const a = 640, b = 420, c = (a + b) / 2;  // band between the lines x - y = 1920 - a and x - y = 1920 - b
+    const use = typeof deprecated === 'string' ? `Use ${deprecated}` : '';
+    // Overpass squeezed with textLength only when the per-character estimate overflows the band.
+    const fit = (s, size, max, em) => (s.length * size * em > max ? `textLength="${max}" lengthAdjust="spacingAndGlyphs"` : '');
+    return `
+      <defs><filter id="sqSashShadow" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity=".5"/></filter></defs>
+      <g filter="url(#sqSashShadow)"><path d="M${1920 - a} 0 H${1920 - b} L1920 ${b} V${a} Z" fill="${DEPRECATED}"/></g>
+      <path d="M${1920 - a + 14} 0 L1920 ${a - 14} M${1920 - b - 14} 0 L1920 ${b + 14}" stroke="#fff" stroke-opacity=".55" stroke-width="5"/>
+      <g class="t" transform="translate(${1920 - c / 2} ${c / 2}) rotate(45)" text-anchor="middle" fill="#fff">
+        <text y="${use ? 6 : 30}" font-size="72" font-weight="800" letter-spacing="5" ${fit('DEPRECATED', 72, 520, 0.72)}>DEPRECATED</text>
+        ${use ? `<text y="58" font-size="36" font-weight="600" fill-opacity=".9" ${fit(use, 36, 520, 0.6)}>${esc(use)}</text>` : ''}
+      </g>`;
+  }
+
   const glyph = (mod, x, y, size) =>
     `<g transform="translate(${x} ${y}) scale(${size / 800})">${mod.glyph(Square)}</g>`;
 
@@ -96,6 +116,7 @@
       <path d="M${e + 70} 0 L${e - 1010} 1080" stroke="${field}" stroke-width="16"/>
       ${glyph(mod, gx, 230, 640)}
       ${mod.overlay ? mod.overlay(Square, { ...o, dx: gx - 1230 }) : ''}
+      ${mod.deprecated ? sash(mod.deprecated) : ''}
       ${o.text ? `
         <text class="t" font-weight="800" font-size="${TITLE.size}" fill="${INK_ON_BRAND}">${lines.map((l, i) => `<tspan x="${TITLE.x}" y="${ty + i * TITLE.lead}">${esc(l)}</tspan>`).join('')}</text>
         <text class="t" font-size="${TAG.size}" font-weight="600" fill="${INK_ON_BRAND}" fill-opacity=".75">${tag.map((l, i) => `<tspan x="${TAG.x}" y="${tagY + i * TAG.lead}">${esc(l)}</tspan>`).join('')}</text>` : ''}
@@ -194,7 +215,7 @@
                      series: 'dev', group });
   }
 
-  const Square = { BRAND, FORK, DEV, DEV_GROUPS, DARK, INK_ON_BRAND, LINE_COLORS, MODS: [], STICKER,
+  const Square = { BRAND, FORK, DEV, DEPRECATED, DEV_GROUPS, DARK, INK_ON_BRAND, LINE_COLORS, MODS: [], STICKER,
                    factory, ground, arrowHead, render, stateCover, forkCover, devCover, streetSign, defs: DEFS, css: SVG_CSS,
                    register(mod) { Square.MODS.push(mod); } };
   window.Square = Square;

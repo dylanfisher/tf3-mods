@@ -1,0 +1,46 @@
+{
+  "_doc": "Groups for the 'More from square' section of each description.html (tools/more_from.py, branding/README.md). The first group keeps the order written here; every other group follows the mod.io profile order (modio_profiles.json, refreshed with --refresh). 'tiles' shows each mod's logo at 200 px (no inline style: mod.io strips style on save), 'line' a single line of text links (no logos). Every published mod must be in a group or in 'exclude'.",
+  "profile": "https://mod.io/g/transportfever3/u/square17",
+  "heading": "More from <a href=\"https://mod.io/g/transportfever3/u/square17\">square</a>",
+  "groups": [
+    {
+      "title": "Most popular",
+      "style": "tiles",
+      "fixedOrder": true,
+      "mods": ["square_roundabouts", "square_smart_lanes", "square_better_minimap", "square_problem_radar"]
+    },
+    {
+      "title": "Lines and passengers",
+      "style": "tiles",
+      "mods": ["square_passenger_destinations", "square_line_manager_plus", "square_better_bus_overlay",
+               "square_bigger_line_dots", "square_no_factory_passengers"]
+    },
+    {
+      "title": "Industry and supply",
+      "style": "tiles",
+      "mods": ["square_industry_flows", "square_supply_gaps", "square_industry_production_label"]
+    },
+    {
+      "title": "Roads and building",
+      "style": "tiles",
+      "mods": ["square_one_way_roads", "square_full_refund", "square_bulk_bulldozer", "square_organic_towns"]
+    },
+    {
+      "title": "Screenshots and camera",
+      "style": "tiles",
+      "mods": ["square_photo_mode"]
+    },
+    {
+      "title": "Testing tools",
+      "style": "tiles",
+      "mods": ["square_stress_test"]
+    },
+    {
+      "title": "Towns & Streets",
+      "style": "line",
+      "labelStrip": " Towns & Streets",
+      "mods": ["square_names_us_*"]
+    }
+  ],
+  "exclude": ["square_line_revert", "square_blank_slate"]
+}
