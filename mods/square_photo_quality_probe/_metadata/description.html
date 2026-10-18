@@ -1,0 +1,13 @@
+<p><strong>DEV ONLY - NOT FOR UPLOAD.</strong> Never publish this mod to mod.io. It is a developer tool for a planned photo mode mod and does nothing useful for players.</p>
+<p>A top-bar button switches the graphics settings to a boosted preset (Very High, max anti-aliasing, 100 % resolution scale) and back, without saving them. Load settings change the camera tool, camera tool preview and High geometry tiers (draw distance, LOD scaling). A second button opens a test window for photo mode features (screenshots, hiding the UI, time of day, pause, environment, cutscene camera, atmosphere fields, bloom / HDR settings keys, shader override check). It writes [SQPQ] lines to stdout.txt. Tests put back what they change; saving while a time of day, pause or environment test is active can keep that change in the save.</p>
+<h4>Notes</h4>
+<ul>
+<li>Steps: plans/square_photo_quality_probe/TESTING.md in the mod hub repository.</li>
+</ul>
+<h2>Changelog</h2>
+<h4>Revision 1 (dev, never uploaded)</h4>
+<ul>
+<li>New: graphics boost toggle with restore, geometry tier settings, frame time and config change logging.</li>
+<li>New: "SQPQ tests" window (runs E, photo mode phases 2-4): screenshots, hide UI, grid overlay, time of day, pause, environment edits and switch, camera tool.</li>
+<li>New: runs F (camera effects): cutscene camera via playCutscene with keyframe files (FOV, roll, fade, attached), atmosphere extra fields, bloomQuality / useLegacyHdr, check for the opt-in shader override probe mod. Grid overlay removed (crashed).</li>
+</ul>

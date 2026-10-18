@@ -1,0 +1,16 @@
+{
+    "name": "DEV Shader Override Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Replaces the HDR compose shader with a magenta-tinted copy (runs F, T12).",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Ships content/rendering/programs/shaders/hdr/compose.fs, a copy of the base file with a strong magenta tint, to test whether a mod can override a base shader (at load, or after AltGr+R in debug mode). Enable it only for that test, together with DEV Photo Quality Probe (T12 checks it is active). See plans/square_photo_quality_probe/TESTING.md \"Runs F\".",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

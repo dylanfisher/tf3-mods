@@ -1,0 +1,16 @@
+{
+    "name": "DEV DoF Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Switches environments that turn a hand-installed DoF probe shader on.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. A top-bar button cycles the rendering environment through four copies of the current base climate whose light.latitude carries a mode (+ 2 pi per mode) for the probe shader in shader_files/ (tilt-shift, depth of field, shallow depth of field, debug). The shader must be copied into the game install by hand. Logs [SQDOF] lines. See plans/square_photo_dof_probe/TESTING.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

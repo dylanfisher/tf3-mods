@@ -1,0 +1,8 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_photo_dof_probe is a developer test for depth of field in Photo Mode. Never publish it to mod.io (Mod Hub >
+My Mods would offer it because `make link` puts it in the staging area).
+
+The mod itself only switches the rendering environment (content/environments, one file per climate and mode). The
+effect needs the shader in shader_files/, copied by hand into the game install (a mod can't replace a base shader):
+plans/square_photo_dof_probe/shader_install.sh install / restore. Steps: plans/square_photo_dof_probe/TESTING.md.

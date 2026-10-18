@@ -1,0 +1,9 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_shader_override_probe is a developer test (runs F, T12 of square_photo_quality_probe). Never publish it to
+mod.io (Mod Hub > My Mods would offer it because `make link` puts it in the staging area).
+
+It ships content/rendering/programs/shaders/hdr/compose.fs, a copy of the base game's HDR compose shader that tints
+the whole 3D view magenta. If the override works, every save loaded with it enabled looks magenta: enable it only
+for the test, then disable it in the game's mod list (or `rm` its symlink from staging_area).
+How to run it: plans/square_photo_quality_probe/TESTING.md "Runs F".

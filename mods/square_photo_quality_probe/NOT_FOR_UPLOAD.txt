@@ -1,0 +1,14 @@
+DEV ONLY - NOT FOR UPLOAD
+
+square_photo_quality_probe is a developer tool for a possible photo mode mod. Never publish it to mod.io
+(Mod Hub > My Mods would offer it because `make link` puts it in the staging area).
+
+The top-left "SQPQ boost off" button switches the player's graphics settings to a boosted preset and back
+(api.util.setAppConfig, never saved by the probe). With "Restore at pause menu: No" the boost is left on at exit,
+so the game may save it into the real settings: note your graphics settings before testing.
+The "SQPQ tests" button opens the runs E test window (time of day, pause, environment...); every test puts back
+what it changed, also when the pause menu opens, but an autosave during a test can keep the change in the save:
+use a throwaway save.
+How to run it: plans/square_photo_quality_probe/TESTING.md.
+
+When done testing: disable it in the game's mod list, or `rm` its symlink from staging_area.

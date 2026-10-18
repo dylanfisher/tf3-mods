@@ -1,0 +1,16 @@
+{
+    "name": "DEV Photo Quality Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Tests changing graphics settings and geometry tiers from a mod.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. A top-bar button switches the graphics settings to a boosted preset and back via api.util.setAppConfig; load settings change the camera tool and High geometry tiers; a test window probes photo mode features. Logs [SQPQ] lines to stdout.txt. See plans/square_photo_quality_probe/TESTING.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

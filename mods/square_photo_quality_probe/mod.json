@@ -1,0 +1,64 @@
+{
+    "modId": "square_photo_quality_probe",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": true,
+    "preRunScript": {
+        "fileName": "square_photo_quality_probe::/mod.script@preRunFn"
+    },
+    "postRunScript": {
+        "fileName": "square_photo_quality_probe::/mod.script@postRunFn"
+    },
+    "params": [
+        {
+            "key": "include_textures",
+            "name": "Boost textures too",
+            "tooltip": "DEV. On: the boost also sets texture quality to Very High\n(may reload textures, slow).",
+            "uiType": "Button",
+            "values": ["Yes", "No"],
+            "defaultIndex": 0
+        },
+        {
+            "key": "restore_on_exit",
+            "name": "Restore at pause menu",
+            "tooltip": "DEV. Yes: restore the player's settings when the pause menu opens.\nNo: leave the boost on; only the next game load restores it.",
+            "uiType": "Button",
+            "values": ["Yes", "No"],
+            "defaultIndex": 0
+        },
+        {
+            "key": "camtool_lod",
+            "name": "Camera tool LOD scaling",
+            "tooltip": "DEV. Camera tool geometry tier lodDistanceScaling at load\n(base 5.0).",
+            "uiType": "Button",
+            "values": ["Unchanged", "10", "20"],
+            "defaultIndex": 0
+        },
+        {
+            "key": "camtool_far",
+            "name": "Camera tool draw distance",
+            "tooltip": "DEV. Camera tool geometry tier far plane at load\n(base 22.5 km).",
+            "uiType": "Button",
+            "values": ["Unchanged", "40 km"],
+            "defaultIndex": 0
+        },
+        {
+            "key": "high_tier",
+            "name": "High tier",
+            "tooltip": "DEV. Camera tool: the High geometry tier gets the base camera\ntool's draw distance and LOD scaling (22.5 km, 5.0) at load.",
+            "uiType": "Button",
+            "values": ["Unchanged", "Camera tool"],
+            "defaultIndex": 0
+        },
+        {
+            "key": "campreview_lod",
+            "name": "Camera tool preview LOD",
+            "tooltip": "DEV. Camera tool preview geometry tier lodDistanceScaling\nat load (base 1.0).",
+            "uiType": "Button",
+            "values": ["Unchanged", "5", "20"],
+            "defaultIndex": 0
+        }
+    ]
+}
