@@ -55,3 +55,12 @@ capacity while components keep pointers computed before that.
 27AC7034-9940-4A35-8D27-4F674A93DA2B, 38C02F1A-1D36-4614-A7FF-45849FFDC6A3, 41528116-4AF6-431D-BE55-F490B76972DD,
 464AC455-553F-4B87-A871-01488048F31C, 5CF998A0-1DD9-4172-BB01-8A656F98622A, 64C0E2B6-0153-4467-9558-87E49F1859AA,
 6CBF80F0-48FC-49B4-B4F6-440D446EFF5D, 854C8F37-A657-4E4E-AE62-93898B7F3830, 86579A8F-954D-44F6-850A-F818920BAC14
+
+**Standalone repro (2026-10-12):** `mods/square_css_rule_crash_repro` (zipped as
+`plans/bugreports/square_css_rule_crash_repro.zip`, with a README for the developers): one stylesheet with 400
+inert rules, no scripts. Verified 2026-10-12 as the only mod for the whole game session: a new game loaded, then
+loading the large sub-arctic save crashed in `+0x2fbe0cc` (EXC_BAD_ACCESS, crash report 13ca8116, minidump
+16DF9C65-6DB7-459E-A89D-C51482AC39B8). A first attempt (7c2b0ad4, minidump F3FA9424-…) crashed too, but after a
+mod switch in the same session, so it doesn't count.
+Reconfirmed after a full restart with the large save as the first load: the original string-exception stack
+(frames 8/10/11), crash report c9a75c9c, minidump 1C6CB5B7-3952-4B7C-91DB-D0AC37A5CD67.

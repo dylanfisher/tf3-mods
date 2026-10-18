@@ -106,4 +106,4 @@ group, no forceSameEntity needed). The real mod must avoid duplicates itself.
 
 ## Probe 3 (climate visibility, station names)
 
-Added 2026-10-08 for the State Names series. What it logs: `plans/square_state_names/research.md` §4.3. Run steps: `plans/square_state_names/PLAN.md` "Probe 3".
+Added 2026-10-08 for the State Names series. What it logs: `plans/square_state_names/research.md` §4.3. Run steps: `plans/square_state_names/HISTORY.md` "Probe 3".
