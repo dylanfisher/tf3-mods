@@ -233,7 +233,8 @@ local ProductionLabelHudIcon = react.RegisterRecipe("ProductionLabelHudIcon", pe
 
 	local view = state:old()
 	local rows : {TreeNodeId} = {}
-	if view ~= nil then
+	-- Unused industry (every number 0, no pickup): no rows, only the base stock pill stays.
+	if view ~= nil and not model.isUnused(view) then
 		local count = #view.entries
 		-- Row 1: production pills (capacity icon, plus the cargo icon from model.ICON_MIN_OUTPUTS entries on).
 		-- Option "Show production" off: no row.

@@ -89,6 +89,8 @@ global record SquareProductionLabelModel
 	view : function(productionDatas : any, cargoData : any, pickupRates? : any) : SquareProductionLabelView
 	--- The entries of a view that have a pickup rate, in order (fresh table; empty for nil).
 	pickupEntries : function(view : SquareProductionLabelView) : {SquareProductionLabelEntry}
+	--- True when no entry has a value > 0 or a pickup rate (nil view: true); the label is then empty.
+	isUnused : function(view : SquareProductionLabelView) : boolean
 	--- The view with each entry's pickup set from pickupRates (as model.view would); `view` itself
 	--- (shared, never changed) when pickupRates is nil. model.view(pds, cd, rates) equals
 	--- model.withPickup(model.view(pds, cd, nil), rates).

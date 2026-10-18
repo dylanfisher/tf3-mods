@@ -228,6 +228,18 @@ test("production off and no pickup: empty layout", function()
 	eq(rowLabels(render(INDUSTRY)), {})
 end)
 
+test("unused industry (every number 0, no pickup): empty layout", function()
+	pickup.ratesFor = function() calls.ratesFor = calls.ratesFor + 1; return nil end
+	local saved = productionData
+	productionData = { { cargoTypeId = FISH, total = 34, actual = 0 }, { cargoTypeId = GRAIN, total = 20, actual = 0 } }
+	eq(rowLabels(render(INDUSTRY)), {})
+	-- A line picking up there brings the label back, 0s included.
+	pickup.ratesFor = function() return { [FISH] = 112 } end
+	readcache.reset()
+	eq(rowLabels(render(INDUSTRY)), { { "0", "0" }, { "112" } })
+	productionData = saved
+end)
+
 test("production and pickup off: empty layout, no recipe, no timer, no engine read, no pickup lookup", function()
 	settings(2, 2, 1)
 	local layout = render(INDUSTRY)

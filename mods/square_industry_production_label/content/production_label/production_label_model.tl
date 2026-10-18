@@ -150,6 +150,19 @@ function model.pickupEntries(view : SquareProductionLabelView) : {SquareProducti
 	return out
 end
 
+-- Unused industry (2026-10-17): every output's headline number is 0 (a processor with nothing to
+-- process) and no line picks anything up. The label then shows nothing, like a warehouse where nothing
+-- moved. Raw producers always show their capacity (> 0), so they never count as unused.
+function model.isUnused(view : SquareProductionLabelView) : boolean
+	if view == nil or view.entries == nil then return true end
+	for __, entry in ipairs(view.entries) do
+		if entry.value > 0 or entry.pickup ~= nil then
+			return false
+		end
+	end
+	return true
+end
+
 -- The read cache (production_label_readcache.tl) keeps the view without pickup, shared by every label
 -- of that industry; each label adds its pickup rates here. Entries are copied, never changed in place.
 function model.withPickup(view : SquareProductionLabelView, pickupRates : any) : SquareProductionLabelView

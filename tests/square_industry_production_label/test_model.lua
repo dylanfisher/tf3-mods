@@ -267,6 +267,21 @@ test("pickupEntries: only entries with a pickup, in order; fresh table; empty fo
 	eq(model.pickupEntries(model.view({ pd(7, 5, 5) }, nil, nil)), {})
 end)
 
+test("isUnused: every value 0 and no pickup; any number > 0 or any pickup keeps the label", function()
+	-- Processor with no input: current production 0 for both outputs (the screenshot case).
+	ok(model.isUnused(model.view({ pd(7, 20, 0), pd(3, 10, 0) }, nil, nil)))
+	ok(model.isUnused(nil))
+	ok(model.isUnused({ entries = {} }))
+	-- One output producing: shown.
+	ok(not model.isUnused(model.view({ pd(7, 20, 0), pd(3, 10, 4) }, nil, nil)))
+	-- Raw producer (actual nil): its capacity is the number, never unused.
+	ok(not model.isUnused(model.view({ pd(7, 34, nil) }, nil, nil)))
+	-- A line already picks up here: shown even at 0.
+	ok(not model.isUnused(model.view({ pd(7, 20, 0) }, nil, { [7] = 50 })))
+	-- Pickup rates that round to 0 do not count.
+	ok(model.isUnused(model.view({ pd(7, 20, 0) }, nil, { [7] = 0.2 })))
+end)
+
 test("pickup pill style: white text, no shippingState, own neutral class", function()
 	local s = model.STYLE_PICKUP
 	eq(s.labelFontColor, "Default")

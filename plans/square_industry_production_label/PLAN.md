@@ -1,6 +1,22 @@
 # Industry Production Label (`square_industry_production_label`): plan
 
+Status: revision 6 (2026-10-10), published on mod.io. Feature-complete; open work is in-game verification only.
+
 Shows each industry's headline production number from its industry window ("Current Production" when the window has it, else the "Production" capacity) on its in-world HUD label, in a pill below the output stock pill: `[factory icon] 34`. The pill is green while the output is producing and neutral dark while it is idle.
+
+## Current state and next steps
+
+- **Shipped** (changelog in `mods/square_industry_production_label/_metadata/description.html`): rev 1 production
+  pill, rev 2 line pickup rate pill and settings, rev 3 warehouse in/out rates and settings read live, rev 4 faster
+  pickup rebuild, rev 5 translations (all 13 languages, `strings.json`), rev 6 fewer stylesheet rules (17 to 7, load
+  crash with large mod sets). The shared read cache and sliced pickup rebuild (`PERF_REVIEW.md` 2026-10-10) are in
+  the code too.
+- **Build phases** (scaffold, review, in-game test) are done; detail in `HISTORY.md`.
+- **Open work:** the unticked checks in `TESTING.md` (settings toggles in an existing save, warehouse labels,
+  idle/producing style, far-LOD hiding) and the in-game check lists in `PERF_REVIEW.md` (2026-10-10 and 2026-10-08).
+- **Possible v2:** per-cargo split of mixed-cargo line rates (`getLineCapacityUsages`), see "Pickup rate pill".
+- **Next step:** one SQPERF session (DEV "SQPERF: all mods", `make perf ARGS=--last`) over industry clusters and
+  warehouses to close the `PERF_REVIEW.md` 2026-10-10 list, ticking the TESTING §8/§9 toggles in the same session.
 
 ## Decisions (2026-10-06)
 
@@ -8,7 +24,7 @@ Shows each industry's headline production number from its industry window ("Curr
 |---|---|
 | Value | **Revised again 2026-10-06 (third in-game test):** the window's *headline* number. That is `round(actual)` ("Current Production") when `actual ~= nil`, e.g. 112 on a cement plant whose window shows 112 over "Max. 175"; the user said the label must show the current production, not the 175. Otherwise it is `round(total)` (capacity), which is the only number the window shows for raw producers (fishing ground 34). Entries still need capacity > 0. *Previous rule, kept for context:* **Capacity, always** (revised 2026-10-06 after the first in-game test). It is the window's `max = math_util.round(productionData.total)`, from `industry_util.getIndustryProductionData(entity, false, false, i, true).total`, for each output `i` of `industry_util.getStockListInputOutputData(entity, false, false, 0)`. The base functions are reused through `ug_require "::/gui/main/industry_util.tl"`, so the number always matches the window, boosts included. Shown whenever it rounds to > 0. |
 | Why not the live rate | On a brand-new game, a full (300/300), unserved fishing ground showed exactly one number in its window: **34**. The window draws "Current Production" only when `productionData.actual ~= nil`, but it always draws `max` (tooltip "Production"; headline font when `onlyOneProductionLine`) (`gui/entity_window/industry_react_util.tl:318-346`). For output-only rules (every raw producer), `getIndustryProductionData` sets `actual = nil` (`foundOutputFraction`, `gui/main/industry_util.tl:367-377`). So the 34 is `total`. The user: "I'd still expect to see a 34, perhaps in a different color/style to understand what the capacity is at a glance." |
-| State | **Producing** when the live rate rounds to > 0; otherwise **idle** (nil, 0 or missing; this includes a full stock or no transport, if the engine reports 0 then). The live rate is `actual` when it is a number. Otherwise it is `stockList.cargoData[cargo].produceFrequency`, the same value `actual` would be (`industry_util.tl:333-339`). Without that fallback, every raw producer would be idle forever, because their `actual` is always nil. The label is never hidden for being idle. |
+| State | **Producing** when the live rate rounds to > 0; otherwise **idle** (nil, 0 or missing; this includes a full stock or no transport, if the engine reports 0 then). The live rate is `actual` when it is a number. Otherwise it is `stockList.cargoData[cargo].produceFrequency`, the same value `actual` would be (`industry_util.tl:333-339`). Without that fallback, every raw producer would be idle forever, because their `actual` is always nil. The label is never hidden for being idle, except when the whole industry is **unused** (2026-10-17, user request): every output's number is 0 and no line picks up there (`model.isUnused`); the recipe then draws no rows. Raw producers always show their capacity, so they never count as unused. |
 | Format | **Revised 2026-10-06 after the second in-game test** (the first pill showed `?110`: small, dark, grey text). One pill per output cargo (deduplicated), in `getStockListInputOutputData` order, built like the stock pill: `makeContentLabelIndictator{labelMode = "HudIconMain", labelFontColor = "Default", iconPath = ...}` (`hud_icon_toolbox.tl:78-84`). **No text prefix** (`model.PREFIX = ""`): `▲` is **not in the HUD font** and rendered as `?` in game (the Noto CJK `unicodeFontMap` fallback does not apply there). **Icon:** `model.CAPACITY_ICON = "::/gui/entity_window/icons/building_industry.tga"`, the icon the industry window draws next to its production figures (`industry_react_util.tl:715`, `industry_eow.script.tl:78`). Other base candidates were checked in `gui.zip`: `production_booster` (gear + arrow) reads as "boost", `building_industry_gear_30` is the map editor's generator button. From `model.ICON_MIN_OUTPUTS = 2` outputs on, each pill gets `{CAPACITY_ICON, cargo icon}` (a `{string}` iconPath becomes a horizontal BoxLayout of icons, `gui_react_util.tl:296-307`). **Size:** the icon gets `iconlabelindicator-icon-size,hud-icon` = 26x26 and the label `font-scale-annotation`, the same as the stock pill (`gui_react_util.tl:136-150, 283-291`, `gui_react_util.css.lua:28-30`), so height and text size match. **Text:** white (`labelFontColor "Default"`, no override) in both states. **State = background colour**, from scoped CSS on our wrapper class: producing = `Satisfaction.Happy` (shamrock, the base "good" colour, already a HUD pill background in `!hud-icon-layer !hud-icon-background!Normal`) mixed 30 % towards `NeutralDarkest` for white-text contrast, at the stock pill's `transparency.Low`. Idle = `NeutralDarkest` (the base neutral pill colour) at `transparency.Low` instead of the base Medium. No base `ShippingState` fits: all but Vehicle are the stock pill's `electricRoyal` blue (`gameplay_colors.gres.lua:13-18`), and Vehicle is black. Styles live in `model.STYLE_PRODUCING` / `STYLE_IDLE` (both without `shippingState`). |
 | Save safety | Read-only and cosmetic: `severityAdd: None`, `severityRemove: None` (or `Warning`), `cosmetic: true`. No game script and no saved state. |
 
@@ -34,18 +50,13 @@ Shows each industry's headline production number from its industry window ("Curr
   - Hide the whole pill (background `R::Component`, plus `TextView` and `ImageView` for safety) at far LOD, like `HudIconManager::Button!hud-lod-far BoxLayout!stock-icon-layout TextView` (`gui/main/hud_icon_master.css.lua:~146`). The icon sits inside the pill's Component, so the rule still covers it.
   - Make selectors more specific than base (see `mods/square_bigger_line_dots`).
 
-## Phases
-
-1. **Build.** Scaffold the mod (`make new-mod`), then add the modifier, recipe, CSS and pure helpers (a format function plus "pick output cargos from a stock list table") with tests in `tests/square_industry_production_label/`. Done when `make check`, `make test` and `make validate` pass for the mod.
-2. **Review.** Run the validator agent plus a code review of the phase 1 diff, then fix the findings.
-3. **In-game test.** Follow `TESTING.md` (user).
+Phases 1-3 (build, review, in-game test) are done: `HISTORY.md` 2026-10-12.
 
 ## Open risks
 
 - The producing/idle backgrounds rely on our selector `... BoxLayout!production-label-producing !hud-icon-background` beating base `!hud-icon-background`. If both pills look the same dark colour in game, the selector did not match.
 - Pill with two icons (multi-output) is wider than the stock pill; no base industry has several outputs, so it is untested.
 
-- Whether a `loadConstruction`-modifier-set `hudIconScript` is honoured. This is unverified until tested in game, and the fallback is listed above.
 - The `isIndustry` flag was confirmed for fishing grounds. 32 base industry `.con.lua` files set it. Check the rest in phase 1.
 - Whether `produceFrequency` drops to 0 for a raw producer with a full output stock or no transport. If it doesn't, such an industry still shows as producing. Check in game (TESTING §3).
 - Multi-rule industries with several different outputs: the window's per-rule index quirk could make the window and the label differ. There are none in base. Check modded ones if they come up.
@@ -89,11 +100,7 @@ There is no industry → lines API, so the inverse is built in one pass (`conten
 
 ### Open risks
 
-- `getStationCatchables` entity == label `params.entity` (else every lookup misses: no pickup pill anywhere). The debug lookup lines show it.
-- Fishing grounds / oil platform built-in terminals: whether catchables or the construction fallback find the industry.
-- `stopIndex` base (0 assumed; mismatches are logged and handled by the fallback scan).
 - `LEGACY_UNLOAD_ONLY == 3` (only skips stops; wrong value would at worst count an unload-only stop).
-- Rate scale: `calcLineStationThroughput` is per year like the production numbers? Compare in game.
 - Mixed-cargo over-count (by design in v1).
 
 ## Options (2026-10-07)
@@ -106,16 +113,10 @@ Both pills can be switched off in the mod settings (the mod selection when a gam
 |---|---|
 | Declaration | `mod.json` `params` (`docs/wiki/modding/general/modscripts.md` "Mod Params"): `showProduction` "Show production" and `showPickup` "Show line pickup rate", each `uiType: "Button"`, `values: ["On", "Off"]`, `defaultIndex: 0` (0-based, so On by default; the wiki tip under "Mod Params"). Plain English name and tooltip, same as `mods/square_better_minimap` (`showArrow`); this repo's mods ship no `strings.json`. |
 | Value | The 1-based index of the chosen value (`modscripts.md` "Mod Params": `numbers` unset → 1, 2, …; read as `allModParams[modId].<key>` in the wiki's param filter example): 1 = On, 2 = Off. Anything other than 2 (missing table or key, other types) counts as On. |
-| Where read | **Superseded 2026-10-07 by "Settings read live (2026-10-07)".** Was: once per game load in `runFn(configDict, allModParams)` (`content/mod.script.lua`; `modscripts.md` "runScript"), the only place it is sure to be current: `runFn` runs on every load, the HUD's module state survives loads. Not `api.engine.config.getModParams()` (`api/tealdef/api/engine.d.tl:1806-1807`) in the HUD: it is not marked GUI-thread only and better_minimap uses it in GUI code, but a read-once cache there would keep the previous game's choice after loading another save, and reading it per call is wasted work. |
-| Transport to the HUD | **Superseded 2026-10-07 by "Settings read live (2026-10-07)".** Was: as the hudIconScript's ScriptRef `params` (`{showProduction, showPickup}` booleans): HudIconMasterGame passes `customRecipe.params` to `hudIconFn` as `captureParams` (`base/content/gui/main/hud_icon_toolbox.tl:353-356`; `ScriptRef.params`, `api/tealdef/api/type.d.tl:1388-1389`; `constructions/basics.md` "HUD Icon Script"). Base passes booleans the same way (`industries/oil_platform/oil_platform.con.lua:153-156` `snappingWater = true`). No engine read, no thread question. `model.options(captureParams)` treats `false` and `0` as off, anything else (incl. a missing table) as on. |
 | Pickup off | `readView` never calls `pickup.ratesFor`, so the shared cache is never stale-checked or rebuilt: no line, station or catchment read at all. The production pill path is unchanged. |
 | Production off | The production row is not built. The engine reads stay the same (the pickup entries need the output list and capacities from `getIndustryProductionData`; only outputs with a production entry get a pickup pill, as before). The cargo-icon rule still counts all outputs. |
 | Both off | **Superseded 2026-10-07 by "Settings read live (2026-10-07)".** Now: industries still get the script; `hudIconFn` returns an empty `BoxLayout` without mounting the recipe (no timer, no read). Was: `runFn` registers **no** `loadConstruction` modifier, so industries get no hudIconScript: no recipe, no timer, no read. If `hudIconFn` is called anyway, it returns an empty `BoxLayout` (the hudIconScript contract wants a layout) without mounting the recipe. |
 | Save compatibility | Options live in the mod selection and only change which HUD rows are drawn; the construction resource is still only changed in memory. Toggling between loads is safe. |
-
-### Open risks
-
-- *(Obsolete since "Settings read live (2026-10-07)": the params now only carry `kind`.)* ScriptRef `params` survive the construction converter as a Lua table with booleans (base relies on it for `updateScript` / `formatValueScript`, but not seen for `hudIconScript` in base). If they were dropped, both pills would simply stay on (the default); "both off" still works because it registers nothing. TESTING §8.
 
 ## Warehouse rates (2026-10-07)
 
@@ -152,9 +153,7 @@ Warehouses get their own label rows under the vanilla warehouse stock pill: per 
 
 ## Settings read live (2026-10-07)
 
-**Bug (user report, revision 3 unreleased):** switching "Show warehouse rates" Off in the mod settings and loading the game did not remove the warehouse pills. The industry toggles were built the same way, and the TESTING §8 existing-save checks had never been ticked.
-
-**Cause (hypothesis, not confirmed):** the settings were read in `runFn` and baked into the construction resources by the `loadConstruction` modifier, either as the `hudIconScript` ScriptRef params (`{showProduction, showPickup}`) or by not setting the script at all (warehouse off, both industry pills off). The game apparently does not re-run construction loading (or reuses the loaded construction resources) when only the mod params change, so the previous choice stays in the resources. Whatever the exact cause, baking settings into resources is fragile.
+The bug report and its suspected cause (settings baked into the construction resources) are in `HISTORY.md` 2026-10-12.
 
 **Change:**
 

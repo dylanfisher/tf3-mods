@@ -1,12 +1,11 @@
 # Industry Production Label: in-game test checklist
 
-Phase 3 of `PLAN.md`. Setup: `make link`, start TF3, enable **Industry Production Label** in the mod list, then load or start a game. Afterwards, check the game log for `square_industry_production_label` errors.
+Status: open checks for revisions 1-6 plus the standing regression list (§3-§6). Passed checks are in `HISTORY.md`.
+
+Phase 3 of `PLAN.md` (phases now in `HISTORY.md`). Setup: `make link`, start TF3, enable **Industry Production Label** in the mod list, then load or start a game. Afterwards, check the game log for `square_industry_production_label` errors.
 
 ## 1. The hook works at all (biggest risk)
 
-- [x] Industries show an extra pill next to or below the output stock pill (`🐟 300`). Confirmed 2026-10-06: it sits below. Now expected: `[factory icon] <n>`.
-  - If **nothing** shows, the `loadConstruction` modifier's `hudIconScript` is probably ignored. Next step is the PLAN fallback: in `postRunScript`, `api.res.constructionRep.getAsTable/setAsTable` for each `isIndustry` construction.
-  - If the log shows a script-resolution error for `square_industry_production_label::/production_label/production_label.script@hudIconFn`, try `square_industry_production_label::production_label/production_label.script@hudIconFn` (no leading slash) in `content/mod.script.lua`.
 - [ ] Note where the pill sits. `HudIconMasterGame` puts children in a `BoxLayout` with no explicit orientation (`hud_icon_toolbox.tl:369`), so the pill may land **below** the stock pill rather than beside it. Record which, and add a screenshot. If it's below and that looks wrong, decide in phase 2 whether CSS on our own recipe can fix it. Do not restyle the base master layout.
 - [ ] Industries **without** an output (none in base, but check any input-only modded ones) show no extra pill and no empty frame.
 
@@ -65,18 +64,12 @@ Both states have white text; only the background colour differs (PLAN "Format").
 
 Checks:
 
-- [x] **Catchables identity.** Confirmed 2026-10-07: cement-type plant shows `[factory] 137` / pickup `195`; log `hit {15=195}`. Industries served by a cargo line show a second pill `[line manager icon] <n>` below the production pill. If **no** industry ever shows it and the lookup lines all say `miss` while "industries with pickup" > 0, the catchables entity is not the label entity (PLAN "Open risks").
-- [x] **Fishing grounds / oil platform** (user confirmed 2026-10-07) (built-in SHIP terminals): a ship line loading fish there shows the pill. Note whether "fallback stations" is > 0.
-- [x] **stopIndex base:** confirmed 0-based 2026-10-07 (`0 stopIndex mismatches`). the build line shows `0 stopIndex mismatches`. If it is about the number of stops, the map's index is 1-based (harmless, the fallback scan handles it, but report it).
-- [x] **Rate vs production scale:** pill equals the line window's Rate (user confirmed 2026-10-07). the pill equals the line window's "Rate" of the one line serving the industry (open the line window). With two lines loading the same cargo there, it is the sum. Compare with production: both per year? (A fishing ground producing 79 with a line of rate 112 should read "79 / 112".)
 - [ ] A line that only **unloads** at a station near the industry (cargo config without the output cargo, or a station only delivering inputs) adds nothing.
 - [ ] A line stopping **twice** at the same station group (or at two terminals of it) counts once.
 - [ ] **Mixed cargo:** a line loading two cargos at the group adds its full rate to each (known over-count, PLAN). Just note it.
 - [ ] **No lines:** an unserved industry shows no pickup pill and no empty box.
-- [x] **Updates:** (adding a vehicle, user confirmed 2026-10-07) add a vehicle or a new line: the pill changes within ~15-17 s. **Paused:** edit a line while paused: nothing changes until you unpause (by design).
 - [ ] Zoom out (`hud-lod-far`): the pickup pill disappears with the production pill.
 - [ ] **Performance:** 2026-10-07 small save: 2.0 ms for 35 station groups / 19 lines; the HUD runs on `Main Pool N` worker threads and the cache is shared across them. note the build ms on a large save; no periodic stutter every 15 s. If it stutters, raise `pickup.REFRESH_INTERVAL`.
-- [x] Afterwards: set `pickup.DEBUG = false`. Done 2026-10-07.
 
 ## 8. Mod settings (2026-10-07, PLAN "Options")
 
@@ -88,7 +81,6 @@ The mod selection (new game, or "load game" → mods) shows two settings for the
 - [ ] **Both off** (new game): no extra pill at all, the industry label looks like vanilla. Log: `(settings at load: production off, pickup off, …)`; the modifier is still registered, `hudIconFn` returns an empty layout.
 - [ ] **Existing save:** load a save that used the mod with both on, switch pickup off in the mod settings, load: production only. Save, switch it back on, load again: both pills. No warning about changed mods beyond the normal notice, no log errors.
 - [ ] **Existing save, both off then on:** the labels come back after re-enabling (the modifier is registered per load).
-- [ ] If an option seems ignored (e.g. pickup off still shows the pickup pill) while the log line says `pickup off`, the ScriptRef params did not reach `hudIconFn` (PLAN "Options" open risk): report it. *(Obsolete since PLAN "Settings read live (2026-10-07)"; see the checks below.)*
 
 **Settings read live (PLAN "Settings read live (2026-10-07)").** The settings are now read in the HUD from `getModParams()` each time a label is built, not baked into the constructions. The log line now reads `loadConstruction modifier registered (settings at load: production on, pickup on, warehouse on)` and is printed even with everything off (the modifier is always registered).
 

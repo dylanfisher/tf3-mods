@@ -1,5 +1,7 @@
 # Industry Production Label: performance review
 
+Status: current. Both rounds are in the code; their in-game check lists are still open. Mod code and tests cite this file by name.
+
 ## 2026-10-10: shared read cache, sliced pickup rebuild
 
 ### Evidence (SQPERF, desert save, 107 industries, 250 lines, 175 s, ctx=hud)
