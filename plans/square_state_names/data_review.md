@@ -1,5 +1,7 @@
 # Data review: Washington (`data/states/us_washington/`)
 
+Status: current (2026-10-12). Per-state lists of left-out names and shipped names to spot-check; nothing here is marked closed yet. All 13 states shipped with these lists open.
+
 Phase 1 ships only names I'm confident are real and current. This file lists what was **left out** because I
 wasn't sure, and what **ships but should get the Phase 3 OSM / official-source spot check first**. To add something
 from the "left out" list, confirm it, add it to `cities.lua`, and run `make state-mod STATE=us_washington`.

@@ -9,20 +9,39 @@ picks up the real town names by itself.
 Research and citations: `research.md`. Supersedes `plans/square_town_street_names/PLAN.md` (its probe,
 `mods/square_town_street_names_probe`, stays the shared dev probe).
 
-**Status (2026-10-08):** Phase 1 implemented (offline green, awaiting the in-game run in `TESTING.md` Phase 1).
-Probe 3 answered the climate route (runFn global via rawset, findings.md) and town order (random sizes); the
-station-suffix question (step 4) is still open. Phase 2 (edge cases) implemented, offline green (see its Status).
+Status: all 13 state mods are published on mod.io; each is at revision 6 (2026-10-10) in the repo (`make modio-status`
+tells whether rev 6 is live). The 12-state rollout finished 2026-10-08; no further state is planned. Open: the
+in-game checklist (`TESTING.md`), the station-suffix question, the font check for non-ASCII names, and the
+per-state review items in `data_review.md`. Docs tidied 2026-10-12: finished phases, the rollout plan and the
+per-state rollout notes are in `HISTORY.md`.
 
-## Decisions for the user
+## Shipped
 
-| # | Question | Recommendation |
-|---|---|---|
-| U1 | modId scheme | `square_names_us_<state>` (e.g. `square_names_us_washington`): sorts as a series, leaves room for non-US sets later, and avoids the Georgia (US) vs Georgia (country) clash. Shorter alternative: `square_names_<state>` |
-| U2 | Mod display name | **"Washington Towns & Streets"** (series: "<State> Towns & Streets"). Doesn't read like the third-party "Washington Names" |
-| U3 | Name-set display name (game settings list) | **"Washington (Towns & Streets)"**; regional fallback sets "Washington: Westside", "Washington: Eastside" |
-| U4 | Station renames on by default? | Yes, as a mod param "Real station names" (On/Off). Stop renames also get a param ("Real street names") |
-| U5 | Climate approach if Probe 3 fails | Regional sets (option C below). If it succeeds: one climate-aware set |
-| U6 | Flag use | Washington's flag carries the state seal; check the seal-use rule (research.md §6) and decide before the cover ships |
+Generated from `templates/state_names/` + `data/states/<key>/` by `tools/gen_state_mod.py`; every state carries the
+same revision history (changelog entries live in each `state.lua`).
+
+- **Rev 1 (2026-10-08):** Washington plus the 12 rollout states (Arizona, Florida, Colorado, California, Texas, Alaska,
+  New York, Minnesota, New Mexico, Oregon, Pennsylvania, Hawaii).
+- **Rev 2 (2026-10-08):** less work per build and per frame (`history/PERF_REVIEW.md` P1-P6).
+- **Rev 3 (2026-10-08):** map-editor check cached (`history/PERF_REVIEW.md` P7).
+- **Rev 4 (2026-10-09):** clearer description, SQPERF log, second gallery slide.
+- **Rev 5 (2026-10-10):** translations into the 12 other game languages (they live in the generator: CLAUDE.md "Translations").
+- **Rev 6 (2026-10-10):** `severityRemove: Critical`: a game started with the name set crashes without the mod at the
+  next new name (`docs/findings/towns.md`).
+
+## Open work
+
+1. **In-game checklist** `TESTING.md` (Phase 1, Phase 2, rev 3 checks): nothing is ticked yet. Evidence so far is
+   listed at the top of that file.
+2. **Station suffix** (Probe 3 step 4, TESTING Phase 1 item 5): `sn_logic.STATION_SUFFIX` is still `""` for every kind
+   with a TODO. In game, a rail group was renamed "Seattle Station" -> "King Street" (session
+   `2026-10-09_0044_sqrl-crash`); whether the station window then reads "King Street" or "King Street Station" is
+   not recorded.
+3. **Font check** for non-ASCII names (NEXT_STATES.md G4): until it passes, every state keeps `asciiFallback = true`.
+4. **Data review:** `data_review.md` lists left-out and spot-check entries per state.
+5. Any template change: regenerate all 13 (`make state-mods`, `--check` clean), bump every `revision` and add a
+   changelog entry in each `state.lua` (Phase 4 rule below).
+6. A new state: `NEXT_STATES.md` §5 checklist + `HANDOFF.md` workflow.
 
 ## How it works
 
@@ -224,133 +243,18 @@ calls `Square.register` with `id`, `name`, `tagline`, `accent` and a glyph; `mod
   `url(http…)`, every `on*` attribute, and every `href` not starting with `#`. Write to `branding/flags/` and print
   the size and element counts for review. Nothing from the download dir is executed or imported.
 
-## Description template (generated)
+## Runtime behaviour (decided in Phases 1-2)
 
-```html
-<p>Play in Washington: towns from Seattle to Spokane, real streets for your bus stops, and real names for stations,
-airports and ferry docks.</p>
-<h4>Features</h4>
-<ul>
-<li><strong>Washington towns</strong>: a name set with N real towns. The map's climate picks the region: temperate
-maps get the wet west side, desert maps the dry east, ocean maps the islands and coast.</li>
-<li><strong>Real streets</strong>: new bus stops in M cities (Seattle, Tacoma, Spokane, …) are named after real
-streets, like Pike Street or Pacific Avenue. Other towns use Washington-style street names.</li>
-<li><strong>Real stations</strong>: new train stations, airports, ferry docks and bus stations in those cities get real
-names, like King Street Station, Paine Field or Colman Dock.</li>
-<li><strong>Everything else follows</strong>: industries, depots and their stations are named after your Washington
-towns by the game itself.</li>
-</ul>
-<h4>Settings</h4>
-<ul>
-<li><strong>Real street names</strong> (default On) …</li>
-<li><strong>Real station names</strong> (default On) …</li>
-</ul>
-<h4>Notes</h4>
-<ul>
-<li>Choose "Washington (Towns & Streets)" as the name set when starting a new game. Street and station names also work
-with any other name set, in towns that have a Washington city's name.</li>
-<li>Only renames what you build, right after you build it. Your own renames are never touched. Safe to add to an
-existing save.</li>
-<li>Not affiliated with the "Washington Names" mod. All lists are our own.</li>
-</ul>
-<hr>
-<h2>Changelog</h2>
-<h4>Revision 1 (YYYY-MM-DD)</h4>
-<ul><li>First release.</li></ul>
-```
+From Phase 1:
 
-## Phases (one subagent each, memory `phases-in-subagents`)
-
-### Probe 3 (user, before Phase 1): climate visibility and station names
-
-Code is in place (`mods/square_town_street_names_probe`, see research.md §4.3); `make check/test/validate` pass.
-
-0. Quit the game. `make link` (probe linked). Watch the log:
-   `tail -f ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt | grep --line-buffered SQTSN_PROBE`
-1. **New game, Desert climate**, small map, probe enabled, name set **DEV TSN Probe**, params default.
-   Expect `names ctx towns | … | getConfigDict climate=… | runFnGlobal climate=… | logmsg=…` (twice: once from
-   `print`, once from `log.message` with a thread column). Note the thread and both climate values.
-   Then `dump configDict climate=::/climates/dry/dry.clima …` and `dump   town … initialCap=… sizeFactors=…`.
-2. Play a minute at speed: look for `names ctx persons` and `names persons call=1..3` (when person names are made).
-3. Save. **New game, Temperate**: the `names ctx towns` climate must change to temperate (if it showed one at all).
-4. Back in the Desert save with mod param **Rename test (DEV)** = "Rename station group": build a **Train Station**,
-   a **Bus/Tram Station**, an **Airport** (or airfield) and a **Harbour** in the town Seattle (or whichever town).
-   Each gets `rename queued … -> "King Street"` etc. and `rename #n verify (wanted "King Street"): group … | station
-   …`. Note what the station window and line manager show: "King Street" or "King Street Station"? Also note each
-   building's default name in its `NEW … group` line before the rename.
-5. Optional: map editor, new map with the probe set, place a town: is there a `names ctx towns` line with
-   `isMapEditor=true`?
-6. Optional (old PROBE.md steps 4-5): a two-sided stop, a stop right next to an existing one, a stop outside towns.
-
-Paste the `[SQTSN_PROBE]` lines. Outcome → this plan: climate route for `townsFn` (or option C), station
-naming form, town order vs size, findings.md entry.
-
-### Phase 1: shared runtime + Washington playable
-
-- Scope: `templates/state_names/` (runtime + tests), `tools/gen_state_mod.py` (+ Makefile targets
-  `state-mod`, `state-mods`), `tools/state_towns.py` (Census draft; the downloaded Census files go to
-  `.cache/census/<file>/`, read with `python -I`), `data/states/us_washington/` (≥ 400 tagged towns, ~120 generic
-  streets, ≥ 15 cities with streets, stations for the major ones), generated `mods/square_names_us_washington/`
-  and `tests/square_names_us_washington/`. Climate route per Probe 3.
-- Not in scope: cover, flag, final description wording, edge cases below.
-- Done: `make state-mods ARGS=--check` clean; `make check MOD=mods/square_names_us_washington`,
-  `make test MOD=…`, `make validate MOD=…` pass (validate may warn about the missing cover). Tests cover: town
-  sampling per climate (no duplicates, pool sizes, big towns present), unknown climate fallback, street pick with
-  names in use and exhaustion suffixes, station pick by kind, name normalization (case, spaces, accents), the GS
-  flow with a fake world (queue in the event, rename only from update, map editor no-op, unknown town no-op,
-  player-renamed group skipped), and the data lint.
-- User tests in game: (1) new game, Temperate, set "Washington (Towns & Streets)": towns are west-side names;
-  (2) new game, Desert: east-side names; (3) in Seattle/Tacoma build 5 Road Stops: real streets, no repeats;
-  (4) a stop in a non-city town: generic Washington street; (5) a train station and an airport in Seattle: real
-  names; (6) load an existing save with another name set, add the mod: nothing changes until you build; rename a
-  town to "Seattle", build a stop: Pike Street; (7) remove the mod from that save: names stay, no errors.
-
-**Status (2026-10-08): implemented, offline green.**
-- Files: `templates/state_names/` (content: `sn_logic.lua`, `names.script.lua`, `rename.script.lua`,
-  `rename.gs.lua`, `mod.script.lua`; `tests/test_{logic,names,rename,data}.lua`; `description.html.tmpl`),
-  `tools/gen_state_mod.py`, `tools/state_towns.py`, Makefile targets `state-towns`, `state-mod`, `state-mods`,
-  `data/states/us_washington/{state.lua, towns_config.json, towns.tsv, streets.lua, cities.lua}`, generated
-  `mods/square_names_us_washington/` and `tests/square_names_us_washington/`. Review list: `data_review.md`.
-- Data: 520 towns (281 incorporated, 2023 estimates; 239 CDPs, 2010 counts) from Census files in `.cache/census/`;
-  tags west 345 / east 175 / coast 63 / islands 19 / mountain 39 / north 28 / big 15. 132 generic streets.
-  24 cities with street lists (374 streets), 13 with neighbourhoods (120), rail names in 9 cities (33), airports
-  in 12 (14), harbours in 4 (7).
-- Generator: data lint + render; `--check` reports stale/extra files; re-running gives no diff. `mod.json` params
-  are ComboBox On/Off with `numbers` 1.0/0.0 (index 2 or number 0 = Off). Everything lives under paths with the
-  modId (`content/<modId>/`, `content/names/<modId>/us_washington.names.lua`), incl. the runFn
-  (`<modId>::/<modId>/mod.script@runFn`).
-- Probe 3 points (isolated, defaults in place):
-  1. Climate route **(answered, Phase 2)**: `names.script.lua` `currentClimate()` reads the runFn global
-     (`SQUARE_NAMES_US_WASHINGTON_RUNFN`, written with `rawset` by `mod.script.lua`), then `sn_shared.lua`, then
-     `getConfigDict()` (nil in that state today), else no climate. Option C regional sets stay off
-     (`emitRegionalSets = false` in `state.lua`; generator emits `<key>_<region>.names.lua` when true).
-  2. Station suffix: `sn_logic.STATION_SUFFIX` (TODO Probe 3 step 4); rail names stored without "Station",
-     airports/harbours full names. Per-state override `stationSuffix` in `state.lua`.
-  3. Town order vs size **(answered)**: sizes are random relative to name order; `BIG_FIRST` stays as a harmless
-     stable order and is not claimed anywhere.
 - Choices beyond the plan: guaranteed big towns are only those with the climate's top-weighted tag, at most half
   the requested towns (top 3 always, the rest at random) so small maps vary; station names are unique map-wide,
   street names per town; construction stations are only renamed when the build removes no construction (upgrades
   skipped) and the station has a passenger terminal (cargo skipped); helipads skipped; rename runs >= 1 s after
   the build so the engine's own name is in place.
 
-### Phase 2: edge cases
+From Phase 2, behaviour decisions:
 
-- Scope (runtime + tests only, regenerated mod): two-sided stops (one group, maybe two stations); a stop joining an
-  existing group (never rename the old group); the player renames a stop or town between build and rename (skip),
-  or renames a town to/from a city name (lookup uses the current name); stops outside towns (no-op); bulldoze and
-  rebuild (the freed real name is reused first); many stops in one build or in quick succession (one pass, names
-  in use updated as they're assigned, no repeats); the map editor; two state mods active (owner rule); towns whose
-  default pool already contains a city street (compare without suffix).
-- Done: new unit tests for each case; `make check/test/validate` clean; a short `TESTING.md` in
-  `plans/square_state_names/` with the in-game checklist.
-- User tests in game: the TESTING.md checklist (each item one build and a look at the name).
-
-**Status (2026-10-08): implemented, offline green** (66 tests: 24 new in `test_rename.lua` second half and
-`test_names.lua`). Files: `templates/state_names/content/{rename.script.lua, mod.script.lua, names.script.lua,
-sn_logic.lua (comments), sn_shared.lua (new)}`, `templates/state_names/tests/{test_rename.lua, test_names.lua}`,
-`tools/gen_state_mod.py` (copies `sn_shared.lua`), regenerated Washington. In-game checklist: `TESTING.md` Phase 2.
-Behaviour decisions:
 - **New vs existing stop**: a stop the proposal only re-creates (road upgrade, edge split next to a new build) is
   never queued: `new2oldEdgeObjects` has an entry for its placeholder (`-400000000 + i - 1`, as base `town_util.tl`)
   or its real id, or `old2newEdgeObjects` lists it. Without this a player-renamed stop on an upgraded road would
@@ -375,39 +279,18 @@ Behaviour decisions:
 - **Map editor**: never subscribes, never processes a loaded queue, never writes state.
 - **Several state mods**: unchanged owner rule (`isActive`), incl. regional set paths of the owning mod.
 
-### Phase 3: release prep for Washington
+## Phases (summary)
 
-- Scope: `tools/fetch_flags.py` + `tools/sanitize_svg.py`; `branding/flags/us_washington.svg` + `SOURCES.json`
-  (licence checked, seal question answered, U6); `Square.stateCover` in `cover.js`, the Washington entry in `mods.js`,
-  README palette row and a "State series" section; `make covers MOD=mods/square_names_us_washington`; gallery
-  slides (stops with real names in Seattle, the name-set picker, a station window) via `branding/shots.js` +
-  `make shots`; final `description.html` with Changelog (revision 1); data review pass (spelling, only real
-  streets, OSM spot check per city).
-- Done: `make validate MOD=mods/square_names_us_washington` with no warnings; `make state-mods ARGS=--check` clean;
-  cover and slides look right in `branding/index.html`.
-- User: final in-game smoke test, then upload via Mod Hub → My Mods (the user does the upload).
+Detail moved to `HISTORY.md` ("2026-10-12: moved from PLAN.md").
 
-**Status (2026-10-08): release prep done except slides, data review and the upload.**
-- Flags: `tools/fetch_flags.py` (`make flags`) + `tools/sanitize_svg.py`; `branding/flags/{SOURCES.json, us_washington.svg}`
-  (Commons, Public domain, WA Secretary of State, sha1 pinned). Seal question skipped per user decision.
-- Cover: `Square.stateCover` in `cover.js` (hooks `titleLines` + `overlay` added to `render`); final numbers differ
-  from the spec above: sticker 680 px at (1390, 625), -7°, 120 px peel, so it clears the two-line title; street sign
-  blade top right above the sticker. Rules in `branding/README.md` "State series". `render.html` pins the SVG with
-  `position: fixed` (the sticker's shadow made the page scroll by ~65 px).
-- Description: template rewritten; all counts from data (`gen_state_mod.description`, new placeholders); climate
-  wording left out until Probe 3 (TODO in the generator). State-specific notes via `notes` in `state.lua`.
-- Open: gallery slides (need captures), OSM spot check of the city lists, changelog date in `state.lua`
-  (`"unreleased"` → upload date).
-
-### Phase 4 (later): next state
-
-**Status (2026-10-08):** the generator has been generalised for more states (NEXT_STATES.md Phase 0; `HANDOFF.md`).
-New config fields include `regions` / `countyTags` / `asciiFallback` / per-state lint floors / description wording,
-plus contested city keys (`data/contested.lua`). The 12-state rollout follows NEXT_STATES.md §9.
-
-`data/states/us_oregon/` + `make state-mod STATE=us_oregon` + flag + cover. Any change needed to the templates goes
-back into `templates/state_names` and is regenerated for every state (each mod bumps its own `revision` and
-changelog when its generated files change).
+- **Probe 3** (climate visibility, station names): answered except step 4 (station suffix, open work 2).
+- **Phase 1** (shared runtime + Washington playable) and **Phase 2** (edge cases): done 2026-10-08, offline green;
+  in-game run open (`TESTING.md`).
+- **Phase 3** (release prep for Washington): done; Washington released 2026-10-08. The cover's final numbers differ
+  from the "Cover" spec above: see `branding/README.md` "State series".
+- **Phase 4** (next states): done as the 12-state rollout (`NEXT_STATES.md`, `HANDOFF.md`). Rule that still applies:
+  any change to the templates goes back into `templates/state_names` and is regenerated for every state (each mod
+  bumps its own `revision` and changelog when its generated files change).
 
 ## Risks
 

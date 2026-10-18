@@ -1,5 +1,10 @@
 # US State Names: in-game test checklist
 
+Status (2026-10-12): every item below is still open (none ticked). Evidence so far, not yet confirmed item by item:
+`history/PERF_REVIEW.md` (2026-10-08, Washington rev 2: 5 Road Stops and 2 rail stations renamed in Seattle, no
+errors); session `2026-10-09_0044_sqrl-crash` (`towns ... via runFn` on temperate and tropical maps, Seattle stops
+renamed Pike/Pine/Union/University/Seneca Street, rail groups "Seattle Station" -> "King Street" / "Westlake").
+
 Not shipped (lives in `plans/`). Use a **copy** of a save. Report every `[square_names_us_washington]` line and any
 Lua error near one:
 
@@ -68,3 +73,8 @@ Each item is one build and a look at the name (station window title, or hover). 
 11. [ ] **Default-name collision**: in a city whose list is used up (build more stops than it has streets, e.g. a
     small city), names go "<Street> East", "<Street> West", ... and never repeat exactly.
 12. [ ] **Two state mods** (only once a second state exists): with the Washington set, only Washington renames.
+
+## Revision 3 checks (from `history/PERF_REVIEW.md`, 2026-10-08)
+
+- [ ] Map editor with several series mods active: no errors in the log, no `[square_names_us_*]` subscriptions or renames.
+- [ ] A normal game: a new Road Stop and a new train station in a known city still get renamed (unchanged path).

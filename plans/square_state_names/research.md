@@ -1,5 +1,7 @@
 # US State Names series (`square_names_us_<state>`): research
 
+Status: done 2026-10-08. Its open unknowns were answered by Probe 3 or carried into PLAN.md "Open work".
+
 Goal: one mod per US state (Washington first). Each mod adds a name set (towns, generic streets, person names) and a
 game script that gives known cities their real streets (Seattle → "Pike Street") and other real names. Town choice
 should follow the map's climate where possible. Background from the single-mod plan:
