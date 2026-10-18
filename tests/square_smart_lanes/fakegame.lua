@@ -30,7 +30,13 @@ local function makeGame(params, fx, opts)
 	local function tick(k, n)
 		if costs ~= nil then G.us = G.us + (costs[k] or 0) * (n or 1) end
 	end
-	local CT = { BASE_NODE = "BN", BASE_EDGE = "BE", BASE_NODE_CONFIG = "BNC", BASE_NODE_TRAFFIC_LIGHT = "BNTL" }
+	local CT = { BASE_NODE = "BN", BASE_EDGE = "BE", BASE_NODE_CONFIG = "BNC", BASE_NODE_TRAFFIC_LIGHT = "BNTL",
+		EDGE_OBJECT = "EO", STATION = "STN" }
+	-- street stops (sl_write world.stops): a segment's `objects` = { {entity, EdgeObjectType} } (world.segs[id].objects),
+	-- G.edgeObjects[entity] = { param, x, y } its EDGE_OBJECT (no x: no transf)
+	local EOT = { STOP_LEFT = 0, STOP_RIGHT = 1, SIGNAL = 2 }
+	G.EOT = EOT
+	G.edgeObjects = {}
 	local TLP = { YES = 0, NO = 1, AUTO = 2 }
 	G.TLP = TLP
 	G.lights = {} -- node -> true: a traffic light stands there (BASE_NODE_TRAFFIC_LIGHT)
@@ -100,10 +106,14 @@ local function makeGame(params, fx, opts)
 	G.api = {
 		type = {
 			ComponentType = CT,
-			enum = { TransportMode = MODES, TrafficLightPreference = TLP },
+			enum = { TransportMode = MODES, TrafficLightPreference = TLP, EdgeObjectType = EOT },
 			BaseNodeLaneConnectionAndEntity = { new = function() tick("entry") return {} end },
 			TrafficLightState = { new = function() tick("state") return {} end },
 			SimpleProposal = { new = function() return { streetProposal = {} } end },
+			-- street changes (Smart Lanes' ring edge splits, sl_write W.sendSplit)
+			SegmentAndEntity = { new = function() return { comp = {}, streetEdge = {} } end },
+			NodeAndEntity = { new = function() return { comp = {} } end },
+			Vec3f = { new = function(x, y, z) return { x = x, y = y, z = z } end },
 			Context = { new = function() return {} end },
 		},
 		engine = {
@@ -125,10 +135,18 @@ local function makeGame(params, fx, opts)
 				if ct == CT.BASE_EDGE then
 					local s = world.segs[e]
 					return s and { node0 = s.node0, node1 = s.node1, position0 = s.p0, position1 = s.p1,
-						tangent0 = s.t0, tangent1 = s.t1, laneConfigs = laneConfigs(s.lanes) }
+						tangent0 = s.t0, tangent1 = s.t1, laneConfigs = laneConfigs(s.lanes), type = s.edgeType or 0,
+						typeIndex = -1, objects = s.objects or {}, roadTemplate = s.template or "town_new_one_way_small" }
 				end
 				if ct == CT.BASE_NODE_CONFIG then return G.configs[e] and copyCfg(G.configs[e]) end
 				if ct == CT.BASE_NODE_TRAFFIC_LIGHT then return G.lights[e] and {} or nil end
+				if ct == CT.EDGE_OBJECT then
+					local o = G.edgeObjects[e]
+					if o == nil then return nil end
+					local tr = o.x and { getTransl = function() return { x = o.x, y = o.y, z = 0 } end } or nil
+					return { param = o.param, transf = tr }
+				end
+				if ct == CT.STATION then return G.edgeObjects[e] and {} or nil end
 			end,
 			system = { streetSystem = { getNodeStreetSegments = function(n)
 				tick("segs")
@@ -167,7 +185,66 @@ local function makeGame(params, fx, opts)
 						if cb then cb(nil, false) end
 						return
 					end
-					for _, e in ipairs(cmd.proposal.streetProposal.nodeConfigsToAdd) do G.configs[e.entity] = e.comp end
+					local sp = cmd.proposal.streetProposal
+					-- street changes: temp ids (negative) become new entity ids, the world follows
+					local real = {}
+					local function rid(x) return (type(x) == "number" and x < 0) and (real[x] or x) or x end
+					if sp.edgesToAdd ~= nil or sp.nodesToAdd ~= nil or sp.edgesToRemove ~= nil then
+						G.nextId = G.nextId or 900000
+						for _, ne in ipairs(sp.nodesToAdd or {}) do
+							G.nextId = G.nextId + 1
+							real[ne.entity] = G.nextId
+							world.nodes[G.nextId] = { id = G.nextId, x = ne.comp.position.x, y = ne.comp.position.y, segs = {} }
+						end
+						for _, sg in ipairs(sp.edgesToAdd or {}) do
+							G.nextId = G.nextId + 1
+							real[sg.entity] = G.nextId
+						end
+						for _, e in ipairs(sp.edgesToRemove or {}) do
+							local old = world.segs[e]
+							if old ~= nil then
+								for _, nd in ipairs({ old.node0, old.node1 }) do
+									local list = world.nodes[nd] and world.nodes[nd].segs or {}
+									for i = #list, 1, -1 do if list[i] == e then table.remove(list, i) end end
+								end
+								world.segs[e] = nil
+							end
+						end
+						for _, sg in ipairs(sp.edgesToAdd or {}) do
+							local id = real[sg.entity]
+							local c = sg.comp
+							local lanes = {}
+							for _, lc in ipairs(c.laneConfigs or {}) do
+								local tm = lc.transportModes or {}
+								lanes[#lanes + 1] = { forward = lc.forward, car = tm[MODES.CAR] == true,
+									road = tm[MODES.CAR] == true or tm[MODES.BUS] == true or tm[MODES.TRUCK] == true,
+									tram = tm[MODES.TRAM] == true, walk = tm[MODES.PERSON] == true }
+							end
+							local s = { id = id, node0 = rid(c.node0), node1 = rid(c.node1), lanes = lanes,
+								p0 = { x = c.position0.x, y = c.position0.y }, p1 = { x = c.position1.x, y = c.position1.y },
+								t0 = { x = c.tangent0.x, y = c.tangent0.y }, t1 = { x = c.tangent1.x, y = c.tangent1.y } }
+							world.segs[id] = s
+							for _, nd in ipairs({ s.node0, s.node1 }) do
+								if world.nodes[nd] then table.insert(world.nodes[nd].segs, id) end
+							end
+						end
+						G.streetCmds = (G.streetCmds or 0) + 1
+					end
+					for _, e in ipairs(sp.nodeConfigsToAdd or {}) do
+						local comp = e.comp
+						if next(real) ~= nil then
+							local list = {}
+							for i, lc in ipairs(comp.laneConnections or {}) do
+								list[i] = { segment0 = rid(lc.segment0), lane0 = lc.lane0, segment1 = rid(lc.segment1), lane1 = lc.lane1,
+									withRoad = lc.withRoad, withTram = lc.withTram }
+							end
+							local walks = {}
+							for i, w in ipairs(comp.crosswalks or {}) do walks[i] = rid(w) end
+							comp = { laneConnections = list, crosswalks = walks, trafficLightPreference = comp.trafficLightPreference or 2,
+								trafficLightConfig = comp.trafficLightConfig }
+						end
+						G.configs[rid(e.entity)] = comp
+					end
 					if cb then cb(nil, true) end
 				end
 				-- G.lose(cmd) true: the callback never comes on its own (kept in G.lost: a test may call it

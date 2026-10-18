@@ -1,55 +1,55 @@
 {
     "name": "Smart Lanes",
-    "summary": "Lane discipline on roundabouts: entries and exits matched lane by lane, set when you build.",
-    "description": "Lane discipline on roundabouts. Right after you build a roundabout, Smart Lanes sets which lane may go where at its junctions (entries and exits matched lane by lane, exit-only outer lane), like the Crossing Tool would.",
+    "summary": "Lane discipline at every junction as you build, plus smart traffic lights that follow the traffic.",
+    "description": "Lane discipline at roundabouts, slip-lane and ramp junctions, crossroads and T-junctions, set right after you build, plus Smart lights phases, automatic light timing and traffic recording at any junction.",
     "localization": {
         "ru": {
             "name": "Умные полосы",
-            "summary": "Порядок полос на кольцах: въезды и выезды соединяются полоса к полосе при постройке."
+            "summary": "Порядок полос на любом перекрёстке при постройке, плюс умные светофоры, подстроенные под трафик."
         },
         "de": {
             "name": "Smarte Spuren",
-            "summary": "Spurdisziplin im Kreisverkehr: Ein- und Ausfahrten Spur für Spur verbunden, beim Bau gesetzt."
+            "summary": "Spurdisziplin an jeder Kreuzung beim Bau, dazu smarte Ampeln, die sich dem Verkehr anpassen."
         },
         "fr": {
             "name": "Voies intelligentes",
-            "summary": "Discipline de voie aux ronds-points : entrées et sorties reliées voie par voie, dès la construction."
+            "summary": "Discipline de voie à chaque carrefour dès la construction, et feux intelligents adaptés au trafic."
         },
         "es": {
             "name": "Carriles inteligentes",
-            "summary": "Disciplina de carril en rotondas: entradas y salidas emparejadas carril a carril al construir."
+            "summary": "Disciplina de carril en cada cruce al construir, y semáforos inteligentes ajustados al tráfico."
         },
         "it": {
             "name": "Corsie intelligenti",
-            "summary": "Disciplina di corsia nelle rotonde: entrate e uscite abbinate corsia per corsia alla costruzione."
+            "summary": "Disciplina di corsia a ogni incrocio alla costruzione, e semafori intelligenti adattati al traffico."
         },
         "nl": {
             "name": "Slimme rijstroken",
-            "summary": "Rijstrookdiscipline op rotondes: in- en uitritten per rijstrook gekoppeld, direct bij het bouwen."
+            "summary": "Rijstrookdiscipline op elk kruispunt bij het bouwen, plus slimme lichten die het verkeer volgen."
         },
         "pl": {
             "name": "Inteligentne pasy",
-            "summary": "Porządek pasów na rondach: wjazdy i wyjazdy łączone pas do pasa już przy budowie."
+            "summary": "Porządek pasów na każdym skrzyżowaniu przy budowie, plus inteligentne światła dopasowane do ruchu."
         },
         "pt_BR": {
             "name": "Faixas inteligentes",
-            "summary": "Disciplina de faixas em rotatórias: entradas e saídas pareadas faixa a faixa ao construir."
+            "summary": "Disciplina de faixas em cada cruzamento ao construir, e semáforos inteligentes conforme o trânsito."
         },
         "ja": {
             "name": "スマート車線",
-            "summary": "ラウンダバウトの車線規律：建設時に入口と出口を車線ごとに対応させます。"
+            "summary": "建設時にあらゆる交差点の車線を整え、交通量に合わせるスマート信号も備えます。"
         },
         "ko": {
             "name": "스마트 차선",
-            "summary": "로터리 차선 규칙: 건설할 때 진입로와 출구를 차선별로 맞춥니다."
+            "summary": "건설할 때 모든 교차로의 차선을 정리하고, 교통량에 맞춰지는 스마트 신호도 제공합니다."
         },
         "zh_CN": {
             "name": "智能车道",
-            "summary": "环岛车道规范：建造时即将入口和出口按车道一一对应。"
+            "summary": "建造时即为每个路口规范车道，并提供随交通量调整的智能信号灯。"
         },
         "zh_TW": {
             "name": "智慧車道",
-            "summary": "圓環車道規範：建造時即將入口與出口依車道一一對應。"
+            "summary": "建造時即為每個路口規範車道，並提供隨交通量調整的智慧號誌。"
         }
     },
     "authors": [

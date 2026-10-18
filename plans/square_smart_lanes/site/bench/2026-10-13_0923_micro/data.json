@@ -1,0 +1,1727 @@
+{
+ "version": 3,
+ "single": false,
+ "seed": "331773",
+ "built": "2026-10-13 09:23",
+ "pairing": "id",
+ "header": {
+  "title": "Micro bench v2: six ring layouts (stopped early)"
+ },
+ "runs": [
+  {
+   "id": "game",
+   "label": "Game lanes",
+   "kind": "game",
+   "mode": "game",
+   "session": "2026-10-13_0923_bench-micro-331773"
+  },
+  {
+   "id": "sl",
+   "label": "Smart Lanes",
+   "kind": "smart",
+   "mode": "sl",
+   "session": "2026-10-13_0923_bench-micro-331773"
+  },
+  {
+   "id": "sl-rturbo",
+   "label": "Turbo",
+   "kind": "smart",
+   "mode": "sl_rturbo",
+   "session": "2026-10-13_0923_bench-micro-331773"
+  },
+  {
+   "id": "sl-rmatch",
+   "label": "Matched lanes",
+   "kind": "smart",
+   "mode": "sl_rmatch",
+   "session": "2026-10-13_0923_bench-micro-331773"
+  },
+  {
+   "id": "sl-rout1",
+   "label": "Outer lane exits only",
+   "kind": "smart",
+   "mode": "sl_rout1",
+   "session": "2026-10-13_0923_bench-micro-331773"
+  },
+  {
+   "id": "sl-r2exit",
+   "label": "Two outer lanes exit",
+   "kind": "smart",
+   "mode": "sl_r2exit",
+   "session": "2026-10-13_0923_bench-micro-331773"
+  },
+  {
+   "id": "sl-rspiral",
+   "label": "Spiral",
+   "kind": "smart",
+   "mode": "sl_rspiral",
+   "session": "2026-10-13_0923_bench-micro-331773"
+  },
+  {
+   "id": "sl-rspread",
+   "label": "Turbo plus center lanes",
+   "kind": "smart",
+   "mode": "sl_rspread",
+   "session": "2026-10-13_0923_bench-micro-331773"
+  }
+ ],
+ "units": [
+  {
+   "nn": "01",
+   "ids": {
+    "sl": "microg1a",
+    "game": "microg1b",
+    "sl-rturbo": "microg1h",
+    "sl-rmatch": "microg1i",
+    "sl-rout1": "microg1j",
+    "sl-r2exit": "microg1k",
+    "sl-rspiral": "microg1l",
+    "sl-rspread": "microg1m"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 4 lanes \u00b7 set 1",
+     "kmh": 9.43,
+     "standing": 50.7,
+     "queue": 72.0,
+     "thru": 98.8,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg1a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 4 lanes \u00b7 set 1",
+     "kmh": 8.65,
+     "standing": 41.1,
+     "queue": 10.5,
+     "thru": 79.9,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg1b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rturbo": {
+     "name": "Roundabout, 4 lanes \u00b7 set 1",
+     "kmh": 8.26,
+     "standing": 52.4,
+     "queue": 89.1,
+     "thru": 98.4,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg1h",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rmatch": {
+     "name": "Roundabout, 4 lanes \u00b7 set 1",
+     "kmh": 6.2,
+     "standing": 67.9,
+     "queue": 195.4,
+     "thru": 75.8,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg1i",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rout1": {
+     "name": "Roundabout, 4 lanes \u00b7 set 1",
+     "kmh": 6.87,
+     "standing": 52.7,
+     "queue": 26.9,
+     "thru": 63.5,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg1j",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-r2exit": {
+     "name": "Roundabout, 4 lanes \u00b7 set 1",
+     "kmh": 7.26,
+     "standing": 55.0,
+     "queue": 52.1,
+     "thru": 87.5,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg1k",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rspiral": {
+     "name": "Roundabout, 4 lanes \u00b7 set 1",
+     "kmh": 3.0,
+     "standing": 85.6,
+     "queue": 276.8,
+     "thru": 43.3,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg1l",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rspread": {
+     "name": "Roundabout, 4 lanes \u00b7 set 1",
+     "kmh": 9.47,
+     "standing": 53.7,
+     "queue": 81.7,
+     "thru": 94.5,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg1m",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4l",
+     "pair": "microg1"
+    },
+    "game": {
+     "test": "rb4l",
+     "pair": "microg1"
+    },
+    "sl-rturbo": {
+     "test": "rb4l",
+     "pair": "microg1"
+    },
+    "sl-rmatch": {
+     "test": "rb4l",
+     "pair": "microg1"
+    },
+    "sl-rout1": {
+     "test": "rb4l",
+     "pair": "microg1"
+    },
+    "sl-r2exit": {
+     "test": "rb4l",
+     "pair": "microg1"
+    },
+    "sl-rspiral": {
+     "test": "rb4l",
+     "pair": "microg1"
+    },
+    "sl-rspread": {
+     "test": "rb4l",
+     "pair": "microg1"
+    }
+   },
+   "category": "faster",
+   "verdict": "+0.8 km/h"
+  },
+  {
+   "nn": "02",
+   "ids": {
+    "sl": "microg4a",
+    "game": "microg4b",
+    "sl-rturbo": "microg4h",
+    "sl-rmatch": "microg4i",
+    "sl-rout1": "microg4j",
+    "sl-r2exit": "microg4k",
+    "sl-rspiral": "microg4l",
+    "sl-rspread": "microg4m"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 4 lanes \u00b7 set 4",
+     "kmh": 8.38,
+     "standing": 50.2,
+     "queue": 77.4,
+     "thru": 105.8,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg4a",
+     "applied": 11,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 4 lanes \u00b7 set 4",
+     "kmh": 9.47,
+     "standing": 39.9,
+     "queue": 8.6,
+     "thru": 84.4,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg4b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rturbo": {
+     "name": "Roundabout, 4 lanes \u00b7 set 4",
+     "kmh": 9.89,
+     "standing": 49.8,
+     "queue": 64.0,
+     "thru": 98.2,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg4h",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rmatch": {
+     "name": "Roundabout, 4 lanes \u00b7 set 4",
+     "kmh": 5.95,
+     "standing": 67.4,
+     "queue": 204.0,
+     "thru": 84.2,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg4i",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rout1": {
+     "name": "Roundabout, 4 lanes \u00b7 set 4",
+     "kmh": 7.03,
+     "standing": 52.3,
+     "queue": 29.3,
+     "thru": 67.5,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg4j",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-r2exit": {
+     "name": "Roundabout, 4 lanes \u00b7 set 4",
+     "kmh": 7.23,
+     "standing": 55.1,
+     "queue": 53.5,
+     "thru": 82.7,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg4k",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rspiral": {
+     "name": "Roundabout, 4 lanes \u00b7 set 4",
+     "kmh": 6.16,
+     "standing": 72.9,
+     "queue": 193.1,
+     "thru": 70.0,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg4l",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rspread": {
+     "name": "Roundabout, 4 lanes \u00b7 set 4",
+     "kmh": 3.89,
+     "standing": 77.8,
+     "queue": 266.4,
+     "thru": 54.9,
+     "samples": 76,
+     "variant": "4-lane ring",
+     "zone": "microg4m",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4l",
+     "pair": "microg4"
+    },
+    "game": {
+     "test": "rb4l",
+     "pair": "microg4"
+    },
+    "sl-rturbo": {
+     "test": "rb4l",
+     "pair": "microg4"
+    },
+    "sl-rmatch": {
+     "test": "rb4l",
+     "pair": "microg4"
+    },
+    "sl-rout1": {
+     "test": "rb4l",
+     "pair": "microg4"
+    },
+    "sl-r2exit": {
+     "test": "rb4l",
+     "pair": "microg4"
+    },
+    "sl-rspiral": {
+     "test": "rb4l",
+     "pair": "microg4"
+    },
+    "sl-rspread": {
+     "test": "rb4l",
+     "pair": "microg4"
+    }
+   },
+   "category": "slower",
+   "verdict": "-1.1 km/h"
+  },
+  {
+   "nn": "03",
+   "ids": {
+    "sl": "microg2a",
+    "game": "microg2b",
+    "sl-rturbo": "microg2h",
+    "sl-rmatch": "microg2i",
+    "sl-rout1": "microg2j",
+    "sl-r2exit": "microg2k",
+    "sl-rspiral": "microg2l",
+    "sl-rspread": "microg2m"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 3 lanes (highway ring) \u00b7 set 2",
+     "kmh": 7.36,
+     "standing": 61.1,
+     "queue": 120.2,
+     "thru": 82.5,
+     "samples": 76,
+     "variant": "3-lane ring",
+     "zone": "microg2a",
+     "applied": 8,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 3 lanes (highway ring) \u00b7 set 2",
+     "kmh": 7.3,
+     "standing": 54.1,
+     "queue": 64.8,
+     "thru": 88.8,
+     "samples": 76,
+     "variant": "3-lane ring",
+     "zone": "microg2b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rturbo": {
+     "name": "Roundabout, 3 lanes (highway ring) \u00b7 set 2",
+     "kmh": 7.96,
+     "standing": 55.7,
+     "queue": 87.4,
+     "thru": 88.1,
+     "samples": 76,
+     "variant": "3-lane ring",
+     "zone": "microg2h",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rmatch": {
+     "name": "Roundabout, 3 lanes (highway ring) \u00b7 set 2",
+     "kmh": 6.75,
+     "standing": 63.7,
+     "queue": 152.8,
+     "thru": 78.9,
+     "samples": 76,
+     "variant": "3-lane ring",
+     "zone": "microg2i",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rout1": {
+     "name": "Roundabout, 3 lanes (highway ring) \u00b7 set 2",
+     "kmh": 6.41,
+     "standing": 55.4,
+     "queue": 28.7,
+     "thru": 63.6,
+     "samples": 76,
+     "variant": "3-lane ring",
+     "zone": "microg2j",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-r2exit": {
+     "name": "Roundabout, 3 lanes (highway ring) \u00b7 set 2",
+     "kmh": 6.77,
+     "standing": 58.2,
+     "queue": 60.8,
+     "thru": 74.7,
+     "samples": 76,
+     "variant": "3-lane ring",
+     "zone": "microg2k",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rspiral": {
+     "name": "Roundabout, 3 lanes (highway ring) \u00b7 set 2",
+     "kmh": 1.43,
+     "standing": 91.2,
+     "queue": 323.0,
+     "thru": 41.8,
+     "samples": 76,
+     "variant": "3-lane ring",
+     "zone": "microg2l",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rspread": {
+     "name": "Roundabout, 3 lanes (highway ring) \u00b7 set 2",
+     "kmh": 7.83,
+     "standing": 55.5,
+     "queue": 82.4,
+     "thru": 93.8,
+     "samples": 76,
+     "variant": "3-lane ring",
+     "zone": "microg2m",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb3",
+     "pair": "microg2"
+    },
+    "game": {
+     "test": "rb3",
+     "pair": "microg2"
+    },
+    "sl-rturbo": {
+     "test": "rb3",
+     "pair": "microg2"
+    },
+    "sl-rmatch": {
+     "test": "rb3",
+     "pair": "microg2"
+    },
+    "sl-rout1": {
+     "test": "rb3",
+     "pair": "microg2"
+    },
+    "sl-r2exit": {
+     "test": "rb3",
+     "pair": "microg2"
+    },
+    "sl-rspiral": {
+     "test": "rb3",
+     "pair": "microg2"
+    },
+    "sl-rspread": {
+     "test": "rb3",
+     "pair": "microg2"
+    }
+   },
+   "category": "faster",
+   "verdict": "+0.1 km/h"
+  },
+  {
+   "nn": "04",
+   "ids": {
+    "sl": "microg3a",
+    "game": "microg3b",
+    "sl-rturbo": "microg3h",
+    "sl-rmatch": "microg3i",
+    "sl-rout1": "microg3j",
+    "sl-r2exit": "microg3k",
+    "sl-rspiral": "microg3l",
+    "sl-rspread": "microg3m"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes \u00b7 set 3",
+     "kmh": 9.77,
+     "standing": 43.7,
+     "queue": 20.4,
+     "thru": 78.6,
+     "samples": 76,
+     "variant": "2-lane ring",
+     "zone": "microg3a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes \u00b7 set 3",
+     "kmh": 7.44,
+     "standing": 48.1,
+     "queue": 11.5,
+     "thru": 60.8,
+     "samples": 76,
+     "variant": "2-lane ring",
+     "zone": "microg3b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rturbo": {
+     "name": "Roundabout, 2 lanes \u00b7 set 3",
+     "kmh": 8.92,
+     "standing": 45.2,
+     "queue": 24.0,
+     "thru": 78.3,
+     "samples": 76,
+     "variant": "2-lane ring",
+     "zone": "microg3h",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rmatch": {
+     "name": "Roundabout, 2 lanes \u00b7 set 3",
+     "kmh": 8.82,
+     "standing": 43.0,
+     "queue": 39.7,
+     "thru": 87.2,
+     "samples": 76,
+     "variant": "2-lane ring",
+     "zone": "microg3i",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rout1": {
+     "name": "Roundabout, 2 lanes \u00b7 set 3",
+     "kmh": 7.59,
+     "standing": 48.0,
+     "queue": 16.8,
+     "thru": 62.8,
+     "samples": 76,
+     "variant": "2-lane ring",
+     "zone": "microg3j",
+     "applied": 0,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": "sl_rout1 twin: no ring APPLY / SKIP same with layout=sl_rout1",
+     "match": true
+    },
+    "sl-r2exit": {
+     "name": "Roundabout, 2 lanes \u00b7 set 3",
+     "kmh": 9.4,
+     "standing": 43.5,
+     "queue": 19.9,
+     "thru": 81.6,
+     "samples": 76,
+     "variant": "2-lane ring",
+     "zone": "microg3k",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rspiral": {
+     "name": "Roundabout, 2 lanes \u00b7 set 3",
+     "kmh": 9.39,
+     "standing": 41.8,
+     "queue": 21.4,
+     "thru": 81.1,
+     "samples": 76,
+     "variant": "2-lane ring",
+     "zone": "microg3l",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-rspread": {
+     "name": "Roundabout, 2 lanes \u00b7 set 3",
+     "kmh": 8.88,
+     "standing": 44.1,
+     "queue": 18.5,
+     "thru": 77.9,
+     "samples": 76,
+     "variant": "2-lane ring",
+     "zone": "microg3m",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb2",
+     "pair": "microg3"
+    },
+    "game": {
+     "test": "rb2",
+     "pair": "microg3"
+    },
+    "sl-rturbo": {
+     "test": "rb2",
+     "pair": "microg3"
+    },
+    "sl-rmatch": {
+     "test": "rb2",
+     "pair": "microg3"
+    },
+    "sl-rout1": {
+     "test": "rb2",
+     "pair": "microg3"
+    },
+    "sl-r2exit": {
+     "test": "rb2",
+     "pair": "microg3"
+    },
+    "sl-rspiral": {
+     "test": "rb2",
+     "pair": "microg3"
+    },
+    "sl-rspread": {
+     "test": "rb2",
+     "pair": "microg3"
+    }
+   },
+   "category": "faster",
+   "verdict": "+2.3 km/h"
+  }
+ ],
+ "summary": {
+  "kmh": {
+   "game": {
+    "q": [
+     7.41,
+     8.04,
+     8.86,
+     7.3,
+     9.47
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     8.12,
+     8.91,
+     9.52,
+     7.36,
+     9.77
+    ],
+    "sum": null
+   },
+   "sl-rturbo": {
+    "q": [
+     8.19,
+     8.59,
+     9.16,
+     7.96,
+     9.89
+    ],
+    "sum": null
+   },
+   "sl-rmatch": {
+    "q": [
+     6.14,
+     6.47,
+     7.27,
+     5.95,
+     8.82
+    ],
+    "sum": null
+   },
+   "sl-rout1": {
+    "q": [
+     6.75,
+     6.95,
+     7.17,
+     6.41,
+     7.59
+    ],
+    "sum": null
+   },
+   "sl-r2exit": {
+    "q": [
+     7.12,
+     7.25,
+     7.79,
+     6.77,
+     9.4
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     2.61,
+     4.58,
+     6.97,
+     1.43,
+     9.39
+    ],
+    "sum": null
+   },
+   "sl-rspread": {
+    "q": [
+     6.85,
+     8.36,
+     9.03,
+     3.89,
+     9.47
+    ],
+    "sum": null
+   }
+  },
+  "standing": {
+   "game": {
+    "q": [
+     40.8,
+     44.6,
+     49.6,
+     39.9,
+     54.1
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     48.58,
+     50.45,
+     53.3,
+     43.7,
+     61.1
+    ],
+    "sum": null
+   },
+   "sl-rturbo": {
+    "q": [
+     48.65,
+     51.1,
+     53.23,
+     45.2,
+     55.7
+    ],
+    "sum": null
+   },
+   "sl-rmatch": {
+    "q": [
+     58.53,
+     65.55,
+     67.53,
+     43.0,
+     67.9
+    ],
+    "sum": null
+   },
+   "sl-rout1": {
+    "q": [
+     51.22,
+     52.5,
+     53.38,
+     48.0,
+     55.4
+    ],
+    "sum": null
+   },
+   "sl-r2exit": {
+    "q": [
+     52.12,
+     55.05,
+     55.88,
+     43.5,
+     58.2
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     65.12,
+     79.25,
+     87.0,
+     41.8,
+     91.2
+    ],
+    "sum": null
+   },
+   "sl-rspread": {
+    "q": [
+     51.3,
+     54.6,
+     61.08,
+     44.1,
+     77.8
+    ],
+    "sum": null
+   }
+  },
+  "queue": {
+   "game": {
+    "q": [
+     10.03,
+     11.0,
+     24.82,
+     8.6,
+     64.8
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     59.1,
+     74.7,
+     88.1,
+     20.4,
+     120.2
+    ],
+    "sum": null
+   },
+   "sl-rturbo": {
+    "q": [
+     54.0,
+     75.7,
+     87.83,
+     24.0,
+     89.1
+    ],
+    "sum": null
+   },
+   "sl-rmatch": {
+    "q": [
+     124.53,
+     174.1,
+     197.55,
+     39.7,
+     204.0
+    ],
+    "sum": null
+   },
+   "sl-rout1": {
+    "q": [
+     24.38,
+     27.8,
+     28.85,
+     16.8,
+     29.3
+    ],
+    "sum": null
+   },
+   "sl-r2exit": {
+    "q": [
+     44.05,
+     52.8,
+     55.33,
+     19.9,
+     60.8
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     150.17,
+     234.95,
+     288.35,
+     21.4,
+     323.0
+    ],
+    "sum": null
+   },
+   "sl-rspread": {
+    "q": [
+     65.9,
+     82.05,
+     128.4,
+     18.5,
+     266.4
+    ],
+    "sum": null
+   }
+  },
+  "thru": {
+   "game": {
+    "q": [
+     75.12,
+     82.15,
+     85.5,
+     60.8,
+     88.8
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     81.53,
+     90.65,
+     100.55,
+     78.6,
+     105.8
+    ],
+    "sum": null
+   },
+   "sl-rturbo": {
+    "q": [
+     85.65,
+     93.15,
+     98.25,
+     78.3,
+     98.4
+    ],
+    "sum": null
+   },
+   "sl-rmatch": {
+    "q": [
+     78.12,
+     81.55,
+     84.95,
+     75.8,
+     87.2
+    ],
+    "sum": null
+   },
+   "sl-rout1": {
+    "q": [
+     63.33,
+     63.55,
+     64.58,
+     62.8,
+     67.5
+    ],
+    "sum": null
+   },
+   "sl-r2exit": {
+    "q": [
+     79.88,
+     82.15,
+     83.9,
+     74.7,
+     87.5
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     42.92,
+     56.65,
+     72.78,
+     41.8,
+     81.1
+    ],
+    "sum": null
+   },
+   "sl-rspread": {
+    "q": [
+     72.15,
+     85.85,
+     93.97,
+     54.9,
+     94.5
+    ],
+    "sum": null
+   }
+  }
+ },
+ "notes": {
+  "comparisons": [
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 2,
+    "wins": 1,
+    "losses": 1,
+    "dKmh": -0.15,
+    "dStanding": 9.9,
+    "dThru": 20.2,
+    "thruWins": 2,
+    "p": 1.0
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Turbo",
+    "b": "Smart Lanes",
+    "pairs": 2,
+    "wins": 1,
+    "losses": 1,
+    "dKmh": 0.17,
+    "dStanding": 0.7,
+    "dThru": -4.1,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Matched lanes",
+    "b": "Smart Lanes",
+    "pairs": 2,
+    "wins": 0,
+    "losses": 2,
+    "dKmh": -2.83,
+    "dStanding": 17.2,
+    "dThru": -22.3,
+    "thruWins": 0,
+    "p": 0.5
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Outer lane exits only",
+    "b": "Smart Lanes",
+    "pairs": 2,
+    "wins": 0,
+    "losses": 2,
+    "dKmh": -1.96,
+    "dStanding": 2.1,
+    "dThru": -36.8,
+    "thruWins": 0,
+    "p": 0.5
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Two outer lanes exit",
+    "b": "Smart Lanes",
+    "pairs": 2,
+    "wins": 0,
+    "losses": 2,
+    "dKmh": -1.66,
+    "dStanding": 4.6,
+    "dThru": -17.2,
+    "thruWins": 0,
+    "p": 0.5
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Spiral",
+    "b": "Smart Lanes",
+    "pairs": 2,
+    "wins": 0,
+    "losses": 2,
+    "dKmh": -4.33,
+    "dStanding": 28.8,
+    "dThru": -45.7,
+    "thruWins": 0,
+    "p": 0.5
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Turbo plus center lanes",
+    "b": "Smart Lanes",
+    "pairs": 2,
+    "wins": 1,
+    "losses": 1,
+    "dKmh": -2.22,
+    "dStanding": 15.3,
+    "dThru": -27.6,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Turbo",
+    "b": "Game lanes",
+    "pairs": 2,
+    "wins": 1,
+    "losses": 1,
+    "dKmh": 0.02,
+    "dStanding": 10.6,
+    "dThru": 16.1,
+    "thruWins": 2,
+    "p": 1.0
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Matched lanes",
+    "b": "Game lanes",
+    "pairs": 2,
+    "wins": 0,
+    "losses": 2,
+    "dKmh": -2.98,
+    "dStanding": 27.1,
+    "dThru": -2.1,
+    "thruWins": 0,
+    "p": 0.5
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Outer lane exits only",
+    "b": "Game lanes",
+    "pairs": 2,
+    "wins": 0,
+    "losses": 2,
+    "dKmh": -2.11,
+    "dStanding": 12.0,
+    "dThru": -16.6,
+    "thruWins": 0,
+    "p": 0.5
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Two outer lanes exit",
+    "b": "Game lanes",
+    "pairs": 2,
+    "wins": 0,
+    "losses": 2,
+    "dKmh": -1.81,
+    "dStanding": 14.5,
+    "dThru": 3.0,
+    "thruWins": 1,
+    "p": 0.5
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Spiral",
+    "b": "Game lanes",
+    "pairs": 2,
+    "wins": 0,
+    "losses": 2,
+    "dKmh": -4.48,
+    "dStanding": 38.7,
+    "dThru": -25.5,
+    "thruWins": 0,
+    "p": 0.5
+   },
+   {
+    "test": "rb4l",
+    "title": "Roundabout, 4 lanes",
+    "a": "Turbo plus center lanes",
+    "b": "Game lanes",
+    "pairs": 2,
+    "wins": 1,
+    "losses": 1,
+    "dKmh": -2.38,
+    "dStanding": 25.2,
+    "dThru": -7.5,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 0.07,
+    "dStanding": 7.1,
+    "dThru": -6.2,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Turbo",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 0.59,
+    "dStanding": -5.5,
+    "dThru": 5.6,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Matched lanes",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.62,
+    "dStanding": 2.5,
+    "dThru": -3.6,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Outer lane exits only",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.95,
+    "dStanding": -5.7,
+    "dThru": -19.0,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Two outer lanes exit",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.59,
+    "dStanding": -3.0,
+    "dThru": -7.9,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Spiral",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -5.94,
+    "dStanding": 30.0,
+    "dThru": -40.7,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Turbo plus center lanes",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 0.47,
+    "dStanding": -5.6,
+    "dThru": 11.3,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Turbo",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 0.66,
+    "dStanding": 1.6,
+    "dThru": -0.6,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Matched lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.55,
+    "dStanding": 9.6,
+    "dThru": -9.9,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Outer lane exits only",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.89,
+    "dStanding": 1.4,
+    "dThru": -25.2,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Two outer lanes exit",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.52,
+    "dStanding": 4.1,
+    "dThru": -14.1,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Spiral",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -5.87,
+    "dStanding": 37.1,
+    "dThru": -46.9,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3",
+    "title": "Roundabout, 3 lanes (highway ring)",
+    "a": "Turbo plus center lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 0.53,
+    "dStanding": 1.5,
+    "dThru": 5.0,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 2.34,
+    "dStanding": -4.4,
+    "dThru": 17.8,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Turbo",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.85,
+    "dStanding": 1.5,
+    "dThru": -0.2,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Matched lanes",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.95,
+    "dStanding": -0.7,
+    "dThru": 8.7,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Two outer lanes exit",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.38,
+    "dStanding": -0.2,
+    "dThru": 3.0,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Spiral",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.38,
+    "dStanding": -1.9,
+    "dThru": 2.5,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Turbo plus center lanes",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.89,
+    "dStanding": 0.4,
+    "dThru": -0.6,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Turbo",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 1.49,
+    "dStanding": -2.9,
+    "dThru": 17.5,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Matched lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 1.38,
+    "dStanding": -5.1,
+    "dThru": 26.4,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Two outer lanes exit",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 1.96,
+    "dStanding": -4.6,
+    "dThru": 20.8,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Spiral",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 1.95,
+    "dStanding": -6.3,
+    "dThru": 20.3,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2",
+    "title": "Roundabout, 2 lanes",
+    "a": "Turbo plus center lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 1.44,
+    "dStanding": -3.9,
+    "dThru": 17.1,
+    "thruWins": 1,
+    "p": 1.0
+   }
+  ],
+  "excluded": [
+   {
+    "pair": "microg3",
+    "compare": "sl_rout1 vs sl",
+    "why": "treatment: sl_rout1 twin: no ring APPLY / SKIP same with layout=sl_rout1"
+   },
+   {
+    "pair": "microg3",
+    "compare": "sl_rout1 vs game",
+    "why": "treatment: sl_rout1 twin: no ring APPLY / SKIP same with layout=sl_rout1"
+   }
+  ],
+  "spec": "bench_micro@2",
+  "complete": false,
+  "towns": "128",
+  "pop": "600",
+  "recordS": "1200",
+  "freeTurn": "always",
+  "lights": "on",
+  "phases": "game",
+  "mapStanding": 47.8
+ },
+ "runRows": [
+  [
+   "Twins (junctions)",
+   "4",
+   "4",
+   "4",
+   "4",
+   "4",
+   "4",
+   "4",
+   "4"
+  ],
+  [
+   "Junctions written by Smart Lanes (APPLY lines)",
+   "0",
+   "43",
+   "16",
+   "16",
+   "12",
+   "16",
+   "16",
+   "16"
+  ],
+  [
+   "Left as the game built them (SKIP lines)",
+   "23",
+   "0",
+   "0",
+   "0",
+   "0",
+   "0",
+   "0",
+   "0"
+  ],
+  [
+   "Traffic lights switched off",
+   "0",
+   "16",
+   "16",
+   "16",
+   "16",
+   "16",
+   "16",
+   "16"
+  ],
+  [
+   "Traffic lights kept",
+   "0",
+   "0",
+   "0",
+   "0",
+   "0",
+   "0",
+   "0",
+   "0"
+  ],
+  [
+   "Twins failing the treatment check",
+   "0",
+   "0",
+   "0",
+   "0",
+   "1",
+   "0",
+   "0",
+   "0"
+  ]
+ ]
+}

@@ -182,10 +182,11 @@ test("2x2 crossing: shared lanes, and the summary", function()
 	eq(again.status, "same", "applied once")
 end)
 
-test("not handled: bus lanes, mixed driving sides, 5 roads, tram kept", function()
+test("not handled: mixed driving sides, 5 roads; a bus lane is handled (car lanes), tram kept", function()
 	local world = F.build({ [1] = { 0, 0 }, [2] = { -60, 0 }, [3] = { 60, 0 }, [4] = { 0, 60 } },
 		{ [11] = { 1, 2, F.TPL.medium_bus }, [12] = { 1, 3, F.TPL.medium }, [13] = { 1, 4, F.TPL.small } })
-	eq(Slip.classify(world, 1).reason, "bus_lane", "bus lane")
+	-- bus lanes: the car lanes are planned, the bus lanes' connections kept (test_bus.lua)
+	eq(Slip.classify(world, 1).case, "X", "bus lane")
 	local nodes, segs = { [1] = { 0, 0 } }, {}
 	for i = 1, 5 do
 		local a = math.rad(i * 72)

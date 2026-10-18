@@ -75,13 +75,15 @@ local here = debug.getinfo(1, "S").source:match("^@(.*/)") or "tests/square_smar
 local F = dofile(here .. "fixtures.lua")
 
 --- Crossroads at node 1 (as test_cross.lua crossing): 11 west, 12 east (main road), 13 north,
--- 14 south (side road; none when t). mirror: left-hand traffic.
+-- 14 south (side road; none when t). mirror: left-hand traffic. Default roads: 3 lanes each way
+-- (town_new_large), whose kerb lane only turns (sl_cross): a dedicated kerb lane, so the kerb turn may be
+-- freed. On 1- and 2-lane roads the kerb lane goes straight too: shared, never freed (L.sharedKerb).
 local function crossing(t, mirror, main, side)
 	local nodes = { [1] = { 0, 0 }, [2] = { -60, 0 }, [3] = { 60, 0 }, [4] = { 0, 60 } }
-	local segs = { [11] = { 1, 2, main or F.TPL.medium }, [12] = { 1, 3, main or F.TPL.medium }, [13] = { 1, 4, side or F.TPL.medium } }
+	local segs = { [11] = { 1, 2, main or F.TPL.large }, [12] = { 1, 3, main or F.TPL.large }, [13] = { 1, 4, side or F.TPL.large } }
 	if not t then
 		nodes[5] = { 0, -60 }
-		segs[14] = { 1, 5, side or F.TPL.medium }
+		segs[14] = { 1, 5, side or F.TPL.large }
 	end
 	local world = F.build(nodes, segs, mirror)
 	local v = Slip.classify(world, 1)
@@ -272,14 +274,23 @@ local function catOf(v, a, e)
 	return nil
 end
 
-test("kerbPhases SAFE: X, one phase per approach: kerb turns go green everywhere, also where the green straight feeds their lane (merge allowed); both sides", function()
+test("kerbPhases SAFE: X, one phase per approach: dedicated kerb turns go green everywhere, also where the green straight feeds their lane (merge allowed); shared-lane ones stay with their lane; both sides", function()
 	for _, mirror in ipairs({ false, true }) do
 		local tag = "X " .. (mirror and "left" or "right")
-		local v = crossing(false, mirror)
+		-- main road 3 lanes each way (kerb lane turns only: dedicated), side road 2 lanes (kerb lane also
+		-- goes straight: shared). The main road's kerb turn into the side road ends in its kerb lane, where
+		-- the opposite side approach's straight ends too: a merge
+		local v = crossing(false, mirror, F.TPL.large, F.TPL.medium)
 		local conns = Slip.roadConns(v)
 		local kerb = Cross.kerbPairs(v)
 		local idx = L.kerbIndices(conns, kerb)
-		eq(#idx, 4, tag .. ": one kerb connection per approach (2-lane roads)")
+		eq(#idx, 4, tag .. ": one kerb connection per approach")
+		local _, sharedIdx = L.sharedKerb(conns, idx)
+		local isShared = setOf(sharedIdx)
+		for _, j in ipairs(idx) do
+			local a = conns[j + 1].segment0
+			eq(isShared[j] == true, a == 13 or a == 14, tag .. ": " .. Rules.connsText({ conns[j + 1] }) .. " shared only on the 2-lane side road")
+		end
 		local aps = { 11, 12, 13, 14 }
 		-- crosswalks on the node's four roads, all red
 		local ctx = { kerb = kerb, crosswalks = { 11, 12, 13, 14 } }
@@ -293,6 +304,8 @@ test("kerbPhases SAFE: X, one phase per approach: kerb turns go green everywhere
 				local c = conns[j + 1]
 				if c.segment0 == a then
 					ok(not red[j], tag .. ": own approach's kerb turn stays green")
+				elseif isShared[j] then
+					ok(red[j], tag .. " phase " .. a .. ": " .. Rules.connsText({ c }) .. " red: its lane's straight is red (shared lane)")
 				elseif catOf(v, a, c.segment1) == "straight" then
 					ok(not red[j], tag .. " phase " .. a .. ": " .. Rules.connsText({ c }) .. " green, merging into the green straight from " .. a)
 				else
@@ -316,27 +329,34 @@ test("kerbPhases SAFE: X, one phase per approach: kerb turns go green everywhere
 			eq(got, want, tag .. " phase " .. s .. ": non-kerb indices and crosswalks in place, order kept")
 			for k = 1, 4 do ok(red[#conns + k - 1], tag .. ": crosswalk " .. k .. " still red") end
 		end
-		eq(n, 4, tag .. ": every kerb connection freed in some phase")
-		eq(st.phases, 12, tag .. ": the three other approaches' phases each")
-		eq({ st.merge, st.cross, st.ped }, { 0, 0, 0 }, tag .. ": nothing kept red")
-		eq(st.merged, 4, tag .. ": one phase per kerb turn with a green straight into its lane")
+		eq(n, 2, tag .. ": the two dedicated kerb connections freed in some phase")
+		eq(st.phases, 6, tag .. ": the three other approaches' phases each")
+		eq({ st.merge, st.cross, st.ped }, { 0, 0, 0 }, tag .. ": nothing kept red by a conflict")
+		eq(st.merged, 2, tag .. ": one phase per dedicated kerb turn with a green straight into its lane")
+		eq(st.shared, 2, tag .. ": the side road's two shared-lane kerb turns held")
 		eq(L.keptText(st), "-")
 		-- again: nothing more to change
 		local again, n2 = L.kerbPhases(conns, idx, 4, res, L.SAFE, ctx)
 		eq(again, res, tag .. ": idempotent")
 		eq(n2, 0)
-		-- Always (FREE) frees the merging ones too: the old behaviour
-		local all = L.kerbPhases(conns, idx, 4, states, L.FREE)
-		for s = 1, 4 do
-			for _, j in ipairs(idx) do ok(not setOf(all[s])[j], tag .. ": Always frees every phase") end
+		-- Always (FREE) frees the dedicated ones in every phase; shared-lane ones stay with their lane
+		local all, nAll, _, stAll = L.kerbPhases(conns, idx, 4, states, L.FREE)
+		for s, a in ipairs(aps) do
+			for _, j in ipairs(idx) do
+				local own = conns[j + 1].segment0 == a
+				eq(setOf(all[s])[j] == true, isShared[j] == true and not own, tag .. ": Always: dedicated green in every phase, shared red with its lane")
+			end
 		end
+		eq({ nAll, stAll.shared }, { 2, 2 }, tag .. ": Always")
 	end
 end)
 
-test("kerbPhases SAFE: T with the game's phases: the side road's kerb turn goes green with the main road's straight it merges into", function()
+test("kerbPhases SAFE: T with the game's phases: the side road's kerb turn goes green with the main road's straight it merges into; the main road's shared-lane one stays with its lane", function()
 	for _, mirror in ipairs({ false, true }) do
 		local tag = "T " .. (mirror and "left" or "right")
-		local v = crossing(true, mirror)
+		-- 2-lane roads: the side road's kerb lane turns only (dedicated), the main road's kerb lane goes
+		-- straight too (shared)
+		local v = crossing(true, mirror, F.TPL.medium, F.TPL.medium)
 		local conns = Slip.roadConns(v)
 		local kerb = Cross.kerbPairs(v)
 		local idx = L.kerbIndices(conns, kerb)
@@ -354,11 +374,13 @@ test("kerbPhases SAFE: T with the game's phases: the side road's kerb turn goes 
 		ok(#side > 0 and #main > 0, tag)
 		-- phase 1 (main road green): the side road's kerb turn into 11 merges into 12's straight -> green
 		for _, j in ipairs(side) do ok(not setOf(res[1])[j], tag .. ": side kerb turn green in the main road's phase") end
-		-- phase 2 (side road green): the main road's kerb turn into 13: nothing green ends there -> green
-		for _, j in ipairs(main) do ok(not setOf(res[2])[j], tag .. ": main kerb turn green in the side road's phase") end
-		eq(n, #main + #side, tag)
+		-- phase 2 (side road green): the main road's kerb turn into 13 shares its lane with 12's straight,
+		-- red there: stays red (before 2026-10-14 it went green, nothing green ending in 13)
+		for _, j in ipairs(main) do ok(setOf(res[2])[j], tag .. ": main kerb turn red with its lane in the side road's phase") end
+		eq(n, #side, tag)
 		eq({ st.merge, st.cross, st.ped }, { 0, 0, 0 }, tag)
 		eq(st.merged, #side, tag .. ": the side road's turns merged")
+		eq(st.shared, #main, tag .. ": the main road's kerb turn held with its lane")
 		eq(#res, 2)
 	end
 end)
@@ -540,7 +562,8 @@ test("kerbPhases with kerbLaneOnly (the exit fan): only the kerb-lane connection
 	local function c(a, l0, b, l1) return { segment0 = a, lane0 = l0, segment1 = b, lane1 = l1, withRoad = true, withTram = false } end
 	-- approach 1: kerb turn into exit 2 (lane 4 = kerb lane, lane 3 = far lane), straight to 3; approach 5 straight
 	-- into exit 2 (both lanes); phase 1: approach 1 green; phase 2: approach 5 green; one crosswalk (index 5)
-	local conns = { c(1, 1, 2, 4), c(1, 1, 2, 3), c(1, 1, 3, 4), c(5, 1, 2, 4), c(5, 2, 2, 3) }
+	-- (the straight from lane 2: the kerb lane 1 is a dedicated kerb lane, else nothing is freed: L.sharedKerb)
+	local conns = { c(1, 1, 2, 4), c(1, 1, 2, 3), c(1, 2, 3, 4), c(5, 1, 2, 4), c(5, 2, 2, 3) }
 	local pos = { [4] = 1, [3] = 2 }
 	local plain = { ["1>2"] = pos }
 	local only = { ["1>2"] = pos, kerbLaneOnly = true }
@@ -563,6 +586,111 @@ test("kerbPhases with kerbLaneOnly (the exit fan): only the kerb-lane connection
 		(L.kerbPhases(conns, idx, 1, { { 3, 4, 5 }, { 2 } }, L.LOCK, { kerb = plain })))
 	-- indices stay in range, stale input refused as ever
 	eq({ L.kerbPhases(conns, idx, 1, { { 9 } }, L.FREE, { kerb = only }) }, { nil, 0, "stale_phases" })
+end)
+
+test("sharedKerb: a kerb turn whose entry lane carries another movement (straight, far, tram, bus) is shared; other kerb turns are no mates", function()
+	local function c(a, l0, b, l1, road, tram)
+		return { segment0 = a, lane0 = l0, segment1 = b, lane1 = l1, withRoad = road ~= false, withTram = tram == true }
+	end
+	local conns = {
+		c(1, 1, 2, 4),            -- 0 kerb, lane 1 of 1: shares with 1 (straight)
+		c(1, 1, 3, 4),            -- 1 straight from the same lane
+		c(5, 1, 6, 4),            -- 2 kerb, lane 1 of 5: alone (dedicated)
+		c(5, 2, 7, 4),            -- 3 straight from lane 2
+		c(8, 1, 9, 4),            -- 4 kerb, lane 1 of 8: a tram goes straight from it
+		c(8, 1, 10, 4, false, true), -- 5 tram
+		c(11, 1, 12, 4),          -- 6 kerb into exit lane 4 and
+		c(11, 1, 12, 3),          -- 7 into exit lane 3 (exit fan): both kerb, dedicated
+		c(13, 0, 14, 0, false, false), -- 8 neither road nor tram (a walkway): ignored
+		c(13, 1, 14, 4),          -- 9 kerb, its lane has only the walkway's segment (other lane): dedicated
+	}
+	local idx = { 0, 2, 4, 6, 7, 9 }
+	local ded, sh, mates = L.sharedKerb(conns, idx)
+	eq(ded, { 2, 6, 7, 9 })
+	eq(sh, { 0, 4 })
+	eq(mates[0], { 1 })
+	eq(mates[4], { 5 }, "a tram straight from the lane shares it (trams keep the signal)")
+	-- only a part of the kerb set asked (the exit fan's free ones): the others still count as kerb, no mates
+	eq({ L.sharedKerb(conns, { 6 }) }, { {}, { 6 }, { [6] = { 7 } } }, "without the full set the other kerb connection looks like a mate")
+	eq({ L.sharedKerb(conns, { 6 }, idx) }, { { 6 }, {}, {} })
+	eq({ L.sharedKerb(nil, nil) }, { {}, {}, {} })
+	eq({ L.sharedKerb(conns, { 42 }) }, { {}, {}, {} }, "an unknown index is left out")
+	-- freeable: the exit fan's free ones on a dedicated lane
+	local only = { ["11>12"] = { [4] = 1, [3] = 2 }, ["1>2"] = true, kerbLaneOnly = true }
+	eq(L.freeable(conns, { 0, 6, 7 }, only), { 6 }, "0 shared; 7 into the far lane held by the exit fan")
+end)
+
+test("kerbPhases beside a bus lane (a player's report 2026-10-14): a dedicated kerb turn is freed only in phases where its approach's bus lane is green; When safe and Always", function()
+	local function c(a, l0, b, l1) return { segment0 = a, lane0 = l0, segment1 = b, lane1 = l1, withRoad = true, withTram = false } end
+	local conns = {
+		c(1, 1, 3, 6), -- 0 bus lane 1 of approach 1, straight on
+		c(1, 2, 2, 4), -- 1 kerb turn from the dedicated kerb car lane 2
+		c(1, 3, 3, 5), -- 2 straight from car lane 3
+		c(3, 2, 1, 5), -- 3 the opposite straight
+	}
+	local states = {
+		{ 3 },       -- approach 1 green, bus lane too
+		{ 0, 1, 2 }, -- the opposite approach only: bus lane red
+		{ 1, 2, 3 }, -- the bus lane alone
+	}
+	local bus = { [1] = { [1] = true }, [3] = { [6] = true } }
+	local withBus = { kerb = { ["1>2"] = true, bus = bus }, crosswalks = {} }
+	local noBus = { kerb = { ["1>2"] = true }, crosswalks = {} }
+	local idx = L.kerbIndices(conns, withBus.kerb)
+	eq(idx, { 1 }, "the bus straight is no kerb turn")
+	for _, mode in ipairs({ L.SAFE, L.FREE }) do
+		local res = L.kerbPhases(conns, idx, 0, states, mode, withBus)
+		eq(res, { { 3 }, { 0, 1, 2 }, { 2, 3 } }, mode .. ": freed only where the bus lane is green")
+		local plain = L.kerbPhases(conns, idx, 0, states, mode, noBus)
+		eq(plain, { { 3 }, { 0, 2 }, { 2, 3 } }, mode .. ": without a bus lane freed in every phase")
+		-- left-hand traffic numbering (bus lane on the other side, index 4): the same
+		local lht = {
+			c(1, 4, 3, 1), c(1, 3, 2, 1), c(1, 2, 3, 2), c(3, 3, 1, 2),
+		}
+		local ctxL = { kerb = { ["1>2"] = true, bus = { [1] = { [4] = true }, [3] = { [1] = true } } }, crosswalks = {} }
+		eq(L.kerbPhases(lht, L.kerbIndices(lht, ctxL.kerb), 0, states, mode, ctxL), { { 3 }, { 0, 1, 2 }, { 2, 3 } }, mode .. " left")
+	end
+	-- LOCK (Reset) is unchanged: red where every other road connection of the approach (the bus lane's too) is red
+	eq(L.kerbPhases(conns, idx, 0, { {}, { 0, 2 }, { 2, 3 } }, L.LOCK, withBus), { {}, { 0, 2, 1 }, { 2, 3 } })
+end)
+
+test("1-lane crossroads (a player's report 2026-10-14): no kerb turn is freed, When safe or Always; one freed earlier goes back with its lane; with bus lanes too; both sides", function()
+	for _, mirror in ipairs({ false, true }) do
+		for _, case in ipairs({ { "1-lane", F.TPL.small, F.TPL.small }, { "bus-lane main road", F.TPL.medium_bus, F.TPL.small } }) do
+			local tag = case[1] .. (mirror and " left" or " right")
+			local v = crossing(false, mirror, case[2], case[3])
+			local conns = Slip.roadConns(v)
+			local kerb = Cross.kerbPairs(v)
+			local idx = L.kerbIndices(conns, kerb)
+			eq(#idx, 4, tag .. ": a kerb turn per approach")
+			local ded, sh = L.sharedKerb(conns, idx)
+			eq({ #ded, #sh }, { 0, 4 }, tag .. ": every kerb turn shares its approach's one car lane")
+			local aps = { 11, 12, 13, 14 }
+			local states = perApproach(conns, 4, aps)
+			local ctx = { kerb = kerb, crosswalks = { 11, 12, 13, 14 } }
+			for _, mode in ipairs({ L.SAFE, L.FREE }) do
+				local res, n, why, st = L.kerbPhases(conns, idx, 4, states, mode, ctx)
+				eq(why, nil, tag)
+				eq(n, 0, tag .. " " .. mode .. ": nothing freed")
+				eq(res, states, tag .. " " .. mode .. ": phases as they were")
+				eq(st.shared, 4, tag .. " " .. mode .. ": shared_held")
+				eq(st.merged, 0, tag)
+				-- a kerb turn freed earlier (Always before 2026-10-14, or by hand): red again where its lane is red
+				local freed = {}
+				for s, list in ipairs(states) do
+					freed[s] = {}
+					for _, l in ipairs(list) do
+						if l ~= idx[1] then freed[s][#freed[s] + 1] = l end
+					end
+				end
+				local back, n2 = L.kerbPhases(conns, idx, 4, freed, mode, ctx)
+				eq(n2, 1, tag .. " " .. mode .. ": the freed one changed")
+				for s = 1, #states do
+					eq(setOf(back[s])[idx[1]] == true, setOf(states[s])[idx[1]] == true, tag .. " " .. mode .. " phase " .. s .. ": red exactly with its lane")
+				end
+			end
+		end
+	end
 end)
 
 test("splitKerb fails closed: a kerb connection into a lane the positions do not list is held", function()

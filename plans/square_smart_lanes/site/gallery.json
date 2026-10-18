@@ -1,0 +1,854 @@
+{
+ "facets": [
+  {
+   "key": "subject",
+   "label": "Subject",
+   "values": [
+    {
+     "value": "roundabout",
+     "label": "Roundabouts"
+    },
+    {
+     "value": "slip",
+     "label": "Slip lanes"
+    },
+    {
+     "value": "crossroads",
+     "label": "Crossroads and T-junctions"
+    },
+    {
+     "value": "lights",
+     "label": "Traffic lights"
+    },
+    {
+     "value": "interchange",
+     "label": "Interchanges"
+    },
+    {
+     "value": "tool",
+     "label": "The tool"
+    },
+    {
+     "value": "traffic",
+     "label": "Traffic"
+    },
+    {
+     "value": "bench",
+     "label": "Test maps and benches"
+    }
+   ]
+  },
+  {
+   "key": "view",
+   "label": "View",
+   "values": [
+    {
+     "value": "top-down",
+     "label": "Top-down"
+    },
+    {
+     "value": "oblique",
+     "label": "Oblique"
+    },
+    {
+     "value": "close-up",
+     "label": "Close-up"
+    },
+    {
+     "value": "aerial",
+     "label": "Aerial"
+    },
+    {
+     "value": "street",
+     "label": "Street level"
+    },
+    {
+     "value": "interface",
+     "label": "Interface"
+    }
+   ]
+  },
+  {
+   "key": "date",
+   "label": "Date",
+   "values": [
+    {
+     "value": "2026-10-08",
+     "label": "2026-10-08"
+    },
+    {
+     "value": "2026-10-11",
+     "label": "2026-10-11"
+    },
+    {
+     "value": "2026-10-12",
+     "label": "2026-10-12"
+    },
+    {
+     "value": "2026-10-13",
+     "label": "2026-10-13"
+    },
+    {
+     "value": "2026-10-14",
+     "label": "2026-10-14"
+    }
+   ]
+  },
+  {
+   "key": "set",
+   "label": "Set",
+   "values": [
+    {
+     "value": "curated",
+     "label": "Release captures"
+    },
+    {
+     "value": "play",
+     "label": "Test sessions"
+    },
+    {
+     "value": "bench",
+     "label": "Bench twins"
+    }
+   ]
+  }
+ ],
+ "items": [
+  {
+   "file": "../shots/01-ring-lanes.jpg",
+   "title": "Chained roundabouts with the Smart Lanes tool's lane view",
+   "subject": "tool",
+   "view": "oblique",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/02-ring-select.jpg",
+   "title": "A whole roundabout selected: the tool's hover card",
+   "subject": "tool",
+   "view": "oblique",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/03-junction-hover.jpg",
+   "title": "One roundabout junction hovered: each entry lane its own ring lane",
+   "subject": "tool",
+   "view": "oblique",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/04-busy-road.jpg",
+   "title": "Rush hour on a test map's link road",
+   "subject": "traffic",
+   "view": "street",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/05-showcase-map.jpg",
+   "title": "A Lights showcase map: twin junctions between test towns",
+   "subject": "bench",
+   "view": "aerial",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/06-roundabout-queue.jpg",
+   "title": "A roundabout with smart lanes under load",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/07-crossing-phases.jpg",
+   "title": "A lit crossroads and the game's Crossing window",
+   "subject": "lights",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/08-bench-group.jpg",
+   "title": "One bench group: a junction fed by its own towns",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/09-roundabout-top.jpg",
+   "title": "A two-lane roundabout from above during a bench run",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/10-bench-map.jpg",
+   "title": "A whole bench map of twin junctions",
+   "subject": "bench",
+   "view": "aerial",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/11-grid-town.jpg",
+   "title": "A 2,400-people grid town of a test map",
+   "subject": "bench",
+   "view": "aerial",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/12-multi-select.jpg",
+   "title": "Shift+click: many junctions of a city selected at once",
+   "subject": "tool",
+   "view": "aerial",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/15-micro-rings.jpg",
+   "title": "Micro bench: test towns linked by roundabouts",
+   "subject": "bench",
+   "view": "aerial",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/16-district-select.jpg",
+   "title": "A district's junctions selected, their lanes drawn",
+   "subject": "tool",
+   "view": "aerial",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/17-district-panel.jpg",
+   "title": "The tool panel: 50 junctions selected, smart lanes on 38",
+   "subject": "tool",
+   "view": "interface",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/18-ring-mid-nodes.jpg",
+   "title": "Mid-node lane changes (orange) between a roundabout's arms",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "curated"
+  },
+  {
+   "file": "shots/2026-10-11-roundabout-interchange-tool.jpg",
+   "title": "A Roundabout Interchange ring selected in the tool",
+   "subject": "tool",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-busy-roundabout-tool.jpg",
+   "title": "A busy two-lane roundabout, one junction selected",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-street-hover.jpg",
+   "title": "Hovering a street: the junctions at both ends of the stretch",
+   "subject": "tool",
+   "view": "top-down",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-channelized-x-lanes.jpg",
+   "title": "A Channelized Junction (X) with its lane view",
+   "subject": "slip",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-splitter-ring-lanes.jpg",
+   "title": "A roundabout with splitter islands: 12 junctions selected",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-roundabout-interchange-lanes.jpg",
+   "title": "Roundabout Interchange: ring and ramp junctions selected",
+   "subject": "interchange",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-channelized-x-closeup.jpg",
+   "title": "Lane view of a Channelized Junction's center and slip nodes",
+   "subject": "slip",
+   "view": "top-down",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-parclo-lanes.jpg",
+   "title": "A parclo interchange's ramp junctions selected",
+   "subject": "interchange",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-hamburger-ring-lanes.jpg",
+   "title": "A hamburger roundabout's lane view",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-oval-ring-lanes.jpg",
+   "title": "An oval roundabout with splitter islands",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-ramp-junction-lanes.jpg",
+   "title": "A ramp meeting a divided road: no turn across the median",
+   "subject": "crossroads",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-crossing-phases.jpg",
+   "title": "The light-phase probe: a lit crossroads in the Crossing window",
+   "subject": "lights",
+   "view": "top-down",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-slip-junction-lights.jpg",
+   "title": "A slip-lane junction with the game's traffic light",
+   "subject": "lights",
+   "view": "oblique",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-three-arm-ring-tool.jpg",
+   "title": "A three-arm roundabout with splitter islands selected",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-ring-arm-lanes.jpg",
+   "title": "Ring arm junctions: entries (teal) and exits (orange) lane by lane",
+   "subject": "roundabout",
+   "view": "close-up",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-ring-arm-lanes-2.jpg",
+   "title": "The same arm from the other side",
+   "subject": "roundabout",
+   "view": "close-up",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-lit-crossroads-queue.jpg",
+   "title": "Queues at a lit 2x2 crossroads of the first Lights showcase",
+   "subject": "lights",
+   "view": "top-down",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-phase-arrows.jpg",
+   "title": "One light phase: red and green turn arrows at a busy crossroads",
+   "subject": "lights",
+   "view": "top-down",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-panel-t-junction.jpg",
+   "title": "Tool panel before rev 5: a T-junction, smart lanes applied",
+   "subject": "tool",
+   "view": "interface",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-panel-slip-lane.jpg",
+   "title": "Rev 5 panel: a slip lane leaving the road, lanes in words",
+   "subject": "tool",
+   "view": "interface",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-panel-custom-lanes.jpg",
+   "title": "Rev 5 panel: a roundabout with custom lanes",
+   "subject": "tool",
+   "view": "interface",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-panel-smart-lanes.jpg",
+   "title": "Rev 5 panel: the same roundabout after Apply",
+   "subject": "tool",
+   "view": "interface",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-mid-node-request.jpg",
+   "title": "The request: lane changes on nodes between the arms (red)",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-bench-ring-hover.jpg",
+   "title": "A Sheet 4 ring hovered in the tool during a bench run",
+   "subject": "bench",
+   "view": "oblique",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-14-t-junction-bus-turn.jpg",
+   "title": "A T-junction's lanes during the bus-turn test (rev 7)",
+   "subject": "crossroads",
+   "view": "close-up",
+   "date": "2026-10-14",
+   "set": "play"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g1b.jpg",
+   "title": "Sheet 1: Roundabout, 2 lanes, 4 arms \u00b7 set 1, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g1a.jpg",
+   "title": "Sheet 1: Roundabout, 2 lanes, 4 arms \u00b7 set 1, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g1f.jpg",
+   "title": "Sheet 1: Roundabout, 2 lanes, 4 arms \u00b7 set 1, Smart Lanes, game's lights",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g10b.jpg",
+   "title": "Sheet 1: Lane drop, 3 to 2 lanes \u00b7 set 10, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g10a.jpg",
+   "title": "Sheet 1: Lane drop, 3 to 2 lanes \u00b7 set 10, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g1b.jpg",
+   "title": "Sheet 2: Channelized T-junction (slip lanes) \u00b7 set 1, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g1a.jpg",
+   "title": "Sheet 2: Channelized T-junction (slip lanes) \u00b7 set 1, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g1f.jpg",
+   "title": "Sheet 2: Channelized T-junction (slip lanes) \u00b7 set 1, Smart Lanes, game's lights",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g10b.jpg",
+   "title": "Sheet 2: Diamond interchange \u00b7 set 10, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g10a.jpg",
+   "title": "Sheet 2: Diamond interchange \u00b7 set 10, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g1b.jpg",
+   "title": "Sheet 3: T-junction with traffic lights, 2 x 2 lanes \u00b7 set 1, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g1a.jpg",
+   "title": "Sheet 3: T-junction with traffic lights, 2 x 2 lanes \u00b7 set 1, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g1d.jpg",
+   "title": "Sheet 3: T-junction with traffic lights, 2 x 2 lanes \u00b7 set 1, Smart Lanes, curb turn locked",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g10b.jpg",
+   "title": "Sheet 3: Crossroads with traffic lights \u00b7 set 10, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g10a.jpg",
+   "title": "Sheet 3: Crossroads with traffic lights \u00b7 set 10, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g10d.jpg",
+   "title": "Sheet 3: Crossroads with traffic lights \u00b7 set 10, Smart Lanes, curb turn locked",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_2341_s4/shots/s4g1b.jpg",
+   "title": "Sheet 4 v2: Roundabout, 2 lanes, town street arms \u00b7 set 1, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_2341_s4/shots/s4g1a.jpg",
+   "title": "Sheet 4 v2: Roundabout, 2 lanes, town street arms \u00b7 set 1, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-13_2341_s4/shots/s4g1l.jpg",
+   "title": "Sheet 4 v2: Roundabout, 2 lanes, town street arms \u00b7 set 1, Spiral",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0027_s4/shots/s4g1b.jpg",
+   "title": "Sheet 4 v3: Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0027_s4/shots/s4g1a.jpg",
+   "title": "Sheet 4 v3: Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0027_s4/shots/s4g1l.jpg",
+   "title": "Sheet 4 v3: Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1, Spiral",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0027_s4/shots/s4g1n.jpg",
+   "title": "Sheet 4 v3: Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1, Split spiral",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1b.jpg",
+   "title": "Sheet 4 v4: Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1a.jpg",
+   "title": "Sheet 4 v4: Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1l.jpg",
+   "title": "Sheet 4 v4: Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1, Spiral",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1n.jpg",
+   "title": "Sheet 4 v4: Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1, Split spiral",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1o.jpg",
+   "title": "Sheet 4 v4: Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1, Mid-node lane changes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2b.jpg",
+   "title": "Sheet 4 v4: Roundabout, 3 lanes, mid nodes \u00b7 set 2, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2a.jpg",
+   "title": "Sheet 4 v4: Roundabout, 3 lanes, mid nodes \u00b7 set 2, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2l.jpg",
+   "title": "Sheet 4 v4: Roundabout, 3 lanes, mid nodes \u00b7 set 2, Spiral",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2n.jpg",
+   "title": "Sheet 4 v4: Roundabout, 3 lanes, mid nodes \u00b7 set 2, Split spiral",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2o.jpg",
+   "title": "Sheet 4 v4: Roundabout, 3 lanes, mid nodes \u00b7 set 2, Mid-node lane changes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3b.jpg",
+   "title": "Sheet 4 v4: Roundabout, 4 lanes, mid nodes \u00b7 set 3, Game lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3a.jpg",
+   "title": "Sheet 4 v4: Roundabout, 4 lanes, mid nodes \u00b7 set 3, Smart Lanes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3l.jpg",
+   "title": "Sheet 4 v4: Roundabout, 4 lanes, mid nodes \u00b7 set 3, Spiral",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3n.jpg",
+   "title": "Sheet 4 v4: Roundabout, 4 lanes, mid nodes \u00b7 set 3, Split spiral",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3o.jpg",
+   "title": "Sheet 4 v4: Roundabout, 4 lanes, mid nodes \u00b7 set 3, Mid-node lane changes",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1b.jpg",
+   "title": "Sheet 4 v5: Roundabout, 2 lanes, town street arms: plain and mid-node ring \u00b7 set 1, Game lanes (plain ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1p.jpg",
+   "title": "Sheet 4 v5: Roundabout, 2 lanes, town street arms: plain and mid-node ring \u00b7 set 1, Game lanes (mid-node ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1a.jpg",
+   "title": "Sheet 4 v5: Roundabout, 2 lanes, town street arms: plain and mid-node ring \u00b7 set 1, Smart Lanes (plain ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1s.jpg",
+   "title": "Sheet 4 v5: Roundabout, 2 lanes, town street arms: plain and mid-node ring \u00b7 set 1, Split spiral (mid-node ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1t.jpg",
+   "title": "Sheet 4 v5: Roundabout, 2 lanes, town street arms: plain and mid-node ring \u00b7 set 1, Mid-node lane changes (mid-node ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g2b.jpg",
+   "title": "Sheet 4 v5: Roundabout, 3 lanes: plain and mid-node ring \u00b7 set 2, Game lanes (plain ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g2p.jpg",
+   "title": "Sheet 4 v5: Roundabout, 3 lanes: plain and mid-node ring \u00b7 set 2, Game lanes (mid-node ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g2a.jpg",
+   "title": "Sheet 4 v5: Roundabout, 3 lanes: plain and mid-node ring \u00b7 set 2, Smart Lanes (plain ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g2s.jpg",
+   "title": "Sheet 4 v5: Roundabout, 3 lanes: plain and mid-node ring \u00b7 set 2, Split spiral (mid-node ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g3b.jpg",
+   "title": "Sheet 4 v5: Roundabout, 4 lanes: plain and mid-node ring \u00b7 set 3, Game lanes (plain ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g3p.jpg",
+   "title": "Sheet 4 v5: Roundabout, 4 lanes: plain and mid-node ring \u00b7 set 3, Game lanes (mid-node ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g3a.jpg",
+   "title": "Sheet 4 v5: Roundabout, 4 lanes: plain and mid-node ring \u00b7 set 3, Smart Lanes (plain ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g3s.jpg",
+   "title": "Sheet 4 v5: Roundabout, 4 lanes: plain and mid-node ring \u00b7 set 3, Split spiral (mid-node ring)",
+   "subject": "bench",
+   "view": "top-down",
+   "date": "2026-10-14",
+   "set": "bench"
+  }
+ ]
+}

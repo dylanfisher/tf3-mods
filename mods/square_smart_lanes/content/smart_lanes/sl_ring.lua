@@ -72,23 +72,33 @@ end
 local function lanesAtOf(s, node)
 	local e = R.endAt(s, node)
 	if e == nil then return nil end
-	local inc, out, busOnly = {}, {}, false
+	local inc, out, bus = {}, {}, {}
 	for k0 = 0, #s.lanes - 1 do
 		local lc = s.lanes[k0 + 1]
 		if lc.road then
-			if not lc.car then busOnly = true end
 			local idx = R.connIndex(s, e, k0)
-			local leaving = (e == 0 and lc.forward) or (e == 1 and not lc.forward)
-			if leaving then out[#out + 1] = idx else inc[#inc + 1] = idx end
+			if lc.car then
+				local leaving = (e == 0 and lc.forward) or (e == 1 and not lc.forward)
+				if leaving then out[#out + 1] = idx else inc[#inc + 1] = idx end
+			else
+				bus[#bus + 1] = idx
+			end
 		end
 	end
 	table.sort(inc)
 	table.sort(out)
-	return { e = e, incoming = inc, outgoing = out, busOnly = busOnly }
+	table.sort(bus)
+	return { e = e, incoming = inc, outgoing = out, bus = bus }
 end
 
---- Road lanes of segment s at node: { e, incoming = {idx asc}, outgoing = {idx asc}, busOnly }.
--- busOnly: a road lane without CAR (bus lane), which the rules do not handle.
+--- Car lanes of segment s at node: { e, incoming = {idx asc}, outgoing = {idx asc}, bus = {idx asc} }.
+-- incoming / outgoing: the road lanes with CAR, the only lanes the rules plan. bus: the bus-only lanes
+-- (a road lane without CAR: BUS / TRUCK only, a bus lane), either direction: left out of the lists, so no
+-- rule ever connects a lane into or out of one, and the kerb car lane is the one next to the bus lane; their
+-- connections are kept as they are (R.busLanes, Rules.mergeTram; user request 2026-10-13: "ignore bus
+-- lanes, set the other lanes, I add the bus connections myself"). A direction whose road lanes are all
+-- bus-only has no car lanes: for the rules the road is one-way there (or no road at all when every lane
+-- is bus-only), as for cars it is. Ring detection (R.oneWay, R.findRing) still counts every road lane.
 -- A segment of a game world (sl_write W.makeWorld: s.atMemo, a table per segment and world) keeps its
 -- results: the same table is returned again, so callers only read it (none writes into these lists).
 -- Fixture worlds without atMemo get a new table per call.
@@ -101,6 +111,48 @@ function R.lanesAt(s, node)
 		m[node] = la
 	end
 	return la or nil
+end
+
+local function busLanesOf(world, n)
+	local node = world.node(n)
+	if not node then return nil end
+	local set = nil
+	for _, sid in ipairs(node.segs or {}) do
+		local s = world.seg(sid)
+		set = R.addBus(set, sid, s and R.lanesAt(s, n))
+	end
+	return set
+end
+
+--- Adds segment sid's bus-only lanes (la = R.lanesAt, or nil) to the R.busLanes set `set` (nil: none
+-- yet); returns the set (nil while there is none). For callers that read the node's segments anyway.
+function R.addBus(set, sid, la)
+	if la == nil or #la.bus == 0 then return set end
+	set = set or {}
+	local m = set[sid] or {}
+	for _, idx in ipairs(la.bus) do m[idx] = true end
+	set[sid] = m
+	return set
+end
+
+--- The bus-only lane ends at node n: { [segId] = { [connection lane index] = true } }, or nil when no
+-- segment at n has one (the common case: callers pass it on, and nil means "no bus lane"). A connection
+-- with either end in this set touches a bus lane (Rules.touchesBus): kept as it is, never planned, never
+-- counted by the status and "same" checks. Kept per game world (world.memo), as R.lanesAt.
+function R.busLanes(world, n)
+	local memo = world.memo
+	if memo == nil or type(n) ~= "number" then return busLanesOf(world, n) end
+	local m = memo.bus
+	if m == nil then
+		m = {}
+		memo.bus = m
+	end
+	local hit = m[n]
+	if hit == nil then
+		hit = busLanesOf(world, n) or false
+		m[n] = hit
+	end
+	return hit or nil
 end
 
 local function oneWayOf(s)
@@ -360,12 +412,15 @@ function R.lanesFromConfigs(laneConfigs, modes)
 			end)
 		end
 		local car = set[modes.CAR] == true
+		-- offset: the lane's lateral offset from the centre (m; the tool's mid-node drawing, sl_midview), nil unread
+		local okO, off = pcall(function() return lc.offset end)
 		out[#out + 1] = {
 			forward = lc.forward == true,
 			car = car,
 			road = car or set[modes.BUS] == true or set[modes.TRUCK] == true,
 			tram = set[modes.TRAM] == true or set[modes.ELECTRIC_TRAM] == true,
 			walk = set[modes.PERSON] == true,
+			offset = (okO and type(off) == "number") and off or nil,
 		}
 	end
 	return out
@@ -389,9 +444,11 @@ end
 --- The rules' view of one ring node:
 -- { node, kind = "plain" | "arm" | "skip", reason, ringIn, ringOut, arm,
 --   o_in = {ring in lanes outer first}, o_out = {ring out lanes outer first},
---   x = {arm exit lanes kerb first}, e = {arm entry lanes kerb first} }
+--   x = {arm exit lanes kerb first}, e = {arm entry lanes kerb first}, bus }
 -- "plain": only the two ring segments. "skip": something the rules don't handle (two non-ring
--- segments such as a road through the centre, a second ring touching, bus lanes).
+-- segments such as a road through the centre, a second ring touching). bus: R.busLanes at the node (nil:
+-- none): an arm's bus lanes are in no list (R.lanesAt), their connections are kept (Rules.mergeTram); an
+-- arm with bus lanes only is no arm (a plain node). A ring with a bus lane is no ring (R.findRing).
 function R.nodeView(world, ring, nodeId)
 	local node = world.node(nodeId)
 	local v = { node = nodeId, x = {}, e = {} }
@@ -402,6 +459,8 @@ function R.nodeView(world, ring, nodeId)
 	local others = {}
 	for _, sid in ipairs(node.segs) do
 		local s = world.seg(sid)
+		-- v.bus as R.busLanes, from the reads made here
+		if s then v.bus = R.addBus(v.bus, sid, R.lanesAt(s, nodeId)) end
 		if s and ring.segSet[sid] then
 			local _, b = R.travel(s)
 			if b == nodeId then v.ringIn = sid else v.ringOut = sid end
@@ -435,10 +494,7 @@ function R.nodeView(world, ring, nodeId)
 		return v
 	end
 	local a = arms[1]
-	if a.la.busOnly then
-		v.kind, v.reason = "skip", "bus_lane_arm"
-		return v
-	end
+	-- an arm with a bus lane: its car lanes are planned, the bus lane's connections kept (v.bus)
 	v.kind, v.arm = "arm", a.sid
 	v.x = R.outerFirst(a.la.outgoing, false, ring.side)
 	v.e = R.outerFirst(a.la.incoming, true, ring.side)

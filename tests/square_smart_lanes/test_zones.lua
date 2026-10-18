@@ -155,7 +155,7 @@ test("validate: sl_keeplights accepted (SL-1); by_ab adds sl_keeplights only whe
 	local _, all = Zones.validate({ op = "set", zones = { { x = 1, y = 2, r = 3, ab = "sl_keeplights" }, { x = 9, y = 9, r = 3, ab = "sl_exitfan" },
 		{ x = 20, y = 20, r = 3, ab = "sl_lock" }, { x = 30, y = 30, r = 3, ab = "sl_fan" }, { x = 40, y = 40, r = 3, ab = "game" } } })
 	eq(Zones.byAbText(all), "game:1,sl:0,sl_phases:0,sl_fan:1,sl_lock:1,sl_exitfan:1,sl_keeplights:1")
-	eq(Zones.AB, { "game", "sl", "sl_phases", "sl_fan", "sl_lock", "sl_exitfan", "sl_keeplights" })
+	eq({ table.unpack(Zones.AB, 1, 7) }, { "game", "sl", "sl_phases", "sl_fan", "sl_lock", "sl_exitfan", "sl_keeplights" })
 end)
 
 test("zoneAt / idOf (SL-3): the zone record a point lies in and its id label", function()
@@ -171,4 +171,48 @@ test("zoneAt / idOf (SL-3): the zone record a point lies in and its id label", f
 	eq(Zones.runOf("r-1.2"), "r-1.2")
 	eq(Zones.runOf("has space"), nil)
 	eq(Zones.runOf(42), "42")
+end)
+
+test("validate: ring layout variants accepted; by_ab lists them after sl_keeplights in their order, each only when present", function()
+	local zs = {}
+	for i, ab in ipairs({ "sl_rmid", "sl_rsplit", "sl_rspread", "sl_rspiral", "sl_r2exit", "sl_rout1", "sl_rmatch", "sl_rturbo", "sl_keeplights", "sl" }) do
+		zs[i] = { x = i * 10, y = 0, r = 3, ab = ab }
+	end
+	local op, list = Zones.validate({ op = "set", run = "rv", zones = zs })
+	eq(op, "set")
+	eq(Zones.byAbText(list), "game:0,sl:1,sl_phases:0,sl_keeplights:1,sl_rturbo:1,sl_rmatch:1,sl_rout1:1,sl_r2exit:1,sl_rspiral:1,sl_rspread:1,sl_rsplit:1,sl_rmid:1")
+	local _, two = Zones.validate({ op = "set", zones = { { x = 1, y = 1, r = 3, ab = "sl_rspiral" }, { x = 9, y = 9, r = 3, ab = "sl_rspiral" } } })
+	eq(Zones.byAbText(two), "game:0,sl:0,sl_phases:0,sl_rspiral:2")
+	eq({ table.unpack(Zones.AB, 8, 15) }, { "sl_rturbo", "sl_rmatch", "sl_rout1", "sl_r2exit", "sl_rspiral", "sl_rspread", "sl_rsplit", "sl_rmid" })
+	for i = 8, #Zones.AB do local ab = Zones.AB[i]; ok(#ab <= 12 and ab:match("^[%w_]+$") ~= nil, ab) end
+end)
+
+test("validate: sl_classic refused (the classic patterns are gone, PLAN.md \"No classic fallback\"); a saved sl_classic zone counts nowhere in by_ab", function()
+	eq({ Zones.validate({ op = "set", zones = { { x = 9, y = 9, r = 3, ab = "sl_phases" }, { x = 1, y = 2, r = 3, ab = "sl_classic" } } }) },
+		{ nil, "ab2" })
+	for _, ab in ipairs(Zones.AB) do ok(ab ~= "sl_classic", ab) end
+	eq(Zones.byAbText({ { ab = "sl_phases" }, { ab = "sl_classic" } }), "game:0,sl:0,sl_phases:1")
+	-- a zone saved before (an older save) matches no mode: abAt still returns its ab, nothing plans for it
+	eq(Zones.abAt({ { x = 0, y = 0, r = 10, ab = "sl_classic" } }, 1, 1), "sl_classic")
+end)
+
+test("validate: sl_auto accepted (axis plan + Keep timing adjusted, step B); by_ab adds it only when present, last", function()
+	local _, list = Zones.validate({ op = "set", zones = { { x = 1, y = 2, r = 3, ab = "sl_auto", id = "g1t", pair = "g1" },
+		{ x = 9, y = 9, r = 3, ab = "sl_phases" }, { x = 20, y = 9, r = 3, ab = "sl_rmid" } } })
+	eq(#list, 3)
+	eq(list[1], { x = 1, y = 2, r = 3, ab = "sl_auto", id = "g1t", pair = "g1" })
+	eq(Zones.byAbText(list), "game:0,sl:0,sl_phases:1,sl_rmid:1,sl_auto:1")
+	eq(Zones.byAbText({ { ab = "sl_phases" } }), "game:0,sl:0,sl_phases:1", "unchanged for senders that send no sl_auto")
+	eq(Zones.AB[16], "sl_auto")
+end)
+
+test("validate: sl_rmid2 / sl_rturbo_in accepted (ring lane use); by_ab adds them only when present, after sl_auto", function()
+	local _, list = Zones.validate({ op = "set", zones = { { x = 1, y = 2, r = 3, ab = "sl_rturbo_in", id = "r4i", pair = "r4" },
+		{ x = 9, y = 9, r = 3, ab = "sl_rmid2", id = "r2m", pair = "r2" }, { x = 20, y = 9, r = 3, ab = "sl_rturbo" },
+		{ x = 30, y = 9, r = 3, ab = "sl_auto" } } })
+	eq(#list, 4)
+	eq(list[1], { x = 1, y = 2, r = 3, ab = "sl_rturbo_in", id = "r4i", pair = "r4" })
+	eq(Zones.byAbText(list), "game:0,sl:0,sl_phases:0,sl_rturbo:1,sl_auto:1,sl_rmid2:1,sl_rturbo_in:1")
+	eq({ Zones.AB[#Zones.AB - 1], Zones.AB[#Zones.AB] }, { "sl_rmid2", "sl_rturbo_in" })
+	for _, ab in ipairs({ "sl_rmid2", "sl_rturbo_in" }) do ok(#ab <= 12 and ab:match("^[%w_]+$") ~= nil, ab) end
 end)

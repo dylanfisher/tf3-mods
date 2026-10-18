@@ -1,0 +1,578 @@
+{
+ "facets": [
+  {
+   "key": "bench",
+   "label": "Bench run",
+   "values": [
+    {
+     "value": "2026-10-13_0610_s1",
+     "label": "Sheet 1: two-lane roundabouts and a lane drop"
+    },
+    {
+     "value": "2026-10-13_0610_s2",
+     "label": "Sheet 2: Channelized Junction and diamond interchange"
+    },
+    {
+     "value": "2026-10-13_0733_s3",
+     "label": "Sheet 3: lit T-junctions and crossroads"
+    },
+    {
+     "value": "2026-10-13_2341_s4",
+     "label": "Sheet 4 v2: town roundabout, spiral"
+    },
+    {
+     "value": "2026-10-14_0027_s4",
+     "label": "Sheet 4 v3: town roundabout with mid nodes"
+    },
+    {
+     "value": "2026-10-14_0133_s4",
+     "label": "Sheet 4 v4: mid-node rings of 2, 3 and 4 lanes"
+    },
+    {
+     "value": "2026-10-14_0201_s4",
+     "label": "Sheet 4 v5: plain against mid-node rings"
+    }
+   ]
+  },
+  {
+   "key": "test",
+   "label": "Junction",
+   "values": [
+    {
+     "value": "rb4",
+     "label": "Roundabout, 2 lanes, 4 arms"
+    },
+    {
+     "value": "drop",
+     "label": "Lane drop, 3 to 2 lanes"
+    },
+    {
+     "value": "cht",
+     "label": "Channelized T-junction (slip lanes)"
+    },
+    {
+     "value": "dia",
+     "label": "Diamond interchange"
+    },
+    {
+     "value": "lt22",
+     "label": "T-junction with traffic lights, 2 x 2 lanes"
+    },
+    {
+     "value": "lx",
+     "label": "Crossroads with traffic lights"
+    },
+    {
+     "value": "rb2t",
+     "label": "Roundabout, 2 lanes, town street arms"
+    },
+    {
+     "value": "rb2tm",
+     "label": "Roundabout, 2 lanes, town street arms, mid nodes"
+    },
+    {
+     "value": "rb3m",
+     "label": "Roundabout, 3 lanes, mid nodes"
+    },
+    {
+     "value": "rb4lm",
+     "label": "Roundabout, 4 lanes, mid nodes"
+    },
+    {
+     "value": "rb2v",
+     "label": "Roundabout, 2 lanes, town street arms: plain and mid-node ring"
+    },
+    {
+     "value": "rb3v",
+     "label": "Roundabout, 3 lanes: plain and mid-node ring"
+    },
+    {
+     "value": "rb4v",
+     "label": "Roundabout, 4 lanes: plain and mid-node ring"
+    }
+   ]
+  },
+  {
+   "key": "mode",
+   "label": "Twin",
+   "values": [
+    {
+     "value": "game",
+     "label": "Game lanes"
+    },
+    {
+     "value": "game@mid",
+     "label": "Game lanes (mid-node ring)"
+    },
+    {
+     "value": "game@plain",
+     "label": "Game lanes (plain ring)"
+    },
+    {
+     "value": "sl",
+     "label": "Smart Lanes"
+    },
+    {
+     "value": "sl@plain",
+     "label": "Smart Lanes (plain ring)"
+    },
+    {
+     "value": "sl_keeplights",
+     "label": "Smart Lanes, game's lights"
+    },
+    {
+     "value": "sl_lock",
+     "label": "Smart Lanes, curb turn locked"
+    },
+    {
+     "value": "sl_rmid",
+     "label": "Mid-node lane changes"
+    },
+    {
+     "value": "sl_rmid@mid",
+     "label": "Mid-node lane changes (mid-node ring)"
+    },
+    {
+     "value": "sl_rspiral",
+     "label": "Spiral"
+    },
+    {
+     "value": "sl_rsplit",
+     "label": "Split spiral"
+    },
+    {
+     "value": "sl_rsplit@mid",
+     "label": "Split spiral (mid-node ring)"
+    }
+   ]
+  },
+  {
+   "key": "kind",
+   "label": "Lanes",
+   "values": [
+    {
+     "value": "game",
+     "label": "Game lanes"
+    },
+    {
+     "value": "smart",
+     "label": "Smart Lanes"
+    },
+    {
+     "value": "variant",
+     "label": "Test layouts"
+    }
+   ]
+  }
+ ],
+ "items": [
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g1b.jpg",
+   "title": "Roundabout, 2 lanes, 4 arms, Game lanes: 7.3 km/h",
+   "bench": "2026-10-13_0610_s1",
+   "test": "rb4",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g1a.jpg",
+   "title": "Roundabout, 2 lanes, 4 arms, Smart Lanes: 8.83 km/h",
+   "bench": "2026-10-13_0610_s1",
+   "test": "rb4",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g1f.jpg",
+   "title": "Roundabout, 2 lanes, 4 arms, Smart Lanes, game's lights: 8.51 km/h",
+   "bench": "2026-10-13_0610_s1",
+   "test": "rb4",
+   "mode": "sl_keeplights",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g10b.jpg",
+   "title": "Lane drop, 3 to 2 lanes, Game lanes: 73.84 km/h",
+   "bench": "2026-10-13_0610_s1",
+   "test": "drop",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s1/shots/g10a.jpg",
+   "title": "Lane drop, 3 to 2 lanes, Smart Lanes: 74.11 km/h",
+   "bench": "2026-10-13_0610_s1",
+   "test": "drop",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g1b.jpg",
+   "title": "Channelized T-junction (slip lanes), Game lanes: 13.36 km/h",
+   "bench": "2026-10-13_0610_s2",
+   "test": "cht",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g1a.jpg",
+   "title": "Channelized T-junction (slip lanes), Smart Lanes: 42.91 km/h",
+   "bench": "2026-10-13_0610_s2",
+   "test": "cht",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g1f.jpg",
+   "title": "Channelized T-junction (slip lanes), Smart Lanes, game's lights: 15.03 km/h",
+   "bench": "2026-10-13_0610_s2",
+   "test": "cht",
+   "mode": "sl_keeplights",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g10b.jpg",
+   "title": "Diamond interchange, Game lanes: 32.11 km/h",
+   "bench": "2026-10-13_0610_s2",
+   "test": "dia",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-13_0610_s2/shots/g10a.jpg",
+   "title": "Diamond interchange, Smart Lanes: 59.09 km/h",
+   "bench": "2026-10-13_0610_s2",
+   "test": "dia",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g1b.jpg",
+   "title": "T-junction with traffic lights, 2 x 2 lanes, Game lanes: 18.86 km/h",
+   "bench": "2026-10-13_0733_s3",
+   "test": "lt22",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g1a.jpg",
+   "title": "T-junction with traffic lights, 2 x 2 lanes, Smart Lanes: 39.07 km/h",
+   "bench": "2026-10-13_0733_s3",
+   "test": "lt22",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g1d.jpg",
+   "title": "T-junction with traffic lights, 2 x 2 lanes, Smart Lanes, curb turn locked: 20.93 km/h",
+   "bench": "2026-10-13_0733_s3",
+   "test": "lt22",
+   "mode": "sl_lock",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g10b.jpg",
+   "title": "Crossroads with traffic lights, Game lanes: 12.73 km/h",
+   "bench": "2026-10-13_0733_s3",
+   "test": "lx",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g10a.jpg",
+   "title": "Crossroads with traffic lights, Smart Lanes: 18.67 km/h",
+   "bench": "2026-10-13_0733_s3",
+   "test": "lx",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-13_0733_s3/shots/g10d.jpg",
+   "title": "Crossroads with traffic lights, Smart Lanes, curb turn locked: 14.17 km/h",
+   "bench": "2026-10-13_0733_s3",
+   "test": "lx",
+   "mode": "sl_lock",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-13_2341_s4/shots/s4g1b.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, Game lanes: 8.09 km/h",
+   "bench": "2026-10-13_2341_s4",
+   "test": "rb2t",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-13_2341_s4/shots/s4g1a.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, Smart Lanes: 8.07 km/h",
+   "bench": "2026-10-13_2341_s4",
+   "test": "rb2t",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-13_2341_s4/shots/s4g1l.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, Spiral: 8.74 km/h",
+   "bench": "2026-10-13_2341_s4",
+   "test": "rb2t",
+   "mode": "sl_rspiral",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0027_s4/shots/s4g1b.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes, Game lanes: 10.17 km/h",
+   "bench": "2026-10-14_0027_s4",
+   "test": "rb2tm",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0027_s4/shots/s4g1a.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes, Smart Lanes: 8.06 km/h",
+   "bench": "2026-10-14_0027_s4",
+   "test": "rb2tm",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-14_0027_s4/shots/s4g1l.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes, Spiral: 10.0 km/h",
+   "bench": "2026-10-14_0027_s4",
+   "test": "rb2tm",
+   "mode": "sl_rspiral",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0027_s4/shots/s4g1n.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes, Split spiral: 12.38 km/h",
+   "bench": "2026-10-14_0027_s4",
+   "test": "rb2tm",
+   "mode": "sl_rsplit",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1b.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes, Game lanes: 9.35 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb2tm",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1a.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes, Smart Lanes: 11.21 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb2tm",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1l.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes, Spiral: 10.96 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb2tm",
+   "mode": "sl_rspiral",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1n.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes, Split spiral: 12.42 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb2tm",
+   "mode": "sl_rsplit",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g1o.jpg",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes, Mid-node lane changes: 12.16 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb2tm",
+   "mode": "sl_rmid",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2b.jpg",
+   "title": "Roundabout, 3 lanes, mid nodes, Game lanes: 3.84 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb3m",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2a.jpg",
+   "title": "Roundabout, 3 lanes, mid nodes, Smart Lanes: 1.56 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb3m",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2l.jpg",
+   "title": "Roundabout, 3 lanes, mid nodes, Spiral: 10.74 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb3m",
+   "mode": "sl_rspiral",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2n.jpg",
+   "title": "Roundabout, 3 lanes, mid nodes, Split spiral: 16.23 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb3m",
+   "mode": "sl_rsplit",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g2o.jpg",
+   "title": "Roundabout, 3 lanes, mid nodes, Mid-node lane changes: 2.56 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb3m",
+   "mode": "sl_rmid",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3b.jpg",
+   "title": "Roundabout, 4 lanes, mid nodes, Game lanes: 1.65 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb4lm",
+   "mode": "game",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3a.jpg",
+   "title": "Roundabout, 4 lanes, mid nodes, Smart Lanes: 3.42 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb4lm",
+   "mode": "sl",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3l.jpg",
+   "title": "Roundabout, 4 lanes, mid nodes, Spiral: 5.79 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb4lm",
+   "mode": "sl_rspiral",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3n.jpg",
+   "title": "Roundabout, 4 lanes, mid nodes, Split spiral: 3.95 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb4lm",
+   "mode": "sl_rsplit",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0133_s4/shots/s4g3o.jpg",
+   "title": "Roundabout, 4 lanes, mid nodes, Mid-node lane changes: 3.97 km/h",
+   "bench": "2026-10-14_0133_s4",
+   "test": "rb4lm",
+   "mode": "sl_rmid",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1b.jpg",
+   "title": "Roundabout, 2 lanes, town street arms: plain and mid-node ring, Game lanes (plain ring): 7.96 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb2v",
+   "mode": "game@plain",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1p.jpg",
+   "title": "Roundabout, 2 lanes, town street arms: plain and mid-node ring, Game lanes (mid-node ring): 9.0 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb2v",
+   "mode": "game@mid",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1a.jpg",
+   "title": "Roundabout, 2 lanes, town street arms: plain and mid-node ring, Smart Lanes (plain ring): 8.45 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb2v",
+   "mode": "sl@plain",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1s.jpg",
+   "title": "Roundabout, 2 lanes, town street arms: plain and mid-node ring, Split spiral (mid-node ring): 11.45 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb2v",
+   "mode": "sl_rsplit@mid",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g1t.jpg",
+   "title": "Roundabout, 2 lanes, town street arms: plain and mid-node ring, Mid-node lane changes (mid-node ring): 12.39 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb2v",
+   "mode": "sl_rmid@mid",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g2b.jpg",
+   "title": "Roundabout, 3 lanes: plain and mid-node ring, Game lanes (plain ring): 11.21 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb3v",
+   "mode": "game@plain",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g2p.jpg",
+   "title": "Roundabout, 3 lanes: plain and mid-node ring, Game lanes (mid-node ring): 2.19 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb3v",
+   "mode": "game@mid",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g2a.jpg",
+   "title": "Roundabout, 3 lanes: plain and mid-node ring, Smart Lanes (plain ring): 13.16 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb3v",
+   "mode": "sl@plain",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g2s.jpg",
+   "title": "Roundabout, 3 lanes: plain and mid-node ring, Split spiral (mid-node ring): 9.91 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb3v",
+   "mode": "sl_rsplit@mid",
+   "kind": "variant"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g3b.jpg",
+   "title": "Roundabout, 4 lanes: plain and mid-node ring, Game lanes (plain ring): 8.8 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb4v",
+   "mode": "game@plain",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g3p.jpg",
+   "title": "Roundabout, 4 lanes: plain and mid-node ring, Game lanes (mid-node ring): 1.39 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb4v",
+   "mode": "game@mid",
+   "kind": "game"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g3a.jpg",
+   "title": "Roundabout, 4 lanes: plain and mid-node ring, Smart Lanes (plain ring): 23.26 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb4v",
+   "mode": "sl@plain",
+   "kind": "smart"
+  },
+  {
+   "file": "bench/2026-10-14_0201_s4/shots/s4g3s.jpg",
+   "title": "Roundabout, 4 lanes: plain and mid-node ring, Split spiral (mid-node ring): 3.61 km/h",
+   "bench": "2026-10-14_0201_s4",
+   "test": "rb4v",
+   "mode": "sl_rsplit@mid",
+   "kind": "variant"
+  }
+ ]
+}

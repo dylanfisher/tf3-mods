@@ -1,0 +1,1248 @@
+{
+ "version": 3,
+ "single": false,
+ "seed": "954486",
+ "built": "2026-10-13 06:10",
+ "pairing": "id",
+ "header": {
+  "title": "Sheet 1: two-lane roundabouts and a lane drop"
+ },
+ "runs": [
+  {
+   "id": "game",
+   "label": "Game lanes",
+   "kind": "game",
+   "mode": "game",
+   "session": "2026-10-13_0610_session"
+  },
+  {
+   "id": "sl",
+   "label": "Smart Lanes",
+   "kind": "smart",
+   "mode": "sl",
+   "session": "2026-10-13_0610_session"
+  },
+  {
+   "id": "sl-keeplights",
+   "label": "Smart Lanes, game's lights",
+   "kind": "smart",
+   "mode": "sl_keeplights",
+   "session": "2026-10-13_0610_session"
+  }
+ ],
+ "units": [
+  {
+   "nn": "01",
+   "ids": {
+    "sl": "g1a",
+    "game": "g1b",
+    "sl-keeplights": "g1f"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 1",
+     "kmh": 8.83,
+     "standing": 44.6,
+     "queue": 19.3,
+     "thru": 75.2,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g1a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g1a.jpg"
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 1",
+     "kmh": 7.3,
+     "standing": 49.1,
+     "queue": 15.5,
+     "thru": 59.8,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g1b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g1b.jpg"
+    },
+    "sl-keeplights": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 1",
+     "kmh": 8.51,
+     "standing": 45.1,
+     "queue": 19.0,
+     "thru": 72.7,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g1f",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 12,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g1f.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4",
+     "pair": "g1"
+    },
+    "game": {
+     "test": "rb4",
+     "pair": "g1"
+    },
+    "sl-keeplights": {
+     "test": "rb4",
+     "pair": "g1"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.5 km/h"
+  },
+  {
+   "nn": "02",
+   "ids": {
+    "sl": "g2a",
+    "game": "g2b",
+    "sl-keeplights": "g2f"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 2",
+     "kmh": 8.74,
+     "standing": 45.3,
+     "queue": 22.4,
+     "thru": 75.6,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g2a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 2",
+     "kmh": 7.46,
+     "standing": 49.4,
+     "queue": 15.7,
+     "thru": 59.2,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g2b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 2",
+     "kmh": 8.85,
+     "standing": 44.1,
+     "queue": 17.7,
+     "thru": 76.9,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g2f",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 12,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4",
+     "pair": "g2"
+    },
+    "game": {
+     "test": "rb4",
+     "pair": "g2"
+    },
+    "sl-keeplights": {
+     "test": "rb4",
+     "pair": "g2"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.3 km/h"
+  },
+  {
+   "nn": "03",
+   "ids": {
+    "sl": "g3a",
+    "game": "g3b",
+    "sl-keeplights": "g3f"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 3",
+     "kmh": 8.93,
+     "standing": 44.1,
+     "queue": 19.8,
+     "thru": 76.7,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g3a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 3",
+     "kmh": 7.26,
+     "standing": 49.7,
+     "queue": 16.8,
+     "thru": 59.6,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g3b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 3",
+     "kmh": 10.84,
+     "standing": 41.6,
+     "queue": 14.6,
+     "thru": 77.7,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g3f",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 12,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4",
+     "pair": "g3"
+    },
+    "game": {
+     "test": "rb4",
+     "pair": "g3"
+    },
+    "sl-keeplights": {
+     "test": "rb4",
+     "pair": "g3"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.7 km/h"
+  },
+  {
+   "nn": "04",
+   "ids": {
+    "sl": "g4a",
+    "game": "g4b",
+    "sl-keeplights": "g4f"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 4",
+     "kmh": 8.58,
+     "standing": 45.0,
+     "queue": 17.7,
+     "thru": 77.1,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g4a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 4",
+     "kmh": 7.32,
+     "standing": 48.5,
+     "queue": 16.6,
+     "thru": 59.8,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g4b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 4",
+     "kmh": 8.93,
+     "standing": 45.2,
+     "queue": 18.1,
+     "thru": 74.0,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g4f",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 12,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4",
+     "pair": "g4"
+    },
+    "game": {
+     "test": "rb4",
+     "pair": "g4"
+    },
+    "sl-keeplights": {
+     "test": "rb4",
+     "pair": "g4"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.3 km/h"
+  },
+  {
+   "nn": "05",
+   "ids": {
+    "sl": "g5a",
+    "game": "g5b",
+    "sl-keeplights": "g5f"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 5",
+     "kmh": 8.79,
+     "standing": 45.1,
+     "queue": 20.8,
+     "thru": 75.5,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g5a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 5",
+     "kmh": 7.3,
+     "standing": 49.8,
+     "queue": 18.6,
+     "thru": 59.3,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g5b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 5",
+     "kmh": 8.85,
+     "standing": 44.1,
+     "queue": 20.5,
+     "thru": 83.5,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g5f",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 12,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4",
+     "pair": "g5"
+    },
+    "game": {
+     "test": "rb4",
+     "pair": "g5"
+    },
+    "sl-keeplights": {
+     "test": "rb4",
+     "pair": "g5"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.5 km/h"
+  },
+  {
+   "nn": "06",
+   "ids": {
+    "sl": "g6a",
+    "game": "g6b",
+    "sl-keeplights": "g6f"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 6",
+     "kmh": 9.24,
+     "standing": 43.8,
+     "queue": 17.1,
+     "thru": 79.0,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g6a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 6",
+     "kmh": 7.42,
+     "standing": 48.4,
+     "queue": 14.7,
+     "thru": 60.0,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g6b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 6",
+     "kmh": 8.57,
+     "standing": 45.6,
+     "queue": 21.4,
+     "thru": 74.2,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g6f",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 12,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4",
+     "pair": "g6"
+    },
+    "game": {
+     "test": "rb4",
+     "pair": "g6"
+    },
+    "sl-keeplights": {
+     "test": "rb4",
+     "pair": "g6"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.8 km/h"
+  },
+  {
+   "nn": "07",
+   "ids": {
+    "sl": "g7a",
+    "game": "g7b",
+    "sl-keeplights": "g7f"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 7",
+     "kmh": 9.08,
+     "standing": 45.3,
+     "queue": 20.8,
+     "thru": 76.3,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g7a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 7",
+     "kmh": 7.39,
+     "standing": 49.0,
+     "queue": 16.7,
+     "thru": 60.3,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g7b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 7",
+     "kmh": 9.03,
+     "standing": 44.7,
+     "queue": 18.9,
+     "thru": 78.6,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g7f",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 12,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4",
+     "pair": "g7"
+    },
+    "game": {
+     "test": "rb4",
+     "pair": "g7"
+    },
+    "sl-keeplights": {
+     "test": "rb4",
+     "pair": "g7"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.7 km/h"
+  },
+  {
+   "nn": "08",
+   "ids": {
+    "sl": "g8a",
+    "game": "g8b",
+    "sl-keeplights": "g8f"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 8",
+     "kmh": 8.82,
+     "standing": 45.8,
+     "queue": 20.1,
+     "thru": 76.1,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g8a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 8",
+     "kmh": 7.31,
+     "standing": 49.4,
+     "queue": 15.6,
+     "thru": 63.1,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g8b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 8",
+     "kmh": 8.75,
+     "standing": 44.8,
+     "queue": 17.8,
+     "thru": 75.4,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g8f",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 12,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4",
+     "pair": "g8"
+    },
+    "game": {
+     "test": "rb4",
+     "pair": "g8"
+    },
+    "sl-keeplights": {
+     "test": "rb4",
+     "pair": "g8"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.5 km/h"
+  },
+  {
+   "nn": "09",
+   "ids": {
+    "sl": "g9a",
+    "game": "g9b",
+    "sl-keeplights": "g9f"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 9",
+     "kmh": 8.74,
+     "standing": 45.4,
+     "queue": 18.9,
+     "thru": 75.4,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g9a",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 9",
+     "kmh": 7.46,
+     "standing": 48.2,
+     "queue": 15.8,
+     "thru": 61.9,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g9b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Roundabout, 2 lanes, 4 arms \u00b7 set 9",
+     "kmh": 8.87,
+     "standing": 44.7,
+     "queue": 17.7,
+     "thru": 76.8,
+     "samples": 118,
+     "variant": "2-lane ring",
+     "zone": "g9f",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 12,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4",
+     "pair": "g9"
+    },
+    "game": {
+     "test": "rb4",
+     "pair": "g9"
+    },
+    "sl-keeplights": {
+     "test": "rb4",
+     "pair": "g9"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.3 km/h"
+  },
+  {
+   "nn": "10",
+   "ids": {
+    "sl": "g10a",
+    "game": "g10b"
+   },
+   "m": {
+    "sl": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 10",
+     "kmh": 74.11,
+     "standing": 0.1,
+     "queue": 0.0,
+     "thru": 50.2,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g10a",
+     "applied": 0,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g10a.jpg"
+    },
+    "game": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 10",
+     "kmh": 73.84,
+     "standing": 0.0,
+     "queue": 0.0,
+     "thru": 45.5,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g10b",
+     "applied": 0,
+     "skipped": 3,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g10b.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "drop",
+     "pair": "g10"
+    },
+    "game": {
+     "test": "drop",
+     "pair": "g10"
+    }
+   },
+   "category": "faster",
+   "verdict": "+0.3 km/h"
+  },
+  {
+   "nn": "11",
+   "ids": {
+    "sl": "g11a",
+    "game": "g11b"
+   },
+   "m": {
+    "sl": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 11",
+     "kmh": 73.7,
+     "standing": 0.0,
+     "queue": 0.0,
+     "thru": 45.6,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g11a",
+     "applied": 0,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 11",
+     "kmh": 69.95,
+     "standing": 0.1,
+     "queue": 0.0,
+     "thru": 51.9,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g11b",
+     "applied": 0,
+     "skipped": 3,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "drop",
+     "pair": "g11"
+    },
+    "game": {
+     "test": "drop",
+     "pair": "g11"
+    }
+   },
+   "category": "faster",
+   "verdict": "+3.8 km/h"
+  },
+  {
+   "nn": "12",
+   "ids": {
+    "sl": "g12a",
+    "game": "g12b"
+   },
+   "m": {
+    "sl": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 12",
+     "kmh": 73.95,
+     "standing": 0.0,
+     "queue": 0.0,
+     "thru": 51.5,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g12a",
+     "applied": 0,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 12",
+     "kmh": 72.9,
+     "standing": 0.1,
+     "queue": 0.0,
+     "thru": 50.6,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g12b",
+     "applied": 0,
+     "skipped": 3,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "drop",
+     "pair": "g12"
+    },
+    "game": {
+     "test": "drop",
+     "pair": "g12"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.0 km/h"
+  },
+  {
+   "nn": "13",
+   "ids": {
+    "sl": "g13a",
+    "game": "g13b"
+   },
+   "m": {
+    "sl": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 13",
+     "kmh": 71.72,
+     "standing": 0.0,
+     "queue": 0.0,
+     "thru": 45.2,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g13a",
+     "applied": 0,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 13",
+     "kmh": 73.45,
+     "standing": 0.2,
+     "queue": 0.0,
+     "thru": 48.0,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g13b",
+     "applied": 0,
+     "skipped": 3,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "drop",
+     "pair": "g13"
+    },
+    "game": {
+     "test": "drop",
+     "pair": "g13"
+    }
+   },
+   "category": "slower",
+   "verdict": "-1.7 km/h"
+  },
+  {
+   "nn": "14",
+   "ids": {
+    "sl": "g14a",
+    "game": "g14b"
+   },
+   "m": {
+    "sl": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 14",
+     "kmh": 74.36,
+     "standing": 0.0,
+     "queue": 0.0,
+     "thru": 49.0,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g14a",
+     "applied": 0,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 14",
+     "kmh": 73.84,
+     "standing": 0.0,
+     "queue": 0.0,
+     "thru": 42.8,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g14b",
+     "applied": 0,
+     "skipped": 3,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "drop",
+     "pair": "g14"
+    },
+    "game": {
+     "test": "drop",
+     "pair": "g14"
+    }
+   },
+   "category": "faster",
+   "verdict": "+0.5 km/h"
+  },
+  {
+   "nn": "15",
+   "ids": {
+    "sl": "g15a",
+    "game": "g15b"
+   },
+   "m": {
+    "sl": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 15",
+     "kmh": 74.29,
+     "standing": 0.1,
+     "queue": 0.0,
+     "thru": 49.1,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g15a",
+     "applied": 0,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Lane drop, 3 to 2 lanes \u00b7 set 15",
+     "kmh": 73.1,
+     "standing": 0.2,
+     "queue": 0.0,
+     "thru": 49.2,
+     "samples": 118,
+     "variant": "3 to 2 lanes",
+     "zone": "g15b",
+     "applied": 0,
+     "skipped": 3,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "drop",
+     "pair": "g15"
+    },
+    "game": {
+     "test": "drop",
+     "pair": "g15"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.2 km/h"
+  }
+ ],
+ "summary": {
+  "kmh": {
+   "game": {
+    "q": [
+     7.31,
+     7.46,
+     73.0,
+     7.26,
+     73.84
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     8.8,
+     9.08,
+     73.83,
+     8.58,
+     74.36
+    ],
+    "sum": null
+   },
+   "sl-keeplights": {
+    "q": [
+     8.75,
+     8.85,
+     8.93,
+     8.51,
+     10.84
+    ],
+    "sum": null
+   }
+  },
+  "standing": {
+   "game": {
+    "q": [
+     0.15,
+     48.4,
+     49.25,
+     0.0,
+     49.8
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     0.05,
+     44.1,
+     45.2,
+     0.0,
+     45.8
+    ],
+    "sum": null
+   },
+   "sl-keeplights": {
+    "q": [
+     44.1,
+     44.7,
+     45.1,
+     41.6,
+     45.6
+    ],
+    "sum": null
+   }
+  },
+  "queue": {
+   "game": {
+    "q": [
+     0.0,
+     15.5,
+     16.2,
+     0.0,
+     18.6
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     0.0,
+     17.7,
+     19.95,
+     0.0,
+     22.4
+    ],
+    "sum": null
+   },
+   "sl-keeplights": {
+    "q": [
+     17.7,
+     18.1,
+     19.0,
+     14.6,
+     21.4
+    ],
+    "sum": null
+   }
+  },
+  "thru": {
+   "game": {
+    "q": [
+     49.9,
+     59.3,
+     59.9,
+     42.8,
+     63.1
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     49.65,
+     75.4,
+     76.2,
+     45.2,
+     79.0
+    ],
+    "sum": null
+   },
+   "sl-keeplights": {
+    "q": [
+     74.2,
+     76.8,
+     77.7,
+     72.7,
+     83.5
+    ],
+    "sum": null
+   }
+  }
+ },
+ "notes": {
+  "comparisons": [
+   {
+    "test": "rb4",
+    "title": "Roundabout, 2 lanes, 4 arms",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 9,
+    "wins": 9,
+    "losses": 0,
+    "dKmh": 1.5,
+    "dStanding": -4.1,
+    "dThru": 16.0,
+    "thruWins": 9,
+    "p": 0.004
+   },
+   {
+    "test": "rb4",
+    "title": "Roundabout, 2 lanes, 4 arms",
+    "a": "Smart Lanes",
+    "b": "Smart Lanes, game's lights",
+    "pairs": 9,
+    "wins": 4,
+    "losses": 5,
+    "dKmh": -0.16,
+    "dStanding": 0.5,
+    "dThru": -0.3,
+    "thruWins": 4,
+    "p": 1.0
+   },
+   {
+    "test": "drop",
+    "title": "Lane drop, 3 to 2 lanes",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 6,
+    "wins": 5,
+    "losses": 1,
+    "dKmh": 0.84,
+    "dStanding": -0.1,
+    "dThru": 0.4,
+    "thruWins": 3,
+    "p": 0.219
+   }
+  ],
+  "excluded": [],
+  "spec": "bench_s1@1",
+  "complete": true,
+  "towns": "132",
+  "pop": "400",
+  "recordS": "1200",
+  "freeTurn": "always",
+  "lights": "on",
+  "phases": "game",
+  "mapStanding": 30.6
+ },
+ "runRows": [
+  [
+   "Twins (junctions)",
+   "15",
+   "15",
+   "9"
+  ],
+  [
+   "Junctions written by Smart Lanes (APPLY lines)",
+   "0",
+   "108",
+   "108"
+  ],
+  [
+   "Left as the game built them (SKIP lines)",
+   "72",
+   "0",
+   "0"
+  ],
+  [
+   "Traffic lights switched off",
+   "0",
+   "36",
+   "0"
+  ],
+  [
+   "Traffic lights kept",
+   "0",
+   "0",
+   "108"
+  ],
+  [
+   "Twins failing the treatment check",
+   "0",
+   "0",
+   "0"
+  ]
+ ]
+}

@@ -108,9 +108,11 @@ function F.ring(opt)
 		else
 			slots[#slots + 1] = { angle = base, arm = a, role = "A", k = k }
 		end
-		for _ = 1, (opt.extraNodes or 0) do
+		-- extraNodes plain ring nodes evenly between this arm and the next
+		local nx = opt.extraNodes or 0
+		for k2 = 1, nx do
 			local step = 2 * math.pi / nArms
-			slots[#slots + 1] = { angle = base + step / 2, role = "P" }
+			slots[#slots + 1] = { angle = base + step * k2 / (nx + 1), role = "P" }
 		end
 	end
 	if not ccw then

@@ -1,0 +1,1248 @@
+{
+ "version": 3,
+ "single": false,
+ "seed": "571569",
+ "built": "2026-10-13 06:10",
+ "pairing": "id",
+ "header": {
+  "title": "Sheet 2: Channelized Junction and diamond interchange"
+ },
+ "runs": [
+  {
+   "id": "game",
+   "label": "Game lanes",
+   "kind": "game",
+   "mode": "game",
+   "session": "2026-10-13_0610_session"
+  },
+  {
+   "id": "sl",
+   "label": "Smart Lanes",
+   "kind": "smart",
+   "mode": "sl",
+   "session": "2026-10-13_0610_session"
+  },
+  {
+   "id": "sl-keeplights",
+   "label": "Smart Lanes, game's lights",
+   "kind": "smart",
+   "mode": "sl_keeplights",
+   "session": "2026-10-13_0610_session"
+  }
+ ],
+ "units": [
+  {
+   "nn": "01",
+   "ids": {
+    "sl": "g1a",
+    "game": "g1b",
+    "sl-keeplights": "g1f"
+   },
+   "m": {
+    "sl": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 1",
+     "kmh": 42.91,
+     "standing": 18.4,
+     "queue": 6.3,
+     "thru": 85.4,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g1a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 3,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g1a.jpg"
+    },
+    "game": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 1",
+     "kmh": 13.36,
+     "standing": 49.4,
+     "queue": 53.4,
+     "thru": 67.0,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g1b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g1b.jpg"
+    },
+    "sl-keeplights": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 1",
+     "kmh": 15.03,
+     "standing": 48.1,
+     "queue": 41.2,
+     "thru": 68.0,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g1f",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 9,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g1f.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "cht",
+     "pair": "g1"
+    },
+    "game": {
+     "test": "cht",
+     "pair": "g1"
+    },
+    "sl-keeplights": {
+     "test": "cht",
+     "pair": "g1"
+    }
+   },
+   "category": "faster",
+   "verdict": "+29.5 km/h"
+  },
+  {
+   "nn": "02",
+   "ids": {
+    "sl": "g2a",
+    "game": "g2b",
+    "sl-keeplights": "g2f"
+   },
+   "m": {
+    "sl": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 2",
+     "kmh": 43.14,
+     "standing": 18.0,
+     "queue": 6.7,
+     "thru": 84.1,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g2a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 3,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 2",
+     "kmh": 12.28,
+     "standing": 50.8,
+     "queue": 56.8,
+     "thru": 63.4,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g2b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 2",
+     "kmh": 11.97,
+     "standing": 51.6,
+     "queue": 54.7,
+     "thru": 65.2,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g2f",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 9,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "cht",
+     "pair": "g2"
+    },
+    "game": {
+     "test": "cht",
+     "pair": "g2"
+    },
+    "sl-keeplights": {
+     "test": "cht",
+     "pair": "g2"
+    }
+   },
+   "category": "faster",
+   "verdict": "+30.9 km/h"
+  },
+  {
+   "nn": "03",
+   "ids": {
+    "sl": "g3a",
+    "game": "g3b",
+    "sl-keeplights": "g3f"
+   },
+   "m": {
+    "sl": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 3",
+     "kmh": 34.07,
+     "standing": 23.8,
+     "queue": 10.6,
+     "thru": 85.5,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g3a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 3,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 3",
+     "kmh": 16.12,
+     "standing": 45.8,
+     "queue": 38.2,
+     "thru": 68.1,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g3b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 3",
+     "kmh": 9.32,
+     "standing": 61.5,
+     "queue": 83.9,
+     "thru": 56.1,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g3f",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 9,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "cht",
+     "pair": "g3"
+    },
+    "game": {
+     "test": "cht",
+     "pair": "g3"
+    },
+    "sl-keeplights": {
+     "test": "cht",
+     "pair": "g3"
+    }
+   },
+   "category": "faster",
+   "verdict": "+17.9 km/h"
+  },
+  {
+   "nn": "04",
+   "ids": {
+    "sl": "g4a",
+    "game": "g4b",
+    "sl-keeplights": "g4f"
+   },
+   "m": {
+    "sl": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 4",
+     "kmh": 42.48,
+     "standing": 17.7,
+     "queue": 6.2,
+     "thru": 83.1,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g4a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 3,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 4",
+     "kmh": 10.29,
+     "standing": 51.5,
+     "queue": 69.8,
+     "thru": 64.6,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g4b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 4",
+     "kmh": 12.31,
+     "standing": 49.3,
+     "queue": 54.2,
+     "thru": 71.2,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g4f",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 9,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "cht",
+     "pair": "g4"
+    },
+    "game": {
+     "test": "cht",
+     "pair": "g4"
+    },
+    "sl-keeplights": {
+     "test": "cht",
+     "pair": "g4"
+    }
+   },
+   "category": "faster",
+   "verdict": "+32.2 km/h"
+  },
+  {
+   "nn": "05",
+   "ids": {
+    "sl": "g5a",
+    "game": "g5b",
+    "sl-keeplights": "g5f"
+   },
+   "m": {
+    "sl": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 5",
+     "kmh": 44.99,
+     "standing": 15.6,
+     "queue": 4.7,
+     "thru": 80.8,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g5a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 3,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 5",
+     "kmh": 16.05,
+     "standing": 46.4,
+     "queue": 41.9,
+     "thru": 67.3,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g5b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 5",
+     "kmh": 11.08,
+     "standing": 52.3,
+     "queue": 57.5,
+     "thru": 63.0,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g5f",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 9,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "cht",
+     "pair": "g5"
+    },
+    "game": {
+     "test": "cht",
+     "pair": "g5"
+    },
+    "sl-keeplights": {
+     "test": "cht",
+     "pair": "g5"
+    }
+   },
+   "category": "faster",
+   "verdict": "+28.9 km/h"
+  },
+  {
+   "nn": "06",
+   "ids": {
+    "sl": "g6a",
+    "game": "g6b",
+    "sl-keeplights": "g6f"
+   },
+   "m": {
+    "sl": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 6",
+     "kmh": 45.64,
+     "standing": 14.2,
+     "queue": 4.0,
+     "thru": 83.1,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g6a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 3,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 6",
+     "kmh": 13.18,
+     "standing": 49.3,
+     "queue": 52.1,
+     "thru": 64.2,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g6b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 6",
+     "kmh": 13.72,
+     "standing": 47.3,
+     "queue": 43.8,
+     "thru": 70.9,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g6f",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 9,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "cht",
+     "pair": "g6"
+    },
+    "game": {
+     "test": "cht",
+     "pair": "g6"
+    },
+    "sl-keeplights": {
+     "test": "cht",
+     "pair": "g6"
+    }
+   },
+   "category": "faster",
+   "verdict": "+32.5 km/h"
+  },
+  {
+   "nn": "07",
+   "ids": {
+    "sl": "g7a",
+    "game": "g7b",
+    "sl-keeplights": "g7f"
+   },
+   "m": {
+    "sl": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 7",
+     "kmh": 50.96,
+     "standing": 12.3,
+     "queue": 3.3,
+     "thru": 83.0,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g7a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 3,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 7",
+     "kmh": 12.79,
+     "standing": 50.0,
+     "queue": 54.7,
+     "thru": 66.7,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g7b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 7",
+     "kmh": 16.88,
+     "standing": 45.3,
+     "queue": 35.2,
+     "thru": 68.7,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g7f",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 9,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "cht",
+     "pair": "g7"
+    },
+    "game": {
+     "test": "cht",
+     "pair": "g7"
+    },
+    "sl-keeplights": {
+     "test": "cht",
+     "pair": "g7"
+    }
+   },
+   "category": "faster",
+   "verdict": "+38.2 km/h"
+  },
+  {
+   "nn": "08",
+   "ids": {
+    "sl": "g8a",
+    "game": "g8b",
+    "sl-keeplights": "g8f"
+   },
+   "m": {
+    "sl": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 8",
+     "kmh": 27.6,
+     "standing": 28.3,
+     "queue": 12.5,
+     "thru": 74.2,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g8a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 3,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 8",
+     "kmh": 12.88,
+     "standing": 50.3,
+     "queue": 53.1,
+     "thru": 65.0,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g8b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 8",
+     "kmh": 12.61,
+     "standing": 50.8,
+     "queue": 53.5,
+     "thru": 65.9,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g8f",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 9,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "cht",
+     "pair": "g8"
+    },
+    "game": {
+     "test": "cht",
+     "pair": "g8"
+    },
+    "sl-keeplights": {
+     "test": "cht",
+     "pair": "g8"
+    }
+   },
+   "category": "faster",
+   "verdict": "+14.7 km/h"
+  },
+  {
+   "nn": "09",
+   "ids": {
+    "sl": "g9a",
+    "game": "g9b",
+    "sl-keeplights": "g9f"
+   },
+   "m": {
+    "sl": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 9",
+     "kmh": 43.74,
+     "standing": 16.4,
+     "queue": 5.8,
+     "thru": 88.4,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g9a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 3,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 9",
+     "kmh": 12.06,
+     "standing": 50.5,
+     "queue": 58.1,
+     "thru": 63.9,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g9b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-keeplights": {
+     "name": "Channelized T-junction (slip lanes) \u00b7 set 9",
+     "kmh": 11.49,
+     "standing": 50.7,
+     "queue": 56.1,
+     "thru": 66.0,
+     "samples": 119,
+     "variant": "Channelized T",
+     "zone": "g9f",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 9,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "cht",
+     "pair": "g9"
+    },
+    "game": {
+     "test": "cht",
+     "pair": "g9"
+    },
+    "sl-keeplights": {
+     "test": "cht",
+     "pair": "g9"
+    }
+   },
+   "category": "faster",
+   "verdict": "+31.7 km/h"
+  },
+  {
+   "nn": "10",
+   "ids": {
+    "sl": "g10a",
+    "game": "g10b"
+   },
+   "m": {
+    "sl": {
+     "name": "Diamond interchange \u00b7 set 10",
+     "kmh": 59.09,
+     "standing": 3.3,
+     "queue": 0.8,
+     "thru": 87.7,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g10a",
+     "applied": 2,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g10a.jpg"
+    },
+    "game": {
+     "name": "Diamond interchange \u00b7 set 10",
+     "kmh": 32.11,
+     "standing": 29.2,
+     "queue": 16.3,
+     "thru": 78.3,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g10b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g10b.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "dia",
+     "pair": "g10"
+    },
+    "game": {
+     "test": "dia",
+     "pair": "g10"
+    }
+   },
+   "category": "faster",
+   "verdict": "+27.0 km/h"
+  },
+  {
+   "nn": "11",
+   "ids": {
+    "sl": "g11a",
+    "game": "g11b"
+   },
+   "m": {
+    "sl": {
+     "name": "Diamond interchange \u00b7 set 11",
+     "kmh": 40.91,
+     "standing": 22.1,
+     "queue": 8.4,
+     "thru": 67.2,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g11a",
+     "applied": 2,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Diamond interchange \u00b7 set 11",
+     "kmh": 46.23,
+     "standing": 18.9,
+     "queue": 7.4,
+     "thru": 82.6,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g11b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "dia",
+     "pair": "g11"
+    },
+    "game": {
+     "test": "dia",
+     "pair": "g11"
+    }
+   },
+   "category": "slower",
+   "verdict": "-5.3 km/h"
+  },
+  {
+   "nn": "12",
+   "ids": {
+    "sl": "g12a",
+    "game": "g12b"
+   },
+   "m": {
+    "sl": {
+     "name": "Diamond interchange \u00b7 set 12",
+     "kmh": 60.55,
+     "standing": 2.8,
+     "queue": 0.5,
+     "thru": 70.8,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g12a",
+     "applied": 2,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Diamond interchange \u00b7 set 12",
+     "kmh": 37.36,
+     "standing": 25.1,
+     "queue": 12.5,
+     "thru": 83.4,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g12b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "dia",
+     "pair": "g12"
+    },
+    "game": {
+     "test": "dia",
+     "pair": "g12"
+    }
+   },
+   "category": "faster",
+   "verdict": "+23.2 km/h"
+  },
+  {
+   "nn": "13",
+   "ids": {
+    "sl": "g13a",
+    "game": "g13b"
+   },
+   "m": {
+    "sl": {
+     "name": "Diamond interchange \u00b7 set 13",
+     "kmh": 62.63,
+     "standing": 3.5,
+     "queue": 0.7,
+     "thru": 73.5,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g13a",
+     "applied": 2,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Diamond interchange \u00b7 set 13",
+     "kmh": 29.41,
+     "standing": 29.2,
+     "queue": 18.7,
+     "thru": 80.8,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g13b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "dia",
+     "pair": "g13"
+    },
+    "game": {
+     "test": "dia",
+     "pair": "g13"
+    }
+   },
+   "category": "faster",
+   "verdict": "+33.2 km/h"
+  },
+  {
+   "nn": "14",
+   "ids": {
+    "sl": "g14a",
+    "game": "g14b"
+   },
+   "m": {
+    "sl": {
+     "name": "Diamond interchange \u00b7 set 14",
+     "kmh": 62.0,
+     "standing": 2.9,
+     "queue": 0.5,
+     "thru": 84.1,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g14a",
+     "applied": 2,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Diamond interchange \u00b7 set 14",
+     "kmh": 35.92,
+     "standing": 27.1,
+     "queue": 14.7,
+     "thru": 81.8,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g14b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "dia",
+     "pair": "g14"
+    },
+    "game": {
+     "test": "dia",
+     "pair": "g14"
+    }
+   },
+   "category": "faster",
+   "verdict": "+26.1 km/h"
+  },
+  {
+   "nn": "15",
+   "ids": {
+    "sl": "g15a",
+    "game": "g15b"
+   },
+   "m": {
+    "sl": {
+     "name": "Diamond interchange \u00b7 set 15",
+     "kmh": 43.11,
+     "standing": 12.0,
+     "queue": 4.4,
+     "thru": 97.8,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g15a",
+     "applied": 2,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Diamond interchange \u00b7 set 15",
+     "kmh": 30.68,
+     "standing": 30.0,
+     "queue": 19.6,
+     "thru": 85.7,
+     "samples": 119,
+     "variant": "Diamond, small",
+     "zone": "g15b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "dia",
+     "pair": "g15"
+    },
+    "game": {
+     "test": "dia",
+     "pair": "g15"
+    }
+   },
+   "category": "faster",
+   "verdict": "+12.4 km/h"
+  }
+ ],
+ "summary": {
+  "kmh": {
+   "game": {
+    "q": [
+     12.84,
+     16.05,
+     31.39,
+     10.29,
+     46.23
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     42.69,
+     43.74,
+     55.03,
+     27.6,
+     62.63
+    ],
+    "sum": null
+   },
+   "sl-keeplights": {
+    "q": [
+     11.49,
+     12.31,
+     13.72,
+     9.32,
+     16.88
+    ],
+    "sum": null
+   }
+  },
+  "standing": {
+   "game": {
+    "q": [
+     29.2,
+     46.4,
+     50.15,
+     18.9,
+     51.5
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     7.75,
+     15.6,
+     18.2,
+     2.8,
+     28.3
+    ],
+    "sum": null
+   },
+   "sl-keeplights": {
+    "q": [
+     48.1,
+     50.7,
+     51.6,
+     45.3,
+     61.5
+    ],
+    "sum": null
+   }
+  },
+  "queue": {
+   "game": {
+    "q": [
+     17.5,
+     41.9,
+     54.05,
+     7.4,
+     69.8
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     2.05,
+     4.7,
+     6.5,
+     0.5,
+     12.5
+    ],
+    "sum": null
+   },
+   "sl-keeplights": {
+    "q": [
+     43.8,
+     54.2,
+     56.1,
+     35.2,
+     83.9
+    ],
+    "sum": null
+   }
+  },
+  "thru": {
+   "game": {
+    "q": [
+     64.8,
+     67.3,
+     81.3,
+     63.4,
+     85.7
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     77.5,
+     83.1,
+     85.45,
+     67.2,
+     97.8
+    ],
+    "sum": null
+   },
+   "sl-keeplights": {
+    "q": [
+     65.2,
+     66.0,
+     68.7,
+     56.1,
+     71.2
+    ],
+    "sum": null
+   }
+  }
+ },
+ "notes": {
+  "comparisons": [
+   {
+    "test": "cht",
+    "title": "Channelized T-junction (slip lanes)",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 9,
+    "wins": 9,
+    "losses": 0,
+    "dKmh": 28.5,
+    "dStanding": -31.0,
+    "dThru": 17.5,
+    "thruWins": 9,
+    "p": 0.004
+   },
+   {
+    "test": "cht",
+    "title": "Channelized T-junction (slip lanes)",
+    "a": "Smart Lanes",
+    "b": "Smart Lanes, game's lights",
+    "pairs": 9,
+    "wins": 9,
+    "losses": 0,
+    "dKmh": 29.01,
+    "dStanding": -32.5,
+    "dThru": 16.9,
+    "thruWins": 9,
+    "p": 0.004
+   },
+   {
+    "test": "dia",
+    "title": "Diamond interchange",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 6,
+    "wins": 5,
+    "losses": 1,
+    "dKmh": 19.43,
+    "dStanding": -18.8,
+    "dThru": -1.9,
+    "thruWins": 3,
+    "p": 0.219
+   }
+  ],
+  "excluded": [],
+  "spec": "bench_s2@1",
+  "complete": true,
+  "towns": "117",
+  "pop": "400",
+  "recordS": "1200",
+  "freeTurn": "always",
+  "lights": "on",
+  "phases": "game",
+  "mapStanding": 19.4
+ },
+ "runRows": [
+  [
+   "Twins (junctions)",
+   "15",
+   "15",
+   "9"
+  ],
+  [
+   "Junctions written by Smart Lanes (APPLY lines)",
+   "0",
+   "48",
+   "36"
+  ],
+  [
+   "Left as the game built them (SKIP lines)",
+   "75",
+   "0",
+   "0"
+  ],
+  [
+   "Traffic lights switched off",
+   "0",
+   "51",
+   "0"
+  ],
+  [
+   "Traffic lights kept",
+   "0",
+   "0",
+   "81"
+  ],
+  [
+   "Twins failing the treatment check",
+   "0",
+   "0",
+   "0"
+  ]
+ ]
+}

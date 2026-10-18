@@ -1,6 +1,6 @@
 {
     "modId": "square_smart_lanes",
-    "revision": 4,
+    "revision": 9,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -8,7 +8,7 @@
     "params": [
         {
             "key": "sqrl_auto",
-            "name": "Apply automatically",
+            "name": "Apply automatically to new roads",
             "tooltip": "On: right after you build a roundabout, a slip lane,\na crossroads or a T-junction, its junctions get smart lanes.\nOff: only the Smart Lanes road tool changes lanes.",
             "uiType": "Button",
             "values": ["On", "Off"],
@@ -24,8 +24,8 @@
         },
         {
             "key": "sqrl_free_turn",
-            "name": "Free kerb turn at traffic lights",
-            "tooltip": "When safe: at crossroads and T-junctions with traffic lights,\nthe turn towards the kerb (right in right-hand traffic, left in\nleft-hand traffic) also goes in light phases where nothing\ncrosses its path: no green traffic into a lane nearer the kerb,\nno green crosswalk on the two roads it drives over. It may\nmerge with green traffic that enters the same lane.\nAlways: free in every phase, even across green traffic and\ncrosswalks (turning vehicles do not give way).\nSet when Smart Lanes handles the junction, after you build it\nor with the Smart Lanes tool; the tool's Reset locks it again.\nOff: the game's phases (the turn waits with its road).",
+            "name": "Free curb turn at traffic lights",
+            "tooltip": "When safe: at crossroads and T-junctions with traffic lights,\nthe turn toward the curb (right in right-hand traffic, left in\nleft-hand traffic) also goes in light phases where nothing\ncrosses its path: no green traffic into a lane nearer the curb,\nno green crosswalk on the two roads it drives over. It may\nmerge with green traffic that enters the same lane.\nAlways: free in every phase, even across green traffic and\ncrosswalks (turning vehicles do not give way).\nBoth free a curb turn only where its lane turns and nothing\nelse: where that lane also goes straight (on roads with one or\ntwo lanes each way), the turn waits with it, as the car in front\nwould block it anyway.\nSet when Smart Lanes handles the junction, after you build it\nor with the Smart Lanes tool; the tool's Reset locks it again.\nOff: the game's phases (the turn waits with its road).",
             "uiType": "Button",
             "values": ["Off", "When safe", "Always"],
             "defaultIndex": 2
@@ -33,10 +33,26 @@
         {
             "key": "sqrl_light_phases",
             "name": "Light phases",
-            "tooltip": "Game default: crossroads and T-junctions with traffic lights\nkeep the game's own light phases.\nSmart Lanes: Smart Lanes plans their phases from its lanes.\nOnly movements that neither cross nor merge go together, so\nturns across oncoming traffic get their own green. Kerb turns\nalso go where they only merge into green traffic (as Free kerb\nturn When safe). Pedestrians cross beside parallel traffic or\nin their own phase, and a short all-red follows every phase.\nSet when Smart Lanes handles the junction, after you build it\nor with the Smart Lanes tool; the tool's Reset restores the\ngame's phases. Free kerb turn is not applied on top: the plan\nalready lets kerb turns go wherever When safe would.",
+            "tooltip": "Game default: crossroads and T-junctions with traffic lights\nkeep the game's own light phases.\nSmart Lanes: Smart Lanes plans their phases from its lanes.\nEach road gets one long green for both of its directions, with\nevery lane at once (turns included, as in the game's phases),\nthen a short phase for pedestrians only clears the junction\nbefore the cross road gets its green. A curb turn on a lane of\nits own also goes where it only merges into green traffic (as\nFree curb turn When safe).\nSet when Smart Lanes handles the junction, after you build it\nor with the Smart Lanes tool; the tool's Reset restores the\ngame's phases. Free curb turn is not applied on top.\nA light you switch on later gets them too, while \"Apply\nautomatically to new roads\" is On.",
             "uiType": "Button",
             "values": ["Game default", "Smart Lanes"],
             "defaultIndex": 0
+        },
+        {
+            "key": "sqrl_auto_lights",
+            "name": "Automatic light timing",
+            "tooltip": "Junctions I choose: Keep timing adjusted runs only where you\nchoose Yes in the Smart Lanes tool.\nAll lights: every junction with traffic lights, also ones built\nlater. Choose No at a junction to leave it out. Lights you timed\nby hand stay as they are until you choose Yes there.\nOff: no junction is adjusted and no waiting cars are counted.\nYour Yes choices are kept for when you switch it back on.\nAt most 1000 junctions. A game can also choose its own in the\nSmart Lanes tool or the Crossing Tool.",
+            "uiType": "Button",
+            "values": ["Junctions I choose", "All lights", "Off"],
+            "defaultIndex": 0
+        },
+        {
+            "key": "sqrl_auto_every",
+            "name": "Keep timing adjusted: check interval",
+            "tooltip": "Multiplies the time between two checks of a junction with\nKeep timing adjusted (x1: 10 to 60 game minutes). Shorter\nreacts sooner but changes the lights more often; longer\nmakes fewer changes. The counts of waiting cars (every 2 game\nminutes) and their 20-minute average are not affected.",
+            "uiType": "Button",
+            "values": ["x0.5", "x1", "x2", "x4"],
+            "defaultIndex": 1
         },
         {
             "key": "sqperf_log",

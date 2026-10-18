@@ -176,7 +176,7 @@ Revision 4 (not uploaded yet); changelog line "Smoother: ..." added to its entry
 Stress Test Lights showcase at 8x game speed, session `2026-10-12_2129_top-up-530609` (`uv run tools/perf_report.py
 --last --mod square_smart_lanes $(uv run tools/game_logs.py path 2026-10-12_2129_top-up-530609)`): 147 jobs in
 ~420 s, most of them 160 nodes with 156 lit crossroads (SUMMARY `cross=156 ... free_turn=~570 kept=ped:~560`,
-Free kerb turn When safe, Light phases Game default). Per call: `job` avg 96.7 ms / max 237 ms, `job_write` avg
+Free curb turn When safe, Light phases Game default). Per call: `job` avg 96.7 ms / max 237 ms, `job_write` avg
 69 ms / max 141 ms, `job_classify` 21 / 79, `job_audit` 7.6 / 18, `job_ring` 4.2 / 17; `gui_update` max 237 ms;
 `verify` max 21 ms. Every job was one GUI frame: the stutter the user saw at 8x.
 
@@ -188,12 +188,12 @@ it in `W.buildEntry` (157 nodes), Slip.plan ~26 ms, the audit ~15 ms.
 1. `Rules.remapLocked` (the phase re-pointing) rebuilt three string-keyed maps of the old connections for every
    phase: 6 phases x 2 (plain and relocked) per node, ~36 old connections each, `string.format` keys: the top
    function of the profile (~30 % of the job).
-2. `Lights.kerbPhases` (When safe, twice per node: LOCK of the old phases, then SAFE) ran `kerbConflict` per kerb
+2. `Lights.kerbPhases` (When safe, twice per node: LOCK of the old phases, then SAFE) ran `kerbConflict` per curb
    connection per phase, each a full scan of the connections with string keys; plus `isIndex` per index of every
    phase.
 3. `W.buildEntry` read the node's BASE_NODE_CONFIG three times (existence check, old connections, the strategy's
    copy): in game each read converts the whole config (connections, phases, crosswalks).
-4. The kerb diff in `W.remapLights` scanned the phase lists per kerb connection per phase.
+4. The curb diff in `W.remapLights` scanned the phase lists per curb connection per phase.
 In game the native side (config reads, `LaneConnection.new` / `TrafficLightState.new` per entry, the clone of the
 light config) is on top; it cannot be measured offline, which is why (3) matters more there than its offline share.
 
@@ -201,13 +201,13 @@ light config) is on top; it cannot be measured offline, which is why (3) matters
 - `Rules.remapper(old, new, crosswalks)`: the connection matching once per node, then one cheap pass per phase;
   `Rules.remapLocked` is that remapper applied once (same result by construction: last old index per key, all of
   a movement / an incoming segment otherwise).
-- `Lights.kerbPhases`: each kerb connection's conflict candidates (other approaches' connections into its exit,
+- `Lights.kerbPhases`: each curb connection's conflict candidates (other approaches' connections into its exit,
   each already classed merge / cross / beside) and the crosswalks that count are worked out once per call
   (`conflictInfo`), the per-phase check only looks at those (`conflictOf`, same order: merge before cross before
   ped); the index check inlined. `L.kerbConflict` keeps its signature (the two helpers).
 - `W.buildEntry`: one config read for the check, the old connections and the first strategy try (a failed try still
   reads afresh); BASE_NODE_CONFIG reads of the showcase-shaped job 786 -> 472.
-- The kerb diff with per-phase sets.
+- The curb diff with per-phase sets.
 Offline (5 runs, best): `W.buildEntry` 85-90 -> 32-35 ms for 157 nodes; the whole one-frame job 152 -> 89-100 ms.
 
 ### Frame budget (`sl_lanes.script.lua` stepJob)
@@ -301,3 +301,66 @@ showcase's builds at 8x. To confirm (TESTING.md U, check 1): no `slow=job_step` 
 - `pending` has no cap: a scripted build stream faster than one job per ~10-15 frames would queue jobs (the engine
   state keeps 3 per 5 GUI frames). Not seen; a player's builds are far slower.
 - `BUDGET_MS` = 8 is a guess for 60 fps with the game's own frame work; lower it if `job_step` max stays high.
+
+## 2026-10-17: idle runtime, Automatic light timing Off, cheaper state polls
+
+Revision 9. A player report after rev 8: "a giant stutter fest", with nothing opted in. Code read (no game log):
+under Junctions I choose with nothing enrolled the runtime counts no traffic (`startSnap` has no member), so its
+own cost was bookkeeping; the polls that copied the whole game-script state (`state:get()`: GUI every 5 frames,
+engine every 10 updates) grew with rev 8's saved lists (`auto`, `rlast`, `kept`, `aout`, `alit`: up to tens of
+thousands of numbers in a busy save). Changes (PLAN.md "Idle runtime and Automatic light timing Off"): the runtime
+idles at `IDLE_FRAMES` = 300 between reads when nothing is enrolled or the mode is Off; the GUI poll copies the
+state only when its change stamp moves (`Auto.readStamp`); the engine sweep reads it every 100 updates. Not measured
+in game (TESTING.md "IO"); the reporter's log would tell which part was theirs (the build-time job, `job_step`, is
+the other candidate: already spread over frames since 2026-10-12).
+
+### 9 ms frames with All lights (rev 8 session `2026-10-17_0057_sqrl-sqsg`)
+All lights, 97 junctions enrolled, Light phases Smart Lanes: two 30 s windows had a background frame of ~9 ms
+(`auto max=9.171`, `9.103`), while that session's snapshots stayed at their 1 ms budget (`max_frame_ms=1.01`).
+Unbudgeted parts in those windows: the new-light look (`NEW_PLANS_PER_FRAME` = 2 plans a frame, 43 builds queued),
+2 timing writes, a backlog of 121 heavy steps after a snapshot. The runtime's parts are now SQPERF sections
+(`auto_mirror`, `auto_new`, `auto_list`, `auto_snap`, `auto_write`, `auto_looks`, `auto_flush`) so the next such log
+names the part; TESTING.md "AP". Then that part gets a clock budget.
+
+### First All lights run with the sections (rev 9, game log 2026-10-17 22:14-22:22Z)
+New desert map, welcome Apply with both boxes (MAPPASS 3642 nodes, 696 junctions, 50 frames; one 24 ms frame in its
+first slice, `job_step max=24.3`), All lights 97 junctions, `src=octree` (the BASE_NODE_TRAFFIC_LIGHT list
+unreadable). Per 30 s window, bg worst frames: `auto_new` up to 7.3 ms (the new-light look), `auto_looks` up to 3.7 ms
+(one refresh or decision: HEAVY_BUDGET_S still runs one), `auto_list` 2.4-2.9 ms, `auto_snap` ~1.3 ms (its 1 ms budget),
+the rest under 0.5 ms; 194 decisions, all quiet, no write. Fixed: the listing reads within `ALL_BUDGET_S` = 1 ms a
+frame (at least one node). Open: `auto_new` and a single heavy step cost more than a frame's budget by themselves.
+
+### Less work with All lights (rev 9, user 2026-10-17)
+- **Finding lights:** the periodic listing every 60 game min (`AllMode.LIST_EVERY_S`, was 5): player builds already bring
+  their new lights at once (the new-light look), so the repeat is only the safety net for lights no player build
+  brought (a town's own streets). Each listed node is first checked for a standing light (one BASE_NODE_TRAFFIC_LIGHT
+  read): `W.lightRead` read the node's whole config before that test, so every unlit node of the octree list (3642
+  here) cost a full config conversion.
+- **Quiet junctions:** a decision that keeps the timing (quiet, fits, small) moves the junction's refresh past its next
+  decision, which refreshes it anyway: one light read per decision (10-60 game min) instead of every `REFRESH_S`
+  (5 min). A removed approach segment still refreshes it at the next snapshot; an early wake still decides it sooner.
+  Snapshots are unchanged (their cost is the one person-list pass, nearly the same for 1 or 100 junctions).
+- **New-light look:** `AllMode.NEW_PLANS_PER_FRAME` 2 -> 1.
+- **Not changed:** a single refresh or decision (up to 3.7 ms) is still one step. Its cost is the light read (the
+  config conversion) and the world build for the corridors; it now runs far less often. Splitting it would change when
+  reads and writes happen relative to each other (risk), so it was left as is.
+- Tests: test_tool.lua "all lights (runtime): the listing reads within ALL_BUDGET_S ..." (config reads only at lit
+  nodes, no second listing within 30 game min), "keep timing adjusted (runtime): a junction decided quiet is read again
+  only with its next decision ...". In game: TESTING.md "AP" (`auto_looks` calls per window should drop sharply).
+
+### Many recordings / Re-times: a sample's candidates gathered within the budget (rev 9, game log 2026-10-17 23:33-23:41Z)
+17 Record traffic recordings at once: the tool's `record` section peaked at 12.8 and 12.5 ms in two 30 s windows
+(3-5 ms in the others). Not the 5 min checkpoint saves (a window full of them peaked at 4.3 ms, the saved list is
+small): the shared sampler fetched every target's routed list (one `getSimPersonsMovingForTransportNetwork` call per
+junction and segment, ~70-80 here) in the frame a sample started, the one unbudgeted part of `sl_retimer.lua` (the
+reads after it were within `BUDGET_S`). Now a `gather` phase fetches them within the same `BUDGET_S`, the clock read
+after each call, at least one call a frame; the whole-person-list fallback stays one call. Timed as SQPERF sections
+`record_gather` / `retime_gather` (ctx gui). Offline (test_tool.lua "record traffic (tool): many at once gather ..."):
+9 recordings at 0.5 ms per call, worst frame 14.5 ms before, within budget + one call after; the same candidates.
+In game: TESTING.md "TM" step 5.
+Then (game log 23:47-23:52Z, 6 recordings): `record_gather` max 0.75 ms (the gathering fix holds), but `record` still
+peaked at 7.3 ms in the frames of the 5 min checkpoints (23:52:05, 23:52:08): each save bumped the saved `tseq`, so the
+tool's next `refreshTraffic` converted the whole saved `trec` list (`asTable`) for its own save. Now `recSave` expects
+that bump (the game script's `op=traffic` adds 1 when the same `Rec.apply` changed something), so only a change the
+tool did not make is read in full. test_tool.lua "record traffic (tool): a checkpoint save does not read ...".
+

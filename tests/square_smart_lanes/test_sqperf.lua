@@ -41,7 +41,7 @@ local function loadTool()
 	stub_module("::/gui/construction/construction_react_util.tl", cru)
 	local api = {
 		type = {
-			enum = { ScriptParamType = { Button = "Button" }, ScriptParamLocation = { Toolbar = "Toolbar" } },
+			enum = { ScriptParamType = { Button = "Button", CheckBox = "CheckBox" }, ScriptParamLocation = { Toolbar = "Toolbar" } },
 			LayerConfig = { new = function() return { showOneWay = false } end },
 		},
 		gui = { fireReactEvent = function() end },
@@ -62,7 +62,8 @@ test("tool, debug Off: no PROBE lines (oneway patch, Crossing Tool), getDefiniti
 	local def = M.getDefinition("smart_lanes/sl_tool.res", nil, nil)
 	eq(def.action, "ACTION_CUSTOM")
 	eq(def.resName, "smart_lanes/sl_tool.res")
-	eq(#def.params, 5)
+	eq(#def.params, 13) -- Smart lanes, Reset, Smart lights, Re-time, Keep timing adjusted (twin toggles), the 5 settings
+	-- (sl_settingsui.lua), Record traffic, the info block
 	ok(recipes.SmartLanesAction ~= nil and recipes.SmartLanesStatus ~= nil and recipes.SmartLanesBadge ~= nil)
 	eq(cru.getActionParams({ action = "ACTION_LANE_MODIFIER_TOOL" }).layerConfig.showOneWay, true)
 	eq(lines("[SQRL] PROBE"), {})

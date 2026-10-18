@@ -7,7 +7,13 @@
 --              SKIP kind=zone reason=zone_game. The tool's Apply still works there (the player's choice),
 --              its APPLY lines say zone=game.
 --   sl         Smart Lanes as everywhere (the global settings).
---   sl_phases  Smart Lanes lanes + Smart Lanes light phases, whatever the global "Light phases" setting.
+--   sl_phases  Smart Lanes lanes + Smart Lanes light phases, whatever the global "Light phases" setting
+--              (the axis plan since rev 8: PHASES_PLAN.md "Axis plan").
+--   sl_auto    as sl_phases (Smart Lanes lanes + the axis plan), and every lit junction inside (a standing light with
+--              phases) is enrolled in "Keep timing adjusted" (RETIME_PLAN.md "Step B"; sl_autoretime.lua checks the
+--              sl_auto zones and sends the enroll events, src=zone, as soon as their junction is lit). A test mode for
+--              twins: sl_phases vs sl_auto measures the automatic re-timing alone (PLAN.md "Stress Test interface").
+--              Clearing the zones does not unenroll (send SmartLanes.auto op=clear for that).
 --   sl_fan     the full fan for measuring (PHASES_PLAN.md "Fan mode"): a lit crossroads / T-junction gets every
 --              entry lane connected to every exit lane of every other arm (sl_cross X.fanConns) and a split
 --              phase plan, one approach per phase (sl_phaseplan opts.fan), in one proposal. Unlit / unknown
@@ -29,6 +35,20 @@
 --              nodes keep what the game made), in the automatic pass and the tool. One LIGHTS ... to=kept
 --              zone=sl_keeplights line per node it would have switched off. A test mode for twins: sl vs
 --              sl_keeplights measures the lights setting alone (plans/square_stress_test/BENCH.md test 2, SL-1).
+--   sl_rturbo, sl_rmatch, sl_rout1, sl_r2exit, sl_rspiral, sl_rspread, sl_rsplit, sl_rmid: ring layout variants (plans/square_smart_lanes/
+--              PLAN.md "Ring layout variants (bench)"): as sl, but every roundabout in the zone gets that lane layout
+--              (sl_rules M.variantConns), the whole ring every time (no freshness rule). Other junctions there: as sl.
+--              sl_rsplit also writes a plain ring node half way between every two junctions (its lane change, PLAN.md
+--              "Mid-node spiral (sl_rsplit)"); sl_rmid makes every lane change there and none at the junctions (PLAN.md
+--              "Mid-node lane changes (sl_rmid)"); a ring without such nodes gets sl_rspiral (an RSPLIT line says why).
+--   sl_rmid2, sl_rturbo_in: two more ring layout variants (PLAN.md "Ring lane use (in progress)"): sl_rmid2 is sl_rmid
+--              with the first circulating lane also leaving into an exit wider than sl_rmid's exit-only lanes (2-lane
+--              rings with 2-lane exits), and Smart Lanes adds the missing mid nodes itself (sl_split; without them
+--              sl_rturbo); sl_rturbo_in is turbo with the inner ring lanes fed (the innermost entry lane splits into them)
+--              and leaving by a one-lane shift outwards at each arm.
+-- sl_classic (the classic light patterns, an A/B twin mode until 2026-10-16) is gone with the patterns (PLAN.md "No
+-- classic fallback"): a payload with it is refused (ab<i>); an sl_classic zone saved earlier matches no mode and
+-- acts as sl (the global settings).
 -- Nodes outside every zone: unchanged. A node inside several zones takes the one whose centre is nearest
 -- (relative to its radius).
 --
@@ -58,11 +78,17 @@ M.MAX = 400          -- zones per set (more: the whole event is ignored)
 M.R_MAX = 2000       -- m, largest radius
 M.COORD_MAX = 1e6    -- m, |x| and |y| at most (no map is that large)
 M.RUN_MAX = 40       -- characters of the run id
-M.AB = { "game", "sl", "sl_phases", "sl_fan", "sl_lock", "sl_exitfan", "sl_keeplights" }
+M.AB = { "game", "sl", "sl_phases", "sl_fan", "sl_lock", "sl_exitfan", "sl_keeplights",
+	"sl_rturbo", "sl_rmatch", "sl_rout1", "sl_r2exit", "sl_rspiral", "sl_rspread", "sl_rsplit", "sl_rmid", "sl_auto",
+	"sl_rmid2", "sl_rturbo_in" }
 M.LABEL_MAX = 12     -- characters of an optional zone id / pair label ([%w_] only)
-local AB_SET = { game = true, sl = true, sl_phases = true, sl_fan = true, sl_lock = true, sl_exitfan = true, sl_keeplights = true }
+local AB_SET = { game = true, sl = true, sl_phases = true, sl_fan = true, sl_lock = true, sl_exitfan = true, sl_keeplights = true,
+	sl_rturbo = true, sl_rmatch = true, sl_rout1 = true, sl_r2exit = true, sl_rspiral = true, sl_rspread = true, sl_rsplit = true, sl_rmid = true,
+	sl_auto = true, sl_rmid2 = true, sl_rturbo_in = true }
 -- modes counted in byAbText only when present (the line stays as before for senders that know none of them)
-local AB_OPTIONAL = { sl_fan = true, sl_lock = true, sl_exitfan = true, sl_keeplights = true }
+local AB_OPTIONAL = { sl_fan = true, sl_lock = true, sl_exitfan = true, sl_keeplights = true,
+	sl_rturbo = true, sl_rmatch = true, sl_rout1 = true, sl_r2exit = true, sl_rspiral = true, sl_rspread = true, sl_rsplit = true, sl_rmid = true,
+	sl_auto = true, sl_rmid2 = true, sl_rturbo_in = true }
 
 local function finite(v, max)
 	-- NaN fails every comparison, +-inf fails the bound
@@ -120,10 +146,13 @@ function M.validate(param)
 end
 
 --- "game:a,sl:b,sl_phases:c" (fixed order, zero counts too), then ",sl_fan:d", ",sl_lock:e", ",sl_exitfan:f" and
--- ",sl_keeplights:g", each only when > 0 (the line stays as before for senders that know none of them: the
+-- ",sl_keeplights:g", then the ring layout variants ",sl_rturbo:..", ",sl_rmatch:..", ",sl_rout1:..", ",sl_r2exit:..",
+-- ",sl_rspiral:..", ",sl_rspread:..", ",sl_rsplit:..", ",sl_rmid:..", ",sl_auto:..", ",sl_rmid2:..",
+-- ",sl_rturbo_in:..", each only when > 0 (the line stays as before for senders that know none of them: the
 -- Stress Test logs the same text from its payload, stress_logic slZonesByAb).
 function M.byAbText(list)
-	local c = { game = 0, sl = 0, sl_phases = 0, sl_fan = 0, sl_lock = 0, sl_exitfan = 0, sl_keeplights = 0 }
+	local c = {}
+	for _, ab in ipairs(M.AB) do c[ab] = 0 end
 	for _, z in ipairs(list or {}) do
 		if c[z.ab] ~= nil then c[z.ab] = c[z.ab] + 1 end
 	end
@@ -200,6 +229,26 @@ function M.readSaved(api)
 	end)
 	if not ok or type(list) ~= "table" then return nil end
 	return list
+end
+
+--- The saved zseq from another Lua state (+1 per zones change; the GAME_SCRIPT component as M.readSaved), nil when
+-- none or unreadable. Never throws. (sl_autoretime.lua re-reads the zones only when it changed.)
+function M.readSeq(api)
+	local ok, v = pcall(function()
+		local entity = api.engine.system.gameScriptSystem.getEntityForGameScript(M.GS_NAME)
+		if entity == nil or entity < 0 then return nil end
+		local gs = api.engine.getComponent(entity, api.type.ComponentType.GAME_SCRIPT)
+		if gs == nil then return nil end
+		local okN, q = pcall(function()
+			local native = gs.state_native
+			if native == nil then error("no state_native") end
+			return native:find("zseq")
+		end)
+		if okN then return q end
+		return type(gs.state) == "table" and gs.state.zseq or nil
+	end)
+	if ok and type(v) == "number" then return v end
+	return nil
 end
 
 return M

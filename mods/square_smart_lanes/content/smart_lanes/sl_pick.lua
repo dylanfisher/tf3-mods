@@ -83,10 +83,56 @@ end
 local function lanesText(n) return plural(n, _("%d lane"), _("%d lanes")) end
 local function armsText(n) return plural(n, _("%d arm"), _("%d arms")) end
 
--- Slip-lane shapes (sl_slip ids) for display; unknown ids are shown as they are.
-local function shapeText(shape)
-	local labels = { diverge = _("diverge"), merge = _("merge"), ["diverge+merge"] = _("diverge+merge") }
-	return labels[shape] or tostring(shape)
+--- Why a junction is not handled, for players: the skip reasons of sl_ring R.nodeView, sl_slip and
+-- sl_cross (log ids) as short phrases that fit after "not handled: ". Unknown ids get a generic phrase.
+function P.reasonText(id)
+	id = tostring(id)
+	local n = tonumber(id:match("^roads_(%d+)$"))
+	if n ~= nil and n >= 5 then return string.format(_("%d roads meet (at most 4)"), n) end
+	if id:match("^one_way_%d+$") then id = "one_way" end
+	local labels = {
+		bus_lane_ring = _("the ring has a bus lane"),
+		bus_road = _("a road has only bus lanes"),
+		mixed_sides = _("the roads drive on different sides"),
+		no_two_way = _("one-way roads only"),
+		one_way = _("one-way roads only"),
+		one_way_dir = _("all its roads lead away, or all lead in"),
+		no_exit = _("a road has no way on"),
+		no_through = _("no road goes straight through"),
+		ambiguous = _("two roads leave at almost the same angle"),
+		no_lanes = _("a road has no lanes in one direction"),
+		no_node = _("the junction is gone"),
+		not_on_ring = _("not on the roundabout any more"),
+		ring_lanes = _("the ring changes its lane count here"),
+		multi_arm = _("two or more roads join here"),
+	}
+	return labels[id] or _("no rule for this junction shape")
+end
+
+--- Why a roundabout got no exit-only outer lane (sl_rules M.ringPlan reason ids), as a phrase.
+function P.exitOnlyText(id)
+	local labels = {
+		one_lane_ring = _("the ring has one lane"),
+		skip_node = _("one of its junctions is not handled"),
+		no_exit = _("the roundabout has no exits"),
+		narrow_exit = _("an exit has only one lane"),
+		not_fresh = _("not every junction of it was set"),
+	}
+	return labels[tostring(id)] or _("the roundabout does not qualify")
+end
+
+--- Lane counts of a slip-lane junction (sl_slip S.streamCounts) as text, e.g.
+-- "2 lanes: 1 straight on, 1 into the slip lane". "" without counts.
+function P.slipText(counts)
+	local parts = {}
+	for _i, c in ipairs(counts or {}) do
+		if c.shape == "diverge" then
+			parts[#parts + 1] = string.format(_("%d lanes in: %d straight on, %d into the slip lane"), c.main, c.through, c.branch)
+		elseif c.shape == "merge" then
+			parts[#parts + 1] = string.format(_("%d straight on and %d from the slip lane into %d lanes"), c.through, c.branch, c.out)
+		end
+	end
+	return table.concat(parts, "; ")
 end
 
 --- The Shift+click hint (street detail line, the hover tooltip with a selection).
@@ -97,15 +143,14 @@ end
 --- One-line description of a pick target (the cursor tooltip and the status head).
 -- t: { kind = "node" | "ring" | "street" | "multi", node, ringKey, ringLanes, junctions, roads, conns,
 --      nodeKind = "arm" | "plain" | "skip" (on a ring) | "slip", exits, entries,
---      slipShape ("diverge" | "merge" | "diverge+merge" | "crossroads" | "t_junction" | "lane_drop" |
---      "lane_gain" | "lane_drop+gain"), slipLanes, slipSummary, slipReason }
+--      busKept (bus lanes kept as they are), slipShape ("diverge" | "merge" | "diverge+merge" | "crossroads" |
+--      "t_junction" | "lane_drop" | "lane_gain" | "lane_drop+gain"), slipLanes, slipSummary, slipReason }
 function P.describe(t)
 	if t == nil then return _("Nothing selected") end
 	if t.kind == "street" then return plural(t.junctions or 0, _("Street: %d junction"), _("Street: %d junctions")) end
 	if t.kind == "multi" then return plural(t.junctions or 0, _("%d junction selected"), _("%d junctions selected")) end
 	if t.kind == "ring" then
-		return string.format(_("Roundabout %s: %s, %s"), tostring(t.ringKey), lanesText(t.ringLanes or 0),
-			armsText(t.junctions or 0))
+		return string.format(_("Roundabout: %s, %s"), lanesText(t.ringLanes or 0), armsText(t.junctions or 0))
 	end
 	if t.ringKey == nil and t.slipShape == "crossroads" then
 		return string.format(_("Crossroads, %s"), lanesText(t.slipLanes or 0))
@@ -118,57 +163,120 @@ function P.describe(t)
 	if t.ringKey == nil and drops[t.slipShape] ~= nil then
 		return string.format(drops[t.slipShape], lanesText(t.slipLanes or 0))
 	end
+	local slips = { diverge = _("Slip lane leaving the road, %s"), merge = _("Slip lane joining the road, %s"),
+		["diverge+merge"] = _("Slip lanes leaving and joining, %s") }
 	if t.ringKey == nil and t.slipShape ~= nil then
-		return string.format(_("Slip-lane junction: %s, %s"), shapeText(t.slipShape), lanesText(t.slipLanes or 0))
+		return string.format(slips[t.slipShape] or _("Slip-lane junction, %s"), lanesText(t.slipLanes or 0))
 	end
 	if t.ringKey ~= nil then
-		return string.format(_("Junction %s on roundabout %s (%s, %s)"), tostring(t.node), tostring(t.ringKey),
-			lanesText(t.ringLanes or 0), armsText(t.junctions or 0))
+		return string.format(_("Roundabout junction (%s, %s)"), lanesText(t.ringLanes or 0), armsText(t.junctions or 0))
 	end
-	return string.format(_("Junction %s (%s, not a roundabout)"), tostring(t.node),
-		plural(t.roads or 0, _("%d road"), _("%d roads")))
+	-- the node id stays in the log (PICK node=..): players see the shape only
+	return string.format(_("Junction, %s"), plural(t.roads or 0, _("%d road"), _("%d roads")))
 end
 
 --- Second line: connections at the junction, exits / entries when on a ring.
 function P.detail(t)
 	if t == nil then return _("Click a junction, or a roundabout between its junctions") end
-	if t.kind == "ring" then return _("Apply to roundabout or Reset; click near a junction to pick one") end
+	if t.kind == "ring" then
+		-- a ring whose plain nodes between the arms change lanes (the mid-node spiral, sl_toolcore fillRing midNodes):
+		-- Smart lanes and Reset set those too, and the Crossing Tool can't pick them
+		if (t.midNodes or 0) > 0 then
+			return _("Acts on the roundabout and its lane changes between the arms")
+		end
+		return _("Acts on the whole roundabout; click near a junction to pick one")
+	end
 	if t.kind == "street" then
 		-- a plain click selects the two ends: tell how to get more (Shift+click: the street followed
 		-- further, or more junctions and roads added, sl_toolcore C.select)
 		if not t.follow then return P.shiftHint() end
-		return _("Apply to junction or Reset: every junction of the street")
+		return _("Acts on every junction of the street")
 	end
-	if t.kind == "multi" then return _("Apply to junction or Reset: every selected junction") end
+	if t.kind == "multi" then return _("Acts on every selected junction") end
+	-- not handled: the reason alone (user 2026-10-17: "simple and friendly and obvious why"; no lane count, and no
+	-- Smart lights line, which would only repeat it)
+	local notHandled = nil
+	if t.ringKey ~= nil and t.nodeKind == "skip" then
+		notHandled = t.reason
+	elseif t.ringKey == nil and t.slipShape == nil and t.slipReason ~= nil then
+		notHandled = t.slipReason
+	elseif t.ringKey == nil and t.slipShape == nil and (t.roads or 0) > 2 then
+		notHandled = false -- the generic phrase
+	end
+	if notHandled ~= nil then return string.format(_("not handled: %s"), P.reasonText(notHandled or nil)) end
 	local parts = { plural(t.conns or 0, _("%d lane connection"), _("%d lane connections")) }
 	if t.ringKey ~= nil and t.nodeKind == "arm" then
 		parts[#parts + 1] = string.format(_("%d exit, %d entry lanes"), t.exits or 0, t.entries or 0)
-	elseif t.ringKey ~= nil and t.nodeKind == "skip" then
-		-- the reason is an internal id (sl_ring), shown as it is
-		parts[#parts + 1] = string.format(_("left alone (%s)"), tostring(t.reason))
 	elseif t.ringKey == nil and (t.slipShape == "crossroads" or t.slipShape == "t_junction"
 		or t.slipShape == "lane_drop" or t.slipShape == "lane_gain" or t.slipShape == "lane_drop+gain") then
 		-- the head names it; the lane summary is log material
 	elseif t.ringKey == nil and t.slipShape ~= nil then
-		table.insert(parts, 1, t.slipSummary or shapeText(t.slipShape))
-	elseif t.ringKey == nil and t.slipReason ~= nil then
-		parts[#parts + 1] = string.format(_("not handled (%s)"), tostring(t.slipReason))
-	elseif t.ringKey == nil then
-		parts[#parts + 1] = _("not handled yet")
+		local lanes = P.slipText(t.slipCounts)
+		if lanes ~= "" then table.insert(parts, 1, lanes) end
+	elseif t.ringKey == nil and (t.roads or 0) <= 2 then
+		-- a bend or joint of one road (sl_slip kind "none"): nothing to set
+		parts[#parts + 1] = _("no junction here")
 	end
+	-- a handled junction with a bus-only lane (sl_toolcore nodeTarget: t.busKept): its car lanes are set,
+	-- its bus-lane connections stay as they are (Rules.mergeTram)
+	if t.busKept and (t.nodeKind == "arm" or t.nodeKind == "slip") then parts[#parts + 1] = _("bus lanes kept as they are") end
+	-- why Smart lights (the toolbar button, "Lights only" before 2026-10-16) has nothing to do at a lit crossroads / T-junction
+	-- (sl_toolcore C.lightsStatus), in either mode: with the box on it is why Apply is gone
+	local lights = P.lightsText(t.lights)
+	if lights ~= nil then parts[#parts + 1] = string.format(_("Smart lights: %s"), lights) end
 	return table.concat(parts, ", ")
+end
+
+--- Why Smart lights has nothing to do, as a phrase after "Smart lights: " (sl_toolcore C.lightsStatus result, or
+-- { why = "shape" } that C.canInfo sets at a lit junction that is no crossroads / T-junction): nil when it would
+-- change the phases (except "timing changed by hand": the plan's phases timed by the player) or without a traffic
+-- light. Where no axis plan can be made the button is hidden and this says
+-- why (PLAN.md "No classic fallback"): the junction's shape ("shape", plan_fail:no_axis_shape), else its lanes.
+function P.lightsText(ls)
+	if type(ls) ~= "table" then return nil end
+	if ls.ok == true then
+		-- the plan's phases: the badge says so ("| √ Smart lights", P.badgeChecks; user 2026-10-16), nothing here
+		if ls.same then return nil end
+		-- their greens re-timed by Re-time or Keep timing adjusted: the badge says Smart lights, this the timing
+		if ls.timed then return _("timing adjusted") end
+		-- the plan's phases, their greens changed in the Crossing window (not by us): Smart lights puts the plan's
+		-- timing back, Reset the game's phases (both offered; user 2026-10-16)
+		if ls.hand then return _("timing changed by hand") end
+		return nil
+	end
+	-- no light (or no read): nothing (the light row is hidden)
+	local why = tostring(ls.why)
+	if why == "not_x" or why == "no_light" or why == "error" then return nil end
+	if why == "shape" or why == "plan_fail:no_axis_shape" then return _("not for this junction shape") end
+	-- plan_fail:<reason> (axis_extra, invalid_..), and a light whose phases or lanes can't be read for a plan
+	-- (no_phases, no_config, stale_conns, crosswalks)
+	return _("no phase plan for these lanes")
 end
 
 --- Toolbar status chip: { head, detail }.
 -- sel: the selected target (nil = none); _layoutName: unused since the tool has one layout;
--- result: last result text or nil.
-function P.status(sel, _layoutName, result)
+-- result: last result text or nil; acts: sl_toolcore C.actions() (nil: as with buttons shown).
+-- A lane button (Smart lanes, Reset) that would change nothing is hidden (sl_toolcore C.buttons, user 2026-10-16);
+-- with a selection where no button can act (acts.none) the detail line says so: the lane status badge under it tells
+-- which state (Smart lanes, Game default, Not handled) and the detail line why a junction is not handled.
+function P.status(sel, _layoutName, result, acts)
 	local head = P.describe(sel)
 	local detail
 	if result ~= nil and result ~= "" then
 		detail = result
 	elseif sel ~= nil then
 		detail = P.detail(sel)
+		if type(acts) == "table" and acts.none then
+			local lightsPhrase = P.lightsText(sel.lights) ~= nil
+			local na = type(sel.badge) == "table" and sel.badge.key == "na"
+			if sel.kind == "ring" or sel.kind == "multi" or (sel.kind == "street" and sel.follow) then
+				-- "Acts on ..." would promise buttons that are not there
+				detail = _("Nothing to change here")
+			elseif sel.kind == "node" and not lightsPhrase and not na then
+				-- a node: its lanes line stays (a not handled one already says why)
+				detail = detail .. ", " .. _("nothing to change here")
+			end
+		end
 	else
 		detail = _("Click a junction or a roundabout")
 	end
@@ -179,8 +287,10 @@ end
 -- info: { kind = "ring" | "node" (ring junction) | "slip" | "street" | "multi" | "na", total = junctions the tool
 -- handles (skipped ones not counted), smart = how many equal what Apply would write,
 -- default = how many equal the engine-default model (nil: no model, slip nodes; a street or multi
--- selection with any junction without a model) }.
--- Returns { key = "smart" | "default" | "custom" | "partial" | "na", label, class } where class is
+-- selection with any junction without a model), kept = how many are kept by a Reset (sl_kept.lua; nil: 0),
+-- oneLane = every handled junction's roads have one car lane each way (smart = default for that reason),
+-- bus = a handled junction has a bus-only lane (its bus connections stay as they are) }.
+-- Returns { key = "smart" | "default" | "kept" | "custom" | "partial" | "na", label, class } where class is
 -- the game's global TextView colour class (default.css.lua "!positive" / "!warning") or nil.
 -- Smart wins over default (a 1-lane ring junction with one entry lane is both).
 function P.badge(info)
@@ -191,21 +301,55 @@ function P.badge(info)
 	local smart, default = info.smart or 0, info.default
 	if smart >= total then
 		if default ~= nil and default >= total then
+			-- name the reason (a player found "= game default" puzzling at a 1-lane crossroads, 2026-10-14):
+			-- one car lane per road leaves nothing to improve; bus lanes stay as they are
+			if info.oneLane == true then
+				if info.bus == true then
+					return { key = "smart", label = _("Smart lanes = game default (one car lane per road; bus lanes kept)"), class = "positive" }
+				end
+				return { key = "smart", label = _("Smart lanes = game default (one car lane per road)"), class = "positive" }
+			end
 			return { key = "smart", label = _("Smart lanes (= game default)"), class = "positive" }
 		end
 		return { key = "smart", label = _("Smart lanes"), class = "positive" }
 	end
 	if default ~= nil and default >= total then
+		-- every handled junction kept by a Reset (sl_kept.lua): the automatic pass leaves them alone
+		if (info.kept or 0) >= total then return { key = "kept", label = _("Game default (locked)"), class = nil } end
 		return { key = "default", label = _("Game default"), class = nil }
 	end
 	if smart > 0 and total > 1 then
 		return { key = "partial", label = string.format(_("Smart lanes on %d of %d junctions"), smart, total), class = "warning" }
 	end
 	if info.kind == "slip" or ((info.kind == "street" or info.kind == "multi") and default == nil) then
-		-- no engine-default model at slip nodes: never claim "changed by hand" there
-		return { key = "custom", label = _("Custom"), class = nil }
+		-- never claim "changed by hand" off a ring: slip-lane nodes and lane drops have no engine-default
+		-- model, and crossroads / T-junctions (kind "slip" too) have one that does not match every shape
+		-- the game builds (a town T on a bent main road, 2026-10-13 node 48723: game lanes, read as not
+		-- default; TESTING.md K "T-junctions ... extrapolated"). Neutral label, no warning colour.
+		-- kept by a Reset (a slip node's Reset writes back its lanes from before the Apply): as kept above
+		if (info.kept or 0) >= total and smart == 0 then return { key = "kept", label = _("Game default (locked)"), class = nil } end
+		return { key = "custom", label = _("Game or custom lanes"), class = nil }
 	end
 	return { key = "custom", label = _("Custom lanes"), class = "warning" }
+end
+
+--- The check mark of the badge (user 2026-10-16: "✓ Smart lanes | ✓ Smart lights"). "√" (U+221A), not "✓" (U+2713):
+-- the GUI font Lato has √ but no ✓ / ✔ (fontTools on base/content/locale.zip, 2026-10-17; only Noto CJK has them,
+-- and whether window text falls back to Noto is not known: docs/findings/gui.md).
+P.CHECK = "\226\136\154" -- √
+
+--- The badge with what is applied checked (user 2026-10-16): "√ Smart lanes" when the lanes are smart, and
+-- " | √ Smart lights" after any label when the light phases are the Smart Lanes plan (lightsOn: exact, or re-timed by
+-- Smart Lanes: sl_toolcore C.lightsStatus same / timed). Key and class (one colour for the whole line) stay; a fresh
+-- table, b itself when nothing changes.
+function P.badgeChecks(b, lightsOn)
+	if type(b) ~= "table" or b.key == "none" or b.key == "na" then return b end
+	local smart = b.key == "smart"
+	if not smart and not lightsOn then return b end
+	local label = b.label
+	if smart then label = string.format("%s %s", P.CHECK, label) end
+	if lightsOn then label = string.format("%s | %s %s", label, P.CHECK, _("Smart lights")) end
+	return { key = b.key, label = label, class = b.class, lights = lightsOn or nil }
 end
 
 -- Badge chip with nothing selected (translated when called).

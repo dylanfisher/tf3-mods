@@ -18,11 +18,13 @@ L.AUTO = "auto"
 
 --- Ring junctions whose lights go: the arm junctions the plan handled ("apply" or "same").
 -- Skipped nodes keep theirs: a road through the centre ("Road + traffic lights" asks for lights
--- there), a second ring touching, bus lanes. Plain ring nodes have no junction.
+-- there), a second ring touching. Plain ring nodes have no junction. A junction with a bus lane
+-- (the view's bus, Ring.busLanes) keeps its lights too: its car lanes are set, but a light there may be
+-- the player's bus priority (user request 2026-10-13: "I add the bus connections / bus light phases myself").
 function L.ringNodes(plan)
 	local out = {}
 	for _, r in ipairs(plan.nodes or {}) do
-		if (r.status == "apply" or r.status == "same") and r.view and r.view.kind == "arm" then
+		if (r.status == "apply" or r.status == "same") and r.view and r.view.kind == "arm" and r.view.bus == nil then
 			out[#out + 1] = r.node
 		end
 	end
@@ -31,14 +33,16 @@ end
 
 --- Whether nodes of an sl_slip view case keep the game's lights: crossroads and T-junctions (case
 -- "X", sl_cross.lua: there the lights take turns between crossing streams) and plain lane drops and
--- gains (case "D": no junction there; whatever the player or the game set stays).
-function L.keepsLights(case)
-	return case == "X" or case == "D"
+-- gains (case "D": no junction there; whatever the player or the game set stays). bus (optional): the
+-- view's bus-only lane ends (Ring.busLanes); a node with a bus lane keeps its lights whatever the case
+-- (a light there may be the player's bus priority, as L.ringNodes).
+function L.keepsLights(case, bus)
+	return case == "X" or case == "D" or bus ~= nil
 end
 
---- Whether a planned slip node (sl_slip S.plan result) loses its lights (not cases L.keepsLights).
+--- Whether a planned slip node (sl_slip S.plan result) loses its lights (not L.keepsLights).
 function L.slipNode(r)
-	return r ~= nil and (r.status == "apply" or r.status == "same") and not (r.view and L.keepsLights(r.view.case))
+	return r ~= nil and (r.status == "apply" or r.status == "same") and not (r.view and L.keepsLights(r.view.case, r.view.bus))
 end
 
 --- The preference value for a target, nil when the enum is missing.
@@ -103,8 +107,26 @@ end
 --     and drive over green crosswalks; the default).
 --   * LOCK (the tool's Reset): a kerb connection is red in the phases where every other road
 --     connection of its approach is red, as the game's default has it.
+-- Only a kerb turn on a dedicated kerb lane is freed (SAFE and FREE; 2026-10-14, a player's report,
+-- PLAN.md "Free curb turn: dedicated curb lanes only"): one whose entry lane (segment0, lane0) carries no
+-- other connection than kerb turns. A kerb turn that shares its lane with a straight or far movement
+-- (a 1-lane approach: every movement from one lane) stays with that lane (L.sharedKerb): red in every
+-- phase where all its lane mates are red. Freed there, it was green while the car at the head of the
+-- lane waited for a red straight or far movement: the turners queued behind it anyway, and the lane,
+-- never empty, kept a demand-actuated phase (canSkip) from ending (inferred from the report: the free
+-- curb turn "When safe" stopped phases from skipping; TESTING.md "SH"). Counted in stats.shared (log
+-- shared_held=).
+-- A freeable kerb turn whose approach has a bus-only entry lane (the kerb set's bus, Ring.busLanes) is freed
+-- only in phases where a connection out of such a bus lane is green (2026-10-14, a player's report, not
+-- verified in game: with the curbside bus lane red, the stopped buses' collision check reaches ahead into
+-- the junction and the car lane's right turn beside it does not drive; PHASES_PLAN.md "Whole lanes and bus
+-- lanes"). Freed there it would gain nothing and keep its lane busy; in the other phases it stays as the
+-- phases have it. The same rule as the planner's (sl_phaseplan steps 3 / 4b: a car lane with a curb turn
+-- joins a phase beside a bus lane only where that bus lane is green). Bus connections themselves are never
+-- changed (L.kerbIndices leaves them out).
 -- Crosswalk indices and the phases themselves (count, durations) stay; a phase left with nothing
--- red is kept. Tram connections (withTram) are never changed: trams keep the signal.
+-- red is kept. Tram connections (withTram) are never changed: trams keep the signal; so do connections
+-- touching a bus-only lane (L.kerbIndices: the kerb set's bus, sl_cross X.kerbPairs).
 --
 -- Conflict model (L.kerbConflict; SAFE blocks on cross and ped only), for kerb connection k = approach A -> exit E, exit lane l, in phase p
 -- (a connection is green in p when its index is not in p's lockedLanes, after the kerb connections
@@ -152,11 +174,16 @@ L.pairKey = pairKey
 --- 0-based indices of the kerb turn connections in `conns` (config order, Rules.conn tables):
 -- road connections (withRoad, not withTram) whose "segment0>segment1" is in `kerb` (a set, as
 -- sl_cross X.kerbPairs: the value is true or the exit's lane positions). Empty for a missing set.
+-- A connection touching a bus-only lane (kerb.bus, Ring.busLanes; as sl_rules M.touchesBus) is none:
+-- the kerb turn is the kerb car lane's turn, and bus connections keep their signal as trams do.
 function L.kerbIndices(conns, kerb)
 	local out = {}
 	if type(kerb) ~= "table" then return out end
+	local bus = type(kerb.bus) == "table" and kerb.bus or nil
 	for i, c in ipairs(conns or {}) do
-		if c.withRoad == true and c.withTram ~= true and kerb[pairKey(c.segment0, c.segment1)] then
+		if c.withRoad == true and c.withTram ~= true and kerb[pairKey(c.segment0, c.segment1)]
+			and not (bus ~= nil and ((bus[c.segment0] ~= nil and bus[c.segment0][c.lane0] == true)
+				or (bus[c.segment1] ~= nil and bus[c.segment1][c.lane1] == true))) then
 			out[#out + 1] = i - 1
 		end
 	end
@@ -181,6 +208,53 @@ function L.splitKerb(conns, kerbIdx, kerb)
 		end
 	end
 	return free, held
+end
+
+--- Of the kerb connections kerbIdx (0-based, L.kerbIndices), the ones on a dedicated kerb lane
+-- (dedicated) and the ones whose entry lane (segment0, lane0) also carries another vehicle connection
+-- (shared): any road or tram connection out of that lane that is not itself in kerbIdx (a straight,
+-- a far turn, a U-turn, a tram, a connection into a bus lane). Third result: per shared one its lane
+-- mates (0-based, the other connections of its lane that are not in kerbIdx). An unknown index is left out.
+-- allKerb (optional): every kerb connection of the node when kerbIdx is a part of them (the exit fan's
+-- free ones, L.splitKerb): a kerb turn into another exit lane is no lane mate (still a kerb pair).
+function L.sharedKerb(conns, kerbIdx, allKerb)
+	local dedicated, shared, mates = {}, {}, {}
+	conns = conns or {}
+	local isKerb = {}
+	for _, j in ipairs(kerbIdx or {}) do isKerb[j] = true end
+	for _, j in ipairs(allKerb or {}) do isKerb[j] = true end
+	local byLane = {}
+	for i, c in ipairs(conns) do
+		if (c.withRoad == true or c.withTram == true) and not isKerb[i - 1] then
+			local key = tostring(c.segment0) .. ":" .. tostring(c.lane0)
+			local list = byLane[key]
+			if list == nil then
+				list = {}
+				byLane[key] = list
+			end
+			list[#list + 1] = i - 1
+		end
+	end
+	for _, j in ipairs(kerbIdx or {}) do
+		local c = conns[j + 1]
+		if c ~= nil then
+			local list = byLane[tostring(c.segment0) .. ":" .. tostring(c.lane0)]
+			if list ~= nil and #list > 0 then
+				shared[#shared + 1] = j
+				mates[j] = list
+			else
+				dedicated[#dedicated + 1] = j
+			end
+		end
+	end
+	return dedicated, shared, mates
+end
+
+--- The kerb connections that may be freed: L.splitKerb's free ones that are on a dedicated kerb lane
+-- (L.sharedKerb). The re-checks count these (W.kerbLocked).
+function L.freeable(conns, kerbIdx, kerb)
+	local free = L.splitKerb(conns, kerbIdx, kerb)
+	return (L.sharedKerb(conns, free, kerbIdx))
 end
 
 local function isIndex(l, max)
@@ -267,10 +341,13 @@ end
 -- approach has no other road connection is left as it is). ctx (SAFE only): { kerb = the kerb set
 -- (X.kerbPairs), crosswalks = the config's crosswalk entities in order }; missing parts count as
 -- conflicts.
+-- SAFE and FREE free only kerb turns on a dedicated kerb lane (L.sharedKerb); a shared-lane one is
+-- locked where every lane mate is red (as LOCK, with its lane instead of its approach), never freed.
 -- Returns lists, changed (kerb connections whose lock changed in at least one phase), nil, stats
 -- = { phases = (kerb connection, phase) locks changed, merge, cross, ped = (kerb connection, phase)
 -- pairs SAFE kept red, by kind (merge stays 0: merges are allowed), merged = pairs SAFE freed while
--- a green stream ends in the same lane }; or nil, 0, reason when an input index is out of range
+-- a green stream ends in the same lane, shared = kerb connections held as their entry lane is shared
+-- (SAFE / FREE) }; or nil, 0, reason when an input index is out of range
 -- [0, #conns + nCross - 1] or not an integer ("stale_phases": the caller writes nothing then) or
 -- the mode is unknown. Nothing else changes: every other index keeps its place, no phase is added
 -- or removed. A kerb connection already green in a phase stays green.
@@ -291,15 +368,48 @@ function L.kerbPhases(conns, kerbIdx, nCross, states, mode, ctx)
 			kerbList[#kerbList + 1] = j
 		end
 	end
-	local stats = { phases = 0, merge = 0, cross = 0, ped = 0, merged = 0 }
+	local stats = { phases = 0, merge = 0, cross = 0, ped = 0, merged = 0, shared = 0 }
 	-- the exit fan (ctx.kerb.kerbLaneOnly): only the connections into the exit's kerb lane may be freed;
 	-- the others (held) are locked as LOCK does, red where every non-kerb road connection of the approach is
 	local heldList = {}
 	if mode ~= L.LOCK and ctx ~= nil and type(ctx.kerb) == "table" and ctx.kerb.kerbLaneOnly == true then
 		kerbList, heldList = L.splitKerb(conns, kerbList, ctx.kerb)
 	end
+	-- a kerb turn sharing its entry lane with another movement is never freed (header): it stays with
+	-- its lane, red where every lane mate is red
+	local sharedList, laneMates = {}, {}
+	if mode ~= L.LOCK then
+		local all = {}
+		for j in pairs(isKerb) do all[#all + 1] = j end
+		kerbList, sharedList, laneMates = L.sharedKerb(conns, kerbList, all)
+		stats.shared = #sharedList
+	end
+	-- kerb turns beside a bus lane: the connections out of their approach's bus-only lanes (header)
+	local busMates = {}
+	local bus = mode ~= L.LOCK and ctx ~= nil and type(ctx.kerb) == "table" and type(ctx.kerb.bus) == "table" and ctx.kerb.bus or nil
+	if bus ~= nil then
+		local bySeg = {}
+		for i, c in ipairs(conns) do
+			local b = bus[c.segment0]
+			if type(b) == "table" and b[c.lane0] == true then
+				bySeg[c.segment0] = bySeg[c.segment0] or {}
+				table.insert(bySeg[c.segment0], i - 1)
+			end
+		end
+		for _, j in ipairs(kerbList) do busMates[j] = bySeg[conns[j + 1].segment0] end
+	end
+	--- Whether kerb connection j may be freed beside its approach's bus lane in a phase (locked: its set).
+	local function busOk(j, locked)
+		local list = busMates[j]
+		if list == nil then return true end
+		for _, i in ipairs(list) do
+			if not locked[i] then return true end
+		end
+		return false
+	end
 	local isHeld = {}
 	for _, j in ipairs(heldList) do isHeld[j] = true end
+	for _, j in ipairs(sharedList) do isHeld[j] = true end
 	-- LOCK: the other road connections of each kerb connection's approach (segment0); held ones alike
 	local others = {}
 	local lockList = mode == L.LOCK and kerbList or heldList
@@ -333,7 +443,7 @@ function L.kerbPhases(conns, kerbIdx, nCross, states, mode, ctx)
 		for _, l in ipairs(list) do locked[l] = true end
 		if mode == L.FREE then
 			for _, l in ipairs(list) do
-				if isKerb[l] and not isHeld[l] then
+				if isKerb[l] and not isHeld[l] and busOk(l, locked) then
 					if not changed[l] then changed[l] = true end
 					stats.phases = stats.phases + 1
 				else
@@ -344,7 +454,7 @@ function L.kerbPhases(conns, kerbIdx, nCross, states, mode, ctx)
 			local freed, freedList = {}, {}
 			local function green(i) return not locked[i] end
 			for _, j in ipairs(kerbList) do
-				if locked[j] then
+				if locked[j] and busOk(j, locked) then
 					local why, merged = blockOf(infos[j], green)
 					if not why then
 						-- "cross" is one-sided (j may end kerbward of a kerb turn freed before it,
@@ -373,12 +483,16 @@ function L.kerbPhases(conns, kerbIdx, nCross, states, mode, ctx)
 				if not freed[l] then res[#res + 1] = l end
 			end
 		end
-		if mode == L.LOCK or #heldList > 0 then
+		if mode == L.LOCK or #heldList > 0 or #sharedList > 0 then
 			if mode == L.LOCK then
 				for _, l in ipairs(list) do res[#res + 1] = l end
 			end
-			for _, j in ipairs(lockList) do
-				local o = others[j]
+			-- held: red where every one of `o` is red; lockList with its approach, sharedList with its lane
+			local holds = {}
+			for _, j in ipairs(lockList) do holds[#holds + 1] = { j, others[j] } end
+			for _, j in ipairs(sharedList) do holds[#holds + 1] = { j, laneMates[j] } end
+			for _, h in ipairs(holds) do
+				local j, o = h[1], h[2]
 				if #o > 0 and not locked[j] then
 					local all = true
 					for _, i in ipairs(o) do
@@ -430,9 +544,9 @@ function L.keptText(stats)
 	return #parts > 0 and table.concat(parts, ",") or "-"
 end
 
---- Adds kerbPhases stats `b` into `a` (a = { phases, merge, cross, ped, merged }); returns a.
+--- Adds kerbPhases stats `b` into `a` (a = { phases, merge, cross, ped, merged, shared }); returns a.
 function L.addStats(a, b)
-	for _, k in ipairs({ "phases", "merge", "cross", "ped", "merged" }) do a[k] = (a[k] or 0) + (b and b[k] or 0) end
+	for _, k in ipairs({ "phases", "merge", "cross", "ped", "merged", "shared" }) do a[k] = (a[k] or 0) + (b and b[k] or 0) end
 	return a
 end
 

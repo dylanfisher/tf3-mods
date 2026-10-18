@@ -24,21 +24,22 @@ local function ringBuild(G, opts)
 	return { { proposal = sp, toAdd = {} }, {}, {}, opts.player ~= false }
 end
 
-test("subscribes lazily, to the zones event and onPostBuildProposal, once per load", function()
+test("subscribes lazily, to the zones, kept and auto events and onPostBuildProposal, once per load", function()
 	local G = makeGame()
 	G.gs.update({}, G.state, 0.1)
-	eq(G.state.subs, { "SmartLanes.zones", "onPostBuildProposal", "SmartLanes.qlen" })
+	eq(G.state.subs, { "SmartLanes.zones", "SmartLanes.kept", "SmartLanes.auto", "onPostBuildProposal", "SmartLanes.qlen" })
 	G.state.subs[#G.state.subs + 1] = "marker"
 	G.gs.update({}, G.state, 0.1)
-	eq(G.state.subs, { "SmartLanes.zones", "onPostBuildProposal", "SmartLanes.qlen", "marker" }, "not again in the same load")
+	eq(G.state.subs, { "SmartLanes.zones", "SmartLanes.kept", "SmartLanes.auto", "onPostBuildProposal", "SmartLanes.qlen", "marker" }, "not again in the same load")
 	eq(#G.logs, 0, "quiet")
 end)
 
-test("Apply automatically Off: only the zones event, builds do nothing", function()
+test("Apply automatically Off: the zones, kept and auto events and the build event (for the new-lights look), builds do nothing", function()
 	for _, params in ipairs({ { sqrl_auto = 2 } }) do
 		local G = makeGame(params)
 		G.gs.update({}, G.state, 0.1)
-		eq(G.state.subs, { "SmartLanes.zones" })
+		-- onPostBuildProposal too (2026-10-16): the new-lights look runs whatever Apply automatically says
+		eq(G.state.subs, { "SmartLanes.zones", "SmartLanes.kept", "SmartLanes.auto", "onPostBuildProposal" })
 		G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ringBuild(G))
 		eq(G.state:get(), nil)
 		G.frames(30)
@@ -93,6 +94,45 @@ test("a second identical build changes nothing (already applied: same)", functio
 	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ringBuild(G))
 	G.frames(20)
 	eq(#G.sent, 1)
+end)
+
+test("GUI poll: the state copied (state:get) only when its change stamp moved; the engine sweep reads it every JOB_SWEEP updates", function()
+	local G = makeGame()
+	local get = G.state.get
+	local gets = 0
+	G.state.get = function(self)
+		gets = gets + 1
+		return get(self)
+	end
+	-- the GAME_SCRIPT component the stamp is read from (state_native:find over the same state)
+	G.api.type.ComponentType.GAME_SCRIPT = "GS"
+	G.api.engine.system.gameScriptSystem = { getEntityForGameScript = function() return 77 end }
+	local gc = G.api.engine.getComponent
+	G.api.engine.getComponent = function(e, c)
+		if c == "GS" then
+			return { state_native = { find = function(_, k)
+				local s = get(G.state)
+				return type(s) == "table" and s[k] or nil
+			end } }
+		end
+		return gc(e, c)
+	end
+	G.gs.update({}, G.state, 0.1)
+	G.frames(1)
+	gets = 0
+	G.frames(100)
+	ok(gets <= 1, "nothing changed: at most the first poll copies (" .. gets .. ")")
+	-- a build: its job is seen at the next poll
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ringBuild(G))
+	gets = 0
+	G.frames(20)
+	eq(#G.sent, 1)
+	ok(gets >= 1 and gets <= 2, tostring(gets))
+	-- the engine's sweep: one read every JOB_SWEEP (100) updates; the job gone after JOB_TTL (300)
+	gets = 0
+	for _ = 1, 400 do G.gs.update({}, G.state, 0.1) end
+	eq(gets, 4)
+	eq(#get(G.state).jobs, 0)
 end)
 
 test("non-player builds and jobs saved before the load are ignored; jobs expire from the state", function()
@@ -383,14 +423,14 @@ local LightsM = ug_require "square_smart_lanes::/smart_lanes/sl_lights.lua"
 -- "Free kerb turn at traffic lights": 1 Off, 2 When safe, 3 Always (default)
 local OFF, SAFE, ALWAYS = { sqrl_free_turn = 1 }, { sqrl_free_turn = 2 }, { sqrl_free_turn = 3 }
 
---- The probe ring plus a plain 2x2 crossroads far away: node 901, 911 west, 912 east (main road),
+--- The probe ring plus a plain 3x3 crossroads far away: node 901, 911 west, 912 east (main road),
 -- 913 north, 914 south (side road); 902-905 dead ends.
 local FX_CROSS = {
 	world = function()
 		return F.merge(F.PROBE_4LANE_MEDIUM.world(), F.build(
 			{ [901] = { 0, -800 }, [902] = { -60, -800 }, [903] = { 60, -800 }, [904] = { 0, -740 }, [905] = { 0, -860 } },
-			{ [911] = { 901, 902, F.TPL.medium }, [912] = { 901, 903, F.TPL.medium }, [913] = { 901, 904, F.TPL.medium },
-				[914] = { 901, 905, F.TPL.medium } }))
+			{ [911] = { 901, 902, F.TPL.large }, [912] = { 901, 903, F.TPL.large }, [913] = { 901, 904, F.TPL.large },
+				[914] = { 901, 905, F.TPL.large } }))
 	end,
 	conns = F.PROBE_4LANE_MEDIUM.conns,
 }
@@ -473,7 +513,7 @@ test("free turn: a lit crossroads gets its kerb turns out of every phase in the 
 		eq(red, 0, "no kerb turn red in any phase")
 		local nKerb = 0
 		for _ in pairs(isKerb) do nKerb = nKerb + 1 end
-		eq(nKerb, 4, "a 2x2 crossroads: one kerb turn connection per approach")
+		eq(nKerb, 4, "a 3x3 crossroads: one kerb turn connection per approach (its kerb lane turns only)")
 		-- every other index is the plain re-pointing (crosswalks included)
 		for s, st in ipairs(states) do
 			local want = {}
@@ -646,6 +686,74 @@ test("free turn: the re-check leaves a junction whose lanes changed since alone"
 	eq(G.lightCmds, nil)
 end)
 
+test("bus lanes: the automatic pass sets a lit crossroads' car lanes, keeps the bus connections and their signal", function()
+	local G = makeGame(ALWAYS, FX_CROSS)
+	-- the main road with 2 car lanes and a kerb bus lane per direction (from 901 out: bus in 1, car in 2-3,
+	-- car out 4-5, bus out 6)
+	for _, sid in ipairs({ 911, 912 }) do G.world.segs[sid].lanes = F.lanes("BS BU BV BV FV FV FU FS") end
+	local v = Slip.classify(G.world, 901)
+	assert(v.case == "X" and v.bus ~= nil)
+	G.kerb = Cross.kerbPairs(v)
+	-- the game's lanes, its bus lanes straight on, and the player's bus right turns (911 -> 914 and
+	-- 912 -> 913: kerb movements)
+	local bus = F.parseConns("911:1>912:6:R-,912:1>911:6:R-,911:1>914:3:R-,912:1>913:3:R-")
+	local conns = Slip.defaultConns(v)
+	for _, c in ipairs(bus) do conns[#conns + 1] = c end
+	G.configs[901].laneConnections = conns
+	G.configs[901].trafficLightPreference = G.TLP.AUTO
+	G.lights[901] = true
+	G.configs[901].trafficLightConfig = G.tlc(gamePhases(conns))
+	-- the bus turns' red phases in the game's phases
+	local function redOf(list, states)
+		local out = {}
+		for i, c in ipairs(list) do
+			if c.lane0 == 1 and (c.segment0 == 911 or c.segment0 == 912) then
+				local k = Rules.connsText({ c })
+				out[k] = {}
+				for p, st in ipairs(states) do
+					for _, l in ipairs(st.lockedLanes) do if l == i - 1 then out[k][#out[k] + 1] = p end end
+				end
+			end
+		end
+		return out
+	end
+	local before = redOf(conns, G.configs[901].trafficLightConfig.states)
+	G.gs.update({}, G.state, 0.1)
+	G.frames(1)
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", crossBuild(G))
+	G.frames(15)
+	eq(#G.sent, 1)
+	local cfg = G.configs[901]
+	local kept = {}
+	for _, c in ipairs(cfg.laneConnections) do
+		if Rules.touchesBus(c, v.bus) then kept[#kept + 1] = c end
+	end
+	eq(Rules.connsText(kept), Rules.connsText(bus), "bus connections kept exactly")
+	eq(redOf(cfg.laneConnections, cfg.trafficLightConfig.states), before, "bus turns keep their phases (no free kerb turn)")
+	ok(LightsM.kerbIndices(cfg.laneConnections, G.kerb)[1] ~= nil, "car kerb turns there")
+	-- the side roads' car kerb turns (3-lane roads: the kerb lane turns only) are freed (Always); the main
+	-- road's (2 car lanes: its kerb car lane goes straight too) stay red with their lane (Lights.sharedKerb)
+	local _, isKerb = kerbRed(G)
+	local redBy = {}
+	for _, st in ipairs(cfg.trafficLightConfig.states) do
+		for _, l in ipairs(st.lockedLanes) do
+			if isKerb[l] then
+				local a = cfg.laneConnections[l + 1].segment0
+				redBy[a] = (redBy[a] or 0) + 1
+			end
+		end
+	end
+	eq(redBy, { [911] = 1, [912] = 1 }, "side kerb turns freed, main road's shared-lane ones red in the side road's phase")
+	G.frames(40)
+	ok(G.kinds("VERIFY")[1]:find("same=1 nodes=1", 1, true), G.kinds("VERIFY")[1])
+	-- the player adds a bus connection; the same build again: already applied, nothing sent
+	table.insert(cfg.laneConnections, Rules.conn(911, 1, 913, 3, true, false))
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", crossBuild(G))
+	G.frames(20)
+	eq(#G.sent, 1, "a player's bus connection: still smart lanes")
+	eq(#G.kinds("ERROR"), 0)
+end)
+
 --- One phase per approach at 901 (only that approach's connections green), both crosswalks red.
 local function approachPhases(conns)
 	local out = {}
@@ -691,9 +799,9 @@ test("free turn When safe: one phase per approach: freed everywhere, also mergin
 		local states = cfg.trafficLightConfig.states
 		eq(#states, 4, "no phase added or removed")
 		eq({ states[2].duration, states[2].minDuration }, { 12, 5 })
-		-- phase s = approach 910 + s green; each kerb turn A>E goes in every phase: where the green
-		-- approach's straight ends in E (911<->912, 913<->914 straight) it merges (allowed since
-		-- 2026-10-12), nothing crosses it, every crosswalk is red
+		-- phase s = approach 910 + s green; each kerb turn A>E (3-lane roads: a dedicated kerb lane) goes in
+		-- every phase: nothing crosses it, every crosswalk is red. The green straights end in E's other lanes
+		-- (the kerb lane is the turn's), so no merge here (merges: test_lights.lua)
 		local red = kerbRedPhases(G)
 		local n = 0
 		for k, phases in pairs(red) do
@@ -711,12 +819,12 @@ test("free turn When safe: one phase per approach: freed everywhere, also mergin
 			ok(set[#cfg.laneConnections] and set[#cfg.laneConnections + 1], "crosswalks red")
 		end
 		local sum = G.kinds("SUMMARY")[1]
-		ok(sum:find(" free_turn=4 free_phases=12 kept=- merge_free=4", 1, true), sum)
+		ok(sum:find(" free_turn=4 free_phases=12 kept=- merge_free=0 shared_held=0", 1, true), sum)
 		eq(#G.kinds("ERROR"), 0)
 	end
 end)
 
-test("free turn When safe: the game's two phases at a 2x2 crossroads: the crosswalks (not the node's roads: conservative) keep every kerb turn red", function()
+test("free turn When safe: the game's two phases at a 3x3 crossroads: the crosswalks (not the node's roads: conservative) keep every kerb turn red", function()
 	local G = crossGame(SAFE, "default", true, true)
 	local old = G.configs[901].laneConnections
 	local oldStates = G.configs[901].trafficLightConfig.states
@@ -796,7 +904,7 @@ test("free turn When safe: relock first: a connection new to the node takes its 
 	eq(#G.lightCmds, 1)
 	local l = G.kinds("LIGHTS")[1]
 	ok(l:find("src=auto node=901 to=free_turn free_turn=4 states=4 pref=auto", 1, true), l)
-	ok(l:find(" free_phases=12 kept=- merge_free=4", 1, true), l)
+	ok(l:find(" free_phases=12 kept=- merge_free=0 shared_held=0", 1, true), l)
 	for k, phases in pairs(kerbRedPhases(G)) do eq(#phases, 0, k) end
 	-- again: nothing sent
 	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", crossBuild(G))
@@ -930,7 +1038,7 @@ test("summary: a placed roundabout: one line, ring=applied/same/skipped; the sam
 	G.frames(20)
 	local s = summaries(G)
 	eq(#s, 1)
-	ok(s[1]:find("^%[SQRL%] SUMMARY job=%d+ nodes=4 rings=1 ring=4/0/0 slip=0 cross=0 drop=0 same=0 skip=0 skips=%- phases=game free_turn=0 free_phases=0$"), s[1])
+	ok(s[1]:find("^%[SQRL%] SUMMARY job=%d+ nodes=4 rings=1 ring=4/0/0 slip=0 cross=0 drop=0 same=0 skip=0 skips=%- phases=game free_turn=0 free_phases=0 shared_held=0$"), s[1])
 	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ringBuild(G))
 	G.frames(20)
 	s = summaries(G)
@@ -1435,12 +1543,12 @@ local function junctionBuild(G)
 end
 
 --- The plan for node 901 as it stands (its connections and crosswalks), from a fresh world read.
-local function expectedPlan(G)
+local function expectedPlan(G, opts)
 	local cfg = G.configs[901]
 	local v = Slip.classify(G.world, 901)
 	local info = PPM.infoFromView(v, G.world, 901, cfg.laneConnections)
 	local M = assert(PhasesM.build({ conns = cfg.laneConnections, arms = info.arms, crosswalks = cfg.crosswalks, cls = info.cls }))
-	return PPM.plan(M, info), M
+	return PPM.plan(M, info, opts), M
 end
 
 --- Node 901's states equal `plan` and pass the crash rules: every index within [0, #conns + #cws - 1],
@@ -1468,7 +1576,10 @@ local function checkWritten(G, plan, M, tag)
 	for s, st in ipairs(states) do
 		asPlan.states[s] = { locked = st.lockedLanes, duration = st.duration, minDuration = st.minDuration, canSkip = st.canSkip }
 	end
-	eq({ PPM.validatePlan(M, asPlan, #cfg.laneConnections, #cfg.crosswalks) }, { true }, tag .. ": validates")
+	-- an axis plan's within-road conflicts: accepted with its road list and the explicit flag only (sl_write
+	-- planFor validates so); the states read back carry no road list
+	asPlan.axis = plan.axis
+	eq({ PPM.validatePlan(M, asPlan, #cfg.laneConnections, #cfg.crosswalks, { axis = plan.axis ~= nil }) }, { true }, tag .. ": validates")
 end
 
 test("light phases Smart Lanes: lit 2x2 X, 3x3 X and T get the plan in the lane write itself (both traffic sides)", function()
@@ -1489,7 +1600,7 @@ test("light phases Smart Lanes: lit 2x2 X, 3x3 X and T get the plan in the lane 
 			eq(#ph, 1, tag)
 			-- Rules.line writes spaces as "_"
 			local text = PPM.planText(plan, #G.configs[901].laneConnections):gsub("%s+", "_")
-			ok(ph[1]:find("src=auto node=901 phases=sl plan=" .. text, 1, true) ~= nil, ph[1])
+			ok(ph[1]:gsub(" pattern=%a+", ""):find("src=auto node=901 phases=sl plan=" .. text, 1, true) ~= nil, ph[1])
 			local sum = G.kinds("SUMMARY")[1]
 			ok(sum:find("cross=1 ", 1, true) and sum:find(" phases=sl sl_plans=1 plan_fail=- free_turn=0", 1, true), tag .. ": " .. sum)
 			ok(G.kinds("WRITE")[1]:find("phases=sl sl_plans=1 plan_fails=0", 1, true), G.kinds("WRITE")[1])
@@ -1501,13 +1612,53 @@ test("light phases Smart Lanes: lit 2x2 X, 3x3 X and T get the plan in the lane 
 	end
 end)
 
+test("free turn: 1- and 2-lane crossroads (a player's report 2026-10-14): every kerb lane goes straight too, so no kerb turn is freed (When safe, Always); SUMMARY shared_held=4; both sides", function()
+	for _, tpl in ipairs({ { F.TPL.small, "1-lane" }, { F.TPL.medium, "2-lane" } }) do
+		for _, mir in ipairs({ false, true }) do
+			for _, params in ipairs({ SAFE, ALWAYS }) do
+				local tag = tpl[2] .. (mir and " left " or " right ") .. (params == SAFE and "safe" or "always")
+				local G = junctionGame(params, fxJunction(tpl[1], false, mir), "default", true, true)
+				G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", junctionBuild(G))
+				G.frames(15)
+				local cfg = G.configs[901]
+				local idx = LightsM.kerbIndices(cfg.laneConnections, G.kerb)
+				eq(#idx, 4, tag .. ": a kerb turn per approach")
+				-- each kerb turn red in the phases where its lane is red (the approach's straight)
+				local max = #cfg.laneConnections + #cfg.crosswalks - 1
+				for _, j in ipairs(idx) do
+					local c = cfg.laneConnections[j + 1]
+					for s, st in ipairs(cfg.trafficLightConfig.states) do
+						local red, mates, allRed = {}, 0, true
+						for _, l in ipairs(st.lockedLanes) do
+							ok(l >= 0 and l <= max, tag .. ": index in range")
+							red[l] = true
+						end
+						for i, d in ipairs(cfg.laneConnections) do
+							if i - 1 ~= j and d.withRoad and d.segment0 == c.segment0 and d.lane0 == c.lane0 then
+								mates = mates + 1
+								if not red[i - 1] then allRed = false end
+							end
+						end
+						ok(mates > 0, tag .. ": the kerb lane carries another movement")
+						if allRed then ok(red[j], tag .. " phase " .. s .. ": " .. Rules.connsText({ c }) .. " red with its lane") end
+					end
+				end
+				local sum = G.kinds("SUMMARY")[1]
+				ok(sum:find(" free_turn=0 free_phases=0", 1, true) and sum:find(" shared_held=4", 1, true), tag .. ": " .. sum)
+				eq(#G.kinds("ERROR"), 0, tag)
+			end
+		end
+	end
+end)
+
 test("light phases Game default (default): byte-for-byte today's write (re-pointed phases, free kerb turn), no PHASES line", function()
 	-- Game default never plans: the planner and the map builder fail if called
 	local origPlan, origBuild = PPM.plan, PhasesM.build
 	PPM.plan = function() error("planner called in Game default") end
 	PhasesM.build = function() error("map built in Game default") end
 	local function run(params, lanes)
-		local G = junctionGame(params, fxJunction(F.TPL.medium, false, false), lanes or "default", true, true)
+		-- 3-lane roads: a dedicated kerb lane, so the free kerb turn has something to free (Lights.sharedKerb)
+		local G = junctionGame(params, fxJunction(F.TPL.large, false, false), lanes or "default", true, true)
 		G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", junctionBuild(G))
 		G.frames(15)
 		return G
@@ -1563,7 +1714,8 @@ test("light phases Smart Lanes: no plan or an invalid one falls back to the free
 	for _, cs in ipairs(cases) do
 		PPM.plan = cs[2]
 		local okRun, e = pcall(function()
-			local G = junctionGame(with(SL, ALWAYS), fxJunction(F.TPL.medium, false, false), "default", true, true)
+			-- 3-lane roads: dedicated kerb lanes, the free kerb turn frees them (Lights.sharedKerb)
+			local G = junctionGame(with(SL, ALWAYS), fxJunction(F.TPL.large, false, false), "default", true, true)
 			G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", junctionBuild(G))
 			G.frames(15)
 			eq(#G.sent, 1, cs[1])
@@ -1599,6 +1751,34 @@ test("light phases Smart Lanes: lanes already right: a phases-only proposal (pre
 	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", junctionBuild(G))
 	G.frames(15)
 	eq(#G.lightCmds, 1, "the plan stands: nothing sent")
+	eq(#G.kinds("ERROR"), 0)
+end)
+
+-- user 2026-10-16: Smart lights stays on after its timing was adjusted (Re-time, Keep timing adjusted, the Crossing
+-- window): the build pass keeps the plan's phases in other durations, and writes again when the structure differs.
+test("light phases Smart Lanes: lanes already right: re-timed plan phases are kept; another phase structure is written", function()
+	local G = junctionGame(SL, fxJunction(F.TPL.medium, false, false), "rule", true, true)
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", junctionBuild(G))
+	G.frames(15)
+	eq(#G.lightCmds, 1)
+	-- re-timed: every green changed, a skippable phase cut below its minDuration (Re-time: min(min, duration))
+	local st = {}
+	for i, ph in ipairs(G.configs[901].trafficLightConfig.states) do
+		local d = ph.duration + 7
+		local m = ph.minDuration
+		if i == 1 and ph.canSkip then d = 1; m = math.min(m or 0, 1) end
+		st[i] = { lockedLanes = ph.lockedLanes, duration = d, minDuration = m, canSkip = ph.canSkip }
+	end
+	G.configs[901].trafficLightConfig = G.tlc(st)
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", junctionBuild(G))
+	G.frames(15)
+	eq(#G.lightCmds, 1, "the re-timed plan stands: nothing sent")
+	-- the structure differs (a phase's locked lanes): the plan is written again
+	st[1].lockedLanes = {}
+	G.configs[901].trafficLightConfig = G.tlc(st)
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", junctionBuild(G))
+	G.frames(15)
+	eq(#G.lightCmds, 2, "another structure: the plan again")
 	eq(#G.kinds("ERROR"), 0)
 end)
 
@@ -1652,7 +1832,7 @@ test("light phases Smart Lanes: unknown light at the read: the re-check writes t
 	G.frames(15)
 	eq(#G.sent, 1)
 	eq(#G.kinds("PHASES"), 1)
-	ok(G.kinds("PHASES")[1]:find("node=901 phases=sl plan_fail=lit_unknown", 1, true), G.kinds("PHASES")[1])
+	ok(G.kinds("PHASES")[1]:gsub(" pattern=%a+", ""):find("node=901 phases=sl plan_fail=lit_unknown", 1, true), G.kinds("PHASES")[1])
 	ok(G.kinds("SUMMARY")[1]:find(" sl_plans=0 plan_fail=lit_unknown:1 ", 1, true), G.kinds("SUMMARY")[1])
 	-- the game puts its light and default phases on the junction (our lanes)
 	G.lights[901] = true
@@ -1808,13 +1988,13 @@ test("zones: an old save (subscribed to onPostBuildProposal only) is re-subscrib
 	-- the saved subscriptions of a save from before the zones event
 	G.state.subs = { "onPostBuildProposal" }
 	G.gs.update({}, G.state, 0.1)
-	eq(G.state.subs, { "SmartLanes.zones", "onPostBuildProposal", "SmartLanes.qlen" })
+	eq(G.state.subs, { "SmartLanes.zones", "SmartLanes.kept", "SmartLanes.auto", "onPostBuildProposal", "SmartLanes.qlen" })
 	-- the next load (a fresh Lua state, same saved state): subscribes again, once
 	local G2 = makeGame()
 	G2.state = G.state
 	G.state.subs = { "onPostBuildProposal" }
 	G2.gs.update({}, G2.state, 0.1)
-	eq(G2.state.subs, { "SmartLanes.zones", "onPostBuildProposal", "SmartLanes.qlen" })
+	eq(G2.state.subs, { "SmartLanes.zones", "SmartLanes.kept", "SmartLanes.auto", "onPostBuildProposal", "SmartLanes.qlen" })
 	-- the map editor: nothing subscribed, events ignored
 	local M = makeGame()
 	M.api.engine.config.getModParams = function() return { square_smart_lanes = {}, [""] = { isMapEditor = true } } end
@@ -1898,7 +2078,7 @@ test("zones: sl_phases zone: a lit crossroads gets the Smart Lanes phase plan al
 	checkWritten(G, plan, M, "sl_phases zone")
 	local ph = G.kinds("PHASES")
 	eq(#ph, 1)
-	ok(ph[1]:find("src=auto node=901 phases=sl plan=", 1, true), ph[1])
+	ok(ph[1]:gsub(" pattern=%a+", ""):find("src=auto node=901 phases=sl plan=", 1, true), ph[1])
 	local sum = G.kinds("SUMMARY")[1]
 	ok(sum:find(" phases=game sl_plans=1 plan_fail=- zone_phases=1 ", 1, true), sum)
 	ok(G.kinds("WRITE")[1]:find("phases=game sl_plans=1 plan_fails=0", 1, true), G.kinds("WRITE")[1])
@@ -1912,6 +2092,34 @@ test("zones: sl_phases zone: a lit crossroads gets the Smart Lanes phase plan al
 	eq(gz.lightCmds, nil)
 	eq(#gz.configs[901].trafficLightConfig.states, 6)
 	eq(#G.kinds("ERROR") + #gz.kinds("ERROR"), 0)
+end)
+
+test("no classic fallback (automatic pass): a lit crossroads skewed past 45 deg has no axis plan: Light phases = Smart Lanes keeps the game's phases (re-pointed), PHASES pattern=none plan_fail=no_axis_shape", function()
+	local fx = fxJunction(F.TPL.large, false, false)
+	-- arm 914 at 330 deg instead of 270: the 913-914 pair is 60 deg off a road (PP.AXIS_TOL 45)
+	fx.world = function()
+		local nodes = { [901] = { 0, -800 }, [902] = { -60, -800 }, [903] = { 60, -800 }, [904] = { 0, -740 }, [905] = { 52, -830 } }
+		local segs = { [911] = { 901, 902, F.TPL.large }, [912] = { 901, 903, F.TPL.large }, [913] = { 901, 904, F.TPL.large },
+			[914] = { 901, 905, F.TPL.large } }
+		return F.merge(F.PROBE_4LANE_MEDIUM.world(), F.build(nodes, segs, false))
+	end
+	local G = junctionGame(with(SL, ALWAYS), fx, "default", true, true)
+	local cfg0 = G.configs[901]
+	local info0 = PPM.infoFromView(Slip.classify(G.world, 901), G.world, 901, cfg0.laneConnections)
+	local M0 = assert(PhasesM.build({ conns = cfg0.laneConnections, arms = info0.arms, crosswalks = cfg0.crosswalks, cls = info0.cls }))
+	eq({ PPM.plan(M0, info0) }, { nil, "no_axis_shape" }, "fixture: no axis plan")
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", junctionBuild(G))
+	G.frames(15)
+	eq(#G.sent, 1, "the lane write")
+	local cfg = G.configs[901]
+	eq(#cfg.trafficLightConfig.states, 6, "the game's six phases, re-pointed")
+	local max = #cfg.laneConnections + #cfg.crosswalks - 1
+	for _, st in ipairs(cfg.trafficLightConfig.states) do
+		for _, l in ipairs(st.lockedLanes) do ok(l >= 0 and l <= max, "index " .. l) end
+	end
+	ok(G.kinds("PHASES")[1]:find("src=auto node=901 phases=sl pattern=none plan_fail=no_axis_shape", 1, true), G.kinds("PHASES")[1])
+	ok(G.kinds("SUMMARY")[1]:find(" sl_plans=0 plan_fail=no_axis_shape:1 ", 1, true), G.kinds("SUMMARY")[1])
+	eq(#G.kinds("ERROR"), 0)
 end)
 
 ---------------------------------------------------------------------------
@@ -1960,7 +2168,7 @@ test("zones: sl_fan zone: a lit crossroads gets the full fan and the fan plan in
 			ok(fanApply and fanApply:find(" mode=fan", 1, true), tostring(fanApply))
 			local ph = G.kinds("PHASES")
 			eq(#ph, 1, tag)
-			ok(ph[1]:find("src=auto node=901 phases=sl plan=" .. (t and "t3_fan" or "x4_fan"), 1, true), ph[1])
+			ok(ph[1]:gsub(" pattern=%a+", ""):find("src=auto node=901 phases=sl plan=" .. (t and "t3_fan" or "x4_fan"), 1, true), ph[1])
 			local sum = G.kinds("SUMMARY")[1]
 			ok(sum:find(" phases=game sl_plans=1 plan_fail=- zone_fan=1 ", 1, true), sum)
 			-- the fan crosses by design: no AUDIT line for it
@@ -2050,7 +2258,7 @@ test("zones: sl_fan zone: unknown light at the read: the rule, then the re-check
 	ok(r[1] and r[1]:find("kind=phases job=1 nodes=1 phases=1 sent=1 same=0 fail=0 changed=0", 1, true), tostring(r[1]))
 	local a = G.kinds("APPLY")
 	ok(a[#a]:find("src=recheck", 1, true) and a[#a]:find(" mode=fan", 1, true), a[#a])
-	ok(G.kinds("PHASES")[2]:find("src=recheck node=901 phases=sl plan=x4_fan", 1, true), tostring(G.kinds("PHASES")[2]))
+	ok(G.kinds("PHASES")[2]:gsub(" pattern=%a+", ""):find("src=recheck node=901 phases=sl plan=x4_fan", 1, true), tostring(G.kinds("PHASES")[2]))
 	-- the later re-check: lanes are no longer the rule's text (the fan replaced them): left alone
 	G.frames(600)
 	eq(#G.sent, 2)
@@ -2071,9 +2279,16 @@ local function lockGame(params, lanes, lit, phases, freed)
 		local conns = cfg.laneConnections
 		local lists = {}
 		for i, st in ipairs(cfg.trafficLightConfig.states) do lists[i] = st.lockedLanes end
-		local res = assert(LightsM.kerbPhases(conns, LightsM.kerbIndices(conns, G.kerb), 2, lists, LightsM.FREE))
+		-- every kerb connection out of every phase, as an Always write before rev 8 (or a hand edit) left them;
+		-- LightsM.FREE no longer frees a kerb turn whose lane also goes straight (the game's lanes here)
+		local isKerb = {}
+		for _, j in ipairs(LightsM.kerbIndices(conns, G.kerb)) do isKerb[j] = true end
 		local states = gamePhases(conns)
-		for i, st in ipairs(states) do st.lockedLanes = res[i] end
+		for i, st in ipairs(states) do
+			local l = {}
+			for _, x in ipairs(lists[i]) do if not isKerb[x] then l[#l + 1] = x end end
+			st.lockedLanes = l
+		end
 		cfg.trafficLightConfig = G.tlc(states)
 		eq(kerbRed(G), 0, "freed before")
 	end
@@ -2275,7 +2490,7 @@ local function exitFanPhases(G, tag, freed)
 	return nFree, nHeld
 end
 
-test("zones: sl_exitfan zone: lit 2x2 crossroads gets the exit fan; Always frees only the kerb-lane connection", function()
+test("zones: sl_exitfan zone: lit 3x3 crossroads gets the exit fan; Always frees only the kerb-lane connection", function()
 	for _, params in ipairs({ ALWAYS, SAFE, OFF }) do
 		local G = crossGame(params, "default", true, true)
 		zonesEvent(G, { op = "set", run = "e", zones = { zone(X901, 90, "sl_exitfan") } })
@@ -2285,7 +2500,8 @@ test("zones: sl_exitfan zone: lit 2x2 crossroads gets the exit fan; Always frees
 		eq(G.lightCmds, nil, "no second proposal on the node")
 		local want = exitFanConns()
 		eq(Rules.roadText(G.configs[901].laneConnections), Rules.roadText(want), "the exit fan")
-		eq(Rules.roadCount(G.configs[901].laneConnections), 20)
+		-- 3-lane roads (FX_CROSS: a dedicated kerb lane, so the free kerb turn has something to free)
+		eq(Rules.roadCount(G.configs[901].laneConnections), 24)
 		local nFree, nHeld = exitFanPhases(G, "write", params == ALWAYS)
 		eq({ nFree, nHeld }, { 4, 4 }, "per approach one kerb-lane and one other-lane kerb connection")
 		local a = G.kinds("APPLY")[1]
@@ -2326,7 +2542,7 @@ test("zones: sl_exitfan zone: an existing lit junction with today's lanes and fr
 	G.frames(15)
 	eq(#G.sent, 1)
 	eq(G.lightCmds, nil)
-	eq(Rules.roadCount(G.configs[901].laneConnections), 20, "16 -> 20")
+	eq(Rules.roadCount(G.configs[901].laneConnections), 24, "16 -> 24 (3-lane roads)")
 	local nFree, nHeld = exitFanPhases(G, "re-applied", true)
 	eq({ nFree, nHeld }, { 4, 4 })
 	eq(#G.configs[901].trafficLightConfig.states, 2, "same phases")
@@ -2734,4 +2950,351 @@ test("bench: inside zones, nodes looked at and left unchanged log SKIP kind= nod
 	local Dn = run({ bigZone("sl") })
 	ok(#Dn.kinds("SKIP") > 0)
 	for _, l in ipairs(Dn.kinds("SKIP")) do ok(not l:find("zid=", 1, true), l) end
+end)
+
+---------------------------------------------------------------------------
+-- Ring layout variants (zone modes sl_rturbo .. sl_rspread; PLAN.md "Ring layout variants (bench)")
+
+--- A build that touches only ring junction 22768 (one arm segment at it), as a link road joining one arm.
+local RingM = ug_require "square_smart_lanes::/smart_lanes/sl_ring.lua"
+
+local function oneArmBuild(G)
+	local seg = nil
+	for _, sid in ipairs(G.world.nodes[22768].segs) do
+		local s = G.world.segs[sid]
+		if not ({ [23299] = true, [23300] = true, [23301] = true, [23302] = true })[sid] then seg = s end
+	end
+	assert(seg ~= nil)
+	local sp = { addedNodes = { { entity = 22768 } }, addedSegments = { { entity = seg.id, comp = { node0 = seg.node0, node1 = seg.node1 } } },
+		nodeConfigsToAdd = {}, nodeConfigsToRemove = {} }
+	return { { proposal = sp, toAdd = {} }, {}, {}, true }
+end
+
+local function ringConfigs(G)
+	local t = {}
+	for _, n in ipairs(RING_NODES) do t[#t + 1] = n .. "=" .. Rules.connsText(G.configs[n].laneConnections) end
+	return table.concat(t, "|")
+end
+
+test("ring variants (auto): a zone writes its variant on every junction (layout=, zone_ring=); a later one-arm build changes nothing", function()
+	for _, variant in ipairs(Rules.RING_VARIANTS) do
+		local G = makeGame()
+		G.gs.update({}, G.state, 0.1)
+		G.frames(1)
+		zonesEvent(G, { op = "set", run = "v", zones = { ringZone(G, variant, "rv1") } })
+		G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ringBuild(G))
+		G.frames(20)
+		-- sl_rmid2 (Rules.SPLIT_VARIANTS) splits this ring's stretches first (test_rmid2.lua has the whole flow)
+		if Rules.SPLIT_VARIANTS[variant] then
+			ok(#G.kinds("SPLIT") >= 1, variant .. ": SPLIT")
+			eq(#G.kinds("ERROR"), 0)
+		else
+			local a = G.kinds("APPLY")
+			ok(#a >= 1, variant)
+			-- sl_rsplit / sl_rmid on this ring (no plain ring node between its junctions): written as sl_rspiral, one RSPLIT line why
+			local written = Rules.MID_VARIANTS[variant] and Rules.MID_FALLBACK[variant] or variant
+			for _, l in ipairs(a) do ok(l:find(" layout=" .. written .. " zid=rv1$"), l) end
+			if Rules.MID_VARIANTS[variant] then
+				local rs = G.kinds("RSPLIT")
+				eq(#rs, 1)
+				ok(rs[1]:find("mids=0 fallback=" .. written .. " reason=no_mid_nodes zid=rv1$"), rs[1])
+			else
+				eq(#G.kinds("RSPLIT"), 0, variant)
+			end
+			ok(G.kinds("SUMMARY")[1]:find(" zone_ring=1", 1, true), G.kinds("SUMMARY")[1])
+			-- the expected connections: the plan of the whole ring with the variant
+			local ring = assert(RingM.findRing(G.world, 22768))
+			local want = Rules.planRing(G.world, ring, (function() local s = {} for rn in pairs(ring.nodeSet) do s[rn] = true end return s end)(),
+				variant, function() return {} end)
+			for _, r in ipairs(want.nodes) do
+				eq(Rules.roadText(G.configs[r.node].laneConnections), Rules.roadText(r.conns), variant .. " node " .. r.node)
+			end
+			local after = ringConfigs(G)
+			-- a later build joins one arm: the zone plans the whole ring again with the same rule: nothing changes
+			G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", oneArmBuild(G))
+			G.frames(20)
+			eq(ringConfigs(G), after, variant .. ": seed order does not matter")
+			eq(#G.kinds("ERROR"), 0)
+		end
+	end
+end)
+
+test("ring variants (auto): outside the zones the default rule, on the whole ring: a later one-arm build keeps turbo (no flip)", function()
+	local G = makeGame()
+	G.gs.update({}, G.state, 0.1)
+	G.frames(1)
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ringBuild(G))
+	G.frames(20)
+	local a = G.kinds("APPLY")
+	for _, l in ipairs(a) do ok(not l:find("layout=", 1, true), l) end
+	ok(not G.kinds("SUMMARY")[1]:find("zone_ring", 1, true), G.kinds("SUMMARY")[1])
+	ok(a[1]:find(" turbo=true fresh=true", 1, true), a[1])
+	local after, nApply = ringConfigs(G), #a
+	-- the build at one arm rebuilds that junction (the engine's defaults there)
+	G.configs[22768].laneConnections = Rules.engineDefault(RingM.nodeView(G.world, assert(RingM.findRing(G.world, 22768)), 22768))
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", oneArmBuild(G))
+	G.frames(20)
+	local a2 = G.kinds("APPLY")
+	-- until 2026-10-13 this flipped the seed to matched (turbo=false fresh=false); the whole ring is planned now
+	eq(#a2, nApply + 1)
+	ok(a2[#a2]:find("node=22768 .* turbo=true fresh=true "), tostring(a2[#a2]))
+	eq(ringConfigs(G), after, "back to the ring's turbo layout")
+	-- a zone of another mode (sl) changes nothing either
+	local S = makeGame()
+	S.gs.update({}, S.state, 0.1)
+	S.frames(1)
+	zonesEvent(S, { op = "set", run = "s", zones = { ringZone(S, "sl", "rs1") } })
+	S.gs.handleEvent({}, S.state, "", "apply_command", "onPostBuildProposal", ringBuild(S))
+	S.frames(20)
+	for _, l in ipairs(S.kinds("APPLY")) do ok(not l:find("layout=", 1, true), l) end
+	ok(S.kinds("APPLY")[1]:find(" turbo=true fresh=true", 1, true), S.kinds("APPLY")[1])
+	ok(not S.kinds("SUMMARY")[1]:find("zone_ring", 1, true), S.kinds("SUMMARY")[1])
+end)
+
+---------------------------------------------------------------------------
+-- Nearby junctions stay as they are (PLAN.md "Nearby junctions stay as they are", user decision 2026-10-17): a build
+-- leaves an existing junction it did not change alone (in-game: session 2026-10-17_2159_sqrl-sqsg, node 32350)
+
+--- Segment `id` of the fake world as an event's SegmentAndEntity (its BaseEdge as the fake game reads it).
+local function segEntry(G, id)
+	return { entity = id, type = 0, comp = G.api.engine.getComponent(id, G.api.type.ComponentType.BASE_EDGE) }
+end
+
+--- Adds segment id (n0 to n1, lanes) to the fake world.
+local function addSeg(G, id, n0, n1, lanes)
+	local W = G.world
+	local p, q = W.nodes[n0], W.nodes[n1]
+	local d = { x = q.x - p.x, y = q.y - p.y }
+	W.segs[id] = { id = id, node0 = n0, node1 = n1, lanes = lanes, p0 = { x = p.x, y = p.y }, p1 = { x = q.x, y = q.y },
+		t0 = d, t1 = { x = d.x, y = d.y } }
+	table.insert(p.segs, id)
+	table.insert(q.segs, id)
+end
+
+--- Takes segment id out of the fake world. Returns its event entry (read before).
+local function removeSeg(G, id)
+	local W = G.world
+	local e = segEntry(G, id)
+	local s = W.segs[id]
+	W.segs[id] = nil
+	for _, nd in ipairs({ W.nodes[s.node0], W.nodes[s.node1] }) do
+		for i = #nd.segs, 1, -1 do
+			if nd.segs[i] == id then table.remove(nd.segs, i) end
+		end
+	end
+	return e, s
+end
+
+--- The lanes of a segment drawn the other way (reversed, each lane's direction flipped).
+local function flipLanes(lanes)
+	local out = {}
+	for i = #lanes, 1, -1 do
+		local l = lanes[i]
+		out[#out + 1] = { forward = not l.forward, road = l.road, car = l.car, tram = l.tram, walk = l.walk }
+	end
+	return out
+end
+
+--- A road joined partway along segment `old` (a to b), as the game builds it: `old` is replaced by ids.pa (a to the new
+-- node ids.m halfway; o.flip: drawn from m to a) and ids.pb (m to b), and the new road ids.road runs from m to the
+-- new node ids.far (dx, dy from m). The world follows; returns the build event (the end configs re-pointed in
+-- nodeConfigsToAdd, as the engine's proposal dump of 2026-10-17).
+local function joinPartway(G, old, ids, dx, dy, o)
+	local W = G.world
+	local before, s = removeSeg(G, old)
+	local a, b = W.nodes[s.node0], W.nodes[s.node1]
+	W.nodes[ids.m] = { id = ids.m, x = (a.x + b.x) / 2, y = (a.y + b.y) / 2, segs = {} }
+	W.nodes[ids.far] = { id = ids.far, x = W.nodes[ids.m].x + dx, y = W.nodes[ids.m].y + dy, segs = {} }
+	if o and o.flip then addSeg(G, ids.pa, ids.m, s.node0, flipLanes(s.lanes)) else addSeg(G, ids.pa, s.node0, ids.m, s.lanes) end
+	addSeg(G, ids.pb, ids.m, s.node1, s.lanes)
+	addSeg(G, ids.road, ids.m, ids.far, s.lanes)
+	local sp = { addedNodes = { { entity = ids.m }, { entity = ids.far } },
+		addedSegments = { segEntry(G, ids.pa), segEntry(G, ids.pb), segEntry(G, ids.road) },
+		removedSegments = { before }, removedNodes = {},
+		nodeConfigsToAdd = { { entity = s.node0 }, { entity = s.node1 }, { entity = ids.m }, { entity = ids.far } },
+		nodeConfigsToRemove = { s.node0, s.node1 } }
+	return { { proposal = sp, toAdd = {} }, {}, {}, true }
+end
+
+--- The engine's re-pointing of node n's config from segment `from` onto `to` (findings roads.md "A replaced arm keeps
+-- the junction's lanes"): the same connections and phases, the replaced segment's id swapped.
+local function repoint(G, n, from, to)
+	for _, c in ipairs(G.configs[n].laneConnections) do
+		if c.segment0 == from then c.segment0 = to end
+		if c.segment1 == from then c.segment1 = to end
+	end
+end
+
+local function linesFor(G, kind, n)
+	local out = {}
+	for _, l in ipairs(G.kinds(kind)) do
+		if l:find(" node=" .. n .. " ", 1, true) then out[#out + 1] = l end
+	end
+	return out
+end
+
+test("nearby junctions: a road joined partway along an arm leaves the existing lit crossroads at its far end alone", function()
+	for _, flip in ipairs({ false, true }) do
+		local G = crossGame({}, "default", true, true)
+		local states = #G.configs[901].trafficLightConfig.states
+		local ev = joinPartway(G, 911, { m = 950, far = 960, pa = 921, pb = 922, road = 923 }, 0, 60, { flip = flip })
+		repoint(G, 901, 911, 921)
+		local before = Rules.roadText(G.configs[901].laneConnections)
+		G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ev)
+		eq(G.state:get().jobs[1].quiet, { 901, 902 }, "the far end and the dead end are quiet")
+		G.frames(30)
+		eq(#linesFor(G, "APPLY", 901), 0, "no APPLY at the crossroads (flip=" .. tostring(flip) .. ")")
+		local skip = linesFor(G, "SKIP", 901)
+		eq(#skip, 1)
+		ok(skip[1]:find("kind=cross node=901 reason=unchanged", 1, true), skip[1])
+		for _, cmd in ipairs(G.sent) do
+			for _, e in ipairs(cmd.proposal.streetProposal.nodeConfigsToAdd or {}) do ok(e.entity ~= 901, "901 not written") end
+		end
+		for _, c in ipairs(G.lightCmds or {}) do ok(c.node ~= 901, "901's lights not touched") end
+		eq(Rules.roadText(G.configs[901].laneConnections), before)
+		eq(#G.configs[901].trafficLightConfig.states, states)
+		local sum = G.kinds("SUMMARY")
+		ok(#sum == 1 and sum[1]:find("skips=[^ ]*unchanged:1"), tostring(sum[1]))
+		eq(#G.kinds("ERROR"), 0)
+	end
+end)
+
+test("nearby junctions: a road joined directly onto the crossroads, an arm upgraded to another road or a stop placed on an arm: handled", function()
+	-- an arm built onto the junction (no segment replaced there)
+	local G = crossGame({}, "default", true, true)
+	local sp = { addedNodes = { { entity = 905 } }, addedSegments = { segEntry(G, 914) }, removedSegments = {},
+		nodeConfigsToAdd = { { entity = 901 }, { entity = 905 } }, nodeConfigsToRemove = { 901 } }
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", { { proposal = sp, toAdd = {} }, {}, {}, true })
+	eq(G.state:get().jobs[1].quiet, nil)
+	G.frames(30)
+	eq(#linesFor(G, "APPLY", 901), 1)
+	eq(#G.kinds("ERROR"), 0)
+	-- the west arm upgraded from large to medium (the street upgrade tool replaces the segment, same ends)
+	local U = crossGame({}, "default", true, true)
+	local old, s = removeSeg(U, 911)
+	addSeg(U, 931, s.node0, s.node1, F.lanes(F.TPL.medium))
+	local up = { addedNodes = {}, addedSegments = { segEntry(U, 931) }, removedSegments = { old },
+		nodeConfigsToAdd = { { entity = 901 }, { entity = 902 } }, nodeConfigsToRemove = { 901, 902 } }
+	U.gs.handleEvent({}, U.state, "", "apply_command", "onPostBuildProposal", { { proposal = up, toAdd = {} }, {}, {}, true })
+	eq(U.state:get().jobs[1].quiet, nil, "an arm with another road: changed")
+	U.frames(30)
+	eq(#linesFor(U, "APPLY", 901), 1)
+	eq(#U.kinds("ERROR"), 0)
+	-- a street stop placed on the west arm (it rebuilds that piece, same road): the stop may open exit lanes
+	-- (PLAN.md "Open exit lanes near stops and close junctions"), so the junction is handled
+	local S = crossGame({}, "default", true, true)
+	local old2, s2 = removeSeg(S, 911)
+	addSeg(S, 932, s2.node0, s2.node1, s2.lanes)
+	S.world.segs[932].objects = { { 7001, S.EOT.STOP_RIGHT } }
+	S.edgeObjects[7001] = { param = 0.4 }
+	local st = { addedNodes = {}, addedSegments = { segEntry(S, 932) }, removedSegments = { old2 },
+		nodeConfigsToAdd = { { entity = 901 }, { entity = 902 } }, nodeConfigsToRemove = { 901, 902 } }
+	S.gs.handleEvent({}, S.state, "", "apply_command", "onPostBuildProposal", { { proposal = st, toAdd = {} }, {}, {}, true })
+	eq(S.state:get().jobs[1].quiet, nil, "a stop placed: no quiet node")
+	S.frames(30)
+	eq(#linesFor(S, "APPLY", 901), 1)
+	eq(#S.kinds("ERROR"), 0)
+end)
+
+test("nearby junctions: a quiet junction in a job merged with a build that changed it is handled", function()
+	local G = crossGame({}, "default", true, true)
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal",
+		joinPartway(G, 911, { m = 950, far = 960, pa = 921, pb = 922, road = 923 }, 0, 60))
+	repoint(G, 901, 911, 921)
+	local sp = { addedNodes = { { entity = 905 } }, addedSegments = { segEntry(G, 914) }, removedSegments = {},
+		nodeConfigsToAdd = {}, nodeConfigsToRemove = {} }
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", { { proposal = sp, toAdd = {} }, {}, {}, true })
+	G.frames(30)
+	eq(#linesFor(G, "APPLY", 901), 1)
+	eq(#linesFor(G, "SKIP", 901), 0)
+	ok(G.kinds("SUMMARY")[1]:find(" merged=2", 1, true), G.kinds("SUMMARY")[1])
+	eq(#G.kinds("ERROR"), 0)
+end)
+
+test("nearby junctions: Smart Lanes' lanes kept by the engine at a quiet crossroads: no lane write, its curb turns freed again", function()
+	-- the engine carried the lanes over re-pointed and made the game's phases again (session 2026-10-14_1729, job 8)
+	local G = crossGame(ALWAYS, "rule", true, true)
+	-- a long west arm, so the new T stays beyond the open-exit distance (sl_cross X.OPEN_M) and the rule's lanes hold
+	local W = G.world
+	W.nodes[902].x = -400
+	W.segs[911].p1 = { x = -400, y = -800 }
+	W.segs[911].t0, W.segs[911].t1 = { x = -400, y = 0 }, { x = -400, y = 0 }
+	G.configs[901].laneConnections = Slip.plan(W, 901, function() return {} end).conns
+	local ev = joinPartway(G, 911, { m = 950, far = 960, pa = 921, pb = 922, road = 923 }, 0, 60)
+	repoint(G, 901, 911, 921)
+	G.configs[901].trafficLightConfig = G.tlc(gamePhases(G.configs[901].laneConnections))
+	ok(kerbRed(G) > 0)
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ev)
+	G.frames(30)
+	eq(#linesFor(G, "APPLY", 901), 0)
+	eq(#linesFor(G, "SKIP", 901), 0)
+	for _, cmd in ipairs(G.sent) do
+		for _, e in ipairs(cmd.proposal.streetProposal.nodeConfigsToAdd or {}) do ok(e.entity ~= 901, "901's lanes not written") end
+	end
+	local l = linesFor(G, "LIGHTS", 901)
+	eq(#l, 1)
+	ok(l[1]:find("src=auto node=901 to=free_turn", 1, true), l[1])
+	eq(kerbRed(G), 0)
+	eq(#G.kinds("ERROR"), 0)
+end)
+
+test("nearby junctions: a ring junction reached only through a replaced arm segment: the whole ring, no light switched", function()
+	local G = makeGame()
+	G.gs.update({}, G.state, 0.1)
+	G.frames(1)
+	local ring = assert(RingM.findRing(G.world, 22768))
+	local arm = nil
+	for _, sid in ipairs(G.world.nodes[23293].segs) do
+		if not ring.segSet[sid] then arm = sid end
+	end
+	assert(arm ~= nil)
+	G.lights[23293] = true
+	local ev = joinPartway(G, arm, { m = 950, far = 960, pa = 921, pb = 922, road = 923 }, 40, 40)
+	repoint(G, 23293, arm, 921)
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ev)
+	local q = G.state:get().jobs[1].quiet
+	ok(q ~= nil and q[1] == 23293, "23293 is quiet")
+	G.frames(40)
+	local ringSent = nil
+	for _, cmd in ipairs(G.sent) do
+		if #(cmd.proposal.streetProposal.nodeConfigsToAdd or {}) == 4 then ringSent = cmd end
+	end
+	ok(ringSent ~= nil, "one proposal with the ring's four junctions")
+	local a = {}
+	for _, l in ipairs(G.kinds("APPLY")) do
+		if l:find("ring=", 1, true) then a[#a + 1] = l end
+	end
+	eq(#a, 4)
+	for _, l in ipairs(a) do ok(l:find(" turbo=true fresh=true ", 1, true), l) end
+	for _, c in ipairs(G.lightCmds or {}) do ok(c.node ~= 23293, "the quiet junction keeps its light") end
+	eq(#G.kinds("ERROR"), 0)
+end)
+
+test("nearby junctions: a hand-edited ring junction reached only through a replaced arm: the ring is left alone", function()
+	local G = makeGame()
+	G.gs.update({}, G.state, 0.1)
+	G.frames(1)
+	local ring = assert(RingM.findRing(G.world, 22768))
+	local arm = nil
+	for _, sid in ipairs(G.world.nodes[23293].segs) do
+		if not ring.segSet[sid] then arm = sid end
+	end
+	-- the player edited 23293 with the Crossing Tool (one connection less)
+	local list = {}
+	for i, c in ipairs(G.configs[23293].laneConnections) do if i > 1 then list[#list + 1] = c end end
+	G.configs[23293].laneConnections = list
+	local ev = joinPartway(G, arm, { m = 950, far = 960, pa = 921, pb = 922, road = 923 }, 40, 40)
+	repoint(G, 23293, arm, 921)
+	local edited = Rules.roadText(G.configs[23293].laneConnections)
+	G.gs.handleEvent({}, G.state, "", "apply_command", "onPostBuildProposal", ev)
+	G.frames(40)
+	for _, cmd in ipairs(G.sent) do
+		for _, e in ipairs(cmd.proposal.streetProposal.nodeConfigsToAdd or {}) do ok(not ring.nodeSet[e.entity], "ring node written") end
+	end
+	local skip = G.kinds("SKIP")
+	ok(#skip >= 1 and skip[1]:find("ring=22768 node=23293 reason=hand_edit$"), tostring(skip[1]))
+	eq(Rules.roadText(G.configs[23293].laneConnections), edited)
+	-- left alone as a whole: not planned at all (so no mid-node split either)
+	ok(G.kinds("SUMMARY")[1]:find(" rings=0 ", 1, true), G.kinds("SUMMARY")[1])
+	eq(#G.kinds("ERROR"), 0)
 end)

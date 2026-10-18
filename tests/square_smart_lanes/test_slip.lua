@@ -412,9 +412,9 @@ test("not slip nodes: plain road, Y fork, 5 roads, bus lane; crossroads go to sl
 		{ [1] = { 1, 2, TPL.two2 }, [2] = { 1, 3, TPL.two2 }, [3] = { 1, 4, TPL.two2 }, [4] = { 1, 5, TPL.two2 }, [5] = { 1, 6, TPL.one2 } })
 	eq(Slip.classify(five, 1).kind, "skip")
 	eq(Slip.classify(five, 1).reason, "roads_5")
-	-- bus lane on the main road
+	-- bus lane on the main road: a slip node of its car lanes (bus connections kept, test_bus.lua)
 	local bus = tee({ main = TPL.two2_bus, branch = TPL.one2, side = "right" })
-	eq(Slip.classify(bus, 1).reason, "bus_lane")
+	eq(Slip.classify(bus, 1).case, "B")
 	-- a one-way branch on a two-way road that turns too sharply (a side street, not a slip lane):
 	-- the crossing rule
 	local sharp = tee({ main = TPL.two2, branch = TPL.one2, side = "right", angle = 95 })
@@ -825,10 +825,10 @@ test("lane drop: nothing changes -> none (cheap); odd and unsafe nodes are left 
 	local lone = Slip.classify(line(TPL.one3, TPL.one2), 1)
 	eq(lone.kind, "none")
 	eq(lone.reason, "no_side")
-	-- bus lanes: skipped (logged)
+	-- bus lanes: the car lanes count (1 car lane + bus lane into 3 car lanes: a gain and a drop, test_bus.lua)
 	local bus = Slip.classify(line(TPL.two2_bus, TPL.two3), 1)
-	eq(bus.kind, "skip")
-	eq(bus.reason, "bus_lane")
+	eq(bus.kind, "slip")
+	eq(bus.shape, "lane_drop+gain")
 	-- the two two-way roads disagree on the driving side
 	local mixed = build({ [1] = { 0, 0 }, [2] = { -60, 0 }, [3] = { 60, 0 } },
 		{ [31] = { 2, 1, TPL.two3 }, [32] = { 1, 3, TPL.two2 } })

@@ -14,6 +14,14 @@
 -- Exit-lane fan (sl_exitfan zones only, a measuring mode; PLAN.md "Exit-lane fan (sl_exitfan zones)"): at a lit
 -- node the turns fan over the exit lanes their game phase group leaves them (X.phaseGroups, placeExitLit);
 -- lane strings, straights and everything outside such a zone stay exactly as below.
+-- Open exits (rev 7, PLAN.md "Open exit lanes near stops and close junctions"; X.openOf, openExit): an exit road
+-- with a street stop within X.OPEN_M (80 m) of the node, or whose far end is a junction within X.OPEN_M where its
+-- traffic has a choice of ways (X.waysOn; a slip lane's merge node is none), lets the
+-- far-side turns into it land in every lane down to the kerb-side lane the movements beside them in the same
+-- phase group leave free (a merge at the boundary, never a crossing), so a bus turning across can reach a curb
+-- stop or the lane for the next junction without a lane change. Kerb-side turns and straights keep their lanes
+-- (a freed kerb turn stays in the kerb lane); unlit / unknown / off the phase model: one group of every movement
+-- into the exit. No such road: the connections exactly as below.
 --
 -- Shallow ramps (X.shallowRamps; in game 2026-10-11: one-way ramps leaving and joining a two-way
 -- 3+3 road alongside it, where the crossing rule let the far lane turn across the oncoming
@@ -71,7 +79,9 @@
 -- first, and every feeder is spread evenly when that would pile more on a lane than needed.
 -- Exit lanes nobody feeds get the nearest feeder of an approach without crossing.
 -- "Kerb" is the driving side (right in right-hand traffic), from the two-way roads' lane layout as
--- in sl_slip. Tram connections are kept as the engine made them (Rules.mergeTram, by the caller).
+-- in sl_slip. Tram connections are kept as the engine made them, and every connection touching a
+-- bus-only lane as the game or the player made it (Rules.mergeTram with v.bus, by the caller): the
+-- approaches' lanes (ap.m, ex.o) are car lanes only (Ring.lanesAt), so the kerb lane is the kerb car lane.
 --
 -- Turns a slip lane already serves (X.bypasses; in game 2026-10-11: at square_roundabouts'
 -- Channelized X the kerb lanes still turned right at the centre's lights, so right turners queued
@@ -115,6 +125,11 @@ X.BYPASS_SHORTCUT = 0.9
 X.SHALLOW_MAX_DEG = 60
 X.SHALLOW_LOOK = { dist = 50, nodes = 4 }
 X.SHALLOW_MIN_SIDE_DEG = 2
+-- Open exits (X.openOf): a street stop or the far end junction at most OPEN_M m along the exit road (sl_audit
+-- A.WEAVE_M is this value); the walk out passes at most OPEN_NODES segments, at most OPEN_STOPS stops per segment
+X.OPEN_M = 80
+X.OPEN_NODES = 8
+X.OPEN_STOPS = 16
 
 local atan2 = math.atan2 or math.atan
 
@@ -554,6 +569,56 @@ local function placeExitLit(mvs, M)
 end
 X.placeExitLit = placeExitLit -- tests
 
+--- The extra connections of an open exit road (v.open, X.openExits) of M lanes, once its movements are placed
+-- and its unfed lanes filled (X.roadConns: `pairs` in placeExit's order, kerb-side turn, straight, far-side turn,
+-- each { ap, feeders, map = { {f, lane} }, extra = the fill-in's { {f, lane} } or nil, group }). Each far-side turn
+-- widens kerb-ward down to the highest lane any movement before it in the same group lands in, and out to the
+-- lowest lane any later one lands in (a merge at the boundary lane, never a crossing); its kerb-most feeder takes
+-- the new lanes below, its far-most feeder the ones above (no crossing within the approach). Kerb-side turns and
+-- straights keep their connections. groupOf: phase group per approach seg (the game's axis phases at a lit node,
+-- X.phaseGroupMap), nil: one group of every movement (unlit, unknown, off the model).
+-- Returns { { pr = pair, f = feeder index, lane = exit lane position } } in order.
+local function openExit(pairs_, M, groupOf)
+	local function gid(pr)
+		if groupOf == nil then return 0 end
+		return groupOf[pr.ap.seg] or pr.ap.seg
+	end
+	local added = {} -- pair -> its new { {f, lane} } (later far turns see them: no crossing between two)
+	local function span(pr)
+		local lo, hi, fLo, fHi = nil, nil, nil, nil
+		for _, list in ipairs({ pr.map or {}, pr.extra or {}, added[pr] or {} }) do
+			for _, p in ipairs(list) do
+				if lo == nil or p[2] < lo or (p[2] == lo and p[1] < fLo) then lo, fLo = p[2], p[1] end
+				if hi == nil or p[2] > hi or (p[2] == hi and p[1] > fHi) then hi, fHi = p[2], p[1] end
+			end
+		end
+		return lo, hi, fLo, fHi
+	end
+	local out = {}
+	for i, pr in ipairs(pairs_) do
+		local lo, hi, fLo, fHi = span(pr)
+		if pr.group == "far" and lo ~= nil then
+			local floor, ceil = 1, M
+			for j, o in ipairs(pairs_) do
+				if j ~= i and gid(o) == gid(pr) then
+					local olo, ohi = span(o)
+					if olo ~= nil then
+						if j < i and ohi > floor then floor = ohi end
+						if j > i and olo < ceil then ceil = olo end
+					end
+				end
+			end
+			local mine = {}
+			for t = math.min(lo, floor), lo - 1 do mine[#mine + 1] = { fLo, t } end
+			for t = hi + 1, math.max(hi, ceil) do mine[#mine + 1] = { fHi, t } end
+			added[pr] = mine
+			for _, p in ipairs(mine) do out[#out + 1] = { pr = pr, f = p[1], lane = p[2] } end
+		end
+	end
+	return out
+end
+X.openExit = openExit -- tests
+
 X.MAX_REDUCE = 100 -- X.allocateView: turn-block reductions tried per node (bounded work)
 
 --- Feeders of every exit of approach ap (lanes whose range covers it).
@@ -834,11 +899,19 @@ end
 -- node does not fit the model (then the rule's lanes as before): not every road two-way with traffic
 -- in and out ("one_way"), a crossroads without two axes ("x_axes"), a T without its main road ("t_axis").
 function X.phaseGroups(v, roads)
+	local group, why = X.phaseGroupMap(v, roads)
+	if group == nil then return false, why end
+	v.phaseGroup = group
+	return true
+end
+
+--- X.phaseGroups without touching the view: the group map, or nil and the reason.
+function X.phaseGroupMap(v, roads)
 	local aps = v.approaches or {}
 	for _, r in ipairs(roads or {}) do
-		if not r.twoWay then return false, "one_way" end
+		if not r.twoWay then return nil, "one_way" end
 	end
-	if #aps ~= #(roads or {}) then return false, "one_way" end
+	if #aps ~= #(roads or {}) then return nil, "one_way" end
 	local straightOf = {}
 	for _, ap in ipairs(aps) do
 		for _, ex in ipairs(ap.allExits or ap.exits or {}) do
@@ -855,11 +928,106 @@ function X.phaseGroups(v, roads)
 			group[ap.seg] = ap.seg
 		end
 	end
-	if #aps == 4 and axes ~= 2 then return false, "x_axes" end
-	if #aps == 3 and axes ~= 1 then return false, "t_axis" end
-	if #aps ~= 3 and #aps ~= 4 then return false, "roads" end
-	v.phaseGroup = group
-	return true
+	if #aps == 4 and axes ~= 2 then return nil, "x_axes" end
+	if #aps == 3 and axes ~= 1 then return nil, "t_axis" end
+	if #aps ~= 3 and #aps ~= 4 then return nil, "roads" end
+	return group
+end
+
+local function finite(x) return type(x) == "number" and x == x and x > -math.huge and x < math.huge end
+
+--- Distance (m from the walk's start node) of a stop on walk step st (segment s): projected onto the step's
+-- chord from the stop's position (stop.x / stop.y: EdgeObject transf, direction-free), else its param along
+-- the segment (0 at node0: EdgeObject.param, the direction inferred from the tealdef), else the step's far end
+-- (unknown: the farthest it can be on this segment).
+local function stopDist(s, st, stop)
+	local len = st.len or 0
+	local along = nil
+	local a, b = s.p0, s.p1
+	if st.from ~= s.node0 then a, b = s.p1, s.p0 end
+	if finite(stop.x) and finite(stop.y) and a and b and finite(a.x) and finite(a.y) and finite(b.x) and finite(b.y) then
+		local dx, dy = b.x - a.x, b.y - a.y
+		local c2 = dx * dx + dy * dy
+		if c2 > 1e-6 then
+			local t = ((stop.x - a.x) * dx + (stop.y - a.y) * dy) / c2
+			if t < 0 then t = 0 elseif t > 1 then t = 1 end
+			along = t * len
+		end
+	end
+	if along == nil and finite(stop.param) and stop.param >= 0 and stop.param <= 1 then
+		along = (st.from == s.node0) and stop.param * len or (1 - stop.param) * len
+	end
+	if along == nil then along = len end
+	return (st.at or 0) + along
+end
+X.stopDist = stopDist -- tests
+
+--- Whether exit road sid of node n is open (see the header): "stop" (a street stop at most X.OPEN_M m along
+-- it: world.stops(seg) -> { {x, y, param} ... }, sl_write; a world without it has none), "near" (the walk
+-- out through plain nodes ends at a junction at most X.OPEN_M m away where its traffic has 2+ ways on:
+-- X.waysOn), or nil; plus the distance (m).
+-- Bounded: one walk of at most X.OPEN_NODES segments, X.OPEN_STOPS stops per segment.
+function X.openOf(world, n, sid)
+	local w = Walk.follow(world, n, sid, { dir = "out", maxDist = X.OPEN_M, maxNodes = X.OPEN_NODES })
+	if type(world.stops) == "function" then
+		for _, st in ipairs(w.steps) do
+			if st.at > X.OPEN_M then break end
+			local s = world.seg(st.seg)
+			local ok, list = pcall(world.stops, st.seg)
+			if s and ok and type(list) == "table" then
+				for i, stop in ipairs(list) do
+					if i > X.OPEN_STOPS then break end
+					if type(stop) == "table" then
+						local d = stopDist(s, st, stop)
+						if d <= X.OPEN_M then return "stop", d end
+					end
+				end
+			end
+		end
+	end
+	local jd = Walk.junctionDist(w)
+	if jd ~= nil and jd <= X.OPEN_M and X.waysOn(world, w.node, Walk.lastSeg(w)) >= 2 then return "near", jd end
+	return nil
+end
+
+--- Ways on for traffic arriving at junction J on segment a: J's road segments other than a with lanes leaving J,
+-- at most X.MAX_TURN_DEG off straight (no U-turn). A slip lane's merge node (one way on) is no lane choice.
+function X.waysOn(world, J, a)
+	if J == nil or a == nil then return 0 end
+	local roads = Walk.roadSegs(world, J)
+	local k = 0
+	for _, r in ipairs(roads or {}) do
+		if r.sid ~= a and #r.la.outgoing > 0 and world.seg(a) ~= nil
+			and math.abs(turnDeg(world, J, a, r.sid)) <= X.MAX_TURN_DEG then
+			k = k + 1
+		end
+	end
+	return k
+end
+
+--- The open exits of a classified case X view (X.classify; not in an sl_exitfan zone): exit roads a far-side
+-- turn leads into (the only movements the open rule changes) that X.openOf finds open. Sets v.open = { [seg] =
+-- "stop" | "near" }, v.openList = { "seg:why" } (roads order) and v.openGroup (phase group per approach at a
+-- lit node on the game's axis model, else nil: one group of every movement into the exit), or leaves them nil.
+function X.openExits(world, n, roads, v)
+	local far = {}
+	for _, ap in ipairs(v.approaches or {}) do
+		for _, ex in ipairs(ap.exits or {}) do
+			if ex.cat == "far" and ex.kerbAlign ~= true then far[ex.seg] = true end
+		end
+	end
+	for _, r in ipairs(roads) do
+		if far[r.sid] then
+			local why = X.openOf(world, n, r.sid)
+			if why ~= nil then
+				v.open = v.open or {}
+				v.openList = v.openList or {}
+				v.open[r.sid] = why
+				v.openList[#v.openList + 1] = tostring(r.sid) .. ":" .. why
+			end
+		end
+	end
+	if v.open ~= nil and v.lit == true then v.openGroup = X.phaseGroupMap(v, roads) end
 end
 
 --- The lit state for the log: "yes" | "no" | "unknown".
@@ -888,7 +1056,6 @@ function X.classify(world, n, roads, v)
 	if #roads > X.MAX_ROADS then return skip(v, "roads_" .. #roads) end
 	local side = nil
 	for _, r in ipairs(roads) do
-		if r.la.busOnly then return skip(v, "bus_lane") end
 		if r.twoWay then
 			local s = sideOf(r.la)
 			if s == nil or (side ~= nil and s ~= side) then return skip(v, "mixed_sides") end
@@ -1018,6 +1185,10 @@ function X.classify(world, n, roads, v)
 			v.exitFan, v.exitFanWhy = okG, why
 		end
 	end
+	-- open exits (a stop or the next junction close by): far-side turns fan into them (X.roadConns openExit);
+	-- an sl_exitfan zone's fan already covers them
+	v.open, v.openList, v.openGroup = nil, nil, nil
+	if not v.exitFan then X.openExits(world, n, roads, v) end
 	-- the lanes, never squeezed inside the junction where the exit roads have room
 	X.allocateView(v)
 	v.kind = "slip"
@@ -1085,7 +1256,7 @@ function X.roadConns(v)
 		end
 		for _, mv in ipairs(x.mvs) do
 			local map = mv.map
-			x.pairs[#x.pairs + 1] = { ap = mv.ap, feeders = mv.feeders, map = map, cat = mv.cat }
+			x.pairs[#x.pairs + 1] = { ap = mv.ap, feeders = mv.feeders, map = map, cat = mv.cat, group = mv.group }
 			for _, p in ipairs(map) do
 				push(mv.ap.seg, mv.ap.m[mv.feeders[p[1]]], sid, x.o[p[2]])
 				x.fed[p[2]] = true
@@ -1117,6 +1288,20 @@ function X.roadConns(v)
 				if best then
 					push(best.ap.seg, best.ap.m[best.feeders[bestF]], sid, x.o[j])
 					x.fed[j] = true
+					-- kept apart from best.map (the next lanes' choice above stays as it was): openExit reads it
+					best.extra = best.extra or {}
+					best.extra[#best.extra + 1] = { bestF, j }
+				end
+			end
+		end
+	end
+	-- open exits (v.open, X.openExits): the far-side turns widen over the lanes the movements beside them leave
+	if v.open ~= nil and not (v.exitFan and v.phaseGroup) then
+		for _, sid in ipairs(order) do
+			local x = exits[sid]
+			if v.open[sid] ~= nil then
+				for _, a in ipairs(openExit(x.pairs, #x.o, v.openGroup)) do
+					push(a.pr.ap.seg, a.pr.ap.m[a.pr.feeders[a.f]], sid, x.o[a.lane])
 				end
 			end
 		end
@@ -1173,8 +1358,8 @@ end
 -- first) connected to every exit lane (ex.o) of every exit of that approach (ap.allExits: also the turns
 -- a slip lane serves and the shallow moves, as the game's own model; turns sharper than MAX_TURN_DEG
 -- and ramp to ramp stay out, as X.classify leaves them). Road lanes only: ap.m / ex.o are the road
--- lanes Ring.lanesAt lists (no sidewalk, no tram-only or bus lane; tram connections are kept by the
--- caller, Rules.mergeTram). Never a U-turn (an exit is always another road). Lanes of one approach
+-- lanes Ring.lanesAt lists (no sidewalk, no tram-only or bus lane; tram and bus-lane connections are kept
+-- by the caller, Rules.mergeTram). Never a U-turn (an exit is always another road). Lanes of one approach
 -- cross and merge inside the junction by design: only a phase plan with the whole approach in one
 -- phase (sl_phaseplan opts.fan) makes it safe, so the caller writes it only at a lit node, with that
 -- plan in the same proposal. Order: approach, exit, entry lane, exit lane (deterministic).
@@ -1244,7 +1429,8 @@ function X.isDefault(v, cur)
 			if ex.cat == "straight" then straight[tostring(ap.seg) .. ">" .. tostring(ex.seg)] = true end
 		end
 	end
-	local want, have = movements(X.defaultConns(v), straight), movements(cur, straight)
+	-- car lanes only: the bus lanes' connections are no part of the model, whoever made them
+	local want, have = movements(X.defaultConns(v), straight), movements(Rules.withoutBus(cur, v.bus), straight)
 	for k, sig in pairs(want) do
 		if have[k] ~= sig then return false end
 	end
@@ -1283,6 +1469,8 @@ function X.kerbPairs(v)
 	-- the exit fan (v.exitFan): a freed kerb turn may only use the exit's kerb lane (sl_lights
 	-- L.kerbPhases: its connections into other exit lanes stay red with its approach). Not a pair key.
 	if v and v.exitFan then out.kerbLaneOnly = true end
+	-- the bus-only lane ends (Ring.busLanes): their connections are no kerb turn (sl_lights L.kerbIndices)
+	if v and v.bus then out.bus = v.bus end
 	return out, n
 end
 

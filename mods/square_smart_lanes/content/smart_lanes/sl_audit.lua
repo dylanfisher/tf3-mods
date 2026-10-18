@@ -30,6 +30,8 @@
 --     The exit fan (sl_exitfan zones, view.exitFan): every share of a lane by movements of different game phases,
 --     and one boundary lane per neighbouring pair of one phase's movements, is shared_lit; only shares within one
 --     phase beyond those count as `shared`.
+--     shared_open (by design, in res.forced): every share of a lane of an open exit road (view.open, sl_cross
+--     X.openExits: a street stop or the next junction within 80 m), where the far-side turns fan over the lanes.
 --   * across: a move across the opposing carriageway into or out of a shallow ramp (sl_cross X.shallowRamps /
 --     X.shallowBlocked), unless it is the exit road's only feed or the approach's only way on (or the
 --     crossing rule kept it: view.shallowKept).
@@ -72,7 +74,7 @@ local Walk = ug_require "square_smart_lanes::/smart_lanes/sl_walk.lua"
 local A = {}
 
 A.MAX_TURN_DEG = Cross.MAX_TURN_DEG -- 135: sharper turns are U-turns
-A.WEAVE_M = 80     -- an exit road shorter than this to the next junction is looked along (weave)
+A.WEAVE_M = Cross.OPEN_M -- 80: an exit road shorter than this to the next junction is looked along (weave; the open exits' distance)
 A.MAX_ROADS = 6    -- nodes with more road segments are not audited
 A.MAX_CONNS = 512  -- connections looked at per node
 A.MAX_DETAIL = 6   -- detail entries per node
@@ -91,14 +93,15 @@ local function ringShape(v)
 	return x > 0 and "exit" or "entry"
 end
 
---- Audits node n of `world` with road connections `conns` (plain tables; tram-only ones are ignored).
+--- Audits node n of `world` with road connections `conns` (plain tables; tram-only ones and the ones
+-- touching a bus-only lane, Ring.busLanes, are ignored: the car lanes are audited).
 -- opts: view (sl_slip view or sl_ring nodeView: case / shape, driving side, bypassMap, approaches' exit
 --   categories), ring (sl_ring ring when n is a ring junction: its ring-out give-way is forced, its segments
 --   are no weave roads), connsOf(J) -> connections of junction J or nil (weave), lightsOf(n) -> { light }
 --   or nil (lights), connsFirst (call connsOf before reading J's roads: callers whose connsOf knows only
 --   planned junctions, so the look-ahead reads nothing new), case / shape (log labels overriding the view's).
 -- Returns { node, case, shape, counts = { kind = n } (avoidable), forced = { squeeze, shared, shared_lit,
--- turbo_gap, weave }, detail =
+-- shared_open, turbo_gap, weave }, detail =
 -- { short strings }, total (sum of counts), skipped (reason, nil when audited) }.
 function A.audit(world, n, conns, opts)
 	opts = opts or {}
@@ -125,7 +128,6 @@ function A.audit(world, n, conns, opts)
 	-- never ramps (showcase 2026-10-12: 86 ramp_ramp at ring arms were the circulating ringIn > ringOut)
 	local ringSegs = opts.ring ~= nil and type(opts.ring.segSet) == "table" and opts.ring.segSet or nil
 	for _, x in ipairs(roads) do
-		if x.la.busOnly then return stop("bus_lane") end
 		local r = { sid = x.sid, la = x.la, N = #x.la.incoming, W = #x.la.outgoing, inSet = {}, outSet = {} }
 		for _, l in ipairs(x.la.incoming) do r.inSet[l] = true end
 		for _, l in ipairs(x.la.outgoing) do r.outSet[l] = true end
@@ -233,11 +235,13 @@ function A.audit(world, n, conns, opts)
 		return math.max(1, ra.N - other)
 	end
 
-	-- the connections: feeders per exit lane and approach, movements, lanes used
+	-- the connections: feeders per exit lane and approach, movements, lanes used. Car lanes only: a
+	-- connection touching a bus-only lane is kept as the game or the player made it, never audited
+	local bus = Ring.busLanes(world, n)
 	local feeds, moves, used, fed, order = {}, {}, {}, {}, {}
 	for i, c in ipairs(conns or {}) do
 		if i > A.MAX_CONNS then break end
-		if type(c) == "table" and c.withRoad then
+		if type(c) == "table" and c.withRoad and not Rules.touchesBus(c, bus) then
 			local ra, rb = R[c.segment0], R[c.segment1]
 			if not (ra and rb and ra.inSet[c.lane0] and rb.outSet[c.lane1]) then
 				add(res.counts, "bad", 1)
@@ -372,6 +376,12 @@ function A.audit(world, n, conns, opts)
 					add(res.counts, "shared", extra)
 					note("shared:" .. b .. ((kinds ~= nil and kinds ~= "") and (":" .. kinds) or ""))
 				end
+				H, sharedForced = 0, false
+			end
+			-- an open exit (sl_cross X.openExits, view.open: a stop or the next junction close by): the far-side
+			-- turns fan into it and merge with the movements beside them by design (shared_open)
+			if H > 0 and v ~= nil and type(v.open) == "table" and v.open[b] ~= nil then
+				add(res.forced, "shared_open", H)
 				H, sharedForced = 0, false
 			end
 			if H > 0 then

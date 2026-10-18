@@ -7,7 +7,9 @@
 -- several outgoing lanes, crossing each other; this rule matches lanes one to one without crossings.
 --
 -- Node classification (S.classify). Only road segments count (a lane with CAR, BUS or TRUCK, as
--- sl_ring); tram-only tracks are ignored and their connections kept. Directions are the segments'
+-- sl_ring); tram-only tracks are ignored and their connections kept. Only car lanes are planned
+-- (Ring.lanesAt): bus-only lanes are in no lane list and every connection touching one is kept as it is
+-- (v.bus = Ring.busLanes, Rules.mergeTram); a road whose lanes are all bus-only does not count. Directions are the segments'
 -- tangents at the node (BaseEdge.tangent0/1, both node0 -> node1); a turn angle is signed,
 -- positive = a left turn (counterclockwise, the convention sl_ring's ring direction uses, verified
 -- in game on rings).
@@ -36,7 +38,8 @@
 --     lane drop or gain (classifyDrop, PHASE7.md step 2); the "straight" rule per direction.
 --   * anything else is not a slip node ("none": fewer than 3 road segments, or
 --     one two-way road with one-way roads such as a roundabout splitter's split node;
---     "skip" with a reason for candidates that do not fit: 5+ roads, bus lanes,
+--     "skip" with a reason for candidates that do not fit: 5+ roads, a junction of a ring with a bus
+--     lane ("bus_lane_ring"),
 --     ambiguous geometry, a branch on the far side of a two-way road).
 --
 -- Kerb side (lane 1 = kerb side, as on rings):
@@ -78,7 +81,7 @@
 --     lanes between the branch's and the through lanes' are fed by the nearer one.
 --   * no U-turns, every incoming road lane gets a connection, every outgoing road lane is fed, no
 --     two connections of one travel direction cross. Tram connections are kept as the engine made
---     them (Rules.mergeTram).
+--     them, bus-lane connections as the game or the player made them (Rules.mergeTram).
 
 local Ring = ug_require "square_smart_lanes::/smart_lanes/sl_ring.lua"
 local Rules = ug_require "square_smart_lanes::/smart_lanes/sl_rules.lua"
@@ -446,9 +449,11 @@ end
 --   * a two-way road meeting a one-way road ("one_way_end"), or two one-way roads against each other
 --     ("one_way_clash"): "none". There one direction of the two-way road has no road to go on, and
 --     what the game does with it (turnarounds?) is unknown, so the node is left alone.
--- Bus lanes: skip "bus_lane". A segment with both ends at the node: "none" ("self_loop"). Tram
--- connections are kept by the caller (Rules.mergeTram); S.plan skips ("u_turn") a node whose current
--- connections include a road U-turn (a turnaround the rule does not model).
+-- Lane counts are car lanes (Ring.lanesAt): a bus lane that starts or ends here is a lane drop or gain
+-- for cars; the bus lane's connections are kept (v.bus, Rules.mergeTram). A segment with both ends at
+-- the node: "none" ("self_loop"). Tram connections are kept by the caller (Rules.mergeTram); S.plan
+-- skips ("u_turn") a node whose current connections include a road U-turn (a turnaround the rule does
+-- not model; a bus lane's own U-turn does not count).
 local function classifyDrop(world, n, roads, v)
 	local a, b = roads[1], roads[2]
 	if a.sid == b.sid then
@@ -466,7 +471,6 @@ local function classifyDrop(world, n, roads, v)
 		v.kind, v.reason = "none", (a.twoWay or b.twoWay) and "one_way_end" or "one_way_clash"
 		return v
 	end
-	if a.la.busOnly or b.la.busOnly then return skip(v, "bus_lane") end
 	v.case = "D"
 	local side
 	if a.twoWay and b.twoWay then
@@ -510,7 +514,8 @@ S.classifyDrop = classifyDrop
 --- The rules' view of node n:
 -- { node, kind = "slip" | "none" | "skip", reason, case = "A" | "B" | "X" | "D", side (driving side when known:
 --   "right" | "left"), sideFrom = "two_way" | "branch" | "walk" | "remembered", roads, streams = { stream... },
---   shape }
+--   shape, bus (Ring.busLanes: the bus-only lane ends at n, nil when none), busRoad (true: a road here has bus-only
+--   lanes and no car lane) }
 -- Case "D" (classifyDrop): a plain node of two roads where a travel direction's lane count changes;
 -- its streams are all "straight" (st.change = "drop" | "gain" | nil), shape "lane_drop" | "lane_gain" |
 -- "lane_drop+gain".
@@ -532,9 +537,20 @@ local function classifyOf(world, n)
 	for _, sid in ipairs(node.segs or {}) do
 		local s = world.seg(sid)
 		local la = s and Ring.lanesAt(s, n)
+		-- v.bus: the bus-only lane ends (as Ring.busLanes, from the reads made here)
+		v.bus = Ring.addBus(v.bus, sid, la)
+		-- v.busRoad: a road here with bus-only lanes and no car lane (it counts as no road for the rules; the status
+		-- says so: sl_pick "bus_road")
+		if la and (#la.incoming + #la.outgoing) == 0 and #(la.bus or {}) > 0 then v.busRoad = true end
 		if la and (#la.incoming + #la.outgoing) > 0 then
 			roads[#roads + 1] = { sid = sid, la = la, twoWay = #la.incoming > 0 and #la.outgoing > 0 }
 		end
+	end
+	-- a ring with a bus lane is no ring (Ring.findRing "bus_lane_ring"): its junctions are not slip nodes
+	-- or crossroads either, they stay as the game has them
+	if v.bus ~= nil then
+		local _, why = Ring.ringThrough(world, n)
+		if why == "bus_lane_ring" then return skip(v, "bus_lane_ring") end
 	end
 	v.roads = #roads
 	local oneWay = 0
@@ -561,9 +577,6 @@ local function classifyOf(world, n)
 		return v
 	end
 	if #roads > S.MAX_ROADS then return skip(v, "roads_" .. #roads) end
-	for _, r in ipairs(roads) do
-		if r.la.busOnly then return skip(v, "bus_lane") end
-	end
 	local twoWays = #roads - oneWay
 
 	if twoWays == 0 then
@@ -942,6 +955,21 @@ function S.summary(v)
 	return table.concat(parts, "; ")
 end
 
+--- Lane counts per stream of a diverge / merge view, for the tool's display text (sl_pick
+-- P.slipText): { {shape = "diverge", main, through, branch} | {shape = "merge", through, branch, out} }.
+function S.streamCounts(v)
+	local out = {}
+	if v.case == "X" or v.case == "D" then return out end
+	for _, st in ipairs(v.streams or {}) do
+		if st.shape == "diverge" then
+			out[#out + 1] = { shape = "diverge", main = #st.m, through = #st.t, branch = #st.b }
+		elseif st.shape == "merge" then
+			out[#out + 1] = { shape = "merge", through = #st.p, branch = #st.q, out = #st.o }
+		end
+	end
+	return out
+end
+
 --- Main road lanes of a view (the largest incoming main-road lane count of a diverge or merge;
 -- case "D": the wider side of a direction whose lane count changes).
 function S.mainLanes(v)
@@ -973,7 +1001,7 @@ function S.plan(world, n, currentConns, opts)
 		-- a lane drop is a plain stretch of road: a road U-turn there (a turnaround the game or the
 		-- player made) is something the rule does not model, so the node is left alone, never wiped
 		for _, c in ipairs(cur) do
-			if c.withRoad and c.segment0 == c.segment1 then
+			if c.withRoad and c.segment0 == c.segment1 and not Rules.touchesBus(c, v.bus) then
 				r.status, r.reason = "skip", "u_turn"
 				return r
 			end
@@ -987,7 +1015,7 @@ function S.plan(world, n, currentConns, opts)
 			r.fanWait = v.lit == false and "unlit" or "lit_unknown"
 		end
 	end
-	local conns = Rules.mergeTram(road or S.roadConns(v), cur)
+	local conns = Rules.mergeTram(road or S.roadConns(v), cur, v.bus)
 	r.before, r.after, r.conns = Rules.roadCount(cur), Rules.roadCount(conns), conns
 	if Rules.connsText(conns) == Rules.connsText(cur) then r.status = "same" else r.status = "apply" end
 	return r
@@ -1071,6 +1099,8 @@ function S.logFields(r)
 	if v.case == "X" and v.exitFan then f[#f + 1] = { "exit_fan", "yes" }
 	elseif v.case == "X" and v.exitFanWhy then f[#f + 1] = { "exit_fan", v.exitFanWhy } end
 	if v.unshared and #v.unshared > 0 then f[#f + 1] = { "unshared", table.concat(v.unshared, ",") } end
+	-- open exits (sl_cross X.openExits): open=<exit seg>:<stop|near>,... (far-side turns fan into them), else -
+	if v.case == "X" then f[#f + 1] = { "open", (v.openList and #v.openList > 0) and table.concat(v.openList, ",") or "-" } end
 	-- shallow ramps (sl_cross X.shallowRamps): moves left out across the opposing carriageway (case
 	-- X), the case B assignment's reason (split=shallow), every ramp's chord angle off the road
 	if v.shallowBlocked and #v.shallowBlocked > 0 then f[#f + 1] = { "shallow", table.concat(v.shallowBlocked, ",") } end

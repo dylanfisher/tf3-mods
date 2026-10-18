@@ -688,9 +688,11 @@ end)
 
 test("showcase: turbo ring with splitter arms: the ring-out outer lane after an exit is a turbo_gap", function()
 	-- in game: ring 8330 (4 lanes, 6 splitter arms) and 2-lane rings: unfed:<ringOut> at every exit node
+	-- (a 4-lane ring here: since 2026-10-15 2-lane rings with 2-lane exits get matched lanes, Rules.matchedDefault)
 	for _, m in ipairs(SIDES) do
 		for _, dir in ipairs({ "ccw", "cw" }) do
-			local w = F.ring({ dir = dir, mirror = m, arms = { { splitter = true }, { splitter = true }, { splitter = true } } })
+			local w = F.ring({ dir = dir, mirror = m, ringTpl = "one_way_medium",
+				arms = { { splitter = true }, { splitter = true }, { splitter = true } } })
 			local res, p = ringAuditAll(w, 1)
 			ok(p.turbo, "fresh ring, 2-lane exit legs: turbo " .. tostring(p.turboReason))
 			local exits = 0

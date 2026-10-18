@@ -11,7 +11,7 @@ Nothing is committed; never commit. Never run `make modio` or any `op` command.
 
 - Smart Lanes code: `mods/square_smart_lanes/content/smart_lanes/` (Lua 5.2-style, game Lua is pre-5.3).
   - `sl_ring.lua` world model (`world.node(id)`, `world.seg(id)`, lanes `{forward, road, car, tram, walk}`,
-    `Ring.lanesAt(seg, node)` -> `{e, incoming, outgoing, busOnly}` connection indices, `Ring.segLength`).
+    `Ring.lanesAt(seg, node)` -> `{e, incoming, outgoing, bus}` connection indices (car lanes; `bus` the bus-only ones since rev 5, was a `busOnly` flag), `Ring.segLength`).
   - `sl_slip.lua` slip-lane junctions: `S.classify` (case A all one-way, case B two-way + one-way branch, case X
     handed to `sl_cross.lua`), `S.pairs(shape, ...)` the lane rule on counts, `S.roadConns`, `S.plan`.
   - `sl_cross.lua` crossroads / T-junctions (also one-way roads meeting two-way ones), game-default model.
@@ -36,7 +36,7 @@ Nothing is committed; never commit. Never run `make modio` or any `op` command.
 
 ## Conventions of the lane rules
 
-- Lanes are listed kerb first (lane 1 = kerb side: right in right-hand traffic). Turn angles are signed, left
+- Lanes are listed curb first (lane 1 = curb side: right in right-hand traffic). Turn angles are signed, left
   positive. Every rule must keep the invariants the tests check: no two connections of one travel direction cross,
   every incoming road lane has a connection, every outgoing road lane is fed, no U-turns, tram connections kept
   (`Rules.mergeTram`). Both traffic sides (fixtures `mirror = true`).
@@ -78,16 +78,16 @@ Nothing is committed; never commit. Never run `make modio` or any `op` command.
 
 ### Step 1: look-ahead checks for the "ramp keeps its own lane" merge
 Current rule (`sl_slip.lua` `S.pairs("merge", T, B, O)`): when `T + B > O and O - B >= 2` the branch keeps its own
-kerb lanes and the through lanes fold among themselves. Make it road-aware: a pure helper module (e.g.
+curb lanes and the through lanes fold among themselves. Make it road-aware: a pure helper module (e.g.
 `sl_walk.lua`) that follows a road through plain 2-road nodes (with caps: distance ~400 m, ~12 nodes), and in
 `S.classify` / the plan decide per merge stream:
-- upstream: if the through road had at most `O - B` road lanes in its travel direction within the walk (its kerb
+- upstream: if the through road had at most `O - B` road lanes in its travel direction within the walk (its curb
   lane was added nearby), the ramp keeps its lane;
 - room: if the through road's distance back to the previous junction (node with 3+ road segments) is under ~80 m,
   keep the give-way merge (no room for through lanes to merge among themselves);
 - if the through road carried all T lanes for the whole walk (a real T-lane road), keep the give-way merge,
-  unless downstream within the walk the out road's kerb lane leaves at a diverge / turn (ramp traffic wants it);
-- downstream: if the out road drops lanes from the kerb side soon after (within ~150 m), keep the give-way merge.
+  unless downstream within the walk the out road's curb lane leaves at a diverge / turn (ramp traffic wants it);
+- downstream: if the out road drops lanes from the curb side soon after (within ~150 m), keep the give-way merge.
 Log the decision (`merge=own_lane|give_way` plus a short `why=`) on the APPLY line. Tests for each branch, both
 traffic sides, and the walk caps (a long loop of plain nodes must stop).
 
@@ -95,15 +95,15 @@ traffic sides, and the walk caps (a long loop of plain nodes must stop).
 Nodes with exactly two road segments where a travel direction's lane count changes (e.g. 3 -> 2, or 2 -> 3) are
 "none" today. Add a case (e.g. "D") handled in the automatic pass and by the tool (Apply / badge; Reset needs a
 game-default model only if one can be derived; otherwise snapshot Reset like slip nodes). Rule: lanes matched from
-the far side, the kerb lane(s) end (fold into the kerb-most continuing lane); gains fed by the kerb lane. Only when
+the far side, the curb lane(s) end (fold into the curb-most continuing lane); gains fed by the curb lane. Only when
 the count actually changes and both segments are road (no bus lanes, tram kept). Do not touch nodes where nothing
 changes, and never ring nodes (rings are handled first). Lights: leave them (`Lights.slipNode` false for D).
 Translations for any new tool text (e.g. a head line "Lane drop, %s").
 
 ### Step 3: exit lanes before off-ramps (diverge counterpart)
-Diverge rule (`S.pairs("diverge", N, T, B)`): with `N <= T` the kerb lane feeds the branch AND continues straight.
+Diverge rule (`S.pairs("diverge", N, T, B)`): with `N <= T` the curb lane feeds the branch AND continues straight.
 Mirror the merge rule: when the main road has 3 or more lanes and through traffic keeps at least two lanes, make
-the kerb lane exit-only (consistent with the crossroads rule "3+ lanes: kerb lane turns only"); use the Step 1
+the curb lane exit-only (consistent with the crossroads rule "3+ lanes: curb lane turns only"); use the Step 1
 look-ahead (e.g. keep shared when the through road gains its lanes back right away is irrelevant; keep shared when
 the branch has 2+ lanes and N - B < 2). Keep every out lane fed (an unfed through lane is fed by the next lane).
 Tests + log fields (`diverge=exit_only|shared`).

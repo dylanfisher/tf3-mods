@@ -129,25 +129,29 @@ test("4-lane ring, medium arms: outer lane exits only, lane 2 exits or continues
 	assertReach(W, ring, result(p, nil, W, ring), "4-lane")
 end)
 
-test("2-lane ring, medium arms: turbo set at node 19132", function()
+test("2-lane ring, medium arms: matched set at node 19132 (the default since 2026-10-15)", function()
+	-- until 2026-10-15 turbo: "20359:1>20602:4:R-,20359:2>20602:3:R-,20359:2>19600:1:R-,20602:1>19600:2:R-,20602:2>19600:1:R-"
+	-- (5; the outer lane exit only). Matched adds the outer lane straight on (20359:1>19600:2), 6.
 	local W = F.PROBE_2LANE_MEDIUM.world()
 	local p, ring = plan(W, 19132, F.PROBE_2LANE_MEDIUM.conns)
-	ok(p.turbo)
+	eq({ p.turbo, p.turboReason, p.defaultWhy, p.layout }, { false, "two_lane_ring", "two_lane_exits", "matched" })
 	local r = byNode(p)[19132]
 	eq(Rules.connsText(r.conns), Rules.connsText(F.parseConns(
-		"20359:1>20602:4:R-,20359:2>20602:3:R-,20359:2>19600:1:R-,20602:1>19600:2:R-,20602:2>19600:1:R-")))
+		"20359:1>20602:4:R-,20359:1>19600:2:R-,20359:2>20602:3:R-,20359:2>19600:1:R-,20602:1>19600:2:R-,20602:2>19600:1:R-")))
 	assertReach(W, ring, result(p, nil, W, ring), "2-lane medium")
 end)
 
-test("2-lane ring, small arms: fallback, outer lane exits or continues, entry 1:1", function()
+test("2-lane ring, small arms: the default spiral (no mid nodes: sl_rspiral), entry into both lanes", function()
+	-- before 2026-10-14 matched lanes ("18144:1>18141:2,18144:1>18164:2,18144:2>18141:1,18164:1>18141:2", 4)
 	local W = F.PROBE_2LANE_SMALL.world()
 	local p, ring = plan(W, 17955, F.PROBE_2LANE_SMALL.conns)
 	eq(p.turbo, false)
+	eq({ p.default, p.layout }, { true, "sl_rspiral" })
 	local r = byNode(p)[17955]
 	eq(Rules.connsText(r.conns), Rules.connsText(F.parseConns(
-		"18144:1>18141:2:R-,18144:1>18164:2:R-,18144:2>18141:1:R-,18164:1>18141:2:R-")))
+		"18144:1>18164:2:R-,18144:2>18141:1:R-,18144:2>18141:2:R-,18164:1>18141:1:R-,18164:1>18141:2:R-")))
 	eq(r.before, 5)
-	eq(r.after, 4)
+	eq(r.after, 5)
 	assertReach(W, ring, result(p, nil, W, ring), "2-lane small")
 end)
 
@@ -185,8 +189,9 @@ for _, c in ipairs(CASES) do
 				eq(#armSegs(W, ring, "in"), nArms)
 				for _, r in ipairs(p.nodes) do ok(r.status == "apply" or r.status == "same", "status " .. r.status) end
 				assertReach(W, ring, result(p, nil, W, ring), c.ring .. "/" .. c.arm)
-				-- no merges of two ring lanes into one ring lane
+				-- no merges of two ring lanes into one ring lane (at junctions: a mid node's inward move merges by design)
 				for _, r in ipairs(p.nodes) do
+					if r.mid then goto continue end
 					local into = {}
 					for _, cn in ipairs(r.conns) do
 						if cn.segment0 == r.view.ringIn and cn.segment1 == r.view.ringOut then
@@ -194,6 +199,7 @@ for _, c in ipairs(CASES) do
 							into[cn.lane1] = true
 						end
 					end
+					::continue::
 				end
 			end)
 		end
@@ -285,8 +291,9 @@ test("splitter islands: separate exit and entry nodes on the ring", function()
 		end
 		eq(exits, 4)
 		eq(entries, 4)
-		ok(p.turbo)
-		-- exit node: outer lane -> kerb leg lane, lane 2 -> other leg lane or straight on
+		-- a 2-lane ring with 2-lane exit legs: matched lanes (until 2026-10-15 turbo)
+		eq({ p.turbo, p.defaultWhy }, { false, "two_lane_exits" })
+		-- exit node: outer lane -> kerb leg lane or straight on, lane 2 -> other leg lane or straight on
 		local X = p.nodes[1].view.x[1] and p.nodes[1] or p.nodes[2]
 		local cnt = 0
 		for _, cn in ipairs(X.conns) do if cn.segment1 == X.view.arm then cnt = cnt + 1 end end
@@ -335,12 +342,12 @@ test("4-segment node (road through the centre) is skipped and disables turbo", f
 	end
 end)
 
-test("bus lanes: an arm with a bus lane is skipped, a bus-lane ring is no ring", function()
+test("bus lanes: an arm with a bus lane is handled (its car lanes), a bus-lane ring is no ring", function()
 	local W = F.ring({ ringTpl = "one_way_small", arms = { { tpl = "medium_bus" }, { tpl = "medium" }, { tpl = "medium" } } })
 	local p = plan(W, 1)
 	local reasons = {}
 	for _, r in ipairs(p.nodes) do if r.status == "skip" then reasons[#reasons + 1] = r.reason end end
-	eq(reasons, { "bus_lane_arm" })
+	eq(reasons, {}, "no junction skipped (bus connections kept: test_bus.lua)")
 	local B = F.ring({ ringTpl = "one_way_small_bus", arms = { { tpl = "medium" }, { tpl = "medium" }, { tpl = "medium" } } })
 	local ring, why = Ring.findRing(B, 1)
 	eq(ring, nil)
@@ -369,7 +376,7 @@ test("tram ring: road connections follow the rule, the engine's tram connections
 		local tram, roadOnTramPair = 0, nil
 		for _, cn in ipairs(r.conns) do
 			if cn.withTram then tram = tram + 1 end
-			if cn.segment0 == v.ringIn and cn.lane0 == v.o_in[2] and cn.segment1 == v.ringOut then roadOnTramPair = cn end
+			if cn.segment0 == v.ringIn and cn.lane0 == v.o_in[2] and cn.segment1 == v.ringOut and cn.lane1 == v.o_out[2] then roadOnTramPair = cn end
 		end
 		eq(tram, 2, "both tram connections kept at " .. r.node)
 		ok(roadOnTramPair and roadOnTramPair.withRoad and roadOnTramPair.withTram, "shared pair keeps both flags")
@@ -389,6 +396,8 @@ test("tram-only track at a ring node is not an arm", function()
 	ok(kinds[1] == "plain" or kinds[2] == "plain" or kinds[3] == "plain")
 end)
 
+-- planRing on seeds alone (the automatic pass seeds whole rings, Rules.autoSeeds; seeds alone only beside a
+-- hand-edited junction: test_wholering.lua)
 test("only seed nodes are written; a partly rebuilt ring gets the safe rule (no exit-only lane)", function()
 	local W = F.ring({ ringTpl = "one_way_small", arms = { { tpl = "medium" }, { tpl = "medium" }, { tpl = "medium" }, { tpl = "medium" } } })
 	local p = plan(W, 1, nil, { [1] = true, [101] = true })
@@ -569,7 +578,8 @@ for _, c in ipairs(CASES) do
 			for k = 1, 4 do arms[k] = { tpl = c.arm, flip = (k % 2 == 0) } end
 			local W = F.ring({ ringTpl = c.ring, arms = arms, dir = dir })
 			local p, ring = plan(W, 1)
-			assertNoMerges(p, c.ring .. "/" .. c.arm)
+			-- the default spiral (2-lane ring, 1-lane exits) merges the entry into the shifted stream by design
+			if not p.default then assertNoMerges(p, c.ring .. "/" .. c.arm) end
 			assertReach(W, ring, result(p, nil, W, ring), c.ring .. "/" .. c.arm, true)
 		end)
 	end
@@ -949,20 +959,21 @@ test("ramp entry: APPLY fields carry entry= and why=", function()
 end)
 
 --- A 2-lane ring with two 1-lane on-ramps, each followed by a 3-lane arm (review 2026-10-11): every exit has
--- 3 lanes, so the ring also gets the exit-only outer lane (turbo).
+-- 3 lanes, so until 2026-10-15 the ring also got the exit-only outer lane (turbo); since then a 2-lane ring with
+-- wide exits gets matched lanes (Rules.matchedDefault), the ramps keep their own lane (rule 5).
 local function twoRamps(o)
 	return F.ring({ ringTpl = "one_way_small", dir = o.dir, mirror = o.mirror,
 		arms = { { tpl = "large" }, { tpl = "highway_small", flip = true }, { tpl = "large" }, { tpl = "highway_small", flip = true } } })
 end
 
 for _, o in ipairs(SIDES) do
-	test("ramp entry with the exit-only outer lane (turbo), two ramps: no dead lane, every entry connected (" .. sideName(o) .. ")", function()
+	test("ramp entry on a 2-lane ring with wide exits (matched default), two ramps: no dead lane, every entry connected (" .. sideName(o) .. ")", function()
 		local W = twoRamps(o)
 		for _, variant in ipairs({ "two_lane", "turbo" }) do
 			local ring = assert(Ring.findRing(W, 1))
 			local p = Rules.planRing(W, ring, all(W), variant, none)
 			local msg = sideName(o) .. " " .. variant
-			eq(p.turbo, true, msg)
+			eq({ p.turbo, p.defaultWhy }, { false, "two_lane_exits" }, msg)
 			local own = 0
 			for _, r in ipairs(p.nodes) do
 				if r.entry ~= nil then
@@ -971,8 +982,9 @@ for _, o in ipairs(SIDES) do
 					assertRampInvariants(r, msg)
 					own = own + 1
 				elseif r.view.kind == "arm" then
-					-- the 3-lane arm right after a ramp: the outer lane (the ramp's traffic) exits only
-					eq(viewPairs(r), "e1>o1,e2>o2,e3>o2,i1>x1,i2>o2,i2>x2,i2>x3", msg)
+					-- the 3-lane arm right after a ramp: the outer lane (the ramp's traffic) exits or goes on (matched;
+					-- turbo until 2026-10-15: "e1>o1,e2>o2,e3>o2,i1>x1,i2>o2,i2>x2,i2>x3")
+					eq(viewPairs(r), "e1>o1,e2>o2,e3>o2,i1>o1,i1>x1,i2>o2,i2>x2,i2>x3", msg)
 				end
 			end
 			eq(own, 2, msg)
@@ -1016,6 +1028,60 @@ for _, o in ipairs(SIDES) do
 		local reach = Rules.reachability(W, ring, result(p, nil, W, ring), false)
 		for _, vout in ipairs(armSegs(W, ring, "out")) do
 			ok(reach[r.view.arm] and reach[r.view.arm][vout.arm], sideName(o) .. " ramp -> exit " .. vout.arm)
+		end
+	end)
+end
+
+---------------------------------------------------------------------------
+-- The ring decision table (PLAN.md "Default: matched lanes on 2-lane rings with wide exits", user decision
+-- 2026-10-15 after bench s5): 2-lane ring with 2+-lane exits -> matched; 3- / 4-lane rings -> turbo; 2-lane ring with
+-- one-lane exits -> sl_rmid (with mid nodes); mixed exits -> matched (narrow_exit, as always)
+
+F.TPL.one_way3 = F.TPL.one_way3 or "BS FV FV FV FS"
+
+for _, o in ipairs(SIDES) do
+	test("ring decision table: 2-lane/wide exits matched, 3-/4-lane turbo, 2-lane/1-lane exits sl_rmid, mixed matched; 3-6 arms (" .. sideName(o) .. ")", function()
+		local cases = {
+			{ ring = "one_way_small", arm = "medium", turbo = false, why = "two_lane_exits", layout = "matched" },
+			{ ring = "one_way_small", arm = "large", turbo = false, why = "two_lane_exits", layout = "matched" },
+			{ ring = "one_way3", arm = "medium", turbo = true },
+			{ ring = "one_way_medium", arm = "medium", turbo = true },
+			{ ring = "one_way_medium", arm = "large", turbo = true },
+			{ ring = "one_way_small", arm = "small", turbo = false, why = "one_lane_exits", layout = "sl_rmid", extra = 1 },
+			{ ring = "one_way_small", arm = "medium", mixed = "small", turbo = false, reason = "narrow_exit" },
+		}
+		for _, c in ipairs(cases) do
+			for A = 3, 6 do
+				local arms = {}
+				for k = 1, A do arms[k] = { tpl = (c.mixed and k == 2) and c.mixed or c.arm } end
+				local W = F.ring({ ringTpl = c.ring, arms = arms, dir = o.dir, mirror = o.mirror,
+					extraNodes = c.extra })
+				local ring = assert(Ring.findRing(W, 1))
+				for _, variant in ipairs({ "two_lane", "turbo" }) do
+					local msg = sideName(o) .. " " .. c.ring .. "/" .. c.arm .. (c.mixed and "+mixed" or "") .. " A=" .. A .. " " .. variant
+					local p = Rules.planRing(W, ring, all(W), variant, none)
+					eq({ p.turbo, p.defaultWhy, p.layout }, { c.turbo, c.why, c.layout }, msg)
+					if c.reason then eq(p.turboReason, c.reason, msg) end
+					if c.layout == "sl_rmid" then eq(p.mids, A, msg) end
+					for _, r in ipairs(p.nodes) do
+						local v = r.view
+						if not r.mid and v.kind == "arm" and #v.x > 0 then
+							local cont = false
+							for _, cn in ipairs(r.conns) do
+								if cn.segment0 == v.ringIn and cn.lane0 == v.o_in[1] and cn.segment1 == v.ringOut then cont = true end
+							end
+							-- the outer lane goes on at an exit with matched lanes, exits only with turbo and sl_rmid
+							eq(cont, not c.turbo and c.layout ~= "sl_rmid", msg .. " outer lane at " .. r.node)
+							if c.layout == "matched" then
+								eq(Rules.roadText(r.conns), Rules.roadText(Rules.twoLaneConns(v, { turbo = false })), msg)
+							end
+						end
+					end
+					-- 2-lane rings (matched, sl_rmid): every entry reaches every exit through node connections alone;
+					-- wider rings and mixed exits with lane changes between the junctions, as the engine's own default
+					assertReach(W, ring, result(p, nil, W, ring), msg, c.mixed ~= nil or c.ring ~= "one_way_small" or nil)
+				end
+			end
 		end
 	end)
 end

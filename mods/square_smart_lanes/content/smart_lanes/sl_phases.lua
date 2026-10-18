@@ -178,7 +178,9 @@ end
 -- directions), counts = { cross, merge, ped } (pairs), cwSeg = { [k] = arm segment or false },
 -- unknown = { [i] = true } connections without a known arm or lane, cls, seg0 = { [i] = segment0 }
 -- (0-based: the approach of each connection; sl_phaseplan's fan plans accept conflicts within one
--- approach) }; or nil, reason
+-- approach), lane0 = { [i] = lane0 } (0-based: the entry lane, with seg0 the key of sl_phaseplan's
+-- whole-lane rule), seg1 = { [i] = segment1 } (0-based: the exit), armAngle = { [seg] = angle } (deg,
+-- normalized; sl_phaseplan's validator checks an axis plan's road pairs with them) }; or nil, reason
 -- ("conns" | "crosswalks" | "arms": over a bound).
 function P.build(input)
 	input = input or {}
@@ -210,10 +212,13 @@ function P.build(input)
 	local cls = input.cls or {}
 	local strictU = input.uTurn ~= "chord"
 	local M = { n = n, nCross = #cws, size = n + #cws, kinds = {}, counts = { cross = 0, merge = 0, ped = 0 },
-		cwSeg = {}, unknown = {}, cls = cls, seg0 = {} }
+		cwSeg = {}, unknown = {}, cls = cls, seg0 = {}, lane0 = {}, seg1 = {}, armAngle = {} }
+	for _, a in ipairs(sorted) do
+		if M.armAngle[a.seg] == nil then M.armAngle[a.seg] = a.angle end
+	end
 	local ent, ex = {}, {}
 	for i, c in ipairs(conns) do
-		M.seg0[i - 1] = c.segment0
+		M.seg0[i - 1], M.lane0[i - 1], M.seg1[i - 1] = c.segment0, c.lane0, c.segment1
 		ent[i], ex[i] = port(c.segment0, c.lane0), port(c.segment1, c.lane1)
 		if ent[i] == nil or ex[i] == nil then M.unknown[i - 1] = true end
 	end

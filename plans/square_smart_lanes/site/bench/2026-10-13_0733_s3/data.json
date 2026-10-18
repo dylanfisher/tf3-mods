@@ -1,0 +1,1167 @@
+{
+ "version": 3,
+ "single": false,
+ "seed": "683079",
+ "built": "2026-10-13 07:33",
+ "pairing": "id",
+ "header": {
+  "title": "Sheet 3: lit T-junctions and crossroads"
+ },
+ "runs": [
+  {
+   "id": "game",
+   "label": "Game lanes",
+   "kind": "game",
+   "mode": "game",
+   "session": "2026-10-13_0733_bench-s3-683079"
+  },
+  {
+   "id": "sl",
+   "label": "Smart Lanes",
+   "kind": "smart",
+   "mode": "sl",
+   "session": "2026-10-13_0733_bench-s3-683079"
+  },
+  {
+   "id": "sl-lock",
+   "label": "Smart Lanes, curb turn locked",
+   "kind": "smart",
+   "mode": "sl_lock",
+   "session": "2026-10-13_0733_bench-s3-683079"
+  }
+ ],
+ "units": [
+  {
+   "nn": "01",
+   "ids": {
+    "sl": "g1a",
+    "game": "g1b",
+    "sl-lock": "g1d"
+   },
+   "m": {
+    "sl": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 1",
+     "kmh": 39.07,
+     "standing": 23.8,
+     "queue": 8.6,
+     "thru": 78.2,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g1a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g1a.jpg"
+    },
+    "game": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 1",
+     "kmh": 18.86,
+     "standing": 41.8,
+     "queue": 33.6,
+     "thru": 74.8,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g1b",
+     "applied": 0,
+     "skipped": 4,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g1b.jpg"
+    },
+    "sl-lock": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 1",
+     "kmh": 20.93,
+     "standing": 46.4,
+     "queue": 35.4,
+     "thru": 69.8,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g1d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g1d.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lt22",
+     "pair": "g1"
+    },
+    "game": {
+     "test": "lt22",
+     "pair": "g1"
+    },
+    "sl-lock": {
+     "test": "lt22",
+     "pair": "g1"
+    }
+   },
+   "category": "faster",
+   "verdict": "+20.2 km/h"
+  },
+  {
+   "nn": "02",
+   "ids": {
+    "sl": "g2a",
+    "game": "g2b",
+    "sl-lock": "g2d"
+   },
+   "m": {
+    "sl": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 2",
+     "kmh": 20.26,
+     "standing": 37.8,
+     "queue": 26.0,
+     "thru": 76.7,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g2a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 2",
+     "kmh": 18.4,
+     "standing": 41.6,
+     "queue": 34.5,
+     "thru": 75.1,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g2b",
+     "applied": 0,
+     "skipped": 4,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 2",
+     "kmh": 29.72,
+     "standing": 31.9,
+     "queue": 17.1,
+     "thru": 80.9,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g2d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lt22",
+     "pair": "g2"
+    },
+    "game": {
+     "test": "lt22",
+     "pair": "g2"
+    },
+    "sl-lock": {
+     "test": "lt22",
+     "pair": "g2"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.9 km/h"
+  },
+  {
+   "nn": "03",
+   "ids": {
+    "sl": "g3a",
+    "game": "g3b",
+    "sl-lock": "g3d"
+   },
+   "m": {
+    "sl": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 3",
+     "kmh": 22.57,
+     "standing": 33.1,
+     "queue": 21.5,
+     "thru": 82.6,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g3a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 3",
+     "kmh": 17.61,
+     "standing": 44.0,
+     "queue": 39.9,
+     "thru": 76.2,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g3b",
+     "applied": 0,
+     "skipped": 4,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 3",
+     "kmh": 39.81,
+     "standing": 24.2,
+     "queue": 8.8,
+     "thru": 74.5,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g3d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lt22",
+     "pair": "g3"
+    },
+    "game": {
+     "test": "lt22",
+     "pair": "g3"
+    },
+    "sl-lock": {
+     "test": "lt22",
+     "pair": "g3"
+    }
+   },
+   "category": "faster",
+   "verdict": "+5.0 km/h"
+  },
+  {
+   "nn": "04",
+   "ids": {
+    "sl": "g4a",
+    "game": "g4b",
+    "sl-lock": "g4d"
+   },
+   "m": {
+    "sl": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 4",
+     "kmh": 21.52,
+     "standing": 36.5,
+     "queue": 25.2,
+     "thru": 82.2,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g4a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 4",
+     "kmh": 15.1,
+     "standing": 46.1,
+     "queue": 46.2,
+     "thru": 72.0,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g4b",
+     "applied": 0,
+     "skipped": 4,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 4",
+     "kmh": 22.12,
+     "standing": 40.0,
+     "queue": 30.7,
+     "thru": 80.5,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g4d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lt22",
+     "pair": "g4"
+    },
+    "game": {
+     "test": "lt22",
+     "pair": "g4"
+    },
+    "sl-lock": {
+     "test": "lt22",
+     "pair": "g4"
+    }
+   },
+   "category": "faster",
+   "verdict": "+6.4 km/h"
+  },
+  {
+   "nn": "05",
+   "ids": {
+    "sl": "g5a",
+    "game": "g5b",
+    "sl-lock": "g5d"
+   },
+   "m": {
+    "sl": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 5",
+     "kmh": 31.0,
+     "standing": 26.4,
+     "queue": 11.3,
+     "thru": 82.4,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g5a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 5",
+     "kmh": 24.05,
+     "standing": 35.1,
+     "queue": 21.6,
+     "thru": 76.6,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g5b",
+     "applied": 0,
+     "skipped": 4,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 5",
+     "kmh": 24.25,
+     "standing": 36.7,
+     "queue": 24.2,
+     "thru": 81.7,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g5d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lt22",
+     "pair": "g5"
+    },
+    "game": {
+     "test": "lt22",
+     "pair": "g5"
+    },
+    "sl-lock": {
+     "test": "lt22",
+     "pair": "g5"
+    }
+   },
+   "category": "faster",
+   "verdict": "+6.9 km/h"
+  },
+  {
+   "nn": "06",
+   "ids": {
+    "sl": "g6a",
+    "game": "g6b",
+    "sl-lock": "g6d"
+   },
+   "m": {
+    "sl": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 6",
+     "kmh": 21.94,
+     "standing": 34.1,
+     "queue": 19.9,
+     "thru": 74.5,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g6a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 6",
+     "kmh": 15.98,
+     "standing": 44.8,
+     "queue": 44.7,
+     "thru": 73.7,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g6b",
+     "applied": 0,
+     "skipped": 4,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 6",
+     "kmh": 24.52,
+     "standing": 37.4,
+     "queue": 26.5,
+     "thru": 82.5,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g6d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lt22",
+     "pair": "g6"
+    },
+    "game": {
+     "test": "lt22",
+     "pair": "g6"
+    },
+    "sl-lock": {
+     "test": "lt22",
+     "pair": "g6"
+    }
+   },
+   "category": "faster",
+   "verdict": "+6.0 km/h"
+  },
+  {
+   "nn": "07",
+   "ids": {
+    "sl": "g7a",
+    "game": "g7b",
+    "sl-lock": "g7d"
+   },
+   "m": {
+    "sl": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 7",
+     "kmh": 26.02,
+     "standing": 30.9,
+     "queue": 17.2,
+     "thru": 84.7,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g7a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 7",
+     "kmh": 20.61,
+     "standing": 39.8,
+     "queue": 30.4,
+     "thru": 75.2,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g7b",
+     "applied": 0,
+     "skipped": 4,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 7",
+     "kmh": 25.39,
+     "standing": 36.2,
+     "queue": 22.7,
+     "thru": 78.5,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g7d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lt22",
+     "pair": "g7"
+    },
+    "game": {
+     "test": "lt22",
+     "pair": "g7"
+    },
+    "sl-lock": {
+     "test": "lt22",
+     "pair": "g7"
+    }
+   },
+   "category": "faster",
+   "verdict": "+5.4 km/h"
+  },
+  {
+   "nn": "08",
+   "ids": {
+    "sl": "g8a",
+    "game": "g8b",
+    "sl-lock": "g8d"
+   },
+   "m": {
+    "sl": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 8",
+     "kmh": 47.06,
+     "standing": 15.1,
+     "queue": 3.5,
+     "thru": 75.5,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g8a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 8",
+     "kmh": 21.91,
+     "standing": 36.4,
+     "queue": 23.9,
+     "thru": 74.9,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g8b",
+     "applied": 0,
+     "skipped": 4,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 8",
+     "kmh": 24.45,
+     "standing": 37.9,
+     "queue": 26.4,
+     "thru": 81.0,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g8d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lt22",
+     "pair": "g8"
+    },
+    "game": {
+     "test": "lt22",
+     "pair": "g8"
+    },
+    "sl-lock": {
+     "test": "lt22",
+     "pair": "g8"
+    }
+   },
+   "category": "faster",
+   "verdict": "+25.2 km/h"
+  },
+  {
+   "nn": "09",
+   "ids": {
+    "sl": "g9a",
+    "game": "g9b",
+    "sl-lock": "g9d"
+   },
+   "m": {
+    "sl": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 9",
+     "kmh": 27.04,
+     "standing": 31.5,
+     "queue": 17.9,
+     "thru": 85.7,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g9a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 9",
+     "kmh": 21.18,
+     "standing": 39.2,
+     "queue": 30.2,
+     "thru": 81.7,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g9b",
+     "applied": 0,
+     "skipped": 4,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "T-junction with traffic lights, 2 x 2 lanes \u00b7 set 9",
+     "kmh": 21.22,
+     "standing": 39.6,
+     "queue": 32.6,
+     "thru": 82.8,
+     "samples": 120,
+     "variant": "T 2x2",
+     "zone": "g9d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lt22",
+     "pair": "g9"
+    },
+    "game": {
+     "test": "lt22",
+     "pair": "g9"
+    },
+    "sl-lock": {
+     "test": "lt22",
+     "pair": "g9"
+    }
+   },
+   "category": "faster",
+   "verdict": "+5.9 km/h"
+  },
+  {
+   "nn": "10",
+   "ids": {
+    "sl": "g10a",
+    "game": "g10b",
+    "sl-lock": "g10d"
+   },
+   "m": {
+    "sl": {
+     "name": "Crossroads with traffic lights \u00b7 set 10",
+     "kmh": 18.67,
+     "standing": 42.8,
+     "queue": 59.5,
+     "thru": 113.2,
+     "samples": 120,
+     "variant": "2x2 crossroads",
+     "zone": "g10a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g10a.jpg"
+    },
+    "game": {
+     "name": "Crossroads with traffic lights \u00b7 set 10",
+     "kmh": 12.73,
+     "standing": 50.1,
+     "queue": 96.5,
+     "thru": 103.5,
+     "samples": 120,
+     "variant": "2x2 crossroads",
+     "zone": "g10b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g10b.jpg"
+    },
+    "sl-lock": {
+     "name": "Crossroads with traffic lights \u00b7 set 10",
+     "kmh": 14.17,
+     "standing": 50.6,
+     "queue": 81.2,
+     "thru": 96.7,
+     "samples": 120,
+     "variant": "2x2 crossroads",
+     "zone": "g10d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/g10d.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lx",
+     "pair": "g10"
+    },
+    "game": {
+     "test": "lx",
+     "pair": "g10"
+    },
+    "sl-lock": {
+     "test": "lx",
+     "pair": "g10"
+    }
+   },
+   "category": "faster",
+   "verdict": "+5.9 km/h"
+  },
+  {
+   "nn": "11",
+   "ids": {
+    "sl": "g11a",
+    "game": "g11b",
+    "sl-lock": "g11d"
+   },
+   "m": {
+    "sl": {
+     "name": "Crossroads with traffic lights \u00b7 set 11",
+     "kmh": 49.8,
+     "standing": 16.8,
+     "queue": 8.8,
+     "thru": 126.2,
+     "samples": 120,
+     "variant": "3x3 crossroads",
+     "zone": "g11a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Crossroads with traffic lights \u00b7 set 11",
+     "kmh": 21.66,
+     "standing": 46.0,
+     "queue": 56.6,
+     "thru": 114.3,
+     "samples": 120,
+     "variant": "3x3 crossroads",
+     "zone": "g11b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "Crossroads with traffic lights \u00b7 set 11",
+     "kmh": 36.92,
+     "standing": 31.2,
+     "queue": 18.9,
+     "thru": 108.2,
+     "samples": 120,
+     "variant": "3x3 crossroads",
+     "zone": "g11d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lx",
+     "pair": "g11"
+    },
+    "game": {
+     "test": "lx",
+     "pair": "g11"
+    },
+    "sl-lock": {
+     "test": "lx",
+     "pair": "g11"
+    }
+   },
+   "category": "faster",
+   "verdict": "+28.1 km/h"
+  },
+  {
+   "nn": "12",
+   "ids": {
+    "sl": "g12a",
+    "game": "g12b",
+    "sl-lock": "g12d"
+   },
+   "m": {
+    "sl": {
+     "name": "Crossroads with traffic lights \u00b7 set 12",
+     "kmh": 28.08,
+     "standing": 32.2,
+     "queue": 25.4,
+     "thru": 109.0,
+     "samples": 120,
+     "variant": "3x2 crossroads",
+     "zone": "g12a",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "game": {
+     "name": "Crossroads with traffic lights \u00b7 set 12",
+     "kmh": 24.19,
+     "standing": 40.1,
+     "queue": 39.8,
+     "thru": 106.1,
+     "samples": 120,
+     "variant": "3x2 crossroads",
+     "zone": "g12b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    },
+    "sl-lock": {
+     "name": "Crossroads with traffic lights \u00b7 set 12",
+     "kmh": 29.5,
+     "standing": 35.3,
+     "queue": 30.7,
+     "thru": 116.0,
+     "samples": 120,
+     "variant": "3x2 crossroads",
+     "zone": "g12d",
+     "applied": 1,
+     "skipped": 0,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "lx",
+     "pair": "g12"
+    },
+    "game": {
+     "test": "lx",
+     "pair": "g12"
+    },
+    "sl-lock": {
+     "test": "lx",
+     "pair": "g12"
+    }
+   },
+   "category": "faster",
+   "verdict": "+3.9 km/h"
+  }
+ ],
+ "summary": {
+  "kmh": {
+   "game": {
+    "q": [
+     17.2,
+     19.73,
+     21.72,
+     12.73,
+     24.19
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     21.84,
+     26.53,
+     33.02,
+     18.67,
+     49.8
+    ],
+    "sum": null
+   },
+   "sl-lock": {
+    "q": [
+     21.89,
+     24.48,
+     29.55,
+     14.17,
+     39.81
+    ],
+    "sum": null
+   }
+  },
+  "standing": {
+   "game": {
+    "q": [
+     39.65,
+     41.7,
+     45.1,
+     35.1,
+     50.1
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     25.75,
+     31.85,
+     34.7,
+     15.1,
+     42.8
+    ],
+    "sum": null
+   },
+   "sl-lock": {
+    "q": [
+     34.45,
+     37.05,
+     39.7,
+     24.2,
+     50.6
+    ],
+    "sum": null
+   }
+  },
+  "queue": {
+   "game": {
+    "q": [
+     30.35,
+     37.15,
+     45.08,
+     21.6,
+     96.5
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     10.68,
+     18.9,
+     25.25,
+     3.5,
+     59.5
+    ],
+    "sum": null
+   },
+   "sl-lock": {
+    "q": [
+     21.75,
+     26.45,
+     31.18,
+     8.8,
+     81.2
+    ],
+    "sum": null
+   }
+  },
+  "thru": {
+   "game": {
+    "q": [
+     74.88,
+     75.7,
+     87.15,
+     72.0,
+     114.3
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     77.83,
+     82.5,
+     91.53,
+     74.5,
+     126.2
+    ],
+    "sum": null
+   },
+   "sl-lock": {
+    "q": [
+     80.0,
+     81.35,
+     86.28,
+     69.8,
+     116.0
+    ],
+    "sum": null
+   }
+  }
+ },
+ "notes": {
+  "comparisons": [
+   {
+    "test": "lt22",
+    "title": "T-junction with traffic lights, 2 x 2 lanes",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 9,
+    "wins": 9,
+    "losses": 0,
+    "dKmh": 9.2,
+    "dStanding": -11.1,
+    "dThru": 4.7,
+    "thruWins": 9,
+    "p": 0.004
+   },
+   {
+    "test": "lt22",
+    "title": "T-junction with traffic lights, 2 x 2 lanes",
+    "a": "Smart Lanes",
+    "b": "Smart Lanes, curb turn locked",
+    "pairs": 9,
+    "wins": 5,
+    "losses": 4,
+    "dKmh": 2.67,
+    "dStanding": -6.8,
+    "dThru": 1.1,
+    "thruWins": 6,
+    "p": 1.0
+   },
+   {
+    "test": "lx",
+    "title": "Crossroads with traffic lights",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 3,
+    "wins": 3,
+    "losses": 0,
+    "dKmh": 12.66,
+    "dStanding": -14.8,
+    "dThru": 8.2,
+    "thruWins": 3,
+    "p": 0.25
+   },
+   {
+    "test": "lx",
+    "title": "Crossroads with traffic lights",
+    "a": "Smart Lanes",
+    "b": "Smart Lanes, curb turn locked",
+    "pairs": 3,
+    "wins": 2,
+    "losses": 1,
+    "dKmh": 5.32,
+    "dStanding": -8.4,
+    "dThru": 9.2,
+    "thruWins": 2,
+    "p": 1.0
+   }
+  ],
+  "excluded": [],
+  "spec": "bench_s3@1",
+  "complete": true,
+  "towns": "117",
+  "pop": "400",
+  "recordS": "1200",
+  "freeTurn": "always",
+  "lights": "on",
+  "phases": "game",
+  "mapStanding": 18.0
+ },
+ "runRows": [
+  [
+   "Twins (junctions)",
+   "12",
+   "12",
+   "12"
+  ],
+  [
+   "Junctions written by Smart Lanes (APPLY lines)",
+   "0",
+   "12",
+   "12"
+  ],
+  [
+   "Left as the game built them (SKIP lines)",
+   "51",
+   "0",
+   "0"
+  ],
+  [
+   "Traffic lights switched off",
+   "0",
+   "0",
+   "0"
+  ],
+  [
+   "Traffic lights kept",
+   "0",
+   "0",
+   "0"
+  ],
+  [
+   "Twins failing the treatment check",
+   "0",
+   "0",
+   "0"
+  ]
+ ]
+}

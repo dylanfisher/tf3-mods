@@ -10,7 +10,7 @@ then `VERIFY ... same=<n> nodes=<n>`. Anything with `ERROR` or `success=false`: 
 
 **First open check (rev 4, before release): section FK checks 1-2**. findings.md (2026-10-12, a hand edit in the
 base Crossing window) says an unlocked right turn does NOT give way, so the setting now has three values: Off /
-When safe (the kerb turn is unlocked only in phases where nothing green conflicts) / Always (every phase; the
+When safe (the curb turn is unlocked only in phases where nothing green conflicts) / Always (every phase; the
 default since 2026-10-12, user decision). Check that a turner freed "When safe" never meets green traffic in its
 exit lane or green pedestrians, and compare with Always. If Always jams or drives through traffic: default When safe
 or Off (mod.json `defaultIndex` 1 / 0, `Rules.DEFAULTS.freeTurn` 2 / 1; see FK "If it fails").
@@ -18,8 +18,8 @@ or Off (mod.json `defaultIndex` 1 / 0, `Rules.DEFAULTS.freeTurn` 2 / 1; see FK "
 ## 1. Does the write work?
 - [x] Place a Better Roundabouts **2-lane ring, medium arms, 4 arms**. Log: 4 `APPLY` (turbo=true,
       before=6 after=5), `WRITE success=true`, `VERIFY same=4 nodes=4`.
-- [x] Open the **Crossing Tool** on one ring junction: outer ring lane only turns into the arm (kerb
-      exit lane), inner ring lane goes straight or into the second exit lane; arm kerb lane -> outer ring
+- [x] Open the **Crossing Tool** on one ring junction: outer ring lane only turns into the arm (curb
+      exit lane), inner ring lane goes straight or into the second exit lane; arm curb lane -> outer ring
       lane, arm second lane -> inner ring lane.
 - [x] Do the **painted arrows** on the road surface change (if the game paints them)? Note yes/no.
 - [x] Ctrl+Z / Undo (if available): does it undo our write separately from the roundabout? Note.
@@ -32,6 +32,7 @@ or Off (mod.json `defaultIndex` 1 / 0, `Rules.DEFAULTS.freeTurn` 2 / 1; see FK "
 - [x] Clockwise ring (Better Roundabouts direction param): `dir=cw`, Crossing Tool shows the mirror.
 - [x] Hand-built ring: draw a circle of one-way streets with the street tool and connect 3 roads.
       Each build that adds an arm logs `APPLY` for that node only, `fresh=false turbo=false`.
+      (Since 2026-10-13 the whole ring is planned: see check WR below.)
 - [x] A normal crossroads / a one-way city block: no `[SQRL]` lines at all.
 
 ## 2. Does it stick?
@@ -143,10 +144,10 @@ way; repeat with Town large), Side road Town small, Slip lanes Near-side corners
       (`shape=diverge+merge`), then `WRITE kind=slip job=.. nodes=a,b,c success=true` and about half a
       second later `VERIFY kind=slip job=.. same=3 nodes=3`. No `SKIP kind=slip` for the centre or
       the arm ends. Copy the lines.
-- [x] **Crossing Tool** on the east (diverge) node: westbound kerb lane -> both slip lanes and the
-      kerb through lane; second lane -> second through lane only; eastbound lanes straight 1:1; no
-      U-turns, no crossing lines. West (merge) node: slip lanes -> the kerb lane only, through lanes
-      1:1. Side road node: northbound + slip -> kerb lane; southbound kerb lane -> slip and straight.
+- [x] **Crossing Tool** on the east (diverge) node: westbound curb lane -> both slip lanes and the
+      curb through lane; second lane -> second through lane only; eastbound lanes straight 1:1; no
+      U-turns, no crossing lines. West (merge) node: slip lanes -> the curb lane only, through lanes
+      1:1. Side road node: northbound + slip -> curb lane; southbound curb lane -> slip and straight.
       Screenshot each.
 - [x] Before that, **what did the engine make** at a slip node? Place a second Channelized Junction
       with Apply automatically Off and copy the Crossing Tool picture of one diverge and one merge
@@ -159,11 +160,11 @@ way; repeat with Town large), Side road Town small, Slip lanes Near-side corners
       nodes=1`; the overlay redraws. Reset: `RESET mode=snapshot kind=slip node=.. conns=<engine count>`,
       the Crossing Tool shows the engine's fan-out again. Apply again: smart lanes again.
 - [x] **Traffic**: run a few minutes with traffic from all arms: right turns use the slip lanes,
-      nobody stops at the gore, merges give way into the kerb lane, nothing gets stuck at the side
+      nobody stops at the gore, merges give way into the curb lane, nothing gets stuck at the side
       road's node (it has a merge and a diverge).
-- [x] Town large main road (3 lanes each way): diverge `3_->_3_+_2_slip` (kerb lane shared), no errors.
+- [x] Town large main road (3 lanes each way): diverge `3_->_3_+_2_slip` (curb lane shared), no errors.
 - [x] **Left-hand traffic** save (Traffic side Left-hand): the same lines with `side=left`; Crossing
-      Tool shows the mirror image (the kerb is on the left). This checks the driving-side detection.
+      Tool shows the mirror image (the curb is on the left). This checks the driving-side detection.
 - [x] Roundabout Interchange: the highway gore nodes (off-ramp leaving, on-ramp joining) log
       `kind=slip case=A`; ring junctions still log the ring lines. Splitter split nodes: no lines.
 - [x] A hand-built one-way slip lane between two two-way roads (right turn): both ends get
@@ -189,6 +190,43 @@ Channelized Junction T, a plain crossroads.
 - [x] Tram-street ring: the badge ignores tram connections (Game default before, Smart lanes after Apply).
 - [x] Any stutter while hovering over a big ring (the badge is recomputed on hover changes, cached)?
 
+## H2. Readable status texts (rev 5, 2026-10-13)
+
+Prompted by a player question (a bus-lane junction read "not handled (bus_lane)"). Check in game, English and one
+other language (de or ru: longer text), that every text fits the toolbar chip and the cursor tooltip:
+
+- [ ] A junction with a bus lane (Bus Lane Tool on one arm): handled since the bus-lane change (section BL): detail
+      "16 lane connections, bus lanes kept as they are". A roundabout whose ring has a bus lane: "not handled: the
+      ring has a bus lane". A 5-road junction: "not handled: 5 roads meet (at most 4)".
+- [ ] A ring junction where two roads join: "not handled: two or more roads join here".
+- [ ] A slip node of the Channelized Junction: head "Slip lane leaving the road, 2 lanes" (or joining), detail
+      "2 lanes in: 2 straight on, 1 into the slip lane, …"; before Apply the badge reads "Game or custom lanes".
+- [ ] A crossroads whose lights were switched off after Apply: badge "Custom lanes"; the badge tooltip names the
+      lights as a cause; Apply to junction gives it smart lanes.
+- [ ] 2-lane ring with 1-lane exits, Apply to roundabout: "… applied to 4 junctions; no exit-only outer lane: an
+      exit has only one lane".
+- [ ] No head shows a node or ring id any more (they stay in the PICK log lines).
+- [ ] Do town-built streets reach the automatic pass? handleBuild returns unless `playerInitiated` (p[4]) is true.
+      Let a town grow a street onto a Smart Lanes roundabout arm or crossroads (Apply automatically On) and look for a
+      SUMMARY / APPLY line at that moment. Yes: the Notes may mention town growth again; no: towns never trigger it.
+- [ ] Game-default model of a bent T-junction: node 48723 (new desert game, 2026-10-13, never written by Smart
+      Lanes, most likely a town street) reads `badge=custom` with the game's own lanes: side road 24454 (1+1
+      lanes) at 134 deg, main road 28936 (2+2) at 41 deg and 80137 (2+2) at -95 deg (136 deg bend). The game
+      leaves 80137 lane 2 without any connection (AUDIT `dead:80137`) and turns 28936 lane 2 into both lanes of
+      80137. CONN lines in `2026-10-13_2037_sqrl-sqsg`. Decide whether X.defaultConns / X.isDefault should
+      model it (then the badge says Game default and Reset gives back these lanes). Until then a T-junction
+      that does not match the model reads "Game or custom lanes", never the gold "Custom lanes".
+- [ ] Toolbar: [Apply | Reset] in one row (German "Anwenden | Zurücksetzen" not clipped); under them the
+      selection, the result and the lane status as plain text (no grey box, left-aligned, readable on the
+      panel); "Smart lanes" blue, "Custom lanes" / partial gold. Hovering the text still shows its tooltip.
+      If the stylesheet does not take, the boxes stay grey: note which rule failed (no crash expected).
+      Plain text, left-aligned, blue / gold: seen in game 2026-10-13 (user screenshots 1:40-1:43 PM).
+- [ ] Long lines wrap inside the panel (textAutoWrap, 280 px): a 4-lane ring after Apply ("... applied to 4
+      junctions; no exit-only outer lane: ..."), a selected ring ("Apply or Reset: the whole roundabout; ..."),
+      a slip node ("3 lanes in: 3 straight on, 2 into the slip lane, 8 lane connections"). Before: cut off.
+- [ ] Apply with the roundabout selected (click between junctions) sets all its junctions; with one ring
+      junction selected only that one; a street and a Shift+click selection as before.
+
 ## One-way arrows in lane tools (2026-10-08)
 
 - [x] Smart Lanes tool open: white one-way arrows on one-way streets (as in the street builder).
@@ -198,20 +236,39 @@ Channelized Junction T, a plain crossroads.
 - [x] Other construction tools (bulldozer, track builder) unchanged: no arrows.
 - [x] (not the case: patched at game load) If the Crossing Tool shows no arrows until Smart Lanes was opened once, the script loads lazily (note it).
 
-## Greyed-out buttons (2026-10-08)
+## Hidden buttons / Toolbar rows (2026-10-08 greyed; hidden since 2026-10-14, rev 8; rows + grayed with a reason since rev 8 v2; hidden when nothing to do + small buttons since rev 8 v3, 2026-10-16)
 
-Apply / Reset are enabled only when the click would change something (`sl_toolcore` `C.actions`,
-read by each button's `checkEnabledFn` every menu step).
-- [ ] Nothing selected: all three buttons grey.
-- [ ] Vanilla roundabout junction (game default): both Apply enabled, Reset grey.
-- [ ] Apply to junction: all grey for ~half a second (write pending), then Apply to junction grey,
-      Apply to roundabout and Reset enabled.
-- [ ] Apply to roundabout, then select the ring: only Reset enabled. Reset: back to Apply only.
-- [ ] Change a junction with the Crossing Tool, reopen Smart Lanes on it: Reset enabled (Custom).
-- [ ] Slip junction: Apply enabled, Reset grey until an Apply; after Reset, Reset grey again.
-- [ ] Crossroads / nothing handled: all grey.
-- [ ] Do the button tooltips still show on a greyed button? (note it; the text says when it greys)
-- [ ] No flicker of the buttons while hovering around with a selection.
+Rev 8 v3 (user 2026-10-16, PLAN.md "Toolbar: rows, hidden when there is nothing to do"): row 1 Smart lanes | Reset,
+each only where a click would change something (both hidden: no row), grayed only while a change lands; row 2 Smart
+lights | Re-time only at a junction with a standing light, grayed with their reason; Record traffic at a real junction
+(3 roads or more) or roundabout. Every action button in the small look of the Keep timing adjusted toggle. Nothing
+selected: no rows.
+- [ ] Nothing selected: no buttons, no empty rows or stray separator lines; "Nothing selected" + the pick hint.
+- [ ] **Small buttons:** Smart lanes, Reset, Smart lights, Re-time and Record traffic about as tall as the Yes / No of
+      Keep timing adjusted (no longer the 32 px squares), labels not clipped, the look of a normal (not "selected")
+      button or at least the same as before. Click each one twice in a row: both clicks act (the result line changes;
+      Record traffic starts, then stops). If a button shows highlighted as "selected" or a second click does nothing,
+      note it (fallback: drop `numbers = { 1 }` in sl_tool.script.lua actionButton).
+- [ ] Vanilla roundabout junction (game default): Smart lanes shown, no Reset (the row has one button, left-aligned, no
+      gap where Reset was). Lane status "Game default".
+- [ ] Smart lanes: it grays for ~half a second ("A write is still landing"; hover its label: the tooltip starts
+      "Grayed out: A write is still landing" above the button's own text. **Answers:** does a tooltip inside a grayed
+      toolbar button show at all?), then it disappears and Reset appears. Note how the row re-lays (the user accepted
+      the jump, 2026-10-16).
+- [ ] Apply on the ring, then select the ring: only Reset. Reset: only Smart lanes.
+- [ ] Change a junction with the Crossing Tool, reopen Smart Lanes on it: Reset shown (Custom).
+- [ ] Slip junction: Smart lanes shown, no Reset until a Smart lanes click there.
+- [ ] 1-lane crossroads (smart = game default) / not handled (5 roads): no first row at all; the badge and the detail
+      line say why ("Smart lanes = game default (one car lane per road)", "not handled: <reason>", "nothing to change
+      here").
+- [ ] A bend or lane drop of one road (2 roads, "no junction here"): no Smart lanes / Reset row unless it is a handled
+      lane drop, and never Record traffic. A real junction without Smart Lanes applied (a game-default crossroads):
+      Record traffic shown.
+- [ ] Unlit crossroads: no second row at all. Lit crossroads: the second row appears (Smart lights | Re-time), both
+      fit in de / ru / fr / es / pt_BR ("Semáforos inteligentes | Reajustar tiempos" is the longest).
+- [ ] Lit junction that is no crossroads / T (a 5-arm junction, a slip node with a light): Smart lights grayed "Only at
+      a crossroads or T-junction", Re-time enabled.
+- [ ] No flicker of the buttons while hovering around with a selection (states follow the selection only).
 
 ## I. Traffic lights (rev 4, setting "No lights at roundabouts and ramps")
 Year 1950 or later (the game adds automatic lights from then; `traffic_light_config.res.lua`). The
@@ -239,26 +296,26 @@ In game 2026-10-11 (Junction test, all types): every parclo / Parclo 2 / Diamond
 lanes. Now the far ends of the segments decide (`APPLY kind=slip ... split=far`), then the lane count (`split=lanes`).
 1. Place a Parclo: expect `APPLY kind=slip ... shape=diverge|merge ... split=far` at each gore, `VERIFY kind=slip same=N`
    and LIGHTS lines for them; no `ambiguous` for the gores. With the Crossing Tool: the through lanes go straight on,
-   the kerb lane alone feeds the off-ramp, the on-ramp merges into the kerb lane.
-2. Drive: no car crosses lanes at a gore; cars bound for the ramp use the kerb lane.
+   the curb lane alone feeds the off-ramp, the on-ramp merges into the curb lane.
+2. Drive: no car crosses lanes at a gore; cars bound for the ramp use the curb lane.
 3. Remaining `ambiguous` (log the node and what it is) and `branch_turn` (ramp ends meeting the cross road at a right
    angle: an ordinary T, left alone on purpose).
 
 ## K. Crossroads and T-junctions (rev 4, sl_cross.lua, 2026-10-11)
-Best-guess rule, not yet checked in game: per approach, exits ordered kerb turn -> straight -> far turn; 1 lane goes
-everywhere, 2 lanes share (kerb: turn + straight, far: straight + turn), 3+ lanes give each turn its own lane (kerb
-lane turn only; with 3 lanes and 3 exits the far lane also goes straight). Kerb turns enter the exit's kerb lanes,
-straight and far turns its far lanes, so a 3-lane road's straight traffic leaves the exit's kerb lane to the side road.
+Best-guess rule, not yet checked in game: per approach, exits ordered curb turn -> straight -> far turn; 1 lane goes
+everywhere, 2 lanes share (curb: turn + straight, far: straight + turn), 3+ lanes give each turn its own lane (curb
+lane turn only; with 3 lanes and 3 exits the far lane also goes straight). Curb turns enter the exit's curb lanes,
+straight and far turns its far lanes, so a 3-lane road's straight traffic leaves the exit's curb lane to the side road.
 Crossroads keep their lights. Stress Test → Crossing test (21 crossings) is the bench.
 1. Build the Crossing test: expect `APPLY kind=slip ... shape=crossroads|t_junction case=X ... lanes=<seg>:k|s|sf;...`
    for every crossing and T, `VERIFY kind=slip same=N`, no LIGHTS lines for them, no ERROR.
-2. Smart Lanes tool on `x11` (3x3): head "Crossroads, 3 lanes", badge Smart lanes. Crossing Tool view: kerb lane
+2. Smart Lanes tool on `x11` (3x3): head "Crossroads, 3 lanes", badge Smart lanes. Crossing Tool view: curb lane
    arrows right only, middle straight, far lane straight + left.
 3. Grow the towns and run at speed 4: no queues from turning cars blocking straight lanes; no car stuck in a lane
    that cannot reach its exit. Note any crossing (id) where traffic jams worse than the game default (tool Reset to
    compare: it restores the lanes from before the first Apply).
-4. Left-hand traffic save: the same mirrored (kerb lane turns left only).
-5. Reset on a crossroads writes the game-default MODEL (`RESET mode=model kind=slip`; sl_cross X.defaultConns: kerb lane
+4. Left-hand traffic save: the same mirrored (curb lane turns left only).
+5. Reset on a crossroads writes the game-default MODEL (`RESET mode=model kind=slip`; sl_cross X.defaultConns: curb lane
    turns into every lane of its exit + straight, far lane likewise, straight lane to lane; from the 2x2 town dump and
    the 36 of fresh 3x3s). Check: build a crossroads with Apply automatically Off, pick it: badge "Game default" (else
    the model is wrong there: send the CONN lines). Then Apply, Reset: badge "Game default" again. T-junctions and
@@ -276,12 +333,12 @@ Crossroads keep their lights. Stress Test → Crossing test (21 crossings) is th
    (`mixed_one_way`); one-way-only junctions are skipped `no_two_way`.
 
 ## L. Ramp keeps its own lane at a tight merge (rev 4, 2026-10-11)
-In game 2026-10-11 (node 17156: a 3-lane road + 1-lane loop ramp -> 3 lanes): the ramp shared the kerb lane and queued.
-Now a merge with T + B > O where the through road keeps two or more lanes (O - B >= 2) gives the branch its own kerb
+In game 2026-10-11 (node 17156: a 3-lane road + 1-lane loop ramp -> 3 lanes): the ramp shared the curb lane and queued.
+Now a merge with T + B > O where the through road keeps two or more lanes (O - B >= 2) gives the branch its own curb
 lanes and folds the through lanes among themselves (`Slip.pairs("merge", 3, 1, 3)` = q1>o1, p1+p2>o2, p3>o3).
-2 + 1 -> 2 is unchanged (the ramp gives way into the kerb lane).
-1. Re-apply node 17156 (Smart Lanes tool, Apply to junction): Crossing Tool view: the ramp lane alone into the kerb
-   lane; the road's two kerb-side lanes both into the middle lane.
+2 + 1 -> 2 is unchanged (the ramp gives way into the curb lane).
+1. Re-apply node 17156 (Smart Lanes tool, Apply to junction): Crossing Tool view: the ramp lane alone into the curb
+   lane; the road's two curb-side lanes both into the middle lane.
 2. Run traffic: the loop ramp no longer queues; watch whether the road's own lanes now queue before the merge.
 
 ### L2. Look-ahead for the own-lane merge (PHASE7.md step 1, sl_walk.lua)
@@ -289,20 +346,20 @@ The own-lane merge above now depends on the roads around the merge node (`Slip.m
 through road back and the out road on through plain nodes (2 road segments; at most 400 m and 12 segments each way,
 stopping at a junction, dead end, missing node or loop) and decides, first rule that applies:
 1. the out road loses a lane within 150 m: give way (`why=drop_ahead`);
-2. the through road had at most O - B lanes somewhere on the walk (its kerb lane was added nearby): own lane
+2. the through road had at most O - B lanes somewhere on the walk (its curb lane was added nearby): own lane
    (`why=lane_added`);
 3. the through road's previous junction (3+ road segments) is under 80 m back: give way (`why=junction_close`);
 4. the through road had all T lanes the whole walk: give way (`why=through_road`), unless the out road's next junction
-   (within 400 m) has a road leaving on the kerb side (an off-ramp, slip lane or kerb-side turn; where the out road
-   ends there, e.g. a T, any kerb-side turn; either branch of a symmetric fork): own lane (`why=exit_ahead`);
+   (within 400 m) has a road leaving on the curb side (an off-ramp, slip lane or curb-side turn; where the out road
+   ends there, e.g. a T, any curb-side turn; either branch of a symmetric fork): own lane (`why=exit_ahead`);
 5. otherwise own lane (`why=lane_added`).
 The APPLY line (automatic pass and tool) carries `merge=own_lane|give_way why=...` for every merge whose counts allow
 the own lane (T + B > O, O - B >= 2); other merges have no `merge=` field.
 1. Node 17156 again (3-lane road + loop ramp): Apply to junction; the log says which rule fired. In a cloverleaf with
-   the next loop off-ramp within 400 m expect `merge=own_lane why=exit_ahead` (ramp alone in the kerb lane); a loop
-   ramp onto a long 3-lane road with no exit nearby expects `why=through_road` (ramp shares the kerb lane).
+   the next loop off-ramp within 400 m expect `merge=own_lane why=exit_ahead` (ramp alone in the curb lane); a loop
+   ramp onto a long 3-lane road with no exit nearby expects `why=through_road` (ramp shares the curb lane).
 2. Build a 2-lane one-way road, widen it to 3 lanes 50-100 m before an on-ramp node (a plain node where the lane count
-   changes), 3 lanes after: `why=lane_added`, the ramp keeps its own lane, the road's two kerb-side lanes fold into
+   changes), 3 lanes after: `why=lane_added`, the ramp keeps its own lane, the road's two curb-side lanes fold into
    the middle one.
 3. Put a side road 50 m before the on-ramp node on a 3-lane road: `why=junction_close`, give way.
 4. Narrow the out road from 3 to 2 lanes 100 m after the merge: `why=drop_ahead`, give way; move the narrowing to
@@ -314,8 +371,8 @@ the own lane (T + B > O, O - B >= 2); other merges have no `merge=` field.
 ## M. Lane drops and gains (rev 4, PHASE7.md step 2, sl_slip case "D")
 Plain nodes (exactly two road segments) where a travel direction's lane count changes were left with the game's
 connections. Now (`Slip.classify` -> `classifyDrop`): per travel direction lanes are matched from the far (median)
-side; extra incoming kerb lanes fold into the kerb-most continuing lane (the kerb lane ends), extra outgoing kerb
-lanes are fed by the kerb lane (`Slip.pairs("straight")`). A direction whose count stays is matched lane to lane.
+side; extra incoming curb lanes fold into the curb-most continuing lane (the curb lane ends), extra outgoing curb
+lanes are fed by the curb lane (`Slip.pairs("straight")`). A direction whose count stays is matched lane to lane.
 Log: `APPLY kind=drop node=.. shape=lane_drop|lane_gain|lane_drop+gain case=D side=.. side_from=two_way|walk
 lanes=3_->_2;_2_->_3`. Lights are never touched there. Nodes where nothing changes stay unlogged (`roads_2`).
 Driving side: two two-way roads: their lane layout (disagreeing: `SKIP kind=drop reason=mixed_sides`). Two one-way
@@ -323,43 +380,44 @@ roads (one in, one out): the first two-way road met by a bounded walk (400 m / 1
 at the junction it stops at; none: left alone (`no_side`, unlogged). A one-way loop through the node (a ring the ring
 rules refused) is left alone (`loop`). A two-way road going on as a one-way road (`one_way_end`) and one-way roads
 against each other (`one_way_clash`) are left alone: the game's connections for the dead direction are unknown. Bus
-lanes: `SKIP kind=drop reason=bus_lane`. A road U-turn among the node's connections (a turnaround): `SKIP kind=drop
+lanes (rev 5, section BL): the car lanes count (a bus lane starting is a drop for cars), the bus connections are
+kept. A road U-turn among the node's connections (a turnaround): `SKIP kind=drop
 reason=u_turn`, nothing written. Tram connections kept. Reset: no model of the game's connections at a lane
 drop yet, so the tool's Reset restores the snapshot from before the first Apply (as at slip nodes). A snapshot that
 names a segment no longer at the node (the road was rebuilt since the Apply) is dropped: `RESET mode=stale`, "Reset
 not available here", nothing written (crash rule 3).
 1. Build a 2-way road, then upgrade a middle stretch from medium (2 + 2) to large (3 + 3): at both ends expect
    `APPLY kind=drop shape=lane_drop+gain case=D side=right side_from=two_way`, `VERIFY kind=slip same=1`, no LIGHTS
-   line. Crossing Tool view: the ending kerb lane and its neighbour both into the kerb lane of the narrow road; the
-   narrow road's kerb lane into both kerb lanes of the wide road; the far lanes straight on. No crossing.
+   line. Crossing Tool view: the ending curb lane and its neighbour both into the curb lane of the narrow road; the
+   narrow road's curb lane into both curb lanes of the wide road; the far lanes straight on. No crossing.
 2. Before applying (Apply automatically Off, or a road built before the mod), pick such a node with the Smart Lanes
-   tool: head "Lane drop and gain, 3 lanes", badge "Custom" (or "Smart lanes" if the game already does the same:
+   tool: head "Lane drop and gain, 3 lanes", badge "Game or custom lanes" (rev 5; "Custom" before) (or "Smart lanes" if the game already does the same:
    then send the CONN lines, the game default might be worth a model). Apply, Reset: the old connections come back
    (`RESET mode=snapshot kind=slip`).
 3. One-way roads: a 3-lane one-way road narrowing to 2 near a two-way road (e.g. a highway carriageway that starts at
    a dual-carriageway split): `side_from=walk`. Far from any two-way road (a long highway): no APPLY (left alone).
 4. Asymmetric widths (a road with 2 lanes one way and 3 the other meeting 2 + 2): `shape=lane_drop` (one direction
    matched lane to lane).
-5. Drive: traffic in the ending kerb lane merges into the next lane at the node; no vehicle switches across two
-   lanes there; at a gain both kerb lanes fill. Watch for queues at the drop that the game default did not have
+5. Drive: traffic in the ending curb lane merges into the next lane at the node; no vehicle switches across two
+   lanes there; at a gain both curb lanes fill. Watch for queues at the drop that the game default did not have
    (compare with Reset).
-6. Left-hand traffic map: repeat 1 and 3; the kerb lane on the left ends, `side=left`.
+6. Left-hand traffic map: repeat 1 and 3; the curb lane on the left ends, `side=left`.
 7. Merge look-ahead consistency (L2): a lane drop within 150 m after an on-ramp still gives `why=drop_ahead`.
 8. Stale Reset: Apply at a lane drop with the tool, rebuild one of its two roads (another road style with the same
-   lanes), pick the node again: Reset is greyed out; no crash.
+   lanes), pick the node again: Reset is hidden (greyed before 2026-10-14); no crash.
 
-## N. Exit-only kerb lane before off-ramps; remembered driving side (rev 4, PHASE7.md step 3)
-Diverge rule (`Slip.pairs("diverge", N, T, B, exitOnly)`): with N <= T the kerb lane fed the branch AND went
+## N. Exit-only curb lane before off-ramps; remembered driving side (rev 4, PHASE7.md step 3)
+Diverge rule (`Slip.pairs("diverge", N, T, B, exitOnly)`): with N <= T the curb lane fed the branch AND went
 straight. Now, when the counts allow it (`Slip.exitLanes`: N <= T and through traffic keeps 2+ lanes, so N >= 3;
-E = min(B, N - 2) exit lanes) and the look-ahead (`Slip.divergeLook`) agrees, the E kerb lanes feed only the branch
-(extra branch lanes fan from the last of them) and the rest go straight aligned from the median side; a kerb-side
-through lane left unfed is fed by the next lane (no crossing). N > T is unchanged (the kerb lanes are the branch's
+E = min(B, N - 2) exit lanes) and the look-ahead (`Slip.divergeLook`) agrees, the E curb lanes feed only the branch
+(extra branch lanes fan from the last of them) and the rest go straight aligned from the median side; a curb-side
+through lane left unfed is fed by the next lane (no crossing). N > T is unchanged (the curb lanes are the branch's
 by the counts already: 3 -> 2 + 1, 4 -> 3 + 1), and so is 2 -> 2 + 1 (shared). The look-ahead walks the main road
 back (400 m / 12 segments, Walk.follow), first rule that applies:
 1. the road had at most N - E lanes somewhere on the walk (the exit lane was added nearby, an auxiliary lane):
    exit-only (`why=lane_added`);
 2. the road's previous junction (3+ road segments) is under 80 m back: shared (`why=junction_close`; traffic that
-   entered there in the kerb lane has no room to move out of it);
+   entered there in the curb lane has no room to move out of it);
 3. otherwise exit-only (`why=through_road`; `why=lane_added` when some but not all exit lanes were added).
 The APPLY line carries `diverge=exit_only|shared why=...` for every diverge whose counts allow exit-only lanes; with a
 merge decision on the same node (Channelized Junction side node): `diverge=.. merge=.. why=<diverge>,<merge>`.
@@ -371,27 +429,27 @@ still attached, two-way there, clear side) and uses it: `APPLY kind=drop ... sid
 gone, detached or now one-way is dropped and the drop is left alone (`no_side`) until a two-way road is read again;
 in another save the same ids name that map's own road, so its side is that map's.
 1. A 3-lane one-way highway (long, no junction 80 m before), a 1-lane off-ramp, 3 lanes on: `kind=slip case=A
-   shape=diverge diverge=exit_only why=through_road`. Crossing Tool view: kerb lane only into the ramp; the middle lane
-   into the two kerb-side through lanes, the far lane straight. Drive: through traffic leaves the kerb lane before
+   shape=diverge diverge=exit_only why=through_road`. Crossing Tool view: curb lane only into the ramp; the middle lane
+   into the two curb-side through lanes, the far lane straight. Drive: through traffic leaves the curb lane before
    the gore; no vehicle crosses lanes at the node.
 2. Same highway, an on-ramp merge node 50 m before the off-ramp (a weave): `diverge=shared why=junction_close`, the
-   kerb lane into the ramp and straight on.
+   curb lane into the ramp and straight on.
 3. Widen a 2-lane one-way road to 3 lanes 60 m before an off-ramp (and keep the on-ramp 50 m before that): `why=
    lane_added`, exit-only.
 4. Town: a large (3 + 3) road with a Channelized Junction (2-lane slip lanes): the diverge node gets `diverge=
-   exit_only` (kerb lane into both slip lanes); with a crossroads under 80 m behind it: `shared`. A medium road
+   exit_only` (curb lane into both slip lanes); with a crossroads under 80 m behind it: `shared`. A medium road
    (2 + 2): no `diverge=` field, unchanged.
 5. A 4-lane road with a 2-lane exit (4 -> 4 + 2): two exit-only lanes (`why=through_road`).
 6. Left exit (one-way, ramp on the far side): exit-only lane on the left.
 7. Left-hand traffic: repeat 1, 2 and 4; same `why=` values, mirrored lanes.
 8. Remembered side: in a fresh game, first build a lane drop (3 -> 2) on a long one-way highway far from any two-way
    road: no APPLY. Then build or Apply anything on a two-way road, then rebuild / Apply the lane drop: `side_from=
-   remembered`, the kerb lane ends. Bulldoze that two-way road and rebuild the lane drop: left alone again (the
+   remembered`, the curb lane ends. Bulldoze that two-way road and rebuild the lane drop: left alone again (the
    anchor is gone) unless another two-way road was read since. Load another save (left-hand traffic map) without
    restarting: the first lone drop there must never be wired right-handed (left alone, or `side=left` when the anchor
    ids happen to name a two-way road there). Note whether the remembered side survives the load at all (tells whether
    the Lua states are rebuilt; add the answer to docs/findings.md).
-9. Traffic: watch exit-only nodes under load for queues in the remaining through lanes that the shared kerb lane
+9. Traffic: watch exit-only nodes under load for queues in the remaining through lanes that the shared curb lane
    did not have (compare with Reset); note any case where exit-only looks wrong.
 
 ## O. Tool: click a street to select its junctions (rev 4, PHASE7.md step 4, sl_street.lua)
@@ -432,12 +490,12 @@ nodes=.. success=..` and 30 frames later `VERIFY ... scope=street ... same=.. no
 2. The street turns 90 degrees at a junction: the walk stops there (`turn`), that junction included. A junction
    where the continuing road is wider/narrower: stops (`lanes`). A street running into a roundabout: stops before
    it (`ring`), the roundabout untouched by Apply.
-3. Lane status: fresh game connections: "Custom" (slip / drop junctions have no game-default model) or "Smart lanes
+3. Lane status: fresh game connections: "Game or custom lanes" (rev 5; "Custom" before) (slip / drop junctions have no game-default model) or "Smart lanes
    on k of N junctions"; after Apply: "Smart lanes"; pick one crossroads, Reset it, click the street again: partial.
    A street of crossroads only: "Game default" / "Custom lanes".
-4. Buttons: Apply to junction enabled while any junction is not smart; Apply to roundabout always greyed; Reset when
-   a crossroads differs from the game default or a slip / drop junction differs from its snapshot. All greyed while
-   batches are being written.
+4. Buttons (one Apply since rev 6; hidden instead of greyed since 2026-10-14): Apply shown while any junction is not
+   smart; Reset when a crossroads differs from the game default or a slip / drop junction differs from its snapshot.
+   The shown ones grey while batches are being written.
 5. Apply on a street (Shift+click; with the 10-junction cap one batch: `batch=1/1`; batches of 40 are covered by the
    unit tests): WRITE lines on consecutive frames, every VERIFY `same` = `nodes`; no hitch, no crash. Traffic lights:
    slip junctions lose theirs with "No lights at roundabouts and ramps" On; crossroads and lane drops keep theirs.
@@ -455,7 +513,7 @@ nodes=.. success=..` and 30 frames later `VERIFY ... scope=street ... same=.. no
 9. Close the tool (Esc / another tool) right after Apply on a street (with 10 junctions at most one batch, so
    mostly unit-tested now): `SKIP ... reason=tool_closed batches=..` for the unsent batches, the sent ones still WRITE / land, no result text when the tool is reopened,
    buttons back within a second. Select another junction while the batches are written: its status chip shows no
-   street result; Apply / Reset stay greyed until the street job is done.
+   street result; its Apply / Reset stay greyed (or hidden, where they would change nothing) until the street job is done.
 
 ## Q. SUMMARY line per automatic job (rev 4, PHASE7.md step 6)
 
@@ -485,7 +543,7 @@ Checks:
 
 ## R. Crossroads: turns a slip lane serves are left to it; far lane shares straight (rev 4, sl_cross X.bypasses)
 
-In game 2026-10-11 (Channelized X, square_roundabouts): the centre's kerb lanes still turned right through the
+In game 2026-10-11 (Channelized X, square_roundabouts): the centre's curb lanes still turned right through the
 traffic lights, so right turners queued there and ignored the corner slip lanes. Now, at a case X node, an exit is
 "bypassed" for an approach when a one-way road leaves the approach road upstream (at the junction where the walk back
 from the node stops: `Walk.follow` "in", 200 m / 6 segments) and, followed forward (`Walk.follow` "out", 400 m / 10
@@ -495,10 +553,10 @@ the lanes are allocated, except the straight exit, the last exit of an approach,
 still feeds. `X.defaultConns` (Reset model) keeps every exit. Log: `kind=slip ... case=X ... bypass=<count>`. The
 slip lanes' own diverge / merge nodes are case B as before.
 
-Also from the player's hand edit at that node (approach of 3 lanes, right turn served by a slip lane: kerb straight,
+Also from the player's hand edit at that node (approach of 3 lanes, right turn served by a slip lane: curb straight,
 middle straight, far lane straight + left): with a straight exit the far turn lane always goes straight too
-(`X.allocate`: [straight, far] x 3 lanes `1-1 1-1 1-2`; [kerb, straight, far] x 4 lanes `1-1 2-2 2-2 2-3`); the kerb
-lane stays turn-only when a kerb turn exists.
+(`X.allocate`: [straight, far] x 3 lanes `1-1 1-1 1-2`; [curb, straight, far] x 4 lanes `1-1 2-2 2-2 2-3`); the curb
+lane stays turn-only when a curb turn exists.
 
 Unit tests (test_cross.lua): F.channelX (four corner slip lanes) 1-3 x 1-3 lanes both sides, F.channelT centre,
 mirrored connections, default model unchanged, a one-way road ending elsewhere, a slip chain at / past the cap, a
@@ -509,7 +567,7 @@ Review 2026-10-11 (guards against false positives): the one-way road must leave 
 splitter's entry leg or a dual carriageway's other half next to a crossroads is a U-turn at U and was taken as a
 bypass before), and be a shortcut: shorter than `X.BYPASS_SHORTCUT` (0.9) times U -> node -> J (slip lanes: chord /
 (Lm + Ls) <= 0.75; a one-way street round a town block of a crossroads is exactly as long and was taken as a bypass
-before, so the kerb turn at the crossroads was removed). No sidewalk test: the Channelized Junction's slip lanes are
+before, so the curb turn at the crossroads was removed). No sidewalk test: the Channelized Junction's slip lanes are
 town one-way xsmall with sidewalks. Tests: splitter leg (U-turn), one-way block ring, a diamond interchange's
 terminals (the highway is no bypass), slip angles 40-80 deg with unequal set-backs, printed cost (Channelized X
 centre about 0.15 ms; worst case 4 x 6 + 8 x 10 + 4 x 6 segment steps per node, each one-way road followed once).
@@ -544,7 +602,7 @@ node, a dead end, a 5-arm junction: "Not handled: not added to the selection", t
 Rings (decision 2026-10-11): ring arm junctions join the multi selection. Apply plans them in the batch job with
 `Rules.planRing` seeded with that batch's selected junctions of each ring (exactly what Apply to junction writes
 there, turbo decision ring-wide as before), Reset writes the engine-default model (`RESET mode=model scope=multi
-ring=..`). Apply to roundabout stays greyed for a multi selection. Plain / "left alone" ring nodes are not added.
+ring=..`). Apply to roundabout (one Apply since rev 6) stays off for a multi selection. Plain / "left alone" ring nodes are not added.
 Lane view: the game's NodeViewer takes a map node -> lane list (`builtin.d.tl` NodeViewerParam), which the tool has
 used for whole rings since Phase 2, so ONE NodeViewer carries every selected junction (at most `Core.VIEW_MAX` = 60),
 streets included now. Each node's entry is built from its own connections and network read together; a node whose
@@ -566,11 +624,11 @@ same=.. nodes=..`. Re-read: `SKIP src=tool scope=multi nodes=<ids> reason=gone` 
    the same segment: "Street: N junctions" further along (not a multi selection).
 3. Shift+click two junctions of a roundabout and one slip-lane junction; Apply to junction: the two ring junctions get
    what Apply to junction gives each (exit-only outer lane where the ring allows), the other ring junctions untouched,
-   the slip junction its slip rule; one WRITE line, every VERIFY `same` = `nodes`. Apply to roundabout greyed. Reset:
+   the slip junction its slip rule; one WRITE line, every VERIFY `same` = `nodes`. Apply to roundabout off (one Apply since rev 6). Reset:
    ring junctions back to the game default, the slip junction to its lanes before Apply. Lights: ring and slip
    junctions as with Apply to junction there (setting "No lights at roundabouts and ramps").
 4. Lane status: mixed selection "Smart lanes on k of N junctions"; all applied "Smart lanes"; crossroads and ring
-   junctions only, untouched: "Game default"; with a slip / drop junction in it: "Custom".
+   junctions only, untouched: "Game default"; with a slip / drop junction in it: "Game or custom lanes" (rev 5; "Custom" before).
 5. Cap: Shift+click streets until 60: the status says "Selection full: at most 60 junctions", the SKIP line logs
    the dropped count; Apply writes 2 batches (40 + 20) on consecutive frames, no hitch.
 6. Crash checks: select several junctions, bulldoze one BEFORE Apply: within half a second it leaves the selection
@@ -612,15 +670,15 @@ Rule (user decision 2026-10-11: shallow ramps only; terminals keep their left tu
 - Shallow: a ramp (one-way, no sidewalk) whose chord over its first 50 m (`X.SHALLOW_LOOK`, Walk through plain
   nodes, the point on the Hermite curve) is at most `X.SHALLOW_MAX_DEG` = 60 deg off the line of the node's two-way
   through road (two two-way roads within 45 deg of straight both ways). It belongs to the travel direction on whose
-  kerb side it lies. Evidence for 60: square_roundabouts' only ramps meeting a two-way road are the Highway
+  curb side it lies. Evidence for 60: square_roundabouts' only ramps meeting a two-way road are the Highway
   Interchange's terminals, which meet the cross road square: parclo stubs and wrapped diagonals end in a straight
   edge of 49+ m (90 deg), diamond climb edges are one Hermite edge with both tangents along the highway: chord over
   50 m 85 / 78 / 80 deg (S / M / L; whole edge 86 / 74 / 68). Its own shallow ramps leave one-way carriageways
   (case A). Ramps peeling off alongside a road: about 25 deg (the test fixtures). The log line names every ramp's
   angle: `ramp_deg=<seg>:<deg>,...`.
-- sl_slip case B first: when the tangents do not decide, every branch a shallow ramp heading along its kerb-side
+- sl_slip case B first: when the tangents do not decide, every branch a shallow ramp heading along its curb-side
   direction, one per direction -> the slip-lane rule (`split=shallow tangent=<why the tangents failed>`): diverge with
-  the exit-only kerb lane (section N), merge with the look-ahead (section L). These nodes lose their traffic lights
+  the exit-only curb lane (section N), merge with the look-ahead (section L). These nodes lose their traffic lights
   like every slip node (setting "No lights at roundabouts and ramps").
 - Terminals (follow-up 2026-10-11): when the tangents DO assign every branch (a ramp end leaning under 90 deg towards
   one direction at the node), a ramp among them whose 50 m chord is more than 60 deg off the road is a ramp end
@@ -628,8 +686,8 @@ Rule (user decision 2026-10-11: shallow ramps only; terminals keep their left tu
   (`slipReason = "terminal"`, the APPLY line shows `case=X ... ramp_deg=<seg>:<d>` with d > 60) and the ramp keeps
   its turns both ways. Town one-way streets (sidewalks) and ramps whose chord is 60 deg or less stay slip nodes.
 - Otherwise sl_cross (a two-way side road at the node, a far-side or backward ramp, a mix with a steep ramp):
-  through-road approaches reach a shallow ramp out only from its kerb-side direction; a shallow ramp in only joins
-  that direction's carriageway (into its kerb lanes) or a side road on its own side. Logged `shallow=<approach>>
+  through-road approaches reach a shallow ramp out only from its curb-side direction; a shallow ramp in only joins
+  that direction's carriageway (into its curb lanes) or a side road on its own side. Logged `shallow=<approach>>
   <exit>,...`. Reachability first (follow-up 2026-10-11, as the slip-lane bypass guard): a blocked move stays when
   it is the only feed of its exit road, so a shallow ramp on the far side (a left exit from a two-way road in
   right-hand traffic) keeps the far turn of the approach it leaves (from the far lane, which also goes straight); a
@@ -650,7 +708,7 @@ Checks:
    tangent=two_branches_one_direction ramp_deg=60343:<d>,64315:<d>` for 60950 / 64312 (each ramp angle well under
    60), 60274 `case=B shape=diverge+merge` (split=node or shallow). If a ramp logs more than 60 the node stays a
    crossroads: note the angle (the threshold or the 50 m chord may need tuning).
-2. Lane view, compare with the user's second screenshot: through lanes straight, only the kerb lane of each
+2. Lane view, compare with the user's second screenshot: through lanes straight, only the curb lane of each
    direction into the ramp on its own side (exit-only), no arrow from a far lane across the oncoming lanes into a
    ramp; at 60274 the joining ramp only merges into its own carriageway, no left turn across the road.
 3. The ramp ends at the other road (64761, 64876, 67667, 68527: ramps meeting it at about a right angle) still turn
@@ -716,7 +774,7 @@ circulating lanes zip into the inner one (the ramp never yields). Our Apply (`tu
 wrote `63640:1>63650:2, 63640:2>63650:1, 63644:1>63650:2` (the ramp merging into the outer lane, give-way).
 
 Rule (variants two_lane = the automatic pass and turbo = the tool's Apply; Reset / engine model and "matched"
-unchanged): at a ring junction with entry lanes and no exit lanes, entry lane j -> ring-out lane j (kerb first),
+unchanged): at a ring junction with entry lanes and no exit lanes, entry lane j -> ring-out lane j (curb first),
 ring lane i -> ring-out lane max(i, N + 1) (outer first; the R circulating lanes fold into the inner R - N lanes,
 aligned from the inside, the outer ones zip into lane N + 1; no crossing). Only when all hold, else today's
 give-way entry with the first reason:
@@ -733,7 +791,7 @@ give-way entry with the first reason:
 APPLY lines of entry-only junctions get `entry=own_lane` or `entry=give_way why=<reason>`.
 
 Node 63771 (next junction, 3-lane arm 127589): our output (log 03:07:55) is exactly the user's description: outer ring
-lane 63650:1 -> 63649:2 + kerb exit lane 127589:6; inner 63650:2 -> 63649:1 + 127589:5, :4; entries 127589:1 ->
+lane 63650:1 -> 63649:2 + curb exit lane 127589:6; inner 63650:2 -> 63649:1 + 127589:5, :4; entries 127589:1 ->
 63649:2, :2 and :3 -> 63649:1 (`after=8`). Nothing to change there.
 
 Unit tests: test_rules.lua "ramp entry ..." (fixture F.interchange: the 63772 + 63771 layout, both ring directions and
@@ -765,18 +823,18 @@ User report 2026-10-11 (Roundabouts & Interchanges interchange, smart lanes appl
 
 Rule now (sl_cross header, X.allocate caps, X.allocateView, placeExit):
 - per approach, an exit's lane block is at most that exit road's lane count; the lanes left over go to exits with
-  room: straight, then the far turn, then the kerb turn (contiguous, no crossings; kerb lane turns only on 3+ lanes,
+  room: straight, then the far turn, then the curb turn (contiguous, no crossings; curb lane turns only on 3+ lanes,
   2 lanes share, 1 lane everything). A shared lane (2 lanes; the far lane also going straight) only where the
   straight exit has a lane for it;
 - across approaches: while an exit road gets more feeding lanes than it has, the widest turn block into it gives a
   lane back to its approach's other exits with room (towards 1 lane each). Straight blocks and the shared lanes stay;
 - only an approach with more lanes than all its exits together folds (where it adds the fewest lanes per exit
   lane; the widest exit first), logged `squeeze=<approach>:<lanes folded>`;
-- in each exit road: kerb turns its kerb lanes, far turns its far lanes, straight next to the far turns; with too
+- in each exit road: curb turns its curb lanes, far turns its far lanes, straight next to the far turns; with too
   few lanes, straight shares with the far turns first, and all feeders are spread evenly when that would pile more
   onto one lane than ceil(feeders / lanes).
 Expected at the two nodes: 128660 `lanes=128641:k|k|k;128645:k|k|k|f`, 128948 `lanes=128643:k|k|k|f;128652:k|k|k`
-(stem into the out road's lanes 1-3, the one-way's far lane into lane 4, its 3 kerb lanes 1:1 into the stem).
+(stem into the out road's lanes 1-3, the one-way's far lane into lane 4, its 3 curb lanes 1:1 into the stem).
 Shared exit lanes remain where a road is too narrow for every movement into it (2x2 crossroads, 1-lane roads) and
 where the far lane's straight share meets the far turn from the left (3x3 crossroads, as in the user's Channelized X
 hand edit); crossroads keep the game's lights there. The game-default model (Reset) is unchanged.
@@ -827,7 +885,7 @@ Findings (only AVOIDABLE ones count; forced squeeze / sharing go to `forced=`, n
   ring's entry give-way are forced. Also forced: as many shares at an approach's exits as its excess (its lanes
   over what its exits have left once every other movement into them has a lane, at least 1 per exit; a 2x3 T's
   3-lane side road: 1). Detail `shared:<exit seg>:<kinds>`: the first shared lane's movements at a
-  crossroads, k kerb turn / s straight / f far turn.
+  crossroads, k curb turn / s straight / f far turn.
 - `shared_lit` (section Y; under `forced=`, by design, never a reason for a line): at a crossroads with traffic
   lights, an exit lane a straight movement shares with a turn from another approach.
 - `across`: a move across the opposing carriageway into or out of a shallow ramp (sl_cross X.shallowRamps),
@@ -913,7 +971,7 @@ Channelized X hand edit s|s|sf) make the straight movement share an exit lane wi
 phases). At an unlit node, an approach's extra share whose straight exit road gets more feeders than it has
 lanes is dropped (before any turn block gives a lane back), so the two movements never meet in one exit lane:
 3x3 crossroads `k|s|f` instead of `k|s|sf`, 2x2 T main road `s|f` / `k|s` instead of `s|sf` / `ks|s`, Channelized X
-centre `s|s|f`. Unchanged: 3+ lanes the kerb lane turns only, 1 lane everything, 2 lanes and 3 exits still share
+centre `s|s|f`. Unchanged: 3+ lanes the curb lane turns only, 1 lane everything, 2 lanes and 3 exits still share
 between their own movements (`ks|sf`), the game-default model (Reset).
 
 "Lit" (sl_lights `L.litOf`, read by sl_write `world.lit(n)` = `W.lightState`, one config + one light-component read
@@ -990,9 +1048,9 @@ lines of the same nodes; all four were the audit misjudging the rule's output, s
   turn and the approach has another exit that is no bypassed turn (as sl_cross dropBypassed, which never
   drops every exit of an approach). The game default at a Channelized X still flags its 4.
 - `weave` 16630 (1957 junctions, almost all town grid crossroads / T-junctions with `k|s|sf` approaches): into
-  each 3-lane exit road, the kerb turn lands in the kerb lane, a turn-only lane at the next crossroads one block
-  on (misses 2), straight lands in lanes 2-3 (misses the kerb turn), the far turn in lane 3 (misses 1): 4 per
-  exit road, 16 per crossroads. Inherent to short blocks with dedicated kerb turn lanes: every lane of the exit
+  each 3-lane exit road, the curb turn lands in the curb lane, a turn-only lane at the next crossroads one block
+  on (misses 2), straight lands in lanes 2-3 (misses the curb turn), the far turn in lane 3 (misses 1): 4 per
+  exit road, 16 per crossroads. Inherent to short blocks with dedicated curb turn lanes: every lane of the exit
   road is fed, and putting a movement on another lane would cross or share with another movement. Now only the
   misses that free lanes (nobody feeds them) next to the movement's lanes would cover are avoidable (`weave`);
   the rest is `forced=weave:n`. The rule's own output therefore never flags `weave`; game defaults and hand
@@ -1007,14 +1065,14 @@ Checks in game:
    unfed at `case=ring shape=exit` on turbo rings, `turbo_gap` listed under totals as "by design", `weave` only
    in the forced column. Anything left under "Findings by type" is a real candidate: select it with the tool.
 2. A turbo ring with splitter arms (Roundabout, splitters On, 2+ lanes): in the lane view the outer ring lane
-   between an exit leg and the next entry leg has no connection in from the ring; the entry leg's kerb lane
+   between an exit leg and the next entry leg has no connection in from the ring; the entry leg's curb lane
    joins it. Watch traffic: entering cars do not wait there.
 3. T-junction 117874 / 123825 type (a side road served by slip lanes from both main road directions): both
    turns into the side road remain at the T (APPLY `k|...` and `...|sf`), and pick it with the tool: no
    `bypassed_turn`.
 4. Open question for a rule decision (not changed): in a grid of 3-lane streets with blocks of 80 m or less,
-   kerb turners land in the next crossroads' kerb turn lane and must change lanes within the block to go on.
-   Letting that kerb lane also go straight (`ks|s|sf`) where it is fed by a turn from a junction less than 80 m
+   curb turners land in the next crossroads' curb turn lane and must change lanes within the block to go on.
+   Letting that curb lane also go straight (`ks|s|sf`) where it is fed by a turn from a junction less than 80 m
    back would remove 2 forced weaves per exit road, at the price of a shared exit lane further on.
 
 Unit tests: test_audit.lua "showcase: ..." (a highway-road interchange ring, both directions and traffic sides:
@@ -1023,37 +1081,41 @@ each exit node, unfed when the outer lane continues and the ring-out outer lane 
 slip lanes from both main road arms into the side road: both bypassed, both kept, no bypassed_turn, the
 Channelized X game default still 4; "bypassed_turn: an approach whose every exit is a bypassed turn keeps
 them"; two 3-lane grid crossroads 60 m apart: `forced.weave` 4 per node, none
-avoidable), "weave (heuristic)" (the rule's link lanes: forced; a lone kerb turn with the link's far lane free:
+avoidable), "weave (heuristic)" (the rule's link lanes: forced; a lone curb turn with the link's far lane free:
 avoidable 1), tests/tools/test_sqrl_audit.py ForcedKindsTest.
 
-## FK. Free kerb turn at traffic lights (rev 4, setting "Free kerb turn at traffic lights": Off / When safe / Always; sl_lights.lua L.kerbPhases)
+## FK. Free curb turn at traffic lights (rev 4, setting "Free curb turn at traffic lights": Off / When safe / Always; sl_lights.lua L.kerbPhases)
 
-What it does: at every crossroads / T-junction (sl_cross case X) that Smart Lanes writes, the kerb turn connections
+What it does: at every crossroads / T-junction (sl_cross case X) that Smart Lanes writes, the curb turn connections
 (right in right-hand traffic, left in left-hand traffic; `X.kerbPairs`, road connections only, tram connections
 untouched) are taken out of phases' `lockedLanes`, in the same proposal as the lanes (`W.remapLights` after
-`Rules.remapLocked`; kerb turns freed earlier are locked back with their approach first, then freed again):
+`Rules.remapLocked`; curb turns freed earlier are locked back with their approach first, then freed again):
 - **When safe** (`L.SAFE`): only in a phase where nothing green conflicts (`L.kerbConflict`): no green
   connection of another approach (road or tram) ends in the turn's exit lane (merge) or in a lane of the exit nearer
-  the kerb (cross: the turner would cut across it; lanes farther out run beside it), and no green crosswalk on the
+  the curb (cross: the turner would cut across it; lanes farther out run beside it), and no green crosswalk on the
   approach or the exit road (ped; a crosswalk entity that is none of the node's roads counts as a conflict). The
   approach's own movements never conflict. Phases where the turn is already green stay.
 - **Always** (default since 2026-10-12, user decision; `L.FREE`): every phase (the old On).
 - **Off**: no phase change from this feature at all (phases only re-pointed for new lanes).
+- **Since rev 8** (section SH): When safe and Always free only a curb turn whose entry lane turns and nothing else
+  (`L.sharedKerb`); one sharing its lane with a straight or far turn (every 1- and 2-lane road with Smart Lanes'
+  lanes) stays red with its lane (`shared_held=<n>` on the lines below). The checks of this section need 3-lane roads
+  (a dedicated curb lane) since then.
 
 Crosswalk indices and the phases (count, durations) stay; a phase left with nothing red stays. Lanes already
 right: one phases-only light proposal (`W.kerbLights`, the base phase editor's
 `createTrafficLightProposal(node, clone, pref)`), only where a light stands and something changes. Reset (tool)
-locks the kerb turns back where every other connection of their approach is red (the game's default; `L.LOCK`).
+locks the curb turns back where every other connection of their approach is red (the game's default; `L.LOCK`).
 Nodes whose lights Smart Lanes removes (ring arms, slip diverge / merge, case A / B) and lane drops (D) are not
-touched. Kerb turns a slip lane serves (section R) have no connection at the centre, so there is nothing to free.
+touched. Curb turns a slip lane serves (section R) have no connection at the centre, so there is nothing to free.
 
-What to expect (since 2026-10-12, user decision: merges allowed, PLAN.md "When safe allows merges"): a kerb turn
+What to expect (since 2026-10-12, user decision: merges allowed, PLAN.md "When safe allows merges"): a curb turn
 into a road whose straight traffic has green merges with it and goes too (`merge_free=` counts those pairs); it
-stays red only where a green stream ends kerbward of its exit lane (`kept=cross:..`) or a crosswalk on the two
+stays red only where a green stream ends curbward of its exit lane (`kept=cross:..`) or a crosswalk on the two
 roads it drives over has green (`kept=ped:..`; with the game's phases the crosswalks are often green with the
 crossing road, so that is the usual reason left).
 
-Log: `SUMMARY ... free_turn=<kerb connections unlocked in at least one phase> free_phases=<(connection, phase)
+Log: `SUMMARY ... free_turn=<curb connections unlocked in at least one phase> free_phases=<(connection, phase)
 unlocks> kept=<cross:n,ped:n: (connection, phase) pairs When safe kept red, first kind only> merge_free=<pairs freed
 while a green stream ends in the same lane>` (`free_turn=off` with the setting Off; no kept= with Always); the tool's
 `WRITE ... free_turn=<n> free_phases=<n> [kept=.. merge_free=..]` / Reset
@@ -1066,8 +1128,8 @@ Checks (year 1950+, right-hand traffic first, then a left-hand traffic game):
 1. **When safe: does a freed turner ever cut across green traffic, or meet green pedestrians?** Build a lit
    2x2 crossroads, a lit 3x3 crossroads and a lit T-junction of town roads in a busy town. Note the SUMMARY's
    `free_turn= free_phases= kept= merge_free=`. Open each junction's Crossing window and step through the Phase #N
-   boxes: a green kerb turn curve may share its exit lane with another green curve (a merge, allowed since
-   2026-10-12) but never cut into it from a lane nearer the kerb, and no crosswalk on its two roads is green then.
+   boxes: a green curb turn curve may share its exit lane with another green curve (a merge, allowed since
+   2026-10-12) but never cut into it from a lane nearer the curb, and no crosswalk on its two roads is green then.
    Fast-forward and watch 3-5 minutes per junction:
    a. turners merging with straight / far-turn traffic that has green into the same lane: does it flow (as on the
       showcase, 2026-10-12), or do they collide / jam at busier junctions?
@@ -1075,14 +1137,14 @@ Checks (year 1950+, right-hand traffic first, then a left-hand traffic game):
       pedestrian have green while the turn is free?
    c. does anything deadlock (vehicles stuck inside the junction)?
    d. Edit one junction's phases by hand to one phase per approach, then Apply to junction (tool): the LIGHTS line
-      should free each kerb turn in every phase (`free_phases=` > 0, `merge_free=` > 0 for the phases of the
+      should free each curb turn in every phase (`free_phases=` > 0, `merge_free=` > 0 for the phases of the
       straight into its exit), and the phases still never show a crossing green.
    e. **Crosswalk mapping probe**: on one junction compare `cfg.crosswalks`
       (`api.engine.getComponent(node, api.type.ComponentType.BASE_NODE_CONFIG).crosswalks`) with the node's
       segments (`api.engine.system.streetSystem.getNode2SegmentMap()[node]`) and with the Crossing window (which
       crosswalk index is drawn on which road). Expected: the entries are the node's edge ids. If not, every green
-      crosswalk keeps every kerb turn red (`kept=..ped:..` high, `free_phases=0`): note it in findings.md.
-2. **Always vs When safe**: set Always, build the same junctions: every kerb turn curve green in every phase
+      crosswalk keeps every curb turn red (`kept=..ped:..` high, `free_phases=0`): note it in findings.md.
+2. **Always vs When safe**: set Always, build the same junctions: every curb turn curve green in every phase
    (`free_turn=<n> free_phases=<n>`, no kept=). Turners driving into green straight traffic without giving way
    (findings.md 2026-10-12) is the expected Always behaviour; record whether it drives through other vehicles or
    jams, to confirm Always as the default (user decision 2026-10-12; When safe is the fallback).
@@ -1091,7 +1153,7 @@ Checks (year 1950+, right-hand traffic first, then a left-hand traffic game):
    Crossing window phases. Expected: the untouched junction keeps its freed turns; a build that touches the junction
    starts a job and logs `SUMMARY ... free_turn=` again (or a `LIGHTS src=auto ... to=free_turn` line where the
    lanes were already right and something changes). Note `user_modified=` in those LIGHTS lines, and whether the game
-   ever re-locks the kerb turn without a Smart Lanes line (= it regenerated phases on its own: findings.md).
+   ever re-locks the curb turn without a Smart Lanes line (= it regenerated phases on its own: findings.md).
 4. **AUTO lights that come after the read**: build crossroads and watch for `RECHECK kind=free_turn`: about 1 s and
    10 s after the write, for nodes whose light state was unknown at the read (`lit=unknown` on the APPLY line).
    `sent=1` = the game put lights / phases there after our write and they were freed then (LIGHTS src=recheck);
@@ -1099,13 +1161,13 @@ Checks (year 1950+, right-hand traffic first, then a left-hand traffic game):
 5. **Save / reload**: the freed phases stay (Crossing window after loading).
 6. **Tool**: Apply to junction on an old lit crossroads: `WRITE ... free_turn=<n> free_phases=<n> kept=..`. Apply
    again after the game re-made the phases: `LIGHTS src=tool ... to=free_turn`, no lane write. Reset:
-   `WRITE src=reset ... lock_turn=<n>`, the Crossing window shows the game's phases again (kerb turn red with its
+   `WRITE src=reset ... lock_turn=<n>`, the Crossing window shows the game's phases again (curb turn red with its
    approach). Street / multi Apply and Reset log the same fields per batch.
 7. **Setting Off**: a new crossroads keeps the game's phases (`SUMMARY ... free_turn=off`, no LIGHTS to=free_turn
-   lines); the tool's Apply keeps them too; Reset still locks back kerb turns freed earlier.
+   lines); the tool's Apply keeps them too; Reset still locks back curb turns freed earlier.
 8. **No crash**: a lit 3x3 crossroads rebuilt from 36 to 16 connections (the 2026-10-11 crash case) with each of
    the three values: no `VectorMap.h` assert, `ERROR` lines none. The Channelized X / T centre: `free_turn=0` there
-   (its kerb turns are slip lanes).
+   (its curb turns are slip lanes).
 
 If it fails (When safe still frees a turn into conflicting traffic or pedestrians): note the junction, the phase and
 the two curves and fix `L.kerbConflict` (When safe is not the default: Always is, since 2026-10-12). If Always
@@ -1116,7 +1178,7 @@ update test_rules "mod params" and the description). If crosswalk entities are n
 Unit tests: test_lights.lua "kerbPairs" / "kerbIndices" / "kerbPhases" (FREE / LOCK) and "kerbPhases SAFE: ..."
 (X with one phase per approach and T with the game's phases, both traffic sides: kept red under the green straight
 into its lane, freed elsewhere; green crosswalk on A / E / another road / unmapped; lane order merge / cross /
-beside, trams, no order = conservative, two kerb turns into one lane; stale input, already green, empty phases);
+beside, trams, no order = conservative, two curb turns into one lane; stale input, already green, empty phases);
 test_script.lua "free turn: ..." (Always: lane write in one proposal, relock path, phases-only, stale phases,
 re-checks; Off = plain re-pointing) and "free turn When safe: ..." (one phase per approach, the game's two phases,
 green crosswalk, relock + phases-only LIGHTS fields, stale / Off); test_tool.lua "free turn (tool): ..." (Always
@@ -1149,7 +1211,7 @@ config.
 
 Steps (year 1950 or later; right-hand traffic first, then one left-hand traffic game for 2 and 4):
 1. Mod settings: **Debug: performance log** On (set it before loading; the probe gate is read with the SQPERF
-   window). **Free kerb turn at traffic lights: Off** (so Smart Lanes frees no kerb turn and the phases stay the
+   window). **Free curb turn at traffic lights: Off** (so Smart Lanes frees no curb turn and the phases stay the
    game's own, only re-pointed to the new lanes). The automatic pass dumps a node before its own lane write (the
    game's phases on the game's connections); a tool click on a node Smart Lanes already wrote shows its phases
    re-pointed to Smart Lanes' connections. A light the game adds after the build (AUTO) is dumped at the click.
@@ -1188,6 +1250,9 @@ but the all-reds skippable (min 1.5 s, as the game). Greens 15 s + 4 s per lane 
 prints them): 2x2 X `x4_split` 4 x 16 s + 2 s red, walk 15 s + 3 s red = 90 s (75 s with the walk phase skipped);
 3x3 X `x4_split` 4 x 23 s (crosswalk beside each approach) + 3 s red = 104 s; 2x2 T `t3` 23 / 19 / 19 s + 2 s reds,
 walk 15 s + 3 s = 85 s. The game: 6 phases, 71-78 s.
+**Since rev 8 the default is the axis plan (section AX)**: crossroads and T-junctions get `x4_axis` / `t3_axis` (one
+phase per road, a 6 s pedestrian phase after each, no all-reds); the plans above are the classic patterns, made
+inside an `sl_classic` zone until 2026-10-16 (removed since: section NC).
 
 Log lines:
 - `[SQRL] MODE phases=game|sl free_turn=off|safe|always` once per load (FLOW.md).
@@ -1201,7 +1266,7 @@ Log lines:
 - Reset (Smart Lanes mode): `LIGHTS src=reset node= to=game_phases phases=game states=<before>` after the lane write.
 
 Steps (1950 or later, town roads; right-hand traffic, then one left-hand traffic game for 2-4):
-1. Mod settings: **Light phases: Smart Lanes**, Free kerb turn: When safe (not the default), Debug: performance log On.
+1. Mod settings: **Light phases: Smart Lanes**, Free curb turn: When safe (not the default), Debug: performance log On.
    Load; `grep "SQRL] MODE"` shows `phases=sl free_turn=safe`.
 2. Build fresh lit junctions, ~10 s apart: a. 2x2 X (medium x medium), b. 3x3 X (large x large), c. 3x3 x 2x2 X,
    d. T of medium roads, e. T of large roads. For each: `PHASES src=auto node=N phases=sl plan=...` or
@@ -1225,7 +1290,7 @@ Steps (1950 or later, town roads; right-hand traffic, then one left-hand traffic
 7. Street: click the road between a and another lit crossroads, Apply: WRITE `sl_plans=2`; Reset: two
    `LIGHTS src=reset to=game_phases` lines.
 8. Back to **Game default**, reload: `MODE phases=game`. Build a new crossroads: no PHASES lines, its Crossing window
-   shows the game's six phases (free kerb turn as set). Junctions written before keep their planned phases until
+   shows the game's six phases (free curb turn as set). Junctions written before keep their planned phases until
    the tool's Reset with Smart Lanes, or the Crossing window's Reset to Default.
 9. Paste back: `grep -E "SQRL\] (MODE|PHASES|LIGHTS|RECHECK|SUMMARY|WRITE|ERROR)" stdout.txt`, the notes from 3-6 and
    screenshots of the Crossing window at a (two phases) and d.
@@ -1284,33 +1349,33 @@ the fan circles. Settings at defaults.
    Paste back: `grep -E "SQRL\] (ZONES|APPLY.*(mode=fan|fan=)|PHASES|SUMMARY|RECHECK|SKIP.*fan_|ERROR)" stdout.txt`.
 
 ## FL. Lock mode: zone `sl_lock` (rev 4, PHASES_PLAN.md "Lock mode"; 2026-10-12, not run in game yet)
-Background: the free kerb turn measured on its own: the Stress Test's Lights showcase builds an `sl_lock` twin (Smart
-Lanes lanes, kerb turn never freed, game phases) next to the `sl` twin (the global settings, Free kerb turn =
-Always). Settings: Free kerb turn Always, Light phases Game default.
+Background: the free curb turn measured on its own: the Stress Test's Lights showcase builds an `sl_lock` twin (Smart
+Lanes lanes, curb turn never freed, game phases) next to the `sl` twin (the global settings, Free curb turn =
+Always). Settings: Free curb turn Always, Light phases Game default.
 1. `[SQRL] ZONES op=set n=.. run=.. by_ab=game:..,sl:..,sl_phases:..[,sl_fan:..],sl_lock:N` (`sl_lock:` only when N > 0).
 2. Each sl_lock twin's crossroads / T: one proposal; `APPLY kind=slip node=.. case=X ... zone=sl_lock free_turn=off`,
    no `PHASES` line, `SUMMARY ... zone_lock=1 lock_turn=0 lock_phases=0 free_turn=..` (a fresh junction: nothing
-   to lock back). Crossing window: the kerb turn red with its approach (as the game's twin); the `sl` twin next to
-   it: the kerb turn green in every phase. Its `AUDIT` line (if any) ends in `zone=sl_lock free_turn=off`.
+   to lock back). Crossing window: the curb turn red with its approach (as the game's twin); the `sl` twin next to
+   it: the curb turn green in every phase. Its `AUDIT` line (if any) ends in `zone=sl_lock free_turn=off`.
 3. Re-apply: with the twins built, send the zones again with an sl circle turned sl_lock (or Apply to junction at an
-   sl twin first, then move it into an sl_lock circle and rebuild a road there): the freed kerb turns end red again,
+   sl twin first, then move it into an sl_lock circle and rebuild a road there): the freed curb turns end red again,
    `SUMMARY ... lock_turn=<n> lock_phases=<n>` (lane write) or `LIGHTS src=auto ... to=lock_turn lock_turn=<n>`
    (lanes already right).
 4. Tool inside an sl_lock circle: Apply to junction writes `WRITE ... lock_turn=.. phases=game`, `APPLY src=tool ...
-   zone=sl_lock free_turn=off`; the kerb turn stays red.
+   zone=sl_lock free_turn=off`; the curb turn stays red.
 5. Traffic: `make flow` shows `sl_lock vs game` and `sl vs sl_lock` rows per lit crossing set.
 6. No crash (lockedLanes index asserts, VectorMap.h:11), no `ERROR`. Paste back:
    `grep -E "SQRL\] (MODE|ZONES|APPLY.*sl_lock|LIGHTS.*lock_turn|SUMMARY|AUDIT.*sl_lock|ERROR)" stdout.txt`.
 
 ## EF. Exit-lane fan: zone `sl_exitfan` (rev 4, PLAN.md "Exit-lane fan (sl_exitfan zones)"; 2026-10-13, not run in game yet)
 Background: the exit-lane fan measured on its own, as a twin next to `sl` (sl vs sl_exitfan = the fan alone; Light
-phases Game default, Free kerb turn as set, ideally Always). Outside an sl_exitfan circle nothing changes.
+phases Game default, Free curb turn as set, ideally Always). Outside an sl_exitfan circle nothing changes.
 1. `[SQRL] ZONES op=set ... by_ab=game:..,sl:..,sl_phases:..[,sl_fan:..][,sl_lock:..],sl_exitfan:N` (only when N > 0).
 2. Each sl_exitfan twin's lit crossroads / T: one proposal, `APPLY kind=slip ... lit=yes exit_fan=yes ... zone=sl_exitfan`,
-   no `PHASES` line, `SUMMARY ... zone_exitfan=<n> exit_fan=<n>`. Crossing window (2x2): each approach's kerb turn
+   no `PHASES` line, `SUMMARY ... zone_exitfan=<n> exit_fan=<n>`. Crossing window (2x2): each approach's curb turn
    into both lanes of its exit, the far turn into the far lane only, straights lane to lane (20 connections; the `sl`
-   twin 16, the game's 24). 3x3: kerb turn into exit lanes 1-2, far turn 2-3, the lane strings `k|s|sf` as `sl`.
-3. Phases (Free kerb turn Always): the kerb turn's connection into the exit's kerb lane green in every phase, its
+   twin 16, the game's 24). 3x3: curb turn into exit lanes 1-2, far turn 2-3, the lane strings `k|s|sf` as `sl`.
+3. Phases (Free curb turn Always): the curb turn's connection into the exit's curb lane green in every phase, its
    connection into the far lane red with its approach (the Crossing window's phase boxes). No `VectorMap.h:11` crash.
 4. Unlit / AUTO without a light: `exit_fan=unlit` / `exit_fan=lit_unknown` and today's lanes; a light that comes later
    within 600 frames: `APPLY src=recheck ... exit_fan=yes`, `WRITE kind=exit_fan node=.. success=true`.
@@ -1331,3 +1396,759 @@ Background: plans/square_stress_test/BENCH.md "As implemented in Smart Lanes". W
    about 10 s after the last build.
 5. ~600 frames after the lights-off: `RECHECK kind=lights ... lit=0 queued=0` per entry (lit > 0 means a light came
    back and was switched off again). No crash, no `ERROR`.
+
+## RV. Ring layout variants: zones `sl_rturbo` .. `sl_rspread` (PLAN.md "Ring layout variants (bench)"; 2026-10-13, not run in game yet)
+1. `ZONES op=set ... by_ab=...,sl_rturbo:<n>,...` (each variant only when present, after `sl_keeplights`).
+2. Every arm junction of a twin ring: `APPLY ring=.. node=.. ... layout=<mode> zid=<id>`; `SUMMARY ... zone_ring=1`.
+   Crossing window: the connections of PLAN.md's table (e.g. sl_rout1: only the outer lane leaves, into every exit lane;
+   sl_rspiral: inner lanes shift one lane outwards at each exit junction).
+3. After the links and town growth: no further APPLY on those rings (`SKIP kind=ring ... reason=same` only); the
+   Crossing window still shows the variant (no flip to matched, unlike the `sl` twins).
+4. Traffic: no stuck vehicles at any variant ring (every destination reachable; sl_rspiral needs no lane change); no
+   `ERROR`, no crash. Paste back: `grep -E "SQRL\] (ZONES|APPLY ring=.*layout=|SUMMARY.*zone_ring|ERROR)" stdout.txt`.
+
+## RS. Mid-node spiral: zones `sl_rsplit` and `sl_rmid` (PLAN.md "Mid-node spiral (sl_rsplit)", "Mid-node lane changes (sl_rmid)"; 2026-10-14: sl_rsplit steps 1-3 seen in game in Sheet 4 v3 (mids=4, mid=yes after=3, VERIFY same=8 nodes=8), sl_rmid not run yet)
+Run Stress Test Bench > Sheet 4 (v3: ring `bench_rb2tm`, twins game `s4g1b`, sl `s4g1a`, sl_rspiral `s4g1l`, sl_rsplit
+`s4g1n`). The decisive lines (paste back: `grep -E "BENCH_TWIN|SQRL\] (RSPLIT|APPLY .*mid=yes|WRITE ring|VERIFY ring|ERROR)"
+stdout.txt`, or `make logs-grep PAT='RSPLIT|mid=yes|VERIFY ring'`):
+1. The mid nodes were built: every twin `BENCH_TWIN ... geometry=ok what=one_way_streets n=8 mids=4` (8 one-way ring
+   edges, 4 nodes joining two one-way streets only). `mids=` under 4 or `geometry=bad`: square_roundabouts without the
+   dev override (old staging copy) or the game merged the nodes.
+2. Smart Lanes found them: one `RSPLIT ring=<key> node=<key> mids=4 nodes=<4 ids> zid=s4g1n` (`mids=0 fallback=sl_rspiral
+   reason=...`: it did not, and the twin is excluded by `make bench`).
+3. **The game accepts the lane change at a 2-edge node**: 8 `APPLY ... layout=sl_rsplit zid=s4g1n` (4 junctions
+   `before=4 after=4`, 4 with `exits=0 entries=0 ... before=2 after=3 ... mid=yes`), then `WRITE ring=<key> nodes=<8 ids>
+   success=true` and `VERIFY ring=<key> same=8 nodes=8`. `success=false` or `same=` under 8 (which nodes: the VERIFY
+   detail) means the game refuses or rewrites such a node: a finding for docs/findings/roads.md either way.
+4. The other twins: no `mid=yes` and no `RSPLIT` line with their zid; `s4g1l` APPLY `layout=sl_rspiral` at the 4
+   junctions only.
+5. (The Crossing Tool can't pick a mid node, seen in game 2026-10-13: docs/findings/roads.md; the mid nodes' lanes are
+   proven by the APPLY `mid=yes after=3` and VERIFY `same=8` lines only.) On `s4g1n` a mid node has 3 connections: outer lane
+   straight, outer lane into the inner lane, inner lane straight; an arm junction 4: outer lane into the exit only, inner
+   lane into the outer lane and straight on, the entry into the outer lane only. On `s4g1l` and `s4g1b` the mid nodes
+   show 2 straight curves (the game's). No crash on clicking a mid node (NodeViewer `edgeIdx` guard, findings).
+6. Do cars use it (only visible, no log line): at 2x, watch `s4g1n` for 1-2 minutes: cars entering an arm stay in the
+   outer lane to the next exit, or move to the inner lane at the mid node (the red circles of the user's screenshot);
+   inner-lane cars move out at the junction. Nobody circles forever, nobody stops at a mid node, no queue at an entry
+   that `s4g1l` doesn't have. Then `make bench`: rows `sl_rsplit vs sl_rspiral` and `sl_rsplit vs game` (one pair each:
+   a direction, not significance).
+7. **sl_rmid** (Sheet 4 v4, twin `s4g1o`, PLAN.md "Mid-node lane changes (sl_rmid)"): one `RSPLIT ... mids=4 nodes=<4 ids>
+   zid=s4g1o`; 8 `APPLY ... layout=sl_rmid zid=s4g1o`: 4 junctions `after=3` (outer lane into the exit only, inner lane
+   straight only, the entry into the outer lane only), 4 mid nodes `exits=0 entries=0 ... before=2 after=4 ... mid=yes`
+   (both lanes straight plus outer -> inner and inner -> outer, crossing at the node); then `WRITE ring=<key> ...
+   success=true` and **`VERIFY ring=<key> same=8 nodes=8`: the engine keeps two crossing lane changes at a 2-edge node**
+   (`same=` under 8 or `success=false`: it does not; a finding either way). Traffic (visible only): cars bound for the
+   next exit leave the inner lane at the mid node, nobody changes lanes at an arm; watch for cars stopping at a mid node
+   (yielding between the two crossing lane changes) or circling.
+
+## LU. Ring lane use: zones `sl_rmid2` and `sl_rturbo_in` (PLAN.md "Ring lane use (in progress)"; 2026-10-15, offline only, not run in game yet)
+Run it as the Stress Test's bench Sheet 5 (plans/square_stress_test/TESTING.md 6Y2: twins s5g1w..s5g3w are sl_rmid2,
+s5g4y..s5g6y sl_rturbo_in), or with a console zone around a ring you build (the SmartLanes.zones event, sl_zones.lua
+header), then a build touching the ring. Paste back
+`make logs-grep PAT='SPLIT|RSPLIT|layout=sl_r(mid2|turbo_in)|VERIFY ring' ARGS='--session live'`.
+1. **sl_rmid2, 2-lane ring with 2-lane arms, no mid nodes**: one `SPLIT ring= node= len= edges=<4 ids> nodes_added=4
+   zid=`, `WRITE kind=split ring= success=true`, then `RSPLIT ... mids=4 per_stretch=1 nodes=<4 ids> zid=` and 8 `APPLY
+   ... layout=sl_rmid2 zid=` (4 junctions `after=5`, 4 mid nodes `exits=0 entries=0 ... before=2 after=4 ... mid=yes`),
+   `VERIFY ring= same=8 nodes=8`. `SPLIT ... refused=short` on an XS ring (halves under 8 m): the twin is turbo
+   (`RSPLIT ... mids=0 fallback=sl_rturbo`), exclude it. Traffic (visible): cars entering in the curb lane bound for a
+   farther exit move in at the mid node; the queue at the inner entry lane (user's ring 282381) shorter than on the
+   sl_rturbo twin.
+2. **sl_rturbo_in, 4-lane ring with 3-lane arms**: 4 `APPLY ... layout=sl_rturbo_in ... after=10 zid=`, VERIFY same=4.
+   Traffic: cars enter the innermost ring lane from the innermost entry lane, circle there and move one lane out at
+   the arm before their exit; nobody stops at the shift.
+3. The game twin and the sl_rturbo twin: no SPLIT, no mid=yes.
+
+## DS. Default: the mid-node spiral on 2-lane rings with one-lane exits; Smart Lanes adds the mid nodes; the tool on mid nodes (rev 6, PLAN.md "Default: the mid-node spiral", "Smart Lanes adds the mid nodes"; 2026-10-14, the split not run in game yet)
+Mods: Smart Lanes and Roundabouts & Interchanges. A free game, a town. Every step: paste `grep -E "SQRL\] (SPLIT|RSPLIT|APPLY|WRITE|VERIFY|ERROR)"`.
+1. Place five Better Roundabouts: Ring lanes 2, Arm road Town small, 4 arms, Scale XS, S, M, L, XL. Per ring, expect:
+   `SPLIT ring=<key> node=<key> len=<126|159|192|280|439> edges=<4 ids> nodes_added=4`, `WRITE kind=split ring=<key>
+   success=true`, then (a job later) `RSPLIT ring=<key> node=<key> len=<same> mids=4 per_stretch=1 nodes=<4 ids>`, 4 junction
+   `APPLY ... layout=sl_rmid default=one_lane_exits` (`after=3`: outer lane into the exit only, inner lane straight only,
+   entry into the outer lane only) and 4 `... exits=0 entries=0 ... before=2 after=4 ... mid=yes` (both lanes straight
+   plus both lane changes), `WRITE ring=<key> ... success=true`, `VERIFY ring=<key> same=8 nodes=8`. No `ERROR`, no crash in the next
+   minutes (the split adds nodes with configs; a script node without one can crash the sim, findings roads.md).
+   The ring looks as before (the halves are exact sub-curves); the arms' traffic lights (from 1950) go off as usual.
+2. Refusals: a ring with a bus stop on a ring piece (Road Stop on the ring), or the smallest possible ring: `SPLIT ...
+   refused=edge_objects` / `refused=short`, then `RSPLIT ... mids=0 fallback=sl_rspiral` and `layout=sl_rspiral` APPLYs.
+3. Unchanged elsewhere: Town medium arms (2-lane exits): no SPLIT (since 2026-10-15 matched lanes, `layout=matched
+   default=two_lane_exits`: step MD; before `turbo=true`, no `layout=`); Ring lanes 4: no SPLIT; a
+   Roundabout Interchange ring: as before.
+4. Build a road onto one arm of a ring of step 1: `SKIP ... reason=same` for its 8 nodes, no SPLIT, no `reason=hand_edit`.
+5. Smart Lanes tool on a ring of step 1 (click between two junctions): the detail line "Apply or Reset: the roundabout and
+   its lane changes between the arms"; status "Smart lanes"; short orange curves at each mid node (both straight faint,
+   outer into inner and inner into outer bright, crossing); no `ERROR where=mid_lines`. Paste a screenshot.
+6. Reset: `RESET` lines for the 4 junctions and the 4 mid nodes (the nodes stay, straight on: Reset never merges them
+   back), the curves vanish, status "Game default". Apply again: back to step 1's lanes, no SPLIT (the nodes are there).
+7. Apply on an old ring (one placed before this version, 4 ring nodes, Apply automatically Off while placing): `SPLIT
+   src=tool ... nodes_added=4`, `WRITE src=tool kind=split ... success=true`, then the tool's `APPLY src=tool layout=turbo`
+   lines for 8 nodes (the re-apply 5 frames later).
+8. Cars (visible only): entering cars stay in the outer lane to the next exit or move into the inner lane at a mid node.
+
+## MD. Default: matched lanes on 2-lane rings with wide exits (rev 8, PLAN.md "Default: matched lanes on 2-lane rings with wide exits"; 2026-10-15, offline only, not run in game yet)
+Mods: Smart Lanes and Roundabouts & Interchanges. A free game, a town. Every step: paste `grep -E "SQRL\] (SPLIT|RSPLIT|APPLY|WRITE|VERIFY|SKIP|ERROR)"`.
+1. Place a Better Roundabout: Ring lanes 2, Arm road Town medium (2-lane exits), 4 arms. Expect 4 `APPLY ... lanes=2 ...
+   turbo=false fresh=true ... layout=matched default=two_lane_exits` (`after=6`: both ring lanes exit or go on, entries
+   lane for lane), `WRITE ... success=true`, `VERIFY same=4 nodes=4`; no `SPLIT`, no `RSPLIT`. Crossing Tool on an arm:
+   the outer ring lane goes into the curb exit lane and straight on. Paste a screenshot.
+2. Unchanged: a Ring lanes 4 roundabout with Town medium arms: `turbo=true`, no `layout=`; a Ring lanes 2 roundabout with
+   Town small arms: `layout=sl_rmid default=one_lane_exits` (step DS); a Roundabout Interchange: its on-ramp keeps its own
+   lane (`entry=own_lane`), and with a 2-lane off-ramp the arm junctions are matched (`default=two_lane_exits`).
+3. An old save (a 2-lane ring with medium arms written by rev 7 or earlier, turbo): load it, nothing changes on load
+   (no `APPLY`). The tool on that ring: status not "Smart lanes", Apply enabled; build a road onto one arm instead:
+   4 `APPLY ... layout=matched default=two_lane_exits`, no `SKIP ... reason=hand_edit`.
+4. Tool Apply on a ring of step 1 after Reset: `APPLY src=tool layout=turbo ... turbo=false turbo_reason=two_lane_ring`,
+   the result line "Smart lanes applied to 4 junctions" with no "no exit-only outer lane" reason; status "Smart lanes".
+5. Cars (visible only): at a busy 2-lane ring with 2-lane arms, through traffic uses both ring lanes (the bench s5
+   RINGLANE shares: ~50/50), not one queue in the inner entry lane.
+
+## WR. Whole rings in the automatic pass (PLAN.md "Whole rings in the automatic pass"; 2026-10-13, not run in game yet)
+1. Place a Better Roundabouts 4-lane ring (medium arms) with Apply automatically Off, save, load with it On, then
+   build a road onto one arm. Check: one `APPLY` per arm junction of the ring, all `turbo=true fresh=true`, one `WRITE
+   success=true`, `VERIFY same=4 nodes=4`; the Crossing Tool shows the exit-only outer lane at every arm.
+   Lights: only the rebuilt arm's junction gets a `LIGHTS` line.
+2. Build onto the arms one at a time in a different order on a second such ring: the same lanes at the end.
+3. Hand edit: change one junction with the Crossing Tool, then build onto another arm. Check: `SKIP ring= node=<edited>
+   reason=hand_edit`, `APPLY` for the rebuilt arm only with `turbo=false fresh=false`, the edit unchanged.
+4. Several quick builds on one ring (high game speed, town growth): any `WAIT kind=ring` line is followed by that
+   job's `APPLY` / `WRITE` lines; no `ERROR`, no `success=false`.
+
+## BL. Bus lanes: car lanes set, bus connections kept (rev 6, PLAN.md "Bus lanes"; 2026-10-13, not run in game yet)
+Player request: "ignore bus lanes but set all the other lanes; I'll add the bus connections / bus priority phases
+myself". Use the Bus Lane Tool (Roads, Tools) on town roads; keep the Crossing Tool open next to Smart Lanes.
+1. Crossroads with a bus lane on one road (Apply automatically On, then build a road onto it): one `APPLY kind=slip
+   ... case=X`, no `SKIP reason=bus_lane`. Crossing Tool: no car lane leads into a bus lane that the game did not
+   connect already; the curb car lane (next to the bus lane) turns right; every bus-lane connection the game had is
+   still there (compare a `make logs-grep PAT='CONN.*node=<n>'` dump before / after, or the Crossing Tool by eye).
+   `VERIFY same=1`.
+2. Add a bus connection with the Crossing Tool (the bus lane into a side road), then select the junction with the
+   Smart Lanes tool: badge still "Smart lanes", Apply hidden (greyed before 2026-10-14), detail "... bus lanes kept as they are". Press
+   Reset: the car lanes go back to the game default, your bus connection stays. Apply again: it stays too.
+3. Same junction with traffic lights, Light phases = Game default and Free curb turn Always: open its Crossing
+   window: the bus connections have the phases they had before Apply (the bus curb turn is not freed); with Light
+   phases = Smart Lanes (`PHASES ... plan=`): every bus connection is green in some phase, none is red all cycle.
+   Watch a bus line through it: buses still use the bus lane and are not stuck at red.
+4. Roundabout arm with a bus lane (Bus Lane Tool on one arm): the junction is handled (`APPLY ring=` for it, no
+   `bus_lane_arm`); the bus lane's connections to the ring stay; with "No lights at roundabouts and ramps" On that
+   junction keeps its traffic light (no `LIGHTS` line for it), the other junctions lose theirs.
+5. Slip lane leaving a road with a bus lane (Channelized Junction on a bus-lane road): `APPLY kind=slip`, the curb
+   car lane feeds the slip lane; the junction keeps its light.
+6. A road where a bus lane starts (2 car lanes become 1 car lane + bus lane): `APPLY kind=drop shape=lane_drop...`
+   (a drop for cars); the game's connections into the bus lane are kept. Watch: do cars still try to use the bus
+   lane? (Open question: does the game connect a car lane into the bus lane there, and do cars ever route over such
+   a connection?)
+7. A roundabout drawn with a bus-lane road as the ring: every ring junction "not handled: the ring has a bus lane",
+   nothing written (`SKIP ... reason=bus_lane_ring` from the tool's pick, no APPLY).
+8. One-way street with a contraflow bus lane meeting a two-way road: the crossing rule treats the street as one-way
+   for cars; the contraflow bus lane's connections are kept.
+9. Unknown offline: whether the engine keeps re-written bus connections byte for byte (VERIFY leaves them out, so
+   step 1's comparison is the check). The base Bus Lane Tool makes lanes "exclusive to buses and trucks"
+   (`base/content/gui/construction/tools/bus_lane_tool.script.tl:10`): trucks use the kept connections too, and a
+   truck route that needs a car lane at the junction gets the car rule's lanes; watch a truck line through step 1.
+
+## RK. Reset sticks (rev 7; PLAN.md "Reset sticks"; implemented 2026-10-14; steps 1-3 passed in game 2026-10-14, 4-5 open)
+1. Medium street with a T-junction, Apply automatically On. Tool: Reset the T. Hover: "Game default (locked)";
+   log `KEPT op=add n=1 total=1 src=tool`.
+2. Place a street bus stop on one arm, then upgrade another arm: the T keeps the game's lanes; log
+   `SKIP kind=kept ... reason=reset_kept`, no `APPLY ... node=<T>`.
+   **Passed 2026-10-14** (live session of 18:10 UTC, T node 7410): Reset -> `KEPT op=add n=1 total=1 src=tool`; a
+   one-lane fourth arm built onto it -> `SKIP kind=kept job=6 ... reason=reset_kept`, the crossroads kept the game's
+   21 connections (`badge=kept`); that arm removed and the east arm rebuilt (5145 -> 6719) -> `SKIP ... job=7`, the T
+   back to the game's 12 (`badge=kept`); console read `kseq 1 kept 1`. No APPLY on 7410 after the Reset.
+3. Apply on the T: smart lanes, status "Smart lanes", `KEPT op=remove`. Rebuild an arm: smart lanes stay.
+4. Roundabout: Reset the whole ring, rebuild one arm: the ring keeps the game's lanes (whole ring skipped).
+5. Save, reload: step 2 still holds. A save that never used Reset: no `kept` in the state (no KEPT lines).
+
+## OE. Open exit lanes near stops and close junctions (rev 7; PLAN.md "Open exit lanes near stops and close junctions"; implemented 2026-10-14; steps 1-3 passed in game 2026-10-14, 4-6 open)
+**Run 2026-10-14** (live session of 19:03 UTC, T node 4538): step 1 `open=-` (8 connections); step 2 stop placed ->
+`open=4396:stop`, 9 connections, the left turn `8736:2 -> 4396:3` and `4396:4` (both lanes), the right turn `8880:1 ->
+4396:4` only; a fourth arm added: crossroads still `open=4396:stop`; step 3 stop removed -> `open=-`, placed again ->
+`open=5921:stop`. Also RK step 3: Reset `KEPT op=add`, Apply `KEPT op=remove`, the next build applied smart lanes.
+Apply automatically On, Free curb turn as set, Light phases "Game default". The lane view of the tool shows which exit
+lanes a turn reaches.
+1. Medium town street (2 lanes each way) with a T-junction, side street at least ~150 m long with no junction on it.
+   Log: `APPLY ... node=<T> ... open=-`. Tool, hover the T: the left turn (right in left-hand traffic) from the main
+   road into the side street lands in the side street's inner lane only.
+2. Place a street bus stop on the side street, curb side, ~25 m after the junction. The stop rebuilds the side
+   street's piece, the T goes to the automatic pass: `APPLY ... node=<T> ... open=<side street edge>:stop`. Tool view:
+   the left turn into the side street now lands in both lanes; the right turn from the other main approach still only
+   in the curb lane; the main road's straights as before. Status "Smart lanes". AUDIT_SUMMARY may show
+   `forced=...shared_open:1` (by design, no AUDIT line for it). A bus line turning left there stops without a U-turn.
+3. Remove the stop: `APPLY ... open=-`, the left turn back to one lane. (If the stop is placed on a different edge than
+   the junction's piece, check the distance: within 80 m of the junction opens, farther does not.)
+4. A short block: two T-junctions (or a T and a crossroads) on one street about 50 m apart, side streets to the
+   same side. `APPLY ... node=<first junction> ... open=<edge to the second>:near`; the turn across traffic into
+   that block lands in both lanes. Junctions 100 m apart: `open=-`.
+5. A lit 2x2 crossroads with a stop ~30 m into one arm: `open=<arm>:stop`, the left turn into that arm in both lanes,
+   the opposite straight and the right turn unchanged. Unlit (lights off at the node): the left turn stays in the far
+   lane on a 2x2 crossroads (the opposite straight already uses both lanes; no crossing), `open=` still logged.
+6. If step 2 shows `open=-` although the stop is there: paste in the console, hovering nothing, with `<edge>` the side
+   street's piece from the APPLY / PICK line:
+   `local e=api.engine.getComponent(<edge>,api.type.ComponentType.BASE_EDGE) for _,o in ipairs(e.objects) do local eo=api.engine.getComponent(o[1],api.type.ComponentType.EDGE_OBJECT) print("SQOE",o[1],o[2],eo and eo.param,eo and eo.transf and eo.transf:getTransl().x,eo and eo.transf and eo.transf:getTransl().y) end print("SQOE enum",api.type.enum.EdgeObjectType.STOP_LEFT,api.type.enum.EdgeObjectType.STOP_RIGHT)`
+   and report the `SQOE` lines (`make logs-grep PAT='SQOE' ARGS='--session live'`).
+
+## SH. Rev 8: shared-lane curb turns held, whole lanes and bus lanes in Smart Lanes phases, Lights only, lane status reason (PLAN.md "Rev 8"; 2026-10-14, offline only, not run in game yet)
+From a player's report (lit 1-lane crossroads, main road with bus lanes + tram, Light phases = Smart Lanes). The
+reasoning behind step 1 (a freed turn out of a shared lane keeps a demand-actuated phase from ending) is inferred, not
+seen in game: steps 1-2 check it. Setup: Free curb turn = When safe, then Always; a town with traffic.
+1. **Free curb turn, 1-lane crossroads.** Build a lit crossroads of two 1-lane town streets (or Apply on one). Log:
+   `APPLY ... node=<n>`, `WRITE`/`SUMMARY ... free_turn=0 free_phases=0 ... shared_held=4`. Crossing window, phases:
+   every right turn (left in left-hand traffic) red together with its approach's straight. Watch a few cycles: a phase
+   whose approach is empty ends early (the next phase starts before the full green) while the other road waits.
+   Compare with rev 7 if a save has an earlier write: Apply again turns `shared_held=4` and re-locks the freed turns.
+2. **3-lane crossroads** (curb lane turns only): `free_turn=4 ... shared_held=0`, the curb turns still freed as in FK.
+   A 2-lane crossroads with Smart Lanes' lanes: `free_turn=0 shared_held=4` (its curb lane goes straight too).
+3. **Light phases = Smart Lanes, 1-lane crossroads, main road with curbside bus lanes** (the player's case: e.g. a
+   medium street with bus lanes crossing a small street, bus connections as the game made them). Apply (or Lights
+   only): since the axis plan (AX) `PHASES src=tool node=<n> phases=sl pattern=axis plan=x4_axis cycle=60`: one phase per road,
+   both directions whole, **the bus lanes green with their road** (Crossing window: the bus lane's straight and turn
+   unlocked together with the car lane beside it), a 6 s pedestrian phase after each road. Lengths from lane counts
+   only (the main road factor is gone, PHASES_PLAN.md "Whole lanes and bus lanes"): offline 24 s per road (the 2-lane game green 23.7 s as floor; car lane +
+   bus lane); a longer green for the busy road comes from Re-time (RT). (Before the axis plan: `plan=x4_split`, four
+   approach phases of 18 / 14 s at a 90 s cycle; gone since 2026-10-16, NC.) Watch (player's points):
+   cars turning right from the car lane drive while the buses beside them go (no stall behind a stopped bus); a phase
+   ends early when its approach (car and bus lane) is empty. If the right-turners still stall beside a green bus lane:
+   paste the PHASES line and the Crossing window's phase.
+7. **Whole lanes** (Light phases = Smart Lanes; player: "the one car that wants to turn left while everybody else goes
+   straight blocks the flow and prevents the phase skip"). On a lit T of 1-lane streets and on a 2-lane crossroads
+   (Smart Lanes' far lane goes straight too) Apply / Lights only, then in the Crossing window check every phase: an
+   entry lane's movements are all unlocked or all locked (never a straight green while the left turn out of the same
+   lane is red). The T: `plan=t3_axis`, the main road's phase greens both main approaches whole. Watch: no phase runs to full length because a
+   left-turner holds the lane; phases skip when their lanes are empty.
+8. **Bus lane beside a protected axis** (dropped 2026-10-16: classic patterns only, which are gone (NC); with the axis plan
+   the bus lane is green with its whole road) (optional, a 3-lane main road with dedicated left lanes and a curbside bus lane
+   whose connections also turn left): the bus lane is red in the straight phase (its left turn would cross the
+   opposite straight) and gets a phase with its own approach instead; the car curb lane next to it is green in the
+   straight phase anyway (a pattern seed). Watch whether those right-turners stall behind the red buses (the player's
+   effect): if so, note it for the axis-phase rebuild.
+9. **Free curb turn beside a bus lane** (Light phases = Game default, Free curb turn = When safe / Always, a 3-lane road
+   with a curbside bus lane, dedicated curb car lane): the curb turn is freed only in phases where the bus lane is
+   green (`free_phases=` lower than without a bus lane). Watch that the freed right-turners drive.
+4. **Lights only** (a button again since rev 8 v2; the checkbox could not be unchecked in the user's test). On the same
+   junction edit a lane with the Crossing Tool (e.g. remove a far turn, or add a second lane's turn). Tool: select the
+   junction. The lane status shows Custom (or Game or custom); first row Apply and Reset, second row Lights only and
+   Re-time (both rows fit in German / Russian). Press Lights only:
+   `PHASES src=tool action=lights_only node=<n> phases=sl pattern=axis plan=..`, `LIGHTS src=tool node=<n> to=sl_phases
+   ... action=lights_only plan=..`, no `WRITE` line; result "Light phases set for the current lanes". Crossing Tool:
+   your lane edit is still there; the Crossing window's phases match the plan. After ~1 s Lights only grays ("Phases
+   already the Smart Lanes plan") and Reset is enabled ("Reset the light phases to the game default"). Press Reset:
+   `LIGHTS src=reset node=<n> to=game_phases`, result "Light phases reset to the game default", the Crossing window
+   shows the game's six phases again (fractional greens), your lane edit is gone only if Reset also wrote the lanes
+   (it does when they differ from the game's: tooltip "Reset lanes and light phases to the game default"). With Light
+   phases = Game default: the same. Check `user_modified=` on the LIGHTS line and whether the game keeps the phases
+   after a nearby build.
+5. **Lane status reason.** Hover / select a lit or unlit crossroads of 1-lane streets with the game's lanes:
+   "Lanes: Smart lanes = game default (one car lane per road)"; with a bus-lane main road: "...; bus lanes kept)".
+   A 2-lane crossroads with the game's lanes still shows "Game default" (smart lanes differ there). Check the status
+   panel wraps the longer label (de / ru) and the hover tooltip stays one readable line.
+6. If step 1 shows phases still not ending early: paste the PHASES / LIGHTS lines and the Crossing window's phases
+   (which connections are green in the phase that runs long); the next suspect is pedestrians (a crosswalk green in that
+   phase keeps it busy) or the all-red phases (fixed, never skip).
+
+## AX. Axis plan: one long green per road (rev 8, PHASES_PLAN.md "Axis plan (default since rev 8)"; 2026-10-14, offline only, not run in game yet)
+From the player's report (2026-10-14): Smart Lanes' 4-phase split plan backed traffic up across town; the game's
+default and their own plan (head start 12.6 s, main road 23.7 s, pedestrians 6 s, cross road 21.6 s, pedestrians 6 s)
+run far better. Setup: Light phases = Smart Lanes, a town with steady traffic, a lit crossroads of 1-car-lane roads
+(ideally with curbside bus lanes and a tram, the player's case) and a lit 2-lane crossroads and T.
+1. **Plan.** Apply (or Lights only) at the crossroads: `PHASES ... pattern=axis plan=x4_axis cycle=60 1:24s/skip1.5[..]
+   2:6s/skip3[w1-w4] 3:24s/skip1.5[..] 4:6s/skip3[w1-w4]` (rev 8 v2: greens at least the game's default for the lanes,
+   24 s at 2 lanes; a 1-lane X 19 s). Crossing window: phase 1 = one road, both directions, every lane and turn (bus
+   lanes and tram included), crosswalks red; phase 2 = every crosswalk green, every vehicle red, Skip on with min 3 s,
+   6 s; phase
+   3 the cross road; phase 4 pedestrians again. No all-red phases. The T: `plan=t3_axis` (main road, pedestrians, side
+   road, pedestrians).
+2. **Turns against the opposite straight.** Watch a few cycles: left turners (right in left-hand traffic) wait in the
+   junction for a gap or go before / after the opposite straight; note any box jam (vehicles stuck mid-junction into
+   the pedestrian phase) and whether the 6 s pedestrian phase clears the junction before the cross road starts.
+3. **Phase skip.** A road whose lanes empty ends its phase early (1.5 s minimum) while the cross road waits; a
+   pedestrian phase with nobody on the crosswalks ends after its 3 s clearance (rev 8 v2; before: always 6 s). Watch
+   cars left inside the box at the end of a road's green: they must clear in those 3 s (the user's screenshots: they
+   "cycle out eventually"). If cars still stand in the box when the cross road starts, note it: the clearance option
+   (`opts.pedClearance`) goes up.
+4. **Compare a busy junction: game default vs axis vs Re-time** (rev 8 v2; players: "shorter phases than default
+   harm busy intersections"). One busy lit crossroads with queues on every arm (the user's node 498446 kind: 1-lane
+   roads, 20+ cars queued per arm). (a) Reset in the tool (the game's six phases), wait 5 game minutes, then run
+   Re-time once without writing (cancel at the end is not possible: read its `op=measured` q_arm instead, or note the
+   queue lengths by eye on each arm). (b) Lights only (the axis plan), 5 game minutes, the queues again. (c) Re-time,
+   let it write (`op=plan ... cycle=<old>><new> y= lost= cycle_reason=saturated` expected: cycle 120 s), 5 game
+   minutes, the queues again (a second Re-time's `op=measured q_arm=` measures them). Report the three q_arm lines (or
+   the queues by eye) and the PHASES / RETIME plan lines. Expect (b) at least as good as (a) (no green shorter than the
+   game's) and (c) the shortest queues if the junction is saturated; if (c) is worse (a 120 s cycle spills queues back
+   into the next junction), note it: cycleMax goes down.
+5. **Stress Test A/B.** Done for lit crossroads: the Light plans A/B (twins game / sl_phases / sl_classic, then sl_auto)
+   ran 2026-10-14 (RESULTS.md: axis +23-26 % cars/min vs game, classic worse than game; sl_classic removed 2026-10-16).
+   Open: lit T-junctions (no axis-vs-game bench run yet).
+6. **Wide roads.** A lit 3x3 crossroads (`x4_axis cycle=68`, 28 s per road): do pedestrians finish crossing a 27 m road
+   in the 6 s phase plus the next road's start, or do vehicles drive through them? If they do, raise the pedestrian
+   phase (`opts.pedPhase`, no setting yet) and note it.
+7. Report: the PHASES lines, Crossing window screenshots of the phases, queue observations game vs axis.
+
+## RT. Re-time: phase lengths from measured traffic (rev 8, PLAN.md "Re-time"; RETIME_PLAN.md step A; 2026-10-14, offline only, not run in game yet)
+Answers the step B questions (RETIME_PLAN.md "Open in-game questions"). Setup: a town with steady car traffic and a lit
+crossroads where one road is clearly busier (e.g. a medium main street crossing a small street), its phases the game's
+default (or anything: Smart Lanes', hand-made). Game speed 1x or 2x; keep the tool open and the junction selected for
+the whole run (about 3.5 game minutes). `make logs-grep PAT='RETIME|to=retime' ARGS='--session live'` reads it back.
+0. **Rev 8 v2** (cycle from the measurement, background run, status lines, cheaper sampling; RETIME_PLAN.md "Step A
+   v2"). You no longer need to keep the junction selected or the tool open; steps 8-11 check that.
+1. **Button and status.** Select the junction: Re-time shown in the second row next to Lights only (fits in de / ru;
+   the tooltip lines readable). An unlit junction or a street selection: no second row; grayed only while a change of
+   the tool lands. Press Re-time: `RETIME op=start node=<n> window_s=180 every_s=3 time=game ...
+   kinds=veh/all_red/veh/all_red/walk/all_red durations=..` (the game's six phases); a third status line counts
+   "Re-time: measuring traffic (12 of 180 s)" in game seconds (it stops while paused); Re-time's tooltip "Measuring:
+   click to cancel", Lights only grayed "Re-time is measuring here".
+   Check the game stays smooth (no stutter every 3 s; SQPERF section `retime` with the debug setting On).
+2. **Measured.** After 180 game s: `op=measured samples=~60 src=routed cand_max= ... far_skipped= reads= calls=
+   calls_per_sample= ... passes=<in>out:n,..> queue=.. q_arm=..`. **Answers:** src=routed (the per-entity lists work at
+   junction nodes; src=scan means every call failed); passes per movement plausible against what you see (the busy
+   road's straights largest); `lost` small; cost: `calls_per_sample` (expected roughly 40-45 % of the ~8.9k per sample
+   the user's first run implies: cand_mean=1425 near_mean=314.6 reads=104429) and `busy_ms` / `frames` (first run:
+   7229 ms over 6993 frames). If `passes=-` with visible traffic: paste the line (paths not read, or the node not on
+   them).
+3. **Plan and write.** `op=plan result=write ... old=<durations> new=<durations> cycle=<old>><new> y= lost= sat=
+   sat_src= cycle_reason=` (rev 8 v2: the cycle from the traffic: a busy junction with standing queues goes to 120 s,
+   cycle_reason=saturated or queues; a quiet one shortens toward 40 s, cycle_reason=webster|min; the busy road's phase
+   longer), then `LIGHTS src=tool node=<n> to=retime ... action=retime`, `op=write sent=1`, status "Phase lengths set
+   from the measured traffic". Crossing window: only the green phases' seconds changed; every phase's red / green lanes
+   and Skip as before; minimum durations as before. `result=fits` / `small_sample` say why nothing was written.
+4. **Probe: the node and the config** (`op=probe at=cb` and `at=f30`): `exists=true config=true same_durations=true
+   same_locked=true`. **Answers:** the node id survives a phases-only proposal (exists=false or config=false at f30:
+   the node was re-created: step B must key junctions by position); the config reads back with our durations and the
+   same lockedLanes (false: the engine re-made or clamped them: paste the lines).
+5. **Probe: the running phase** (`op=probe at=before|cb|f30|s5|s30 state= time= state_times=`). **Answers:** whether the
+   cycle restarts at phase 0 on a write (state=0 with a small time at cb / f30 while before was another phase) or
+   keeps running (state and time continue). A restart on every write costs a partial cycle: step B then writes rarely.
+6. **Probe: re-routing** (`op=reroute at=base5|base30|s5|s30 tracked= same= exit_changed= dropped= gone=`).
+   **Answers:** do drivers that had the junction ahead change their path because of the write? Compare s5 / s30 with
+   base5 / base30 (the same count over the same delays without a write, measured during the window): clearly more
+   `exit_changed` + `dropped` after the write than in the baseline = a write triggers re-routing (step B must write
+   rarely or not at busy times); about the same = no effect.
+7. **user_modified** on `op=start`, `op=probe at=before` and `at=f30` (and the LIGHTS line): whether a script write
+   sets `userModifiedTrafficLightStates`.
+8. **Cancel and abort.** Start Re-time and press it again: `op=cancel reason=button`, status "Re-time: canceled".
+   Start, then edit a phase in the Crossing window: within 3 game s `reason=changed:phases`, "Re-time: the junction
+   changed, stopped". Start, then select another lit junction: no cancel; its Re-time is enabled (rev 9: up to 5
+   at once, "RT5") and the status says "Re-time measuring junctions: 1"; back at the first junction the progress line
+   shows.
+9. **Background run** (rev 8 v2). Start Re-time and close the tool (or switch to another tool) right away. Wait
+   ~3.5 game minutes. **Answers:** `RETIME op=bg node=<n> phase=measuring` (the background plugin stepped it: it shares
+   the tool's Lua state), then `op=measured ... gaps=0`, `op=plan`, `op=write sent=1` and the probe lines with the tool
+   closed. If no `op=bg` line and nothing until the tool is reopened: the plugin runs in another Lua state (note it in
+   docs/findings/gui.md); reopening the tool then resumes the run and `op=measured` shows `gaps=1 gap_s=<closed time>`.
+10. **Last result.** Reopen the tool and select the junction: two status lines "Measured 2 min ago: 18 / 7 cars/min per
+   road" and "Cycle 71 -> 120 s, greens 23.7/23.7 -> 48/48 s" (or "Already fits the traffic (cycle 71 s)" / "Too little
+   traffic measured, phases kept"); select another junction and back: still there; reload the game: gone.
+11. **Reset undoes it.** After a Re-time write, Reset is enabled ("Reset the light phases to the game default"); press
+   it: `LIGHTS src=reset to=game_phases`, the Crossing window's six phases with fractional greens again, Reset grayed.
+12. Report: the RETIME lines of one full run (start to s30), the Crossing window's phases before / after, and whether
+   the busy direction's queue got shorter over the next few minutes (with AX step 4's comparison).
+
+## RT5. Several Re-time runs at once (rev 9, PLAN.md "Several Re-time runs at once"; 2026-10-17, offline only, not run in game yet)
+Read back with `make logs-grep PAT='RETIME op=' ARGS='--session live'`. Setup: a town with steady car traffic and at
+least 6 lit crossroads; the debug setting On for the SQPERF `retime` section; one junction enrolled in Keep timing
+adjusted (for step 5).
+1. **Two at once.** Re-time at junction A, then at junction B: `op=start node=<B> ... running=2`. Each junction's status
+   shows its own "Re-time: measuring traffic (<s> of 180 s)"; a third junction and nothing selected show "Re-time
+   measuring junctions: 2". After 180 game s each: its own `op=measured`, `op=plan`, `op=write sent=1` and "Phase
+   lengths set from the measured traffic" (the Crossing window: each junction its own new greens).
+2. **Five, and the sixth.** Start Re-time at 5 junctions (`running=5`). At the 6th lit junction the button is grayed,
+   its status ends with "Grayed out: Re-time is measuring 5 junctions, the most at once"; a click gives the same text
+   and `op=refuse reason=full running=5`. **Answers:** the game stays smooth at 1x and 4x (no stutter every 3 s;
+   SQPERF `retime` at most ~1.5 ms a frame, as with one run); `op=measured samples=` lower than ~60 only when the
+   junctions are busy (a sample then takes more frames); `window_s=` ~180 each.
+3. **Cancel one.** At one of the five press Re-time: `op=cancel reason=button ... running=5`, status "Re-time: canceled";
+   the others' progress keeps counting and each writes at its own end. The 6th junction's Re-time is enabled again.
+4. **Ending together.** Start two within a few seconds of each other: both `op=measured` close together, the second
+   `op=write` after the first landed (its status "Re-time: waiting for the last change to land" for a moment), both
+   `sent=1`.
+5. **Keep timing adjusted pause.** While any run measures, the enrolled junction takes no `AUTORETIME op=snapshot`;
+   within ~2 game min after the last run is written or canceled (also with the tool closed, step 6) they come again.
+6. **Tool closed.** Start three, close the tool: `op=bg ... running=3` once per run, each writes with the tool closed.
+   After the last write and ~30 game s of probe lines: no RETIME line any more, SQPERF `retime` gone from the frames.
+7. **Save and load** with runs measuring: after the load none runs (no progress line, no count line), each junction
+   shows its last measured line from before.
+8. Report: the RETIME lines of steps 2-4 and whether the game stuttered.
+
+## KA v4. Keep timing adjusted: queue snapshots (rev 8 step B v4; PLAN.md "Keep timing adjusted", RETIME_PLAN.md "Step B v4"; 2026-10-15, offline only, not run in game yet)
+Replaces KA / KA v3 (the 180 s windows; moved to HISTORY.md, never run in that form beyond Light plans A/B run 2).
+Setup: a town with steady car traffic and a lit crossroads with one clearly busier road (queues on it). Game speed
+1x-4x. Read back with `make logs-grep PAT='AUTORETIME|action=auto' ARGS='--session live'` (and SQPERF with "Debug:
+performance log" On: section `auto`, ctx `bg`). Steps 1-5 at one junction, 6-8 the runtime's conditions, 9 the whole
+map.
+1. **The toggle** (twin Yes / No params since 2026-10-15). Select the lit crossroads: a third row under Lights only |
+   Re-time, "Keep timing adjusted [Yes|No]" with No selected (fits in de / ru on its own row, a separator line above
+   it as between the other rows; label and toggle not clipped). An unlit junction, a roundabout, a street: no third
+   row. Click Yes: `AUTORETIME op=enroll node=<n> pos=<x,y> src=tool total=1`, result "Timing kept adjusted at this
+   junction", Yes selected, then the status "Keep timing adjusted: counting waiting cars (0 of 8)" (counting up
+   every 2 game min). The tooltip reads in 9 lines, none too wide. Clicking the side already selected does nothing.
+2. **Right before the first click, and per junction.** Reload the save (a fresh menu), open the tool and select the
+   enrolled junction **before clicking anything**: Yes selected (the twin with default Yes). Select an unenrolled lit
+   junction: No. Click Yes at one junction, then select an unenrolled one: No (not the Yes you clicked elsewhere); back
+   at the first: Yes. Click No: `op=unenroll ... src=tool total=0`, "Timing no longer adjusted at this junction", No
+   selected; select elsewhere and back: No. Click Yes again for the next steps. **Report** whether the toggle ever
+   showed the wrong side (before or after the first click), and whether the row flickered when switching twins.
+3. **Snapshots, tool closed.** Close the tool right after clicking Yes. Every 2 game min: `op=snapshot n=1 src=routed
+   cand= read= drivers= near= counted= calls= frames= busy_ms= max_frame_ms= fetch_ms= finish_ms=`. **Answers:** the background plugin runs
+   the runtime with the tool closed (or never opened: load a save with an enrolled junction, tool not opened:
+   `op=snapshot` within ~2 game min); `counted=` about the cars you see standing on the approaches (compare with the
+   Stress Test's `q_arm` if a traffic log runs); `max_frame_ms` <= ~1.1.
+4. **The first decision and the record.** ~16 game min after enrolling: `op=plan ... result=write|fits|quiet snaps=8
+   queued= queue=<seg:mean> arrive= ... cycle=<old>><new> ...`; the busier road's approaches show the larger `queue=`.
+   For a write: `op=write ... sent=1 ... every=600`, `op=write ... at=cb success=true`, `LIGHTS src=auto node=<n>
+   to=retime ... action=auto`, the busier road's green longer, the cycle moved by at most 20 s. Open the tool, select
+   the junction: "Keep timing adjusted: next check in 10 min" and "Last measured 1 min ago (auto): cycle 71 -> 77 s" (or
+   "...: already fits" / "...: too little traffic"). Leave it ~60 game min: decisions 10 min apart while it writes,
+   then `result=fits` with `every=` 600 -> 1200. **Reload the save**: the box and the "Last measured" line survive (the
+   record is saved); the status counts snapshots again from 0 (the averages are not saved).
+5. **Manual Re-time there.** Press Re-time at the enrolled junction: the manual measurement starts (`RETIME op=start`,
+   "Re-time: measuring traffic (12 of 180 s)"), no `op=snapshot` while it measures; after it, "Last measured just now
+   (manual): ..." replaces the auto line, and the automatic mode adopts a manual write at its next refresh (`op=adopt
+   reason=durations`, no automatic write there for 10 game min).
+6. **Hand edit adopted.** Change a green's seconds in the Crossing window (or press Lights only). Within ~5 game min:
+   `op=adopt reason=durations|phases old= new=`; the following automatic write keeps your phases' lanes and skips
+   (Crossing window), only lengths differ.
+7. **Building nearby.** Keep the road builder open with the cursor next to the junction (within 300 m) when a write is
+   due: `op=hold reason=building`, the write after you close the menu (or `op=skip reason=stale held=building` after 2
+   game min). **Answers:** the base `constructionMenuActive` event reaches the plugin (no hold ever: it doesn't; note it
+   in docs/findings/gui.md).
+8. **Re-attach / prune.** Rebuild the junction (bulldoze one arm and build it again, or upgrade a road through it):
+   within ~5 game min `op=reattach old=<id> new=<id>` when the node id changed (else nothing), `op=reset reason=lanes`
+   when its lanes changed, or `op=prune reason=no_light|gone` when no lit node stands there any more (and `op=unenroll
+   ... src=prune`).
+9. **Whole map: every lit junction** (the Stress Test's switch, or the console):
+   `api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", "square_smart_lanes", "SmartLanes.auto", { op = "all", run = "ka9" }))`
+   Expected: `AUTORETIME op=enroll_all phase=request run=ka9 src=stress`, within a few frames `op=enroll_all phase=done
+   run=ka9 src=component nodes=<lit> lit= already= sent= capped=` (`src=octree` means the light component could not be
+   listed: note it in docs/findings/roads.md) and one `op=enroll ... src=all` per junction (up to 1000). Then
+   `op=snapshot n=<watched> src=scan` every 2 game min. Let it run >= 60 game min at 1x and 4x. **Answers:** the
+   snapshot cost (`busy_ms`, `frames`, `max_frame_ms`; the person-list frame: SQPERF `auto` max), no stutter, `span_s`
+   well under 120, the writes spread (at most one per 5 game s), and traffic before / after (`make flow ARGS='--last'`).
+   Stop it: `... { op = "clear", run = "ka9" }` -> `op=unenroll all=1 n=<count> run=ka9`.
+10. **Stress Test twins** (Light plans A/B, sl_auto twins, >= 90 game min at 4x): the first `op=write sent=1 ... zid=`
+   ~16 game min after the build, balanced twins stop at <= 75 s, no flip-flop; compare after the last write (`make flow
+   LOG=<session>`).
+11. Report: the AUTORETIME lines of one junction over ~60 min, the SQPERF `auto` line, and for step 9 the
+   `enroll_all` lines and a few `snapshot` lines.
+12. **Check interval setting** (`sqrl_auto_every`, added 2026-10-15). In the mod settings (new game or Load with mod
+   settings) the param "Keep timing adjusted: check interval" shows x0.5 / x1 / x2 / x4 (x1 selected; de / ru / fr
+   show "x0,5"); its tooltip reads in 5 lines, none too wide. Set **x2**, load: `AUTORETIME op=config every_factor=2
+   params=read` once at the start (`params=unread` or `every_factor=1`: the plugin's state cannot read mod params:
+   note it in docs/findings/scripting.md). Enroll a junction (step 1): after its first decision the status says "next
+   check in 20 min" (a write or the first fits / quiet; at most 20), `op=write ... every=1200` / `op=plan ... every=`
+   doubling 1200 -> 2400 -> 4800 -> 7200 (cap 120 min). With **x0.5**: "next check in 5 min" after a write, cap 30 min.
+   Snapshots stay every 2 game min with either.
+13. **Early wake** (added 2026-10-15). A lit junction with almost no traffic: enroll it, wait for `op=plan
+   result=quiet` (status "next check in 10 min", later 20, 40). Then send traffic through it (a bus line or a new
+   road toward a town): within a few snapshots (2 game min each; the average needs ~1.5 standing cars) `AUTORETIME
+   op=wake node=<n> reason=quiet_rise queued=0.4>1.5 ... due_was_s=<s> due_s=0`, and the next `op=plan` follows at
+   the next look (the status shows "next check in 0 min" until then). Only one `op=wake` per decision. At a junction
+   that last said `result=fits` with a real queue (3+ cars standing on average), closing one approach's road (or a
+   large new flow on one road) gives `reason=fits_shift` (`shift_cars=` >= 1.5) or `fits_grow` (+1.5 cars to 3+).
+   **Since the wake minimums (2026-10-15, after city run 2's 51 wakes vs 21 writes, RETIME_PLAN.md "Wake minimums"):**
+   a fits junction with 1-2 cars standing never wakes, however its shares move. Right after a write, a wake waits for
+   the write gap (`due_s=` up to 600 at x1). **Report** the wake lines and whether any junction woke too often (more than
+   once per ~20 game min while traffic is steady). At scale (step 9 or the city bench): `op=wake` count vs `op=plan
+   result=write`; pass: the woken decisions mostly write (run 2 before the minimums: 6 of 51), fits wakes rare.
+14. **Snapshot frame cost, wall clock** (added 2026-10-15 after city run 2's `max_frame_ms=81.52` / `49.20`, which were
+   `os.clock` readings: RETIME_PLAN.md "Wall clock, not os.clock"). With many enrolled junctions (step 9, > 12, so
+   `src=scan`) and "Debug: performance log" On: `AUTORETIME op=config ... clock=wall` at the start (`clock=os`: no
+   `api.type.Clock` in the plugin's state; note it in docs/findings/gui.md). Each `op=snapshot ... max_frame_ms=
+   fetch_ms= finish_ms=`: expected `fetch_ms` ~1-2 at ~12k persons (~4 at 43k), `max_frame_ms` <= max(fetch_ms, ~1.1),
+   `finish_ms` < 1; `frames=` fewer than before (the budget now really 1 ms). Compare with SQPERF `ctx=bg ... auto ...
+   max=` of the same window: a window max well above every snapshot's `max_frame_ms` comes from a heavy step or write,
+   not the snapshot. **Report** the snapshot lines and the SQPERF lines. If `fetch_ms` is the worst frame and above
+   ~5 ms, time the candidate calls in the console (camera over a busy town; reads only, changes nothing; output in the
+   log: `make logs-grep PAT='SQTIME' ARGS='--session live'`):
+   `local C, CT = api.type.Clock.new(), api.type.ComponentType; local c = api.gui.camera.getCameraData(); local v = api.type.Vec2f.new(c.x, c.y); local out = {}; for i = 1, 5 do local w0, o0 = C:getTime(), os.clock(); local l = api.engine.getEntitiesWithComponent(CT.SIM_PERSON); out[#out + 1] = string.format("list n=%d wall_us=%d os_us=%d", #l, C:getTime() - w0, math.floor((os.clock() - o0) * 1e6)) end; for _, k in ipairs({ "SIM_PERSON", "MOVE_PATH" }) do local w0 = C:getTime(); local ok, r = pcall(api.engine.util.octree.findEntitiesInCircle, v, 160, CT[k]); out[#out + 1] = string.format("octree %s ok=%s n=%s wall_us=%d", k, tostring(ok), ok and tostring(#r) or tostring(r), C:getTime() - w0) end; print("SQTIME " .. table.concat(out, " | "))`
+   It prints the full list's wall and `os.clock` time five times and whether the octree returns persons in a 160 m
+   circle (`ok=false` or `n=0`: no per-area person query; a failing call may log a traceback). Record the answer in
+   docs/findings/lines-vehicles.md.
+
+## AL. All lights + first-load welcome (PLAN.md "Automatic timing for all lights + first-load welcome"; 2026-10-15, offline only, not run in game yet)
+Read back with `make logs-grep PAT='WELCOME|MAPPASS|op=(enroll_all|cap_hit|mode|optout|optin|config|new_lights|enroll_new)' ARGS='--session live'`
+(and `make logs-grep PAT='job=m[0-9]' ARGS='--session live'` for the pass's own APPLY / SKIP / SUMMARY lines).
+1. **Welcome, new game** (not the map editor): ~3 s after the game is up a "Smart Lanes" window: three short lines,
+   "For what is already on this map:", two checkboxes ("Convert all existing junctions to Smart Lanes" ticked,
+   "Switch all traffic lights to automatic timing" unticked; texts 2026-10-16), the info card "Save your game first ...", [Apply]
+   [Not now]. Log `[SQRL] WELCOME op=show`. Check in en and de / ru: nothing clipped, the window not wider than
+   needed, tooltips on both boxes and buttons in short lines. Where does it open (default position)?
+2. **Not now** (or the window's X): `WELCOME op=answer answer=later lanes=0 lights=0 mode=- pass=-`. Save, load: no
+   window, no WELCOME line. A second load of a save that never answered (quit without answering): the window again.
+3. **Apply on an existing city** (save first; tick the lights box too): `WELCOME op=answer answer=apply lanes=1 lights=1 mode=all pass=1`
+   (lights box left unticked: `lights=0 mode=-`, the setting's mode stays), then
+   `MAPPASS op=start seq=1 src=config list=<n> resume=0` (src=node / octree / none = the component list failed),
+   `op=progress` every 10 slices, `op=end seq=1 reason=done slices= junctions= scanned= list= frames=`. Watch the
+   frame rate while it runs (slices of 160 junctions; SQPERF `job_step` with the debug setting). The tool, nothing
+   selected, shows "Setting smart lanes at all junctions..." until the end. Spot-check: roundabouts, slips,
+   crossroads got smart lanes (lane status "Smart lanes"); a junction edited with the Crossing Tool before kept its
+   lanes (`SKIP ... reason=hand_edit`); a junction you Reset kept the game's (`reason=reset_kept`); no traffic light
+   switched on or off. A second load: no new MAPPASS start.
+4. **All lights listing**: within a few frames of the mode turning all `AUTORETIME op=enroll_all phase=done
+   run=allmode src=component nodes= lit= already= optout= hand= sent= capped=`, one `op=enroll ... src=all` per
+   junction. Note `hand=`: on a city where Smart Lanes wrote phases before (Lights only, Light phases Smart Lanes,
+   Re-time) it should stay near 0 (findings roads.md: our writes set the flag; the whole-second rule must tell them
+   apart). A city with more than 1000 lit junctions: `op=cap_hit src=allmode max=1000` once.
+5. **Lights built later**: build a lit crossroads; enrolled at once now (step 12); the listing's `op=enroll node=<new>
+   ... src=all` within 5 game min only if the build path missed it.
+6. **Opt-out**: select an enrolled junction, Keep timing adjusted No: `op=unenroll ... src=tool`, then `op=optout
+   node= ... optouts=1`. 5+ game min later it is still No (the next enroll_all line, if any, counts `optout=1`).
+   Yes again: `op=enroll ... src=tool`, `op=optin`.
+7. **Timed by hand**: in a save with Junctions I choose, set a crossroads' phases in its Crossing window (whole
+   seconds), then the settings panel's Automatic light timing All lights (was: the tool's Adjust all lights): that
+   junction is not enrolled (`hand=1`); Yes there enrolls it.
+8. **The switch in the tool** (nothing selected; rows 4 / 5 replaced 2026-10-15 by the settings panel, "SP"):
+   Automatic light timing Junctions I choose: `AUTORETIME op=mode mode=pick src=tool unenrolled=<n>`, status
+   "Light timing: junctions you choose (0)"; All lights: `op=mode mode=all ... optouts_cleared=`, the listing follows.
+9. **Setting All lights** without the welcome's lights box (Not now in a new game): `op=config ... lights=all` and the
+   listing runs anyway.
+10. **Map editor**: no window, no WELCOME / MAPPASS line.
+11. **Resume**: quit during a long pass (step 3 on a big map), load: `MAPPASS op=start seq=1 ... resume=1`.
+12. **New lights at once, a build** (PLAN.md "New lights at once"; All lights, "Apply automatically to new roads"
+    Off too): build a crossroads by hand where the game adds lights (1950+, big enough roads), then select it in the
+    Smart Lanes tool at once: Keep timing adjusted Yes. Log: `AUTORETIME op=new_lights phase=queued src=build nodes=
+    segs=<n> cfgs=<n>`, then `op=enroll node=<new> pos= src=build` (or, when you select it first, `src=select`) and
+    `op=enroll_new src=build checked= sent=1 ...`. If the game adds the light a few seconds after the build: `wait=1`
+    in the first enroll_new line, the enroll within ~30 game s. Read back with `make logs-grep
+    PAT='op=(new_lights|enroll_new|enroll) ' ARGS='--session live'`.
+13. **New lights at once, the Crossing Tool**: at an unlit junction pick a light type in its Crossing window (the light
+    switched on), then select it in the Smart Lanes tool at once: Yes. Note the log: an `op=new_lights ... segs=0
+    cfgs=<n>` line means the light toggle's build event lists the node (findings roads.md "The Crossing window's
+    light buttons are a player build": record which, cfgs= and whether `op=enroll ... src=build` came before the
+    selection); no new_lights line means it lists nothing and only the selection (`src=select`) enrolled it. Write
+    the answer into findings roads.md.
+14. **Selection shows why not**: at an opted-out junction (step 6) the status line under the toggle reads "Not
+    adjusted: you turned it off"; at a junction timed by hand (step 7) "Not adjusted: timed by hand"; both stay No
+    (no `src=select` line). In de / ru / ja: the line fits.
+
+## SP. In-game settings panel: the Smart Lanes tool and the Crossing Tool (PLAN.md "In-game settings panel"; 2026-10-15, offline only, not run in game yet)
+Read back with `make logs-grep PAT='SETTINGS|MODE |op=(config|mode)' ARGS='--session live'`. Run 1-3 first: they
+decide whether the approach works at all.
+1. **Crossing Tool shows the panel** (Roads -> Tools -> Crossing Tool, nothing else changed): on the left, after the
+   Road / Tram lanes buttons (and Better Bus Overlay's "Line routes" when it is on), one separator, then five labelled
+   settings stacked, then Underground. Log `[SQRL] SETTINGS op=menu where=crossing_tool result=inserted` once (and
+   `result=present` at a later menu open). The tool itself still works: click a junction, change a lane, Road / Tram
+   mode and Underground toggle as before. If nothing shows: with "Debug: performance log" On the load has
+   `SETTINGS op=patch result=installed|already|missing`.
+2. **A change in the Crossing Tool**: Light phases -> Smart Lanes: `SETTINGS op=click key=phases value=2 src=crossing
+   sent=1`, then `SETTINGS op=set key=phases value=2 param=sqrl_light_phases src=crossing seq=1` and `MODE
+   phases=sl free_turn=... lights=... src=save` (the build pass). The ComboBox shows Smart Lanes at once and keeps it.
+   Build a lit crossroads: its `PHASES ... plan=` line (Smart Lanes phases) though the mod setting says Game default.
+3. **Shown value before any click** (the defaultIndex path): save, quit to the menu, load: open the Crossing Tool:
+   Light phases shows Smart Lanes (the save), not the mod setting. Then open the Smart Lanes tool, nothing selected:
+   the same values. A new game: the mod settings' values.
+4. **Smart Lanes tool**: nothing selected: the panel above the info block (status "Light timing: ..."), no "Adjust
+   all lights" / "Stop for all lights" rows any more. Select a junction: the panel goes, the junction's rows show;
+   right-click: back. Change Free curb turn -> Off here (`src=tool`); open the Crossing Tool: Off there too (one stored
+   value). Apply on a lit crossroads: no curb turn freed (`free_turn=off` in its lines).
+5. **Automatic light timing** in either tool: All lights: `AUTORETIME op=mode mode=all src=crossing|tool`, the listing
+   follows (AL step 4); Junctions I choose: `op=mode mode=pick ... unenrolled=<n>` (every junction stops: the tooltip
+   says so). The welcome's Apply with the lights box shows All lights in the panel afterwards.
+6. **Check interval** x4: `AUTORETIME op=config every_factor=4 ... src=save` within a second (the runtime), the next
+   decisions' `next=` 4 times longer.
+7. **No lights at roundabouts and ramps** Off: build a roundabout: the game's lights stay (no `LIGHTS ... to=off`).
+8. **Layout**: en, de, ru: labels above their controls not clipped (the bar is 314 px), ComboBoxes readable, On / Off
+   buttons with "Désactivé" (fr) whole; every control's tooltip in short lines with "Set here, it applies to this game
+   only ...". Gamepad mode (if available): the panel still usable.
+9. **Persistence**: save, load: the values kept (no SETTINGS line at load, one `MODE ... ` with the save's values).
+   Another save / a new game: the mod values.
+10. **Removing the mod** (RM): `sset` / `sseq` go with the game script.
+
+## TR. Record traffic (PLAN.md "Traffic rate at a junction"; 2026-10-16, offline only, not run in game yet)
+Read back with `make logs-grep PAT='TRAFFIC op=' ARGS='--session live'`. Setup: a town with steady car traffic, a
+crossroads and a roundabout. Steps 1-3 first: they decide whether the counts are right and cheap.
+1. **Button and live text.** Select a junction (lit or not): a last row "Record traffic" above the info block (de / ru:
+   not clipped; tooltip lines readable). Nothing selected or a street: no such row. Press it: `TRAFFIC op=start
+   kind=node node=<n> ... every_s=5 window_s=1200 bucket_s=30 time=game`; the status shows "Recording traffic: 0 of 20
+   min", after 30 game s also "Vehicles per minute: <r> (<m> min)", from 3.5 min "(last 3 min), <r> (all <m> min)". The
+   button's tooltip "Recording here: click to stop". The game stays smooth (no stutter every 5 s; with the debug setting
+   On the SQPERF section `record`).
+2. **Counts plausible.** Watch the junction for one game minute and count the cars crossing it by eye (or compare with
+   the Stress Test's flow at a Showcase junction): the rate should match within ~10 %. Press the button again:
+   `op=done reason=button ... vehicles= rate_all= rate_recent= saved=1 ... calls_per_sample= ms_per_sample= arm=`; the
+   status "Traffic recording stopped", then "Traffic recorded just now (<m> min)" and its rates. Note
+   `ms_per_sample` and `calls_per_sample` (first in-game run, `2026-10-16_1815`: 16-18 ms of os.clock, 126-405 calls per sample).
+3. **Roundabout.** Select a roundabout between its junctions, Record traffic: `op=start kind=ring node=<ring key>
+   nodes=<its junctions> cand_ents=<its arm segments>`; the text says "Vehicles entering per minute"; stop after a few
+   minutes: `arm=` lists only arm segments, and their sum is about the cars entering (by eye). Select one of its
+   junctions: no record of its own (a separate one when recorded there).
+4. **Goes on.** (Since 2026-10-16 Record traffic is hidden at a node with fewer than 3 roads: a bend, dead end or lane
+   drop; check it once.) Start at a junction, select another junction: its Record traffic is enabled (several at once
+   since 2026-10-16, "TM") and the status says "Traffic recordings running: 1"; close the tool and play 2-3 game minutes: `TRAFFIC op=bg` once; reopen and select the junction: the
+   minutes went on. A checkpoint every 5 game min (`op=checkpoint ... saved=1`); after 20 game minutes `op=done
+   reason=max elapsed_s=1200 saved=1`, the status "Traffic recording finished".
+5. **Saved.** Save, load: select the junction: "Traffic recorded <n> min ago (<m> min)" with its rates. A recording
+   running at the save is gone after the load (its last checkpoint kept).
+6. **Beside Re-time.** At a lit junction press Re-time, then Record traffic: both lines in the status (Re-time's first),
+   both run to their ends; Re-time still writes (`RETIME op=write`).
+7. **Short and gone.** Start and stop within 30 s: "too short to save (under 30 s)", `saved=0`. Start, bulldoze the
+   junction: `op=done reason=gone`.
+8. **Previous recording (2026-10-16).** At the junction of step 2 (one saved result) press Record traffic again: under
+   "Recording traffic: 0 of 20 min" a line "Previous recording: <r> vehicles per minute (<m> min, <n> min ago)" with
+   step 2's whole-recording rate, in a **dimmer grey** than the lines above (note whether it is grey or the same as
+   the others: the inline colour against the disabled button's text rule). Stop after a few minutes: "Traffic recorded
+   just now", its rates, and the same previous line below. Record a third time: the previous line now shows the second
+   result. A roundabout: "vehicles entering per minute". Save, load: the previous line is still there.
+
+## TM. Several traffic recordings at once (PLAN.md "Several recordings at once"; 2026-10-16, offline only, not run in game yet)
+Read back with `make logs-grep PAT='TRAFFIC op=' ARGS='--session live'`. Setup: a town with steady traffic, several
+junctions and a roundabout; the debug setting On for the SQPERF `record` section.
+1. **Two at once.** Start a recording at junction A, then at junction B: `op=start ... running=2`. Each junction's status
+   shows its own "Recording traffic: <m> of 20 min" and rates; a third junction and nothing selected show "Traffic
+   recordings running: 2". Each gets its own `op=checkpoint` at 5 min of its own.
+2. **Stop one.** At A press the button: `op=done node=<A> reason=button ... running=2`; B goes on (its minutes keep
+   counting), A shows its saved result and "Traffic recordings running: 1".
+3. **Many.** Start recordings at 20 junctions (a busy town; a roundabout among them). The game stays smooth at 1x and
+   4x (no stutter every 5 s; SQPERF `record` at most ~1 ms a frame). At the 21st junction the button is grayed with
+   "20 recordings running, the most at once"; a click gives the same text and `op=refuse reason=full running=20`.
+4. **The stretch.** Let them run 20 minutes (or stop them): note `every_max_s=`, `late=`, `ms_per_sample=` and
+   `samples=` of the `op=done` lines at 1x and at 4x (estimate PLAN.md: ~5.5-6 s at 1x 60 fps, ~22-24 s at 4x for 20
+   busy junctions). Compare one junction's rate with the same junction recorded alone (step 2 of TR): within ~10 % at
+   1x; at 4x note how much lower.
+5. **Save and load** with several running: after the load none runs ("Traffic recordings running" gone), each
+   junction shows its last checkpoint ("Traffic recorded <n> min ago").
+6. Report: the `op=done` lines of steps 3-4 and whether the game stuttered.
+
+5. (2026-10-17, the gathering budget) 15+ recordings at once, performance log On, 10 min at 4x: in `make perf`, the
+   tool's `record` section max stays near `record_gather` + ~1.5 ms, no `slow=record` line; before, 17 recordings gave
+   ~12.5 ms frames.
+
+## SO. Smart lights stays on after its timing changed (PLAN.md "Smart lights stays on after its timing changed"; 2026-10-16, offline only, not run in game yet)
+Read back with `make logs-grep PAT='PHASES|RETIME op=write|AUTORETIME op=write' ARGS='--session live'`. Setup: a lit
+2-lane T-junction or crossroads with traffic.
+1. **Re-time.** Smart lights, then Re-time (or Keep timing adjusted Yes until `AUTORETIME op=write`): the green times
+   change. Select the junction: Smart lights is **hidden** (since 2026-10-16; grayed before), the badge "√ Smart lanes |
+   √ Smart lights" (or "Game default | √ Smart lights" on game lanes), the detail line "Smart lights: timing
+   adjusted"; Re-time, Keep timing adjusted and Reset still shown.
+2. **Crossing window (revised 2026-10-16: a hand edit is no longer "timing adjusted").** After step 1, change a
+   phase's duration with its slider. Select the junction: Smart lights is **enabled** again, the detail line "Smart
+   lights: timing changed by hand", Reset shown ("Reset the light phases to the game default"). Click Smart lights:
+   `PHASES src=tool action=lights_only node=<n> phases=sl hand=1 pattern=axis plan=`, the Crossing window shows the
+   plan's greens again (24 / 6 / 24 / 6 s at a 2x2 crossroads), Smart lights grayed "Phases already the Smart Lanes
+   plan". Or click Reset instead: the game's phases. Also: Smart lights alone (no Re-time), then a slider change:
+   the same (offered again). Change a phase's lanes (lock another lane) instead: Smart lights is offered again, no
+   "changed by hand" line.
+   - **Keep timing adjusted there:** with the junction enrolled, after a slider change the runtime logs `AUTORETIME
+     op=adopt node=<n> reason=durations` at its next look and keeps the hand timing as its base; its next write
+     (about 10 game min later, `AUTORETIME op=write ... sent=1`) hides Smart lights again ("timing adjusted"; the badge checks it)
+     again. A "fits" decision in between (`op=plan ... result=fits`) leaves it "changed by hand".
+   - **Save and load** after step 1 (no hand edit): still hidden, "timing adjusted" (the record's signature is saved).
+     A save from a build before this change: the cycle decides (a hand edit that keeps the cycle reads as ours).
+3. **A build nearby.** With Apply automatically On build a road near the re-timed junction (its lanes stay): no
+   `PHASES src=auto` / `LIGHTS src=auto ... to=sl_phases` line for that node, the Crossing window keeps the fitted
+   greens. Change the junction's lanes (add a lane to an arm): its plan is written again (`PHASES src=auto`).
+4. **Reset** after step 1: the game's phases back, Smart lights enabled again, "| √ Smart lights" gone from the badge.
+5. **Badge checks (user 2026-10-16).** A lit 2x2 crossroads with the game's lanes and phases: the badge "Game default",
+   Smart lights enabled. Smart lights: the button hides, the badge "Game default | √ Smart lights". Smart lanes: "√
+   Smart lanes | √ Smart lights" in green, one colour for the whole line. Check the mark: it should be a check-like
+   `√` (passed in game 2026-10-16: "√ Smart lanes | √ Smart lights" renders, English). A 1-lane crossroads: "√ Smart
+   lanes = game default (one car lane per road) | √ Smart lights" wraps in the info block, nothing cut off; de / ru
+   too. A roundabout, a slip node: "√ Smart lanes" without "| ..." (no Smart lights there). Hover a junction: the
+   cursor tooltip's "Lanes: ..." line shows the same.
+
+## NS. New lights get Smart lights (PLAN.md "New lights get Smart lights"; 2026-10-16, offline only, not run in game yet)
+Read back with `make logs-grep PAT='new_light|op=new_lights|plan_new' ARGS='--session live'`. Setup: Apply automatically
+On, Light phases = Smart Lanes (mod option or the panel), Automatic light timing = Junctions I choose first; an unlit
+crossroads of two-way roads.
+1. **Light switched on.** Switch the crossroads' light on in the Crossing Tool: `AUTORETIME op=new_lights ... segs=0
+   cfgs=<n> plan=1`, then within a second `LIGHTS src=new_light node=<n> to=sl_phases ... action=new_light plan=` and
+   `PHASES src=new_light node=<n> phases=sl pattern=axis plan=`; the Crossing window shows 4 phases (two greens, two
+   6 s pedestrian phases), the Smart Lanes tool's Smart lights button there is hidden, the badge ends "| √ Smart lights". No second
+   LIGHTS line for that node from the write's own build event.
+2. **Left alone.** Change a green in the Crossing window (timed by hand), then switch the light off and on: no new
+   `src=new_light` line while the phases are not the game's (note whether switching off and on gives the game's
+   default phases again; if it does, the plan is written, as for a new light). Reset a junction with the tool (kept),
+   switch its light off and on: no `src=new_light` line.
+3. **A T-junction** with a light switched on: the axis plan too (`pattern=axis`). A 5-arm junction: `plan_fail=` and the
+   game's phases stay.
+4. **Game default** (panel): switch a light on: `plan=0` or no `op=new_lights` line, no `src=new_light`. Apply
+   automatically Off with Smart Lanes phases: no plan (by design).
+5. **With all lights** (panel: Automatic light timing = All lights): switch a light on: the LIGHTS line first, then
+   about 3 game s later `op=enroll ... node=<n> src=build`; the tool shows Keep timing adjusted Yes, and its first
+   decision starts from the 4-phase plan (no `op=adopt` right after the enrollment).
+6. **A new road** that makes a lit crossroads (Apply automatically On): planned by the automatic pass as before (`WRITE
+   ... sl_plans=` / `PHASES src=auto`), no `src=new_light` line for it.
+- **Re-check after the 2026-10-16 fix** (first try: every light skipped, no reason logged): switch on a light at a
+  1-lane T-junction and at a 2-lane crossroads: `AUTORETIME op=plan_new src=build sent=1`, `LIGHTS src=new_light`.
+  Any `skipped=` count names its reason in `why=`; send it along if a light that should have been planned was not.
+
+## NC. No classic fallback: the game's phases where no axis plan can be made (PLAN.md "No classic fallback"; 2026-10-16, offline only, not run in game yet)
+Read back with `make logs-grep PAT='PHASES|LIGHTS' ARGS='--session live'`. Setup: Light phases = Smart Lanes (mod
+option or the in-game settings panel), "No lights at roundabouts and ramps" as you like, a town with traffic.
+1. **5-arm lit junction.** Build a junction of five two-way roads and switch its light on in the Crossing Tool (or let
+   the game light it). Its phases stay the game's (Crossing window: the engine's phases, not one phase per road plus
+   6 s pedestrian phases); the log has `[SQRL] SKIP kind=slip node=<n> reason=roads_5` after a build there and no
+   `PHASES` line for that node (a 5-arm junction is not handled: no lane write, no plan). Select it with the Smart Lanes tool: the light row shows Re-time (and Keep timing adjusted) only,
+   **no Smart lights button**; the detail line ends "Smart lights: not for this junction shape". Re-time still works
+   there (durations only).
+2. **Skewed lit crossroads.** Build a crossroads whose cross road meets at a sharp angle (one pair of arms more than
+   45 deg off a straight line, e.g. a road crossing at ~30 deg) with a light, Light phases = Smart Lanes. After the
+   build (or Smart lanes in the tool): `[SQRL] PHASES src=auto|tool node=<n> phases=sl pattern=none
+   plan_fail=no_axis_shape`, SUMMARY `plan_fail=no_axis_shape:1`; the Crossing window shows the game's phases
+   re-pointed onto the new lanes (6 phases), traffic runs. Select it: no Smart lights button, the detail line
+   "Smart lights: not for this junction shape". de / ru: the text fits (it wraps in the info block).
+3. **Normal crossroads unchanged.** A lit right-angle 2x2 crossroads next to it: `PHASES ... pattern=axis plan=x4_axis
+   cycle=60`, Smart lights shown, then hidden right after the write (the badge "√ Smart lanes | √ Smart lights").
+4. **Stress Test.** Build Light plans A/B: zones go out without `sl_classic` (`ZONES op=set ... by_ab=game:6,sl:0,
+   sl_phases:6,sl_auto:6`), no `ab<i>` refusal. Open: a lit T-junction bench, game vs axis (PLAN.md "No classic
+   fallback").
+5. Report: the PHASES / SUMMARY lines of steps 1-3, a screenshot of the tool at the 5-arm junction (no Smart lights).
+6. **The user's junction (node 32350, session `2026-10-17_0057_sqrl-sqsg`).** A lit crossroads with arms at about 20 /
+   146 / 184 / 274 deg (arms B / D 52 deg off a straight line; the game gives it 8 phases: A+C, D alone, B alone). Select
+   it: no Smart lights button from the start, the detail line "Smart lights: not for this junction shape"; Smart lanes
+   (the lanes) shown. Smart lanes: `APPLY ... lit=yes`, `PHASES src=tool node=<n> phases=sl pattern=none
+   plan_fail=no_axis_shape` (no `action=lights_only`: the lane button's line), the Crossing window keeps the game's 8
+   phases re-pointed. Then Smart lanes is hidden (the badge "Smart lanes"), Reset shown; still no Smart lights.
+
+## RH. Reset hides after a Reset (PLAN.md "Reset hides after a Reset"; 2026-10-16, offline only, not run in game yet)
+1. A lit T-junction or crossroads: Smart lights, then Reset: `LIGHTS src=reset ... to=game_phases`. Within a second
+   Reset is gone (Smart lights and Re-time stay). Select another junction and back: still gone.
+2. With Keep timing adjusted Yes there: once it adjusts the timing (`AUTORETIME op=write node=<n>`), Reset is back.
+3. Save, load, select it: note whether Reset shows (it may: the engine's flag after our Reset is not known).
+
+## IO. Idle runtime and Automatic light timing Off (PLAN.md "Idle runtime and Automatic light timing Off"; 2026-10-17, offline only, not run in game yet)
+Debug: performance log On (SQPERF sections `auto`, `gui_update`, `update`).
+1. A big saved city, Junctions I choose, nothing enrolled (the welcome answered Not now): play 10 min at 4x. SQPERF
+   `auto` avg near 0 and max under ~0.2 ms; no `AUTORETIME op=snapshot` line; no stutter.
+2. Console, the stamp read the GUI poll now uses (GUI thread): `local gs = api.engine.getComponent(
+   api.engine.system.gameScriptSystem.getEntityForGameScript("square_smart_lanes::/smart_lanes/sl_lanes.gs"),
+   api.type.ComponentType.GAME_SCRIPT); print(gs.state_native:find("seq"), gs.state_native:find("aseq"))`: numbers (or
+   nil in a save without jobs), no error. Then build a roundabout: its lanes are set as before (the poll saw the job).
+3. Smart Lanes tool, select a lit crossroads, Keep timing adjusted Yes: within a second the status reads "counting
+   waiting cars (0 of 8)"; snapshots follow (`op=snapshot ... n=1`).
+4. Nothing selected, Automatic light timing Off: `AUTORETIME op=mode mode=off ... unenrolled=0`, status "Light
+   timing: off"; the junction from 3 shows "paused while Automatic light timing is Off", its toggle still Yes. 10 game
+   min: no `op=snapshot` / `op=write`. Back to Junctions I choose: `unenrolled=0`, counting starts again.
+5. Mod settings: Automatic light timing Off, load the save: as in 4 without the panel; the panel shows Off.
+
+## NJ. Nearby junctions stay as they are (PLAN.md "Nearby junctions stay as they are"; 2026-10-17, offline only, not run in game yet)
+Apply automatically On. `make logs-grep PAT='\[SQRL\] (APPLY|SKIP|SUMMARY|LIGHTS)' ARGS='--session live'` after each step.
+1. A lit crossroads with the game's lanes (none of ours): build a new road that joins one of its arm roads halfway
+   (more than ~80 m from the crossroads), not at the crossroads. Expect `SKIP kind=cross node=<crossroads>
+   reason=unchanged` and `skips=unchanged:1` in the job's SUMMARY, no APPLY for it; the Crossing Tool shows its lanes
+   unchanged. If an APPLY for it still appears instead, the event's `removedSegments` lack the edge data the rule
+   compares (typeIndex, lanes): note it and paste the lines.
+2. The same with a crossroads that has Smart Lanes' lanes (lit, free curb turn Always): no APPLY and no SKIP for it;
+   the tool still shows Smart Lanes' lanes (the engine kept them). Note whether a `LIGHTS src=auto node=<it>
+   to=free_turn` line follows (the rebuild locked its curb turns back: docs/findings/roads.md "A replaced arm keeps the
+   junction's lanes"); with Light phases = Smart Lanes, whether `to=sl_phases` follows and the phases are the plan.
+3. Build a fourth arm onto a T-junction (the road ends at the junction itself), and upgrade one arm road of another
+   crossroads to another street type (street upgrade tool): both get their lanes as before (APPLY for each).
+4. A Smart Lanes roundabout: join a road partway along one of its arm roads, away from the ring. Expect the whole ring
+   planned (`SUMMARY ... rings=1`, `ring=0/4/0` or APPLY on every arm junction as needed), no LIGHTS line for that
+   arm's junction.
+5. A street stop placed on an arm of a crossroads, ~30 m out (the stop rebuilds the arm): it is still handled
+   (`APPLY ... open=<arm>:stop`, as OE step 2), no `reason=unchanged` for it.
+
+## AP. Which part of the timing runtime makes a slow frame (PERF_REVIEW.md 2026-10-17 "9 ms frames"; added 2026-10-17)
+Debug: performance log On. A city save, Automatic light timing All lights (100+ lit junctions), Light phases Smart
+Lanes; play 10 min at 4x and build a few streets with lights. Then `make perf ARGS='--mod square_smart_lanes'`: in
+ctx=bg, the `auto_*` section whose `max` is near `auto`'s max is the culprit (`auto_new` the new-light look,
+`auto_write` a timing write, `auto_looks` refreshes and decisions, `auto_list` the listing, `auto_snap` a snapshot,
+which should stay at ~1 ms). Report its max and calls; that part gets a clock budget next.
+
+## RM. Removing the mod from a save with saved state (rev 8 release check; added 2026-10-14, not run yet)
+Rev 8 keeps more lists in the game-script state (`kept`, `auto`, and `rlast`, the per-junction last-measured records of
+both Re-time modes, step B v4; `trec`, the last traffic recordings, TR). Expected: the game drops a removed script's state; the written lanes and phase lengths stay as
+ordinary data. Check before releasing rev 8:
+1. Load a save where "Keep timing adjusted" ran and a manual Re-time wrote (status shows "Last measured ...").
+2. Save, turn Smart Lanes off in the mod list, load that save.
+3. Pass: no Lua error or assert mentioning square_smart_lanes in the log (`make logs-grep PAT='square_smart_lanes|assert' ARGS='--session live'`),
+   the lit junctions keep their last phase lengths and cycle normally. Record the result in docs/findings/scripting.md.

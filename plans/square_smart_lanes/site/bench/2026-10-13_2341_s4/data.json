@@ -1,0 +1,336 @@
+{
+ "version": 3,
+ "single": false,
+ "seed": "774314",
+ "built": "2026-10-13 23:41",
+ "pairing": "id",
+ "header": {
+  "title": "Sheet 4 v2: town roundabout, spiral"
+ },
+ "runs": [
+  {
+   "id": "game",
+   "label": "Game lanes",
+   "kind": "game",
+   "mode": "game",
+   "session": "2026-10-13_2341_bench-s4-774314"
+  },
+  {
+   "id": "sl",
+   "label": "Smart Lanes",
+   "kind": "smart",
+   "mode": "sl",
+   "session": "2026-10-13_2341_bench-s4-774314"
+  },
+  {
+   "id": "sl-rspiral",
+   "label": "Spiral",
+   "kind": "smart",
+   "mode": "sl_rspiral",
+   "session": "2026-10-13_2341_bench-s4-774314"
+  }
+ ],
+ "units": [
+  {
+   "nn": "01",
+   "ids": {
+    "sl": "s4g1a",
+    "game": "s4g1b",
+    "sl-rspiral": "s4g1l"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, town street arms \u00b7 set 1",
+     "kmh": 8.07,
+     "standing": 46.3,
+     "queue": 10.3,
+     "thru": 61.7,
+     "samples": 120,
+     "variant": "2-lane ring, town arms",
+     "zone": "s4g1a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g1a.jpg"
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, town street arms \u00b7 set 1",
+     "kmh": 8.09,
+     "standing": 45.9,
+     "queue": 8.8,
+     "thru": 62.8,
+     "samples": 120,
+     "variant": "2-lane ring, town arms",
+     "zone": "s4g1b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g1b.jpg"
+    },
+    "sl-rspiral": {
+     "name": "Roundabout, 2 lanes, town street arms \u00b7 set 1",
+     "kmh": 8.74,
+     "standing": 42.1,
+     "queue": 9.2,
+     "thru": 66.9,
+     "samples": 120,
+     "variant": "2-lane ring, town arms",
+     "zone": "s4g1l",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g1l.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb2t",
+     "pair": "s4g1"
+    },
+    "game": {
+     "test": "rb2t",
+     "pair": "s4g1"
+    },
+    "sl-rspiral": {
+     "test": "rb2t",
+     "pair": "s4g1"
+    }
+   },
+   "category": "slower",
+   "verdict": "-0.0 km/h"
+  }
+ ],
+ "summary": {
+  "kmh": {
+   "game": {
+    "q": [
+     8.09,
+     8.09,
+     8.09,
+     8.09,
+     8.09
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     8.07,
+     8.07,
+     8.07,
+     8.07,
+     8.07
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     8.74,
+     8.74,
+     8.74,
+     8.74,
+     8.74
+    ],
+    "sum": null
+   }
+  },
+  "standing": {
+   "game": {
+    "q": [
+     45.9,
+     45.9,
+     45.9,
+     45.9,
+     45.9
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     46.3,
+     46.3,
+     46.3,
+     46.3,
+     46.3
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     42.1,
+     42.1,
+     42.1,
+     42.1,
+     42.1
+    ],
+    "sum": null
+   }
+  },
+  "queue": {
+   "game": {
+    "q": [
+     8.8,
+     8.8,
+     8.8,
+     8.8,
+     8.8
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     10.3,
+     10.3,
+     10.3,
+     10.3,
+     10.3
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     9.2,
+     9.2,
+     9.2,
+     9.2,
+     9.2
+    ],
+    "sum": null
+   }
+  },
+  "thru": {
+   "game": {
+    "q": [
+     62.8,
+     62.8,
+     62.8,
+     62.8,
+     62.8
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     61.7,
+     61.7,
+     61.7,
+     61.7,
+     61.7
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     66.9,
+     66.9,
+     66.9,
+     66.9,
+     66.9
+    ],
+    "sum": null
+   }
+  }
+ },
+ "notes": {
+  "comparisons": [
+   {
+    "test": "rb2t",
+    "title": "Roundabout, 2 lanes, town street arms",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.02,
+    "dStanding": 0.4,
+    "dThru": -1.0,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb2t",
+    "title": "Roundabout, 2 lanes, town street arms",
+    "a": "Spiral",
+    "b": "Smart Lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 0.68,
+    "dStanding": -4.2,
+    "dThru": 5.1,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2t",
+    "title": "Roundabout, 2 lanes, town street arms",
+    "a": "Spiral",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 0.65,
+    "dStanding": -3.8,
+    "dThru": 4.1,
+    "thruWins": 1,
+    "p": 1.0
+   }
+  ],
+  "excluded": [],
+  "spec": "bench_s4@2",
+  "complete": true,
+  "towns": "12",
+  "pop": "400",
+  "recordS": "1200",
+  "freeTurn": "always",
+  "lights": "on",
+  "phases": "game",
+  "mapStanding": 32.9
+ },
+ "runRows": [
+  [
+   "Twins (junctions)",
+   "1",
+   "1",
+   "1"
+  ],
+  [
+   "Junctions written by Smart Lanes (APPLY lines)",
+   "0",
+   "4",
+   "4"
+  ],
+  [
+   "Left as the game built them (SKIP lines)",
+   "6",
+   "0",
+   "0"
+  ],
+  [
+   "Traffic lights switched off",
+   "0",
+   "4",
+   "4"
+  ],
+  [
+   "Traffic lights kept",
+   "0",
+   "0",
+   "0"
+  ],
+  [
+   "Twins failing the treatment check",
+   "0",
+   "0",
+   "0"
+  ]
+ ]
+}

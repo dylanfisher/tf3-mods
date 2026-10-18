@@ -1,0 +1,896 @@
+{
+ "version": 3,
+ "single": false,
+ "seed": "455860",
+ "built": "2026-10-14 01:33",
+ "pairing": "id",
+ "header": {
+  "title": "Sheet 4 v4: mid-node rings of 2, 3 and 4 lanes"
+ },
+ "runs": [
+  {
+   "id": "game",
+   "label": "Game lanes",
+   "kind": "game",
+   "mode": "game",
+   "session": "2026-10-14_0133_session"
+  },
+  {
+   "id": "sl",
+   "label": "Smart Lanes",
+   "kind": "smart",
+   "mode": "sl",
+   "session": "2026-10-14_0133_session"
+  },
+  {
+   "id": "sl-rspiral",
+   "label": "Spiral",
+   "kind": "smart",
+   "mode": "sl_rspiral",
+   "session": "2026-10-14_0133_session"
+  },
+  {
+   "id": "sl-rsplit",
+   "label": "Split spiral",
+   "kind": "smart",
+   "mode": "sl_rsplit",
+   "session": "2026-10-14_0133_session"
+  },
+  {
+   "id": "sl-rmid",
+   "label": "Mid-node lane changes",
+   "kind": "smart",
+   "mode": "sl_rmid",
+   "session": "2026-10-14_0133_session"
+  }
+ ],
+ "units": [
+  {
+   "nn": "01",
+   "ids": {
+    "sl": "s4g1a",
+    "game": "s4g1b",
+    "sl-rspiral": "s4g1l",
+    "sl-rsplit": "s4g1n",
+    "sl-rmid": "s4g1o"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1",
+     "kmh": 11.21,
+     "standing": 31.3,
+     "queue": 0.9,
+     "thru": 84.8,
+     "samples": 120,
+     "variant": "2-lane ring, town arms, mid nodes",
+     "zone": "s4g1a",
+     "applied": 8,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g1a.jpg"
+    },
+    "game": {
+     "name": "Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1",
+     "kmh": 9.35,
+     "standing": 38.9,
+     "queue": 10.4,
+     "thru": 71.6,
+     "samples": 120,
+     "variant": "2-lane ring, town arms, mid nodes",
+     "zone": "s4g1b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g1b.jpg"
+    },
+    "sl-rspiral": {
+     "name": "Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1",
+     "kmh": 10.96,
+     "standing": 33.8,
+     "queue": 4.5,
+     "thru": 77.9,
+     "samples": 120,
+     "variant": "2-lane ring, town arms, mid nodes",
+     "zone": "s4g1l",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g1l.jpg"
+    },
+    "sl-rsplit": {
+     "name": "Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1",
+     "kmh": 12.42,
+     "standing": 30.8,
+     "queue": 7.4,
+     "thru": 80.3,
+     "samples": 120,
+     "variant": "2-lane ring, town arms, mid nodes",
+     "zone": "s4g1n",
+     "applied": 8,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g1n.jpg"
+    },
+    "sl-rmid": {
+     "name": "Roundabout, 2 lanes, town street arms, mid nodes \u00b7 set 1",
+     "kmh": 12.16,
+     "standing": 32.1,
+     "queue": 22.0,
+     "thru": 87.8,
+     "samples": 120,
+     "variant": "2-lane ring, town arms, mid nodes",
+     "zone": "s4g1o",
+     "applied": 8,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g1o.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb2tm",
+     "pair": "s4g1"
+    },
+    "game": {
+     "test": "rb2tm",
+     "pair": "s4g1"
+    },
+    "sl-rspiral": {
+     "test": "rb2tm",
+     "pair": "s4g1"
+    },
+    "sl-rsplit": {
+     "test": "rb2tm",
+     "pair": "s4g1"
+    },
+    "sl-rmid": {
+     "test": "rb2tm",
+     "pair": "s4g1"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.9 km/h"
+  },
+  {
+   "nn": "02",
+   "ids": {
+    "sl": "s4g2a",
+    "game": "s4g2b",
+    "sl-rspiral": "s4g2l",
+    "sl-rsplit": "s4g2n",
+    "sl-rmid": "s4g2o"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 3 lanes, mid nodes \u00b7 set 2",
+     "kmh": 1.56,
+     "standing": 89.4,
+     "queue": 362.8,
+     "thru": 36.5,
+     "samples": 120,
+     "variant": "3-lane ring, mid nodes",
+     "zone": "s4g2a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g2a.jpg"
+    },
+    "game": {
+     "name": "Roundabout, 3 lanes, mid nodes \u00b7 set 2",
+     "kmh": 3.84,
+     "standing": 77.7,
+     "queue": 251.3,
+     "thru": 54.0,
+     "samples": 120,
+     "variant": "3-lane ring, mid nodes",
+     "zone": "s4g2b",
+     "applied": 0,
+     "skipped": 5,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g2b.jpg"
+    },
+    "sl-rspiral": {
+     "name": "Roundabout, 3 lanes, mid nodes \u00b7 set 2",
+     "kmh": 10.74,
+     "standing": 54.0,
+     "queue": 74.4,
+     "thru": 93.5,
+     "samples": 120,
+     "variant": "3-lane ring, mid nodes",
+     "zone": "s4g2l",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g2l.jpg"
+    },
+    "sl-rsplit": {
+     "name": "Roundabout, 3 lanes, mid nodes \u00b7 set 2",
+     "kmh": 16.23,
+     "standing": 43.4,
+     "queue": 45.4,
+     "thru": 96.7,
+     "samples": 120,
+     "variant": "3-lane ring, mid nodes",
+     "zone": "s4g2n",
+     "applied": 8,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g2n.jpg"
+    },
+    "sl-rmid": {
+     "name": "Roundabout, 3 lanes, mid nodes \u00b7 set 2",
+     "kmh": 2.56,
+     "standing": 83.9,
+     "queue": 312.0,
+     "thru": 44.6,
+     "samples": 120,
+     "variant": "3-lane ring, mid nodes",
+     "zone": "s4g2o",
+     "applied": 8,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g2o.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb3m",
+     "pair": "s4g2"
+    },
+    "game": {
+     "test": "rb3m",
+     "pair": "s4g2"
+    },
+    "sl-rspiral": {
+     "test": "rb3m",
+     "pair": "s4g2"
+    },
+    "sl-rsplit": {
+     "test": "rb3m",
+     "pair": "s4g2"
+    },
+    "sl-rmid": {
+     "test": "rb3m",
+     "pair": "s4g2"
+    }
+   },
+   "category": "slower",
+   "verdict": "-2.3 km/h"
+  },
+  {
+   "nn": "03",
+   "ids": {
+    "sl": "s4g3a",
+    "game": "s4g3b",
+    "sl-rspiral": "s4g3l",
+    "sl-rsplit": "s4g3n",
+    "sl-rmid": "s4g3o"
+   },
+   "m": {
+    "sl": {
+     "name": "Roundabout, 4 lanes, mid nodes \u00b7 set 3",
+     "kmh": 3.42,
+     "standing": 83.0,
+     "queue": 284.6,
+     "thru": 42.8,
+     "samples": 120,
+     "variant": "4-lane ring, mid nodes",
+     "zone": "s4g3a",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g3a.jpg"
+    },
+    "game": {
+     "name": "Roundabout, 4 lanes, mid nodes \u00b7 set 3",
+     "kmh": 1.65,
+     "standing": 89.4,
+     "queue": 403.3,
+     "thru": 29.9,
+     "samples": 120,
+     "variant": "4-lane ring, mid nodes",
+     "zone": "s4g3b",
+     "applied": 0,
+     "skipped": 6,
+     "lightsOff": 0,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g3b.jpg"
+    },
+    "sl-rspiral": {
+     "name": "Roundabout, 4 lanes, mid nodes \u00b7 set 3",
+     "kmh": 5.79,
+     "standing": 67.2,
+     "queue": 177.9,
+     "thru": 65.5,
+     "samples": 120,
+     "variant": "4-lane ring, mid nodes",
+     "zone": "s4g3l",
+     "applied": 4,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g3l.jpg"
+    },
+    "sl-rsplit": {
+     "name": "Roundabout, 4 lanes, mid nodes \u00b7 set 3",
+     "kmh": 3.95,
+     "standing": 76.3,
+     "queue": 249.2,
+     "thru": 52.6,
+     "samples": 120,
+     "variant": "4-lane ring, mid nodes",
+     "zone": "s4g3n",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g3n.jpg"
+    },
+    "sl-rmid": {
+     "name": "Roundabout, 4 lanes, mid nodes \u00b7 set 3",
+     "kmh": 3.97,
+     "standing": 79.1,
+     "queue": 302.2,
+     "thru": 58.3,
+     "samples": 120,
+     "variant": "4-lane ring, mid nodes",
+     "zone": "s4g3o",
+     "applied": 12,
+     "skipped": 0,
+     "lightsOff": 4,
+     "lightsKept": 0,
+     "treatment": null,
+     "match": true,
+     "shot": "shots/s4g3o.jpg"
+    }
+   },
+   "x": {
+    "sl": {
+     "test": "rb4lm",
+     "pair": "s4g3"
+    },
+    "game": {
+     "test": "rb4lm",
+     "pair": "s4g3"
+    },
+    "sl-rspiral": {
+     "test": "rb4lm",
+     "pair": "s4g3"
+    },
+    "sl-rsplit": {
+     "test": "rb4lm",
+     "pair": "s4g3"
+    },
+    "sl-rmid": {
+     "test": "rb4lm",
+     "pair": "s4g3"
+    }
+   },
+   "category": "faster",
+   "verdict": "+1.8 km/h"
+  }
+ ],
+ "summary": {
+  "kmh": {
+   "game": {
+    "q": [
+     2.75,
+     3.84,
+     6.59,
+     1.65,
+     9.35
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     2.49,
+     3.42,
+     7.32,
+     1.56,
+     11.21
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     8.27,
+     10.74,
+     10.85,
+     5.79,
+     10.96
+    ],
+    "sum": null
+   },
+   "sl-rsplit": {
+    "q": [
+     8.18,
+     12.42,
+     14.32,
+     3.95,
+     16.23
+    ],
+    "sum": null
+   },
+   "sl-rmid": {
+    "q": [
+     3.27,
+     3.97,
+     8.06,
+     2.56,
+     12.16
+    ],
+    "sum": null
+   }
+  },
+  "standing": {
+   "game": {
+    "q": [
+     58.3,
+     77.7,
+     83.55,
+     38.9,
+     89.4
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     57.15,
+     83.0,
+     86.2,
+     31.3,
+     89.4
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     43.9,
+     54.0,
+     60.6,
+     33.8,
+     67.2
+    ],
+    "sum": null
+   },
+   "sl-rsplit": {
+    "q": [
+     37.1,
+     43.4,
+     59.85,
+     30.8,
+     76.3
+    ],
+    "sum": null
+   },
+   "sl-rmid": {
+    "q": [
+     55.6,
+     79.1,
+     81.5,
+     32.1,
+     83.9
+    ],
+    "sum": null
+   }
+  },
+  "queue": {
+   "game": {
+    "q": [
+     130.85,
+     251.3,
+     327.3,
+     10.4,
+     403.3
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     142.75,
+     284.6,
+     323.7,
+     0.9,
+     362.8
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     39.45,
+     74.4,
+     126.15,
+     4.5,
+     177.9
+    ],
+    "sum": null
+   },
+   "sl-rsplit": {
+    "q": [
+     26.4,
+     45.4,
+     147.3,
+     7.4,
+     249.2
+    ],
+    "sum": null
+   },
+   "sl-rmid": {
+    "q": [
+     162.1,
+     302.2,
+     307.1,
+     22.0,
+     312.0
+    ],
+    "sum": null
+   }
+  },
+  "thru": {
+   "game": {
+    "q": [
+     41.95,
+     54.0,
+     62.8,
+     29.9,
+     71.6
+    ],
+    "sum": null
+   },
+   "sl": {
+    "q": [
+     39.65,
+     42.8,
+     63.8,
+     36.5,
+     84.8
+    ],
+    "sum": null
+   },
+   "sl-rspiral": {
+    "q": [
+     71.7,
+     77.9,
+     85.7,
+     65.5,
+     93.5
+    ],
+    "sum": null
+   },
+   "sl-rsplit": {
+    "q": [
+     66.45,
+     80.3,
+     88.5,
+     52.6,
+     96.7
+    ],
+    "sum": null
+   },
+   "sl-rmid": {
+    "q": [
+     51.45,
+     58.3,
+     73.05,
+     44.6,
+     87.8
+    ],
+    "sum": null
+   }
+  }
+ },
+ "notes": {
+  "comparisons": [
+   {
+    "test": "rb2tm",
+    "title": "Roundabout, 2 lanes, town street arms, mid nodes",
+    "a": "Mid-node lane changes",
+    "b": "Split spiral",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -0.26,
+    "dStanding": 1.3,
+    "dThru": 7.4,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2tm",
+    "title": "Roundabout, 2 lanes, town street arms, mid nodes",
+    "a": "Mid-node lane changes",
+    "b": "Spiral",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 1.2,
+    "dStanding": -1.7,
+    "dThru": 9.8,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2tm",
+    "title": "Roundabout, 2 lanes, town street arms, mid nodes",
+    "a": "Mid-node lane changes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 2.81,
+    "dStanding": -6.8,
+    "dThru": 16.2,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2tm",
+    "title": "Roundabout, 2 lanes, town street arms, mid nodes",
+    "a": "Split spiral",
+    "b": "Spiral",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 1.46,
+    "dStanding": -3.0,
+    "dThru": 2.4,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb2tm",
+    "title": "Roundabout, 2 lanes, town street arms, mid nodes",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 1.86,
+    "dStanding": -7.6,
+    "dThru": 13.2,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb3m",
+    "title": "Roundabout, 3 lanes, mid nodes",
+    "a": "Mid-node lane changes",
+    "b": "Split spiral",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -13.67,
+    "dStanding": 40.4,
+    "dThru": -52.1,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3m",
+    "title": "Roundabout, 3 lanes, mid nodes",
+    "a": "Mid-node lane changes",
+    "b": "Spiral",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -8.18,
+    "dStanding": 29.9,
+    "dThru": -48.9,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3m",
+    "title": "Roundabout, 3 lanes, mid nodes",
+    "a": "Mid-node lane changes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -1.27,
+    "dStanding": 6.1,
+    "dThru": -9.4,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb3m",
+    "title": "Roundabout, 3 lanes, mid nodes",
+    "a": "Split spiral",
+    "b": "Spiral",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 5.49,
+    "dStanding": -10.6,
+    "dThru": 3.2,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb3m",
+    "title": "Roundabout, 3 lanes, mid nodes",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -2.28,
+    "dStanding": 11.6,
+    "dThru": -17.5,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb4lm",
+    "title": "Roundabout, 4 lanes, mid nodes",
+    "a": "Mid-node lane changes",
+    "b": "Split spiral",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 0.02,
+    "dStanding": 2.9,
+    "dThru": 5.7,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb4lm",
+    "title": "Roundabout, 4 lanes, mid nodes",
+    "a": "Mid-node lane changes",
+    "b": "Spiral",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -1.81,
+    "dStanding": 12.0,
+    "dThru": -7.2,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb4lm",
+    "title": "Roundabout, 4 lanes, mid nodes",
+    "a": "Mid-node lane changes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 2.32,
+    "dStanding": -10.2,
+    "dThru": 28.3,
+    "thruWins": 1,
+    "p": 1.0
+   },
+   {
+    "test": "rb4lm",
+    "title": "Roundabout, 4 lanes, mid nodes",
+    "a": "Split spiral",
+    "b": "Spiral",
+    "pairs": 1,
+    "wins": 0,
+    "losses": 1,
+    "dKmh": -1.83,
+    "dStanding": 9.1,
+    "dThru": -12.9,
+    "thruWins": 0,
+    "p": 1.0
+   },
+   {
+    "test": "rb4lm",
+    "title": "Roundabout, 4 lanes, mid nodes",
+    "a": "Smart Lanes",
+    "b": "Game lanes",
+    "pairs": 1,
+    "wins": 1,
+    "losses": 0,
+    "dKmh": 1.77,
+    "dStanding": -6.3,
+    "dThru": 12.9,
+    "thruWins": 1,
+    "p": 1.0
+   }
+  ],
+  "excluded": [],
+  "spec": "bench_s4@4",
+  "complete": true,
+  "towns": "60",
+  "pop": "400",
+  "recordS": "1200",
+  "freeTurn": "always",
+  "lights": "on",
+  "phases": "game",
+  "mapStanding": 48.4
+ },
+ "runRows": [
+  [
+   "Twins (junctions)",
+   "3",
+   "3",
+   "3",
+   "3",
+   "3"
+  ],
+  [
+   "Junctions written by Smart Lanes (APPLY lines)",
+   "0",
+   "16",
+   "12",
+   "28",
+   "28"
+  ],
+  [
+   "Left as the game built them (SKIP lines)",
+   "17",
+   "0",
+   "0",
+   "0",
+   "0"
+  ],
+  [
+   "Traffic lights switched off",
+   "0",
+   "12",
+   "12",
+   "12",
+   "12"
+  ],
+  [
+   "Traffic lights kept",
+   "0",
+   "0",
+   "0",
+   "0",
+   "0"
+  ],
+  [
+   "Twins failing the treatment check",
+   "0",
+   "0",
+   "0",
+   "0",
+   "0"
+  ]
+ ]
+}

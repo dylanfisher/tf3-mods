@@ -1,0 +1,173 @@
+{
+ "version": 1,
+ "pairs": [
+  {
+   "bench": "Sheet 1",
+   "page": "2026-10-13_0610_s1",
+   "test": "rb4",
+   "title": "Roundabout, 2 lanes, 4 arms",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-13_0610_s1/shots/g1b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-13_0610_s1/shots/g1a.jpg",
+   "kmhGame": 7.3,
+   "kmhSmart": 8.83,
+   "thruGame": 59.8,
+   "thruSmart": 75.2
+  },
+  {
+   "bench": "Sheet 1",
+   "page": "2026-10-13_0610_s1",
+   "test": "drop",
+   "title": "Lane drop, 3 to 2 lanes",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-13_0610_s1/shots/g10b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-13_0610_s1/shots/g10a.jpg",
+   "kmhGame": 73.84,
+   "kmhSmart": 74.11,
+   "thruGame": 45.5,
+   "thruSmart": 50.2
+  },
+  {
+   "bench": "Sheet 2",
+   "page": "2026-10-13_0610_s2",
+   "test": "cht",
+   "title": "Channelized T-junction (slip lanes)",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-13_0610_s2/shots/g1b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-13_0610_s2/shots/g1a.jpg",
+   "kmhGame": 13.36,
+   "kmhSmart": 42.91,
+   "thruGame": 67.0,
+   "thruSmart": 85.4
+  },
+  {
+   "bench": "Sheet 2",
+   "page": "2026-10-13_0610_s2",
+   "test": "dia",
+   "title": "Diamond interchange",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-13_0610_s2/shots/g10b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-13_0610_s2/shots/g10a.jpg",
+   "kmhGame": 32.11,
+   "kmhSmart": 59.09,
+   "thruGame": 78.3,
+   "thruSmart": 87.7
+  },
+  {
+   "bench": "Sheet 3",
+   "page": "2026-10-13_0733_s3",
+   "test": "lt22",
+   "title": "T-junction with traffic lights, 2 x 2 lanes",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-13_0733_s3/shots/g1b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-13_0733_s3/shots/g1a.jpg",
+   "kmhGame": 18.86,
+   "kmhSmart": 39.07,
+   "thruGame": 74.8,
+   "thruSmart": 78.2
+  },
+  {
+   "bench": "Sheet 3",
+   "page": "2026-10-13_0733_s3",
+   "test": "lx",
+   "title": "Crossroads with traffic lights",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-13_0733_s3/shots/g10b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-13_0733_s3/shots/g10a.jpg",
+   "kmhGame": 12.73,
+   "kmhSmart": 18.67,
+   "thruGame": 103.5,
+   "thruSmart": 113.2
+  },
+  {
+   "bench": "Sheet 4 v2",
+   "page": "2026-10-13_2341_s4",
+   "test": "rb2t",
+   "title": "Roundabout, 2 lanes, town street arms",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-13_2341_s4/shots/s4g1b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-13_2341_s4/shots/s4g1a.jpg",
+   "kmhGame": 8.09,
+   "kmhSmart": 8.07,
+   "thruGame": 62.8,
+   "thruSmart": 61.7
+  },
+  {
+   "bench": "Sheet 4 v3",
+   "page": "2026-10-14_0027_s4",
+   "test": "rb2tm",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-14_0027_s4/shots/s4g1b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-14_0027_s4/shots/s4g1a.jpg",
+   "kmhGame": 10.17,
+   "kmhSmart": 8.06,
+   "thruGame": 71.4,
+   "thruSmart": 62.8
+  },
+  {
+   "bench": "Sheet 4 v4",
+   "page": "2026-10-14_0133_s4",
+   "test": "rb2tm",
+   "title": "Roundabout, 2 lanes, town street arms, mid nodes",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-14_0133_s4/shots/s4g1b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-14_0133_s4/shots/s4g1a.jpg",
+   "kmhGame": 9.35,
+   "kmhSmart": 11.21,
+   "thruGame": 71.6,
+   "thruSmart": 84.8
+  },
+  {
+   "bench": "Sheet 4 v4",
+   "page": "2026-10-14_0133_s4",
+   "test": "rb3m",
+   "title": "Roundabout, 3 lanes, mid nodes",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-14_0133_s4/shots/s4g2b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-14_0133_s4/shots/s4g2a.jpg",
+   "kmhGame": 3.84,
+   "kmhSmart": 1.56,
+   "thruGame": 54.0,
+   "thruSmart": 36.5
+  },
+  {
+   "bench": "Sheet 4 v4",
+   "page": "2026-10-14_0133_s4",
+   "test": "rb4lm",
+   "title": "Roundabout, 4 lanes, mid nodes",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-14_0133_s4/shots/s4g3b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-14_0133_s4/shots/s4g3a.jpg",
+   "kmhGame": 1.65,
+   "kmhSmart": 3.42,
+   "thruGame": 29.9,
+   "thruSmart": 42.8
+  },
+  {
+   "bench": "Sheet 4 v5",
+   "page": "2026-10-14_0201_s4",
+   "test": "rb2v",
+   "title": "Roundabout, 2 lanes, town street arms: plain and mid-node ring",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-14_0201_s4/shots/s4g1b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-14_0201_s4/shots/s4g1a.jpg",
+   "kmhGame": 7.96,
+   "kmhSmart": 8.45,
+   "thruGame": 62.5,
+   "thruSmart": 67.4
+  },
+  {
+   "bench": "Sheet 4 v5",
+   "page": "2026-10-14_0201_s4",
+   "test": "rb3v",
+   "title": "Roundabout, 3 lanes: plain and mid-node ring",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-14_0201_s4/shots/s4g2b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-14_0201_s4/shots/s4g2a.jpg",
+   "kmhGame": 11.21,
+   "kmhSmart": 13.16,
+   "thruGame": 92.3,
+   "thruSmart": 92.2
+  },
+  {
+   "bench": "Sheet 4 v5",
+   "page": "2026-10-14_0201_s4",
+   "test": "rb4v",
+   "title": "Roundabout, 4 lanes: plain and mid-node ring",
+   "before": "plans/square_smart_lanes/site/bench/2026-10-14_0201_s4/shots/s4g3b.jpg",
+   "after": "plans/square_smart_lanes/site/bench/2026-10-14_0201_s4/shots/s4g3a.jpg",
+   "kmhGame": 8.8,
+   "kmhSmart": 23.26,
+   "thruGame": 74.6,
+   "thruSmart": 102.7
+  }
+ ]
+}
