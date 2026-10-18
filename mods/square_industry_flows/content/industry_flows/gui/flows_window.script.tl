@@ -59,6 +59,9 @@ local WINDOW_ID <const> = "squareindustryflows.window"
 local TOOL_NAME <const> = "SquareIndustryFlows"     -- react.RegisterTool names are global (react.lua:576-590)
 local ACTION_KEY <const> = "square_industry_flows"  -- key2 of setActionFn (industry.tl:410 uses "industry")
 local RIDGE_BUTTON_PADDING <const> : {number} = { 2, 8, 2, 8 }  -- inline (was Button!flows-ridge-button in the .css.lua)
+-- Ridge button in the "Icon" style (mod.json hudButtonStyle): factory-and-arrow mask, flows@2x.tga 48x48
+-- (tools/render_icon_ridge.py), shown at 24 UI px like the base layers icon and Better Minimap's map icon.
+local RIDGE_ICON <const> = "square_industry_flows::/industry_flows/gui/flows.tga"
 
 local function text(str : string, class? : string) : TreeNodeId
 	return builtin.TextView{
@@ -671,17 +674,44 @@ local IndustryFlowsContent = react.RegisterRecipe("IndustryFlowsContent", perf:w
 	return vbox(rows, "flows-content")
 end))
 
+-- Window fields differ by platform: the PS5 build rejects `closable` and react.lua makeUserdata then fails
+-- the whole UI (docs/findings/gui.md "Window fields differ by platform"). Each field is tried once on a spare
+-- Window param object; a field this platform rejects is left out and logged once. Nodes and meta aren't tried.
+local windowFieldOk : {string : boolean} = {}
+local function platformWindow<T>(p : T) : T
+	local t = p as {string : any}
+	for k, v in pairs(t) do
+		if k ~= "content" and k ~= "header" and k ~= "meta" then
+			local key = k .. "=" .. (v is boolean and tostring(v) or type(v))
+			if windowFieldOk[key] == nil then
+				local made, ud = pcall(function() : {string : any}
+					local reactApi = ((api as table).gui as table).react as table
+					local builtins = (reactApi.params as table).builtin as table
+					return ((builtins.Window as table).new as function() : {string : any})()
+				end)
+				-- no spare object to try on: keep the field, as before this guard
+				windowFieldOk[key] = not made or pcall(function() ud[k] = v end)
+				if not windowFieldOk[key] then
+					log.warning("[IndustryFlows] this platform's Window rejects '" .. key .. "'; left out")
+				end
+			end
+			if not windowFieldOk[key] then t[k] = nil end
+		end
+	end
+	return p
+end
+
 local IndustryFlowsWindow = react.RegisterWrapperRecipe("IndustryFlowsWindow", builtin.Window, function(param : ToolReactUtil.IToolWindowParam<IndustryFlowsToolParam>) : TreeNodeId
 	-- WindowParam: builtin.d.tl:1186-1210. The id must equal the tool's window id: shelve/unshelve
 	-- toggle visibility by id (tool_react_util.tl:37, :61-71).
-	return builtin.Window{
+	return builtin.Window(platformWindow{
 		id = WINDOW_ID,
 		title = _("Industry Flows"),
 		closable = true,
 		movable = true,
 		onClose = param.onClose,
 		content = IndustryFlowsContent(param.payload),
-	}
+	})
 end)
 
 local function getDebugString(_toolParam : IndustryFlowsToolParam) : string
@@ -723,12 +753,72 @@ local togglePanel = perf:wrap("click_toggle", function()
 	end
 end)
 
+--- mod.json hudButtonStyle: { "Text", "Icon" } (1-based index; default Icon). Missing or unreadable = Icon.
+--- Read once per mount: mod params are fixed per game.
+local function ridgeIconSetting() : boolean
+	local ok, all = pcall(function() : {string : any} return api.engine.config.getModParams() as {string : any} end)
+	local mine = ok and type(all) == "table" and all["square_industry_flows"] as {string : any} or nil
+	local v = type(mine) == "table" and mine["hudButtonStyle"] or nil
+	return v ~= 1
+end
+
+local record RidgeIconStyles
+	button : StyleSheet
+	icon : StyleSheet
+end
+local ridgeIconStyleCache : RidgeIconStyles = nil
+
+--- Inline styles of the "Icon" ridge ToggleButton: only its size (8 px padding, the base default, around the
+--- 24 px icon: a 40 px tile like the layers and Timetables buttons in game). The tile, its pressed
+--- (AccentMedium) and hover states and the white icon come from the base ToggleButton rules
+--- (builtin.css.lua:138-240); an inline colour would override them. No stylesheet rules (docs/findings.md
+--- "Load crash above ~200 mod stylesheet rules"). Built once (GUI thread).
+local function ridgeIconStyles() : RidgeIconStyles
+	if ridgeIconStyleCache == nil then
+		local button = styleutil.makeStyle{}
+		button.padding = api.type.Vec4f.new(8, 8, 8, 8)
+		ridgeIconStyleCache = {
+			button = button,
+			icon = styleutil.makeStyle{ size = { 24, 24 } },
+		}
+	end
+	return ridgeIconStyleCache
+end
+
 --- A plugin recipe's root must be a layout (MainModButtonArea mounts plugins as BoxLayout children;
 --- base shape: game_bar_display_transported.tl:28).
 local IndustryFlowsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "IndustryFlowsRidgePlugin", perf:wrap("ridge_render", function() : TreeNodeId
 	local isMapEditorRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean return api.gui.game.isMapEditor() end)
+	local iconRef : ReactRefT<boolean> = react.useRefLazy(ridgeIconSetting)
+	-- The "Icon" ToggleButton is pressed while the panel tool is active, however it was opened or closed
+	-- (onStep: Main Thread, docs/findings.md "Timers and threads in GUI contexts").
+	local openState = react.useState(false) as ReactStateT<boolean>
+	local function syncOpen()
+		local toolStackApi = game_react_globals.getDefaultToolStackApi()
+		local open = toolStackApi ~= nil and isOpen(toolStackApi)
+		if open ~= openState:old() then openState:set(open) end
+	end
+	react.onStep(function()
+		if iconRef:get() and not isMapEditorRef:get() then syncOpen() end
+	end)
 	if isMapEditorRef:get() then
 		return nil
+	end
+	local tooltip = _("Industry Flows")
+	if iconRef:get() then
+		-- "Icon" style: a base ToggleButton like the data layers button next to it (layers_button_ridge.tl:
+		-- 529-539) and Timetables' ridge button.
+		return hbox({
+			builtin.ToggleButton{
+				meta = { class = "flows-ridge-icon-button", styleSheet = ridgeIconStyles().button, tooltip = tooltip },
+				content = builtin.ImageView{ meta = { class = "flows-ridge-icon", styleSheet = ridgeIconStyles().icon }, path = RIDGE_ICON },
+				value = openState:old() and 1 or 0,
+				onValueChange = function(__ : integer)
+					togglePanel()
+					syncOpen()
+				end,
+			},
+		})
 	end
 	-- Inline padding instead of a stylesheet rule (docs/findings.md "Load crash above ~200 mod stylesheet
 	-- rules"). No base rule sets a Button's padding per state, so it is the same in every state.
@@ -740,7 +830,7 @@ local IndustryFlowsRidgePlugin = react.RegisterPluginRecipe(main_mod_button_area
 			meta = {
 				class = "flows-ridge-button",
 				styleSheet = buttonStyle,
-				tooltip = _("Industry Flows: cargo arrows for every industry of the types you pick"),
+				tooltip = tooltip,
 			},
 			content = text(_("Flows")),
 			onClick = togglePanel,

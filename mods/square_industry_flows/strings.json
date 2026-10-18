@@ -22,12 +22,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "Показывать и связи, по которым груз ещё не идёт (бледные неподвижные стрелки)",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "Движущиеся стрелки: груз доставлялся за последний год. Бледные неподвижные стрелки: возможные связи.",
         "Industry Flows": "Потоки предприятий",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "Потоки предприятий: стрелки грузов для всех предприятий выбранных типов",
         "Flows": "Потоки",
+        "Top bar button": "Кнопка на верхней панели",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "Вид кнопки Industry Flows на верхней левой панели.\nТекст: слово \"Потоки\" без рамки. Значок: значок завода\nна тёмной плитке, как у кнопки слоёв данных в игре.",
+        "Text": "Текст",
+        "Icon": "Значок",
         "Debug: performance log": "Отладка: журнал производительности",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Выкл.: обычная игра. Вкл.: каждые 30 с Industry Flows записывает в лог-файл игры (stdout.txt, строки, начинающиеся с [SQPERF]), сколько времени его панель тратила на чтение карты, отрисовку и перерисовку стрелок. Только для поиска причин замедлений; в остальных случаях оставьте Выкл. Медленные вызовы всегда кратко записываются, независимо от этой настройки.",
         "Off": "Выкл.",
-        "On": "Вкл."
+        "On": "Вкл.",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "Выкл.: обычная игра. Вкл.: каждые 30 с Industry Flows\nзаписывает в лог-файл игры (stdout.txt, строки, начинающиеся\nс [SQPERF]), сколько времени его панель тратила на чтение\nкарты, отрисовку и перерисовку стрелок. Только для поиска\nпричин замедлений; в остальных случаях оставьте Выкл.\nМедленные вызовы всегда кратко записываются, независимо от\nэтой настройки."
     },
     "de": {
         "Select an industry type to show its cargo flows.": "Wähle einen Industrietyp, um seine Frachtströme zu zeigen.",
@@ -51,12 +54,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "Auch Verbindungen ohne bisherigen Frachtverkehr zeigen (blasse, stehende Pfeile)",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "Bewegte Pfeile: Fracht im letzten Jahr geliefert. Blasse, stehende Pfeile: mögliche Verbindungen.",
         "Industry Flows": "Industrieströme",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "Industrieströme: Frachtpfeile für jede Industrie der gewählten Typen",
         "Flows": "Ströme",
+        "Top bar button": "Schaltfläche in der oberen Leiste",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "Wie die Schaltfläche von Industry Flows in der Leiste oben links aussieht.\nText: das Wort \"Ströme\" ohne Rahmen. Symbol: ein Fabriksymbol\nauf dunkler Kachel, wie die Datenebenen-Schaltfläche des Spiels.",
+        "Text": "Text",
+        "Icon": "Symbol",
         "Debug: performance log": "Debug: Leistungsprotokoll",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Aus: normales Spiel. An: Alle 30 s schreibt Industry Flows in die Logdatei des Spiels (stdout.txt, Zeilen mit [SQPERF]), wie lange sein Fenster zum Lesen der Karte, Zeichnen und Neuzeichnen der Pfeile gebraucht hat. Nur zur Suche nach Verlangsamungen; sonst auf Aus lassen. Langsame Aufrufe werden unabhängig von dieser Einstellung immer kurz protokolliert.",
         "Off": "Aus",
-        "On": "An"
+        "On": "An",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "Aus: normales Spiel. An: Alle 30 s schreibt Industry Flows\nin die Logdatei des Spiels (stdout.txt, Zeilen mit\n[SQPERF]), wie lange sein Fenster zum Lesen der Karte,\nZeichnen und Neuzeichnen der Pfeile gebraucht hat. Nur zur\nSuche nach Verlangsamungen; sonst auf Aus lassen. Langsame\nAufrufe werden unabhängig von dieser Einstellung immer kurz\nprotokolliert."
     },
     "fr": {
         "Select an industry type to show its cargo flows.": "Choisissez un type d'industrie pour afficher ses flux de marchandises.",
@@ -80,12 +86,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "Afficher aussi les liaisons sans marchandises en mouvement (flèches pâles et immobiles)",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "Flèches animées : marchandises livrées l'an dernier. Flèches pâles et immobiles : liaisons possibles.",
         "Industry Flows": "Flux industriels",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "Flux industriels : flèches de marchandises pour chaque industrie des types choisis",
         "Flows": "Flux",
+        "Top bar button": "Bouton de la barre du haut",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "Apparence du bouton Industry Flows dans la barre en haut à gauche.\nTexte : le mot \"Flux\" sans cadre. Icône : une icône d'usine\nsur une tuile sombre, comme le bouton des calques de données du jeu.",
+        "Text": "Texte",
+        "Icon": "Icône",
         "Debug: performance log": "Débogage : journal des performances",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Désactivé : jeu normal. Activé : toutes les 30 s, Industry Flows écrit dans le fichier journal du jeu (stdout.txt, lignes commençant par [SQPERF]) le temps passé par son panneau à lire la carte, à l'afficher et à redessiner les flèches. Uniquement pour rechercher des ralentissements ; sinon, laissez Désactivé. Les appels lents sont toujours brièvement consignés, quel que soit ce réglage.",
         "Off": "Désactivé",
-        "On": "Activé"
+        "On": "Activé",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "Désactivé : jeu normal. Activé : toutes les 30 s, Industry\nFlows écrit dans le fichier journal du jeu (stdout.txt,\nlignes commençant par [SQPERF]) le temps passé par son\npanneau à lire la carte, à l'afficher et à redessiner les\nflèches. Uniquement pour rechercher des ralentissements ;\nsinon, laissez Désactivé. Les appels lents sont toujours\nbrièvement consignés, quel que soit ce réglage."
     },
     "es": {
         "Select an industry type to show its cargo flows.": "Elige un tipo de industria para ver sus flujos de carga.",
@@ -109,12 +118,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "Mostrar también enlaces sin carga en movimiento todavía (flechas tenues y quietas)",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "Flechas en movimiento: carga entregada en el último año. Flechas tenues y quietas: enlaces posibles.",
         "Industry Flows": "Flujos industriales",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "Flujos industriales: flechas de carga para cada industria de los tipos elegidos",
         "Flows": "Flujos",
+        "Top bar button": "Botón de la barra superior",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "Aspecto del botón de Industry Flows en la barra superior izquierda.\nTexto: la palabra \"Flujos\" sin marco. Icono: un icono de fábrica\nsobre una casilla oscura, como el botón de capas de datos del juego.",
+        "Text": "Texto",
+        "Icon": "Icono",
         "Debug: performance log": "Depuración: registro de rendimiento",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Desactivado: juego normal. Activado: cada 30 s, Industry Flows escribe en el archivo de registro del juego (stdout.txt, líneas que empiezan por [SQPERF]) cuánto tardó su panel en leer el mapa, dibujarse y redibujar las flechas. Solo para buscar ralentizaciones; si no, déjalo Desactivado. Las llamadas lentas siempre se registran brevemente, sea cual sea este ajuste.",
         "Off": "Desactivado",
-        "On": "Activado"
+        "On": "Activado",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "Desactivado: juego normal. Activado: cada 30 s, Industry\nFlows escribe en el archivo de registro del juego\n(stdout.txt, líneas que empiezan por [SQPERF]) cuánto tardó\nsu panel en leer el mapa, dibujarse y redibujar las flechas.\nSolo para buscar ralentizaciones; si no, déjalo Desactivado.\nLas llamadas lentas siempre se registran brevemente, sea\ncual sea este ajuste."
     },
     "it": {
         "Select an industry type to show its cargo flows.": "Scegli un tipo di industria per mostrarne i flussi di merci.",
@@ -138,12 +150,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "Mostra anche i collegamenti senza merci in movimento (frecce sbiadite e ferme)",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "Frecce in movimento: merci consegnate nell'ultimo anno. Frecce sbiadite e ferme: collegamenti possibili.",
         "Industry Flows": "Flussi industriali",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "Flussi industriali: frecce delle merci per ogni industria dei tipi scelti",
         "Flows": "Flussi",
+        "Top bar button": "Pulsante nella barra superiore",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "Aspetto del pulsante di Industry Flows nella barra in alto a sinistra.\nTesto: la parola \"Flussi\" senza cornice. Icona: un'icona di fabbrica\nsu una tessera scura, come il pulsante dei livelli dati del gioco.",
+        "Text": "Testo",
+        "Icon": "Icona",
         "Debug: performance log": "Debug: registro prestazioni",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Disattivato: gioco normale. Attivato: ogni 30 s, Industry Flows scrive nel file di log del gioco (stdout.txt, righe che iniziano con [SQPERF]) quanto tempo il suo pannello ha impiegato per leggere la mappa, disegnarsi e ridisegnare le frecce. Solo per individuare rallentamenti; altrimenti lascialo Disattivato. Le chiamate lente vengono sempre registrate brevemente, indipendentemente da questa impostazione.",
         "Off": "Disattivato",
-        "On": "Attivato"
+        "On": "Attivato",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "Disattivato: gioco normale. Attivato: ogni 30 s, Industry\nFlows scrive nel file di log del gioco (stdout.txt, righe\nche iniziano con [SQPERF]) quanto tempo il suo pannello ha\nimpiegato per leggere la mappa, disegnarsi e ridisegnare le\nfrecce. Solo per individuare rallentamenti; altrimenti\nlascialo Disattivato. Le chiamate lente vengono sempre\nregistrate brevemente, indipendentemente da questa\nimpostazione."
     },
     "nl": {
         "Select an industry type to show its cargo flows.": "Kies een industrietype om de vrachtstromen te tonen.",
@@ -167,12 +182,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "Ook verbindingen tonen waarover nog geen vracht gaat (vage, stilstaande pijlen)",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "Bewegende pijlen: vracht geleverd in het afgelopen jaar. Vage, stilstaande pijlen: mogelijke verbindingen.",
         "Industry Flows": "Industriestromen",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "Industriestromen: vrachtpijlen voor elke industrie van de gekozen types",
         "Flows": "Stromen",
+        "Top bar button": "Knop in de bovenbalk",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "Hoe de knop van Industry Flows in de balk linksboven eruitziet.\nTekst: het woord \"Stromen\" zonder kader. Pictogram: een fabriekspictogram\nop een donkere tegel, zoals de knop voor gegevenslagen van het spel.",
+        "Text": "Tekst",
+        "Icon": "Pictogram",
         "Debug: performance log": "Debug: prestatielogboek",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Uit: normaal spelen. Aan: elke 30 s schrijft Industry Flows naar het logbestand van het spel (stdout.txt, regels die beginnen met [SQPERF]) hoe lang het paneel nodig had om de kaart te lezen, te tekenen en de pijlen opnieuw te tekenen. Alleen om vertragingen op te sporen; laat het anders op Uit staan. Trage aanroepen worden altijd kort gelogd, ongeacht deze instelling.",
         "Off": "Uit",
-        "On": "Aan"
+        "On": "Aan",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "Uit: normaal spelen. Aan: elke 30 s schrijft Industry Flows\nnaar het logbestand van het spel (stdout.txt, regels die\nbeginnen met [SQPERF]) hoe lang het paneel nodig had om de\nkaart te lezen, te tekenen en de pijlen opnieuw te tekenen.\nAlleen om vertragingen op te sporen; laat het anders op Uit\nstaan. Trage aanroepen worden altijd kort gelogd, ongeacht\ndeze instelling."
     },
     "pl": {
         "Select an industry type to show its cargo flows.": "Wybierz typ zakładu, aby pokazać jego przepływy towarów.",
@@ -196,12 +214,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "Pokaż też połączenia, którymi towar jeszcze nie płynie (blade, nieruchome strzałki)",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "Ruchome strzałki: towar dostarczony w ostatnim roku. Blade, nieruchome strzałki: możliwe połączenia.",
         "Industry Flows": "Przepływy przemysłowe",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "Przepływy przemysłowe: strzałki towarów dla każdego zakładu wybranych typów",
         "Flows": "Przepływy",
+        "Top bar button": "Przycisk na górnym pasku",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "Wygląd przycisku Industry Flows na pasku w lewym górnym rogu.\nTekst: słowo \"Przepływy\" bez ramki. Ikona: ikona fabryki\nna ciemnym kafelku, jak przycisk warstw danych w grze.",
+        "Text": "Tekst",
+        "Icon": "Ikona",
         "Debug: performance log": "Debugowanie: dziennik wydajności",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Wył.: normalna gra. Wł.: co 30 s Industry Flows zapisuje w pliku dziennika gry (stdout.txt, wiersze zaczynające się od [SQPERF]), ile czasu jego panel poświęcił na odczyt mapy, rysowanie i odświeżanie strzałek. Tylko do szukania przyczyn spowolnień; w innym razie zostaw Wył. Wolne wywołania są zawsze krótko zapisywane, niezależnie od tego ustawienia.",
         "Off": "Wył.",
-        "On": "Wł."
+        "On": "Wł.",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "Wył.: normalna gra. Wł.: co 30 s Industry Flows zapisuje w\npliku dziennika gry (stdout.txt, wiersze zaczynające się od\n[SQPERF]), ile czasu jego panel poświęcił na odczyt mapy,\nrysowanie i odświeżanie strzałek. Tylko do szukania przyczyn\nspowolnień; w innym razie zostaw Wył. Wolne wywołania są\nzawsze krótko zapisywane, niezależnie od tego ustawienia."
     },
     "pt_BR": {
         "Select an industry type to show its cargo flows.": "Escolha um tipo de indústria para mostrar seus fluxos de carga.",
@@ -225,12 +246,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "Mostrar também ligações sem carga em movimento ainda (setas fracas e paradas)",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "Setas em movimento: carga entregue no último ano. Setas fracas e paradas: ligações possíveis.",
         "Industry Flows": "Fluxos industriais",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "Fluxos industriais: setas de carga para cada indústria dos tipos escolhidos",
         "Flows": "Fluxos",
+        "Top bar button": "Botão da barra superior",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "Aparência do botão do Industry Flows na barra superior esquerda.\nTexto: a palavra \"Fluxos\" sem moldura. Ícone: um ícone de fábrica\nsobre um bloco escuro, como o botão de camadas de dados do jogo.",
+        "Text": "Texto",
+        "Icon": "Ícone",
         "Debug: performance log": "Depuração: registro de desempenho",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Desligado: jogo normal. Ligado: a cada 30 s, o Industry Flows grava no arquivo de log do jogo (stdout.txt, linhas que começam com [SQPERF]) quanto tempo seu painel levou para ler o mapa, desenhar e redesenhar as setas. Apenas para investigar lentidão; caso contrário, deixe Desligado. Chamadas lentas são sempre registradas brevemente, qualquer que seja esta configuração.",
         "Off": "Desligado",
-        "On": "Ligado"
+        "On": "Ligado",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "Desligado: jogo normal. Ligado: a cada 30 s, o Industry\nFlows grava no arquivo de log do jogo (stdout.txt, linhas\nque começam com [SQPERF]) quanto tempo seu painel levou para\nler o mapa, desenhar e redesenhar as setas. Apenas para\ninvestigar lentidão; caso contrário, deixe Desligado.\nChamadas lentas são sempre registradas brevemente, qualquer\nque seja esta configuração."
     },
     "ja": {
         "Select an industry type to show its cargo flows.": "産業の種類を選ぶと、その貨物の流れを表示します。",
@@ -254,12 +278,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "まだ貨物が動いていないリンクも表示（薄く止まった矢印）",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "動く矢印：過去1年間に配送された貨物。薄く止まった矢印：潜在的なリンク。",
         "Industry Flows": "産業フロー",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "産業フロー：選んだ種類のすべての産業の貨物矢印",
         "Flows": "フロー",
+        "Top bar button": "トップバーのボタン",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "左上のバーにあるIndustry Flowsボタンの見た目。\nテキスト：枠なしの「フロー」の文字。\nアイコン：ゲームのデータレイヤーボタンのような、暗いタイル上の工場アイコン。",
+        "Text": "テキスト",
+        "Icon": "アイコン",
         "Debug: performance log": "デバッグ：パフォーマンスログ",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "オフ：通常プレイ。オン：30秒ごとに、Industry Flows のパネルがマップの読み込み、描画、矢印の再描画にかかった時間を、ゲームのログファイル（stdout.txt、[SQPERF] で始まる行）に書き込みます。動作が遅くなる原因を調べるときだけ使い、それ以外はオフのままにしてください。遅い呼び出しはこの設定に関係なく常に簡潔に記録されます。",
         "Off": "オフ",
-        "On": "オン"
+        "On": "オン",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "オフ：通常プレイ。オン：30秒ごとに、Industry Flows のパネル\nがマップの読み込み、描画、矢印の再描画にかかった時間を、ゲー\nムのログファイル（stdout.txt、[SQPERF] で始まる行）に書き込\nみます。動作が遅くなる原因を調べるときだけ使い、それ以外はオ\nフのままにしてください。遅い呼び出しはこの設定に関係なく常に\n簡潔に記録されます。"
     },
     "ko": {
         "Select an industry type to show its cargo flows.": "산업 종류를 선택하면 화물 흐름을 표시합니다.",
@@ -283,12 +310,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "아직 화물이 이동하지 않는 연결도 표시 (흐리고 멈춘 화살표)",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "움직이는 화살표: 지난 1년간 배달된 화물. 흐리고 멈춘 화살표: 잠재적 연결.",
         "Industry Flows": "산업 흐름",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "산업 흐름: 선택한 종류의 모든 산업에 대한 화물 화살표",
         "Flows": "흐름",
+        "Top bar button": "상단 바 버튼",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "왼쪽 위 바에 있는 Industry Flows 버튼의 모양.\n텍스트: 테두리 없는 \"흐름\" 글자.\n아이콘: 게임의 데이터 레이어 버튼처럼 어두운 타일 위의 공장 아이콘.",
+        "Text": "텍스트",
+        "Icon": "아이콘",
         "Debug: performance log": "디버그: 성능 로그",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "끄기: 일반 플레이. 켜기: 30초마다 Industry Flows의 패널이 지도 읽기, 그리기, 화살표 다시 그리기에 걸린 시간을 게임 로그 파일(stdout.txt, [SQPERF]로 시작하는 줄)에 기록합니다. 느려지는 원인을 찾을 때만 사용하고, 그 외에는 끄기로 두세요. 느린 호출은 이 설정과 관계없이 항상 간단히 기록됩니다.",
         "Off": "끄기",
-        "On": "켜기"
+        "On": "켜기",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "끄기: 일반 플레이. 켜기: 30초마다 Industry Flows의 패널이\n지도 읽기, 그리기, 화살표 다시 그리기에 걸린 시간을 게임\n로그 파일(stdout.txt, [SQPERF]로 시작하는 줄)에 기록합니다.\n느려지는 원인을 찾을 때만 사용하고, 그 외에는 끄기로 두세요.\n느린 호출은 이 설정과 관계없이 항상 간단히 기록됩니다."
     },
     "zh_CN": {
         "Select an industry type to show its cargo flows.": "选择一种产业类型以显示其货物流向。",
@@ -312,12 +342,15 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "也显示尚无货物流动的联系（淡色静止箭头）",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "移动箭头：过去一年内运送的货物。淡色静止箭头：潜在联系。",
         "Industry Flows": "产业流向",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "产业流向：所选类型的每个产业的货物箭头",
         "Flows": "流向",
+        "Top bar button": "顶栏按钮",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "左上角栏中 Industry Flows 按钮的样式。\n文字：无边框的“流向”字样。\n图标：深色方块上的工厂图标，与游戏的数据图层按钮相同。",
+        "Text": "文字",
+        "Icon": "图标",
         "Debug: performance log": "调试：性能日志",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "关：正常游戏。开：每 30 秒，Industry Flows 会将其面板读取地图、渲染和重绘箭头所用的时间写入游戏日志文件（stdout.txt，以 [SQPERF] 开头的行）。仅用于排查卡顿，其他情况请保持关闭。无论此设置如何，缓慢的调用都会被简要记录。",
         "Off": "关",
-        "On": "开"
+        "On": "开",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "关：正常游戏。开：每 30 秒，Industry Flows 会将其面板读取地\n图、渲染和重绘箭头所用的时间写入游戏日志文件（stdout.txt，以\n[SQPERF] 开头的行）。仅用于排查卡顿，其他情况请保持关闭。无\n论此设置如何，缓慢的调用都会被简要记录。"
     },
     "zh_TW": {
         "Select an industry type to show its cargo flows.": "選擇一種產業類型以顯示其貨物流向。",
@@ -341,11 +374,14 @@
         "Also show links with no cargo moving yet (faded, still arrows)": "也顯示尚無貨物流動的聯繫（淡色靜止箭頭）",
         "Moving arrows: cargo delivered in the last year. Faded, still arrows: possible links.": "移動箭頭：過去一年內運送的貨物。淡色靜止箭頭：潛在聯繫。",
         "Industry Flows": "產業流向",
-        "Industry Flows: cargo arrows for every industry of the types you pick": "產業流向：所選類型的每個產業的貨物箭頭",
         "Flows": "流向",
+        "Top bar button": "頂端列按鈕",
+        "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.": "左上角列中 Industry Flows 按鈕的外觀。\n文字：無邊框的“流向”字樣。\n圖示：深色方塊上的工廠圖示，與遊戲的資料圖層按鈕相同。",
+        "Text": "文字",
+        "Icon": "圖示",
         "Debug: performance log": "除錯：效能記錄",
-        "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "關：正常遊戲。開：每 30 秒，Industry Flows 會將其面板讀取地圖、繪製與重繪箭頭所用的時間寫入遊戲記錄檔（stdout.txt，以 [SQPERF] 開頭的行）。僅用於排查卡頓，其他情況請保持關閉。無論此設定為何，緩慢的呼叫都會被簡要記錄。",
         "Off": "關",
-        "On": "開"
+        "On": "開",
+        "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.": "關：正常遊戲。開：每 30 秒，Industry Flows 會將其面板讀取地\n圖、繪製與重繪箭頭所用的時間寫入遊戲記錄檔（stdout.txt，以\n[SQPERF] 開頭的行）。僅用於排查卡頓，其他情況請保持關閉。無\n論此設定為何，緩慢的呼叫都會被簡要記錄。"
     }
 }

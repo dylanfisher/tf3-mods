@@ -62,7 +62,16 @@ local function stubs()
 			end)
 		end,
 		onStepTimer = function(fn, seconds) F.timer = fn; F.timerSeconds = seconds end,
-		onStep = function(fn) F.step = fn end,
+		-- the ridge plugin renders without an owner; its onStep must not replace the panel's
+		onStep = function(fn) if F.owner == "ridge" then F.ridgeStep = fn else F.step = fn end end,
+		useState = function(v)
+			return slot(function()
+				local s = { v = v, sets = 0 }
+				function s:old() return self.v end
+				function s:set(x) self.v = x; self.sets = self.sets + 1 end
+				return s
+			end)
+		end,
 		onMount = function(fn) F.mount = fn end,
 		useRef = function(v)
 			return slot(function()
@@ -80,7 +89,7 @@ local function stubs()
 	})
 	stub_module("::/gui/main/builtin.lua", {
 		TextView = widget("TextView"), BoxLayout = widget("BoxLayout"), CheckBox = widget("CheckBox"),
-		ImageView = widget("ImageView"), Button = widget("Button"), TextInputField = widget("TextInputField"),
+		ImageView = widget("ImageView"), Button = widget("Button"), ToggleButton = widget("ToggleButton"), TextInputField = widget("TextInputField"),
 		ScrollArea = widget("ScrollArea"), Component = widget("Component"), Window = widget("Window"),
 		ActionDescriptor = widget("ActionDescriptor"), LayerConfig = widget("LayerConfig"),
 		HudIconManagerConfig = widget("HudIconManagerConfig"),
@@ -151,7 +160,7 @@ local function guardGui(t, path)
 	return t
 end
 
-local function fakeApi(sqperfLog)
+local function fakeApi(sqperfLog, hudButtonStyle)
 	set_global("api", {
 		type = {
 			Clock = { new = function()
@@ -163,9 +172,16 @@ local function fakeApi(sqperfLog)
 		},
 		engine = {
 			getEntitiesWithComponent = function() F.reads = F.reads + 1; return {} end,
-			config = { getModParams = function() return { [MOD] = { sqperf_log = sqperfLog } } end },
+			config = { getModParams = function() return { [MOD] = { sqperf_log = sqperfLog, hudButtonStyle = hudButtonStyle } } end },
 		},
 		gui = guardGui({
+			genericRep = {
+				find = function(path) return path end,
+				get = function(path)
+					eq(path, "::/gui/main/default_colors.gres")
+					return { data = { BaseMedium = { 0.2, 0.2, 0.2, 1 }, NeutralLightest = { 1, 1, 1, 1 } } }
+				end,
+			},
 			byId = { isVisible = function(id) eq(id, "squareindustryflows.window"); return F.visible end },
 			game = {
 				isMapEditor = function() return F.mapEditor end,
@@ -175,12 +191,12 @@ local function fakeApi(sqperfLog)
 	})
 end
 
-local function load(sqperfLog)
+local function load(sqperfLog, hudButtonStyle)
 	F = { states = {}, hooks = {}, hookIdx = 0, pushes = 0, pops = 0, clockUs = 1e9, tool = { tool = true }, mapEditor = false,
 		visible = true, reads = 0, guiCalls = {}, timerGuiCalls = {}, inTimer = false }
 	clear_logs()
 	stubs()
-	fakeApi(sqperfLog or 1)
+	fakeApi(sqperfLog or 1, hudButtonStyle)
 	reset_modules()
 	return ug_require(PATH)
 end
@@ -217,21 +233,38 @@ local function sqperfLines(pattern)
 	return out
 end
 
-test("ridge plugin: a Flows button in game, nothing in the map editor", function()
-	local m = load()
-	local root = m.IndustryFlowsRidgePlugin()
-	eq(root.w, "BoxLayout")
-	local button = root.p.children[1]
+test("ridge plugin: an icon button by default (also without the param), nothing in the map editor", function()
+	for _, style in ipairs({ 2, false }) do
+		local m = load(nil, style or nil)
+		local root = m.IndustryFlowsRidgePlugin()
+		eq(root.w, "BoxLayout")
+		local button = root.p.children[1]
+		eq(button.w, "ToggleButton")
+		eq(class(button), "flows-ridge-icon-button")
+		-- inline size only (no stylesheet rule, no colour: the base ToggleButton rules give the tile and states)
+		eq(table.concat(button.p.meta.styleSheet.padding, ","), "8,8,8,8")
+		eq(button.p.meta.styleSheet.backgroundColor1, nil)
+		eq(button.p.value, 0)
+		eq(button.p.content.w, "ImageView")
+		eq(button.p.content.p.path, "square_industry_flows::/industry_flows/gui/flows.tga")
+		eq(button.p.content.p.meta.styleSheet.size, { 24, 24 })
+		eq(button.p.content.p.meta.styleSheet.color, nil)
+		F.mapEditor = true
+		eq(m.IndustryFlowsRidgePlugin(), nil)
+	end
+end)
+
+test("ridge plugin: hudButtonStyle Text gives the Flows text button", function()
+	local m = load(nil, 1)
+	local button = m.IndustryFlowsRidgePlugin().p.children[1]
 	eq(button.w, "Button")
 	eq(class(button), "flows-ridge-button")
 	-- padding inline (no stylesheet rule): CSS order top, right, bottom, left
 	eq(table.concat(button.p.meta.styleSheet.padding, ","), "2,8,2,8")
-	F.mapEditor = true
-	eq(m.IndustryFlowsRidgePlugin(), nil)
 end)
 
 test("ridge button opens and closes the panel tool (click_toggle wrapper)", function()
-	local m = load()
+	local m = load(nil, 1)
 	local onClick = m.IndustryFlowsRidgePlugin().p.children[1].p.onClick
 	eq(onClick(), nil)
 	eq(F.pushes, 1)
@@ -239,6 +272,30 @@ test("ridge button opens and closes the panel tool (click_toggle wrapper)", func
 	eq(onClick(), nil)
 	eq(F.pops, 1)
 	eq(F.active, nil)
+end)
+
+test("icon ToggleButton: toggles the panel and is pressed while the tool is active", function()
+	local m = load()
+	-- one ridge render with persistent hook slots
+	local function ridgeButton()
+		F.owner, F.hookIdx = "ridge", 0
+		F.hooks.ridge = F.hooks.ridge or {}
+		local root = m.IndustryFlowsRidgePlugin()
+		F.owner = nil
+		return root.p.children[1]
+	end
+	ridgeButton().p.onValueChange(1)
+	eq(F.pushes, 1)
+	eq(ridgeButton().p.value, 1)
+	-- closed some other way (the window's X pops the tool): the next step releases the button
+	F.active = nil
+	F.ridgeStep()
+	eq(ridgeButton().p.value, 0)
+	ridgeButton().p.onValueChange(1)
+	eq(F.pushes, 2)
+	ridgeButton().p.onValueChange(0)
+	eq(F.pops, 1)
+	eq(ridgeButton().p.value, 0)
 end)
 
 test("content render returns the panel layout and binds the action (content_render wrapper)", function()
@@ -282,8 +339,7 @@ test("Debug log On: the 30 s summary lists the sections, the timer poll timed", 
 	find(root, function(n) return n.w == "CheckBox" and n.p.label == "Inputs" end).p.onValueChange(0)
 	tick()
 	tick()
-	local onClick = m.IndustryFlowsRidgePlugin().p.children[1].p.onClick
-	onClick()
+	m.IndustryFlowsRidgePlugin().p.children[1].p.onValueChange(1)
 	F.clockUs = F.clockUs + 31e6
 	m.IndustryFlowsRidgePlugin() -- next window boundary: summary line
 	local lines = sqperfLines("win_ms=")

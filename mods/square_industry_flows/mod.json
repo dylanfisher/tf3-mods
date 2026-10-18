@@ -1,6 +1,6 @@
 {
     "modId": "square_industry_flows",
-    "revision": 4,
+    "revision": 6,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -10,9 +10,20 @@
     },
     "params": [
         {
+            "key": "hudButtonStyle",
+            "name": "Top bar button",
+            "tooltip": "How the Industry Flows button in the top-left bar looks.\nText: the word \"Flows\" without a frame. Icon: a factory icon\non a dark tile, like the game's data layers button.",
+            "uiType": "Button",
+            "values": [
+                "Text",
+                "Icon"
+            ],
+            "defaultIndex": 1
+        },
+        {
             "key": "sqperf_log",
             "name": "Debug: performance log",
-            "tooltip": "Off: normal play. On: every 30 s, Industry Flows writes how long its panel took to read the map, render and redraw the arrows to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "tooltip": "Off: normal play. On: every 30 s, Industry Flows writes how\nlong its panel took to read the map, render and redraw the\narrows to the game's log file (stdout.txt, lines starting\nwith [SQPERF]). Only for tracking down slowdowns; leave it\nOff otherwise. Slow calls are always logged briefly,\nwhatever this setting.",
             "uiType": "Button",
             "values": [
                 "Off",
