@@ -31,9 +31,9 @@
         "{n} waiting passengers, going to:": "Ожидающих пассажиров: {n}, едут в:",
         "{n} passengers on board, going to:": "Пассажиров на борту: {n}, едут в:",
         "Debug: performance log": "Отладка: журнал производительности",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Выкл.: обычная игра. Вкл.: каждые 30 с Passenger Destinations записывает в журнал игры (stdout.txt, строки с [SQPERF]), сколько заняли чтение пассажиров и отрисовка стрелок, а также журнал стрелок при каждом обновлении. Только для поиска замедлений; в остальных случаях оставьте выключенным. Медленные вызовы всегда кратко записываются, независимо от настройки.",
         "Off": "Выкл.",
-        "On": "Вкл."
+        "On": "Вкл.",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "Выкл.: обычная игра. Вкл.: каждые 30 с Passenger\nDestinations записывает в журнал игры (stdout.txt, строки с\n[SQPERF]), сколько заняли чтение пассажиров и отрисовка\nстрелок, а также журнал стрелок при каждом обновлении.\nТолько для поиска замедлений; в остальных случаях оставьте\nвыключенным. Медленные вызовы всегда кратко записываются,\nнезависимо от настройки."
     },
     "de": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "Kräftiger Pfeil: nächster Halt, an dem sie aussteigen.\nBlasser Pfeil: Endziel (Zuhause, Geschäft oder Arbeit).",
@@ -66,9 +66,9 @@
         "{n} waiting passengers, going to:": "{n} wartende Passagiere, fahren nach:",
         "{n} passengers on board, going to:": "{n} Passagiere an Bord, fahren nach:",
         "Debug: performance log": "Debug: Leistungsprotokoll",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Aus: normales Spiel. An: alle 30 s schreibt Passenger Destinations in die Logdatei des Spiels (stdout.txt, Zeilen mit [SQPERF]), wie lange das Lesen der Passagiere und das Zeichnen der Pfeile gedauert hat, dazu ein Pfeil-Log pro Aktualisierung. Nur zur Suche nach Verlangsamungen; sonst auf Aus lassen. Langsame Aufrufe werden immer kurz protokolliert, unabhängig von dieser Einstellung.",
         "Off": "Aus",
-        "On": "An"
+        "On": "An",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "Aus: normales Spiel. An: alle 30 s schreibt Passenger\nDestinations in die Logdatei des Spiels (stdout.txt, Zeilen\nmit [SQPERF]), wie lange das Lesen der Passagiere und das\nZeichnen der Pfeile gedauert hat, dazu ein Pfeil-Log pro\nAktualisierung. Nur zur Suche nach Verlangsamungen; sonst\nauf Aus lassen. Langsame Aufrufe werden immer kurz\nprotokolliert, unabhängig von dieser Einstellung."
     },
     "fr": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "Flèche vive : prochain arrêt, où ils descendent.\nFlèche pâle : destination finale (domicile, commerce ou travail).",
@@ -101,9 +101,9 @@
         "{n} waiting passengers, going to:": "{n} passagers en attente, vont vers :",
         "{n} passengers on board, going to:": "{n} passagers à bord, vont vers :",
         "Debug: performance log": "Débogage : journal des performances",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Désactivé : jeu normal. Activé : toutes les 30 s, Passenger Destinations écrit dans le journal du jeu (stdout.txt, lignes commençant par [SQPERF]) le temps pris pour lire les passagers et dessiner les flèches, ainsi qu'un journal des flèches à chaque actualisation. Uniquement pour traquer les ralentissements ; sinon, laissez-le désactivé. Les appels lents sont toujours brièvement journalisés, quel que soit ce réglage.",
         "Off": "Désactivé",
-        "On": "Activé"
+        "On": "Activé",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "Désactivé : jeu normal. Activé : toutes les 30 s, Passenger\nDestinations écrit dans le journal du jeu (stdout.txt,\nlignes commençant par [SQPERF]) le temps pris pour lire les\npassagers et dessiner les flèches, ainsi qu'un journal des\nflèches à chaque actualisation. Uniquement pour traquer les\nralentissements ; sinon, laissez-le désactivé. Les appels\nlents sont toujours brièvement journalisés, quel que soit ce\nréglage."
     },
     "es": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "Flecha intensa: próxima parada, donde bajan.\nFlecha tenue: destino final (casa, tienda o trabajo).",
@@ -136,9 +136,9 @@
         "{n} waiting passengers, going to:": "{n} pasajeros esperando, van a:",
         "{n} passengers on board, going to:": "{n} pasajeros a bordo, van a:",
         "Debug: performance log": "Depuración: registro de rendimiento",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Desactivado: juego normal. Activado: cada 30 s, Passenger Destinations escribe en el registro del juego (stdout.txt, líneas que empiezan por [SQPERF]) cuánto tardó en leer los pasajeros y dibujar las flechas, además de un registro de flechas por actualización. Solo para buscar ralentizaciones; si no, déjalo desactivado. Las llamadas lentas siempre se registran brevemente, sea cual sea este ajuste.",
         "Off": "Desactivado",
-        "On": "Activado"
+        "On": "Activado",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "Desactivado: juego normal. Activado: cada 30 s, Passenger\nDestinations escribe en el registro del juego (stdout.txt,\nlíneas que empiezan por [SQPERF]) cuánto tardó en leer los\npasajeros y dibujar las flechas, además de un registro de\nflechas por actualización. Solo para buscar ralentizaciones;\nsi no, déjalo desactivado. Las llamadas lentas siempre se\nregistran brevemente, sea cual sea este ajuste."
     },
     "it": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "Freccia intensa: prossima fermata, dove scendono.\nFreccia tenue: destinazione finale (casa, negozio o lavoro).",
@@ -171,9 +171,9 @@
         "{n} waiting passengers, going to:": "{n} passeggeri in attesa, diretti a:",
         "{n} passengers on board, going to:": "{n} passeggeri a bordo, diretti a:",
         "Debug: performance log": "Debug: registro prestazioni",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Disattivato: gioco normale. Attivato: ogni 30 s Passenger Destinations scrive nel file di log del gioco (stdout.txt, righe che iniziano con [SQPERF]) quanto hanno richiesto la lettura dei passeggeri e il disegno delle frecce, più un log delle frecce a ogni aggiornamento. Solo per individuare rallentamenti; altrimenti lascialo disattivato. Le chiamate lente vengono sempre registrate brevemente, qualunque sia questa impostazione.",
         "Off": "Disattivato",
-        "On": "Attivato"
+        "On": "Attivato",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "Disattivato: gioco normale. Attivato: ogni 30 s Passenger\nDestinations scrive nel file di log del gioco (stdout.txt,\nrighe che iniziano con [SQPERF]) quanto hanno richiesto la\nlettura dei passeggeri e il disegno delle frecce, più un log\ndelle frecce a ogni aggiornamento. Solo per individuare\nrallentamenti; altrimenti lascialo disattivato. Le chiamate\nlente vengono sempre registrate brevemente, qualunque sia\nquesta impostazione."
     },
     "nl": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "Felle pijl: volgende halte, waar ze uitstappen.\nVage pijl: eindbestemming (huis, winkel of werk).",
@@ -206,9 +206,9 @@
         "{n} waiting passengers, going to:": "{n} wachtende reizigers, gaan naar:",
         "{n} passengers on board, going to:": "{n} reizigers aan boord, gaan naar:",
         "Debug: performance log": "Debug: prestatielogboek",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Uit: normaal spelen. Aan: elke 30 s schrijft Passenger Destinations naar het logbestand van het spel (stdout.txt, regels die beginnen met [SQPERF]) hoe lang het lezen van de reizigers en het tekenen van de pijlen duurde, plus een pijllog per verversing. Alleen om vertragingen op te sporen; laat het anders uit. Trage aanroepen worden altijd kort gelogd, ongeacht deze instelling.",
         "Off": "Uit",
-        "On": "Aan"
+        "On": "Aan",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "Uit: normaal spelen. Aan: elke 30 s schrijft Passenger\nDestinations naar het logbestand van het spel (stdout.txt,\nregels die beginnen met [SQPERF]) hoe lang het lezen van de\nreizigers en het tekenen van de pijlen duurde, plus een\npijllog per verversing. Alleen om vertragingen op te sporen;\nlaat het anders uit. Trage aanroepen worden altijd kort\ngelogd, ongeacht deze instelling."
     },
     "pl": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "Wyraźna strzałka: następny przystanek, gdzie wysiadają.\nBlada strzałka: cel końcowy (dom, sklep lub praca).",
@@ -241,9 +241,9 @@
         "{n} waiting passengers, going to:": "Czekający pasażerowie: {n}, jadą do:",
         "{n} passengers on board, going to:": "Pasażerowie na pokładzie: {n}, jadą do:",
         "Debug: performance log": "Debugowanie: dziennik wydajności",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Wył.: normalna gra. Wł.: co 30 s Passenger Destinations zapisuje w pliku dziennika gry (stdout.txt, wiersze zaczynające się od [SQPERF]), ile trwało odczytanie pasażerów i rysowanie strzałek, a także dziennik strzałek przy każdym odświeżeniu. Tylko do szukania spowolnień; w innym przypadku zostaw wyłączone. Wolne wywołania są zawsze krótko zapisywane, niezależnie od tego ustawienia.",
         "Off": "Wył.",
-        "On": "Wł."
+        "On": "Wł.",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "Wył.: normalna gra. Wł.: co 30 s Passenger Destinations\nzapisuje w pliku dziennika gry (stdout.txt, wiersze\nzaczynające się od [SQPERF]), ile trwało odczytanie\npasażerów i rysowanie strzałek, a także dziennik strzałek\nprzy każdym odświeżeniu. Tylko do szukania spowolnień; w\ninnym przypadku zostaw wyłączone. Wolne wywołania są zawsze\nkrótko zapisywane, niezależnie od tego ustawienia."
     },
     "pt_BR": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "Seta forte: próxima parada, onde descem.\nSeta clara: destino final (casa, loja ou trabalho).",
@@ -276,9 +276,9 @@
         "{n} waiting passengers, going to:": "{n} passageiros esperando, indo para:",
         "{n} passengers on board, going to:": "{n} passageiros a bordo, indo para:",
         "Debug: performance log": "Depuração: log de desempenho",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "Desligado: jogo normal. Ligado: a cada 30 s, Passenger Destinations grava no arquivo de log do jogo (stdout.txt, linhas que começam com [SQPERF]) quanto tempo levou para ler os passageiros e desenhar as setas, além de um log de setas a cada atualização. Só para investigar lentidão; caso contrário, deixe desligado. Chamadas lentas são sempre registradas brevemente, qualquer que seja esta configuração.",
         "Off": "Desligado",
-        "On": "Ligado"
+        "On": "Ligado",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "Desligado: jogo normal. Ligado: a cada 30 s, Passenger\nDestinations grava no arquivo de log do jogo (stdout.txt,\nlinhas que começam com [SQPERF]) quanto tempo levou para ler\nos passageiros e desenhar as setas, além de um log de setas\na cada atualização. Só para investigar lentidão; caso\ncontrário, deixe desligado. Chamadas lentas são sempre\nregistradas brevemente, qualquer que seja esta configuração."
     },
     "ja": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "濃い矢印：次の停留所（降車する場所）。\n薄い矢印：最終目的地（自宅、店、職場）。",
@@ -311,9 +311,9 @@
         "{n} waiting passengers, going to:": "待機中の旅客 {n} 人、行き先：",
         "{n} passengers on board, going to:": "乗車中の旅客 {n} 人、行き先：",
         "Debug: performance log": "デバッグ：パフォーマンスログ",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "オフ：通常プレイ。オン：30 秒ごとに、Passenger Destinations が旅客の読み取りと矢印の描画にかかった時間をゲームのログファイル（stdout.txt、[SQPERF] で始まる行）に書き込み、更新ごとの矢印ログも出力します。動作が遅くなる原因を調べるときだけ使い、それ以外はオフのままにしてください。遅い処理はこの設定にかかわらず常に簡潔に記録されます。",
         "Off": "オフ",
-        "On": "オン"
+        "On": "オン",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "オフ：通常プレイ。オン：30 秒ごとに、Passenger Destinations\nが旅客の読み取りと矢印の描画にかかった時間をゲームのログファ\nイル（stdout.txt、[SQPERF] で始まる行）に書き込み、更新ごと\nの矢印ログも出力します。動作が遅くなる原因を調べるときだけ使\nい、それ以外はオフのままにしてください。遅い処理はこの設定に\nかかわらず常に簡潔に記録されます。"
     },
     "ko": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "진한 화살표: 다음 정류장(내리는 곳).\n옅은 화살표: 최종 목적지(집, 상점 또는 직장).",
@@ -346,9 +346,9 @@
         "{n} waiting passengers, going to:": "대기 승객 {n}명, 목적지:",
         "{n} passengers on board, going to:": "탑승 승객 {n}명, 목적지:",
         "Debug: performance log": "디버그: 성능 로그",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "끄기: 일반 플레이. 켜기: 30초마다 Passenger Destinations가 승객 읽기와 화살표 그리기에 걸린 시간을 게임 로그 파일(stdout.txt, [SQPERF]로 시작하는 줄)에 기록하고, 새로 고칠 때마다 화살표 로그도 남깁니다. 느려지는 원인을 찾을 때만 사용하고, 그 외에는 끄기로 두세요. 느린 호출은 이 설정과 관계없이 항상 간단히 기록됩니다.",
         "Off": "끄기",
-        "On": "켜기"
+        "On": "켜기",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "끄기: 일반 플레이. 켜기: 30초마다 Passenger Destinations가\n승객 읽기와 화살표 그리기에 걸린 시간을 게임 로그\n파일(stdout.txt, [SQPERF]로 시작하는 줄)에 기록하고, 새로\n고칠 때마다 화살표 로그도 남깁니다. 느려지는 원인을 찾을\n때만 사용하고, 그 외에는 끄기로 두세요. 느린 호출은 이\n설정과 관계없이 항상 간단히 기록됩니다."
     },
     "zh_CN": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "深色箭头：下一站（下车的地方）。\n浅色箭头：最终目的地（住所、商店或工作地点）。",
@@ -381,9 +381,9 @@
         "{n} waiting passengers, going to:": "{n} 名候车乘客，前往：",
         "{n} passengers on board, going to:": "{n} 名车上乘客，前往：",
         "Debug: performance log": "调试：性能日志",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "关：正常游戏。开：Passenger Destinations 每 30 秒将读取乘客和绘制箭头所用的时间写入游戏日志文件（stdout.txt，以 [SQPERF] 开头的行），并记录每次刷新的箭头日志。仅用于排查卡顿；其他情况下请保持关闭。无论此设置如何，缓慢的调用总会被简要记录。",
         "Off": "关",
-        "On": "开"
+        "On": "开",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "关：正常游戏。开：Passenger Destinations 每 30 秒将读取乘客\n和绘制箭头所用的时间写入游戏日志文件（stdout.txt，以\n[SQPERF] 开头的行），并记录每次刷新的箭头日志。仅用于排查卡\n顿；其他情况下请保持关闭。无论此设置如何，缓慢的调用总会被简\n要记录。"
     },
     "zh_TW": {
         "Strong arrow: next stop, where they get off.\nFaded arrow: final destination (home, shop or work).": "深色箭頭：下一站（下車的地方）。\n淺色箭頭：最終目的地（住所、商店或工作地點）。",
@@ -416,8 +416,8 @@
         "{n} waiting passengers, going to:": "{n} 名候車乘客，前往：",
         "{n} passengers on board, going to:": "{n} 名車上乘客，前往：",
         "Debug: performance log": "除錯：效能記錄",
-        "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.": "關：正常遊戲。開：Passenger Destinations 每 30 秒將讀取乘客與繪製箭頭所花的時間寫入遊戲記錄檔（stdout.txt，以 [SQPERF] 開頭的行），並記錄每次更新的箭頭記錄。僅用於排查卡頓；其他情況請保持關閉。無論此設定為何，緩慢的呼叫一律會簡要記錄。",
         "Off": "關",
-        "On": "開"
+        "On": "開",
+        "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.": "關：正常遊戲。開：Passenger Destinations 每 30 秒將讀取乘客\n與繪製箭頭所花的時間寫入遊戲記錄檔（stdout.txt，以 [SQPERF]\n開頭的行），並記錄每次更新的箭頭記錄。僅用於排查卡頓；其他情\n況請保持關閉。無論此設定為何，緩慢的呼叫一律會簡要記錄。"
     }
 }

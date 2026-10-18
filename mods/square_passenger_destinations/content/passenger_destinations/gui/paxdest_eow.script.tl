@@ -1038,6 +1038,26 @@ local nextHoverToken = 0
 local baseLocateButton = line_react_util.LocateButton
 
 -- SQPERF section "locate_render" (GUI thread; one per Locate pin rendered anywhere)
+-- The caller's meta (the row's "hidden-button" class while not hovered, line_react_util.tl / vehicle_list_react_util.tl)
+-- must reach the base pin: the base CSS hides it by "#menu.management R::LocateButton!hidden-button Button *"
+-- (line_vehicle_mgmt.css.lua:355-361). react applies a recipe call's meta to that recipe's node and strips it from the
+-- params, so through our recipe the class landed on R::PaxDestHoverLocateButton and the pins showed on every row
+-- (player report 2026-10-11, Line Manager line and vehicle lists). LocateButtonEntry (the field we install) moves
+-- the meta into META_KEY before the recipe call; baseParam hands it back to the base recipe call as its meta.
+local META_KEY = "squarePaxDestMeta"
+
+local function baseParam(param : LineReactUtil.LocateButtonParam) : LineReactUtil.LocateButtonParam
+	local p = param as {string : any}
+	local meta = p[META_KEY]
+	if meta == nil then return param end
+	local q : {string : any} = {}
+	for k, v in pairs(p) do
+		if k ~= META_KEY then q[k] = v end
+	end
+	q.meta = meta
+	return q as LineReactUtil.LocateButtonParam
+end
+
 local HoverLocateButton = react.RegisterRecipe("PaxDestHoverLocateButton", perf:wrap("locate_render", function(param : LineReactUtil.LocateButtonParam) : TreeNodeId
 	local tokenRef : ReactRefT<integer> = react.useRefLazy(function() : integer
 		nextHoverToken = nextHoverToken + 1
@@ -1072,7 +1092,7 @@ local HoverLocateButton = react.RegisterRecipe("PaxDestHoverLocateButton", perf:
 	local isPerson = memo[2] == 1
 	local isBuilding = memo[2] == 2
 	if not isPerson and not isBuilding then
-		return builtin.BoxLayout{ children = { baseLocateButton(param) } }
+		return builtin.BoxLayout{ children = { baseLocateButton(baseParam(param)) } }
 	end
 	local function onHover(hovered : boolean)
 		if not hovered then
@@ -1092,7 +1112,7 @@ local HoverLocateButton = react.RegisterRecipe("PaxDestHoverLocateButton", perf:
 				meta = {
 					onMouseOver = onHover,
 				},
-				layout = builtin.BoxLayout{ children = { baseLocateButton(param) } },
+				layout = builtin.BoxLayout{ children = { baseLocateButton(baseParam(param)) } },
 			},
 		},
 	}
@@ -1102,7 +1122,17 @@ do
 	local m = line_react_util as {string : any}
 	if baseLocateButton ~= nil and m.squarePaxDestHover == nil then
 		m.squarePaxDestHover = true
-		line_react_util.LocateButton = HoverLocateButton
+		-- a plain function, not a recipe: it sees the caller's meta (react strips it only from a recipe's params)
+		m.LocateButton = function(param : LineReactUtil.LocateButtonParam) : TreeNodeId
+			local p = param as {string : any}
+			if type(p) ~= "table" or p.meta == nil then return HoverLocateButton(param) end
+			local q : {string : any} = {}
+			for k, v in pairs(p) do
+				if k ~= "meta" then q[k] = v end
+			end
+			q[META_KEY] = p.meta
+			return HoverLocateButton(q as LineReactUtil.LocateButtonParam)
+		end
 		log.message(LOG .. "hover: LocateButton replaced")
 	else
 		log.message(LOG .. "hover: LocateButton not replaced (missing or already done)")

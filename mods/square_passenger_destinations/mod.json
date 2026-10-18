@@ -1,6 +1,6 @@
 {
     "modId": "square_passenger_destinations",
-    "revision": 5,
+    "revision": 6,
     "severityAdd": "None",
     "severityRemove": "Warning",
     "visible": true,
@@ -12,7 +12,7 @@
         {
             "key": "sqperf_log",
             "name": "Debug: performance log",
-            "tooltip": "Off: normal play. On: every 30 s, Passenger Destinations writes how long reading the passengers and drawing the arrows took to the game's log file (stdout.txt, lines starting with [SQPERF]), plus its per-refresh arrow log. Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "tooltip": "Off: normal play. On: every 30 s, Passenger Destinations\nwrites how long reading the passengers and drawing the\narrows took to the game's log file (stdout.txt, lines\nstarting with [SQPERF]), plus its per-refresh arrow log.\nOnly for tracking down slowdowns; leave it Off otherwise.\nSlow calls are always logged briefly, whatever this setting.",
             "uiType": "Button",
             "values": [
                 "Off",
