@@ -110,8 +110,8 @@ export const showcase: StorySource = {
           type: "pairs",
           pairs: [
             {
-              before: { src: `${PLAY}/2026-10-13-bench-roundabout-single-lane.png`, label: "One lane" },
-              after: { src: `${PLAY}/2026-10-13-bench-roundabout-two-lane.png`, label: "Two lanes" },
+              before: { src: `${PLAY}/2026-10-13-bench-roundabout-single-lane.jpg`, label: "One lane" },
+              after: { src: `${PLAY}/2026-10-13-bench-roundabout-two-lane.jpg`, label: "Two lanes" },
               caption: "The same crossing on the traffic test map with a one-lane and a two-lane ring.",
             },
             {
@@ -125,8 +125,8 @@ export const showcase: StorySource = {
               caption: "The settings: sliders in the menu at first, buttons in the side panel now.",
             },
             {
-              before: { src: `${PLAY}/2026-10-13-bench-roundabout-compact-arrows.png`, label: "Compact" },
-              after: { src: `${PLAY}/2026-10-13-bench-roundabout-large-ring.png`, label: "Large" },
+              before: { src: `${PLAY}/2026-10-13-bench-roundabout-compact-arrows.jpg`, label: "Compact" },
+              after: { src: `${PLAY}/2026-10-13-bench-roundabout-large-ring.jpg`, label: "Large" },
               caption: "A compact and a large ring on the same crossing.",
             },
           ],
