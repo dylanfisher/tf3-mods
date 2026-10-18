@@ -1,15 +1,26 @@
 {
     "modId": "square_problem_radar",
-    "revision": 7,
+    "revision": 10,
     "severityAdd": "None",
     "severityRemove": "Warning",
     "visible": true,
     "cosmetic": true,
     "params": [
         {
+            "key": "hudButtonStyle",
+            "name": "Top bar button",
+            "tooltip": "How the Problem Radar button in the top-left bar looks.\nText: the word \"Radar\", the dot and the count, no frame.\nTile: only the coloured dot and the count, on a dark tile\nlike the game's data layers button.",
+            "uiType": "Button",
+            "values": [
+                "Text",
+                "Tile"
+            ],
+            "defaultIndex": 1
+        },
+        {
             "key": "sqperf_log",
             "name": "Debug: performance log",
-            "tooltip": "Off: normal play. On: every 30 s, Problem Radar writes how long its scans and windows took to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "tooltip": "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.",
             "uiType": "Button",
             "values": [
                 "Off",

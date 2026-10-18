@@ -376,6 +376,67 @@ function model.tierLabel(tier : integer) : string
 	return _(TIER_NAMES[tier] or "Info") -- i18n: ignore
 end
 
+-- Closing punctuation never starts a tooltip line (CLAUDE.md "Tooltips": ja / zh).
+local CLOSING : {string : boolean} = {
+	["、"] = true, ["。"] = true, ["，"] = true, ["．"] = true, ["："] = true, ["；"] = true, ["！"] = true,
+	["？"] = true, ["）"] = true, ["」"] = true, ["』"] = true, ["】"] = true, ["》"] = true, ["〉"] = true,
+}
+
+local record WrapToken
+	text : string
+	w : integer
+	space : boolean -- a space before it in the source
+end
+
+--- A tooltip text broken into lines of at most `width` columns (CLAUDE.md "Tooltips": the game never
+--- wraps a tooltip): at spaces, and inside CJK text (no spaces) between any two characters, never
+--- before closing punctuation. CJK characters count two columns. Existing line breaks are kept; a
+--- word longer than the width stays whole. Bounded by the text's length (no loop on its output).
+function model.wrapTooltip(text : string, width : integer) : string
+	if text == nil or text == "" or width == nil or width < 1 then return text end
+	local out : {string} = {}
+	for para in (text .. "\n"):gmatch("(.-)\n") do
+		local tokens : {WrapToken} = {}
+		local word, wordW, space = "", 0, false
+		local function flush()
+			if word ~= "" then tokens[#tokens + 1] = { text = word, w = wordW, space = space } end
+			word, wordW, space = "", 0, false
+		end
+		for ch in para:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+			local b1, b2, b3 = ch:byte(1, 3)
+			local wide = #ch >= 4 or (#ch == 3 and (b1 - 0xE0) * 4096 + (b2 - 0x80) * 64 + (b3 - 0x80) >= 0x2E80)
+			if ch == " " then
+				flush()
+				space = true
+			elseif CLOSING[ch] and word == "" and #tokens > 0 then
+				local last = tokens[#tokens]
+				last.text, last.w = last.text .. ch, last.w + 2
+			elseif wide then
+				local sp = space
+				if word ~= "" then flush() end
+				tokens[#tokens + 1] = { text = ch, w = 2, space = sp }
+				space = false
+			else
+				word, wordW = word .. ch, wordW + 1
+			end
+		end
+		flush()
+		local line, lineW = "", 0
+		for __, t in ipairs(tokens) do
+			local sep = (t.space and line ~= "") and 1 or 0
+			if line ~= "" and lineW + sep + t.w > width then
+				out[#out + 1] = line
+				line, lineW = t.text, t.w
+			else
+				line = line .. (sep == 1 and " " or "") .. t.text
+				lineW = lineW + sep + t.w
+			end
+		end
+		out[#out + 1] = line
+	end
+	return table.concat(out, "\n")
+end
+
 function model.kindTierLabel(kind : string) : string
 	local info = radar_checks.KINDS[kind]
 	if info == nil then return model.tierLabel(3) end

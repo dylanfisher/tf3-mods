@@ -1,0 +1,1311 @@
+diff --git a/mods/square_problem_radar/content/radar/gui/radar_fleet.tl b/mods/square_problem_radar/content/radar/gui/radar_fleet.tl
+index 6084dfa..5fbf743 100644
+--- a/mods/square_problem_radar/content/radar/gui/radar_fleet.tl
++++ b/mods/square_problem_radar/content/radar/gui/radar_fleet.tl
+@@ -330,14 +330,15 @@ end
+ ---------------------------------------------------------------------------
+ -- Render (GUI thread).
+ 
+-local function text(str : string, class? : string) : TreeNodeId
++local function text(str : string, class? : string, tip? : string) : TreeNodeId
+ 	return builtin.TextView{
+-		meta = { class = class or "font-scale-body", styleSheet = radar_inline.text(class) }, -- INLINE STYLES
++		meta = { class = class or "font-scale-body", tooltip = tip, styleSheet = radar_inline.text(class) }, -- INLINE STYLES
+ 		text = str,
+ 	}
+ end
+ 
+--- "radar-box": the .css.lua spacing rule targets only our own BoxLayouts (radar_hud.script.tl boxClass).
++-- "radar-box": the .css.lua spacing rule ("R::ProblemRadarFleetContent !radar-box", innerSpacing) targets
++-- only our own layouts (radar_hud.script.tl boxClass); no element name, so it covers the FlowLayout too.
+ local function hbox(children : {TreeNodeId}, class? : string) : TreeNodeId
+ 	return builtin.BoxLayout{
+ 		meta = { class = class and (class .. ", radar-box") or "radar-box" },
+@@ -354,12 +355,14 @@ local function vbox(children : {TreeNodeId}, class? : string) : TreeNodeId
+ 	}
+ end
+ 
+-local function button(label : string, tip : string, onClick : function(), primary? : boolean) : TreeNodeId
++--- Native fleet window (2026-10-14): base "primary" (filled accent) / "secondary" (outlined) buttons
++--- (gui/main/default.css.lua:77-107) with compact padding inline (radar_inline fleetButton / rowButton;
++--- ui-guide "Controls" without its xx-small class rule). Body text, as the guide's buttons.
++local function button(label : string, tip : string, onClick : function(), primary? : boolean, style? : StyleSheet) : TreeNodeId
+ 	return builtin.Button{
+-		-- "secondary": the base outlined button (gui/main/default.css.lua:104-107); a plain Button has an
+-		-- invisible surface and reads as text. "primary": the base filled accent button (:77-79).
+-		meta = { class = "radar-fleet-button, " .. (primary and "primary" or "secondary"), tooltip = tip },
+-		content = text(label, "font-scale-annotation"),
++		meta = { class = primary and "primary" or "secondary", tooltip = tip,
++			styleSheet = style or radar_inline.fleetButton() }, -- INLINE STYLES
++		content = text(label, "font-scale-body"),
+ 		onClick = onClick,
+ 	}
+ end
+@@ -368,26 +371,31 @@ local function n(v : integer) : string
+ 	return lang_util.formatInt(v or 0)
+ end
+ 
+---- A 1 px line across its parent (radar_hud.css.lua !radar-fleet-divider): a styled Component, the base
+---- way to draw separators (game_bar.tl:1023 builtin.Component{ meta = { class = "separator" } }).
+-local function divider(class? : string, style? : StyleSheet) : TreeNodeId -- INLINE STYLES: style
+-	return builtin.Component{ meta = { class = "radar-fleet-divider" .. (class ~= nil and (", " .. class) or ""), styleSheet = style } }
++--- A 1 px line: a Component with an inline size and colour (base separators are Components too,
++--- game_bar.tl:1023).
++local function hline(style : StyleSheet) : TreeNodeId -- INLINE STYLES
++	return builtin.Component{ meta = { class = "radar-fleet-line", styleSheet = style } }
+ end
+ 
+---- Section title (brighter, a step larger) with a divider under it.
+-local function header(title : string) : {TreeNodeId}
+-	return { text(title, "font-scale-headline, radar-fleet-head"), divider() }
+-end
+-
+---- A panel with a subtle background (radar_hud.css.lua !radar-fleet-card). A Component holding a
+---- builtin layout (never a recipe: memory recipe-not-component-layout).
+-local function card(children : {TreeNodeId}) : TreeNodeId
++--- Native card (radar_inline fleetCard / fleetTableCard: the base entity-window card nine-patch, as
++--- Timetables frames its panels). A Component holding a builtin layout (never a recipe:
++--- docs/findings/gui.md). `fill`: the card stretches to the row's height (base class "vertical-spacer",
++--- gravity { 0, -1 }, default.css.lua:128) and a base vertical spacer after the content takes the spare
++--- height (gui_react_util.makeVerticalSpacer, as the base loan cards, finances_loan_gui.tl:354), so both
++--- top cards are as tall as the taller one with their content at the top. To verify in game.
++local function card(children : {TreeNodeId}, style : StyleSheet, fill? : boolean) : TreeNodeId
++	if fill then children[#children + 1] = builtin.Component{ meta = { class = "vertical-spacer" } } end
+ 	return builtin.Component{
+-		meta = { class = "radar-fleet-card" },
++		meta = { class = "radar-fleet-card" .. (fill and ", vertical-spacer" or ""), styleSheet = style }, -- INLINE STYLES
+ 		layout = vbox(children, "radar-fleet-card-box"),
+ 	}
+ end
+ 
++--- Section heading (brighter, a step larger) above a card.
++local function heading(title : string, class? : string) : TreeNodeId
++	return text(title, "font-scale-headline, " .. (class or "radar-fleet-head"))
++end
++
+ --- One "label  value" line of a card: label column fixed width (wraps), values right-aligned in a
+ --- fixed column (textAlignment, as keybinding_hint.css.lua:262-268). The tooltip sits on the label
+ --- TextView (base pattern: manager_window.tl:3890-3898 makeTitleText).
+@@ -408,7 +416,7 @@ local function money(v : integer) : string
+ 	return api.util.formatMoney(v)
+ end
+ 
+---- Green above zero, red below, default text at zero (radar_hud.css.lua; the base !positive class is
++--- Green above zero, red below, default text at zero (radar_inline; the base !positive class is
+ --- the blue "jordyBlue", default_colors.gres.lua:58, which reads like a link).
+ local function moneyClass(v : integer) : string
+ 	if v == nil or v == 0 then return nil end
+@@ -424,10 +432,19 @@ local function years(y : integer) : string
+ 	return lang_util.format(_("{n} y"), { n = tostring(y or 0) })
+ end
+ 
+-local REPLACE_TIP_KEY <const> = "Opens the game's Replace Vehicles window for these vehicles" -- i18n: keys
++-- Upgrade button tooltips (the former hint line under the buttons, wrapped per CLAUDE.md "Tooltips").
++local TIP_THIS_KEY <const> = "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price." -- i18n: keys
++local TIP_MANY_KEY <const> = "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price." -- i18n: keys
++local TIP_GROUP_KEY <const> = "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time." -- i18n: keys
++
++local record Tips
++	this : string
++	many : string
++	group : string
++end
+ 
+ local function lineCard(view : ProblemRadarFleetView) : TreeNodeId
+-	local c : {TreeNodeId} = header(_("Line"))
++	local c : {TreeNodeId} = {}
+ 	c[#c + 1] = stat(_("Vehicles"), n(view.count))
+ 	c[#c + 1] = stat(_("Past lifespan"), n(view.old), warnIf(view.old > 0))
+ 	c[#c + 1] = stat(_("Worn"), n(view.worn), warnIf(view.worn > 0))
+@@ -435,13 +452,15 @@ local function lineCard(view : ProblemRadarFleetView) : TreeNodeId
+ 	local usage = view.usagePct ~= nil and api.util.toStringPercent(view.usagePct / 100) or "–"
+ 	c[#c + 1] = stat(_("Utilization"), lang_util.format(_("{used} of {capacity} on board now ({usage})"),
+ 		{ used = n(view.used), capacity = n(view.capacity), usage = usage }))
+-	-- The base progress bar (builtin.d.tl:1012-1020; game_bar.tl:450-456 with-border + label).
+-	c[#c + 1] = builtin.ProgressBar{
+-		meta = { class = "radar-fleet-usage, with-border, font-scale-annotation" },
++	-- The base progress bar (builtin.d.tl:1012-1020; game_bar.tl:450-456 with-border + label), in a row of
++	-- its own: the base ProgressBar rule's gravity { -1, -1 } would otherwise grow it into the card's
++	-- spare height (card fill); in a horizontal row it only fills the row's own height.
++	c[#c + 1] = hbox({ builtin.ProgressBar{
++		meta = { class = "radar-fleet-usage, with-border, font-scale-annotation", styleSheet = radar_inline.fleetUsage() }, -- INLINE STYLES
+ 		value = math.max(0, math.min(1, (view.usagePct or 0) / 100)),
+ 		label = usage,
+ 		applyGradient = false,
+-	}
++	} })
+ 	c[#c + 1] = stat(_("Frequency"), view.intervalS > 0 and api.util.formatMinutesSeconds(view.intervalS) or "–", nil,
+ 		_("Time interval between the vehicles."))
+ 	c[#c + 1] = stat(_("Transported"), lang_util.format(_("{n} per year"), { n = n(view.transported) }))
+@@ -452,103 +471,120 @@ local function lineCard(view : ProblemRadarFleetView) : TreeNodeId
+ 			or years(view.avgYears)
+ 	end
+ 	c[#c + 1] = stat(_("Average age"), age, warnIf(view.avgPastLife == true))
+-	return card(c)
++	return card(c, radar_inline.fleetCard(), true)
+ end
+ 
+ local function moneyCard(view : ProblemRadarFleetView) : TreeNodeId
+-	local c : {TreeNodeId} = header(_("Last 12 months"))
++	local c : {TreeNodeId} = {}
+ 	c[#c + 1] = stat(_("Income"), money(view.income), moneyClass(view.income))
+ 	c[#c + 1] = stat(_("Running Costs"), money(view.running), moneyClass(view.running))
+ 	c[#c + 1] = stat(_("Maintenance"), money(view.maintenance), moneyClass(view.maintenance))
+-	-- The sum line: a divider above, a larger font.
+-	c[#c + 1] = divider("radar-fleet-sum-line")
++	-- The sum line: a line above, a larger font.
++	c[#c + 1] = hline(radar_inline.fleetSumLine())
+ 	c[#c + 1] = stat(_("Balance"), money(view.balance), moneyClass(view.balance), nil, true)
+-	return card(c)
++	return card(c, radar_inline.fleetCard(), true)
+ end
+ 
+-local function groupRow(g : ProblemRadarFleetGroup, i : integer, replaceTip : string) : TreeNodeId
++--- One model group. Its per-row Upgrade buttons only when the line has more than one group (with one,
++--- "Upgrade whole fleet" / "Upgrade old vehicles" below the table do the same). The vehicle's own group
++--- (was a "›" marker column) shows its name in the accent colour with a tooltip, also only then.
++local function groupRow(g : ProblemRadarFleetGroup, i : integer, tips : Tips, several : boolean) : TreeNodeId
+ 	local vehicles, oldVehicles = g.vehicles, g.oldVehicles
+ 	local age = g.lifeYears > 0
+ 		and lang_util.format(_("{age} of {life} y"), { age = tostring(g.oldestYears), life = tostring(g.lifeYears) })
+ 		or years(g.oldestYears)
+-	local buttons : {TreeNodeId} = {
+-		button(lang_util.format(_("Upgrade {n}…"), { n = n(g.count) }), replaceTip, function() replaceVehicles(vehicles) end),
++	local target = several and g.hasTarget
++	local cells : {TreeNodeId} = {
++		text(g.name, "font-scale-body, radar-fleet-model" .. (target and ", radar-fleet-target" or ""),
++			target and _("The vehicle you opened this window for has this model.") or nil),
++		text(n(g.count), "font-scale-body, radar-fleet-num"),
++		text(age, "font-scale-body, radar-fleet-age" .. (g.old > 0 and ", radar-tier-2" or "")),
++		text(n(g.old), "font-scale-body, radar-fleet-past" .. (g.old > 0 and ", radar-tier-2" or "")),
+ 	}
+-	if g.offerOld then
+-		buttons[#buttons + 1] = button(lang_util.format(_("Upgrade old ({n})…"), { n = n(g.old) }), replaceTip,
+-			function() replaceVehicles(oldVehicles) end)
++	if several then
++		local buttons : {TreeNodeId} = {
++			button(lang_util.format(_("Upgrade {n}…"), { n = n(g.count) }), tips.group, function() replaceVehicles(vehicles) end,
++				false, radar_inline.rowButton()),
++		}
++		if g.offerOld then
++			buttons[#buttons + 1] = button(lang_util.format(_("Upgrade old ({n})…"), { n = n(g.old) }), tips.group,
++				function() replaceVehicles(oldVehicles) end, false, radar_inline.rowButton())
++		end
++		cells[#cells + 1] = vbox(buttons, "radar-fleet-row-buttons")
+ 	end
+-	-- Alternating row backgrounds (radar-fleet-row-odd); the vehicle's own group gets a "›" marker in the
+-	-- accent colour instead of a coloured name.
++	-- Alternating row backgrounds (radar_inline fleetRow: the Timetables zebra on odd rows).
+ 	return builtin.Component{
+ 		meta = { class = "radar-fleet-row, " .. (i % 2 == 1 and "radar-fleet-row-odd" or "radar-fleet-row-even"), localKey = g.key,
+-			styleSheet = i % 2 == 1 and radar_inline.fleetRowOdd() or nil }, -- INLINE STYLES
+-		layout = hbox({
+-			text(g.hasTarget and "›" or "", "font-scale-body, radar-fleet-mark"),
+-			text(g.name, "font-scale-body, radar-fleet-model"),
+-			text(n(g.count), "font-scale-body, radar-fleet-num"),
+-			text(age, "font-scale-body, radar-fleet-age" .. (g.old > 0 and ", radar-tier-2" or "")),
+-			text(n(g.old), "font-scale-body, radar-fleet-num" .. (g.old > 0 and ", radar-tier-2" or "")),
+-			vbox(buttons, "radar-fleet-row-buttons"),
+-		}),
++			styleSheet = radar_inline.fleetRow(i % 2 == 1) }, -- INLINE STYLES
++		layout = hbox(cells),
+ 	}
+ end
+ 
+ -- More model groups than this scroll (in a fixed-height area); fewer size the window to them.
+ local MAX_UNSCROLLED_GROUPS <const> = 6
+ 
+-local function groupList(view : ProblemRadarFleetView, replaceTip : string) : {TreeNodeId}
++--- The model table in a card: one-line short headers, their full meaning in the tooltips.
++local function groupList(view : ProblemRadarFleetView, tips : Tips) : {TreeNodeId}
++	local several = #view.groups > 1
+ 	local rows : {TreeNodeId} = {}
+-	for i, g in ipairs(view.groups) do rows[i] = groupRow(g, i, replaceTip) end
+-	local out : {TreeNodeId} = header(_("Fleet by model"))
+-	out[#out + 1] = hbox({
+-		text("", "font-scale-annotation, radar-fleet-mark"),
+-		text(_("Model"), "font-scale-annotation, radar-fleet-model, radar-dim"),
+-		text(_("Count"), "font-scale-annotation, radar-fleet-num, radar-dim"),
+-		text(_("Oldest: age / lifespan"), "font-scale-annotation, radar-fleet-age, radar-dim"),
+-		text(_("Past lifespan"), "font-scale-annotation, radar-fleet-num, radar-dim"),
+-	}, "radar-fleet-table-head")
+-	out[#out + 1] = divider("radar-fleet-dim-line", radar_inline.fleetDimLine()) -- INLINE STYLES
++	for i, g in ipairs(view.groups) do rows[i] = groupRow(g, i, tips, several) end
++	local c : {TreeNodeId} = {}
++	c[#c + 1] = builtin.Component{
++		meta = { class = "radar-fleet-table-head", styleSheet = radar_inline.fleetHeadRow() }, -- INLINE STYLES
++		layout = hbox({
++			text(_("Model"), "font-scale-annotation, radar-fleet-model, radar-dim",
++				_("The vehicle model. Trains show their composition.")),
++			text(_("Count"), "font-scale-annotation, radar-fleet-num, radar-dim", _("Vehicles of this model on the line.")),
++			text(_("Oldest"), "font-scale-annotation, radar-fleet-age, radar-dim",
++				_("Age of the oldest vehicle of this model\nand the model's lifespan, in years.")),
++			text(_("Past lifespan"), "font-scale-annotation, radar-fleet-past, radar-dim",
++				_("Vehicles of this model older than their lifespan.")),
++		}),
++	}
++	c[#c + 1] = hline(radar_inline.fleetDimLine()) -- INLINE STYLES
+ 	if #rows <= MAX_UNSCROLLED_GROUPS then
+-		out[#out + 1] = vbox(rows, "radar-fleet-rows")
++		c[#c + 1] = vbox(rows, "radar-fleet-rows")
+ 	else
+ 		-- ScrollArea content must be a Component (memory: scrollarea-content-component;
+ 		-- base: entity_window/entity_window_util.tl:715-721).
+-		out[#out + 1] = builtin.ScrollArea{
+-			meta = { class = "radar-fleet-groups" },
++		c[#c + 1] = builtin.ScrollArea{
++			meta = { class = "radar-fleet-groups", styleSheet = radar_inline.fleetGroups() }, -- INLINE STYLES
+ 			horizontalPolicy = builtin.type.ScrollBarPolicy.AlwaysOff,
+ 			verticalPolicy = builtin.type.ScrollBarPolicy.AsNeeded,
+ 			content = builtin.Component{ layout = vbox(rows, "radar-fleet-rows") },
+ 		}
+ 	end
+-	return out
++	return { heading(_("Fleet by model")), card(c, radar_inline.fleetTableCard()) }
+ end
+ 
+---- The most relevant action is "primary" (the base filled accent button, gui/main/default.css.lua:77-79):
+---- the old vehicles when there are some of one model, else this vehicle. "Show line" comes last.
+-local function actions(view : ProblemRadarFleetView, replaceTip : string) : {TreeNodeId}
++--- One action row. "primary" (the base filled accent button) goes to the most relevant fleet-wide
++--- action: the old vehicles when there are some of one model, else the whole fleet, else this vehicle.
++--- The others are "secondary" (outlined); "Show line" comes last. The former hint under the buttons
++--- is in their tooltips.
++local function actions(view : ProblemRadarFleetView, tips : Tips) : {TreeNodeId}
+ 	local vehicle, line = view.vehicle, view.line
+ 	local oldVehicles, fleetVehicles = view.oldVehicles, view.fleetVehicles
++	local primary = oldVehicles ~= nil and "old" or fleetVehicles ~= nil and "fleet" or "this"
+ 	local buttons : {TreeNodeId} = {}
+ 	if oldVehicles ~= nil then
+-		buttons[#buttons + 1] = button(lang_util.format(_("Upgrade old vehicles ({n})…"), { n = n(#oldVehicles) }), replaceTip,
+-			function() replaceVehicles(oldVehicles) end, true)
++		buttons[#buttons + 1] = button(lang_util.format(_("Upgrade old vehicles ({n})…"), { n = n(#oldVehicles) }), tips.many,
++			function() replaceVehicles(oldVehicles) end, primary == "old")
+ 	end
+-	buttons[#buttons + 1] = button(_("Upgrade this vehicle…"), replaceTip, function() replaceVehicles({ vehicle }) end,
+-		oldVehicles == nil)
+ 	if fleetVehicles ~= nil then
+-		buttons[#buttons + 1] = button(lang_util.format(_("Upgrade whole fleet ({n})…"), { n = n(#fleetVehicles) }), replaceTip,
+-			function() replaceVehicles(fleetVehicles) end)
++		buttons[#buttons + 1] = button(lang_util.format(_("Upgrade whole fleet ({n})…"), { n = n(#fleetVehicles) }), tips.many,
++			function() replaceVehicles(fleetVehicles) end, primary == "fleet")
+ 	end
++	buttons[#buttons + 1] = button(_("Upgrade this vehicle…"), tips.this, function() replaceVehicles({ vehicle }) end,
++		primary == "this")
+ 	if line ~= nil then
+ 		buttons[#buttons + 1] = button(_("Show line"), _("Open the line's window"), function() showLine(line) end)
+ 	end
+-	local out : {TreeNodeId} = header(_("Upgrade"))
+-	-- FlowLayout: the buttons wrap to the window width (docs/findings.md "Wrapping rows").
+-	out[#out + 1] = builtin.FlowLayout{ children = buttons }
+-	out[#out + 1] = text(_("The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time."),
+-		"font-scale-annotation, radar-hint")
+-	return out
++	-- FlowLayout: the buttons wrap to the window width (docs/findings.md "Wrapping rows"); its gaps come
++	-- from the "!radar-box" innerSpacing rule.
++	return {
++		builtin.Component{ meta = { styleSheet = radar_inline.fleetGap() } }, -- INLINE STYLES
++		builtin.FlowLayout{ meta = { class = "radar-box" }, children = buttons },
++	}
+ end
+ 
+ local record FleetContentParam is IRecipeParamWithMeta -- INLINE STYLES: meta (radar_inline.fleetContent)
+@@ -572,13 +608,23 @@ local ProblemRadarFleetContent = react.RegisterRecipe("ProblemRadarFleetContent"
+ 	if view.gone then
+ 		children = { text(_("This vehicle no longer exists."), "font-scale-body, radar-empty, radar-dim") }
+ 	else
+-		local replaceTip = _(REPLACE_TIP_KEY) -- i18n: ignore (REPLACE_TIP_KEY)
+-		-- Top: two cards side by side (line stats | 12-month money); then the model table, then the
+-		-- actions under their own divider. The window sizes to this content (radar_hud.css.lua).
+-		children = view.line ~= nil and { hbox({ lineCard(view), moneyCard(view) }, "radar-fleet-cards") }
+-			or { text(_("This vehicle is not on a line."), "font-scale-annotation, radar-hint") }
+-		for __, c in ipairs(groupList(view, replaceTip)) do children[#children + 1] = c end
+-		for __, c in ipairs(actions(view, replaceTip)) do children[#children + 1] = c end
++		local tips : Tips = {
++			this = _(TIP_THIS_KEY), -- i18n: ignore (TIP_THIS_KEY)
++			many = _(TIP_MANY_KEY), -- i18n: ignore (TIP_MANY_KEY)
++			group = _(TIP_GROUP_KEY), -- i18n: ignore (TIP_GROUP_KEY)
++		}
++		-- Top: two cards side by side (line stats | 12-month money), their headings above them; then the
++		-- model table's card, then one action row. The window sizes to this content.
++		if view.line ~= nil then
++			children = {
++				hbox({ heading(_("Line"), "radar-fleet-head-col"), heading(_("Last 12 months")) }, "radar-fleet-heads"),
++				hbox({ lineCard(view), moneyCard(view) }, "radar-fleet-cards"),
++			}
++		else
++			children = { text(_("This vehicle is not on a line."), "font-scale-body, radar-dim") }
++		end
++		for __, c in ipairs(groupList(view, tips)) do children[#children + 1] = c end
++		for __, c in ipairs(actions(view, tips)) do children[#children + 1] = c end
+ 	end
+ 	-- A recipe returns a layout (memory: react-recipe-must-return-layout).
+ 	local root = vbox(children, "radar-fleet")
+diff --git a/mods/square_problem_radar/content/radar/gui/radar_inline.tl b/mods/square_problem_radar/content/radar/gui/radar_inline.tl
+index 456a4eb..f8cac96 100644
+--- a/mods/square_problem_radar/content/radar/gui/radar_inline.tl
++++ b/mods/square_problem_radar/content/radar/gui/radar_inline.tl
+@@ -15,6 +15,11 @@
+ -- without a background), the row buttons' padding and the compact panel. The base Button has no margin
+ -- and its states set only backgroundColor1 (builtin.css.lua:140-262), so their `margin = 0` was a no-op.
+ -- REVERT step 2 only: git apply -R plans/square_problem_radar/inline_styles_2.patch.
++-- Native fleet window (2026-10-14): the fleet window's cards, rows, bar, lines, buttons and fixed
++-- columns, 11 of its 15 rules (only innerSpacing, gravity, textAutoWrap and textAlignment stay in
++-- radar_hud.css.lua). Cards: the base entity-window card nine-patch set inline, as the base sets a
++-- nine-patch through meta.styleSheet (vehicle_react_util.tl:95-105). REVERT:
++-- git apply -R plans/square_problem_radar/fleet_window_native.patch.
+ 
+ local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
+ local color_util = ug_require "::/gui/main/color_util.tl" as ColorUtil
+@@ -25,9 +30,21 @@ local M : ProblemRadarInline = {}
+ -- TextView carries two of them.
+ local TEXT_CLASSES <const> = {
+ 	"radar-tier-0", "radar-tier-1", "radar-tier-2", "radar-tier-3", "radar-dim",
+-	"radar-fleet-sum", "radar-money-pos", "radar-money-neg",
++	"radar-fleet-sum", "radar-money-pos", "radar-money-neg", "radar-fleet-target",
+ }
+ 
++-- Fleet window geometry (native fleet window, 2026-10-14). Content 740 px wide (fleetContent); two top
++-- cards side by side with the 8 px gap of the "radar-box" rule; inline `size` is the content box and
++-- the card padding (6, 8) adds outside it.
++local FLEET_W <const> = 740
++local CARD_PAD_V <const> = 6
++local CARD_PAD_H <const> = 8
++local TOP_CARD_OUTER <const> = math.floor((FLEET_W - 8) / 2)               -- 366
++local TOP_CARD_W <const> = TOP_CARD_OUTER - 2 * CARD_PAD_H        -- 350: label 130 + 8 + value 200 fit
++local TABLE_CARD_W <const> = FLEET_W - 2 * CARD_PAD_H             -- 724
++local ROW_PAD <const> = 4
++local ROW_W <const> = TABLE_CARD_W - 2 * ROW_PAD                  -- 716
++
+ -- Step 2: layout of TextView classes (size = the former min/max size, padding = the former margin,
+ -- CSS order top, right, bottom, left), plus a colour where the former rule had one and no text colour
+ -- class above applies. No TextView carries two of them.
+@@ -40,11 +57,18 @@ local TEXT_LAYOUT <const> : {string : TextLayout} = {
+ 	["radar-cell-label"] = { size = { 170, -1 } },              -- was WIN TextView!radar-cell-label
+ 	["radar-cell-context"] = { size = { 125, -1 }, color = "NeutralLight" }, -- was WIN TextView!radar-cell-context
+ 	["radar-row-fleet-gap"] = { size = { 78, -1 } },            -- was WIN TextView!radar-row-fleet-gap
+-	["radar-fleet-mark"] = { size = { 12, -1 }, color = "AccentLight" }, -- was FLEET TextView!radar-fleet-mark
+ 	["radar-empty"] = { padding = { 16, 8, 16, 8 } },           -- was BoxLayout TextView!radar-empty (margin)
+ 	["radar-section"] = { padding = { 8, 0, 4, 0 } },           -- was WIN TextView!radar-section (margin)
+ 	["radar-more"] = { padding = { 4, 8, 4, 8 }, color = "NeutralLight" }, -- was WIN TextView!radar-more
+ 	["radar-fleet-head"] = { padding = { 10, 0, 2, 0 }, color = "NeutralLightest" }, -- was FLEET TextView!radar-fleet-head
++	-- native fleet window: the left top card's heading spans that card, so the right heading starts
++	-- above the right card
++	["radar-fleet-head-col"] = { size = { TOP_CARD_OUTER, -1 }, padding = { 10, 0, 2, 0 }, color = "NeutralLightest" },
++	-- native fleet window: the model table's fixed columns (were FLEET TextView!radar-fleet-num / -age,
++	-- 60 / 110 px with wrap + right alignment; now one-line short headers, left-aligned)
++	["radar-fleet-num"] = { size = { 80, -1 } },
++	["radar-fleet-age"] = { size = { 110, -1 } },
++	["radar-fleet-past"] = { size = { 120, -1 } },
+ }
+ 
+ local record Sheets
+@@ -63,6 +87,15 @@ local record Sheets
+ 	fleetContent : StyleSheet
+ 	fleetDimLine : StyleSheet
+ 	fleetRowOdd : StyleSheet
++	fleetRowEven : StyleSheet
++	fleetCard : StyleSheet
++	fleetTableCard : StyleSheet
++	fleetSumLine : StyleSheet
++	fleetUsage : StyleSheet
++	fleetGroups : StyleSheet
++	fleetHeadRow : StyleSheet
++	fleetButton : StyleSheet
++	fleetGap : StyleSheet
+ end
+ local sheets : Sheets = nil
+ 
+@@ -72,6 +105,45 @@ local function padded(st : StyleSheet, top : number, right : number, bottom : nu
+ 	return st
+ end
+ 
++local CARD_SURFACE <const> = "::/gui/entity_window/design/card_surface.tga"
++local CARD_CONTOUR <const> = "::/gui/entity_window/design/card_contour.tga"
++local cardImagesFailed = false
++
++--- The base card nine-patch (entity_window.css.lua:74-85, line_vehicle_mgmt.css.lua:170-188:
++--- horizontal / vertical { 0, 6, 26, 32 }). A Lua table into a vector field, as the base does with
++--- TransportVehicleConfig.vehicleGroups (vehicle_store_window.tl:4045). nil if the binding refuses.
++local function cardPatch(fileName : string) : NinePatch
++	local ok, np = pcall(function() : NinePatch
++		local p = api.gui.NinePatch.new()
++		p.fileName = fileName
++		p.horizontal = { 0, 6, 26, 32 }
++		p.vertical = { 0, 6, 26, 32 }
++		return p
++	end)
++	if ok then return np end
++	if not cardImagesFailed then
++		cardImagesFailed = true
++		log.warning("[ProblemRadar] card nine-patch not available (" .. tostring(np) .. "); plain card background")
++	end
++	return nil
++end
++
++--- A native card (Timetables "CARD FRAMING", copied from the base line manager panels,
++--- line_vehicle_mgmt.css.lua:170-188): card_surface tinted BaseMedium, card_contour tinted BaseVeryLight.
++--- Without the nine-patch: the former subtle panel colour (BaseLight at transparency High).
++local function cardSheet(c : {string : {number}}, subtle : {number}, width : number) : StyleSheet
++	local surface, contour = cardPatch(CARD_SURFACE), cardPatch(CARD_CONTOUR)
++	local st : StyleSheet
++	if surface ~= nil and contour ~= nil then
++		st = styleutil.makeStyle{ size = { width, -1 }, backgroundImage1 = surface,
++			backgroundColor1 = c.BaseMedium, borderColor = c.BaseVeryLight }
++		st.borderImage = contour -- styleutil.makeStyle has no borderImage key
++	else
++		st = styleutil.makeStyle{ size = { width, -1 }, backgroundColor = subtle }
++	end
++	return padded(st, CARD_PAD_V, CARD_PAD_H, CARD_PAD_V, CARD_PAD_H)
++end
++
+ local function get() : Sheets
+ 	if sheets == nil then
+ 		local c = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data as {string : {number}}
+@@ -87,10 +159,15 @@ local function get() : Sheets
+ 			["radar-fleet-sum"] = c.NeutralLightest,
+ 			["radar-money-pos"] = c.Ok,
+ 			["radar-money-neg"] = c.Negative,
++			-- native fleet window: the model group of the vehicle the window was opened for (was the
++			-- "›" marker, FLEET TextView!radar-fleet-mark, in the same accent colour)
++			["radar-fleet-target"] = c.AccentLight,
+ 		}
+ 		local text : {string : StyleSheet} = {}
+ 		for name, col in pairs(textColor) do text[name] = styleutil.makeStyle{ color = col } end
+ 		local subtle = color_util.withTransparencyRaw(c.BaseLight as GResColor, transparency.High) as {number}
++		-- Timetables' row zebra (timetables_plugin.css.lua: NeutralLightest at 0.05), on the card surface
++		local zebra = color_util.withTransparencyRaw(c.NeutralLightest as GResColor, 0.05) as {number}
+ 		sheets = {
+ 			text = text,
+ 			-- was "R::ProblemRadarHudPlugin Button!radar-badge"
+@@ -109,10 +186,28 @@ local function get() : Sheets
+ 			listContent = padded(api.gui.StyleSheet.new(), 0, 18, 0, 0),
+ 			-- was "R::ProblemRadarFleetContent"
+ 			fleetContent = padded(styleutil.makeStyle{ size = { 740, -1 } }, 4, 8, 8, 8),
+-			-- was "R::ProblemRadarFleetContent !radar-fleet-dim-line"
+-			fleetDimLine = styleutil.makeStyle{ backgroundColor = c.BaseLight },
+-			-- was "R::ProblemRadarFleetContent !radar-fleet-row-odd"
+-			fleetRowOdd = styleutil.makeStyle{ backgroundColor = subtle },
++			-- was "R::ProblemRadarFleetContent !radar-fleet-dim-line" (+ the divider rule's size / gravity)
++			fleetDimLine = styleutil.makeStyle{ size = { TABLE_CARD_W, 1 }, backgroundColor = c.BaseLight },
++			-- native fleet window: rows were "!radar-fleet-row" (gravity { -1, 0 }, padding 3 4 3 4) +
++			-- "!radar-fleet-row-odd" (BaseLight at High); now a fixed row width and the Timetables zebra
++			fleetRowOdd = padded(styleutil.makeStyle{ size = { ROW_W, -1 }, backgroundColor = zebra }, 3, ROW_PAD, 3, ROW_PAD),
++			fleetRowEven = padded(styleutil.makeStyle{ size = { ROW_W, -1 } }, 3, ROW_PAD, 3, ROW_PAD),
++			-- the table header row lines up with the rows' padding
++			fleetHeadRow = padded(styleutil.makeStyle{ size = { ROW_W, -1 } }, 0, ROW_PAD, 0, ROW_PAD),
++			-- native fleet window: was "!radar-fleet-card" (minSize 360, gravity -1 -1, subtle background)
++			fleetCard = cardSheet(c, subtle, TOP_CARD_W),
++			fleetTableCard = cardSheet(c, subtle, TABLE_CARD_W),
++			-- was "!radar-fleet-divider" + "!radar-fleet-sum-line": the 1 px line above Balance
++			fleetSumLine = styleutil.makeStyle{ size = { TOP_CARD_W, 1 }, backgroundColor = c.BaseVeryLight },
++			-- was "ProgressBar!radar-fleet-usage" (size { -1, 14 }); in its own row so the base gravity
++			-- { -1, -1 } can't grow it (radar_fleet.tl lineCard)
++			fleetUsage = styleutil.makeStyle{ size = { TOP_CARD_W, 14 } },
++			-- was "ScrollArea!radar-fleet-groups" (size { -1, 260 }, gravity { -1, 0 })
++			fleetGroups = styleutil.makeStyle{ size = { TABLE_CARD_W, 260 } },
++			-- was "Button!radar-fleet-button" (padding; its margin is the layout's innerSpacing now)
++			fleetButton = padded(api.gui.StyleSheet.new(), 4, 10, 4, 10),
++			-- a few px more above the action row than the rows' gap (ui-guide "Spacing": fixed gap spacer)
++			fleetGap = styleutil.makeStyle{ size = { 1, 4 } },
+ 			byClass = {},
+ 			textColor = textColor,
+ 			noSheet = {},
+@@ -169,6 +264,17 @@ function M.content() : StyleSheet return get().content end
+ function M.listContent() : StyleSheet return get().listContent end
+ function M.fleetContent() : StyleSheet return get().fleetContent end
+ function M.fleetDimLine() : StyleSheet return get().fleetDimLine end
+-function M.fleetRowOdd() : StyleSheet return get().fleetRowOdd end
++function M.fleetRow(odd : boolean) : StyleSheet
++	local s = get()
++	return odd and s.fleetRowOdd or s.fleetRowEven
++end
++function M.fleetHeadRow() : StyleSheet return get().fleetHeadRow end
++function M.fleetCard() : StyleSheet return get().fleetCard end
++function M.fleetTableCard() : StyleSheet return get().fleetTableCard end
++function M.fleetSumLine() : StyleSheet return get().fleetSumLine end
++function M.fleetUsage() : StyleSheet return get().fleetUsage end
++function M.fleetGroups() : StyleSheet return get().fleetGroups end
++function M.fleetButton() : StyleSheet return get().fleetButton end
++function M.fleetGap() : StyleSheet return get().fleetGap end
+ 
+ return M
+diff --git a/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua b/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
+index 4ac2cae..2041744 100644
+--- a/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
++++ b/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
+@@ -10,8 +10,6 @@
+ -- base !error / !warning / !info / !positive classes (.cache/game/base/content/gui/main/default.css.lua:12-46).
+ -- Content size rule pattern: .cache/game/base/content/gui/menu/mod_browser.css.lua:681-691.
+ local ssu = require "::/gui/main/stylesheetutil.lua"
+--- Rev 6 fleet window panels: subtle backgrounds (base use: entity_window_util.css.lua:1, 13, 179)
+-local color_util = require "::/gui/main/color_util.tl"
+ 
+ function data()
+ 	local result = { }
+@@ -55,7 +53,6 @@ function data()
+ 	end
+ 
+ 	local colorDefault = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data
+-	local transparency = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/transparency.gres")).data
+ 
+ 	local HUD = "R::ProblemRadarHudPlugin"
+ 	local WIN = "R::ProblemRadarContent"
+@@ -233,56 +230,28 @@ function data()
+ 
+ 	-- Rev 6 fleet window (radar_fleet.tl): centred like the radar window, a bit to the right of it so
+ 	-- both stay readable when the radar window is open.
+-	-- Opaque background: the default Window background is BaseDarkMedium with transparency VeryLow
+-	-- (.cache/game/base/content/gui/main/builtin.css.lua:16, 1946-1953), which let the radar window show
+-	-- through. Same colour without transparency, as the base dialogs do (popover_react_util.css.lua:10-12).
++	-- Background: the game's default translucent window surface (BaseDarkMedium at transparency VeryLow,
++	-- builtin.css.lua:16, 1946-1953), like the radar window and Industry Flows (user 2026-10-14; the rev 6
++	-- opaque override is gone: the native cards back the content now).
+ 	a(FLEET_WINDOW, {
+ 		gravity = { 0.6, 0.5 },
+ 		anchorPoint = { 0.5, 0.55 },
+-		backgroundColor1 = colorDefault.BaseDarkMedium,
+ 	})
+ 
+-	-- Rev 6 round 3: the window sizes to its content (no fixed height); 740 px wide fits the two cards
+-	-- (2 × 360) and the model table (radar_inline.tl fleetContent).
++	-- Native fleet window (2026-10-14): of its 15 rules only these 4 stay (gravity, innerSpacing,
++	-- textAutoWrap and textAlignment have no inline form). Cards (base card nine-patch), rows and their
++	-- zebra, the lines, the utilization bar, the scroll area, the fixed columns and the button padding are
++	-- inline (radar_inline.tl); the hint moved into the buttons' tooltips. 740 px wide content
++	-- (radar_inline.tl fleetContent). Revert: plans/square_problem_radar/fleet_window_native.patch.
+ 
+-	a(FLEET .. " BoxLayout!radar-box", {
++	-- Gaps between the children of our own layouts, the action row's FlowLayout included (no element
++	-- name: ui-guide "Spacing").
++	a(FLEET .. " !radar-box", {
+ 		innerSpacing = { 8, 3 },
+ 	})
+ 
+-
+-	-- 1 px lines: a styled Component (base separators: game_bar.css.lua:884-886).
+-	a(FLEET .. " !radar-fleet-divider", {
+-		size = { -1, 1 },
+-		gravity = { -1, 0 },
+-		backgroundColor = colorDefault.BaseVeryLight,
+-		margin = { 0, 0, 4, 0 },
+-	})
+-
+-	-- The model table's divider is dimmer (BaseLight): radar_inline.tl fleetDimLine.
+-
+-	a(FLEET .. " !radar-fleet-sum-line", {
+-		margin = { 4, 0, 2, 0 },
+-	})
+-
+-	-- Cards: a subtle panel behind each half of the top area.
+-	a(FLEET .. " !radar-fleet-card", {
+-		minSize = { 360, -1 },
+-		gravity = { -1, -1 },
+-		padding = { 2, 8, 8, 8 },
+-		backgroundColor = color_util.withTransparencyRaw(colorDefault.BaseLight, transparency.High),
+-	})
+-
+-	a(FLEET .. " TextView!radar-hint", {
+-		maxSize = { 720, -1 },
+-		textAutoWrap = true,
+-		color = colorDefault.NeutralLight,
+-		margin = { 6, 0, 0, 0 },
+-	})
+-
+ 	-- Card lines: dim label column (radar-col130, top of the file), right-aligned values in a fixed
+-	-- column (textAlignment as keybinding_hint.css.lua:262-268). The totals line's label is brighter.
+-	-- (radar-fleet-sum: radar_inline.tl, NeutralLightest)
+-
++	-- column that wraps (textAlignment as keybinding_hint.css.lua:262-268).
+ 	a(FLEET .. " TextView!radar-fleet-value", {
+ 		minSize = { 200, -1 },
+ 		maxSize = { 200, -1 },
+@@ -290,57 +259,12 @@ function data()
+ 		textAlignment = { 1, 0.5 },
+ 	})
+ 
+-	-- Money: the game's Ok green above zero, its Negative red below; zero keeps the default text colour
+-	-- (radar-money-pos/neg: radar_inline.tl).
+-
+-	-- Utilization bar (base ProgressBar, builtin.css.lua:1569-1592: 20 px high by default).
+-	a(FLEET .. " ProgressBar!radar-fleet-usage", {
+-		size = { -1, 14 },
+-		gravity = { -1, 0 },
+-		margin = { 0, 0, 2, 0 },
+-	})
+-
+-	-- Fleet by model: marker · model · count · oldest age of lifespan · past lifespan · buttons.
+-	a(FLEET .. " ScrollArea!radar-fleet-groups", {
+-		size = { -1, 260 },
+-		gravity = { -1, 0 },
+-	})
+-
+-	a(FLEET .. " !radar-fleet-row", {
+-		gravity = { -1, 0 },
+-		padding = { 3, 4, 3, 4 },
+-	})
+-
+-	-- Odd rows' subtle background: radar_inline.tl fleetRowOdd.
+-
+-
++	-- Fleet by model: the model column wraps (trains: "Loco + 6× Wagon"); the other columns are fixed
++	-- inline widths (radar_inline.tl TEXT_LAYOUT).
+ 	a(FLEET .. " TextView!radar-fleet-model", {
+-		minSize = { 230, -1 },
+-		maxSize = { 230, -1 },
+-		textAutoWrap = true, -- trains: "Loco + 6× Wagon"
+-	})
+-
+-	a(FLEET .. " TextView!radar-fleet-num", {
+-		minSize = { 60, -1 },
+-		maxSize = { 60, -1 },
++		minSize = { 210, -1 },
++		maxSize = { 210, -1 },
+ 		textAutoWrap = true,
+-		textAlignment = { 1, 0.5 },
+-	})
+-
+-	a(FLEET .. " TextView!radar-fleet-age", {
+-		minSize = { 110, -1 },
+-		maxSize = { 110, -1 },
+-		textAutoWrap = true,
+-		textAlignment = { 1, 0.5 },
+-	})
+-
+-	a(FLEET .. " BoxLayout!radar-fleet-row-buttons", {
+-		innerSpacing = { 0, 2 },
+-	})
+-
+-	a(FLEET .. " Button!radar-fleet-button", {
+-		padding = { 4, 10, 4, 10 },
+-		margin = { 2, 6, 2, 0 },
+ 	})
+ 
+ 	return result
+diff --git a/mods/square_problem_radar/content/radar/radar_types.d.tl b/mods/square_problem_radar/content/radar/radar_types.d.tl
+index a2222f9..f674397 100644
+--- a/mods/square_problem_radar/content/radar/radar_types.d.tl
++++ b/mods/square_problem_radar/content/radar/radar_types.d.tl
+@@ -896,8 +896,17 @@ global record ProblemRadarInline
+ 	content : function() : StyleSheet      -- R::ProblemRadarContent size + padding
+ 	listContent : function() : StyleSheet  -- the alert list's ScrollArea content padding
+ 	fleetContent : function() : StyleSheet -- R::ProblemRadarFleetContent size + padding
+-	fleetDimLine : function() : StyleSheet -- the model table's dim divider background
+-	fleetRowOdd : function() : StyleSheet  -- odd model rows' background
++	fleetDimLine : function() : StyleSheet -- the model table's dim divider under the header (size + colour)
++	-- native fleet window (2026-10-14): replace 11 of the fleet window's radar_hud.css.lua rules
++	fleetRow : function(odd : boolean) : StyleSheet -- model rows: fixed width + padding, odd rows zebra
++	fleetHeadRow : function() : StyleSheet   -- the table header row: the rows' width + padding
++	fleetCard : function() : StyleSheet      -- top cards: base card nine-patch (surface + contour) + padding
++	fleetTableCard : function() : StyleSheet -- the model table's card
++	fleetSumLine : function() : StyleSheet   -- 1 px line above Balance
++	fleetUsage : function() : StyleSheet     -- utilization ProgressBar size
++	fleetGroups : function() : StyleSheet    -- the model table's ScrollArea size (many groups)
++	fleetButton : function() : StyleSheet    -- action buttons' padding
++	fleetGap : function() : StyleSheet       -- small fixed gap above the action row
+ end
+ 
+ recordDef = false
+diff --git a/mods/square_problem_radar/tealdef/radar/radar_types.d.tl b/mods/square_problem_radar/tealdef/radar/radar_types.d.tl
+index a2222f9..f674397 100644
+--- a/mods/square_problem_radar/tealdef/radar/radar_types.d.tl
++++ b/mods/square_problem_radar/tealdef/radar/radar_types.d.tl
+@@ -896,8 +896,17 @@ global record ProblemRadarInline
+ 	content : function() : StyleSheet      -- R::ProblemRadarContent size + padding
+ 	listContent : function() : StyleSheet  -- the alert list's ScrollArea content padding
+ 	fleetContent : function() : StyleSheet -- R::ProblemRadarFleetContent size + padding
+-	fleetDimLine : function() : StyleSheet -- the model table's dim divider background
+-	fleetRowOdd : function() : StyleSheet  -- odd model rows' background
++	fleetDimLine : function() : StyleSheet -- the model table's dim divider under the header (size + colour)
++	-- native fleet window (2026-10-14): replace 11 of the fleet window's radar_hud.css.lua rules
++	fleetRow : function(odd : boolean) : StyleSheet -- model rows: fixed width + padding, odd rows zebra
++	fleetHeadRow : function() : StyleSheet   -- the table header row: the rows' width + padding
++	fleetCard : function() : StyleSheet      -- top cards: base card nine-patch (surface + contour) + padding
++	fleetTableCard : function() : StyleSheet -- the model table's card
++	fleetSumLine : function() : StyleSheet   -- 1 px line above Balance
++	fleetUsage : function() : StyleSheet     -- utilization ProgressBar size
++	fleetGroups : function() : StyleSheet    -- the model table's ScrollArea size (many groups)
++	fleetButton : function() : StyleSheet    -- action buttons' padding
++	fleetGap : function() : StyleSheet       -- small fixed gap above the action row
+ end
+ 
+ recordDef = false
+diff --git a/mods/square_problem_radar/strings.json b/mods/square_problem_radar/strings.json
+index b5f5ac6..3ecb000 100644
+--- a/mods/square_problem_radar/strings.json
++++ b/mods/square_problem_radar/strings.json
+@@ -1,7 +1,6 @@
+ {
+     "en": {},
+     "ru": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "Открывает окно игры «Поменять транспорт» для этих транспортных средств",
+         "{n} y": "{n} г.",
+         "Line": "Маршрут",
+         "Vehicles": "Транспорт",
+@@ -27,14 +26,11 @@
+         "Fleet by model": "Парк по моделям",
+         "Model": "Модель",
+         "Count": "Количество",
+-        "Oldest: age / lifespan": "Старейший: возраст / срок",
+         "Upgrade old vehicles ({n})…": "Обновить старый транспорт ({n})…",
+         "Upgrade this vehicle…": "Обновить этот транспорт…",
+         "Upgrade whole fleet ({n})…": "Обновить весь парк ({n})…",
+         "Show line": "Показать маршрут",
+         "Open the line's window": "Открыть окно маршрута",
+-        "Upgrade": "Обновление",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "Кнопки обновления открывают окно игры «Поменять транспорт»: там вы выбираете новое транспортное средство и подтверждаете цену. Поезда разного состава обновляются по одной группе моделей за раз.",
+         "This vehicle no longer exists.": "Этого транспортного средства больше нет.",
+         "This vehicle is not on a line.": "Это транспортное средство не назначено на маршрут.",
+         "Fleet: {name}": "Парк: {name}",
+@@ -226,10 +222,18 @@
+         "Tile": "Плитка",
+         "Debug: performance log": "Отладка: журнал производительности",
+         "On": "Вкл.",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Выкл.: обычная игра. Вкл.: каждые 30 с Problem Radar\nзаписывает в лог-файл игры (stdout.txt, строки, начинающиеся\nс [SQPERF]), сколько времени заняли его проверки и окна.\nТолько для поиска причин замедлений; в остальных случаях\nоставьте Выкл. Медленные вызовы всегда кратко записываются,\nнезависимо от этой настройки."
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Выкл.: обычная игра. Вкл.: каждые 30 с Problem Radar\nзаписывает в лог-файл игры (stdout.txt, строки, начинающиеся\nс [SQPERF]), сколько времени заняли его проверки и окна.\nТолько для поиска причин замедлений; в остальных случаях\nоставьте Выкл. Медленные вызовы всегда кратко записываются,\nнезависимо от этой настройки.",
++        "Oldest": "Старейший",
++        "The vehicle model. Trains show their composition.": "Модель транспорта. Для поездов показан состав.",
++        "Vehicles of this model on the line.": "Транспорт этой модели на маршруте.",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "Возраст самого старого транспорта этой модели\nи срок службы модели, в годах.",
++        "Vehicles of this model older than their lifespan.": "Транспорт этой модели старше срока службы.",
++        "The vehicle you opened this window for has this model.": "Транспорт, для которого открыто это окно, этой модели.",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "Открывает окно игры «Поменять транспорт» для этого транспортного средства.\nТам вы выбираете новое транспортное средство и подтверждаете цену.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "Открывает окно игры «Поменять транспорт» для этих транспортных средств.\nТам вы выбираете новое транспортное средство и подтверждаете цену.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "Открывает окно игры «Поменять транспорт» для этих транспортных средств.\nТам вы выбираете новое транспортное средство и подтверждаете цену.\nПоезда разного состава обновляются\nпо одной группе моделей за раз."
+     },
+     "de": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "Öffnet das Spielfenster „Fahrzeuge ersetzen“ für diese Fahrzeuge",
+         "{n} y": "{n} J.",
+         "Line": "Linie",
+         "Vehicles": "Fahrzeuge",
+@@ -255,14 +259,11 @@
+         "Fleet by model": "Fuhrpark nach Modell",
+         "Model": "Modell",
+         "Count": "Anzahl",
+-        "Oldest: age / lifespan": "Ältestes: Alter / Lebensdauer",
+         "Upgrade old vehicles ({n})…": "Alte Fahrzeuge erneuern ({n})…",
+         "Upgrade this vehicle…": "Dieses Fahrzeug erneuern…",
+         "Upgrade whole fleet ({n})…": "Ganzen Fuhrpark erneuern ({n})…",
+         "Show line": "Linie zeigen",
+         "Open the line's window": "Das Linienfenster öffnen",
+-        "Upgrade": "Erneuern",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "Die Erneuern-Knöpfe öffnen das Spielfenster „Fahrzeuge ersetzen“: Dort wählst du das neue Fahrzeug und bestätigst den Preis. Züge unterschiedlicher Zusammensetzung werden je Modellgruppe erneuert.",
+         "This vehicle no longer exists.": "Dieses Fahrzeug existiert nicht mehr.",
+         "This vehicle is not on a line.": "Dieses Fahrzeug fährt auf keiner Linie.",
+         "Fleet: {name}": "Fuhrpark: {name}",
+@@ -454,10 +455,18 @@
+         "Tile": "Kachel",
+         "Debug: performance log": "Debug: Leistungsprotokoll",
+         "On": "An",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Aus: normales Spiel. An: Alle 30 s schreibt Problem Radar in\ndie Logdatei des Spiels (stdout.txt, Zeilen mit [SQPERF]),\nwie lange seine Prüfungen und Fenster gebraucht haben. Nur\nzur Suche nach Verlangsamungen; sonst auf Aus lassen.\nLangsame Aufrufe werden unabhängig von dieser Einstellung\nimmer kurz protokolliert."
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Aus: normales Spiel. An: Alle 30 s schreibt Problem Radar in\ndie Logdatei des Spiels (stdout.txt, Zeilen mit [SQPERF]),\nwie lange seine Prüfungen und Fenster gebraucht haben. Nur\nzur Suche nach Verlangsamungen; sonst auf Aus lassen.\nLangsame Aufrufe werden unabhängig von dieser Einstellung\nimmer kurz protokolliert.",
++        "Oldest": "Ältestes",
++        "The vehicle model. Trains show their composition.": "Das Fahrzeugmodell. Bei Zügen die Zusammensetzung.",
++        "Vehicles of this model on the line.": "Fahrzeuge dieses Modells auf der Linie.",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "Alter des ältesten Fahrzeugs dieses Modells\nund Lebensdauer des Modells, in Jahren.",
++        "Vehicles of this model older than their lifespan.": "Fahrzeuge dieses Modells, die älter als ihre Lebensdauer sind.",
++        "The vehicle you opened this window for has this model.": "Das Fahrzeug, für das dieses Fenster geöffnet wurde, hat dieses Modell.",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "Öffnet das Spielfenster „Fahrzeuge ersetzen“ für dieses Fahrzeug.\nDort wählst du das neue Fahrzeug und bestätigst den Preis.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "Öffnet das Spielfenster „Fahrzeuge ersetzen“ für diese Fahrzeuge.\nDort wählst du das neue Fahrzeug und bestätigst den Preis.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "Öffnet das Spielfenster „Fahrzeuge ersetzen“ für diese Fahrzeuge.\nDort wählst du das neue Fahrzeug und bestätigst den Preis.\nZüge unterschiedlicher Zusammensetzung werden\nje Modellgruppe erneuert."
+     },
+     "fr": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "Ouvre la fenêtre « Remplacer les véhicules » du jeu pour ces véhicules",
+         "{n} y": "{n} ans",
+         "Line": "Ligne",
+         "Vehicles": "Véhicules",
+@@ -483,14 +492,11 @@
+         "Fleet by model": "Flotte par modèle",
+         "Model": "Modèle",
+         "Count": "Nombre",
+-        "Oldest: age / lifespan": "Le plus ancien : âge / durée de vie",
+         "Upgrade old vehicles ({n})…": "Renouveler les véhicules anciens ({n})…",
+         "Upgrade this vehicle…": "Renouveler ce véhicule…",
+         "Upgrade whole fleet ({n})…": "Renouveler toute la flotte ({n})…",
+         "Show line": "Afficher la ligne",
+         "Open the line's window": "Ouvrir la fenêtre de la ligne",
+-        "Upgrade": "Renouveler",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "Les boutons Renouveler ouvrent la fenêtre « Remplacer les véhicules » du jeu, où vous choisissez le nouveau véhicule et confirmez le prix. Les trains de compositions différentes sont renouvelés un groupe de modèles à la fois.",
+         "This vehicle no longer exists.": "Ce véhicule n'existe plus.",
+         "This vehicle is not on a line.": "Ce véhicule n'est affecté à aucune ligne.",
+         "Fleet: {name}": "Flotte : {name}",
+@@ -682,10 +688,18 @@
+         "Tile": "Tuile",
+         "Debug: performance log": "Débogage : journal des performances",
+         "On": "Activé",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Désactivé : jeu normal. Activé : toutes les 30 s, Problem\nRadar écrit dans le fichier journal du jeu (stdout.txt,\nlignes commençant par [SQPERF]) le temps pris par ses\nanalyses et ses fenêtres. Uniquement pour rechercher des\nralentissements ; sinon, laissez Désactivé. Les appels lents\nsont toujours brièvement consignés, quel que soit ce\nréglage."
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Désactivé : jeu normal. Activé : toutes les 30 s, Problem\nRadar écrit dans le fichier journal du jeu (stdout.txt,\nlignes commençant par [SQPERF]) le temps pris par ses\nanalyses et ses fenêtres. Uniquement pour rechercher des\nralentissements ; sinon, laissez Désactivé. Les appels lents\nsont toujours brièvement consignés, quel que soit ce\nréglage.",
++        "Oldest": "Le plus ancien",
++        "The vehicle model. Trains show their composition.": "Le modèle de véhicule. Les trains montrent leur composition.",
++        "Vehicles of this model on the line.": "Véhicules de ce modèle sur la ligne.",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "Âge du véhicule le plus ancien de ce modèle\net durée de vie du modèle, en années.",
++        "Vehicles of this model older than their lifespan.": "Véhicules de ce modèle ayant dépassé leur durée de vie.",
++        "The vehicle you opened this window for has this model.": "Le véhicule pour lequel cette fenêtre a été ouverte est de ce modèle.",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "Ouvre la fenêtre « Remplacer les véhicules » du jeu pour ce véhicule.\nVous y choisissez le nouveau véhicule et confirmez le prix.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "Ouvre la fenêtre « Remplacer les véhicules » du jeu pour ces véhicules.\nVous y choisissez le nouveau véhicule et confirmez le prix.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "Ouvre la fenêtre « Remplacer les véhicules » du jeu pour ces véhicules.\nVous y choisissez le nouveau véhicule et confirmez le prix.\nLes trains de compositions différentes sont renouvelés\nun groupe de modèles à la fois."
+     },
+     "es": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "Abre la ventana «Sustituir vehículos» del juego para estos vehículos",
+         "{n} y": "{n} años",
+         "Line": "Línea",
+         "Vehicles": "Vehículos",
+@@ -711,14 +725,11 @@
+         "Fleet by model": "Flota por modelo",
+         "Model": "Modelo",
+         "Count": "Recuento",
+-        "Oldest: age / lifespan": "El más antiguo: edad / vida útil",
+         "Upgrade old vehicles ({n})…": "Renovar vehículos antiguos ({n})…",
+         "Upgrade this vehicle…": "Renovar este vehículo…",
+         "Upgrade whole fleet ({n})…": "Renovar toda la flota ({n})…",
+         "Show line": "Mostrar línea",
+         "Open the line's window": "Abrir la ventana de la línea",
+-        "Upgrade": "Renovar",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "Los botones Renovar abren la ventana «Sustituir vehículos» del juego, donde eliges el nuevo vehículo y confirmas el precio. Los trenes de composiciones distintas se renuevan un grupo de modelos cada vez.",
+         "This vehicle no longer exists.": "Este vehículo ya no existe.",
+         "This vehicle is not on a line.": "Este vehículo no está en ninguna línea.",
+         "Fleet: {name}": "Flota: {name}",
+@@ -910,10 +921,18 @@
+         "Tile": "Casilla",
+         "Debug: performance log": "Depuración: registro de rendimiento",
+         "On": "Activado",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Desactivado: juego normal. Activado: cada 30 s, Problem\nRadar escribe en el archivo de registro del juego\n(stdout.txt, líneas que empiezan por [SQPERF]) cuánto\ntardaron sus análisis y ventanas. Solo para buscar\nralentizaciones; si no, déjalo Desactivado. Las llamadas\nlentas siempre se registran brevemente, sea cual sea este\najuste."
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Desactivado: juego normal. Activado: cada 30 s, Problem\nRadar escribe en el archivo de registro del juego\n(stdout.txt, líneas que empiezan por [SQPERF]) cuánto\ntardaron sus análisis y ventanas. Solo para buscar\nralentizaciones; si no, déjalo Desactivado. Las llamadas\nlentas siempre se registran brevemente, sea cual sea este\najuste.",
++        "Oldest": "Más antiguo",
++        "The vehicle model. Trains show their composition.": "El modelo de vehículo. Los trenes muestran su composición.",
++        "Vehicles of this model on the line.": "Vehículos de este modelo en la línea.",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "Edad del vehículo más antiguo de este modelo\ny vida útil del modelo, en años.",
++        "Vehicles of this model older than their lifespan.": "Vehículos de este modelo que superan su vida útil.",
++        "The vehicle you opened this window for has this model.": "El vehículo para el que abriste esta ventana es de este modelo.",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "Abre la ventana «Sustituir vehículos» del juego para este vehículo.\nAllí eliges el nuevo vehículo y confirmas el precio.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "Abre la ventana «Sustituir vehículos» del juego para estos vehículos.\nAllí eliges el nuevo vehículo y confirmas el precio.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "Abre la ventana «Sustituir vehículos» del juego para estos vehículos.\nAllí eliges el nuevo vehículo y confirmas el precio.\nLos trenes de composiciones distintas se renuevan\nun grupo de modelos cada vez."
+     },
+     "it": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "Apre la finestra «Sostituisci veicoli» del gioco per questi veicoli",
+         "{n} y": "{n} anni",
+         "Line": "Linea",
+         "Vehicles": "Veicoli",
+@@ -939,14 +958,11 @@
+         "Fleet by model": "Flotta per modello",
+         "Model": "Modello",
+         "Count": "Numero",
+-        "Oldest: age / lifespan": "Il più vecchio: età / vita utile",
+         "Upgrade old vehicles ({n})…": "Rinnova i veicoli vecchi ({n})…",
+         "Upgrade this vehicle…": "Rinnova questo veicolo…",
+         "Upgrade whole fleet ({n})…": "Rinnova tutta la flotta ({n})…",
+         "Show line": "Mostra linea",
+         "Open the line's window": "Apri la finestra della linea",
+-        "Upgrade": "Rinnova",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "I pulsanti Rinnova aprono la finestra «Sostituisci veicoli» del gioco, dove scegli il nuovo veicolo e confermi il prezzo. I treni con composizioni diverse si rinnovano un gruppo di modelli alla volta.",
+         "This vehicle no longer exists.": "Questo veicolo non esiste più.",
+         "This vehicle is not on a line.": "Questo veicolo non è su nessuna linea.",
+         "Fleet: {name}": "Flotta: {name}",
+@@ -1138,10 +1154,18 @@
+         "Tile": "Tessera",
+         "Debug: performance log": "Debug: registro prestazioni",
+         "On": "Attivato",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Disattivato: gioco normale. Attivato: ogni 30 s, Problem\nRadar scrive nel file di log del gioco (stdout.txt, righe\nche iniziano con [SQPERF]) quanto tempo hanno impiegato i\nsuoi controlli e le sue finestre. Solo per individuare\nrallentamenti; altrimenti lascialo Disattivato. Le chiamate\nlente vengono sempre registrate brevemente,\nindipendentemente da questa impostazione."
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Disattivato: gioco normale. Attivato: ogni 30 s, Problem\nRadar scrive nel file di log del gioco (stdout.txt, righe\nche iniziano con [SQPERF]) quanto tempo hanno impiegato i\nsuoi controlli e le sue finestre. Solo per individuare\nrallentamenti; altrimenti lascialo Disattivato. Le chiamate\nlente vengono sempre registrate brevemente,\nindipendentemente da questa impostazione.",
++        "Oldest": "Il più vecchio",
++        "The vehicle model. Trains show their composition.": "Il modello del veicolo. Per i treni, la composizione.",
++        "Vehicles of this model on the line.": "Veicoli di questo modello sulla linea.",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "Età del veicolo più vecchio di questo modello\ne vita utile del modello, in anni.",
++        "Vehicles of this model older than their lifespan.": "Veicoli di questo modello oltre la vita utile.",
++        "The vehicle you opened this window for has this model.": "Il veicolo per cui hai aperto questa finestra è di questo modello.",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "Apre la finestra «Sostituisci veicoli» del gioco per questo veicolo.\nLì scegli il nuovo veicolo e confermi il prezzo.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "Apre la finestra «Sostituisci veicoli» del gioco per questi veicoli.\nLì scegli il nuovo veicolo e confermi il prezzo.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "Apre la finestra «Sostituisci veicoli» del gioco per questi veicoli.\nLì scegli il nuovo veicolo e confermi il prezzo.\nI treni con composizioni diverse si rinnovano\nun gruppo di modelli alla volta."
+     },
+     "nl": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "Opent het spelvenster 'Voertuigen vervangen' voor deze voertuigen",
+         "{n} y": "{n} j",
+         "Line": "Lijn",
+         "Vehicles": "Voertuigen",
+@@ -1167,14 +1191,11 @@
+         "Fleet by model": "Wagenpark per model",
+         "Model": "Model",
+         "Count": "Aantal",
+-        "Oldest: age / lifespan": "Oudste: leeftijd / levensduur",
+         "Upgrade old vehicles ({n})…": "Oude voertuigen vernieuwen ({n})…",
+         "Upgrade this vehicle…": "Dit voertuig vernieuwen…",
+         "Upgrade whole fleet ({n})…": "Hele wagenpark vernieuwen ({n})…",
+         "Show line": "Toon lijn",
+         "Open the line's window": "Het lijnvenster openen",
+-        "Upgrade": "Vernieuwen",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "De knoppen Vernieuwen openen het spelvenster 'Voertuigen vervangen', waar je het nieuwe voertuig kiest en de prijs bevestigt. Treinen met verschillende samenstellingen worden per modelgroep vernieuwd.",
+         "This vehicle no longer exists.": "Dit voertuig bestaat niet meer.",
+         "This vehicle is not on a line.": "Dit voertuig rijdt op geen lijn.",
+         "Fleet: {name}": "Wagenpark: {name}",
+@@ -1366,10 +1387,18 @@
+         "Tile": "Tegel",
+         "Debug: performance log": "Debug: prestatielogboek",
+         "On": "Aan",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Uit: normaal spelen. Aan: elke 30 s schrijft Problem Radar\nnaar het logbestand van het spel (stdout.txt, regels die\nbeginnen met [SQPERF]) hoe lang de controles en vensters\nduurden. Alleen om vertragingen op te sporen; laat het\nanders op Uit staan. Trage aanroepen worden altijd kort\ngelogd, ongeacht deze instelling."
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Uit: normaal spelen. Aan: elke 30 s schrijft Problem Radar\nnaar het logbestand van het spel (stdout.txt, regels die\nbeginnen met [SQPERF]) hoe lang de controles en vensters\nduurden. Alleen om vertragingen op te sporen; laat het\nanders op Uit staan. Trage aanroepen worden altijd kort\ngelogd, ongeacht deze instelling.",
++        "Oldest": "Oudste",
++        "The vehicle model. Trains show their composition.": "Het voertuigmodel. Bij treinen de samenstelling.",
++        "Vehicles of this model on the line.": "Voertuigen van dit model op de lijn.",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "Leeftijd van het oudste voertuig van dit model\nen levensduur van het model, in jaren.",
++        "Vehicles of this model older than their lifespan.": "Voertuigen van dit model ouder dan hun levensduur.",
++        "The vehicle you opened this window for has this model.": "Het voertuig waarvoor je dit venster opende, heeft dit model.",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "Opent het spelvenster 'Voertuigen vervangen' voor dit voertuig.\nDaar kies je het nieuwe voertuig en bevestig je de prijs.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "Opent het spelvenster 'Voertuigen vervangen' voor deze voertuigen.\nDaar kies je het nieuwe voertuig en bevestig je de prijs.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "Opent het spelvenster 'Voertuigen vervangen' voor deze voertuigen.\nDaar kies je het nieuwe voertuig en bevestig je de prijs.\nTreinen met verschillende samenstellingen worden\nper modelgroep vernieuwd."
+     },
+     "pl": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "Otwiera okno gry „Wymień pojazdy” dla tych pojazdów",
+         "{n} y": "{n} l.",
+         "Line": "Linia",
+         "Vehicles": "Pojazdy",
+@@ -1395,14 +1424,11 @@
+         "Fleet by model": "Tabor według modelu",
+         "Model": "Model",
+         "Count": "Liczba",
+-        "Oldest: age / lifespan": "Najstarszy: wiek / okres",
+         "Upgrade old vehicles ({n})…": "Odnów stare pojazdy ({n})…",
+         "Upgrade this vehicle…": "Odnów ten pojazd…",
+         "Upgrade whole fleet ({n})…": "Odnów cały tabor ({n})…",
+         "Show line": "Pokaż linię",
+         "Open the line's window": "Otwórz okno linii",
+-        "Upgrade": "Odnów",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "Przyciski Odnów otwierają okno gry „Wymień pojazdy”, w którym wybierasz nowy pojazd i potwierdzasz cenę. Pociągi o różnych składach są odnawiane po jednej grupie modeli.",
+         "This vehicle no longer exists.": "Ten pojazd już nie istnieje.",
+         "This vehicle is not on a line.": "Ten pojazd nie jest przypisany do linii.",
+         "Fleet: {name}": "Tabor: {name}",
+@@ -1594,10 +1620,18 @@
+         "Tile": "Kafelek",
+         "Debug: performance log": "Debugowanie: dziennik wydajności",
+         "On": "Wł.",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Wył.: normalna gra. Wł.: co 30 s Problem Radar zapisuje w\npliku dziennika gry (stdout.txt, wiersze zaczynające się od\n[SQPERF]), ile czasu zajęły jego skany i okna. Tylko do\nszukania przyczyn spowolnień; w innym razie zostaw Wył.\nWolne wywołania są zawsze krótko zapisywane, niezależnie od\ntego ustawienia."
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Wył.: normalna gra. Wł.: co 30 s Problem Radar zapisuje w\npliku dziennika gry (stdout.txt, wiersze zaczynające się od\n[SQPERF]), ile czasu zajęły jego skany i okna. Tylko do\nszukania przyczyn spowolnień; w innym razie zostaw Wył.\nWolne wywołania są zawsze krótko zapisywane, niezależnie od\ntego ustawienia.",
++        "Oldest": "Najstarszy",
++        "The vehicle model. Trains show their composition.": "Model pojazdu. Pociągi pokazują swój skład.",
++        "Vehicles of this model on the line.": "Pojazdy tego modelu na linii.",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "Wiek najstarszego pojazdu tego modelu\ni okres eksploatacji modelu, w latach.",
++        "Vehicles of this model older than their lifespan.": "Pojazdy tego modelu starsze niż ich okres eksploatacji.",
++        "The vehicle you opened this window for has this model.": "Pojazd, dla którego otwarto to okno, jest tego modelu.",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "Otwiera okno gry „Wymień pojazdy” dla tego pojazdu.\nTam wybierasz nowy pojazd i potwierdzasz cenę.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "Otwiera okno gry „Wymień pojazdy” dla tych pojazdów.\nTam wybierasz nowy pojazd i potwierdzasz cenę.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "Otwiera okno gry „Wymień pojazdy” dla tych pojazdów.\nTam wybierasz nowy pojazd i potwierdzasz cenę.\nPociągi o różnych składach są odnawiane\npo jednej grupie modeli."
+     },
+     "pt_BR": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "Abre a janela \"Substituir Veículos\" do jogo para estes veículos",
+         "{n} y": "{n} anos",
+         "Line": "Linha",
+         "Vehicles": "Veículos",
+@@ -1623,14 +1657,11 @@
+         "Fleet by model": "Frota por modelo",
+         "Model": "Modelo",
+         "Count": "Contagem",
+-        "Oldest: age / lifespan": "Mais antigo: idade / vida útil",
+         "Upgrade old vehicles ({n})…": "Renovar veículos antigos ({n})…",
+         "Upgrade this vehicle…": "Renovar este veículo…",
+         "Upgrade whole fleet ({n})…": "Renovar toda a frota ({n})…",
+         "Show line": "Mostrar linha",
+         "Open the line's window": "Abrir a janela da linha",
+-        "Upgrade": "Renovar",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "Os botões Renovar abrem a janela \"Substituir Veículos\" do jogo, onde você escolhe o novo veículo e confirma o preço. Trens de composições diferentes são renovados um grupo de modelos por vez.",
+         "This vehicle no longer exists.": "Este veículo não existe mais.",
+         "This vehicle is not on a line.": "Este veículo não está em nenhuma linha.",
+         "Fleet: {name}": "Frota: {name}",
+@@ -1822,10 +1853,18 @@
+         "Tile": "Bloco",
+         "Debug: performance log": "Depuração: registro de desempenho",
+         "On": "Ligado",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Desligado: jogo normal. Ligado: a cada 30 s, o Problem Radar\ngrava no arquivo de log do jogo (stdout.txt, linhas que\ncomeçam com [SQPERF]) quanto tempo levaram suas verificações\ne janelas. Apenas para investigar lentidão; caso contrário,\ndeixe Desligado. Chamadas lentas são sempre registradas\nbrevemente, qualquer que seja esta configuração."
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "Desligado: jogo normal. Ligado: a cada 30 s, o Problem Radar\ngrava no arquivo de log do jogo (stdout.txt, linhas que\ncomeçam com [SQPERF]) quanto tempo levaram suas verificações\ne janelas. Apenas para investigar lentidão; caso contrário,\ndeixe Desligado. Chamadas lentas são sempre registradas\nbrevemente, qualquer que seja esta configuração.",
++        "Oldest": "Mais antigo",
++        "The vehicle model. Trains show their composition.": "O modelo do veículo. Trens mostram sua composição.",
++        "Vehicles of this model on the line.": "Veículos deste modelo na linha.",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "Idade do veículo mais antigo deste modelo\ne vida útil do modelo, em anos.",
++        "Vehicles of this model older than their lifespan.": "Veículos deste modelo que passaram da vida útil.",
++        "The vehicle you opened this window for has this model.": "O veículo para o qual você abriu esta janela é deste modelo.",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "Abre a janela \"Substituir Veículos\" do jogo para este veículo.\nLá você escolhe o novo veículo e confirma o preço.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "Abre a janela \"Substituir Veículos\" do jogo para estes veículos.\nLá você escolhe o novo veículo e confirma o preço.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "Abre a janela \"Substituir Veículos\" do jogo para estes veículos.\nLá você escolhe o novo veículo e confirma o preço.\nTrens de composições diferentes são renovados\num grupo de modelos por vez."
+     },
+     "ja": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "これらの車両についてゲームの「車両の置き換え」ウィンドウを開きます",
+         "{n} y": "{n} 年",
+         "Line": "路線",
+         "Vehicles": "車両",
+@@ -1851,14 +1890,11 @@
+         "Fleet by model": "モデル別の車両群",
+         "Model": "モデル",
+         "Count": "数量",
+-        "Oldest: age / lifespan": "最古：年数／耐用年数",
+         "Upgrade old vehicles ({n})…": "老朽車両を更新（{n}）…",
+         "Upgrade this vehicle…": "この車両を更新…",
+         "Upgrade whole fleet ({n})…": "車両群全体を更新（{n}）…",
+         "Show line": "路線を表示",
+         "Open the line's window": "路線ウィンドウを開く",
+-        "Upgrade": "更新",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "更新ボタンはゲームの「車両の置き換え」ウィンドウを開きます。そこで新しい車両を選び、価格を確認します。編成の異なる列車は、モデルグループごとに更新されます。",
+         "This vehicle no longer exists.": "この車両はもう存在しません。",
+         "This vehicle is not on a line.": "この車両は路線に割り当てられていません。",
+         "Fleet: {name}": "車両群：{name}",
+@@ -2050,10 +2086,18 @@
+         "Tile": "タイル",
+         "Debug: performance log": "デバッグ：パフォーマンスログ",
+         "On": "オン",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "オフ：通常プレイ。オン：30秒ごとに、Problem Radar のスキャン\nとウィンドウにかかった時間を、ゲームのログファイル\n(stdout.txt、[SQPERF] で始まる行) に書き込みます。動作が遅く\nなる原因を調べるときだけ使い、それ以外はオフのままにしてくだ\nさい。遅い呼び出しはこの設定に関係なく常に簡潔に記録されます。"
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "オフ：通常プレイ。オン：30秒ごとに、Problem Radar のスキャン\nとウィンドウにかかった時間を、ゲームのログファイル\n(stdout.txt、[SQPERF] で始まる行) に書き込みます。動作が遅く\nなる原因を調べるときだけ使い、それ以外はオフのままにしてくだ\nさい。遅い呼び出しはこの設定に関係なく常に簡潔に記録されます。",
++        "Oldest": "最古",
++        "The vehicle model. Trains show their composition.": "車両のモデル。列車は編成を表示します。",
++        "Vehicles of this model on the line.": "この路線にあるこのモデルの車両数。",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "このモデルで最も古い車両の年数と\nモデルの耐用年数（年）。",
++        "Vehicles of this model older than their lifespan.": "耐用年数を超えたこのモデルの車両数。",
++        "The vehicle you opened this window for has this model.": "このウィンドウを開いた車両はこのモデルです。",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "この車両についてゲームの「車両の置き換え」ウィンドウを開きます。\nそこで新しい車両を選び、価格を確認します。",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "これらの車両についてゲームの「車両の置き換え」ウィンドウを開きます。\nそこで新しい車両を選び、価格を確認します。",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "これらの車両についてゲームの「車両の置き換え」ウィンドウを開きます。\nそこで新しい車両を選び、価格を確認します。\n編成の異なる列車は、\nモデルグループごとに更新されます。"
+     },
+     "ko": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "이 운송 수단에 대해 게임의 '운송 수단 교체' 창을 엽니다",
+         "{n} y": "{n}년",
+         "Line": "노선",
+         "Vehicles": "운송 수단",
+@@ -2079,14 +2123,11 @@
+         "Fleet by model": "모델별 보유 차량",
+         "Model": "모델",
+         "Count": "총계",
+-        "Oldest: age / lifespan": "최고령: 연식/수명",
+         "Upgrade old vehicles ({n})…": "노후 운송 수단 교체 ({n})…",
+         "Upgrade this vehicle…": "이 운송 수단 교체…",
+         "Upgrade whole fleet ({n})…": "보유 차량 전체 교체 ({n})…",
+         "Show line": "노선 보기",
+         "Open the line's window": "노선 창 열기",
+-        "Upgrade": "교체",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "교체 버튼은 게임의 '운송 수단 교체' 창을 엽니다. 그곳에서 새 운송 수단을 고르고 가격을 확인합니다. 편성이 다른 열차는 모델 그룹별로 하나씩 교체됩니다.",
+         "This vehicle no longer exists.": "이 운송 수단은 더 이상 존재하지 않습니다.",
+         "This vehicle is not on a line.": "이 운송 수단은 노선에 배정되지 않았습니다.",
+         "Fleet: {name}": "보유 차량: {name}",
+@@ -2278,10 +2319,18 @@
+         "Tile": "타일",
+         "Debug: performance log": "디버그: 성능 로그",
+         "On": "켜기",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "끄기: 일반 플레이. 켜기: 30초마다 Problem Radar의 스캔과\n창에 걸린 시간을 게임 로그 파일(stdout.txt, [SQPERF]로\n시작하는 줄)에 기록합니다. 느려지는 원인을 찾을 때만\n사용하고, 그 외에는 끄기로 두세요. 느린 호출은 이 설정과\n관계없이 항상 간단히 기록됩니다."
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "끄기: 일반 플레이. 켜기: 30초마다 Problem Radar의 스캔과\n창에 걸린 시간을 게임 로그 파일(stdout.txt, [SQPERF]로\n시작하는 줄)에 기록합니다. 느려지는 원인을 찾을 때만\n사용하고, 그 외에는 끄기로 두세요. 느린 호출은 이 설정과\n관계없이 항상 간단히 기록됩니다.",
++        "Oldest": "최고령",
++        "The vehicle model. Trains show their composition.": "운송 수단 모델입니다. 열차는 편성을 표시합니다.",
++        "Vehicles of this model on the line.": "이 노선에 있는 이 모델의 운송 수단 수입니다.",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "이 모델에서 가장 오래된 운송 수단의 연식과\n모델의 수명(년)입니다.",
++        "Vehicles of this model older than their lifespan.": "수명을 넘긴 이 모델의 운송 수단 수입니다.",
++        "The vehicle you opened this window for has this model.": "이 창을 연 운송 수단이 이 모델입니다.",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "이 운송 수단에 대해 게임의 '운송 수단 교체' 창을 엽니다.\n그곳에서 새 운송 수단을 고르고 가격을 확인합니다.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "이 운송 수단들에 대해 게임의 '운송 수단 교체' 창을 엽니다.\n그곳에서 새 운송 수단을 고르고 가격을 확인합니다.",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "이 운송 수단들에 대해 게임의 '운송 수단 교체' 창을 엽니다.\n그곳에서 새 운송 수단을 고르고 가격을 확인합니다.\n편성이 다른 열차는\n모델 그룹별로 하나씩 교체됩니다."
+     },
+     "zh_CN": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "为这些载具打开游戏的“替换载具”窗口",
+         "{n} y": "{n} 年",
+         "Line": "线路",
+         "Vehicles": "载具",
+@@ -2307,14 +2356,11 @@
+         "Fleet by model": "按模型分类的车队",
+         "Model": "模型",
+         "Count": "计数",
+-        "Oldest: age / lifespan": "最旧：车龄/寿命",
+         "Upgrade old vehicles ({n})…": "更新老旧载具（{n}）…",
+         "Upgrade this vehicle…": "更新此载具…",
+         "Upgrade whole fleet ({n})…": "更新整个车队（{n}）…",
+         "Show line": "显示线路",
+         "Open the line's window": "打开线路窗口",
+-        "Upgrade": "更新",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "更新按钮会打开游戏的“替换载具”窗口，你可以在其中选择新载具并确认价格。编组不同的列车按模型组逐一更新。",
+         "This vehicle no longer exists.": "此载具已不存在。",
+         "This vehicle is not on a line.": "此载具未分配到线路。",
+         "Fleet: {name}": "车队：{name}",
+@@ -2506,10 +2552,18 @@
+         "Tile": "方块",
+         "Debug: performance log": "调试：性能日志",
+         "On": "开",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "关：正常游戏。开：每 30 秒，Problem Radar 会将其扫描和窗口所\n用的时间写入游戏日志文件 (stdout.txt, 以 [SQPERF] 开头的行)。\n仅用于排查卡顿，其他情况请保持关闭。无论此设置如何，缓慢的调\n用都会被简要记录。"
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "关：正常游戏。开：每 30 秒，Problem Radar 会将其扫描和窗口所\n用的时间写入游戏日志文件 (stdout.txt, 以 [SQPERF] 开头的行)。\n仅用于排查卡顿，其他情况请保持关闭。无论此设置如何，缓慢的调\n用都会被简要记录。",
++        "Oldest": "最旧",
++        "The vehicle model. Trains show their composition.": "载具模型。列车显示其编组。",
++        "Vehicles of this model on the line.": "该线路上此模型的载具数量。",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "此模型中最旧载具的车龄\n以及该模型的寿命（年）。",
++        "Vehicles of this model older than their lifespan.": "超出寿命的此模型载具数量。",
++        "The vehicle you opened this window for has this model.": "打开此窗口的载具属于此模型。",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "为此载具打开游戏的“替换载具”窗口。\n你可以在其中选择新载具并确认价格。",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "为这些载具打开游戏的“替换载具”窗口。\n你可以在其中选择新载具并确认价格。",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "为这些载具打开游戏的“替换载具”窗口。\n你可以在其中选择新载具并确认价格。\n编组不同的列车按模型组逐一更新。"
+     },
+     "zh_TW": {
+-        "Opens the game's Replace Vehicles window for these vehicles": "為這些車輛開啟遊戲的「替換車輛」視窗",
+         "{n} y": "{n} 年",
+         "Line": "路線",
+         "Vehicles": "車輛",
+@@ -2535,14 +2589,11 @@
+         "Fleet by model": "按型號分類的車隊",
+         "Model": "型號",
+         "Count": "數量",
+-        "Oldest: age / lifespan": "最舊：車齡/壽命",
+         "Upgrade old vehicles ({n})…": "更新老舊車輛（{n}）…",
+         "Upgrade this vehicle…": "更新此車輛…",
+         "Upgrade whole fleet ({n})…": "更新整個車隊（{n}）…",
+         "Show line": "顯示路線",
+         "Open the line's window": "開啟路線視窗",
+-        "Upgrade": "更新",
+-        "The Upgrade buttons open the game's Replace Vehicles window, where you choose the new vehicle and confirm the price. Trains of different compositions are upgraded one model group at a time.": "更新按鈕會開啟遊戲的「替換車輛」視窗，你可以在其中選擇新車輛並確認價格。編組不同的列車按型號組逐一更新。",
+         "This vehicle no longer exists.": "此車輛已不存在。",
+         "This vehicle is not on a line.": "此車輛未分配到路線。",
+         "Fleet: {name}": "車隊：{name}",
+@@ -2734,6 +2785,15 @@
+         "Tile": "方塊",
+         "Debug: performance log": "除錯：效能記錄",
+         "On": "開",
+-        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "關：正常遊戲。開：每 30 秒，Problem Radar 會將其掃描與視窗所\n用的時間寫入遊戲記錄檔 (stdout.txt, 以 [SQPERF] 開頭的行)。\n僅用於排查卡頓，其他情況請保持關閉。無論此設定為何，緩慢的呼\n叫都會被簡要記錄。"
++        "Off: normal play. On: every 30 s, Problem Radar writes how\nlong its scans and windows took to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.": "關：正常遊戲。開：每 30 秒，Problem Radar 會將其掃描與視窗所\n用的時間寫入遊戲記錄檔 (stdout.txt, 以 [SQPERF] 開頭的行)。\n僅用於排查卡頓，其他情況請保持關閉。無論此設定為何，緩慢的呼\n叫都會被簡要記錄。",
++        "Oldest": "最舊",
++        "The vehicle model. Trains show their composition.": "車輛型號。列車顯示其編組。",
++        "Vehicles of this model on the line.": "此路線上該型號的車輛數量。",
++        "Age of the oldest vehicle of this model\nand the model's lifespan, in years.": "該型號中最舊車輛的車齡\n以及該型號的壽命（年）。",
++        "Vehicles of this model older than their lifespan.": "超出壽命的該型號車輛數量。",
++        "The vehicle you opened this window for has this model.": "開啟此視窗的車輛屬於該型號。",
++        "Opens the game's Replace Vehicles window for this vehicle.\nThere you choose the new vehicle and confirm the price.": "為此車輛開啟遊戲的「替換車輛」視窗。\n你可以在其中選擇新車輛並確認價格。",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.": "為這些車輛開啟遊戲的「替換車輛」視窗。\n你可以在其中選擇新車輛並確認價格。",
++        "Opens the game's Replace Vehicles window for these vehicles.\nThere you choose the new vehicle and confirm the price.\nTrains of different compositions are upgraded\none model group at a time.": "為這些車輛開啟遊戲的「替換車輛」視窗。\n你可以在其中選擇新車輛並確認價格。\n編組不同的列車按型號組逐一更新。"
+     }
+ }
+diff --git a/mods/square_problem_radar/_metadata/description.html b/mods/square_problem_radar/_metadata/description.html
+index f3e96be..8161b69 100644
+--- a/mods/square_problem_radar/_metadata/description.html
++++ b/mods/square_problem_radar/_metadata/description.html
+@@ -8,7 +8,7 @@
+ <li><strong>Fleet</strong>: worn, past its lifespan, idle in a depot.</li>
+ <li><strong>Economy</strong>: lines that lost money over the last 12 months (in at least 3 of the 4 quarters), and lines whose average utilisation over about a year is very low. Bigger losses and emptier lines get a higher severity.</li>
+ <li><strong>Fleet window</strong>: the ↑ Upg button on an Old or Worn vehicle's row opens a Fleet window for its line: vehicles (how many are past their lifespan or worn), capacity, current load with a utilisation bar, frequency, passengers and cargo transported per year and the average age against the lifespan, next to the last 12 months' income, running costs, maintenance and balance. Fleet by model lists each model with its count, the oldest vehicle's age and how many are past their lifespan.</li>
+-<li><strong>Upgrade</strong>: "Upgrade old vehicles", "Upgrade this vehicle", "Upgrade whole fleet" and the "Upgrade N…" button on each model open the game's own Replace Vehicles window with those vehicles, where you pick the new model and confirm the price. Replaced vehicles leave the radar at once. "Show line" opens the line's window.</li>
++<li><strong>Upgrade</strong>: "Upgrade old vehicles", "Upgrade this vehicle", "Upgrade whole fleet" and, on a line with several models, the "Upgrade N…" button on each model open the game's own Replace Vehicles window with those vehicles, where you pick the new model and confirm the price. Replaced vehicles leave the radar at once. "Show line" opens the line's window.</li>
+ <li><strong>Badge</strong>: a small badge or a compact one-row panel in the top-left button ridge shows the number of problems, coloured by the worst severity.</li>
+ <li><strong>Tabs</strong> for All, Vehicles, Lines, Stations, Fleet and Economy, each with its count, plus Snoozed and Settings. Click a row to move the camera there and open the vehicle, line or station window.</li>
+ <li><strong>Notifications</strong>: each alert type can be set to Off, List (shown in the radar only) or Notify (also a game notification when the problem first appears). Notifications are rate-limited and can be paused.</li>
+@@ -45,6 +45,7 @@
+ <h4>Revision 9 (2026-10-13)</h4>
+ <ul>
+ <li>The top bar button now has the same spacing as the game's data layers button and other mods' buttons, so a row of buttons looks even.</li>
++<li>Fleet window redesigned in the game's own style: line, money and model table in the game's cards with their headings above them, shorter table headings (hover them for the full meaning), Upgrade buttons in the model table only when the line runs more than one model, and one row of buttons below. The explanation of the Upgrade buttons is now in their tooltips.</li>
+ </ul>
+ <h4>Revision 8 (2026-10-12)</h4>
+ <ul>
+diff --git a/tests/square_problem_radar/test_inline.lua b/tests/square_problem_radar/test_inline.lua
+index 27c9394..182bb92 100644
+--- a/tests/square_problem_radar/test_inline.lua
++++ b/tests/square_problem_radar/test_inline.lua
+@@ -17,9 +17,15 @@ local function sheet(t)
+ end
+ local function peek(st) return st and rawget(st, "_v") end
+ stub_module("::/gui/main/styleutil.tl", {
+-	makeStyle = function(t) return sheet({ size = t.size, color = t.color, backgroundColor = t.backgroundColor }) end,
++	makeStyle = function(t)
++		return sheet({ size = t.size, color = t.color, backgroundColor = t.backgroundColor,
++			backgroundColor1 = t.backgroundColor1, backgroundImage1 = t.backgroundImage1, borderColor = t.borderColor })
++	end,
+ })
+-stub_module("::/gui/main/color_util.tl", { withTransparencyRaw = function(c, _) return c end })
++-- colour with alpha = { name, alpha }
++stub_module("::/gui/main/color_util.tl", { withTransparencyRaw = function(c, a) return { c[1], a } end })
++-- NinePatch: a plain table unless NINEPATCH_FAILS (the binding refusing the vector fields)
++local NINEPATCH_FAILS = false
+ set_global("api", {
+ 	gui = {
+ 		genericRep = {
+@@ -30,6 +36,10 @@ set_global("api", {
+ 			end,
+ 		},
+ 		StyleSheet = { new = function() return sheet({}) end },
++		NinePatch = { new = function()
++			if NINEPATCH_FAILS then error("NinePatch.horizontal: vector not convertible") end
++			return {}
++		end },
+ 	},
+ 	type = { Vec4f = { new = function(a, b, c, d) return { a, b, c, d } end } },
+ })
+@@ -51,7 +61,18 @@ test("fixed-width cells: size = the former min = max width, colour where the rul
+ 	eq(ctx.size, { 125, -1 })
+ 	eq(ctx.color, { "NeutralLight" })
+ 	eq(peek(inline.text("font-scale-annotation, radar-row-fleet-gap")).size, { 78, -1 })
+-	eq(peek(inline.text("font-scale-body, radar-fleet-mark")).color, { "AccentLight" })
++	-- native fleet window: the fixed table columns and the left heading's width
++	eq(peek(inline.text("font-scale-body, radar-fleet-num")).size, { 80, -1 })
++	eq(peek(inline.text("font-scale-body, radar-fleet-age, radar-tier-2")).size, { 110, -1 })
++	eq(peek(inline.text("font-scale-body, radar-fleet-age, radar-tier-2")).color, { "Warning" })
++	eq(peek(inline.text("font-scale-annotation, radar-fleet-past, radar-dim")).size, { 120, -1 })
++	eq(peek(inline.text("font-scale-annotation, radar-fleet-past, radar-dim")).color, { "NeutralLight" })
++	local headCol = peek(inline.text("font-scale-headline, radar-fleet-head-col"))
++	eq(headCol.size, { 366, -1 })
++	eq(headCol.padding, { 10, 0, 2, 0 })
++	-- the vehicle's own model group: accent name (was the "›" marker's colour)
++	eq(peek(inline.text("font-scale-body, radar-fleet-model, radar-fleet-target")).color, { "AccentLight" })
++	eq(inline.text("font-scale-body, radar-fleet-model"), nil)
+ end)
+ 
+ test("former margins become padding (top, right, bottom, left)", function()
+@@ -82,3 +103,64 @@ test("row buttons and the compact panel", function()
+ 	eq(c.backgroundColor, { "BaseVeryDark" })
+ 	eq(c.padding, { 2, 8, 2, 8 })
+ end)
++
++test("fleet window: native cards (base card nine-patch, Timetables tints) inside the 740 px content", function()
++	local card = peek(inline.fleetCard())
++	eq(card.size, { 350, -1 })
++	eq(card.padding, { 6, 8, 6, 8 })
++	eq(card.backgroundColor1, { "BaseMedium" })
++	eq(card.borderColor, { "BaseVeryLight" })
++	eq(card.backgroundImage1.fileName, "::/gui/entity_window/design/card_surface.tga")
++	eq(card.backgroundImage1.horizontal, { 0, 6, 26, 32 })
++	eq(card.backgroundImage1.vertical, { 0, 6, 26, 32 })
++	eq(card.borderImage.fileName, "::/gui/entity_window/design/card_contour.tga")
++	eq(card.borderImage.horizontal, { 0, 6, 26, 32 })
++	-- two cards (350 + 2 x 8 padding) and the 8 px gap fill the content width
++	eq(2 * (350 + 16) + 8, 740)
++	local tableCard = peek(inline.fleetTableCard())
++	eq(tableCard.size, { 724, -1 })
++	eq(tableCard.padding, { 6, 8, 6, 8 })
++	ok(rawequal(inline.fleetCard(), inline.fleetCard()))
++end)
++
++test("fleet window: rows, zebra, lines, bar, scroll area, buttons", function()
++	local odd, even = peek(inline.fleetRow(true)), peek(inline.fleetRow(false))
++	eq(odd.size, { 716, -1 })
++	eq(odd.padding, { 3, 4, 3, 4 })
++	eq(odd.backgroundColor, { "NeutralLightest", 0.05 })
++	eq(even.size, { 716, -1 })
++	eq(even.backgroundColor, nil)
++	eq(peek(inline.fleetHeadRow()).padding, { 0, 4, 0, 4 })
++	eq(peek(inline.fleetHeadRow()).size, { 716, -1 })
++	local dim = peek(inline.fleetDimLine())
++	eq(dim.size, { 724, 1 })
++	eq(dim.backgroundColor, { "BaseLight" })
++	local sum = peek(inline.fleetSumLine())
++	eq(sum.size, { 350, 1 })
++	eq(sum.backgroundColor, { "BaseVeryLight" })
++	eq(peek(inline.fleetUsage()).size, { 350, 14 })
++	eq(peek(inline.fleetGroups()).size, { 724, 260 })
++	eq(peek(inline.fleetButton()).padding, { 4, 10, 4, 10 })
++	eq(peek(inline.fleetGap()).size, { 1, 4 })
++end)
++
++test("fleet window: card falls back to the former subtle panel when the nine-patch is refused", function()
++	NINEPATCH_FAILS = true
++	clear_logs()
++	reset_modules()
++	local ok_, fresh = pcall(ug_require, "/radar/gui/radar_inline.tl")
++	local card = ok_ and peek(fresh.fleetCard()) or nil
++	NINEPATCH_FAILS = false
++	reset_modules()
++	ok(ok_, tostring(fresh))
++	eq(card.backgroundImage1, nil)
++	eq(card.borderImage, nil)
++	eq(card.backgroundColor, { "BaseLight", 0.5 })
++	eq(card.size, { 350, -1 })
++	eq(card.padding, { 6, 8, 6, 8 })
++	local warned = 0
++	for __, e in ipairs(log_entries()) do
++		if e.level == "warning" and e.msg:find("card nine-patch", 1, true) then warned = warned + 1 end
++	end
++	eq(warned, 1)
++end)

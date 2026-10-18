@@ -775,6 +775,9 @@ global record ProblemRadarHudModel
 	--- Translated severity of a kind for the Settings table: "Warning", or "Info to Critical" for a
 	--- kind whose tier scales (maxTier).
 	kindTierLabel : function(kind : string) : string
+	--- Tooltip text broken into lines of at most `width` columns (CJK counts 2; never a line starting
+	--- with closing punctuation); existing line breaks kept.
+	wrapTooltip : function(text : string, width : integer) : string
 	--- Translated short kind label ("Stuck"); the kind itself if unknown.
 	kindLabel : function(kind : string) : string
 	--- Translated tier name: "Critical" | "Warning" | "Info".
@@ -886,14 +889,36 @@ end
 --- INLINE STYLES (rev 6, stylesheet rule budget; gui/radar_inline.tl): cached StyleSheets for
 --- meta.styleSheet that replace radar_hud.css.lua rules. GUI thread only (renders).
 global record ProblemRadarInline
-	--- Colour of a TextView from its radar-* text classes (tier, dim, fleet sum / money); nil if none.
+	--- Inline style of a TextView from its radar-* classes: colour (tier, dim, fleet sum / money) and
+	--- (step 2) fixed width / padding / colour of the layout classes; nil if none.
 	text : function(class : string) : StyleSheet
+	rowButton : function() : StyleSheet    -- step 2: row buttons' padding (WIN Button!radar-row)
+	compact : function() : StyleSheet      -- step 2: "compact" HUD panel background + padding
 	badge : function() : StyleSheet        -- ridge Button!radar-badge padding
+	tileBadge : function() : StyleSheet    -- "Tile" ridge ToggleButton (mod.json hudButtonStyle): height + padding
 	content : function() : StyleSheet      -- R::ProblemRadarContent size + padding
 	listContent : function() : StyleSheet  -- the alert list's ScrollArea content padding
 	fleetContent : function() : StyleSheet -- R::ProblemRadarFleetContent size + padding
-	fleetDimLine : function() : StyleSheet -- the model table's dim divider background
-	fleetRowOdd : function() : StyleSheet  -- odd model rows' background
+	fleetDimLine : function() : StyleSheet -- the model table's dim divider under the header (size + colour)
+	-- native fleet window (2026-10-14): replace 11 of the fleet window's radar_hud.css.lua rules
+	fleetRow : function(odd : boolean) : StyleSheet -- model rows: fixed width + padding, odd rows zebra
+	fleetHeadRow : function() : StyleSheet   -- the table header row: the rows' width + padding
+	fleetCard : function() : StyleSheet      -- top cards: base card nine-patch (surface + contour) + padding
+	fleetTableCard : function() : StyleSheet -- the model table's card
+	fleetSumLine : function() : StyleSheet   -- 1 px line above Balance
+	fleetUsage : function() : StyleSheet     -- utilization ProgressBar size
+	fleetGroups : function() : StyleSheet    -- the model table's ScrollArea size (many groups)
+	fleetButton : function() : StyleSheet    -- action buttons' padding
+	fleetGap : function() : StyleSheet       -- small fixed gap above the action row
+	-- native main window (2026-10-14): 10 of the main window's radar_hud.css.lua rules gone
+	listCard : function() : StyleSheet                -- the alert list's native card
+	listRow : function(odd : boolean) : StyleSheet    -- alert rows: fixed width + padding, odd rows zebra
+	setCard : function(left : boolean) : StyleSheet   -- Settings tab cards (left: alerts, right: numbers)
+	spin : function() : StyleSheet                    -- Settings DoubleSpinBox width
+	footer : function() : StyleSheet                  -- the tab footer's top padding
+	footerLine : function() : StyleSheet              -- 1 px line above the tab footer
+	setRow : function() : StyleSheet                  -- Settings rows: padding above and below
+	box : function(width : number) : StyleSheet       -- fixed-width column box (size { width, -1 })
 end
 
 recordDef = false

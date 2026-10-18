@@ -6,6 +6,79 @@ One ordered checklist for the finished mod (phases 1-5, the phase 6 review fixes
 
 Report back every `[ProblemRadar]` log line, especially `… failed (further failures not logged)` and `… failed N times in a row; its alerts were removed`.
 
+## 0. Inline step 2 (2026-10-14): same look with 10 fewer stylesheet rules
+
+Compare with a screenshot from before if you have one; everything should look as it did.
+
+1. **Passed 2026-10-14** (user screenshots of the Lines and Fleet tabs, session `2026-10-14_0653_session`;
+   columns, row height and padding match `shots/01-all-tab.jpg` / `02-fleet-tab-upg.jpg` within a few px; the
+   compact HUD toggle and a snooze ran without errors). Radar window, Alerts tab: rows keep their column widths (label 170 px, the dim context column 125 px, the empty
+   cell under "↑ Upg" on rows without it), row buttons keep their compact padding, "+N more" is dim with space around it.
+2. With no alerts: "No problems detected" (green) has the same space around it.
+3. Settings tab: the section titles ("General", "Alerts", ...) keep their space above and below.
+4. HUD style "compact": the very dark panel with its padding.
+5. Fleet window: section titles bright with space above and "This vehicle no longer exists." (dim) with space
+   around it. (The "›" marker column is gone since the native fleet window, §0b.)
+
+If something is off: `git apply -R plans/square_problem_radar/inline_styles_2.patch` and report which item.
+
+## 0b. Native fleet window (2026-10-14, rev 10): base look, 11 fewer stylesheet rules
+
+**Passed 2026-10-14** (user screenshot, session `2026-10-14_0753_sqrl-sqsg`): cards with surface + contour, both top
+cards top-aligned, one-line headers, primary / secondary buttons, no `card nine-patch` warning. Still open: the
+de/ru at body 19 clipping check (item 4) and a line with 2+ model groups (per-row Upgrade buttons).
+
+Open the fleet window from an "↑ Upg" row and compare with the screenshot from before (2026-10-14: subtle panels,
+dividers under each title, two-line table headers, a "›" column, the hint text under the buttons).
+
+1. **Cards:** the Line, Last 12 months and Fleet by model panels are the game's cards (rounded surface with a light
+   contour, as the line manager's panels and Timetables' cards), not flat rectangles or stretched blurry images.
+   The headings ("Line", "Last 12 months", "Fleet by model") sit above their cards, brighter; no dividers inside.
+   No `[ProblemRadar] card nine-patch not available` warning in the log (it means the plain fallback panel showed).
+2. **Top cards:** both are as tall as each other and the Last 12 months content starts at the top (not centred);
+   the utilization bar keeps its 14 px height (doesn't grow into the spare space).
+3. **Table:** headers on one line ("Model", "Count", "Oldest", "Past lifespan"), each with a tooltip; numbers
+   left-aligned under them; odd rows faintly lighter; one model group: no Upgrade buttons in the row; several
+   groups: the per-row "Upgrade N…" buttons, and the vehicle's own model name in the accent colour with a tooltip.
+   Check a language with long words (de, ru) at body text size 19: headers don't clip.
+4. **Buttons:** one row: the main fleet action ("Upgrade old vehicles (N)…", else "Upgrade whole fleet (N)…",
+   else "Upgrade this vehicle…") filled accent (`primary`), the others outlined (`secondary`), compact padding,
+   gaps between them; each opens the Replace Vehicles window as before. Their tooltips explain the window,
+   wrapped to short lines (no hint text under the buttons any more).
+5. Window width unchanged (740 px content); with more than 6 model groups the table scrolls inside its card.
+
+If something is off: `git apply -R plans/square_problem_radar/fleet_window_native.patch` and report which item.
+
+## 0c. Native main window (2026-10-14, rev 10): list in a card, tidy Settings, 10 fewer stylesheet rules
+
+**Round 1 passed 2026-10-14** (user screenshots, session `2026-10-14_0842_session`): the list in one card with zebra
+rows, no Upg gap on tabs without fleet rows, the info hint at the top of an empty tab with the footer at the bottom,
+Settings columns top-aligned with a card per section, the 72 px spin boxes. Round 2 (same day) fixed what the
+screenshots showed: names running into the detail text, details wrapping beside an empty right part, the Upg gap
+on every row of the All tab, spin boxes not lining up, cramped two-line ranges, wrapping long labels.
+
+1. **List:** ~~in one card, zebra~~ (passed). Hovering a row still highlights it (open).
+2. **Columns (round 2):** a visible gap between every column on every row; a long line name wraps to a second line
+   inside its cell instead of running into the detail; the second dim line shows the type and the line / depot
+   ("Truck · RC Grain"); most details fit one line, the metric right after the detail.
+3. **"↑ Upg" (round 2):** at the end of Old / Worn rows (after the metric); on the All tab the other rows have no
+   gap between "Zz" and the dot, and the left columns are identical on every tab.
+4. **Actions** (open): row click jumps the camera and opens the entity window; "Zz" snoozes (the row moves to
+   Snoozed at once), "×" on the Snoozed tab unsnoozes; "↑ Upg" opens the fleet window; "→" on Blocked / Waiting rows
+   shows the other train; every button keeps its tooltip.
+5. ~~Empty tab: info hint at the top, footer at the bottom~~ (passed). Footer: "Zz snoozes an alert for" roughly
+   level with the 1 month … 5 years buttons; Snoozed tab: an outlined "Unsnooze all" (tooltip) and the wrapped text.
+6. **Settings (round 2):** ~~top-aligned cards~~ (passed). Every spin box of the right column in one vertical line,
+   every range on ONE dim line in one column ("1-240 min · default 3"); rows with a little air between them; the
+   Alerts card: every Off / List / Notify group starts at the same x (also "Info to Critical" rows). No label wraps
+   in English ("Smoothing (game seconds)", "Snooze length (game months)", …); hovering a label or spin box shows the
+   full explanation on short lines plus the range. Values still change, persist and reset ("Reset to defaults").
+   No clipping at the right edge; de / ru at body 19.
+7. Log: no new `[ProblemRadar]` warning, no "Recipe child must be a layout".
+
+If something is off: `git apply -R plans/square_problem_radar/main_window_native.patch` (both rounds) and report
+which item.
+
 ## 1. Setup and log tail
 
 1. Run `make link`, then tick **Problem Radar** in the mod list.
@@ -211,7 +284,6 @@ Each item has a helper to paste into the console. A failure in the radar shows a
 
 Defaults: both **List**; Losing money = Info when the 12-month balance is negative with ≥ 3 of 4 quarters negative, tier by points: coverage (income ÷ the line's vehicle costs) < 75 % = 1, < 50 % = 2; loss ≥ 2 % of all lines' vehicle costs = 1, ≥ 6 % = 2; 0 Info, 1-2 Warning, ≥ 3 Critical; Low use = yearly average utilisation < 20 % (Warning < 10 %, Critical < 5 %), judged once a line has been tracked for half a game year. Use a copy of an established save (≥ 1 game year old, some weak lines) and 32× speed.
 
-- [x] **`calculateBalance` on the sim thread** (only base GUI code calls it): play 10 minutes; no `[ProblemRadar] line money scan failed (calculateBalance): …` warning. If it appears, report the full line: the money part then stays empty (its previous rows are kept for 10 failures, then dropped) while `line_low_use` and every other alert keep working. *(2026-10-07: passed: Losing-money rows listed in a Dec 1992 save, `shots/04-economy.jpg`.)*
 - [ ] **Balance matches the base line window:** for a line listed as *Losing money*, the row's money (metric column) matches the line window's 12-month **Balance** to two significant digits. Console (GUI thread; the same call the engine makes):
   ```lua
   local line = <lineId>
@@ -306,6 +378,14 @@ with vehicles past their lifespan (the Old row's `Age N y` detail). Fleet rows s
 - [ ] **SQPERF** (debug log on): `fleet_render`, `poll_fleet`, `click_fleet_open`, `click_fleet_replace` in the
   `ctx=gui` lines; `poll_fleet` well under 16 ms on a 100-vehicle line; `poll_window` not noticeably slower in
   the 30 s after a replace.
+
+## 14. Snooze (rev 3)
+
+From `history/PERF_REVIEW.md` "In-game check list" (2026-10-08), still open:
+
+- [ ] Open the radar window with nothing snoozed and leave it open: no FPS change vs closed (idle poll).
+- [ ] Snooze a row (Zz): it moves to Snoozed at once and stays there after the next polls; wake it with ×.
+- [ ] TESTING.md "Field-level state reads" (§10): confirm `state_native` works (otherwise the fallback note in `history/PERF_REVIEW.md` applies).
 
 ## Report back
 

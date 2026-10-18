@@ -506,3 +506,20 @@ test("translated templates: units, joins and parentheses come from _(), names st
 	_ = real
 	if not okRun then error(err, 0) end
 end)
+
+test("wrapTooltip: lines of at most the width, CJK double, no line starts with closing punctuation", function()
+	eq(model.wrapTooltip("Losing money: a big loss is at least, of all lines' vehicle costs (3× = very big)", 40),
+		"Losing money: a big loss is at least, of\nall lines' vehicle costs (3× = very big)")
+	eq(model.wrapTooltip("short", 60), "short")
+	eq(model.wrapTooltip("a\nb c", 1), "a\nb\nc")
+	eq(model.wrapTooltip(nil, 60), nil)
+	-- a word longer than the width stays whole
+	eq(model.wrapTooltip("abcdefgh ij", 4), "abcdefgh\nij")
+	-- CJK: 2 columns each, breaks between characters; the 。 sticks to the character before it (both
+	-- move to the next line rather than the 。 starting one)
+	local w = model.wrapTooltip("警告警告警告。警告", 12)
+	eq(w, "警告警告警\n告。警告")
+	for line in (w .. "\n"):gmatch("(.-)\n") do ok(line:sub(1, 3) ~= "。") end
+	-- mixed: Latin words and CJK
+	eq(model.wrapTooltip("Zz で警告をスヌーズする期間", 10), "Zz で警告\nをスヌーズ\nする期間")
+end)

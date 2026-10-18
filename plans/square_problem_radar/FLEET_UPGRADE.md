@@ -1,5 +1,7 @@
 # Problem Radar: Fleet upgrade window (rev 6)
 
+Status: done 2026-10-10 (shipped in revision 6). Open in-game checks: TESTING.md §13.
+
 **Request (2026-10-10):** a button on old-vehicle rows that asks whether to upgrade the fleet, lets the player
 choose the vehicle to upgrade to, and shows the line's fleet stats (current load, usage, capacity, earnings, ...).
 

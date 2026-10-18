@@ -1,5 +1,7 @@
 # Problem Radar: the game script across simulation Lua states (2026-10-10)
 
+Status: research done and the `state.rt` fix shipped (revision 4, 2026-10-10). Current reference for the multi-state model; "Design options" and the tick-model probe are open, not decided.
+
 Question: SQPERF showed Problem Radar's game script (`content/radar/radar.script.tl`) logging `phase=init` and
 `phase=first` in ~14 Lua states per load ("Sim Pool 1..11", "Simulation Thread", "Load Game Pool 2"). Does every
 state scan every slot, and can the scans be cut to once per period?

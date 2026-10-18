@@ -15,7 +15,7 @@
 -- ROWS: plain Button rows of TextViews, not DataTable. DataTable cells only get userParam when they
 -- are created (builtin.d.tl:1161) and are keyed by integer rowKeys (statistic_vehicles.tl:409-414),
 -- so live alert rows would need a ref read inside each cell. Phase 2 keeps the dense Button rows
--- (columns: tier · kind · type · entity · context · detail · metric, fixed widths in the .css.lua);
+-- (columns: tier · kind · entity (+ type · context line) · detail · metric · [↑ Upg / →]; widths radar_inline.tl / .css.lua);
 -- the list is capped by the engine (radar_checks.MAX_STORED_ALERTS), and the window renders only the
 -- selected tab, at most hud_model.MAX_RENDERED_ROWS rows of it (Phase 6).
 --
@@ -50,6 +50,8 @@ local radar_fleet = ug_require "square_problem_radar::/radar/gui/radar_fleet.tl"
 radar_fleet.setPerf(perf)
 -- INLINE STYLES (rev 6): StyleSheets that replace radar_hud.css.lua rules (radar_inline.tl).
 local radar_inline = ug_require "square_problem_radar::/radar/gui/radar_inline.tl" as ProblemRadarInline
+-- Base empty-state hint (content_card.makeInfoHint, styled by base rules: zero of ours).
+local content_card = ug_require "::/gui/main/content_card.tl" as ContentCard
 
 -- src: .cache/game/mods/release/urbangames_campaign_mission_08/content/mission/mission_story.tl:891 (mod gs name)
 local GS_NAME <const> = "square_problem_radar::/radar/radar.gs"
@@ -417,7 +419,14 @@ local function untilText(ms : integer) : string
 	return out
 end
 
-local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
+--- One alert row (native main window, 2026-10-14): a Component of a fixed inline width holding the row's
+--- buttons, odd rows zebra-tinted (radar_inline.listRow, Timetables' zebra), inside the list's card.
+--- Columns (8 px apart, "R::ProblemRadarContent BoxLayout!radar-box"): Zz · dot · tier · kind · name with
+--- the type and context (line, depot) on a second line · detail · metric, then the optional "↑ Upg" /
+--- "→" buttons at the end, so the left columns are the same on every row and every tab. The name and
+--- detail cells wrap at a fixed width (radar-cell-wrap rule): an inline size alone doesn't clip, and a
+--- long name ran on into the detail text (round 2 screenshot).
+local function alertRow(row : ProblemRadarHudRow, odd : boolean) : TreeNodeId
 	local tip = row.tip
 	if tip == nil then
 		tip = row.detail
@@ -425,56 +434,71 @@ local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
 	end
 	local snoozed = row.snoozedUntil ~= nil
 	local metric = snoozed and untilText(row.snoozedUntil) or row.metric
+	local sub = row.typeLabel or ""
+	if row.context ~= nil and row.context ~= "" then
+		sub = sub ~= "" and (sub .. " · " .. row.context) or row.context
+	end
+	local nameCell : {TreeNodeId} = { text(row.label, "font-scale-body, radar-cell-wrap") }
+	if sub ~= "" then nameCell[2] = text(sub, "font-scale-annotation, radar-cell-wrap, radar-dim") end
 	local button = builtin.Button{
-		meta = { class = "radar-row", tooltip = tip },
+		meta = { class = "radar-row", tooltip = tip, styleSheet = radar_inline.rowButton() },
 		content = hbox({
 			dot(row.tier),
 			text(tierName(row.tier), "font-scale-annotation, radar-w60, radar-tier-" .. tostring(row.tier)),
 			text(row.kindLabel, "font-scale-annotation, radar-cell-kind"),
-			text(row.typeLabel, "font-scale-annotation, radar-w60, radar-dim"),
-			text(row.label, "font-scale-body, radar-cell-label"),
-			text(row.context, "font-scale-annotation, radar-cell-context"),
-			text(row.detail, "font-scale-annotation, radar-cell-detail"),
+			vbox(nameCell),
+			text(row.detail, "font-scale-annotation, radar-cell-wrap"),
 			text(metric, "font-scale-annotation, radar-dim"),
 		}),
 		onClick = rowHandler(row.id),
 	}
-	-- Sibling buttons (not nested inside the row button), so each has its own click. The snooze
-	-- button leads the row, so it lines up in one column whether or not the row has a second target.
+	-- Sibling buttons (not nested inside the row button), so each has its own click.
 	local children : {TreeNodeId} = {
 		builtin.Button{
-			meta = { class = "radar-row, radar-row-snooze", tooltip = snoozed and wakeTipText or snoozeTipText },
-			content = text(snoozed and "×" or "Zz", "font-scale-annotation"),
+			meta = { class = "radar-row, radar-row-snooze", tooltip = snoozed and wakeTipText or snoozeTipText, styleSheet = radar_inline.rowButton() },
+			content = text(snoozed and "×" or "Zz", "font-scale-annotation, radar-cell-zz"),
 			onClick = snoozeHandler(row.id),
 		},
+		button,
 	}
-	-- Rev 6: "↑ Upg" (fleet window) right after Zz, so it is never pushed past the list's edge by a long
-	-- detail (in game it sat after the metric and was clipped under the scrollbar). Rows without it get
-	-- an empty cell of the same width (radar_hud.css.lua radar-row-fleet / radar-row-fleet-gap), so the
-	-- columns line up. "↑": Lato, the GUI font, has U+2191 (it lacks ⇧ and ▲, docs/findings.md).
+	-- Rev 6: "↑ Upg" (fleet window) on Old / Worn rows, at the row's end since round 2 (a column of
+	-- its own left an empty gap on every other row of the All tab). "↑": Lato, the GUI font, has U+2191
+	-- (it lacks ⇧ and ▲, docs/findings.md).
 	if row.entity ~= nil and FLEET_KINDS[row.kind] then
 		children[#children + 1] = builtin.Button{
-			meta = { class = "radar-row, radar-row-fleet", tooltip = fleetTipText },
-			content = hbox({ text("↑", "font-scale-annotation"), text(fleetLabelText, "font-scale-annotation") }, "radar-row-fleet-box"),
+			meta = { class = "radar-row, radar-row-fleet", tooltip = fleetTipText, styleSheet = radar_inline.rowButton() },
+			content = text(fleetLabelText, "font-scale-annotation, radar-cell-upg"),
 			onClick = fleetHandler(row.id),
 		}
-	else
-		children[#children + 1] = text("", "font-scale-annotation, radar-row-fleet-gap")
 	end
-	children[#children + 1] = button
 	if row.entity2 ~= nil and SECOND_TARGET_KINDS[row.kind] then
 		children[#children + 1] = builtin.Button{
-			meta = { class = "radar-row", tooltip = _("Show the other train") },
+			meta = { class = "radar-row", tooltip = _("Show the other train"), styleSheet = radar_inline.rowButton() },
 			content = text("→", "font-scale-annotation"),
 			onClick = altHandler(row.id),
 		}
 	end
 	-- Keyed by alert id (base precedent: notification_popups.tl, meta.localKey per notification), so a
 	-- row that leaves the list doesn't hand new props to every row after it.
-	return builtin.BoxLayout{
-		meta = { class = boxClass(nil), localKey = row.id },
-		orientation = builtin.type.Orientation.Horizontal,
-		children = children,
+	return builtin.Component{
+		meta = { class = "radar-list-row", localKey = row.id, styleSheet = radar_inline.listRow(odd) }, -- INLINE STYLES
+		layout = hbox(children),
+	}
+end
+
+--- The tab's scrolling area (fills the tab: "ScrollArea!radar-list" gravity rule), its content at the
+--- top. Used for the list and for the empty state alike, so the footer under it sits at the bottom of
+--- the tab either way. ScrollArea pattern: .cache/game/base/content/gui/main/main_mod_button_area.tl:26-36
+local function listArea(children : {TreeNodeId}, class? : string) : TreeNodeId
+	return builtin.ScrollArea{
+		meta = { class = class or "radar-list" },
+		horizontalPolicy = builtin.type.ScrollBarPolicy.AlwaysOff,
+		verticalPolicy = builtin.type.ScrollBarPolicy.AsNeeded,
+		-- radar-list-content: right padding so the content never sits under the scrollbar.
+		content = builtin.Component{
+			meta = { class = "radar-list-content", styleSheet = radar_inline.listContent() }, -- INLINE STYLES
+			layout = vbox(children),
+		},
 	}
 end
 
@@ -503,31 +527,29 @@ local function alertList(view : ProblemRadarHudView, tab : string) : TreeNodeId
 	snoozeTipText = lang_util.format(_("Snooze: hide this alert and its notifications for {time}"), { time = monthsText(snoozeMonths) })
 	wakeTipText = _("Unsnooze: list and count this alert again")
 	fleetTipText = _("Upgrade fleet: line stats and vehicle replacement")
-	fleetLabelText = _("Upg") -- short for "Upgrade" (the fleet window), after "↑"
+	fleetLabelText = "↑ " .. _("Upg") -- short for "Upgrade" (the fleet window)
 
 	if #rows == 0 and more == 0 then
+		-- Empty state: the base info hint (content_card.makeInfoHint: card surface tinted Info, wraps; base
+		-- rules, none of ours) at the top of the tab.
 		local empty = tab == hud_model.SNOOZED_TAB and _("Nothing snoozed. Zz on a row hides it for a while.") or _("No problems detected")
-		return vbox({ text(empty, "font-scale-body, radar-empty, radar-tier-0") }, "radar-list")
+		return listArea({ content_card.makeInfoHint(empty, true) })
 	end
 	local children : {TreeNodeId} = {}
-	for i, row in ipairs(rows) do children[i] = alertRow(row) end
+	for i, row in ipairs(rows) do children[i] = alertRow(row, i % 2 == 1) end
 	if more > 0 then
 		-- Rows over the render cap (hud_model.MAX_RENDERED_ROWS) and alerts over the stored cap
 		-- (radar_checks.MAX_STORED_ALERTS): counted, not listed.
 		children[#children + 1] = text(lang_util.format(_("+{n} more (not listed)"), { n = tostring(more) }),
 			"font-scale-annotation, radar-more")
 	end
-	-- ScrollArea pattern: .cache/game/base/content/gui/main/main_mod_button_area.tl:26-36
-	return builtin.ScrollArea{
-		meta = { class = "radar-list" },
-		horizontalPolicy = builtin.type.ScrollBarPolicy.AlwaysOff,
-		verticalPolicy = builtin.type.ScrollBarPolicy.AsNeeded,
-		-- radar-list-content: right padding so the row ends (→) never sit under the scrollbar.
-		content = builtin.Component{
-			meta = { class = "radar-list-content", styleSheet = radar_inline.listContent() }, -- INLINE STYLES
+	-- One native card around the rows (the fleet window's card, radar_inline cardSheet).
+	return listArea({
+		builtin.Component{
+			meta = { class = "radar-list-card", styleSheet = radar_inline.listCard() }, -- INLINE STYLES
 			layout = vbox(children),
 		},
-	}
+	})
 end
 
 ---------------------------------------------------------------------------
@@ -549,7 +571,8 @@ local LEVEL_LABELS : {string : string} = { off = "Off", passive = "List", notify
 -- sense together) and its number settings (key, label). Texts are translated when rendered.
 local record NumberRow
 	key : string
-	label : string
+	label : string -- short (one line in English in the 250 px column)
+	tip : string   -- the full explanation (tooltip); nil = the label
 end
 local record NumberGroup
 	title : string
@@ -557,12 +580,12 @@ local record NumberGroup
 	rows : {NumberRow}
 end
 
--- i18n: keys begin title hint label
+-- i18n: keys begin title hint label tip
 local NUMBER_GROUPS : {NumberGroup} = {
 	-- Smoothing applies to every alert kind (radar_checks.merge); 0 = list / clear on the next scan.
 	{ title = "Timing", rows = {
-		{ key = "smoothSec", label = "Smoothing: problems must persist / linger (game seconds)" },
-		{ key = "snoozeMonths", label = "Snooze length: Zz on a row hides its alert for (game months)" },
+		{ key = "smoothSec", label = "Smoothing (game seconds)", tip = "Smoothing: problems must persist / linger (game seconds)" },
+		{ key = "snoozeMonths", label = "Snooze length (game months)", tip = "Snooze length: Zz on a row hides its alert for (game months)" },
 	} },
 	{ title = "Stuck vehicles (game minutes standing)", rows = {
 		{ key = "stuckMinRoad", label = "Road vehicles" },
@@ -572,11 +595,11 @@ local NUMBER_GROUPS : {NumberGroup} = {
 		{ key = "stuckMinAir", label = "Aircraft" },
 	} },
 	{ title = "Lines", rows = {
-		{ key = "lineOverloadFactor", label = "Over capacity: waiting at a stop, in vehicle loads" },
+		{ key = "lineOverloadFactor", label = "Over capacity (vehicle loads)", tip = "Over capacity: waiting at a stop, in vehicle loads" },
 		{ key = "lineUnderusedPct", label = "Underused: utilisation below" },
-		{ key = "lineClumpPct", label = "Bunching: vehicles closer than, of the interval" },
-		{ key = "lineGapPct", label = "Bunching: a gap longer than, of the interval" },
-		{ key = "lineSustainMin", label = "Line problems must last (game minutes)" },
+		{ key = "lineClumpPct", label = "Bunching: closer than (of interval)", tip = "Bunching: vehicles closer than, of the interval" },
+		{ key = "lineGapPct", label = "Bunching: gap over (of interval)", tip = "Bunching: a gap longer than, of the interval" },
+		{ key = "lineSustainMin", label = "Problems must last (game minutes)", tip = "Line problems must last (game minutes)" },
 	} },
 	{ title = "Fleet", rows = {
 		{ key = "wornPct", label = "Worn: condition at or below" },
@@ -586,10 +609,10 @@ local NUMBER_GROUPS : {NumberGroup} = {
 	{ title = "Economy",
 		hint = "Losing money is a Warning when its coverage is poor or the loss is big, and Critical when both count: a very poor coverage with a big loss, or a poor coverage with a very big loss. Within a severity, bigger losses come first.",
 		rows = {
-			{ key = "econLossWarnPct", label = "Losing money: poor when income covers less than, of vehicle costs" },
-			{ key = "econLossCritPct", label = "Losing money: very poor when income covers less than" },
-			{ key = "econLossSharePct", label = "Losing money: a big loss is at least, of all lines' vehicle costs (3× = very big)" },
-			{ key = "econLowUsePct", label = "Low use: yearly average utilisation below (Warning at half, Critical at a quarter)" },
+			{ key = "econLossWarnPct", label = "Poor: income covers less than", tip = "Losing money: poor when income covers less than, of vehicle costs" },
+			{ key = "econLossCritPct", label = "Very poor: income covers less than", tip = "Losing money: very poor when income covers less than" },
+			{ key = "econLossSharePct", label = "Big loss: at least (of all costs)", tip = "Losing money: a big loss is at least, of all lines' vehicle costs (3× = very big)" },
+			{ key = "econLowUsePct", label = "Low use: yearly utilisation below", tip = "Low use: yearly average utilisation below (Warning at half, Critical at a quarter)" },
 		} },
 }
 -- i18n: keys end
@@ -601,17 +624,80 @@ local UNIT_SYMBOLS : {string : string} = { ["%"] = "%", x = "×" }
 local function rangeText(num : ProblemRadarNumberSetting) : string
 	local word = UNIT_LABELS[num.unit]
 	local unit = word ~= nil and _(word) or (UNIT_SYMBOLS[num.unit] or num.unit) -- i18n: ignore
-	return lang_util.format(_("{min}-{max} {unit} (default {default})"),
-		{ min = tostring(num.min), max = tostring(num.max), unit = unit, default = tostring(num.default) })
+	return lang_util.format(_("{min}-{max} {unit}"), { min = tostring(num.min), max = tostring(num.max), unit = unit })
 end
 
-local function numberRow(settings : ProblemRadarSettings, key : string, label : string) : TreeNodeId
+local function defaultText(num : ProblemRadarNumberSetting) : string
+	return lang_util.format(_("default {default}"), { default = tostring(num.default) })
+end
+
+--- Section heading above a card (font-scale-headline, the fleet window's heading look).
+local function heading(title : string) : TreeNodeId
+	return text(title, "font-scale-headline, radar-head")
+end
+
+--- A native card (radar_inline.setCard: the base entity-window card set inline) holding a column of rows.
+local function card(children : {TreeNodeId}, style : StyleSheet) : TreeNodeId
+	return builtin.Component{
+		meta = { class = "radar-set-card", styleSheet = style }, -- INLINE STYLES
+		layout = vbox(children),
+	}
+end
+
+--- One Settings column: a Component that stretches to the row's height (base class "vertical-spacer",
+--- gravity { 0, -1 }) with a base vertical spacer after its cards, so both columns start at the top
+--- instead of the shorter one being centred (the fleet window's top cards, verified in game 2026-10-14).
+local function column(children : {TreeNodeId}) : TreeNodeId
+	children[#children + 1] = builtin.Component{ meta = { class = "vertical-spacer" } }
+	return builtin.Component{
+		meta = { class = "radar-set-col, vertical-spacer" },
+		layout = vbox(children),
+	}
+end
+
+-- Settings column widths (radar_hud.css.lua: radar-set-kind 140, radar-set-tier 110, radar-set-label 250
+-- wrap at the same widths). Each cell sits in a fixed-width box (radar_inline.box), so every row's next
+-- column starts at the same x: a wrapped TextView alone took the width of its wrapped lines, and the
+-- range text's width varied, which moved the spin boxes by ~10 px from row to row (round 2 screenshot).
+local SET_KIND_W <const> = 140
+local SET_TIER_W <const> = 110
+local SET_LABEL_W <const> = 250
+local SET_RANGE_W <const> = 190
+
+--- A fixed-width column cell (a Component's layout must be a layout).
+local function cell(child : TreeNodeId, width : number) : TreeNodeId
+	return builtin.Component{
+		meta = { styleSheet = radar_inline.box(width) }, -- INLINE STYLES
+		layout = vbox({ child }),
+	}
+end
+
+--- One Settings row: its layout in a Component with a little padding above and below (the layouts' 2 px
+--- gap left the rows nearly touching).
+local function setRow(children : {TreeNodeId}) : TreeNodeId
+	return builtin.Component{
+		meta = { class = "radar-set-row", styleSheet = radar_inline.setRow() }, -- INLINE STYLES
+		layout = hbox(children),
+	}
+end
+
+local function numberRow(settings : ProblemRadarSettings, row : NumberRow) : TreeNodeId
+	local key = row.key
 	local num = radar_settings.NUMBERS[key]
 	local current = (settings as {string : integer})[key] or num.default
-	return hbox({
-		text(_(label), "font-scale-annotation, radar-set-label"), -- i18n: ignore (NUMBER_GROUPS)
+	-- One dim line: "1-240 min · default 3" (the two translated parts, joined by a symbol).
+	local range = rangeText(num) .. " · " .. defaultText(num)
+	local label = _(row.label) -- i18n: ignore (NUMBER_GROUPS)
+	-- The full explanation and the range as the label's and spin box's tooltip, wrapped (CLAUDE.md
+	-- "Tooltips": built at runtime, so wrapped in code).
+	local tip = hud_model.wrapTooltip(_(row.tip or row.label), 60) .. "\n" .. range -- i18n: ignore (NUMBER_GROUPS)
+	return setRow({
+		cell(builtin.TextView{
+			meta = { class = "font-scale-annotation, radar-set-label", tooltip = tip },
+			text = label,
+		}, SET_LABEL_W),
 		builtin.DoubleSpinBox{
-			meta = { class = "radar-set-spin" },
+			meta = { class = "radar-set-spin", tooltip = tip, styleSheet = radar_inline.spin() }, -- INLINE STYLES
 			min = num.min,
 			max = num.max,
 			step = 1.0,
@@ -625,11 +711,11 @@ local function numberRow(settings : ProblemRadarSettings, key : string, label : 
 					sendEvent(EV_SET_SETTING, { [key] = v })
 				end
 			end,
-			virtualKeyboardTitle = _(label), -- i18n: ignore (NUMBER_GROUPS)
-			virtualKeyboardDescription = rangeText(num),
+			virtualKeyboardTitle = label,
+			virtualKeyboardDescription = range,
 		},
-		text(rangeText(num), "font-scale-annotation, radar-col130"),
-	}, "radar-set-row")
+		cell(text(range, "font-scale-annotation, radar-dim"), SET_RANGE_W),
+	})
 end
 
 local function levelRow(settings : ProblemRadarSettings, kind : string) : TreeNodeId
@@ -643,9 +729,9 @@ local function levelRow(settings : ProblemRadarSettings, kind : string) : TreeNo
 		buttons[i] = { content = text(_(LEVEL_LABELS[l] or l), "font-scale-annotation") } -- i18n: ignore
 		if l == level then selected = i end
 	end
-	return hbox({
-		text(hud_model.kindLabel(kind), "font-scale-annotation, radar-set-kind"),
-		text(hud_model.kindTierLabel(kind), "font-scale-annotation, radar-set-tier, radar-tier-" .. tostring(tier)),
+	return setRow({
+		cell(text(hud_model.kindLabel(kind), "font-scale-annotation, radar-set-kind"), SET_KIND_W),
+		cell(text(hud_model.kindTierLabel(kind), "font-scale-annotation, radar-set-tier, radar-tier-" .. tostring(tier)), SET_TIER_W),
 		builtin.ToggleButtonGroup{
 			meta = { class = "radar-set-level" },
 			buttons = buttons,
@@ -657,20 +743,19 @@ local function levelRow(settings : ProblemRadarSettings, kind : string) : TreeNo
 				end
 			end,
 		},
-	}, "radar-set-row")
+	})
 end
 
-local function generalSection(settings : ProblemRadarSettings) : {TreeNodeId}
+local function generalCard(settings : ProblemRadarSettings) : TreeNodeId
 	local buttons : {Builtin.ToggleButtonGroupChildParam} = {}
 	local selected = -1
 	for i, mode in ipairs(radar_settings.HUD_MODES) do
 		buttons[i] = { content = text(_(HUD_MODE_LABELS[mode] or mode), "font-scale-annotation") } -- i18n: ignore
 		if mode == settings.hudMode then selected = i end
 	end
-	return {
-		text(_("General"), "font-scale-body, radar-section"),
-		hbox({
-			text(_("HUD mode"), "font-scale-annotation, radar-set-kind"),
+	return card({
+		setRow({
+			cell(text(_("HUD mode"), "font-scale-annotation, radar-set-kind"), SET_KIND_W),
 			builtin.ToggleButtonGroup{
 				buttons = buttons,
 				selected = selected,
@@ -681,7 +766,7 @@ local function generalSection(settings : ProblemRadarSettings) : {TreeNodeId}
 					end
 				end,
 			},
-		}, "radar-set-row"),
+		}),
 		builtin.CheckBox{
 			value = settings.notifyPaused and 1 or 0,
 			onValueChange = function(v : integer)
@@ -692,6 +777,16 @@ local function generalSection(settings : ProblemRadarSettings) : {TreeNodeId}
 			end,
 			label = _("Pause all radar notifications (alerts are still listed)"),
 		},
+	}, radar_inline.setCard(true))
+end
+
+--- Base secondary (outlined) button with the compact padding set inline (the fleet window's buttons;
+--- was Button!radar-reset). Body text, as the ui-guide's buttons.
+local function secondaryButton(label : string, tip : string, onClick : function()) : TreeNodeId
+	return builtin.Button{
+		meta = { class = "secondary", tooltip = tip, styleSheet = radar_inline.fleetButton() }, -- INLINE STYLES
+		content = text(label, "font-scale-body"),
+		onClick = onClick,
 	}
 end
 
@@ -699,52 +794,49 @@ local ProblemRadarSettingsPage = react.RegisterRecipe("ProblemRadarSettingsPage"
 	local state = engine_react_util.useStepStateTimer(getSettingsFromEngine, POLL_SECONDS)
 	local settings = state:old() or radar_settings.defaults()
 
-	local left : {TreeNodeId} = generalSection(settings)
-	left[#left + 1] = text(_("Alerts"), "font-scale-body, radar-section")
-	left[#left + 1] = text(_("Off: not checked or listed. List: shown in the radar only. Notify: also a game notification when the problem first appears."),
-		"font-scale-annotation, radar-hint")
-	left[#left + 1] = hbox({
-		text(_("Alert"), "font-scale-annotation, radar-set-kind, radar-dim"),
-		text(_("Severity"), "font-scale-annotation, radar-set-tier, radar-dim"),
-		text(_("Level"), "font-scale-annotation, radar-dim"),
-	}, "radar-set-row")
+	-- Left: General and the alerts table; right: the number settings, one card per group. Headings
+	-- above the cards, no dividers inside (ui-guide "Cards").
+	local alerts : {TreeNodeId} = {
+		text(_("Off: not checked or listed. List: shown in the radar only. Notify: also a game notification when the problem first appears."),
+			"font-scale-annotation, radar-hint"),
+		setRow({
+			cell(text(_("Alert"), "font-scale-annotation, radar-set-kind, radar-dim"), SET_KIND_W),
+			cell(text(_("Severity"), "font-scale-annotation, radar-set-tier, radar-dim"), SET_TIER_W),
+			text(_("Level"), "font-scale-annotation, radar-dim"),
+		}),
+	}
 	for __, kind in ipairs(radar_settings.NOTIFY_KINDS) do
-		left[#left + 1] = levelRow(settings, kind)
+		alerts[#alerts + 1] = levelRow(settings, kind)
 	end
+	local left : {TreeNodeId} = {
+		heading(_("General")),
+		generalCard(settings),
+		heading(_("Alerts")),
+		card(alerts, radar_inline.setCard(true)),
+	}
 
 	local right : {TreeNodeId} = {}
 	for __, group in ipairs(NUMBER_GROUPS) do
-		right[#right + 1] = text(_(group.title), "font-scale-body, radar-section") -- i18n: ignore
+		right[#right + 1] = heading(_(group.title)) -- i18n: ignore
+		local rows : {TreeNodeId} = {}
 		if group.hint ~= nil then
-			right[#right + 1] = text(_(group.hint), "font-scale-annotation, radar-hint") -- i18n: ignore
+			rows[#rows + 1] = text(_(group.hint), "font-scale-annotation, radar-hint") -- i18n: ignore
 		end
 		for __, r in ipairs(group.rows) do
-			right[#right + 1] = numberRow(settings, r.key, r.label)
+			rows[#rows + 1] = numberRow(settings, r)
 		end
+		right[#right + 1] = card(rows, radar_inline.setCard(false))
 	end
+	right[#right + 1] = builtin.Component{ meta = { styleSheet = radar_inline.fleetGap() } } -- INLINE STYLES
 	right[#right + 1] = text(_("Settings are saved with this savegame. You can also mute \"Problem Radar\" in the game's notification log filter."),
 		"font-scale-annotation, radar-hint")
-	right[#right + 1] = builtin.Button{
-		meta = { class = "radar-reset", tooltip = _("Every radar setting back to its default, including the HUD mode") },
-		content = text(_("Reset to defaults"), "font-scale-annotation"),
-		onClick = function() sendEvent(EV_RESET_SETTINGS, {}) end,
-	}
+	right[#right + 1] = secondaryButton(_("Reset to defaults"), _("Every radar setting back to its default, including the HUD mode"),
+		function() sendEvent(EV_RESET_SETTINGS, {}) end)
 
-	-- ScrollArea pattern: .cache/game/base/content/gui/main/main_mod_button_area.tl:26-36
 	-- The recipe sits in a BoxLayout (tabChild), so it must return a layout, not a component:
 	-- the engine rejects a component here with "Recipe child must be a layout".
 	return vbox({
-		builtin.ScrollArea{
-			meta = { class = "radar-list, radar-settings" },
-			horizontalPolicy = builtin.type.ScrollBarPolicy.AlwaysOff,
-			verticalPolicy = builtin.type.ScrollBarPolicy.AsNeeded,
-			content = builtin.Component{
-				layout = hbox({
-					vbox(left, "radar-set-col"),
-					vbox(right, "radar-set-col"),
-				}),
-			},
-		},
+		listArea({ hbox({ column(left), column(right) }) }, "radar-list, radar-settings"),
 	})
 end))
 
@@ -779,6 +871,20 @@ local function tabChild(key : string, label : string, item : TreeNodeId, footer?
 	}
 end
 
+--- The tab footer (under the list area, which fills the tab, so the footer sits at the bottom on full and
+--- empty tabs alike): a 1 px line as wide as the list's card, then the row. Spacing inline
+--- (radar_inline.footer / footerLine; was the !radar-footer margin rule).
+local function footer(children : {TreeNodeId}) : TreeNodeId
+	return builtin.Component{
+		meta = { class = "radar-footer", styleSheet = radar_inline.footer() }, -- INLINE STYLES
+		layout = vbox({
+			builtin.Component{ meta = { class = "radar-footer-line", styleSheet = radar_inline.footerLine() } }, -- INLINE STYLES
+			builtin.Component{ meta = { styleSheet = radar_inline.fleetGap() } }, -- INLINE STYLES
+			hbox(children),
+		}),
+	}
+end
+
 --- Under the alert lists: the snooze length picker (settings.snoozeMonths, presets
 --- radar_checks.SNOOZE_MONTHS; a custom value from the Settings tab selects none).
 local function snoozeFooter(settings : ProblemRadarSettings) : TreeNodeId
@@ -788,8 +894,8 @@ local function snoozeFooter(settings : ProblemRadarSettings) : TreeNodeId
 		buttons[i] = { content = text(monthsText(m), "font-scale-annotation") }
 		if m == settings.snoozeMonths then selected = i end
 	end
-	return hbox({
-		text(_("Zz snoozes an alert for"), "font-scale-annotation, radar-footer-label"),
+	return footer({
+		text(_("Zz snoozes an alert for"), "font-scale-annotation, radar-footer-text"),
 		builtin.ToggleButtonGroup{
 			buttons = buttons,
 			selected = selected,
@@ -800,21 +906,18 @@ local function snoozeFooter(settings : ProblemRadarSettings) : TreeNodeId
 				end
 			end,
 		},
-	}, "radar-footer")
+	})
 end
 
---- Under the Snoozed list: wake everything at once.
+--- Under the Snoozed list: wake everything at once. The explanation wraps (radar-hint) next to the
+--- button.
 local function snoozedFooter(count : integer) : TreeNodeId
 	if count == 0 then return nil end
-	return hbox({
+	return footer({
+		secondaryButton(_("Unsnooze all"), _("List and count every snoozed alert again"), function() sendEvent(EV_UNSNOOZE, {}) end),
 		text(_("Snoozed alerts are not counted or notified. When a snooze ends, a problem that is still there notifies again."),
-			"font-scale-annotation, radar-footer-label"),
-		builtin.Button{
-			meta = { class = "radar-reset" },
-			content = text(_("Unsnooze all"), "font-scale-annotation"),
-			onClick = function() sendEvent(EV_UNSNOOZE, {}) end,
-		},
-	}, "radar-footer")
+			"font-scale-annotation, radar-hint, radar-footer-text"),
+	})
 end
 
 ---------------------------------------------------------------------------
@@ -978,6 +1081,33 @@ end
 -- centred it and initialX/Y was ignored; now openWindow passes the remembered position or the centre.
 local WINDOW_ID <const> = "squareproblemradar.window"
 
+-- Window fields differ by platform: the PS5 build rejects `closable` and react.lua makeUserdata then fails
+-- the whole UI (docs/findings/gui.md "Window fields differ by platform"). Each field is tried once on a spare
+-- Window param object; a field this platform rejects is left out and logged once. Nodes and meta aren't tried.
+local windowFieldOk : {string : boolean} = {}
+local function platformWindow<T>(p : T) : T
+	local t = p as {string : any}
+	for k, v in pairs(t) do
+		if k ~= "content" and k ~= "header" and k ~= "meta" then
+			local key = k .. "=" .. (v is boolean and tostring(v) or type(v))
+			if windowFieldOk[key] == nil then
+				local made, ud = pcall(function() : {string : any}
+					local reactApi = ((api as table).gui as table).react as table
+					local builtins = (reactApi.params as table).builtin as table
+					return ((builtins.Window as table).new as function() : {string : any})()
+				end)
+				-- no spare object to try on: keep the field, as before this guard
+				windowFieldOk[key] = not made or pcall(function() ud[k] = v end)
+				if not windowFieldOk[key] then
+					log.warning("[ProblemRadar] this platform's Window rejects '" .. key .. "'; left out")
+				end
+			end
+			if not windowFieldOk[key] then t[k] = nil end
+		end
+	end
+	return p
+end
+
 local ProblemRadarWindow = react.RegisterWrapperRecipe("ProblemRadarWindow", builtin.Window, function(params : ProblemRadarWindowParam) : TreeNodeId
 	-- WindowParam: builtin.d.tl:1186-1210
 	local winParams : Builtin.WindowParam = {
@@ -993,7 +1123,7 @@ local ProblemRadarWindow = react.RegisterWrapperRecipe("ProblemRadarWindow", bui
 	-- Undocumented in builtin.d.tl, used by base windows (view_manager.tl:318-322) and Better Minimap.
 	local extra = winParams as {string : any}
 	extra.onMovedChange = function() windowMoved = true end
-	return builtin.Window(winParams)
+	return builtin.Window(platformWindow(winParams))
 end)
 
 local function closeWindow()
@@ -1040,29 +1170,66 @@ end)
 ---------------------------------------------------------------------------
 -- Ridge HUD.
 
---- hudMode "badge": "Radar ● 3", dot coloured by the worst tier; click opens the window.
-local function badge(counts : ProblemRadarHudCounts) : TreeNodeId
+--- mod.json hudButtonStyle: { "Text", "Tile" } (1-based index; default Tile). Missing or unreadable = Tile.
+--- Read once per mount: mod params are fixed per game.
+local function ridgeTileSetting() : boolean
+	local ok, all = pcall(function() : {string : any} return api.engine.config.getModParams() as {string : any} end)
+	local mine = ok and type(all) == "table" and all["square_problem_radar"] as {string : any} or nil
+	local v = type(mine) == "table" and mine["hudButtonStyle"] or nil
+	return v ~= 1
+end
+
+--- The badge / panel row: the word "Radar" in the "Text" style only; the "Tile" style shows just the
+--- dot and the count(s); its tooltip names the mod.
+local function ridgeContent(tile : boolean, worstTier : integer, count : string) : TreeNodeId
+	local children : {TreeNodeId} = {}
+	if not tile then children[#children + 1] = text(_("Radar")) end
+	children[#children + 1] = dot(worstTier)
+	children[#children + 1] = text(count)
+	return hbox(children)
+end
+
+--- hudMode "badge": "Radar ● 3", dot coloured by the worst tier; click opens the window. In the "Tile"
+--- style it is just "● 3" on a base ToggleButton like the data layers button next to it
+--- (layers_button_ridge.tl:529-539) and Timetables' ridge button, pressed while the window is open.
+local function badge(counts : ProblemRadarHudCounts, tile : boolean, open : boolean, onToggle : function()) : TreeNodeId
+	local content = ridgeContent(tile, counts.worstTier, tostring(counts.total))
+	if tile then
+		return builtin.ToggleButton{
+			meta = { class = "radar-badge, radar-tile-badge",
+				tooltip = _("Problem Radar") .. "\n" .. hud_model.compactText(counts.tierCounts),
+				styleSheet = radar_inline.tileBadge() }, -- INLINE STYLES
+			content = content,
+			value = open and 1 or 0,
+			onValueChange = function(__ : integer) onToggle() end,
+		}
+	end
 	return builtin.Button{
-		meta = { class = "radar-badge", tooltip = hud_model.compactText(counts.tierCounts), styleSheet = radar_inline.badge() }, -- INLINE STYLES
-		content = hbox({
-			text(_("Radar")),
-			dot(counts.worstTier),
-			text(tostring(counts.total)),
-		}),
+		meta = { class = "radar-badge", tooltip = hud_model.compactText(counts.tierCounts),
+			styleSheet = radar_inline.badge() }, -- INLINE STYLES
+		content = content,
 		onClick = toggleWindow,
 	}
 end
 
 --- hudMode "compact": one always-on row "Radar ● 3 crit · 2 warn · 5 info"; the whole panel is a
---- button (like the badge) that opens the window.
-local function compactPanel(counts : ProblemRadarHudCounts) : TreeNodeId
+--- button (like the badge) that opens the window. In the "Tile" style it is the same ToggleButton as the
+--- tile badge (base tile, no word "Radar", pressed while the window is open), so it matches the other
+--- top-bar buttons instead of the very dark radar-compact panel.
+local function compactPanel(counts : ProblemRadarHudCounts, tile : boolean, open : boolean, onToggle : function()) : TreeNodeId
+	local content = ridgeContent(tile, counts.worstTier, hud_model.compactText(counts.tierCounts))
+	if tile then
+		return builtin.ToggleButton{
+			meta = { class = "radar-panel, radar-tile-badge", tooltip = _("Problem Radar"),
+				styleSheet = radar_inline.tileBadge() }, -- INLINE STYLES
+			content = content,
+			value = open and 1 or 0,
+			onValueChange = function(__ : integer) onToggle() end,
+		}
+	end
 	return builtin.Button{
-		meta = { class = "radar-panel, radar-compact", tooltip = _("Open or close Problem Radar") },
-		content = hbox({
-			text(_("Radar")),
-			dot(counts.worstTier),
-			text(hud_model.compactText(counts.tierCounts)),
-		}),
+		meta = { class = "radar-panel, radar-compact", tooltip = _("Problem Radar"), styleSheet = radar_inline.compact() }, -- INLINE STYLES
+		content = content,
 		onClick = toggleWindow,
 	}
 end
@@ -1083,6 +1250,17 @@ end
 local ProblemRadarHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModButtonAreaExtension, "ProblemRadarHudPlugin", perf:wrap("hud_render", function() : TreeNodeId
 	-- Hooks first, unconditionally (same order as the base transported plugin).
 	local isMapEditorRef : ReactRefT<boolean> = react.useRefLazy(function() : boolean return api.gui.game.isMapEditor() end)
+	local tileRef : ReactRefT<boolean> = react.useRefLazy(ridgeTileSetting)
+	-- The "Tile" ToggleButton is pressed while the radar window is open, however it was closed
+	-- (onStep: Main Thread; windowOpen reads only Lua state).
+	local openState = react.useState(false) as ReactStateT<boolean>
+	local function syncOpen()
+		local open = windowOpen()
+		if open ~= openState:old() then openState:set(open) end
+	end
+	react.onStep(function()
+		if tileRef:get() then syncOpen() end
+	end)
 	-- src: .cache/game/base/content/gui/main/engine_react_util.tl:126-145 (deepEquals on the fresh view)
 	local state = engine_react_util.useStepStateTimer(getCountsFromEngine, POLL_SECONDS)
 
@@ -1094,9 +1272,15 @@ local ProblemRadarHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.Ma
 		return nil
 	end
 	if counts.hudMode == "compact" then
-		return pluginRoot(compactPanel(counts))
+		return pluginRoot(compactPanel(counts, tileRef:get(), openState:old(), function()
+			toggleWindow()
+			syncOpen()
+		end))
 	end
-	return pluginRoot(badge(counts))
+	return pluginRoot(badge(counts, tileRef:get(), openState:old(), function()
+		toggleWindow()
+		syncOpen()
+	end))
 end))
 
 local result = {

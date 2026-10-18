@@ -1,0 +1,311 @@
+diff --git a/mods/square_problem_radar/content/radar/gui/radar_inline.tl b/mods/square_problem_radar/content/radar/gui/radar_inline.tl
+index d0d6f7f..456a4eb 100644
+--- a/mods/square_problem_radar/content/radar/gui/radar_inline.tl
++++ b/mods/square_problem_radar/content/radar/gui/radar_inline.tl
+@@ -10,6 +10,11 @@
+ -- REVERT (if inline styles turn out to count toward the crash limit): apply
+ -- plans/square_problem_radar/inline_styles.patch in reverse (git apply -R).
+ -- Every StyleSheet is created once, lazily, in a render (GUI thread), then reused.
++-- Step 2 (2026-10-14, after a 20-mod set crashed at ~209 rules): fixed-width TextViews (min = max size
++-- and no wrap: inline `size` is that fixed content box), TextView margins as padding (same look on text
++-- without a background), the row buttons' padding and the compact panel. The base Button has no margin
++-- and its states set only backgroundColor1 (builtin.css.lua:140-262), so their `margin = 0` was a no-op.
++-- REVERT step 2 only: git apply -R plans/square_problem_radar/inline_styles_2.patch.
+ 
+ local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
+ local color_util = ug_require "::/gui/main/color_util.tl" as ColorUtil
+@@ -23,8 +28,34 @@ local TEXT_CLASSES <const> = {
+ 	"radar-fleet-sum", "radar-money-pos", "radar-money-neg",
+ }
+ 
++-- Step 2: layout of TextView classes (size = the former min/max size, padding = the former margin,
++-- CSS order top, right, bottom, left), plus a colour where the former rule had one and no text colour
++-- class above applies. No TextView carries two of them.
++local record TextLayout
++	size : {number}
++	padding : {number}
++	color : string -- default_colors.gres key
++end
++local TEXT_LAYOUT <const> : {string : TextLayout} = {
++	["radar-cell-label"] = { size = { 170, -1 } },              -- was WIN TextView!radar-cell-label
++	["radar-cell-context"] = { size = { 125, -1 }, color = "NeutralLight" }, -- was WIN TextView!radar-cell-context
++	["radar-row-fleet-gap"] = { size = { 78, -1 } },            -- was WIN TextView!radar-row-fleet-gap
++	["radar-fleet-mark"] = { size = { 12, -1 }, color = "AccentLight" }, -- was FLEET TextView!radar-fleet-mark
++	["radar-empty"] = { padding = { 16, 8, 16, 8 } },           -- was BoxLayout TextView!radar-empty (margin)
++	["radar-section"] = { padding = { 8, 0, 4, 0 } },           -- was WIN TextView!radar-section (margin)
++	["radar-more"] = { padding = { 4, 8, 4, 8 }, color = "NeutralLight" }, -- was WIN TextView!radar-more
++	["radar-fleet-head"] = { padding = { 10, 0, 2, 0 }, color = "NeutralLightest" }, -- was FLEET TextView!radar-fleet-head
++}
++
+ local record Sheets
+ 	text : {string : StyleSheet}
++	byClass : {string : StyleSheet} -- step 2: one combined sheet per class string
++	noSheet : {string : boolean}    -- class strings that get none
++	rowButton : StyleSheet
++	compact : StyleSheet
++	colors : {string : {number}}
++	textColor : {string : {number}} -- step 2: the raw colour of each text class (a StyleSheet's
++	                                -- properties can't be read back: "class is not registered in LuaBridge")
+ 	badge : StyleSheet
+ 	tileBadge : StyleSheet
+ 	content : StyleSheet
+@@ -45,21 +76,23 @@ local function get() : Sheets
+ 	if sheets == nil then
+ 		local c = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data as {string : {number}}
+ 		local transparency = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/transparency.gres")).data as {string : number}
+-		local function color(col : {number}) : StyleSheet return styleutil.makeStyle{ color = col } end
++		-- was "BoxLayout TextView!radar-tier-0..3" / "BoxLayout TextView!radar-dim" and
++		-- "R::ProblemRadarFleetContent TextView!radar-fleet-sum / radar-money-pos / radar-money-neg"
++		local textColor : {string : {number}} = {
++			["radar-tier-0"] = c.Positive,
++			["radar-tier-1"] = c.Error,
++			["radar-tier-2"] = c.Warning,
++			["radar-tier-3"] = c.Info,
++			["radar-dim"] = c.NeutralLight,
++			["radar-fleet-sum"] = c.NeutralLightest,
++			["radar-money-pos"] = c.Ok,
++			["radar-money-neg"] = c.Negative,
++		}
++		local text : {string : StyleSheet} = {}
++		for name, col in pairs(textColor) do text[name] = styleutil.makeStyle{ color = col } end
+ 		local subtle = color_util.withTransparencyRaw(c.BaseLight as GResColor, transparency.High) as {number}
+ 		sheets = {
+-			text = {
+-				-- was "BoxLayout TextView!radar-tier-0..3" / "BoxLayout TextView!radar-dim"
+-				["radar-tier-0"] = color(c.Positive),
+-				["radar-tier-1"] = color(c.Error),
+-				["radar-tier-2"] = color(c.Warning),
+-				["radar-tier-3"] = color(c.Info),
+-				["radar-dim"] = color(c.NeutralLight),
+-				-- was "R::ProblemRadarFleetContent TextView!radar-fleet-sum / radar-money-pos / radar-money-neg"
+-				["radar-fleet-sum"] = color(c.NeutralLightest),
+-				["radar-money-pos"] = color(c.Ok),
+-				["radar-money-neg"] = color(c.Negative),
+-			},
++			text = text,
+ 			-- was "R::ProblemRadarHudPlugin Button!radar-badge"
+ 			badge = padded(api.gui.StyleSheet.new(), 2, 8, 2, 8),
+ 			-- "Tile" ridge style (mod.json hudButtonStyle, never a .css.lua rule): a base ToggleButton
+@@ -80,6 +113,14 @@ local function get() : Sheets
+ 			fleetDimLine = styleutil.makeStyle{ backgroundColor = c.BaseLight },
+ 			-- was "R::ProblemRadarFleetContent !radar-fleet-row-odd"
+ 			fleetRowOdd = styleutil.makeStyle{ backgroundColor = subtle },
++			byClass = {},
++			textColor = textColor,
++			noSheet = {},
++			-- step 2: was "R::ProblemRadarContent Button!radar-row" (padding; margin 0 = the base default)
++			rowButton = padded(api.gui.StyleSheet.new(), 2, 6, 2, 6),
++			-- step 2: was "R::ProblemRadarHudPlugin !radar-compact" (margin 0 = the base default)
++			compact = padded(styleutil.makeStyle{ backgroundColor = c.BaseVeryDark }, 2, 8, 2, 8),
++			colors = c,
+ 		}
+ 	end
+ 	return sheets
+@@ -87,15 +128,41 @@ end
+ 
+ function M.text(class : string) : StyleSheet
+ 	if class == nil or not class:find("radar-", 1, true) then return nil end
++	local s = get()
++	if s.noSheet[class] then return nil end
++	local cached = s.byClass[class]
++	if cached ~= nil then return cached end
+ 	local has : {string : boolean} = {}
+ 	for token in class:gmatch("[^,%s]+") do has[token] = true end
+-	local st : StyleSheet = nil
++	local colorName : string = nil
+ 	for __, name in ipairs(TEXT_CLASSES) do
+-		if has[name] then st = get().text[name] end
++		if has[name] then colorName = name end
+ 	end
++	local layout : TextLayout = nil
++	for name, l in pairs(TEXT_LAYOUT) do
++		if has[name] then layout = l end
++	end
++	local st : StyleSheet = nil
++	if layout == nil then
++		st = colorName ~= nil and s.text[colorName] or nil
++	else
++		-- a text colour class wins over the layout entry's colour (the former colour rules came later)
++		local col : any = nil -- makeStyle takes a colour table or a Vec4f
++		if colorName ~= nil then col = s.textColor[colorName]
++		elseif layout.color ~= nil then col = s.colors[layout.color] end
++		st = styleutil.makeStyle{ size = layout.size, color = col }
++		if layout.padding ~= nil then
++			local p = layout.padding
++			padded(st, p[1], p[2], p[3], p[4])
++		end
++	end
++	if st == nil then s.noSheet[class] = true else s.byClass[class] = st end
+ 	return st
+ end
+ 
++function M.rowButton() : StyleSheet return get().rowButton end
++function M.compact() : StyleSheet return get().compact end
++
+ function M.badge() : StyleSheet return get().badge end
+ function M.tileBadge() : StyleSheet return get().tileBadge end
+ function M.content() : StyleSheet return get().content end
+diff --git a/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua b/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
+index 8a7a00c..4ac2cae 100644
+--- a/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
++++ b/mods/square_problem_radar/content/radar/gui/radar_hud.css.lua
+@@ -74,12 +74,11 @@ function data()
+ 	-- meta.styleSheet: tier colours (radar-tier-0..3), radar-dim, the ridge badge's padding, the radar and
+ 	-- fleet window contents' size + padding, radar-list-content, radar-fleet-dim-line, radar-fleet-sum,
+ 	-- radar-money-pos/neg and radar-fleet-row-odd. Revert: plans/square_problem_radar/inline_styles.patch.
++	-- Step 2 (2026-10-14): radar-empty, radar-compact, Button!radar-row, radar-row-fleet-gap,
++	-- radar-cell-label / -context, radar-more, radar-section, radar-fleet-head and radar-fleet-mark
++	-- (fixed widths as inline size, margins as padding; radar_inline.tl TEXT_LAYOUT, rowButton, compact).
++	-- Revert step 2 only: plans/square_problem_radar/inline_styles_2.patch.
+ 
+-	-- Empty states: radar window "No problems detected" (+ radar-tier-0 colour), fleet window
+-	-- "This vehicle no longer exists." (+ radar-dim).
+-	a("BoxLayout TextView!radar-empty", {
+-		margin = { 16, 8, 16, 8 },
+-	})
+ 
+ 	-- Settings tab range column and the fleet window's card labels: fixed width, wraps (de/ru/fr run
+ 	-- ~40% longer). The totals line's label is brightened inline (radar-fleet-sum, radar_inline.tl).
+@@ -104,13 +103,6 @@ function data()
+ 		innerSpacing = { 4, 0 },
+ 	})
+ 
+-	-- The panel is a Button inside the plugin's root BoxLayout (radar_hud.script.tl pluginRoot), never
+-	-- the recipe element itself.
+-	a(HUD .. " !radar-compact", {
+-		backgroundColor = colorDefault.BaseVeryDark,
+-		padding = { 2, 8, 2, 8 },
+-		margin = { 0, 0, 0, 0 },
+-	})
+ 
+ 	-- anchorPoint: initialX/Y (radar_hud.script.tl openWindow; the screen centre by default) is the
+ 	-- window's own centre, slightly above. No gravity: it keeps initialX/Y from being applied, so the
+@@ -143,11 +135,6 @@ function data()
+ 		gravity = { -1, 0 },
+ 	})
+ 
+-	-- Every row button: the row itself, the second target (→), "↑ Upg" and the snooze button.
+-	a(WIN .. " Button!radar-row", {
+-		padding = { 2, 6, 2, 6 },
+-		margin = { 0, 0, 0, 0 },
+-	})
+ 
+ 	-- Rev 6: the alert list's content leaves room for the vertical scrollbar on the right
+ 	-- (radar_inline.tl listContent).
+@@ -162,10 +149,6 @@ function data()
+ 		innerSpacing = { 3, 0 },
+ 	})
+ 
+-	a(WIN .. " TextView!radar-row-fleet-gap", {
+-		minSize = { 78, -1 },
+-		maxSize = { 78, -1 },
+-	})
+ 
+ 	-- Snooze / unsnooze button leading each row.
+ 	a(WIN .. " Button!radar-row-snooze", {
+@@ -192,17 +175,6 @@ function data()
+ 		minSize = { 95, -1 },
+ 	})
+ 
+-	-- Rev 6: label 190 -> 170, context 140 -> 125, detail 280 -> 255 (room for the "↑ Upg" column).
+-	a(WIN .. " TextView!radar-cell-label", {
+-		minSize = { 170, -1 },
+-		maxSize = { 170, -1 },
+-	})
+-
+-	a(WIN .. " TextView!radar-cell-context", {
+-		minSize = { 125, -1 },
+-		maxSize = { 125, -1 },
+-		color = colorDefault.NeutralLight,
+-	})
+ 
+ 	-- Wraps: translated details (de/fr/ru) run longer than the English ~45 characters.
+ 	a(WIN .. " TextView!radar-cell-detail", {
+@@ -211,14 +183,6 @@ function data()
+ 		textAutoWrap = true,
+ 	})
+ 
+-	a(WIN .. " TextView!radar-more", {
+-		color = colorDefault.NeutralLight,
+-		margin = { 4, 8, 4, 8 },
+-	})
+-
+-	a(WIN .. " TextView!radar-section", {
+-		margin = { 8, 0, 4, 0 },
+-	})
+ 
+ 	-- Hints live in the 2-column Settings tab: wrap them to a column's width so the left column
+ 	-- doesn't grow and push the right one past the window edge.
+@@ -285,11 +249,6 @@ function data()
+ 		innerSpacing = { 8, 3 },
+ 	})
+ 
+-	-- Section titles: a step larger and brighter, a divider under each (radar_fleet.tl header).
+-	a(FLEET .. " TextView!radar-fleet-head", {
+-		color = colorDefault.NeutralLightest,
+-		margin = { 10, 0, 2, 0 },
+-	})
+ 
+ 	-- 1 px lines: a styled Component (base separators: game_bar.css.lua:884-886).
+ 	a(FLEET .. " !radar-fleet-divider", {
+@@ -354,11 +313,6 @@ function data()
+ 
+ 	-- Odd rows' subtle background: radar_inline.tl fleetRowOdd.
+ 
+-	a(FLEET .. " TextView!radar-fleet-mark", {
+-		minSize = { 12, -1 },
+-		maxSize = { 12, -1 },
+-		color = colorDefault.AccentLight,
+-	})
+ 
+ 	a(FLEET .. " TextView!radar-fleet-model", {
+ 		minSize = { 230, -1 },
+diff --git a/mods/square_problem_radar/content/radar/gui/radar_hud.script.tl b/mods/square_problem_radar/content/radar/gui/radar_hud.script.tl
+index ffd1afb..589ff4c 100644
+--- a/mods/square_problem_radar/content/radar/gui/radar_hud.script.tl
++++ b/mods/square_problem_radar/content/radar/gui/radar_hud.script.tl
+@@ -426,7 +426,7 @@ local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
+ 	local snoozed = row.snoozedUntil ~= nil
+ 	local metric = snoozed and untilText(row.snoozedUntil) or row.metric
+ 	local button = builtin.Button{
+-		meta = { class = "radar-row", tooltip = tip },
++		meta = { class = "radar-row", tooltip = tip, styleSheet = radar_inline.rowButton() },
+ 		content = hbox({
+ 			dot(row.tier),
+ 			text(tierName(row.tier), "font-scale-annotation, radar-w60, radar-tier-" .. tostring(row.tier)),
+@@ -443,7 +443,7 @@ local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
+ 	-- button leads the row, so it lines up in one column whether or not the row has a second target.
+ 	local children : {TreeNodeId} = {
+ 		builtin.Button{
+-			meta = { class = "radar-row, radar-row-snooze", tooltip = snoozed and wakeTipText or snoozeTipText },
++			meta = { class = "radar-row, radar-row-snooze", tooltip = snoozed and wakeTipText or snoozeTipText, styleSheet = radar_inline.rowButton() },
+ 			content = text(snoozed and "×" or "Zz", "font-scale-annotation"),
+ 			onClick = snoozeHandler(row.id),
+ 		},
+@@ -454,7 +454,7 @@ local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
+ 	-- columns line up. "↑": Lato, the GUI font, has U+2191 (it lacks ⇧ and ▲, docs/findings.md).
+ 	if row.entity ~= nil and FLEET_KINDS[row.kind] then
+ 		children[#children + 1] = builtin.Button{
+-			meta = { class = "radar-row, radar-row-fleet", tooltip = fleetTipText },
++			meta = { class = "radar-row, radar-row-fleet", tooltip = fleetTipText, styleSheet = radar_inline.rowButton() },
+ 			content = hbox({ text("↑", "font-scale-annotation"), text(fleetLabelText, "font-scale-annotation") }, "radar-row-fleet-box"),
+ 			onClick = fleetHandler(row.id),
+ 		}
+@@ -464,7 +464,7 @@ local function alertRow(row : ProblemRadarHudRow) : TreeNodeId
+ 	children[#children + 1] = button
+ 	if row.entity2 ~= nil and SECOND_TARGET_KINDS[row.kind] then
+ 		children[#children + 1] = builtin.Button{
+-			meta = { class = "radar-row", tooltip = _("Show the other train") },
++			meta = { class = "radar-row", tooltip = _("Show the other train"), styleSheet = radar_inline.rowButton() },
+ 			content = text("→", "font-scale-annotation"),
+ 			onClick = altHandler(row.id),
+ 		}
+@@ -1125,7 +1125,7 @@ local function compactPanel(counts : ProblemRadarHudCounts, tile : boolean, open
+ 		}
+ 	end
+ 	return builtin.Button{
+-		meta = { class = "radar-panel, radar-compact", tooltip = _("Problem Radar") },
++		meta = { class = "radar-panel, radar-compact", tooltip = _("Problem Radar"), styleSheet = radar_inline.compact() }, -- INLINE STYLES
+ 		content = content,
+ 		onClick = toggleWindow,
+ 	}

@@ -10,16 +10,49 @@
 -- base !error / !warning / !info / !positive classes (.cache/game/base/content/gui/main/default.css.lua:12-46).
 -- Content size rule pattern: .cache/game/base/content/gui/menu/mod_browser.css.lua:681-691.
 local ssu = require "::/gui/main/stylesheetutil.lua"
--- Rev 6 fleet window panels: subtle backgrounds (base use: entity_window_util.css.lua:1, 13, 179)
-local color_util = require "::/gui/main/color_util.tl"
 
 function data()
 	local result = { }
 
 	local a = ssu.makeAdder(result)
 
+	-- LAYER WINDOW OFFSET (shared by our five top-bar button mods; plans/ui_style/PLAN.md "Layer window
+	-- offset"; keep this block identical in all five except ME). The base data layer windows open 30 px
+	-- from the top (#menu.layers.window, .cache/game/base/content/gui/layers/layers.css.lua:89-120), under
+	-- the mod button row, so a mod button covers their title. These rules move them below the row. Only the
+	-- first ACTIVE mod of SQ_RIDGE_MODS adds them (each mod ships square_ridge/marker.gres; a disabled mod's
+	-- resources aren't loaded), so they cost 4 rules however many of the five are on. The selectors add the
+	-- Window element to the base ones, so they win over the base rules by specificity. The HUD filter window
+	-- keeps its base margin (430 px down, clear of the row); its rules are repeated only so ours don't match it.
+	do
+		local ME = "square_problem_radar"
+		local SQ_RIDGE_MODS = { "square_better_minimap", "square_problem_radar", "square_industry_flows",
+			"square_supply_gaps", "square_stress_test" }
+		local function markerActive(modId)
+			local okFind, id = pcall(api.gui.genericRep.find, modId .. "::/square_ridge/marker.gres")
+			if not okFind or type(id) ~= "number" or id < 0 then return false end
+			local okGet, res = pcall(api.gui.genericRep.get, id)
+			return okGet and res ~= nil and type(res.data) == "table" and res.data.squareRidge == true
+		end
+		local leader = true
+		for __, modId in ipairs(SQ_RIDGE_MODS) do
+			if modId == ME then break end
+			if markerActive(modId) then
+				leader = false
+				log.message("[SQ ridge] layer window offset: skipped in " .. ME .. " (added by " .. modId .. ")")
+				break
+			end
+		end
+		if leader then
+			log.message("[SQ ridge] layer window offset: added by " .. ME)
+			a("Window#menu.layers.window", { margin = { 72, 0, 0, 80 } })
+			a("!input-controller Window#menu.layers.window", { margin = { 92, 0, 0, 80 } })
+			a("Window#menu.layers.window!menu-layers-hudFilters", { margin = { 430, 0, 0, 80 } })
+			a("!input-controller Window#menu.layers.window!menu-layers-hudFilters", { margin = { 430, 0, 0, 80 } })
+		end
+	end
+
 	local colorDefault = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data
-	local transparency = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/transparency.gres")).data
 
 	local HUD = "R::ProblemRadarHudPlugin"
 	local WIN = "R::ProblemRadarContent"
@@ -38,14 +71,13 @@ function data()
 	-- meta.styleSheet: tier colours (radar-tier-0..3), radar-dim, the ridge badge's padding, the radar and
 	-- fleet window contents' size + padding, radar-list-content, radar-fleet-dim-line, radar-fleet-sum,
 	-- radar-money-pos/neg and radar-fleet-row-odd. Revert: plans/square_problem_radar/inline_styles.patch.
+	-- Step 2 (2026-10-14): radar-empty, radar-compact, Button!radar-row, radar-row-fleet-gap,
+	-- radar-cell-label / -context, radar-more, radar-section, radar-fleet-head and radar-fleet-mark
+	-- (fixed widths as inline size, margins as padding; radar_inline.tl TEXT_LAYOUT, rowButton, compact).
+	-- Revert step 2 only: plans/square_problem_radar/inline_styles_2.patch.
 
-	-- Empty states: radar window "No problems detected" (+ radar-tier-0 colour), fleet window
-	-- "This vehicle no longer exists." (+ radar-dim).
-	a("BoxLayout TextView!radar-empty", {
-		margin = { 16, 8, 16, 8 },
-	})
 
-	-- Settings tab range column and the fleet window's card labels: fixed width, wraps (de/ru/fr run
+	-- The fleet window's card labels: fixed width, wraps (de/ru/fr run
 	-- ~40% longer). The totals line's label is brightened inline (radar-fleet-sum, radar_inline.tl).
 	a("BoxLayout TextView!radar-col130", {
 		minSize = { 130, -1 },
@@ -56,21 +88,18 @@ function data()
 
 	-- Ridge HUD: one row only (the ridge ScrollArea has vertical scrolling off,
 	-- .cache/game/base/content/gui/main/main_mod_button_area.tl:26-31).
+	-- margin: the base data layers button's (layers.css.lua:44-55 "R::ExpandableLayerButton", 1 px a side,
+	-- 2 at the bottom on the top button), as Timetables sets it on its ridge ToggleButton. Here on the plugin
+	-- root, which holds only the button (inline styles take no margin): same layout, no extra rule.
 	a(HUD, {
 		gravity = { 0, 0 },
+		margin = { 1, 1, 2, 1 },
 	})
 
 	a(HUD .. " BoxLayout!radar-box", {
 		innerSpacing = { 4, 0 },
 	})
 
-	-- The panel is a Button inside the plugin's root BoxLayout (radar_hud.script.tl pluginRoot), never
-	-- the recipe element itself.
-	a(HUD .. " !radar-compact", {
-		backgroundColor = colorDefault.BaseVeryDark,
-		padding = { 2, 8, 2, 8 },
-		margin = { 0, 0, 0, 0 },
-	})
 
 	-- anchorPoint: initialX/Y (radar_hud.script.tl openWindow; the screen centre by default) is the
 	-- window's own centre, slightly above. No gravity: it keeps initialX/Y from being applied, so the
@@ -80,8 +109,7 @@ function data()
 		anchorPoint = { 0.5, 0.55 },
 	})
 
-	-- Window content size (1100 x 460: 980 + the snooze button column + (rev 6) the "↑ Upg" column) and
-	-- padding: radar_inline.tl content.
+	-- Window content size (1100 x 460) and padding: radar_inline.tl content.
 
 	a(WIN .. " BoxLayout!radar-box", {
 		innerSpacing = { 8, 2 },
@@ -98,52 +126,17 @@ function data()
 		gravity = { -1, -1 },
 	})
 
-	-- Empty state ("No problems detected") is a plain BoxLayout, not a ScrollArea.
-	a(WIN .. " BoxLayout!radar-list", {
-		gravity = { -1, 0 },
-	})
+	-- Native main window (2026-10-14): 10 rules gone. The empty state is the base info hint in the same
+	-- ScrollArea as the list (was BoxLayout!radar-list); the Zz and "↑ Upg" cells are fixed inline
+	-- widths (were Button!radar-row-snooze / -fleet and the radar-row-fleet-box gap); the footer's
+	-- spacing and label are inline (were !radar-footer, TextView!radar-footer-label); the Settings
+	-- columns are cards with inline widths (were !radar-set-col, !radar-set-row), the spin boxes have an
+	-- inline width (was DoubleSpinBox) and the buttons are base "secondary" with inline padding (was
+	-- Button!radar-reset). radar_inline.tl; revert: plans/square_problem_radar/main_window_native.patch.
+	-- The rules below have no inline form (minSize, maxSize, textAutoWrap).
 
-	-- Every row button: the row itself, the second target (→), "↑ Upg" and the snooze button.
-	a(WIN .. " Button!radar-row", {
-		padding = { 2, 6, 2, 6 },
-		margin = { 0, 0, 0, 0 },
-	})
-
-	-- Rev 6: the alert list's content leaves room for the vertical scrollbar on the right
-	-- (radar_inline.tl listContent).
-
-	-- Rev 6: "↑ Upg" (fleet window) after the snooze button on fleet_old / fleet_worn rows, and an
-	-- empty cell of the same width on every other row, so the columns stay aligned.
-	a(WIN .. " Button!radar-row-fleet", {
-		minSize = { 78, -1 },
-	})
-
-	a(WIN .. " BoxLayout!radar-row-fleet-box", {
-		innerSpacing = { 3, 0 },
-	})
-
-	a(WIN .. " TextView!radar-row-fleet-gap", {
-		minSize = { 78, -1 },
-		maxSize = { 78, -1 },
-	})
-
-	-- Snooze / unsnooze button leading each row.
-	a(WIN .. " Button!radar-row-snooze", {
-		minSize = { 30, -1 },
-	})
-
-	-- Under the lists: the snooze length picker / "Unsnooze all".
-	a(WIN .. " BoxLayout!radar-footer", {
-		margin = { 4, 0, 0, 0 },
-	})
-
-	a(WIN .. " TextView!radar-footer-label", {
-		color = colorDefault.NeutralLight,
-		gravity = { 0, 0.5 },
-	})
-
-	-- Columns: tier · kind · type · entity · context · detail · metric (fixed widths line them up).
-	-- Tier and type columns (type also radar-dim, metric only radar-dim).
+	-- Alert rows: Zz · dot · tier · kind · name (+ type · context line) · detail · metric · [↑ Upg / →].
+	-- Tier and kind grow with a longer translation (minSize).
 	a(WIN .. " TextView!radar-w60", {
 		minSize = { 60, -1 },
 	})
@@ -152,138 +145,69 @@ function data()
 		minSize = { 95, -1 },
 	})
 
-	-- Rev 6: label 190 -> 170, context 140 -> 125, detail 280 -> 255 (room for the "↑ Upg" column).
-	a(WIN .. " TextView!radar-cell-label", {
-		minSize = { 170, -1 },
-		maxSize = { 170, -1 },
-	})
-
-	a(WIN .. " TextView!radar-cell-context", {
-		minSize = { 125, -1 },
-		maxSize = { 125, -1 },
-		color = colorDefault.NeutralLight,
-	})
-
-	-- Wraps: translated details (de/fr/ru) run longer than the English ~45 characters.
-	a(WIN .. " TextView!radar-cell-detail", {
-		minSize = { 255, -1 },
-		maxSize = { 255, -1 },
+	-- The name cell (name, type · context) and the detail: one fixed width, wrapping (was
+	-- radar-cell-detail, 255 px, details only). An inline size doesn't clip: a long name ran on into the
+	-- detail (round 2 screenshot), so names wrap too. 296 = what the 1032 px row leaves for the two
+	-- cells after the other columns, a ~100 px metric and the 72 px "↑ Upg" button at the end.
+	a(WIN .. " TextView!radar-cell-wrap", {
+		minSize = { 296, -1 },
+		maxSize = { 296, -1 },
 		textAutoWrap = true,
 	})
 
-	a(WIN .. " TextView!radar-more", {
-		color = colorDefault.NeutralLight,
-		margin = { 4, 8, 4, 8 },
-	})
-
-	a(WIN .. " TextView!radar-section", {
-		margin = { 8, 0, 4, 0 },
-	})
-
-	-- Hints live in the 2-column Settings tab: wrap them to a column's width so the left column
-	-- doesn't grow and push the right one past the window edge.
+	-- Hints in the Settings cards (the narrower, left one is 480 px inside) and the Snoozed footer's
+	-- text: wrap.
 	a(WIN .. " TextView!radar-hint", {
-		maxSize = { 400, -1 },
+		maxSize = { 480, -1 },
 		textAutoWrap = true,
 		color = colorDefault.NeutralLight,
 	})
 
-	-- Settings tab (Phase 5): two dense columns (alerts table | thresholds).
-	-- DoubleSpinBox sizing pattern: .cache/game/base/content/gui/main/debug.css.lua:67-77.
-	a(WIN .. " !radar-set-col", {
-		minSize = { 400, -1 },
-		margin = { 0, 8, 0, 0 },
-	})
-
-	a(WIN .. " !radar-set-row", {
-		innerSpacing = { 6, 0 },
-	})
-
+	-- Settings: alert names, the severity ("Info to Critical") and the number labels wrap at a fixed
+	-- width (long translations); each sits in a fixed-width box (radar_inline.box) of the same width, so
+	-- the next column starts at the same x on every row.
 	a(WIN .. " TextView!radar-set-kind", {
-		minSize = { 120, -1 },
-		maxSize = { 120, -1 },
-		textAutoWrap = true, -- translated alert names can be longer than 120 px
+		minSize = { 140, -1 },
+		maxSize = { 140, -1 },
+		textAutoWrap = true,
 	})
 
 	a(WIN .. " TextView!radar-set-tier", {
-		minSize = { 70, -1 },
-	})
-
-	a(WIN .. " TextView!radar-set-label", {
-		minSize = { 200, -1 },
-		maxSize = { 200, -1 },
+		minSize = { 110, -1 },
+		maxSize = { 110, -1 },
 		textAutoWrap = true,
 	})
 
-	-- Range/default next to each number ("120-2000 % (default 300)"): radar-col130 (top of the file).
-
-	a(WIN .. " DoubleSpinBox", {
-		gravity = { 0, 0.5 },
-		minSize = { 80, -1 },
-	})
-
-	a(WIN .. " Button!radar-reset", {
-		padding = { 2, 10, 2, 10 },
-		margin = { 8, 0, 4, 0 },
+	a(WIN .. " TextView!radar-set-label", {
+		minSize = { 250, -1 },
+		maxSize = { 250, -1 },
+		textAutoWrap = true,
 	})
 
 	-- Rev 6 fleet window (radar_fleet.tl): centred like the radar window, a bit to the right of it so
 	-- both stay readable when the radar window is open.
-	-- Opaque background: the default Window background is BaseDarkMedium with transparency VeryLow
-	-- (.cache/game/base/content/gui/main/builtin.css.lua:16, 1946-1953), which let the radar window show
-	-- through. Same colour without transparency, as the base dialogs do (popover_react_util.css.lua:10-12).
+	-- Background: the game's default translucent window surface (BaseDarkMedium at transparency VeryLow,
+	-- builtin.css.lua:16, 1946-1953), like the radar window and Industry Flows (user 2026-10-14; the rev 6
+	-- opaque override is gone: the native cards back the content now).
 	a(FLEET_WINDOW, {
 		gravity = { 0.6, 0.5 },
 		anchorPoint = { 0.5, 0.55 },
-		backgroundColor1 = colorDefault.BaseDarkMedium,
 	})
 
-	-- Rev 6 round 3: the window sizes to its content (no fixed height); 740 px wide fits the two cards
-	-- (2 × 360) and the model table (radar_inline.tl fleetContent).
+	-- Native fleet window (2026-10-14): of its 15 rules only these 4 stay (gravity, innerSpacing,
+	-- textAutoWrap and textAlignment have no inline form). Cards (base card nine-patch), rows and their
+	-- zebra, the lines, the utilization bar, the scroll area, the fixed columns and the button padding are
+	-- inline (radar_inline.tl); the hint moved into the buttons' tooltips. 740 px wide content
+	-- (radar_inline.tl fleetContent). Revert: plans/square_problem_radar/fleet_window_native.patch.
 
-	a(FLEET .. " BoxLayout!radar-box", {
+	-- Gaps between the children of our own layouts, the action row's FlowLayout included (no element
+	-- name: ui-guide "Spacing").
+	a(FLEET .. " !radar-box", {
 		innerSpacing = { 8, 3 },
 	})
 
-	-- Section titles: a step larger and brighter, a divider under each (radar_fleet.tl header).
-	a(FLEET .. " TextView!radar-fleet-head", {
-		color = colorDefault.NeutralLightest,
-		margin = { 10, 0, 2, 0 },
-	})
-
-	-- 1 px lines: a styled Component (base separators: game_bar.css.lua:884-886).
-	a(FLEET .. " !radar-fleet-divider", {
-		size = { -1, 1 },
-		gravity = { -1, 0 },
-		backgroundColor = colorDefault.BaseVeryLight,
-		margin = { 0, 0, 4, 0 },
-	})
-
-	-- The model table's divider is dimmer (BaseLight): radar_inline.tl fleetDimLine.
-
-	a(FLEET .. " !radar-fleet-sum-line", {
-		margin = { 4, 0, 2, 0 },
-	})
-
-	-- Cards: a subtle panel behind each half of the top area.
-	a(FLEET .. " !radar-fleet-card", {
-		minSize = { 360, -1 },
-		gravity = { -1, -1 },
-		padding = { 2, 8, 8, 8 },
-		backgroundColor = color_util.withTransparencyRaw(colorDefault.BaseLight, transparency.High),
-	})
-
-	a(FLEET .. " TextView!radar-hint", {
-		maxSize = { 720, -1 },
-		textAutoWrap = true,
-		color = colorDefault.NeutralLight,
-		margin = { 6, 0, 0, 0 },
-	})
-
 	-- Card lines: dim label column (radar-col130, top of the file), right-aligned values in a fixed
-	-- column (textAlignment as keybinding_hint.css.lua:262-268). The totals line's label is brighter.
-	-- (radar-fleet-sum: radar_inline.tl, NeutralLightest)
-
+	-- column that wraps (textAlignment as keybinding_hint.css.lua:262-268).
 	a(FLEET .. " TextView!radar-fleet-value", {
 		minSize = { 200, -1 },
 		maxSize = { 200, -1 },
@@ -291,62 +215,12 @@ function data()
 		textAlignment = { 1, 0.5 },
 	})
 
-	-- Money: the game's Ok green above zero, its Negative red below; zero keeps the default text colour
-	-- (radar-money-pos/neg: radar_inline.tl).
-
-	-- Utilization bar (base ProgressBar, builtin.css.lua:1569-1592: 20 px high by default).
-	a(FLEET .. " ProgressBar!radar-fleet-usage", {
-		size = { -1, 14 },
-		gravity = { -1, 0 },
-		margin = { 0, 0, 2, 0 },
-	})
-
-	-- Fleet by model: marker · model · count · oldest age of lifespan · past lifespan · buttons.
-	a(FLEET .. " ScrollArea!radar-fleet-groups", {
-		size = { -1, 260 },
-		gravity = { -1, 0 },
-	})
-
-	a(FLEET .. " !radar-fleet-row", {
-		gravity = { -1, 0 },
-		padding = { 3, 4, 3, 4 },
-	})
-
-	-- Odd rows' subtle background: radar_inline.tl fleetRowOdd.
-
-	a(FLEET .. " TextView!radar-fleet-mark", {
-		minSize = { 12, -1 },
-		maxSize = { 12, -1 },
-		color = colorDefault.AccentLight,
-	})
-
+	-- Fleet by model: the model column wraps (trains: "Loco + 6× Wagon"); the other columns are fixed
+	-- inline widths (radar_inline.tl TEXT_LAYOUT).
 	a(FLEET .. " TextView!radar-fleet-model", {
-		minSize = { 230, -1 },
-		maxSize = { 230, -1 },
-		textAutoWrap = true, -- trains: "Loco + 6× Wagon"
-	})
-
-	a(FLEET .. " TextView!radar-fleet-num", {
-		minSize = { 60, -1 },
-		maxSize = { 60, -1 },
+		minSize = { 210, -1 },
+		maxSize = { 210, -1 },
 		textAutoWrap = true,
-		textAlignment = { 1, 0.5 },
-	})
-
-	a(FLEET .. " TextView!radar-fleet-age", {
-		minSize = { 110, -1 },
-		maxSize = { 110, -1 },
-		textAutoWrap = true,
-		textAlignment = { 1, 0.5 },
-	})
-
-	a(FLEET .. " BoxLayout!radar-fleet-row-buttons", {
-		innerSpacing = { 0, 2 },
-	})
-
-	a(FLEET .. " Button!radar-fleet-button", {
-		padding = { 4, 10, 4, 10 },
-		margin = { 2, 6, 2, 0 },
 	})
 
 	return result
