@@ -164,6 +164,7 @@ geom.TRAM_OFF = 1
 geom.TRAM_ON = 2
 
 geom.SIGNALS_OFF = 1
+
 geom.SIGNALS_ENTRIES = 2
 
 geom.GTEX_GRASS = "::/industries/shared/gtex/cut_grass_mix.gtex"           -- stations/air/airport.script.lua:728
@@ -258,18 +259,24 @@ geom.paramForAngle = S.paramForAngle
 
 --- Sorted ring node parameters: every anchor parameter plus the fewest extra nodes so that no gap
 -- exceeds maxAngle. Returns ts (ascending, in [0, 2pi)) and armAt (ts index -> anchor number).
-function geom.ringParams(armTs, maxAngle)
+-- minPieces (optional, dev override ringMid): every gap between anchors of different groups (groups[i] =
+-- anchor i's arm; nil: every anchor its own) is split into at least that many edges, evenly (a plain ring
+-- node half way between two neighbouring arms for 2: square_smart_lanes' sl_rsplit layout writes its lane
+-- changes there). The two legs of one splitter arm stay one edge apart.
+function geom.ringParams(armTs, maxAngle, minPieces, groups)
 	maxAngle = maxAngle or geom.MAX_EDGE_ANGLE
 	local anchors = {}
-	for i, t in ipairs(armTs) do anchors[#anchors + 1] = { t = S.wrap(t), arm = i } end
+	for i, t in ipairs(armTs) do anchors[#anchors + 1] = { t = S.wrap(t), arm = i, group = groups and groups[i] or i } end
 	table.sort(anchors, function(x, y) return x.t < y.t end)
 	if #anchors == 0 then anchors[1] = { t = 0 } end
 
 	local ts, armAt = {}, {}
 	for i, anchor in ipairs(anchors) do
-		local nextT = (i < #anchors) and anchors[i + 1].t or (anchors[1].t + TWO_PI)
+		local nxt = (i < #anchors) and anchors[i + 1] or anchors[1]
+		local nextT = (i < #anchors) and nxt.t or (anchors[1].t + TWO_PI)
 		local gap = nextT - anchor.t
 		local n = math.max(1, math.ceil(gap / maxAngle - 1e-7))
+		if minPieces and (nxt.group ~= anchor.group or #anchors == 1) then n = math.max(n, minPieces) end
 		ts[#ts + 1] = anchor.t
 		if anchor.arm then armAt[#ts] = anchor.arm end
 		for k = 1, n - 1 do
@@ -373,6 +380,9 @@ end
 --   neckType      splitter: the neck's road, arm road index (default: the small road of the arm's
 --                 family, town small or country small)
 --   tramStub      tram line through the centre: stub length beyond the ring half width (m)
+--   ringMid       n = 1..3: n plain ring nodes evenly between every two neighbouring arms (Roundabout only;
+--                 the ring edges per arm gap at least n + 1; the Stress Test bench's sl_rsplit / sl_rmid rings,
+--                 plans/square_roundabouts/PLAN.md "Ring mid nodes (dev)")
 -- Phase 5e (read by the Channelized Junction / Roundabout Interchange modules only):
 --   chSlipAngle   channel: slip lane angle to the arms (degrees; ch.SLIP_ANGLE)
 --   chCornerGap   channel: slip lane centreline to the kerb corner, minus 7 m (m; ch.CORNER_GAP)
@@ -404,6 +414,7 @@ geom.DEV_KEYS = {
 	neck = "sqrb_dev_neck",
 	neckType = "sqrb_dev_neck_type",
 	tramStub = "sqrb_dev_tram_stub",
+	ringMid = "sqrb_dev_ring_mid",
 	chSlipAngle = "sqrb_dev_ch_slip_angle",
 	chCornerGap = "sqrb_dev_ch_corner_gap",
 	chSlipFree = "sqrb_dev_ch_slip_free",
@@ -431,6 +442,7 @@ geom.DEV_RANGES = {
 	neck = { 0, 80 },
 	neckType = { 1, 6, true },
 	tramStub = { 2, 80 },
+	ringMid = { 0, 3, true },
 	chSlipAngle = { 20, 85 },
 	chCornerGap = { 0, 30 },
 	chSlipFree = { 0, 30 },
@@ -918,7 +930,27 @@ end
 --     nodes >= sum of their road half widths + LEG_CLEARANCE;
 --   * a through road clears every ring node off its axis by the sum of its half width, the
 --     widest road at that node and LEG_CLEARANCE (so it only touches its own two nodes' edges).
+--- The ring edges per arm gap the spec asks for (geom.ringParams minPieces), nil: none: the dev override ringMid = n
+-- (n plain nodes, 1-3; the Stress Test bench's rings). Players' rings get their mid nodes from Smart Lanes, which splits
+-- the ring itself (square_smart_lanes PLAN.md "Smart Lanes adds the mid nodes"; a menu placement joins short plain ring
+-- pieces away, docs/findings/roads.md).
+function geom.midPieces(spec)
+	local d = spec.dev and spec.dev.ringMid
+	if d ~= nil and d >= 1 then return d + 1 end
+	return nil
+end
+
+--- Ring plan at one radius (geom.planAt) with the dev override's nodes between arms (geom.midPieces).
 function geom.plan(spec, radius, arms, force)
+	local pieces = geom.midPieces(spec)
+	if pieces == nil then return geom.planAt(spec, radius, arms, force) end
+	local withMid = {}
+	for k, v in pairs(spec) do withMid[k] = v end
+	withMid.midPieces = pieces
+	return geom.planAt(withMid, radius, arms, force)
+end
+
+function geom.planAt(spec, radius, arms, force)
 	local lanes = spec.lanes
 	local offset = geom.RING_OFFSET[lanes]
 	local hw = geom.RING_HALF_WIDTH[lanes]
@@ -996,9 +1028,11 @@ function geom.plan(spec, radius, arms, force)
 		end
 	end
 
-	local ts = {}
-	for i, an in ipairs(anchors) do ts[i] = an.t end
-	local ringTs, anchorAt = geom.ringParams(ts)
+	local ts, groups = {}, {}
+	for i, an in ipairs(anchors) do ts[i], groups[i] = an.t, an.arm end
+	-- plain ring nodes between neighbouring arms (geom.ringParams): spec.midPieces (geom.plan)
+	local mid = spec.midPieces
+	local ringTs, anchorAt = geom.ringParams(ts, nil, mid, groups)
 
 	local plan = { a = a, b = b, halfWidth = hw, sigma = sigma, leg = leg, anchors = anchors, ts = ringTs, anchorAt = anchorAt }
 	if force then return plan end

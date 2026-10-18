@@ -59,6 +59,13 @@ local function each(grid, fn)
 	rec(1, {})
 end
 
+-- Quick runs (no TEST_FULL) check every stride-th case of a sweep plus the first of each value the
+-- stride misses and the default (checks.sampled); --full checks every case.
+local isDefault = checks.defaultCase(function(o) return hx.readParams(params(o)) end)
+local function sampledEach(stride, grid, fn)
+	checks.sampled(function(f) each(grid, f) end, stride, isDefault)(fn)
+end
+
 -- Limits as test_interchange.lua (PHASE5.md "Phase 5a notes", spike 4).
 local MIN_SEP = 7
 local AVG_MAX = 0.10
@@ -263,10 +270,10 @@ end)
 -- Phase 7c3: three entries (user: A and B are mirrors, so a Layout setting instead of an item each):
 -- id, name, menu order, types behind the Layout buttons, button labels
 local ENTRIES = {
-	{ id = "parclo", name = "Parclo", order = 6002, types = { hx.TYPE_A4, hx.TYPE_B4 }, labels = { "A", "B" } },
-	{ id = "parclo2", name = "Parclo, two quadrants", order = 6003, types = { hx.TYPE_A2, hx.TYPE_B2, hx.TYPE_AB2 },
+	{ id = "parclo", name = "Parclo", order = 3014, types = { hx.TYPE_A4, hx.TYPE_B4 }, labels = { "A", "B" } },
+	{ id = "parclo2", name = "Parclo, two quadrants", order = 3015, types = { hx.TYPE_A2, hx.TYPE_B2, hx.TYPE_AB2 },
 		labels = { "A", "B", "AB" } },
-	{ id = "diamond", name = "Diamond", order = 7001, types = { hx.TYPE_DIAMOND } },
+	{ id = "diamond", name = "Diamond", order = 3016, types = { hx.TYPE_DIAMOND } },
 }
 
 test(".con.lua x 3: Parclo [A][B], Parclo two quadrants [A][B][AB], Diamond; button rows, script, icons, availability", function()
@@ -445,7 +452,7 @@ end)
 local function sweepTest(t)
 	test("sweep " .. hx.TYPES[t].name .. ": every highway x level x side x Size x cross road x ramp length extremes", function()
 		local count, total, worst = 0, 0, 0
-		each({ type = { t }, highway = { 1, 2, 3 }, level = { 1, 2 }, direction = { 1, 2 }, size = { 1, 2, 3 },
+		sampledEach(5, { type = { t }, highway = { 1, 2, 3 }, level = { 1, 2 }, direction = { 1, 2 }, size = { 1, 2, 3 },
 			cross = { 1, 3, 4, 6 }, rampLength = { 1, #hx.RAMP_EXTRAS } }, function(o)
 			local t0 = os.clock()
 			local b = build(o)
@@ -688,7 +695,7 @@ end)
 -- probe's placed layouts are kept: the ones at the cap are exactly the measured maxima.
 test("reach: every build's edges within hx.MAX_REACH of the origin (engine limit, p7_hx_scale)", function()
 	local count, capped, worst = 0, 0, { 0, 0 }
-	each({ type = { 1, 2, 3, 4, 5, 6 }, highway = { 1, 2, 3 }, level = { 1, 2 }, cross = { 1, 2, 3, 4, 5, 6 },
+	sampledEach(11, { type = { 1, 2, 3, 4, 5, 6 }, highway = { 1, 2, 3 }, level = { 1, 2 }, cross = { 1, 2, 3, 4, 5, 6 },
 		size = { 1, 2, 3 }, rampLength = { 1, 2, 3 }, armLength = { 1, 2, 3 }, direction = { 1 } }, function(o)
 		local b = build(o)
 		local n = name(o)

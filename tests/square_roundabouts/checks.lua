@@ -823,4 +823,75 @@ function checks.engineModel(lists, ringHalfWidth)
 	return problems, xs
 end
 
+--- Quick and full tiers (tests/run_tests.py): sweeps check a sample by default and every case
+-- when FULL (TEST_FULL: `--full`, make gate; SQRB_FULL implies it).
+checks.FULL = (os.getenv and os.getenv("TEST_FULL")) and true or false
+
+--- "key=value" strings of a params table (table values left out).
+function checks.values(p)
+	local t = {}
+	for k, v in pairs(p) do
+		if type(v) ~= "table" then t[#t + 1] = tostring(k) .. "=" .. tostring(v) end
+	end
+	return t
+end
+
+--- Indices (ascending) of the cases a quick run checks out of n: the first and the last, every
+-- stride-th, each i with must(i), then the first case of each value the others miss (valuesOf(i):
+-- a list of strings, e.g. checks.values), so every value of every param comes up. FULL or
+-- stride <= 1: all n.
+function checks.pick(n, stride, valuesOf, must)
+	local keep, out = {}, {}
+	local all = checks.FULL or stride <= 1
+	for i = 1, n do
+		keep[i] = all or i == 1 or i == n or (i - 1) % stride == 0 or (must ~= nil and must(i)) or false
+	end
+	if not all then
+		local covered = {}
+		for i = 1, n do
+			if keep[i] then for _, v in ipairs(valuesOf(i)) do covered[v] = true end end
+		end
+		for i = 1, n do
+			if not keep[i] then
+				local vs = valuesOf(i)
+				for _, v in ipairs(vs) do
+					if not covered[v] then keep[i] = true; break end
+				end
+				if keep[i] then for _, v in ipairs(vs) do covered[v] = true end end
+			end
+		end
+	end
+	for i = 1, n do if keep[i] then out[#out + 1] = i end end
+	return out
+end
+
+--- The sweep (sweep(fn) calls fn(params) per case) reduced to checks.pick's cases, in sweep order;
+-- isDefault(p) -> true keeps a case too (checks.defaultCase). FULL or stride <= 1: the sweep itself.
+function checks.sampled(sweep, stride, isDefault)
+	if checks.FULL or stride <= 1 then return sweep end
+	return function(fn)
+		local cases = {}
+		sweep(function(p)
+			local c = {}
+			for k, v in pairs(p) do c[k] = v end
+			cases[#cases + 1] = c
+		end)
+		local idx = checks.pick(#cases, stride, function(i) return checks.values(cases[i]) end,
+			isDefault and function(i) return isDefault(cases[i]) end)
+		for _, i in ipairs(idx) do fn(cases[i]) end
+	end
+end
+
+--- isDefault for checks.sampled: true where readParams(p) gives the defaults (readParams({})).
+function checks.defaultCase(readParams)
+	local d = readParams({})
+	return function(p)
+		local s = readParams(p)
+		for k, v in pairs(d) do
+			if type(v) ~= "table" and s[k] ~= v then return false end
+		end
+		return true
+	end
+end
+
 return checks

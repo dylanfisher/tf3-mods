@@ -10,6 +10,20 @@
 
 local G = {}
 
+local here = debug.getinfo(1, "S").source:match("^@(.*/)") or "tests/square_roundabouts/"
+local checks = loadfile(here .. "checks.lua", "t", _ENV)()
+
+--- The groups (indices into a list of n) a run compares, split into `parts` contiguous slices:
+-- returns the indices of slice `part`. Quick runs (no TEST_FULL) compare every stride-th golden
+-- group plus the first and the last (checks.pick); --full (make gate) compares every group.
+function G.groupSlice(n, part, parts, stride)
+	local picked = checks.pick(n, stride, function() return {} end)
+	local per = math.ceil(#picked / parts)
+	local out = {}
+	for k = (part - 1) * per + 1, math.min(#picked, part * per) do out[#out + 1] = picked[k] end
+	return out
+end
+
 local function fmt(v)
 	if type(v) == "number" then
 		local s = string.format("%.4f", v)
@@ -248,18 +262,26 @@ end
 --- Registers the golden test of one entry (test_entries_unchanged_<entry>.lua): every group's
 -- rounded and exact fingerprint equals golden_entries.lua, and every recorded group of the entry
 -- is still swept. SQRB_GOLDEN_WRITE=1 prints the lines instead.
-function G.entryTest(entry, mod, geom, updateFn, golden, parts)
+function G.entryTest(entry, mod, geom, updateFn, golden, parts, stride)
 	-- `parts` tests (default 3), each a contiguous slice of the groups, so the runner can shard
-	-- them; SQRB_GOLDEN_WRITE prints each slice's lines under its test, in order
-	parts = parts or 3
+	-- them; SQRB_GOLDEN_WRITE prints each slice's lines under its test, in order. Quick runs
+	-- compare every `stride`-th group (default 4) plus the first and the last.
+	parts, stride = parts or 3, stride or 4
 	local write = os.getenv and os.getenv("SQRB_GOLDEN_WRITE")
 	for part = 1, parts do
 		test(string.format("entries golden: %s builds unchanged (rounded and exact), part %d/%d", entry, part, parts), function()
 			local groups, order = G.entryGroups(entry, mod, geom)
-			local per = math.ceil(#order / parts)
-			local first, last = (part - 1) * per + 1, math.min(#order, part * per)
+			-- SQRB_GOLDEN_WRITE writes every group; a quick run compares a sample (G.groupSlice)
+			local slice
+			if write then
+				local per = math.ceil(#order / parts)
+				slice = {}
+				for i = (part - 1) * per + 1, math.min(#order, part * per) do slice[#slice + 1] = i end
+			else
+				slice = G.groupSlice(#order, part, parts, stride)
+			end
 			local lines, bad, builds = {}, {}, 0
-			for i = first, last do
+			for _, i in ipairs(slice) do
 				local name = order[i]
 				local h, hx = G.fingerprints(updateFn, groups[name])
 				builds = builds + #groups[name]
@@ -285,7 +307,12 @@ function G.entryTest(entry, mod, geom, updateFn, golden, parts)
 				eq(recorded, #order, "recorded vs swept groups")
 			end
 			ok(#bad == 0, #bad .. " groups changed: " .. table.concat(bad, "; "))
-			print(string.format("    groups %d-%d of %d, %d builds", first, last, #order, builds))
+			local first, last = slice[1] or 0, slice[#slice] or 0
+			if #slice == last - first + 1 then
+				print(string.format("    groups %d-%d of %d, %d builds", first, last, #order, builds))
+			else
+				print(string.format("    %d groups (sample) of %d-%d of %d, %d builds", #slice, first, last, #order, builds))
+			end
 		end)
 	end
 end

@@ -81,7 +81,7 @@ omitted axes take the .con.lua default). A new subset name must also be added to
 
 | subset | combos | what |
 |---|---|---|
-| smoke | 20 | defaults, 6 arms + splitter (town s/m/l), road/tram through, tram on, Magic sizes x town s/l; Phase 5e: a hamburger with lights, the Channelized Junction and Roundabout Interchange defaults |
+| smoke | 21 (the recorded run, `probe_smoke.log` 2026-10-08, had 17: before the Phase 5e and 7d rows) | defaults, 6 arms + splitter (town s/m/l), road/tram through, tram on, Magic sizes x town s/l; Phase 5e: a hamburger with lights, the Channelized Junction and Roundabout Interchange defaults; Phase 7d: the highway default (Parclo A4) |
 | splitter6 | 432 | the reported failure: 6 arms + splitter on, shape round/2:1, lanes 1/2/4, radius 8/20/40/60, all centres, all arm roads |
 | magic | 60 | Magic: 5 sizes x 6 arm roads x 2 directions (island None) |
 | main_cw | 216 | clockwise sample: 2 lanes, 20 m, all arms x splitter x centre x arm road, tram off |
@@ -322,12 +322,12 @@ so assume it is slower). The PROGRESS lines give the real rate and an ETA.
 | override | param | meaning (shipped value) |
 |---|---|---|
 | chSlipAngle | `sqrb_dev_ch_slip_angle` | channel: slip lane angle to the arms, degrees (40) |
-| chCornerGap | `sqrb_dev_ch_corner_gap` | channel: slip lane centreline to the kerb corner, beyond 7 m (7) |
+| chCornerGap | `sqrb_dev_ch_corner_gap` | channel: slip lane centreline to the curb corner, beyond 7 m (7) |
 | chSlipFree | `sqrb_dev_ch_slip_free` | channel: free arm length before the slip lane's gore (4 m) |
-| ixClear | `sqrb_dev_ix_clear` | interchange: plan gap highway kerb <-> non-bridge roads (8 m) |
+| ixClear | `sqrb_dev_ix_clear` | interchange: plan gap highway curb <-> non-bridge roads (8 m) |
 | ixGamma | `sqrb_dev_ix_gamma` | interchange: dumbbell/peanut slip road angle off the ring normal, degrees (35) |
 | ixGoreRun | `sqrb_dev_ix_gore_run` | interchange: shortest level gore along the highway (30 m) |
-| ixWaistGap | `sqrb_dev_ix_waist_gap` | interchange: peanut, gap between the waist kerbs at the pinch (6 m) |
+| ixWaistGap | `sqrb_dev_ix_waist_gap` | interchange: peanut, gap between the waist curbs at the pinch (6 m) |
 
 New search kind **grid** (`grid.candidates`): the cartesian product of a block's `values`
 (`values.order` lists the override names, the first varies slowest), every candidate tried. The
@@ -403,7 +403,7 @@ largest alpha it takes for a 4-lane two-bridge ring.
 | override | param | meaning (shipped value) |
 |---|---|---|
 | chSlip | `sqrb_dev_ch_slip` | channel: slip lane template, 1 one-way xsmall, 2 one-way small, 3 one-way medium (tuning row, else 1) |
-| ixAlphaMax | `sqrb_dev_ix_alpha_max` | interchange: two-bridge ring, largest slip node angle off the highway axis, degrees (60; 40 with 4 lanes) |
+| ixAlphaMax | `sqrb_dev_ix_alpha_max` | interchange: two-bridge ring, largest slip node angle off the highway axis, degrees (60; 45 with 4 lanes since Phase 5g, was 40: `ix.ALPHA_MAX_LANES`) |
 
 `chSlipAngle` now accepts 20-85 deg (was 20-70). Every p5f_search channel candidate sets both
 `chSlipAngle` and `chSlip` (without `chSlip` the tuning row's template would apply).
@@ -473,7 +473,7 @@ shortest ramp 0 / 20 / 40 / 60 m, armlen, dir), then the pseudo axis **year** (1
 
 | override | param | meaning (shipped value) |
 |---|---|---|
-| hxClear | `sqrb_dev_hx_clear` | plan gap highway kerb <-> non-bridge roads (ramps.CLEAR 8 m) |
+| hxClear | `sqrb_dev_hx_clear` | plan gap highway curb <-> non-bridge roads (ramps.CLEAR 8 m) |
 | hxGoreRun | `sqrb_dev_hx_gore_run` | shortest level gore along a carriageway (ramps.GORE_RUN 30 m) |
 | hxTermGap | `sqrb_dev_hx_term_gap` | parclo: inner to outer terminal, and loop to wrapped diagonal (hx.TERM_GAP 30 m) |
 | hxLoopRadius | `sqrb_dev_hx_loop_radius` | parclo: exact loop radius, replaces Size and its growth (25-60 m by Size) |
@@ -583,7 +583,7 @@ Steps:
 
 ## Phase 7e fix-up round 3: p7_watch + the watcher's bisect
 The watcher's replays reproduce the UI refusal (INTERCHANGES.md "Fix-up round 3"). At the first refused UI
-proposal it now bisects at that exact transf (`grid.BISECT`, 180 calls, `START subset=bisect` ... `END`,
+proposal it now bisects at that exact transf (`grid.BISECT`, 180 calls planned, 167 in the logged run `probe_p7_bisect.log`; `START subset=bisect` ... `END`,
 R + D lines with `rot0` / `dz`).
 1. `make link`. Load the save, probe On, Subset **p7_watch** (or any subset: the watcher runs in all of them).
 2. After `END subset=p7_watch` (about 20 s after loading), open Highway Interchange, set the settings that fail

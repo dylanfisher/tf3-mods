@@ -11,9 +11,11 @@ Where it is: road construction menu (`street_constructions`), next to the base "
 roundabout's (placeholder).
 
 ## Open checks
-1. **Revision 7, small ovals with wide arms.** Better Roundabouts, Shape Oval 1.25 : 1, Scale XS,
-   Ring lanes 1, Arms 3 (T), Arm road Country large, Splitter islands Off (the Stress Test Showcase's
-   "Oval roundabout"): revision 6 grew it to 15 m and the game refused it ("Construction Not
+1. **Revision 7, small ovals with wide arms** (revision 7 is live since 2026-10-14; this check is still
+   unrecorded). Better Roundabouts, Shape Oval 1.25 : 1, Scale XS,
+   Ring lanes 1, Arms 4, Arm road Country large, Splitter islands Off (the Stress Test Showcase's
+   "Oval roundabout", `sqrb_arms=3` = the third value, 4 arms; corrected 2026-10-14, was "3 (T)"):
+   revision 6 grew it to 15 m and the game refused it ("Construction Not
    Possible"); revision 7 builds a larger ring (20 m) that places. Try one or two more ovals of
    1.25-1.75 : 1 with 1 lane, Scale XS-M and Town or Country large arms: each places. Round rings,
    2:1 ovals and every other entry build as in revision 6.
@@ -73,7 +75,7 @@ items have no recorded result. Passed one-off checks are in `HISTORY.md`.
 
 ## 2. Island
 Choose Centre island = Grass for 1 and 2.
-1. The grass island fills the middle with a gap of about 1 m to the ring's inner kerb; no grass
+1. The grass island fills the middle with a gap of about 1 m to the ring's inner curb; no grass
    on the carriageway.
 2. Click the island: what is it? Expected: a construction entity ("Better Roundabouts") holding only the
    island. Bulldozing it must leave the roads intact.
@@ -210,7 +212,7 @@ Note which ring entry junctions get traffic lights:
 
 ## 9. Phase 3b retests (2026-10-07 fixes)
 Background: HISTORY.md "Phase 3b notes". The offline junction model says a junction must leave every
-edge at least 4.5 m of its length and no kerb corner may lie more than 6 m behind a road's node.
+edge at least 4.5 m of its length and no curb corner may lie more than 6 m behind a road's node.
 Both thresholds come from the first in-game results; these checks confirm or move them.
 
 ### 9.1 Tram line through the centre (ring without tracks)
@@ -302,7 +304,7 @@ it refused (if any) and the items below.
    leave from the inbound lanes. Also: Traffic side not matching the save's traffic side still places
    (vehicles then use the slip lanes as the far turns).
 7. **Islands Grass / Paved**: a triangle in each slip lane corner and one between splitter legs, no
-   gaps or overlaps with the kerbs; no town buildings appear on corner islands (box colliders); the
+   gaps or overlaps with the curbs; no town buildings appear on corner islands (box colliders); the
    island stays when the slip lane is bulldozed (same as the roundabout islands).
 8. **Arm length** 30 / 60 m: the roads run that far beyond the slip nodes.
 9. **Look**: slip lanes leave and join at 40 deg (gore length acceptable?), the town one-way xsmall

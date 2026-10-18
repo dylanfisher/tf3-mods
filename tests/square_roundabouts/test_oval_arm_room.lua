@@ -1,9 +1,9 @@
 -- Arm room on small 1-lane ovals (rev 7, 2026-10-12). A wide arm leaving the tight end of a
--- small oval met the ring's outer kerb behind its node: the Stress Test Showcase's
--- "Oval roundabout" (1.25:1, XS, 1 lane, country large T arms, no splitter) grew to 15 m and was
+-- small oval met the ring's outer curb behind its node: the Stress Test Showcase's
+-- "Oval roundabout" (1.25:1, XS, 1 lane, 4 country large arms, no splitter) grew to 15 m and was
 -- refused in game ("Construction Not Possible"); checks.engineModel flagged
 -- "arms#1 / arms#3: a junction corner 1.4 m behind its node (> 1.0)". geom.plan now keeps a
--- plain arm's kerb corner within geom.ARM_BEHIND_PLAN of its node, so such a ring grows on (not
+-- plain arm's curb corner within geom.ARM_BEHIND_PLAN of its node, so such a ring grows on (not
 -- in the patterns whose radius the engine judged, geom.radiusSearched: round and 2:1 rings).
 -- Sweep: every oval, 1 ring lane, radius sizes XS-M, splitter off, every arm road, arms layout,
 -- centre, tram and direction (the builds the 2026-10-12 sweep flagged, and their neighbours).
@@ -41,7 +41,7 @@ test("the arm-room rule leaves engine-searched patterns alone, applies to the ne
 	end
 end)
 
-test("Showcase oval (1.25:1, XS, 1 lane, country large T, no splitter) grows until the arms fit", function()
+test("Showcase oval (1.25:1, XS, 1 lane, 4 country large arms, no splitter) grows until the arms fit", function()
 	local p = { sqrb_arm_type = 6, sqrb_arms = 3, sqrb_centre = 1, sqrb_island = 3, sqrb_lanes = 1, sqrb_radius_size = 1,
 		sqrb_shape = 2, sqrb_signals = 1, sqrb_splitter = 1, sqrb_tram = 2 }
 	local b = geom.build(geom.readParams(p))
@@ -50,22 +50,34 @@ test("Showcase oval (1.25:1, XS, 1 lane, country large T, no splitter) grows unt
 	eq(b.forced, nil)
 end)
 
+-- One test per oval and size, so the runner can shard them. Quick runs (no TEST_FULL) build every
+-- 7th combination plus the first of each value the stride misses (checks.sampled); --full all.
+local SIZE_NAMES = { "XS", "S", "M" }
 for shape = 2, #geom.SHAPE_RATIOS do
-	test("1-lane oval " .. shape .. ", sizes XS-M, no splitter: no plain arm corner behind its node", function()
+	for size = 1, 3 do
+	test("1-lane oval " .. shape .. ", size " .. SIZE_NAMES[size] .. ", no splitter: no plain arm corner behind its node", function()
 		local bad, n = {}, 0
-		for size = 1, 3 do for arms = 1, #geom.ARM_LAYOUTS do for armType = 1, #geom.ARM_TEMPLATES do
-		for centre = 1, 4 do for tram = 1, 2 do for direction = 1, 2 do
-			local p = { shape = shape, lanes = 1, sqrb_radius_size = size, arms = arms, armType = armType,
-				splitter = 1, centre = centre, tram = tram, direction = direction }
+		local function sweep(fn)
+			for arms = 1, #geom.ARM_LAYOUTS do for armType = 1, #geom.ARM_TEMPLATES do
+			for centre = 1, 4 do for tram = 1, 2 do for direction = 1, 2 do
+				fn({ shape = shape, lanes = 1, sqrb_radius_size = size, arms = arms, armType = armType,
+					splitter = 1, centre = centre, tram = tram, direction = direction })
+			end end end end end
+		end
+		sweep(function() n = n + 1 end)
+		eq(n, #geom.ARM_LAYOUTS * #geom.ARM_TEMPLATES * 4 * 2 * 2)
+		local built = 0
+		checks.sampled(sweep, 7)(function(p)
 			local b = build(p)
-			n = n + 1
+			built = built + 1
 			if not (judged(b) or geom.radiusSearched(b.spec)) then
 				local pr = checks.engineModel(b.lists, b.halfWidth)
 				if #pr > 0 then bad[#bad + 1] = label(p) .. " (R " .. b.radius .. "): " .. table.concat(pr, "; ") end
 			end
 			if b.forced then bad[#bad + 1] = label(p) .. ": forced fallback" end
-		end end end end end end
-		eq(n, 3 * #geom.ARM_LAYOUTS * #geom.ARM_TEMPLATES * 4 * 2 * 2)
+		end)
+		ok(built == n or not checks.FULL, built .. " of " .. n .. " built")
 		eq(#bad, 0, #bad .. " builds:\n" .. table.concat(bad, "\n", 1, math.min(#bad, 10)))
 	end)
+	end
 end

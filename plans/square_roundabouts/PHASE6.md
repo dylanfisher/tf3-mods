@@ -49,8 +49,8 @@ lanes, and which side index 0 is on a one-way ring, is **not documented**: probe
 
 ## Lane rules we intend (right-hand traffic; left-hand traffic is the mirror image)
 Notation at one node: `Rin` = ring segment arriving, `Rout` = ring segment leaving, `A` = arm
-(two-way). Ring lanes are numbered from the outside, `o1` (outer, kerb side) .. `on` (inner). Arm
-lanes per direction are numbered from the kerb: `in1..ink` arriving at the node, `out1..outk`
+(two-way). Ring lanes are numbered from the outside, `o1` (outer, curb side) .. `on` (inner). Arm
+lanes per direction are numbered from the curb: `in1..ink` arriving at the node, `out1..outk`
 leaving it. `(seg, lane) → (seg, lane)` is one connection, withRoad true; tram connections
 (`withTram` only) are never touched. Once Q1 is answered, `o1/in1/out1` map to concrete indices
 (guess: on a one-way ring seen from the node, `o1` = lowest vehicle index, inner = highest).
@@ -71,7 +71,7 @@ Ring node with an arm (n ring lanes, k arm lanes per direction):
 Ring node without an arm (2 ring segments): `(Rin, oi) → (Rout, oi)` and `→ (Rout, o(i-1))`.
 
 Splitter legs (`Splitter islands` On): exit node X (`Rin`, `Rout`, leg `Lx` leaving, one-way 2-lane
-`xsmall`/`small` or 4-lane `medium`): only the outer ring lanes exit, lane for lane from the kerb:
+`xsmall`/`small` or 4-lane `medium`): only the outer ring lanes exit, lane for lane from the curb:
 `(Rin, o1) → (Lx, right lane)`, and `(Rin, o2) → (Lx, left lane)` when the leg and the ring both have
 >= 2 vehicle lanes. No other `Rin → Lx`.
 Entry node E (`Rin`, `Rout`, leg `Le` arriving): `(Le, right lane) → (Rout, o1)`, `(Le, left lane) → (Rout, o2)`.
@@ -95,8 +95,8 @@ Central node (main E/W, side N, + S for X), slip lanes on the arms:
   near-side slips (T): `E → N` and `N → W` (X adds `W → S`, `S → E`); "All turns off the main road":
   `E → N`, `W → N` (X adds `W → S`, `E → S`).
 - Diverge node on the approach arm (arm in, arm continuing to the centre, slip leaving): only the
-  kerb lane enters the slip: `(arm, in1) → (slip, all lanes)`; `(arm, inj) → (arm-continue, inj)` for all j
-  (the kerb lane may still go straight).
+  curb lane enters the slip: `(arm, in1) → (slip, all lanes)`; `(arm, inj) → (arm-continue, inj)` for all j
+  (the curb lane may still go straight).
 - Merge node on the target arm (slip arriving, arm from the centre, arm continuing out):
   `(slip, lanes) → (arm-out, out1)` only.
 - Splitter legs on the side road: as the roundabout's X/E nodes, against the main road's lanes.

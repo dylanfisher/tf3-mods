@@ -83,7 +83,7 @@ Params (in UI order; defaults first):
   slip lane and corner, outline/fill as the splitter triangles).
 Geometry: central junction node with straight two-way arms; slip lanes start and end on the arms
 far enough out that the engine-fitted junction model (`checks.engineModel`: free length >= 2.5 m,
-kerb corners) passes at both ends. Tune the set-back per main/side template offline; probe in 5e.
+curb corners) passes at both ends. Tune the set-back per main/side template offline; probe in 5e.
 Tests: `test_channel.lua` (tags, lengths, overlaps, engine model, short edges, traffic side mirror).
 
 ## Phase 5c: Hamburger / through-about (main entry)
@@ -381,16 +381,16 @@ via `square_roundabouts_result.lua` unchanged), `square_roundabouts_channel@2x.t
 - **Set-backs** (`ch.setbacks`, slip node distance from the centre; the same for every layout, slip
   set, arm length and traffic side, tested):
   1. junction room: start + `SLIP_FREE` (4 m) + gore(hw), gore = (hw + 7 cos 40) / tan 40 + 7 sin 40
-     (the kerb corner of a straight slip lane beside an arm of half width hw: 19.2 m for hw 7 ...
+     (the curb corner of a straight slip lane beside an arm of half width hw: 19.2 m for hw 7 ...
      30.0 m for hw 16). start = the crossing road's half width; with splitter islands the leg node +
      a leg half width (main), the split node + a leg half width (side).
   2. one-way bend: each set-back >= the other x tan(40 + 2 deg), so the chord lies between the end
      headings. Without it the far side node (splitter) gave an S-bend whose gore overlapped the side
      arm for 31-38 m.
   3. island room: the slip centreline keeps `CORNER_GAP` (7 m) + 7 m from the corner of the two
-     roads' kerbs (and the slip and leg bands 7 m apart with splitters, NE leg), both set-backs grown by
+     roads' curbs (and the slip and leg bands 7 m apart with splitters, NE leg), both set-backs grown by
      the same amount (bisection, rounded up to 0.5 m). Without this rule 40 deg slip lanes are nearly
-     straight diagonals that leave no island (rule 1 alone: kerb 1 m from the corner).
+     straight diagonals that leave no island (rule 1 alone: curb 1 m from the corner).
   Results (main / side set-back, m): no splitter 35.7 / 35.7 (country small both) to 54.5 / 54.5
   (town large both), e.g. default town medium + town small 42.2 / 41.4. With splitter islands 58.3 /
   64.7 (country small main, town medium side) to 84.6 / 94.0 (town large both): the side slip node
@@ -410,9 +410,9 @@ via `square_roundabouts_result.lua` unchanged), `square_roundabouts_channel@2x.t
   until the triangle is >= 15 m^2 (`SPLIT_TRIANGLE_MIN`, max +12 m): +2 m, +4 m on large main roads;
   checked whatever the Islands param, so the roads never depend on it.
 - **Islands** (None / Grass / Paved, no models): a corner island per slip lane, between arm a's
-  kerb, the slip lane's kerb, arm b's kerb and (splitter) the leg's kerb, each + `ISLAND_MARGIN`,
-  built with the new `S.chainPolygon` (kerb chains cut at their crossings) and `S.offsetPolyline`;
-  a BOX collider per corner island (`S.boxFrom` on the kerb side, all corners checked inside) so no
+  curb, the slip lane's curb, arm b's curb and (splitter) the leg's curb, each + `ISLAND_MARGIN`,
+  built with the new `S.chainPolygon` (curb chains cut at their crossings) and `S.offsetPolyline`;
+  a BOX collider per corner island (`S.boxFrom` on the curb side, all corners checked inside) so no
   town building spawns there. Splitter triangles via `geom.legTriangle` (shared). Smallest island
   over the sweep 15 m^2, typical 20-38 m^2.
 - Build time offline: 1.0 ms default, 1.8 ms worst (X, splitter, islands, large roads).
@@ -553,7 +553,7 @@ the highway bridged instead of the ring roads, so it did not double the work.
 | `sqrb_ix_radius` | Slider | 15, **20**, 25 ... 60 m (inside the ring road; a minimum, grows up to 120 m) |
 | `sqrb_ix_cross` | ComboBox | arm road list, default Town medium (arms; the dumbbell's link) |
 | `sqrb_ix_slip_length` | Slider | 120, **140**, 160, 180 m (along the highway, ring node to carriageway node) |
-| `sqrb_ix_arm_length` | Slider | **30**, 40, 50, 60 m (cross road beyond the ring's outer kerb; highway beyond the outer slip nodes) |
+| `sqrb_ix_arm_length` | Slider | **30**, 40, 50, 60 m (cross road beyond the ring's outer curb; highway beyond the outer slip nodes) |
 | `sqrb_direction` | Button | Right-hand traffic, Left-hand traffic ("Traffic side"; shared key, same indices) |
 | `sqrb_island` | ComboBox | None, Grass, Grass and trees, Fountain, Paved (shared key, same values as the main entry) |
 - `readParams` also reads `params.year` (spike 1) for the bridge type: `steel.bridge` before 1970,
@@ -567,8 +567,8 @@ Built for right-hand traffic, mirrored in x for left-hand traffic (new shared `g
 `ch.mirror` now calls: same arithmetic, test_channel's mirror test passes unchanged). Highway along
 x, cross road along y.
 - **Cross-section** (`ix.frame`): carriageways at y = -+c, c = highway half width + `MEDIAN`/2 = 2 m
-  (4 m kerb to kerb: the base diamond's large highway, centres +-13.5 m); south = eastbound. Corridor
-  = c + half width. `CLEAR` = 8 m: plan gap between the highway kerb and any upper-level road that is
+  (4 m curb to curb: the base diamond's large highway, centres +-13.5 m); south = eastbound. Corridor
+  = c + half width. `CLEAR` = 8 m: plan gap between the highway curb and any upper-level road that is
   not a bridge (embankment toe), and between a lower-level road and the highway bridge's end.
 - **Heights**: `HEIGHT` = 8 m (base diamond). Ring over highway: highway z 0, every ring-level road
   (rings, link, waist, arms) at 8 m; the edges over the highway are bridges. Highway over ring:
@@ -583,7 +583,7 @@ x, cross road along y.
   the ring grows), a plain mid node over the highway when 2 alpha > 90 deg. Arms at 90 / 270 deg.
   Slip roads join parallel to the highway (gamma = alpha). Smallest radius from the 15 m slider: 25 m
   (small highway; 30 m with 1 lane and town large), 35 m (medium), 40 m (large); alpha 47-58 deg.
-- **Dumbbell**: rings at (0, +-D), D = yClear + ring hw + rc (each ring's kerb CLEAR from the
+- **Dumbbell**: rings at (0, +-D), D = yClear + ring hw + rc (each ring's curb CLEAR from the
   corridor); nodes at 0 / 90 / 180 / 270 deg (slip, arm / link, slip, link / arm). Two-way link
   (cross road template) straight between the rings' facing nodes, a bridge for ring over. Slip roads
   at the rings' east/west nodes, joining along the inward normal turned `GAMMA` = 35 deg towards the
@@ -591,7 +591,7 @@ x, cross road along y.
 - **Peanut**: lobes (circles, rc) at (0, +-D); waist nodes at 270 +- beta (north lobe), y = yw =
   yClear + ring hw; the waist = two one-way Hermite edges (west southwards, east northwards) with the
   lobes' tangents at both ends (length 2 yw), so they pinch towards the axis by yw cos(beta) / 2;
-  beta = the smallest from 30 deg in 1 deg steps keeping `WAIST_GAP` = 6 m between the waist kerbs at
+  beta = the smallest from 30 deg in 1 deg steps keeping `WAIST_GAP` = 6 m between the waist curbs at
   the pinch (50-67 deg). D = yw + rc cos(beta). Lobe arcs are open (no closing edge); slip roads at
   the lobes' east/west nodes like the dumbbell (first try at the waist nodes, gamma 0: the slip roads
   ran back over the carriageway's band at 7 m height, rejected). Radius 15 m, 20 m for some 4-lane /
@@ -829,7 +829,7 @@ No revision bump (revision 3 is unpublished); the changelog entry gained the ova
 - **Diagnosis** (every p5_all row and p5_channel_search trial rebuilt offline with its dev values):
   traffic side, islands and arm length never changed a verdict (all 480 / 96 / 4 pairs agree), nor
   near-side vs all-turns slip lanes (336 pairs agree); corner gap and free length changed nothing.
-  The kerb-cut lengths do not separate the verdicts (accepted up to 31 m, refused from 15 m). What
+  The curb-cut lengths do not separate the verdicts (accepted up to 31 m, refused from 15 m). What
   does: lanes per direction of the arm at a slip node, whether the node carries one slip lane or two
   (T: the main road's nodes carry one, the side road's two; X: every node two), and the angle:
   | slip node | 1 lane / dir (town / country small) | 2 lanes (country medium) | 2 lanes (town medium) | 3 lanes (large) |

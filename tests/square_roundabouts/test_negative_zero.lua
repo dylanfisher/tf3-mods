@@ -31,7 +31,8 @@ local function groupsSweep(groups, order)
 	end
 end
 
--- Every 7th build of each sweep (test_finite's stride); SQRB_FULL=1 checks every build.
+-- Every 7th build of each sweep (test_finite's --full stride), quick and --full alike (a few s);
+-- SQRB_FULL=1 checks every build.
 local STRIDE = (os.getenv and os.getenv("SQRB_FULL")) and 1 or 7
 
 -- Released entries with world -0 tangents, left as they are. channel: layout 2 with left-hand

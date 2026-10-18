@@ -1,6 +1,6 @@
 {
     "modId": "square_roundabouts",
-    "revision": 7,
+    "revision": 8,
     "severityAdd": "None",
     "severityRemove": "Warning",
     "visible": true,

@@ -1,8 +1,9 @@
 -- Better Roundabouts: the three Highway Interchange menu entries (INTERCHANGES.md "Phase 7c2 notes",
--- "Phase 7c3 notes"), next to the base game's interchanges: "Parclo" (A4 / B4) and "Parclo, two
--- quadrants" (A2 / B2 / AB2) after the base cloverleaf (menu order 6000) and diverging diamond
--- (6001), "Diamond" after the base diamond (7000). Each square_roundabouts_highway_<id>.con.lua is
--- `return menu.data("<id>", _)`. The A / B mirrors are a "Layout" button row (hx.LAYOUT_KEY); the
+-- "Phase 7c3 notes"): "Parclo" (A4 / B4), "Parclo, two quadrants" (A2 / B2 / AB2) and "Diamond",
+-- menu orders 3014-3016: right after our Roundabout Interchange (3013), before every base
+-- interchange (T / trumpet 5000, cloverleaf 6000, diverging diamond 6001, diamond 7000; user
+-- request 2026-10-14; were 6002 / 6003 / 7001 beside the base ones). Each
+-- square_roundabouts_highway_<id>.con.lua is `return menu.data("<id>", _)`. The A / B mirrors are a "Layout" button row (hx.LAYOUT_KEY); the
 -- entry's updateScript params carry its types (captureParams.types, hx.specFor). Every setting is a
 -- button row like the base interchanges' (displayMode "Horizontal"), except the cross road (six road
 -- types, a ComboBox as on the other entries). Every param applies to every type (tested), so no
@@ -23,15 +24,15 @@ local menu = {}
 -- translates it on display), each a whole text: never build them from parts.
 -- i18n: keys begin name description layoutTip
 menu.ENTRIES = {
-	{ id = "parclo", name = "Parclo", order = 6002,
+	{ id = "parclo", name = "Parclo", order = 3014,
 		types = { hx.TYPE_A4, hx.TYPE_B4 }, labels = { "A", "B" },
 		description = "A highway crossed by a road on another level, joined by one-way ramps. A partial cloverleaf: ramps in all four quadrants, loops in two of them; the other ramps are straight and wrap around the loops. Once built, everything is ordinary roads and bridges you can edit or connect.",
 		layoutTip = "A: loop on-ramps, in the quadrants before the cross\nroad. B: loop exits, in the quadrants after it.\nThe other ramps are straight." },
-	{ id = "parclo2", name = "Parclo, two quadrants", order = 6003,
+	{ id = "parclo2", name = "Parclo, two quadrants", order = 3015,
 		types = { hx.TYPE_A2, hx.TYPE_B2, hx.TYPE_AB2 }, labels = { "A", "B", "AB" },
 		description = "A highway crossed by a road on another level, joined by one-way ramps. A partial cloverleaf with ramps in two quadrants only: in each, a loop and a straight ramp wrapped around it. Once built, everything is ordinary roads and bridges you can edit or connect.",
 		layoutTip = "A: the two quadrants before the cross road (loop\non-ramps). B: the two after it (loop exits).\nAB: both quadrants on one side of the highway." },
-	{ id = "diamond", name = "Diamond", order = 7001,
+	{ id = "diamond", name = "Diamond", order = 3016,
 		types = { hx.TYPE_DIAMOND },
 		description = "A highway crossed by a road on another level, joined by one-way ramps. Four straight ramps, one per quadrant, no loops. Once built, everything is ordinary roads and bridges you can edit or connect." },
 }

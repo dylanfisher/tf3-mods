@@ -57,17 +57,23 @@ end
 -- 3 radii, arms T / Y / 5 / none, 3 arm roads) plus every radius with 4 and 6 arms (the shortest
 -- ring edges), round and 2:1, every lane count, splitter, through road, the other 3 arm roads;
 -- the Phase 5c through roads (Road + traffic lights x every other through road).
-local function mainSweep(fn)
+local function mainGolden(arms, fn)
 	local groups, order = G.mainGroups(K)
 	for _, name in ipairs(order) do
-		for _, p in ipairs(groups[name]) do fn(p) end
+		for _, p in ipairs(groups[name]) do
+			if arms[p[K.arms]] then fn(p) end
+		end
 	end
+end
+local function mainRadii(fn)
 	each({
 		[K.radius] = range(#geom.RADII), [K.arms] = { 3, 5 }, [K.shape] = { 1, #geom.SHAPE_RATIOS },
 		[K.lanes] = { 1, 2, 3 }, [K.splitter] = { 1, 2 }, [K.armType] = { 2, 4, 6 }, [K.centre] = { 1, 2, 3 },
 		[K.direction] = { 2 },
 	}, fn)
-	-- Phase 5c: Road + traffic lights (the Road geometry) with every other through road
+end
+-- Phase 5c: Road + traffic lights (the Road geometry) with every other through road
+local function mainThrough(fn)
 	each({
 		[K.radius] = { 1, geom.DEFAULT_RADIUS, #geom.RADII }, [K.arms] = { 1, 3, 6 }, [K.shape] = { 1, #geom.SHAPE_RATIOS },
 		[K.lanes] = { 1, 2, 3 }, [K.splitter] = { 1, 2 }, [K.armType] = { 1, 4 }, [K.centre] = { 4 },
@@ -89,11 +95,16 @@ end
 -- at Scale XS (the grid lives in golden.lua, shared with test_entries_unchanged_channel.lua), then
 -- Scale S-XL (revision 6): every layout x main x side x slips x splitter x traffic side, the
 -- shortest and longest arm, Islands Paved.
-local function channelSweep(fn)
-	G.channelSweep(channel, geom, fn)
+local function channelXS(layout, island, fn)
+	local CK = channel.PARAM_KEYS
+	G.channelSweep(channel, geom, function(p)
+		if p[CK.layout] == layout and p[CK.island] == island then fn(p) end
+	end)
+end
+local function channelScale(scale, fn)
 	local CK = channel.PARAM_KEYS
 	G.each({
-		[CK.scale] = { 2, 3, 4, 5 }, [CK.layout] = { 1, 2 }, [CK.main] = range(#geom.ARM_TEMPLATES),
+		[CK.scale] = { scale }, [CK.layout] = { 1, 2 }, [CK.main] = range(#geom.ARM_TEMPLATES),
 		[CK.side] = range(#geom.ARM_TEMPLATES), [CK.slips] = { 1, 2, 3 }, [CK.splitter] = { 1, 2 },
 		[CK.armLength] = { 1, #channel.ARM_LENGTHS }, [CK.direction] = { 1, 2 }, [CK.island] = { 3 },
 	}, fn)
@@ -104,8 +115,10 @@ end
 -- (golden.lua G.interchangeSweep, shared with test_entries_unchanged_interchange.lua).
 -- params.year = 1969 (steel bridges, the 1940 type; concrete is checked in test_interchange.lua):
 -- with the year missing the updateFn builds concrete bridges (1970), as the base interchanges do.
-local function interchangeSweep(fn)
-	G.interchangeSweep(interchange, 1969, fn)
+local function interchangeSweep(layout, fn)
+	G.interchangeSweep(interchange, 1969, function(p)
+		if p[interchange.PARAM_KEYS.layout] == layout then fn(p) end
+	end)
 end
 
 -- Highway Interchange (Phases 7b / 7c / 7c2): every type x highway x level x side x Scale, four cross
@@ -114,20 +127,39 @@ local function highwaySweep(fn)
 	G.highwaySweep(highway, 1969, fn)
 end
 
+-- Quick runs (no TEST_FULL) check every stride-th build of each part plus the first build of
+-- each param value the stride misses (checks.sampled); --full checks every build. Parts are
+-- separate tests so the runner can shard them.
+local function scale(n) return { "Scale " .. channel.SCALE_NAMES[n], function(fn) channelScale(n, fn) end } end
+local function xs(l, i)
+	return { string.format("Scale XS, layout %s, Islands %s", l == 1 and "T" or "X", i == 1 and "None" or "Paved"),
+		function(fn) channelXS(l, i, fn) end }
+end
+local function layout(n) return { "layout " .. n, function(fn) interchangeSweep(n, fn) end } end
 local ENTRIES = {
-	{ name = "main", con = "square_roundabouts.con.lua", script = "square_roundabouts.script.lua", sweep = mainSweep },
-	{ name = "magic", con = "square_roundabouts_magic.con.lua", script = "square_roundabouts_magic.script.lua", sweep = magicSweep },
-	{ name = "channel", con = "square_roundabouts_channel.con.lua", script = "square_roundabouts_channel.script.lua", sweep = channelSweep },
-	{ name = "interchange", con = "square_roundabouts_interchange.con.lua", script = "square_roundabouts_interchange.script.lua", sweep = interchangeSweep },
-	{ name = "highway", con = "square_roundabouts_highway_parclo.con.lua", script = "square_roundabouts_highway.script.lua", sweep = highwaySweep },
+	{ name = "main", con = "square_roundabouts.con.lua", script = "square_roundabouts.script.lua", stride = 19, readParams = geom.readParams,
+		parts = { { "golden grid, arms T / Y", function(fn) mainGolden({ [1] = true, [2] = true }, fn) end },
+			{ "golden grid, arms 5 / none", function(fn) mainGolden({ [4] = true, [6] = true }, fn) end }, { "4 / 6 arms, every radius", mainRadii }, { "Road + traffic lights", mainThrough } } },
+	{ name = "magic", con = "square_roundabouts_magic.con.lua", script = "square_roundabouts_magic.script.lua", stride = 5, readParams = magic.readParams,
+		parts = { { nil, magicSweep } } },
+	{ name = "channel", con = "square_roundabouts_channel.con.lua", script = "square_roundabouts_channel.script.lua", stride = 23, readParams = channel.readParams,
+		parts = { xs(1, 1), xs(1, 3), xs(2, 1), xs(2, 3), scale(2), scale(3), scale(4), scale(5) } },
+	{ name = "interchange", con = "square_roundabouts_interchange.con.lua", script = "square_roundabouts_interchange.script.lua", stride = 11, readParams = interchange.readParams,
+		parts = { layout(1), layout(2), layout(3) } },
+	{ name = "highway", con = "square_roundabouts_highway_parclo.con.lua", script = "square_roundabouts_highway.script.lua", stride = 5, readParams = highway.readParams,
+		parts = { { nil, highwaySweep } } },
 }
 
 for _, entry in ipairs(ENTRIES) do
-	test(entry.name .. ": no edge under 1 m, no nodes within 0.5 m; yearFrom = latest template year", function()
-		local yearFrom = entry.yearFrom or loadData(entry.con).availability.yearFrom
-		local updateFn = entry.updateFn or loadData(entry.script).updateFn
+	for _, part in ipairs(entry.parts) do
+	test(entry.name .. ": no edge under 1 m, no nodes within 0.5 m; yearFrom = latest template year"
+		.. (part[1] and (" (" .. part[1] .. ")") or ""), function()
+		-- loaded once per entry (ug_require runs a file once: data() is then the last one loaded)
+		entry.yearFrom = entry.yearFrom or loadData(entry.con).availability.yearFrom
+		entry.updateFn = entry.updateFn or loadData(entry.script).updateFn
+		local yearFrom, updateFn = entry.yearFrom, entry.updateFn
 		local latest, builds, seen, stats = 0, 0, {}, {}
-		entry.sweep(function(p)
+		checks.sampled(part[2], entry.stride, checks.defaultCase(entry.readParams))(function(p)
 			local res = updateFn({}, p)
 			builds = builds + 1
 			checks.report(checks.shortEdges(res, 1.0, 0.5, stats), label(p))
@@ -141,6 +173,7 @@ for _, entry in ipairs(ENTRIES) do
 		print(string.format("    %d builds, %d templates, latest yearFrom %d; shortest edge %.1f m, closest nodes %.1f m apart",
 			builds, #names, latest, stats.len, stats.gap))
 	end)
+	end
 end
 
 test("shortEdges: catches a short edge, a near node and keeps tagged merges", function()

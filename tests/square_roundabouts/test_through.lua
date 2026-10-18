@@ -51,6 +51,13 @@ local function each(grid, fn)
 	rec(1, {})
 end
 
+-- Quick runs (no TEST_FULL) check every stride-th case of a sweep plus the first of each value the
+-- stride misses and the default (checks.sampled); --full checks every case.
+local isDefault = checks.defaultCase(function(o) return geom.readParams(params(o)) end)
+local function sampledEach(stride, grid, fn)
+	checks.sampled(function(f) each(grid, f) end, stride, isDefault)(fn)
+end
+
 local function range(n) local t = {}; for i = 1, n do t[i] = i end; return t end
 local function from(a, b) local t = {}; for i = a, b do t[#t + 1] = i end; return t end
 
@@ -128,7 +135,7 @@ test("Same as arms, or the arm road chosen explicitly: exactly the build before 
 	local main = loadData("square_roundabouts.script.lua").updateFn
 	for _, name in ipairs(order) do
 		for i, p in ipairs(groups[name]) do
-			if i % 7 == 1 then
+			if i % (checks.FULL and 7 or 29) == 1 then
 				local ref = text(main({}, p))
 				local explicit = copy(p, { [K.throughRoad] = p[K.armType] + 1 })
 				eq(text(main({}, explicit)), ref, name .. " #" .. i .. " explicit arm road")
@@ -139,7 +146,7 @@ test("Same as arms, or the arm road chosen explicitly: exactly the build before 
 end)
 
 test("Through road has no effect with Nothing or Tram line (accepted precedent)", function()
-	each({ arms = { 1, 3, 6 }, centre = { 1, 3 }, splitter = { 1, 2 }, tram = { 1, 2 }, radius = { 1, geom.DEFAULT_RADIUS },
+	sampledEach(3, { arms = { 1, 3, 6 }, centre = { 1, 3 }, splitter = { 1, 2 }, tram = { 1, 2 }, radius = { 1, geom.DEFAULT_RADIUS },
 		island = { 1, 3 } }, function(over)
 		local ref = text(result.build(build(over)))
 		for _, tt in ipairs(THROUGH_ROADS) do
@@ -148,8 +155,9 @@ test("Through road has no effect with Nothing or Tram line (accepted precedent)"
 	end)
 end)
 
-test("Road + traffic lights: the Road geometry, signals on the two crossing nodes (ring + through lists)", function()
-	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 2, 3 }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
+for lanes = 1, 3 do
+test("Road + traffic lights: the Road geometry, signals on the two crossing nodes (ring + through lists), " .. lanes .. " lane(s)", function()
+	sampledEach(7, { shape = { 1, #geom.SHAPE_RATIOS }, lanes = { lanes }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
 		splitter = { 1, 2 }, tram = { 1, 2 }, throughRoad = { 1, 4 }, island = { 1, 3 } }, function(over)
 		local name = label(over)
 		local road = build(copy(over, { centre = 2 }))
@@ -174,6 +182,7 @@ test("Road + traffic lights: the Road geometry, signals on the two crossing node
 		end
 	end)
 end)
+end
 
 test("Road + traffic lights in the result: both ring entries of each crossing node, the through road's end", function()
 	local main = loadData("square_roundabouts.script.lua").updateFn
@@ -263,15 +272,25 @@ local SWEEP = {
 	radius = { 1, geom.DEFAULT_RADIUS }, splitter = { 1, 2 }, armType = { 1, 3, 5 },
 	throughRoad = THROUGH_ROADS, centre = { 4 },
 }
-local function sweep(fn)
-	each(SWEEP, function(over)
+-- part of the sweep (one shape and lane count, so the runner can shard it), sampled in quick runs
+local function sweep(shape, lanes, stride, fn)
+	local grid = copy(SWEEP, { shape = { shape }, lanes = { lanes } })
+	sampledEach(stride, grid, function(over)
 		if over.throughRoad - 1 ~= over.armType then fn(over) end
 	end)
 end
+local function eachPart(fn)
+	for _, shape in ipairs(SWEEP.shape) do
+		for _, lanes in ipairs(SWEEP.lanes) do
+			fn(shape, lanes, string.format("shape %d, %d lane(s)", shape, lanes))
+		end
+	end
+end
 
-test("through roads: ring growth uses the through road's half width; fits without fallback, minimal growth", function()
+eachPart(function(shape, lanes, part)
+test("through roads: ring growth uses the through road's half width; fits without fallback, minimal growth (" .. part .. ")", function()
 	local n, grown, floors = 0, 0, 0
-	sweep(function(over)
+	sweep(shape, lanes, 11, function(over)
 		local s = spec(over)
 		local b = geom.build(s)
 		local name = label(over)
@@ -310,11 +329,16 @@ test("through roads: ring growth uses the through road's half width; fits withou
 		if b.radius > build(copy(over, { throughRoad = geom.THROUGH_SAME })).radius then grown = grown + 1 end
 	end)
 	print(string.format("    %d builds; %d grow over the same layout with the arm road through; %d above an engine floor", n, grown, floors))
+end)
+end)
+
+-- (split from the test above so the runner can shard them)
+test("through roads: at the largest slider radius no through road forces a plan the arm road would not", function()
 	-- the largest slider radius: a through road never forces a plan the arm road would not (Phase
 	-- 5c: 2:1, 4 lanes, Y / 5 arms, large arms with splitters were forced from 45 m whatever the
 	-- through road; Phase 5f splits those along the ring normal, geom.splitAxis: none forced now)
 	local forced = 0
-	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = range(#geom.ARM_LAYOUTS), radius = { #geom.RADII },
+	sampledEach(5, { shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = range(#geom.ARM_LAYOUTS), radius = { #geom.RADII },
 		splitter = { 1, 2 }, armType = { 1, 3, 6 }, throughRoad = THROUGH_ROADS, centre = { 4 } }, function(over)
 		local b = build(over)
 		if b.forced then
@@ -327,9 +351,10 @@ test("through roads: ring growth uses the through road's half width; fits withou
 	ok(build({ centre = 4, radius = 1, throughRoad = 4, lanes = 1 }).radius > build({ centre = 4, radius = 1, lanes = 1 }).radius)
 end)
 
-test("through roads: tags, edge lengths, engine model", function()
+eachPart(function(shape, lanes, part)
+test("through roads: tags, edge lengths, engine model (" .. part .. ")", function()
 	-- the engine model (slow with wide roads) at the smallest slider radius: the tightest rings
-	sweep(function(over)
+	sweep(shape, lanes, 11, function(over)
 		local b = build(over)
 		local name = label(over)
 		checks.report(checks.tags(b.lists), name)
@@ -337,11 +362,12 @@ test("through roads: tags, edge lengths, engine model", function()
 		if over.radius == 1 and not judged(b) then checks.report(checks.engineModel(b.lists, b.halfWidth), name) end
 	end)
 end)
+end)
 
 -- (split from the test above so the runner can shard them; same grids and checks)
 test("through roads: overlaps on the tightest rings", function()
 	-- overlaps (slow) on a smaller grid: the smallest slider radius (the tightest rings)
-	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = { 1, 3 }, radius = { 1 },
+	sampledEach(3, { shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = { 1, 3 }, radius = { 1 },
 		splitter = { 1, 2 }, armType = { 1, 3 }, throughRoad = THROUGH_ROADS, centre = { 4 } }, function(over)
 		if over.throughRoad - 1 == over.armType then return end
 		local b = build(over)
@@ -352,7 +378,7 @@ end)
 test("through roads: tram tracks and clockwise: tags, engine model", function()
 	-- tram tracks and clockwise on a smaller grid (tram templates have the plain widths and
 	-- clockwise mirrors the ring: the engine model only)
-	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = { 1, 3, 6 }, radius = { 1, geom.DEFAULT_RADIUS },
+	sampledEach(5, { shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = { 1, 3, 6 }, radius = { 1, geom.DEFAULT_RADIUS },
 		splitter = { 1, 2 }, armType = { 1, 4 }, throughRoad = { 4, 7 }, centre = { 2 }, tram = { 2 }, direction = { 1, 2 } }, function(over)
 		local b = build(over)
 		local name = label(over)
@@ -361,8 +387,9 @@ test("through roads: tram tracks and clockwise: tags, engine model", function()
 	end)
 end)
 
-test("through roads: island halves sized to the through road, colliders and models inside, clear of roads", function()
-	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = { 1, 2, 3 },
+for _, lanes in ipairs({ 1, 3 }) do
+test("through roads: island halves sized to the through road, colliders and models inside, clear of roads, " .. lanes .. " lane(s)", function()
+	sampledEach(7, { shape = { 1, #geom.SHAPE_RATIOS }, lanes = { lanes }, arms = { 1, 2, 3 },
 		radius = { 1, geom.DEFAULT_RADIUS, #geom.RADII }, armType = { 1, 4 }, throughRoad = THROUGH_ROADS,
 		centre = { 4 }, splitter = { 1, 2 }, island = { geom.ISLAND_TREES, geom.ISLAND_PAVED } }, function(over)
 		local b = build(over)
@@ -419,6 +446,7 @@ test("through roads: island halves sized to the through road, colliders and mode
 	eq(#small.island.faces, 2); eq(#large.island.faces, 2)
 	ok(S.area(large.island.faces[1].outline) < S.area(small.island.faces[1].outline), "halves shrink")
 end)
+end
 
 test(".con.lua: Road + traffic lights appended, Through road after Through the centre", function()
 	local con = loadData("square_roundabouts.con.lua")

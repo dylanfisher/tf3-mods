@@ -40,6 +40,13 @@ local function each(grid, fn)
 	rec(1, {})
 end
 
+-- Quick runs (no TEST_FULL) check every stride-th case of a sweep plus the first of each value the
+-- stride misses and the default (checks.sampled); --full checks every case.
+local isDefault = checks.defaultCase(spec)
+local function sampledEach(stride, grid, fn)
+	checks.sampled(function(f) each(grid, f) end, stride, isDefault)(fn)
+end
+
 local function range(n) local t = {}; for i = 1, n do t[i] = i end; return t end
 
 local function label(over)
@@ -83,7 +90,7 @@ test("readParams: Phase 3 params default to off and reject foreign values", func
 end)
 
 test("without splitter or through road: ring + arms only; the ring grows only for junction room", function()
-	each({ shape = range(#geom.SHAPE_RATIOS), lanes = { 1, 2, 3 }, arms = range(#geom.ARM_LAYOUTS),
+	sampledEach(5, { shape = range(#geom.SHAPE_RATIOS), lanes = { 1, 2, 3 }, arms = range(#geom.ARM_LAYOUTS),
 		direction = { 1, 2 }, radius = range(#geom.RADII), armType = { 1, 3, 6 } }, function(over)
 		local s = spec(over)
 		local b = geom.build(s)
@@ -101,8 +108,10 @@ test("without splitter or through road: ring + arms only; the ring grows only fo
 	ok(build({ radius = 1, lanes = 1, armType = 3 }).radius > 8)
 end)
 
-test("all features: tags merge consistently, every edge >= 10 m, ring circulation, fit without fallback", function()
-	each(FULL, function(over)
+-- (one test per lane count, so the runner can shard them)
+for lanes = 1, 3 do
+test("all features: tags merge consistently, every edge >= 10 m, ring circulation, fit without fallback, " .. lanes .. " lane(s)", function()
+	sampledEach(7, copy(FULL, { lanes = { lanes } }), function(over)
 		local s = spec(over)
 		local b = geom.build(s)
 		local name = label(over)
@@ -122,9 +131,11 @@ test("all features: tags merge consistently, every edge >= 10 m, ring circulatio
 		eq(b.lists[1], b.ring)
 	end)
 end)
+end
 
-test("ring growth: the smallest slider radius >= the chosen one that fits", function()
-	each(FULL, function(over)
+for lanes = 1, 3 do
+test("ring growth: the smallest slider radius >= the chosen one that fits, " .. lanes .. " lane(s)", function()
+	sampledEach(7, copy(FULL, { lanes = { lanes } }), function(over)
 		local s = spec(over)
 		local b = geom.build(s)
 		local arms = geom.armsFor(s)
@@ -138,6 +149,10 @@ test("ring growth: the smallest slider radius >= the chosen one that fits", func
 			end
 		end
 	end)
+end)
+end
+
+test("ring growth: splitters on the default ring and on a mini ring", function()
 	-- the default 4-arm, 20 m, 2-lane ring takes splitters as it is; 6 arms need more room
 	eq(build({ splitter = 2 }).radius, 20)
 	ok(build({ splitter = 2, arms = 5 }).radius > 20, "6 arms with splitters grow")
@@ -146,7 +161,7 @@ test("ring growth: the smallest slider radius >= the chosen one that fits", func
 end)
 
 test("splitter legs: one-way entry and exit on the correct sides, joined at a split node on the arm axis", function()
-	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 2, 3 }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
+	sampledEach(5, { shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 2, 3 }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
 		radius = { 1, geom.DEFAULT_RADIUS, #geom.RADII }, centre = { 1, 2 }, tram = { 1, 2 } }, function(over)
 		over.splitter = 2
 		local s = spec(over)
@@ -259,7 +274,7 @@ test("through axis: first opposite pair, else an extra arm opposite the first, e
 end)
 
 test("through road: one straight edge between the two opposite axis ring nodes", function()
-	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 2, 3 }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
+	sampledEach(5, { shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 2, 3 }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
 		radius = { 1, geom.DEFAULT_RADIUS, #geom.RADII }, centre = { 2, 3 }, splitter = { 1, 2 }, tram = { 1, 2 } }, function(over)
 		local s = spec(over)
 		local b = geom.build(s)
@@ -292,7 +307,7 @@ test("through road: one straight edge between the two opposite axis ring nodes",
 end)
 
 test("through road: island halves beside it, box colliders and models inside them", function()
-	each({ shape = { 1, 3, #geom.SHAPE_RATIOS }, lanes = { 1, 2, 3 }, arms = range(#geom.ARM_LAYOUTS),
+	sampledEach(5, { shape = { 1, 3, #geom.SHAPE_RATIOS }, lanes = { 1, 2, 3 }, arms = range(#geom.ARM_LAYOUTS),
 		radius = { 1, geom.DEFAULT_RADIUS, 9, #geom.RADII }, centre = { 2, 3 }, armType = { 1, 3 },
 		island = { geom.ISLAND_TREES, geom.ISLAND_FOUNTAIN } }, function(over)
 		local s = spec(over)
@@ -426,31 +441,39 @@ local function overlaps(b)
 	return checks.overlaps(b.lists, 0.5)
 end
 
-test("no road overlaps another outside the junctions they share", function()
-	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
+-- (split by lane count, so the runner can shard them)
+for _, lanes in ipairs({ 1, 3 }) do
+test("no road overlaps another outside the junctions they share, splitters, " .. lanes .. " lane(s)", function()
+	sampledEach(5, { shape = { 1, #geom.SHAPE_RATIOS }, lanes = { lanes }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
 		radius = { 1, #geom.RADII }, splitter = { 2 }, centre = { 1, 3 }, armType = { 3, 6 } }, function(over)
 		local b = build(over)
 		checks.report(overlaps(b), label(over))
 	end)
-	each({ shape = { 1 }, lanes = { 2 }, arms = range(#geom.ARM_LAYOUTS), radius = { 1, geom.DEFAULT_RADIUS },
+end)
+end
+
+test("no road overlaps another outside the junctions they share, 2 lanes town small arms; tram tracks", function()
+	sampledEach(5, { shape = { 1 }, lanes = { 2 }, arms = range(#geom.ARM_LAYOUTS), radius = { 1, geom.DEFAULT_RADIUS },
 		splitter = { 1, 2 }, centre = { 1, 2 }, armType = { 1 } }, function(over)
 		local b = build(over)
 		checks.report(overlaps(b), label(over))
 	end)
-	each({ arms = range(#geom.ARM_LAYOUTS), radius = { 1, geom.DEFAULT_RADIUS }, splitter = { 2 }, centre = { 1, 2 }, tram = { 2 }, armType = { 3 } }, function(over)
+	sampledEach(5, { arms = range(#geom.ARM_LAYOUTS), radius = { 1, geom.DEFAULT_RADIUS }, splitter = { 2 }, centre = { 1, 2 }, tram = { 2 }, armType = { 3 } }, function(over)
 		local b = build(over)
 		checks.report(overlaps(b), label(over))
 	end)
 end)
 
-test("islands keep clear of every road", function()
-	each({ shape = { 1, #geom.SHAPE_RATIOS }, lanes = { 1, 3 }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
+for _, lanes in ipairs({ 1, 3 }) do
+test("islands keep clear of every road, " .. lanes .. " lane(s)", function()
+	sampledEach(5, { shape = { 1, #geom.SHAPE_RATIOS }, lanes = { lanes }, arms = range(#geom.ARM_LAYOUTS), direction = { 1, 2 },
 		radius = { 1, geom.DEFAULT_RADIUS, #geom.RADII }, splitter = { 1, 2 }, centre = { 1, 2, 3 }, tram = { 1, 2 } }, function(over)
 		over.island = geom.ISLAND_PAVED
 		local b = build(over)
 		checks.report(checks.islandClear(b.lists, b.island, geom.ISLAND_MARGIN - 0.25), label(over))
 	end)
 end)
+end
 
 -- Phase 5f: splitter arms on a long oval's flank split along the ring normal when no radial
 -- layout fits (2:1, 4 lanes, Y / 5 arms, large arms: forced at 60 m or built at the 40 m floor

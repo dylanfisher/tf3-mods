@@ -157,6 +157,8 @@ local function each(grid, fn)
 	rec(1, {})
 end
 
+local function range(n) local t = {}; for i = 1, n do t[i] = i end; return t end
+
 local function label(over)
 	local keys, parts = {}, {}
 	for k in pairs(over) do keys[#keys + 1] = k end
@@ -165,20 +167,35 @@ local function label(over)
 	return table.concat(parts, " ")
 end
 
-local function buildMain(over)
+local function specOf(over)
 	local p = {}
 	for k, v in pairs(over) do p[K[k]] = v end
-	return geom.build(geom.readParams(p))
+	return geom.readParams(p)
+end
+local function buildMain(over) return geom.build(specOf(over)) end
+
+-- Quick runs (no TEST_FULL) check every stride-th case of a sweep plus the first of each value the
+-- stride misses and the default (checks.sampled); --full checks every case.
+local isDefault = checks.defaultCase(specOf)
+local function sampledEach(stride, grid, fn)
+	checks.sampled(function(f) each(grid, f) end, stride, isDefault)(fn)
 end
 
-test("splitter islands: every arm road keeps junction room and does not overlap", function()
-	each({ armType = { 1, 2, 3, 4, 5, 6 }, arms = { 1, 2, 3, 4, 5 }, lanes = { 1, 2, 3 }, radius = { 1, geom.DEFAULT_RADIUS },
+-- (split by lane count, so the runner can shard them)
+for lanes = 1, 3 do
+test("splitter islands: every arm road keeps junction room, " .. lanes .. " lane(s)", function()
+	sampledEach(7, { armType = { 1, 2, 3, 4, 5, 6 }, arms = { 1, 2, 3, 4, 5 }, lanes = { lanes }, radius = { 1, geom.DEFAULT_RADIUS },
 		direction = { 1, 2 }, shape = { 1, #geom.SHAPE_RATIOS } }, function(over)
 		over.splitter = 2
 		local b = buildMain(over)
 		checks.report(room(b), label(over))
 	end)
-	each({ armType = { 3, 6 }, arms = { 1, 2, 3, 4, 5 }, lanes = { 1, 3 }, radius = { 1, geom.DEFAULT_RADIUS },
+end)
+end
+for _, lanes in ipairs({ 1, 3 }) do
+for _, armType in ipairs({ 3, 6 }) do
+test("splitter islands: large arms do not overlap, edges >= 10 m, " .. lanes .. " lane(s), arm road " .. armType, function()
+	sampledEach(7, { armType = { armType }, arms = { 1, 2, 3, 4, 5 }, lanes = { lanes }, radius = { 1, geom.DEFAULT_RADIUS },
 		direction = { 1, 2 }, shape = { 1, #geom.SHAPE_RATIOS }, tram = { 1, 2 } }, function(over)
 		over.splitter = 2
 		local b = buildMain(over)
@@ -186,6 +203,8 @@ test("splitter islands: every arm road keeps junction room and does not overlap"
 		checks.report(checks.lengths(b.lists, geom.MIN_EDGE), label(over))
 	end)
 end)
+end
+end
 
 test("splitter islands: large arms fork wider; small and medium keep the tested 40 degrees", function()
 	for armType = 1, #geom.ARM_TEMPLATES do
@@ -204,7 +223,7 @@ test("splitter islands: large arms fork wider; small and medium keep the tested 
 end)
 
 test("plain arms, through road, tram line: every arm road keeps junction room", function()
-	each({ armType = { 1, 2, 3, 4, 5, 6 }, arms = { 1, 2, 3, 4, 5, 6 }, lanes = { 1, 2, 3 }, radius = { 1, 3, geom.DEFAULT_RADIUS },
+	sampledEach(5, { armType = { 1, 2, 3, 4, 5, 6 }, arms = { 1, 2, 3, 4, 5, 6 }, lanes = { 1, 2, 3 }, radius = { 1, 3, geom.DEFAULT_RADIUS },
 		shape = { 1, #geom.SHAPE_RATIOS }, centre = { 1, 2, 3 } }, function(over)
 		local b = buildMain(over)
 		checks.report(room(b), label(over))
@@ -212,21 +231,20 @@ test("plain arms, through road, tram line: every arm road keeps junction room", 
 end)
 
 test("plain arms: no road overlaps another outside their junctions, for every arm road", function()
-	each({ armType = { 1, 2, 3, 4, 5, 6 }, arms = { 1, 2, 3, 4, 5 }, lanes = { 1, 2, 3 }, radius = { 1, 3 },
+	sampledEach(5, { armType = { 1, 2, 3, 4, 5, 6 }, arms = { 1, 2, 3, 4, 5 }, lanes = { 1, 2, 3 }, radius = { 1, 3 },
 		shape = { 1, #geom.SHAPE_RATIOS } }, function(over)
 		local b = buildMain(over)
 		checks.report(checks.overlaps(b.lists, 0.5), label(over))
 	end)
 end)
 
-test("every combination fits without the forced fallback (growth may go past the slider's 60 m)", function()
+-- (one test per lane count, so the runner can shard them)
+for lanes = 1, 3 do
+test("every combination fits without the forced fallback (growth may go past the slider's 60 m), " .. lanes .. " lane(s)", function()
 	local fails, pending = {}, 0
-	for armType = 1, #geom.ARM_TEMPLATES do for arms = 1, #geom.ARM_LAYOUTS do for lanes = 1, 3 do
-	for _, shape in ipairs({ 1, 3, #geom.SHAPE_RATIOS }) do for tram = 1, 2 do for centre = 1, 3 do for splitter = 1, 2 do
-		local over = { armType = armType, arms = arms, lanes = lanes, shape = shape, tram = tram, centre = centre, splitter = splitter, radius = 1 }
-		local p = {}
-		for k, v in pairs(over) do p[K[k]] = v end
-		local s = geom.readParams(p)
+	sampledEach(7, { armType = range(#geom.ARM_TEMPLATES), arms = range(#geom.ARM_LAYOUTS), lanes = { lanes },
+		shape = { 1, 3, #geom.SHAPE_RATIOS }, tram = { 1, 2 }, centre = { 1, 2, 3 }, splitter = { 1, 2 }, radius = { 1 } }, function(over)
+		local s = specOf(over)
 		local b = geom.build(s)
 		-- an engine radius the offline model rejects is the layout the engine accepted (no fallback);
 		-- an engine floor the offline model rejects everywhere waits for the engine (counted)
@@ -237,9 +255,13 @@ test("every combination fits without the forced fallback (growth may go past the
 		elseif (b.forced or not fits) and #fails < 8 then
 			fails[#fails + 1] = label(over)
 		end
-	end end end end end end end
+	end)
 	eq(#fails, 0, table.concat(fails, "\n"))
 	print(string.format("    %d of the swept combos build an engine floor the offline model rejects (pending search_radius_split)", pending))
+end)
+end
+
+test("growth past the slider's 60 m: only the widest arms with splitter islands", function()
 	-- the growth beyond the slider is only for the widest arms with splitter islands
 	ok(buildMain({ armType = 3, splitter = 2, arms = 4, lanes = 1, centre = 2 }).radius >= 40)
 	eq(buildMain({ armType = 1, splitter = 2, arms = 5 }).radius <= 60, true)

@@ -1,0 +1,694 @@
+{
+ "facets": [
+  {
+   "key": "subject",
+   "label": "Subject",
+   "values": [
+    {
+     "value": "roundabout",
+     "label": "Roundabouts"
+    },
+    {
+     "value": "magic",
+     "label": "Magic Roundabout"
+    },
+    {
+     "value": "channelized",
+     "label": "Channelized Junction"
+    },
+    {
+     "value": "interchange",
+     "label": "Roundabout Interchange"
+    },
+    {
+     "value": "highway",
+     "label": "Highway interchanges"
+    },
+    {
+     "value": "traffic",
+     "label": "Traffic"
+    },
+    {
+     "value": "showcase",
+     "label": "Showcase fields"
+    },
+    {
+     "value": "menu",
+     "label": "Menu and settings"
+    }
+   ]
+  },
+  {
+   "key": "view",
+   "label": "View",
+   "values": [
+    {
+     "value": "top-down",
+     "label": "Top-down"
+    },
+    {
+     "value": "oblique",
+     "label": "Oblique"
+    },
+    {
+     "value": "close-up",
+     "label": "Close-up"
+    },
+    {
+     "value": "ui",
+     "label": "Interface"
+    }
+   ]
+  },
+  {
+   "key": "date",
+   "label": "Date",
+   "values": [
+    {
+     "value": "2026-10-07",
+     "label": "2026-10-07"
+    },
+    {
+     "value": "2026-10-08",
+     "label": "2026-10-08"
+    },
+    {
+     "value": "2026-10-10",
+     "label": "2026-10-10"
+    },
+    {
+     "value": "2026-10-11",
+     "label": "2026-10-11"
+    },
+    {
+     "value": "2026-10-12",
+     "label": "2026-10-12"
+    },
+    {
+     "value": "2026-10-13",
+     "label": "2026-10-13"
+    }
+   ]
+  },
+  {
+   "key": "set",
+   "label": "Set",
+   "values": [
+    {
+     "value": "curated",
+     "label": "Release captures"
+    },
+    {
+     "value": "play",
+     "label": "Test sessions"
+    }
+   ]
+  }
+ ],
+ "items": [
+  {
+   "file": "../shots/01-overview.jpg",
+   "title": "A field of roundabout variants",
+   "subject": "showcase",
+   "view": "oblique",
+   "date": "2026-10-07",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/02-overview-variants.jpg",
+   "title": "Ovals, a Magic Roundabout and 4 to 6 arms",
+   "subject": "showcase",
+   "view": "oblique",
+   "date": "2026-10-07",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/03-magic-closeup.jpg",
+   "title": "Magic Roundabout: five minis on a two-way ring",
+   "subject": "magic",
+   "view": "close-up",
+   "date": "2026-10-07",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/04-top-down.jpg",
+   "title": "Roundabouts with 4 to 6 arms from above",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-07",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/05-magic-menu.jpg",
+   "title": "Magic Roundabout in the road menu",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-07",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/06-settings-upper.jpg",
+   "title": "Settings, upper half: shape, lanes, radius, arms",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-07",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/07-settings-lower.jpg",
+   "title": "Settings, lower half: through road, arm road, tram, island",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-07",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/08-menu-strip.jpg",
+   "title": "The mod's entries in the road menu",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-07",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/09-menu-main-hover.jpg",
+   "title": "Better Roundabouts hover card",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/10-settings-main.jpg",
+   "title": "Settings panel while placing",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/11-menu-magic-hover.jpg",
+   "title": "Magic Roundabout hover card",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/12-menu-channel-hover.jpg",
+   "title": "Channelized Junction hover card",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/13-menu-interchange-hover.jpg",
+   "title": "Roundabout Interchange hover card",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/14-top-down-variety.jpg",
+   "title": "Planted islands, a hamburger and a channelized junction",
+   "subject": "showcase",
+   "view": "top-down",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/15-oblique-hamburger.jpg",
+   "title": "Hamburger roundabout with a road through the center",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/16-oblique-overview.jpg",
+   "title": "Variety field with the road menu open",
+   "subject": "showcase",
+   "view": "oblique",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/17-interchange-closeup.jpg",
+   "title": "Two-bridge roundabout interchange",
+   "subject": "interchange",
+   "view": "oblique",
+   "date": "2026-10-08",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/18-planet-topdown.jpg",
+   "title": "The whole showcase disc from high above",
+   "subject": "showcase",
+   "view": "top-down",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/19-oblique-mix.jpg",
+   "title": "Ovals, chains, junctions and interchanges",
+   "subject": "showcase",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/20-horizon-mix.jpg",
+   "title": "Every entry, to the horizon",
+   "subject": "showcase",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/21-interchange-oblique.jpg",
+   "title": "A row of roundabout interchanges",
+   "subject": "interchange",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/22-interchange-ring-closeup.jpg",
+   "title": "Interchange ring bridge in a cutting",
+   "subject": "interchange",
+   "view": "close-up",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/23-dumbbell-magic-chain.jpg",
+   "title": "Dumbbell interchange beside Magic Roundabout chains",
+   "subject": "interchange",
+   "view": "top-down",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/24-interchange-grid.jpg",
+   "title": "Every highway interchange layout and scale",
+   "subject": "highway",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/25-parclo-diamond.jpg",
+   "title": "Parclo and Diamond interchanges",
+   "subject": "highway",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/26-compact-interchanges.jpg",
+   "title": "Compact highway interchanges",
+   "subject": "highway",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/27-planet-interchanges.jpg",
+   "title": "A disc of interchanges from high above",
+   "subject": "showcase",
+   "view": "top-down",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/28-magic-field.jpg",
+   "title": "A field of Magic Roundabouts",
+   "subject": "showcase",
+   "view": "top-down",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/29-magic-islands.jpg",
+   "title": "Magic Roundabout islands: plain, trees, paved",
+   "subject": "magic",
+   "view": "top-down",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/30-magic-trees.jpg",
+   "title": "Magic Roundabout with a tree island",
+   "subject": "magic",
+   "view": "close-up",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/31-planet-roundabouts.jpg",
+   "title": "A radial disc of roundabouts",
+   "subject": "showcase",
+   "view": "top-down",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/32-horizon-roundabouts.jpg",
+   "title": "Roundabouts to the horizon",
+   "subject": "showcase",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/33-ovals-chains.jpg",
+   "title": "Ovals and chained rings",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/40-settings-roundabouts.jpg",
+   "title": "Better Roundabouts settings",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/41-settings-magic.jpg",
+   "title": "Magic Roundabout settings",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/42-settings-channel.jpg",
+   "title": "Channelized Junction settings",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/43-settings-interchange.jpg",
+   "title": "Roundabout Interchange settings",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "../shots/44-settings-parclo2.jpg",
+   "title": "Parclo, two quadrants settings",
+   "subject": "menu",
+   "view": "ui",
+   "date": "2026-10-10",
+   "set": "curated"
+  },
+  {
+   "file": "shots/2026-10-10-showcase-planet-mixed.jpg",
+   "title": "Showcase from orbit",
+   "subject": "showcase",
+   "view": "top-down",
+   "date": "2026-10-10",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-10-showcase-roundabout-variety.jpg",
+   "title": "Roundabout variety",
+   "subject": "showcase",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-10-showcase-radial-grid.jpg",
+   "title": "Radial showcase grid",
+   "subject": "showcase",
+   "view": "top-down",
+   "date": "2026-10-10",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-10-interchange-dumbbell-oblique.jpg",
+   "title": "Dumbbell interchange",
+   "subject": "interchange",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-10-showcase-horizon-mixed.jpg",
+   "title": "Showcase to the horizon",
+   "subject": "showcase",
+   "view": "oblique",
+   "date": "2026-10-10",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-channelized-junction-islands.jpg",
+   "title": "Channelized junction",
+   "subject": "channelized",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-roundabout-interchange-lanes-panel.jpg",
+   "title": "Interchange with lane tool",
+   "subject": "interchange",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-two-lane-roundabout-lanes.jpg",
+   "title": "Two-lane ring lanes",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-oval-roundabout-lanes.jpg",
+   "title": "Oval roundabout",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-large-roundabout-traffic.jpg",
+   "title": "Large ring under load",
+   "subject": "traffic",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-hamburger-roundabout-lanes.jpg",
+   "title": "Hamburger roundabout",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-four-arm-roundabout-lanes.jpg",
+   "title": "Four-arm ring lanes",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-roundabout-interchange-traffic.jpg",
+   "title": "Interchange with traffic",
+   "subject": "interchange",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-roundabout-interchange-close-up.jpg",
+   "title": "Interchange ring close-up",
+   "subject": "interchange",
+   "view": "close-up",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-hamburger-through-road-lanes.jpg",
+   "title": "Through-road lanes",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-parclo-interchange-traffic.jpg",
+   "title": "Parclo interchange",
+   "subject": "highway",
+   "view": "oblique",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-11-roundabout-interchange-top-down.jpg",
+   "title": "Interchange from above",
+   "subject": "interchange",
+   "view": "top-down",
+   "date": "2026-10-11",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-small-roundabout-traffic.jpg",
+   "title": "Small roundabout queues",
+   "subject": "traffic",
+   "view": "top-down",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-three-arm-roundabout.jpg",
+   "title": "Three-arm roundabout",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-three-arm-roundabout-lanes-overlay.jpg",
+   "title": "Three-arm lanes overlay",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-three-arm-roundabout-queue.jpg",
+   "title": "Three-arm ring queue",
+   "subject": "traffic",
+   "view": "oblique",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-roundabout-entry-lanes-close-up.jpg",
+   "title": "Entry lanes close-up",
+   "subject": "roundabout",
+   "view": "close-up",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-roundabout-arm-turns-close-up.jpg",
+   "title": "Arm turn paths",
+   "subject": "roundabout",
+   "view": "close-up",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-three-arm-roundabout-traffic.jpg",
+   "title": "Three-arm under load",
+   "subject": "traffic",
+   "view": "top-down",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-magic-roundabout-trees-traffic.jpg",
+   "title": "Magic Roundabout",
+   "subject": "magic",
+   "view": "top-down",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-magic-roundabout-close-up.jpg",
+   "title": "Magic Roundabout close-up",
+   "subject": "magic",
+   "view": "close-up",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-12-roundabout-oblique-skyline.jpg",
+   "title": "Roundabout and skyline",
+   "subject": "roundabout",
+   "view": "oblique",
+   "date": "2026-10-12",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-four-arm-roundabout-arrows.jpg",
+   "title": "Ring direction",
+   "subject": "roundabout",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-roundabout-conflict-points.jpg",
+   "title": "Ring conflict points",
+   "subject": "traffic",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-four-arm-roundabout-traffic.jpg",
+   "title": "Four-arm with queues",
+   "subject": "traffic",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-four-arm-roundabout-junction-tooltip.jpg",
+   "title": "Ring junction info",
+   "subject": "traffic",
+   "view": "ui",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-bench-roundabout-single-lane.png",
+   "title": "Bench: single-lane ring",
+   "subject": "traffic",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-bench-roundabout-two-lane.png",
+   "title": "Bench: two-lane ring",
+   "subject": "traffic",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-bench-roundabout-compact-arrows.png",
+   "title": "Bench: compact ring",
+   "subject": "traffic",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "play"
+  },
+  {
+   "file": "shots/2026-10-13-bench-roundabout-large-ring.png",
+   "title": "Bench: large ring",
+   "subject": "traffic",
+   "view": "top-down",
+   "date": "2026-10-13",
+   "set": "play"
+  }
+ ]
+}

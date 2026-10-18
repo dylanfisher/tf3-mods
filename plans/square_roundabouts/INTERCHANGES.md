@@ -46,7 +46,7 @@ types (trumpet, cloverleaf, turbine...) without painting ourselves into a corner
 | A construction cannot set lane connections (no node-config field in the result); routing is the engine default, or Smart Lanes after placement (gore nodes = its "case A", all one-way) | PHASE6.md research row "Constructions cannot set lane connections"; docs/findings.md "Junction lane connections"; `plans/square_smart_lanes/PLAN.md` Phase 4 (lines ~315-340) |
 | Our Roundabout Interchange (ix) pattern is engine-verified: 2-edge slip roads (level gore + climb), tag-merged 4 m beside the carriageway node, ring/cross road on 8 m plain edges, bridges only over the carriageways, steel/concrete by `params.year`, LHT by `geom.mirrorX`. p5_all: 252/282 placed (the 30 refusals were all 4-lane two-bridge rings, fixed by `ALPHA_MAX_LANES`); p5g_verify 468/468; user in-game test "all good" | PHASE5.md "Phase 5d notes", "Phase 5f notes" 2, "Phase 5 result"; `probe_p5_all.md:162` |
 | Junction placement failures are about join angles and road widths at shared nodes, not curvature: channel slip lanes at 40 deg refused on 3-lane arms, accepted at 50-80 deg; 4-lane ring slip joins refused at 32-38 deg, accepted >= 45 deg | PHASE5.md "Phase 5f notes" 2-3, "Phase 5g notes" |
-| Offline engine-fitted junction model: free length >= 2.5 m, kerb corner <= 1 m (arms) / 6 m (legs) behind its node; shipping plan margin `geom.JUNCTION_PLAN` = 5 m | `tests/square_roundabouts/checks.lua:576-579`; `square_roundabouts_geometry.lua:210-216` |
+| Offline engine-fitted junction model: free length >= 2.5 m, curb corner <= 1 m (arms) / 6 m (legs) behind its node; shipping plan margin `geom.JUNCTION_PLAN` = 5 m | `tests/square_roundabouts/checks.lua:576-579`; `square_roundabouts_geometry.lua:210-216` |
 
 ## 1. Catalogue of interchange types
 
@@ -79,7 +79,8 @@ A mirror across the cross road is not a variant (it would reverse the one-way ca
 No parclo type has a weave on the highway: A types give off then on, B types off then off or on then
 on; only the 4-loop cloverleaf weaves. (Unverified against an external reference: the A/B naming
 above is derived from the geometry, which is unambiguous; only the labels could be swapped. Check
-one diagram before writing the tooltip.)
+one diagram before writing the tooltip.) *Confirmed in 7a (R14, "Phase 7a notes"): the labels match
+Wikipedia's "Partial cloverleaf interchange" naming; noted here 2026-10-14.*
 
 ### Feasibility per type
 "Levels" counts road levels; heights as ix (`HEIGHT` 8 m, ix.lua:61). Footprints are estimates for a
@@ -256,7 +257,7 @@ cross road's 8 m embankment; the merge node lies under the cross-road bridge spa
 Constructions cannot write node configs (PHASE6.md), so the engine generates them at every new node.
 Gore nodes (carriageway in, carriageway out, 1-lane ramp, all one-way) are the ix pattern, which the
 user's in-game test passed (TESTING.md 14.2 "highway -> ring -> cross road and back"); Smart Lanes
-handles them as its "case A" (lanes matched kerb first). Terminals are two-way cross road + one-way
+handles them as its "case A" (lanes matched curb first). Terminals are two-way cross road + one-way
 ramps, the base diamond's junction; the engine default allows every legal turn (one-way ramps rule out
 wrong-way entries). Nothing to build; description.html's Smart Lanes paragraph gets one sentence on
 gores. Unverified: whether the engine offers a U-turn at a 4-way terminal (TESTING item).
@@ -531,7 +532,7 @@ test_through 126 s; the new golden files 30 s / 43 s run alongside); check 0.5 s
 - **Deviation: the A-quadrant diagonal is not one climb edge.** A single Hermite S from G to T_o cannot wrap a circle
   (it cuts the loop for every shipped ramp length). It is: gore (ramps.gore, as ix), a level straight 1 m beside the
   carriageway band when the ramp length is above the minimum, a quarter turn right of radius R, a 90 deg arc
-  concentric with the loop (Ro = R + TERM_GAP, so loop and diagonal kerbs are 21 m apart everywhere), then a straight
+  concentric with the loop (Ro = R + TERM_GAP, so loop and diagonal curbs are 21 m apart everywhere), then a straight
   east (length dx) into T_o; the height change runs over quarter + arc + straight (`ramps.profile`).
   Consequence: **the parclo minimum ramp length is xmMin = dx + Ro + R + run = 155-272 m**, above the slider's
   120-180 m except with 25 m loops; ramp length never lands in (xmMin, xmMin + MIN_EDGE) (that would leave a level
@@ -871,7 +872,7 @@ makeProposalData also refused it. So **our own path reproduces the UI**; the bui
   where B4 small places. No collision entity, so terrain or an engine geometry check against the ground.
   Not found offline.
 - **Probe round 3:** at the first refused UI proposal the watcher queues a **bisect at that exact transf**
-  (`grid.BISECT`, 180 calls, logged as `START subset=bisect`, R + D lines with `rot0`): every type x highway x
+  (`grid.BISECT`, 180 calls planned; the run logged `START subset=bisect total=167`, `probe_p7_bisect.log`; R + D lines with `rot0`): every type x highway x
   level x Size, the default's cross roads / ramp lengths / arm lengths, the default at 90 / 180 / 270 / 350 / 0.5
   degrees and with the origin at -1 / +0.5 / +1 / +2 / +4 m (`dz`), context full, the interchange control. D lines
   carry the terrain under every node. New subset **p7_watch** (2 calls) starts the watcher without a long sweep.
@@ -1095,7 +1096,7 @@ dropdown, only the settings that apply, every setting a row of buttons like the 
 - **Entries:** `square_roundabouts_highway_<id>.con.lua` for `parclo_a4`, `parclo_b4`, `parclo_a2`, `parclo_b2`,
   `parclo_ab2`, `diamond` (names "Parclo A4" ... "Diamond"), each a 3-line wrapper around
   `square_roundabouts_highway_menu.lua` `menu.data(hx.TYPE_*, _)`. Menu orders next to the base interchanges: the
-  parclos 6002-6006 (after the base cloverleaf 6000 and diverging diamond 6001), the Diamond 7001 (after the base
+  parclos 6002-6006 (since 2026-10-14: 3014-3016, see square_roundabouts_highway_menu.lua) (after the base cloverleaf 6000 and diverging diamond 6001), the Diamond 7001 (after the base
   diamond 7000). One shared updateFn (`square_roundabouts_highway.script@updateFn`); the entry's `updateScript.params
   = {type = t}` arrives as `captureParams` (as the base roundabout's `radii`), `hx.specFor(captureParams, params)`
   fixes the type; without it (tests, goldens, the probe's params) `sqrb_hx_type` from params still works. The old
@@ -1113,6 +1114,9 @@ dropdown, only the settings that apply, every setting a row of buttons like the 
 - **Values:** Scale = loop radius **25 / 45 / 80 m** (grow 90, 100) and diamond terminal distance **0 / 30 / 80 m**
   (grow 90, 100); Small = 7c's Compact, Medium = 7c's Large, Large beyond 7c's Very large (60 / 50 m). Default
   **Medium** (7c's default was 35 m loops; 45 m is the loop the engine placed on the large highway, Phase 7e).
+  *Superseded before the revision 4 release (user, 2026-10-09: every size row defaults to its smallest): the
+  shipped default is Scale **Small** (`hx.DEFAULT_SIZE = 1`, also in the released rev 4 modfile; rev 4
+  changelog "Scale S on the highway interchanges"). Noted 2026-10-14.*
   Ramp length +0 / 30 / 60 m (`hx.RAMP_EXTRAS`), Arm length 30 / 45 / 60 m. Offline: every type x highway x level x
   side x Scale x 4 cross roads x Short / Long passes the fit, gradient (diagonals avg <= 5.2 %, loops <= 6.5 %,
   diamond <= 9.1 % / peak 13.7 %), junction, overlap and short-edge checks with no Scale growth, and no `-0` in any
@@ -1187,7 +1191,7 @@ as button rows on the released entries too).
   no growth (fit, gradient, junction, overlap, short-edge, -0: `negative_zero` 5.4 and `TEALRT_LUA=52`).
   Scale tooltips name the footprint; the diamond's Ramp length tooltip is now "+0 / 30 / 60 m over the
   Scale's". **Not engine-probed: Medium and Large (the default Medium changed: 48 m gap, 256 m ramps on
-  the medium highway).** 7c's diamond 30 m terminal rows no longer map in verdicts.lua (retired value).
+  the medium highway).** *(The shipped default became Small before release, see 7c3 above; noted 2026-10-14.)* 7c's diamond 30 m terminal rows no longer map in verdicts.lua (retired value).
 - **Mod badge** on every 240x150 menu icon (`with_badge` in `tools/render_icon_square_roundabouts.py`):
   a 30 px family-teal (#2FA48F) rounded square with a dark outline and an accent (#E8833A) ring, top-right,
   5 px margin. The four released icons change on purpose (cosmetic); hover previews have no badge. `--png
@@ -1199,7 +1203,9 @@ as button rows on the released entries too).
   [120 m]..[180 m] and Arm length [30 m]..[60 m]. **Radius presets on new keys**: main `sqrb_radius_size`
   [Mini][Small][Medium][Large][Huge] = `geom.RADII` indices {2, 4, 5, 8, 13} (10 / 15 / 20 / 35 / 60 m,
   default Medium = 20 m); Interchange `sqrb_ix_radius_size` [Small][Medium][Large][Huge] = `ix.RADII`
-  indices {1, 2, 4, 7} (15 / 20 / 30 / 45 m, default Medium). readParams: the preset key when present,
+  indices {1, 2, 4, 7} (15 / 20 / 30 / 45 m, default Medium). *(Before the rev 4 release both defaults became
+  the smallest, XS 10 m / S 15 m: `geom.DEFAULT_RADIUS_PRESET = 1`, `ix.DEFAULT_RADIUS_PRESET = 1`; labels are
+  XS-XL / S-XL now. Noted 2026-10-14.)* readParams: the preset key when present,
   else the full-range index key (`sqrb_radius` / `sqrb_ix_radius`: tests, goldens, the probe's replay
   keys), else the default, so a preset builds exactly what its radius built (same radiusIndex, same
   growth). **No golden dropped: every released golden group is byte-identical**; only the highway golden
@@ -1359,7 +1365,8 @@ claims nothing about traffic behaviour on the new entries.
   construction menu entries", "runs no scripts" kept (construction updateFns only). Changelog `Revision 4
   (2026-10-09)` first: New highway entries; Changed: mod renamed (menu entry keeps "Better Roundabouts"), sliders
   -> buttons, Radius choice reset once to Medium 20 m (placed roads unaffected), Very large -> Huge, menu badge,
-  everything else builds as in revision 3. No "Fixed" line: the -0 normalisation only touches new geometry, and the
+  everything else builds as in revision 3. *(Shipped instead of the Medium 20 m reset: "every size setting now starts at its smallest
+  value", user decision 2026-10-09 after these notes; noted 2026-10-14.)* No "Fixed" line: the -0 normalisation only touches new geometry, and the
   Channelized X left-hand -0 placed in p7_presets (no harm, nothing to fix).
 - `modinfo.json`: summary 98 chars ("Roundabouts, Magic Roundabout, channelized junctions, parclo, diamond and
   roundabout interchanges."); description adds the highway interchange sentence (548 chars).

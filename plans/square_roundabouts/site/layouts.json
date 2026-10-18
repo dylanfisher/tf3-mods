@@ -1,0 +1,1954 @@
+{
+ "facets": [
+  {
+   "key": "entry",
+   "label": "Menu entry",
+   "values": [
+    {
+     "value": "roundabout",
+     "label": "Better Roundabouts"
+    },
+    {
+     "value": "magic",
+     "label": "Magic Roundabout"
+    },
+    {
+     "value": "channel",
+     "label": "Channelized Junction"
+    },
+    {
+     "value": "interchange",
+     "label": "Roundabout Interchange"
+    },
+    {
+     "value": "highway",
+     "label": "Highway interchanges"
+    }
+   ]
+  },
+  {
+   "key": "sweep",
+   "label": "Sweep",
+   "values": [
+    {
+     "value": "shape-scale",
+     "label": "Shape \u00d7 scale"
+    },
+    {
+     "value": "lanes-arms",
+     "label": "Ring lanes \u00d7 arms"
+    },
+    {
+     "value": "centre-splitter",
+     "label": "Through the center \u00d7 splitter islands"
+    },
+    {
+     "value": "island-shape",
+     "label": "Center island \u00d7 shape"
+    },
+    {
+     "value": "arm-road-arms",
+     "label": "Arm road \u00d7 arms"
+    },
+    {
+     "value": "magic",
+     "label": "Magic Roundabout: minis \u00d7 size"
+    },
+    {
+     "value": "channel",
+     "label": "Channelized Junction: layout \u00d7 scale"
+    },
+    {
+     "value": "channel-slips",
+     "label": "Channelized Junction: slip lanes \u00d7 layout"
+    },
+    {
+     "value": "interchange",
+     "label": "Roundabout Interchange: layout \u00d7 size"
+    },
+    {
+     "value": "interchange-level",
+     "label": "Roundabout Interchange: layout \u00d7 level"
+    },
+    {
+     "value": "highway",
+     "label": "Highway interchanges: type \u00d7 scale"
+    },
+    {
+     "value": "highway-ramps",
+     "label": "Highway interchanges: type \u00d7 ramp length"
+    },
+    {
+     "value": "highway-level",
+     "label": "Highway interchanges: type \u00d7 level"
+    }
+   ]
+  },
+  {
+   "key": "row",
+   "label": "Variant",
+   "values": [
+    {
+     "value": "round",
+     "label": "Round"
+    },
+    {
+     "value": "oval-125",
+     "label": "Oval 1.25:1"
+    },
+    {
+     "value": "oval-15",
+     "label": "Oval 1.5:1"
+    },
+    {
+     "value": "oval-175",
+     "label": "Oval 1.75:1"
+    },
+    {
+     "value": "oval-2",
+     "label": "Oval 2:1"
+    },
+    {
+     "value": "lanes-1",
+     "label": "1 ring lane"
+    },
+    {
+     "value": "lanes-2",
+     "label": "2 ring lanes"
+    },
+    {
+     "value": "lanes-4",
+     "label": "4 ring lanes"
+    },
+    {
+     "value": "centre-none",
+     "label": "Nothing through"
+    },
+    {
+     "value": "centre-road",
+     "label": "Road through"
+    },
+    {
+     "value": "centre-tram",
+     "label": "Tram line through"
+    },
+    {
+     "value": "centre-lights",
+     "label": "Road + lights"
+    },
+    {
+     "value": "island-none",
+     "label": "No island"
+    },
+    {
+     "value": "island-grass",
+     "label": "Grass"
+    },
+    {
+     "value": "island-trees",
+     "label": "Grass and trees"
+    },
+    {
+     "value": "island-fountain",
+     "label": "Fountain"
+    },
+    {
+     "value": "island-paved",
+     "label": "Paved"
+    },
+    {
+     "value": "road-town-s",
+     "label": "Small town road"
+    },
+    {
+     "value": "road-town-m",
+     "label": "Medium town road"
+    },
+    {
+     "value": "road-town-l",
+     "label": "Large town road"
+    },
+    {
+     "value": "road-country-s",
+     "label": "Small country road"
+    },
+    {
+     "value": "road-country-m",
+     "label": "Medium country road"
+    },
+    {
+     "value": "road-country-l",
+     "label": "Large country road"
+    },
+    {
+     "value": "mini-1",
+     "label": "1-lane minis"
+    },
+    {
+     "value": "mini-2",
+     "label": "2-lane minis"
+    },
+    {
+     "value": "t",
+     "label": "T junction"
+    },
+    {
+     "value": "x",
+     "label": "X junction"
+    },
+    {
+     "value": "slips-near",
+     "label": "Slips on every corner"
+    },
+    {
+     "value": "slips-main",
+     "label": "Slips from the main road"
+    },
+    {
+     "value": "slips-none",
+     "label": "No slips"
+    },
+    {
+     "value": "two-bridge",
+     "label": "Two-bridge ring"
+    },
+    {
+     "value": "dumbbell",
+     "label": "Dumbbell"
+    },
+    {
+     "value": "peanut",
+     "label": "Peanut"
+    },
+    {
+     "value": "a4",
+     "label": "Parclo A4"
+    },
+    {
+     "value": "b4",
+     "label": "Parclo B4"
+    },
+    {
+     "value": "a2",
+     "label": "Parclo A2"
+    },
+    {
+     "value": "b2",
+     "label": "Parclo B2"
+    },
+    {
+     "value": "ab2",
+     "label": "Parclo AB2"
+    },
+    {
+     "value": "diamond",
+     "label": "Diamond"
+    }
+   ]
+  },
+  {
+   "key": "col",
+   "label": "Setting",
+   "values": [
+    {
+     "value": "xs",
+     "label": "XS"
+    },
+    {
+     "value": "s",
+     "label": "S"
+    },
+    {
+     "value": "m",
+     "label": "M"
+    },
+    {
+     "value": "l",
+     "label": "L"
+    },
+    {
+     "value": "xl",
+     "label": "XL"
+    },
+    {
+     "value": "arms-3t",
+     "label": "3 arms (T)"
+    },
+    {
+     "value": "arms-3y",
+     "label": "3 arms (Y)"
+    },
+    {
+     "value": "arms-4",
+     "label": "4 arms"
+    },
+    {
+     "value": "arms-5",
+     "label": "5 arms"
+    },
+    {
+     "value": "arms-6",
+     "label": "6 arms"
+    },
+    {
+     "value": "arms-0",
+     "label": "No arms"
+    },
+    {
+     "value": "split-off",
+     "label": "No splitters"
+    },
+    {
+     "value": "split-on",
+     "label": "Splitter islands"
+    },
+    {
+     "value": "round",
+     "label": "Round"
+    },
+    {
+     "value": "oval-15",
+     "label": "Oval 1.5:1"
+    },
+    {
+     "value": "oval-2",
+     "label": "Oval 2:1"
+    },
+    {
+     "value": "t",
+     "label": "T junction"
+    },
+    {
+     "value": "x",
+     "label": "X junction"
+    },
+    {
+     "value": "ring-over",
+     "label": "Ring over the highway"
+    },
+    {
+     "value": "highway-over",
+     "label": "Highway over the ring"
+    },
+    {
+     "value": "scale-1",
+     "label": "Scale S"
+    },
+    {
+     "value": "scale-2",
+     "label": "Scale M"
+    },
+    {
+     "value": "scale-3",
+     "label": "Scale L"
+    },
+    {
+     "value": "ramp-1",
+     "label": "Short ramps"
+    },
+    {
+     "value": "ramp-2",
+     "label": "Medium ramps"
+    },
+    {
+     "value": "ramp-3",
+     "label": "Long ramps"
+    },
+    {
+     "value": "road-over",
+     "label": "Road over the highway"
+    },
+    {
+     "value": "hx-highway-over",
+     "label": "Highway over the road"
+    }
+   ]
+  }
+ ],
+ "items": [
+  {
+   "file": "layouts/shape-scale-round-xs.svg",
+   "title": "Better Roundabouts: Round, XS",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "round",
+   "col": "xs",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-round-s.svg",
+   "title": "Better Roundabouts: Round, S",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "round",
+   "col": "s",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-round-m.svg",
+   "title": "Better Roundabouts: Round, M",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "round",
+   "col": "m",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-round-l.svg",
+   "title": "Better Roundabouts: Round, L",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "round",
+   "col": "l",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-round-xl.svg",
+   "title": "Better Roundabouts: Round, XL",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "round",
+   "col": "xl",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-125-xs.svg",
+   "title": "Better Roundabouts: Oval 1.25:1, XS",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-125",
+   "col": "xs",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-125-s.svg",
+   "title": "Better Roundabouts: Oval 1.25:1, S",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-125",
+   "col": "s",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-125-m.svg",
+   "title": "Better Roundabouts: Oval 1.25:1, M",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-125",
+   "col": "m",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-125-l.svg",
+   "title": "Better Roundabouts: Oval 1.25:1, L",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-125",
+   "col": "l",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-125-xl.svg",
+   "title": "Better Roundabouts: Oval 1.25:1, XL",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-125",
+   "col": "xl",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-15-xs.svg",
+   "title": "Better Roundabouts: Oval 1.5:1, XS",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-15",
+   "col": "xs",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-15-s.svg",
+   "title": "Better Roundabouts: Oval 1.5:1, S",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-15",
+   "col": "s",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-15-m.svg",
+   "title": "Better Roundabouts: Oval 1.5:1, M",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-15",
+   "col": "m",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-15-l.svg",
+   "title": "Better Roundabouts: Oval 1.5:1, L",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-15",
+   "col": "l",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-15-xl.svg",
+   "title": "Better Roundabouts: Oval 1.5:1, XL",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-15",
+   "col": "xl",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-175-xs.svg",
+   "title": "Better Roundabouts: Oval 1.75:1, XS",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-175",
+   "col": "xs",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-175-s.svg",
+   "title": "Better Roundabouts: Oval 1.75:1, S",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-175",
+   "col": "s",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-175-m.svg",
+   "title": "Better Roundabouts: Oval 1.75:1, M",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-175",
+   "col": "m",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-175-l.svg",
+   "title": "Better Roundabouts: Oval 1.75:1, L",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-175",
+   "col": "l",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-175-xl.svg",
+   "title": "Better Roundabouts: Oval 1.75:1, XL",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-175",
+   "col": "xl",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-2-xs.svg",
+   "title": "Better Roundabouts: Oval 2:1, XS",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-2",
+   "col": "xs",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-2-s.svg",
+   "title": "Better Roundabouts: Oval 2:1, S",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-2",
+   "col": "s",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-2-m.svg",
+   "title": "Better Roundabouts: Oval 2:1, M",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-2",
+   "col": "m",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-2-l.svg",
+   "title": "Better Roundabouts: Oval 2:1, L",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-2",
+   "col": "l",
+   "span": "370"
+  },
+  {
+   "file": "layouts/shape-scale-oval-2-xl.svg",
+   "title": "Better Roundabouts: Oval 2:1, XL",
+   "entry": "roundabout",
+   "sweep": "shape-scale",
+   "row": "oval-2",
+   "col": "xl",
+   "span": "370"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-1-arms-3t.svg",
+   "title": "Better Roundabouts: 1 ring lane, 3 arms (T)",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-1",
+   "col": "arms-3t",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-1-arms-3y.svg",
+   "title": "Better Roundabouts: 1 ring lane, 3 arms (Y)",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-1",
+   "col": "arms-3y",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-1-arms-4.svg",
+   "title": "Better Roundabouts: 1 ring lane, 4 arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-1",
+   "col": "arms-4",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-1-arms-5.svg",
+   "title": "Better Roundabouts: 1 ring lane, 5 arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-1",
+   "col": "arms-5",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-1-arms-6.svg",
+   "title": "Better Roundabouts: 1 ring lane, 6 arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-1",
+   "col": "arms-6",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-1-arms-0.svg",
+   "title": "Better Roundabouts: 1 ring lane, No arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-1",
+   "col": "arms-0",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-2-arms-3t.svg",
+   "title": "Better Roundabouts: 2 ring lanes, 3 arms (T)",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-2",
+   "col": "arms-3t",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-2-arms-3y.svg",
+   "title": "Better Roundabouts: 2 ring lanes, 3 arms (Y)",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-2",
+   "col": "arms-3y",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-2-arms-4.svg",
+   "title": "Better Roundabouts: 2 ring lanes, 4 arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-2",
+   "col": "arms-4",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-2-arms-5.svg",
+   "title": "Better Roundabouts: 2 ring lanes, 5 arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-2",
+   "col": "arms-5",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-2-arms-6.svg",
+   "title": "Better Roundabouts: 2 ring lanes, 6 arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-2",
+   "col": "arms-6",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-2-arms-0.svg",
+   "title": "Better Roundabouts: 2 ring lanes, No arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-2",
+   "col": "arms-0",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-4-arms-3t.svg",
+   "title": "Better Roundabouts: 4 ring lanes, 3 arms (T)",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-4",
+   "col": "arms-3t",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-4-arms-3y.svg",
+   "title": "Better Roundabouts: 4 ring lanes, 3 arms (Y)",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-4",
+   "col": "arms-3y",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-4-arms-4.svg",
+   "title": "Better Roundabouts: 4 ring lanes, 4 arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-4",
+   "col": "arms-4",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-4-arms-5.svg",
+   "title": "Better Roundabouts: 4 ring lanes, 5 arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-4",
+   "col": "arms-5",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-4-arms-6.svg",
+   "title": "Better Roundabouts: 4 ring lanes, 6 arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-4",
+   "col": "arms-6",
+   "span": "190"
+  },
+  {
+   "file": "layouts/lanes-arms-lanes-4-arms-0.svg",
+   "title": "Better Roundabouts: 4 ring lanes, No arms",
+   "entry": "roundabout",
+   "sweep": "lanes-arms",
+   "row": "lanes-4",
+   "col": "arms-0",
+   "span": "190"
+  },
+  {
+   "file": "layouts/centre-splitter-centre-none-split-off.svg",
+   "title": "Better Roundabouts: Nothing through, No splitters",
+   "entry": "roundabout",
+   "sweep": "centre-splitter",
+   "row": "centre-none",
+   "col": "split-off",
+   "span": "252"
+  },
+  {
+   "file": "layouts/centre-splitter-centre-none-split-on.svg",
+   "title": "Better Roundabouts: Nothing through, Splitter islands",
+   "entry": "roundabout",
+   "sweep": "centre-splitter",
+   "row": "centre-none",
+   "col": "split-on",
+   "span": "252"
+  },
+  {
+   "file": "layouts/centre-splitter-centre-road-split-off.svg",
+   "title": "Better Roundabouts: Road through, No splitters",
+   "entry": "roundabout",
+   "sweep": "centre-splitter",
+   "row": "centre-road",
+   "col": "split-off",
+   "span": "252"
+  },
+  {
+   "file": "layouts/centre-splitter-centre-road-split-on.svg",
+   "title": "Better Roundabouts: Road through, Splitter islands",
+   "entry": "roundabout",
+   "sweep": "centre-splitter",
+   "row": "centre-road",
+   "col": "split-on",
+   "span": "252"
+  },
+  {
+   "file": "layouts/centre-splitter-centre-tram-split-off.svg",
+   "title": "Better Roundabouts: Tram line through, No splitters",
+   "entry": "roundabout",
+   "sweep": "centre-splitter",
+   "row": "centre-tram",
+   "col": "split-off",
+   "span": "252"
+  },
+  {
+   "file": "layouts/centre-splitter-centre-tram-split-on.svg",
+   "title": "Better Roundabouts: Tram line through, Splitter islands",
+   "entry": "roundabout",
+   "sweep": "centre-splitter",
+   "row": "centre-tram",
+   "col": "split-on",
+   "span": "252"
+  },
+  {
+   "file": "layouts/centre-splitter-centre-lights-split-off.svg",
+   "title": "Better Roundabouts: Road + lights, No splitters",
+   "entry": "roundabout",
+   "sweep": "centre-splitter",
+   "row": "centre-lights",
+   "col": "split-off",
+   "span": "252"
+  },
+  {
+   "file": "layouts/centre-splitter-centre-lights-split-on.svg",
+   "title": "Better Roundabouts: Road + lights, Splitter islands",
+   "entry": "roundabout",
+   "sweep": "centre-splitter",
+   "row": "centre-lights",
+   "col": "split-on",
+   "span": "252"
+  },
+  {
+   "file": "layouts/island-shape-island-none-round.svg",
+   "title": "Better Roundabouts: No island, Round",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-none",
+   "col": "round",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-none-oval-15.svg",
+   "title": "Better Roundabouts: No island, Oval 1.5:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-none",
+   "col": "oval-15",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-none-oval-2.svg",
+   "title": "Better Roundabouts: No island, Oval 2:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-none",
+   "col": "oval-2",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-grass-round.svg",
+   "title": "Better Roundabouts: Grass, Round",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-grass",
+   "col": "round",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-grass-oval-15.svg",
+   "title": "Better Roundabouts: Grass, Oval 1.5:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-grass",
+   "col": "oval-15",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-grass-oval-2.svg",
+   "title": "Better Roundabouts: Grass, Oval 2:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-grass",
+   "col": "oval-2",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-trees-round.svg",
+   "title": "Better Roundabouts: Grass and trees, Round",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-trees",
+   "col": "round",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-trees-oval-15.svg",
+   "title": "Better Roundabouts: Grass and trees, Oval 1.5:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-trees",
+   "col": "oval-15",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-trees-oval-2.svg",
+   "title": "Better Roundabouts: Grass and trees, Oval 2:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-trees",
+   "col": "oval-2",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-fountain-round.svg",
+   "title": "Better Roundabouts: Fountain, Round",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-fountain",
+   "col": "round",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-fountain-oval-15.svg",
+   "title": "Better Roundabouts: Fountain, Oval 1.5:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-fountain",
+   "col": "oval-15",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-fountain-oval-2.svg",
+   "title": "Better Roundabouts: Fountain, Oval 2:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-fountain",
+   "col": "oval-2",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-paved-round.svg",
+   "title": "Better Roundabouts: Paved, Round",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-paved",
+   "col": "round",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-paved-oval-15.svg",
+   "title": "Better Roundabouts: Paved, Oval 1.5:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-paved",
+   "col": "oval-15",
+   "span": "270"
+  },
+  {
+   "file": "layouts/island-shape-island-paved-oval-2.svg",
+   "title": "Better Roundabouts: Paved, Oval 2:1",
+   "entry": "roundabout",
+   "sweep": "island-shape",
+   "row": "island-paved",
+   "col": "oval-2",
+   "span": "270"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-town-s-arms-3t.svg",
+   "title": "Better Roundabouts: Small town road, 3 arms (T)",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-town-s",
+   "col": "arms-3t",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-town-s-arms-4.svg",
+   "title": "Better Roundabouts: Small town road, 4 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-town-s",
+   "col": "arms-4",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-town-s-arms-6.svg",
+   "title": "Better Roundabouts: Small town road, 6 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-town-s",
+   "col": "arms-6",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-town-m-arms-3t.svg",
+   "title": "Better Roundabouts: Medium town road, 3 arms (T)",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-town-m",
+   "col": "arms-3t",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-town-m-arms-4.svg",
+   "title": "Better Roundabouts: Medium town road, 4 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-town-m",
+   "col": "arms-4",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-town-m-arms-6.svg",
+   "title": "Better Roundabouts: Medium town road, 6 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-town-m",
+   "col": "arms-6",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-town-l-arms-3t.svg",
+   "title": "Better Roundabouts: Large town road, 3 arms (T)",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-town-l",
+   "col": "arms-3t",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-town-l-arms-4.svg",
+   "title": "Better Roundabouts: Large town road, 4 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-town-l",
+   "col": "arms-4",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-town-l-arms-6.svg",
+   "title": "Better Roundabouts: Large town road, 6 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-town-l",
+   "col": "arms-6",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-country-s-arms-3t.svg",
+   "title": "Better Roundabouts: Small country road, 3 arms (T)",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-country-s",
+   "col": "arms-3t",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-country-s-arms-4.svg",
+   "title": "Better Roundabouts: Small country road, 4 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-country-s",
+   "col": "arms-4",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-country-s-arms-6.svg",
+   "title": "Better Roundabouts: Small country road, 6 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-country-s",
+   "col": "arms-6",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-country-m-arms-3t.svg",
+   "title": "Better Roundabouts: Medium country road, 3 arms (T)",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-country-m",
+   "col": "arms-3t",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-country-m-arms-4.svg",
+   "title": "Better Roundabouts: Medium country road, 4 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-country-m",
+   "col": "arms-4",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-country-m-arms-6.svg",
+   "title": "Better Roundabouts: Medium country road, 6 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-country-m",
+   "col": "arms-6",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-country-l-arms-3t.svg",
+   "title": "Better Roundabouts: Large country road, 3 arms (T)",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-country-l",
+   "col": "arms-3t",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-country-l-arms-4.svg",
+   "title": "Better Roundabouts: Large country road, 4 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-country-l",
+   "col": "arms-4",
+   "span": "196"
+  },
+  {
+   "file": "layouts/arm-road-arms-road-country-l-arms-6.svg",
+   "title": "Better Roundabouts: Large country road, 6 arms",
+   "entry": "roundabout",
+   "sweep": "arm-road-arms",
+   "row": "road-country-l",
+   "col": "arms-6",
+   "span": "196"
+  },
+  {
+   "file": "layouts/magic-mini-1-xs.svg",
+   "title": "Magic Roundabout: 1-lane minis, XS",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-1",
+   "col": "xs",
+   "span": "422"
+  },
+  {
+   "file": "layouts/magic-mini-1-s.svg",
+   "title": "Magic Roundabout: 1-lane minis, S",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-1",
+   "col": "s",
+   "span": "422"
+  },
+  {
+   "file": "layouts/magic-mini-1-m.svg",
+   "title": "Magic Roundabout: 1-lane minis, M",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-1",
+   "col": "m",
+   "span": "422"
+  },
+  {
+   "file": "layouts/magic-mini-1-l.svg",
+   "title": "Magic Roundabout: 1-lane minis, L",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-1",
+   "col": "l",
+   "span": "422"
+  },
+  {
+   "file": "layouts/magic-mini-1-xl.svg",
+   "title": "Magic Roundabout: 1-lane minis, XL",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-1",
+   "col": "xl",
+   "span": "422"
+  },
+  {
+   "file": "layouts/magic-mini-2-xs.svg",
+   "title": "Magic Roundabout: 2-lane minis, XS",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-2",
+   "col": "xs",
+   "span": "422"
+  },
+  {
+   "file": "layouts/magic-mini-2-s.svg",
+   "title": "Magic Roundabout: 2-lane minis, S",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-2",
+   "col": "s",
+   "span": "422"
+  },
+  {
+   "file": "layouts/magic-mini-2-m.svg",
+   "title": "Magic Roundabout: 2-lane minis, M",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-2",
+   "col": "m",
+   "span": "422"
+  },
+  {
+   "file": "layouts/magic-mini-2-l.svg",
+   "title": "Magic Roundabout: 2-lane minis, L",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-2",
+   "col": "l",
+   "span": "422"
+  },
+  {
+   "file": "layouts/magic-mini-2-xl.svg",
+   "title": "Magic Roundabout: 2-lane minis, XL",
+   "entry": "magic",
+   "sweep": "magic",
+   "row": "mini-2",
+   "col": "xl",
+   "span": "422"
+  },
+  {
+   "file": "layouts/channel-t-xs.svg",
+   "title": "Channelized Junction: T junction, XS",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "t",
+   "col": "xs",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-t-s.svg",
+   "title": "Channelized Junction: T junction, S",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "t",
+   "col": "s",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-t-m.svg",
+   "title": "Channelized Junction: T junction, M",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "t",
+   "col": "m",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-t-l.svg",
+   "title": "Channelized Junction: T junction, L",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "t",
+   "col": "l",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-t-xl.svg",
+   "title": "Channelized Junction: T junction, XL",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "t",
+   "col": "xl",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-x-xs.svg",
+   "title": "Channelized Junction: X junction, XS",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "x",
+   "col": "xs",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-x-s.svg",
+   "title": "Channelized Junction: X junction, S",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "x",
+   "col": "s",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-x-m.svg",
+   "title": "Channelized Junction: X junction, M",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "x",
+   "col": "m",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-x-l.svg",
+   "title": "Channelized Junction: X junction, L",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "x",
+   "col": "l",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-x-xl.svg",
+   "title": "Channelized Junction: X junction, XL",
+   "entry": "channel",
+   "sweep": "channel",
+   "row": "x",
+   "col": "xl",
+   "span": "315"
+  },
+  {
+   "file": "layouts/channel-slips-slips-near-t.svg",
+   "title": "Channelized Junction: Slips on every corner, T junction",
+   "entry": "channel",
+   "sweep": "channel-slips",
+   "row": "slips-near",
+   "col": "t",
+   "span": "231"
+  },
+  {
+   "file": "layouts/channel-slips-slips-near-x.svg",
+   "title": "Channelized Junction: Slips on every corner, X junction",
+   "entry": "channel",
+   "sweep": "channel-slips",
+   "row": "slips-near",
+   "col": "x",
+   "span": "231"
+  },
+  {
+   "file": "layouts/channel-slips-slips-main-t.svg",
+   "title": "Channelized Junction: Slips from the main road, T junction",
+   "entry": "channel",
+   "sweep": "channel-slips",
+   "row": "slips-main",
+   "col": "t",
+   "span": "231"
+  },
+  {
+   "file": "layouts/channel-slips-slips-main-x.svg",
+   "title": "Channelized Junction: Slips from the main road, X junction",
+   "entry": "channel",
+   "sweep": "channel-slips",
+   "row": "slips-main",
+   "col": "x",
+   "span": "231"
+  },
+  {
+   "file": "layouts/channel-slips-slips-none-t.svg",
+   "title": "Channelized Junction: No slips, T junction",
+   "entry": "channel",
+   "sweep": "channel-slips",
+   "row": "slips-none",
+   "col": "t",
+   "span": "231"
+  },
+  {
+   "file": "layouts/channel-slips-slips-none-x.svg",
+   "title": "Channelized Junction: No slips, X junction",
+   "entry": "channel",
+   "sweep": "channel-slips",
+   "row": "slips-none",
+   "col": "x",
+   "span": "231"
+  },
+  {
+   "file": "layouts/interchange-two-bridge-s.svg",
+   "title": "Roundabout Interchange: Two-bridge ring, S",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "two-bridge",
+   "col": "s",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-two-bridge-m.svg",
+   "title": "Roundabout Interchange: Two-bridge ring, M",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "two-bridge",
+   "col": "m",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-two-bridge-l.svg",
+   "title": "Roundabout Interchange: Two-bridge ring, L",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "two-bridge",
+   "col": "l",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-two-bridge-xl.svg",
+   "title": "Roundabout Interchange: Two-bridge ring, XL",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "two-bridge",
+   "col": "xl",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-dumbbell-s.svg",
+   "title": "Roundabout Interchange: Dumbbell, S",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "dumbbell",
+   "col": "s",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-dumbbell-m.svg",
+   "title": "Roundabout Interchange: Dumbbell, M",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "dumbbell",
+   "col": "m",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-dumbbell-l.svg",
+   "title": "Roundabout Interchange: Dumbbell, L",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "dumbbell",
+   "col": "l",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-dumbbell-xl.svg",
+   "title": "Roundabout Interchange: Dumbbell, XL",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "dumbbell",
+   "col": "xl",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-peanut-s.svg",
+   "title": "Roundabout Interchange: Peanut, S",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "peanut",
+   "col": "s",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-peanut-m.svg",
+   "title": "Roundabout Interchange: Peanut, M",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "peanut",
+   "col": "m",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-peanut-l.svg",
+   "title": "Roundabout Interchange: Peanut, L",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "peanut",
+   "col": "l",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-peanut-xl.svg",
+   "title": "Roundabout Interchange: Peanut, XL",
+   "entry": "interchange",
+   "sweep": "interchange",
+   "row": "peanut",
+   "col": "xl",
+   "span": "492"
+  },
+  {
+   "file": "layouts/interchange-level-two-bridge-ring-over.svg",
+   "title": "Roundabout Interchange: Two-bridge ring, Ring over the highway",
+   "entry": "interchange",
+   "sweep": "interchange-level",
+   "row": "two-bridge",
+   "col": "ring-over",
+   "span": "442"
+  },
+  {
+   "file": "layouts/interchange-level-two-bridge-highway-over.svg",
+   "title": "Roundabout Interchange: Two-bridge ring, Highway over the ring",
+   "entry": "interchange",
+   "sweep": "interchange-level",
+   "row": "two-bridge",
+   "col": "highway-over",
+   "span": "442"
+  },
+  {
+   "file": "layouts/interchange-level-dumbbell-ring-over.svg",
+   "title": "Roundabout Interchange: Dumbbell, Ring over the highway",
+   "entry": "interchange",
+   "sweep": "interchange-level",
+   "row": "dumbbell",
+   "col": "ring-over",
+   "span": "442"
+  },
+  {
+   "file": "layouts/interchange-level-dumbbell-highway-over.svg",
+   "title": "Roundabout Interchange: Dumbbell, Highway over the ring",
+   "entry": "interchange",
+   "sweep": "interchange-level",
+   "row": "dumbbell",
+   "col": "highway-over",
+   "span": "442"
+  },
+  {
+   "file": "layouts/interchange-level-peanut-ring-over.svg",
+   "title": "Roundabout Interchange: Peanut, Ring over the highway",
+   "entry": "interchange",
+   "sweep": "interchange-level",
+   "row": "peanut",
+   "col": "ring-over",
+   "span": "442"
+  },
+  {
+   "file": "layouts/interchange-level-peanut-highway-over.svg",
+   "title": "Roundabout Interchange: Peanut, Highway over the ring",
+   "entry": "interchange",
+   "sweep": "interchange-level",
+   "row": "peanut",
+   "col": "highway-over",
+   "span": "442"
+  },
+  {
+   "file": "layouts/highway-a4-scale-1.svg",
+   "title": "Highway interchanges: Parclo A4, Scale S",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "a4",
+   "col": "scale-1",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-a4-scale-2.svg",
+   "title": "Highway interchanges: Parclo A4, Scale M",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "a4",
+   "col": "scale-2",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-a4-scale-3.svg",
+   "title": "Highway interchanges: Parclo A4, Scale L",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "a4",
+   "col": "scale-3",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-b4-scale-1.svg",
+   "title": "Highway interchanges: Parclo B4, Scale S",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "b4",
+   "col": "scale-1",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-b4-scale-2.svg",
+   "title": "Highway interchanges: Parclo B4, Scale M",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "b4",
+   "col": "scale-2",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-b4-scale-3.svg",
+   "title": "Highway interchanges: Parclo B4, Scale L",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "b4",
+   "col": "scale-3",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-a2-scale-1.svg",
+   "title": "Highway interchanges: Parclo A2, Scale S",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "a2",
+   "col": "scale-1",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-a2-scale-2.svg",
+   "title": "Highway interchanges: Parclo A2, Scale M",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "a2",
+   "col": "scale-2",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-a2-scale-3.svg",
+   "title": "Highway interchanges: Parclo A2, Scale L",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "a2",
+   "col": "scale-3",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-b2-scale-1.svg",
+   "title": "Highway interchanges: Parclo B2, Scale S",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "b2",
+   "col": "scale-1",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-b2-scale-2.svg",
+   "title": "Highway interchanges: Parclo B2, Scale M",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "b2",
+   "col": "scale-2",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-b2-scale-3.svg",
+   "title": "Highway interchanges: Parclo B2, Scale L",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "b2",
+   "col": "scale-3",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-ab2-scale-1.svg",
+   "title": "Highway interchanges: Parclo AB2, Scale S",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "ab2",
+   "col": "scale-1",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-ab2-scale-2.svg",
+   "title": "Highway interchanges: Parclo AB2, Scale M",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "ab2",
+   "col": "scale-2",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-ab2-scale-3.svg",
+   "title": "Highway interchanges: Parclo AB2, Scale L",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "ab2",
+   "col": "scale-3",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-diamond-scale-1.svg",
+   "title": "Highway interchanges: Diamond, Scale S",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "diamond",
+   "col": "scale-1",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-diamond-scale-2.svg",
+   "title": "Highway interchanges: Diamond, Scale M",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "diamond",
+   "col": "scale-2",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-diamond-scale-3.svg",
+   "title": "Highway interchanges: Diamond, Scale L",
+   "entry": "highway",
+   "sweep": "highway",
+   "row": "diamond",
+   "col": "scale-3",
+   "span": "904"
+  },
+  {
+   "file": "layouts/highway-ramps-a4-ramp-1.svg",
+   "title": "Highway interchanges: Parclo A4, Short ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "a4",
+   "col": "ramp-1",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-a4-ramp-2.svg",
+   "title": "Highway interchanges: Parclo A4, Medium ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "a4",
+   "col": "ramp-2",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-a4-ramp-3.svg",
+   "title": "Highway interchanges: Parclo A4, Long ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "a4",
+   "col": "ramp-3",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-b4-ramp-1.svg",
+   "title": "Highway interchanges: Parclo B4, Short ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "b4",
+   "col": "ramp-1",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-b4-ramp-2.svg",
+   "title": "Highway interchanges: Parclo B4, Medium ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "b4",
+   "col": "ramp-2",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-b4-ramp-3.svg",
+   "title": "Highway interchanges: Parclo B4, Long ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "b4",
+   "col": "ramp-3",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-a2-ramp-1.svg",
+   "title": "Highway interchanges: Parclo A2, Short ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "a2",
+   "col": "ramp-1",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-a2-ramp-2.svg",
+   "title": "Highway interchanges: Parclo A2, Medium ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "a2",
+   "col": "ramp-2",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-a2-ramp-3.svg",
+   "title": "Highway interchanges: Parclo A2, Long ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "a2",
+   "col": "ramp-3",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-b2-ramp-1.svg",
+   "title": "Highway interchanges: Parclo B2, Short ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "b2",
+   "col": "ramp-1",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-b2-ramp-2.svg",
+   "title": "Highway interchanges: Parclo B2, Medium ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "b2",
+   "col": "ramp-2",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-b2-ramp-3.svg",
+   "title": "Highway interchanges: Parclo B2, Long ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "b2",
+   "col": "ramp-3",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-ab2-ramp-1.svg",
+   "title": "Highway interchanges: Parclo AB2, Short ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "ab2",
+   "col": "ramp-1",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-ab2-ramp-2.svg",
+   "title": "Highway interchanges: Parclo AB2, Medium ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "ab2",
+   "col": "ramp-2",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-ab2-ramp-3.svg",
+   "title": "Highway interchanges: Parclo AB2, Long ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "ab2",
+   "col": "ramp-3",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-diamond-ramp-1.svg",
+   "title": "Highway interchanges: Diamond, Short ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "diamond",
+   "col": "ramp-1",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-diamond-ramp-2.svg",
+   "title": "Highway interchanges: Diamond, Medium ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "diamond",
+   "col": "ramp-2",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-ramps-diamond-ramp-3.svg",
+   "title": "Highway interchanges: Diamond, Long ramps",
+   "entry": "highway",
+   "sweep": "highway-ramps",
+   "row": "diamond",
+   "col": "ramp-3",
+   "span": "544"
+  },
+  {
+   "file": "layouts/highway-level-a4-road-over.svg",
+   "title": "Highway interchanges: Parclo A4, Road over the highway",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "a4",
+   "col": "road-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-a4-hx-highway-over.svg",
+   "title": "Highway interchanges: Parclo A4, Highway over the road",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "a4",
+   "col": "hx-highway-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-b4-road-over.svg",
+   "title": "Highway interchanges: Parclo B4, Road over the highway",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "b4",
+   "col": "road-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-b4-hx-highway-over.svg",
+   "title": "Highway interchanges: Parclo B4, Highway over the road",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "b4",
+   "col": "hx-highway-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-a2-road-over.svg",
+   "title": "Highway interchanges: Parclo A2, Road over the highway",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "a2",
+   "col": "road-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-a2-hx-highway-over.svg",
+   "title": "Highway interchanges: Parclo A2, Highway over the road",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "a2",
+   "col": "hx-highway-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-b2-road-over.svg",
+   "title": "Highway interchanges: Parclo B2, Road over the highway",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "b2",
+   "col": "road-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-b2-hx-highway-over.svg",
+   "title": "Highway interchanges: Parclo B2, Highway over the road",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "b2",
+   "col": "hx-highway-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-ab2-road-over.svg",
+   "title": "Highway interchanges: Parclo AB2, Road over the highway",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "ab2",
+   "col": "road-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-ab2-hx-highway-over.svg",
+   "title": "Highway interchanges: Parclo AB2, Highway over the road",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "ab2",
+   "col": "hx-highway-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-diamond-road-over.svg",
+   "title": "Highway interchanges: Diamond, Road over the highway",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "diamond",
+   "col": "road-over",
+   "span": "444"
+  },
+  {
+   "file": "layouts/highway-level-diamond-hx-highway-over.svg",
+   "title": "Highway interchanges: Diamond, Highway over the road",
+   "entry": "highway",
+   "sweep": "highway-level",
+   "row": "diamond",
+   "col": "hx-highway-over",
+   "span": "444"
+  }
+ ]
+}

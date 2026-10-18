@@ -29,15 +29,23 @@ local function name(o)
 		o.armLength or 1, o.direction or 1, o.island or 1, o.scale or ch.DEFAULT_SCALE)
 end
 
---- fn(over) for layout x main x side x slips x splitter (432 combos), plus the given fields.
+--- fn(over) for layout x main x side x slips x splitter (432 combos), plus the given fields; a
+-- given layout or splitter fixes that loop (a part of the sweep, so the runner can shard it).
 local function each(extra, fn)
-	for layout = 1, 2 do
+	extra = extra or {}
+	local function values(k, n)
+		if extra[k] then return { extra[k] } end
+		local t = {}
+		for i = 1, n do t[i] = i end
+		return t
+	end
+	for _, layout in ipairs(values("layout", 2)) do
 		for main = 1, #geom.ARM_TEMPLATES do
 			for side = 1, #geom.ARM_TEMPLATES do
 				for slips = 1, 3 do
-					for splitter = 1, 2 do
+					for _, splitter in ipairs(values("splitter", 2)) do
 						local o = { layout = layout, main = main, side = side, slips = slips, splitter = splitter }
-						for k, v in pairs(extra or {}) do o[k] = v end
+						for k, v in pairs(extra) do o[k] = v end
 						fn(o)
 					end
 				end
@@ -45,6 +53,28 @@ local function each(extra, fn)
 		end
 	end
 end
+
+-- Quick runs (no TEST_FULL) check every stride-th combination plus the first of each value the
+-- stride misses and the default (checks.sampled); --full checks all of them.
+local isDefault = checks.defaultCase(function(o) return ch.readParams(params(o)) end)
+local function sampled(stride, extra, fn)
+	checks.sampled(function(f) each(extra, f) end, stride, isDefault)(fn)
+end
+
+-- XS builds by combination (ch.build is pure: the same params give the same result), shared by the
+-- tests that compare against XS; read only.
+local xsBuilds = {}
+local function buildXs(o)
+	local c = {}
+	for k, v in pairs(o) do c[k] = v end
+	c.scale = 1
+	local key = name(c)
+	local b = xsBuilds[key]
+	if not b then b = build(c); xsBuilds[key] = b end
+	return b
+end
+
+local LAYOUT_NAMES = { "T", "X" }
 
 -- A slip lane's gore (where it runs beside the arm it leaves or joins at SLIP_ANGLE) is one
 -- junction: the bands overlap from the shared node until the slip lane is a band width out,
@@ -156,10 +186,11 @@ test("roads: templates, arms, slip lanes and legs per layout", function()
 	end
 end)
 
-test("every combination: tags, edges >= 10 m, engine-fitted junction model, no overlaps, islands clear", function()
+for layout = 1, 2 do
+test("every combination: tags, edges >= 10 m, engine-fitted junction model, no overlaps, islands clear (layout " .. LAYOUT_NAMES[layout] .. ")", function()
 	local count, worstFree = 0, math.huge
-	each({ island = 2 }, function(o)
-		local b = build(o)
+	sampled(7, { island = 2, layout = layout }, function(o)
+		local b = buildXs(o)
 		local n = name(o)
 		count = count + 1
 		checks.report(checks.tags(b.lists), n)
@@ -171,6 +202,7 @@ test("every combination: tags, edges >= 10 m, engine-fitted junction model, no o
 	end)
 	print(string.format("    %d builds, smallest free length %.1f m", count, worstFree))
 end)
+end
 
 test("arm length: every arm runs that far beyond its outermost node; engine model holds", function()
 	for len = 1, #ch.ARM_LENGTHS do
@@ -201,7 +233,7 @@ test("arm length: every arm runs that far beyond its outermost node; engine mode
 end)
 
 test("traffic side: left-hand traffic is the right-hand layout mirrored in x, edges keep their direction", function()
-	each({ island = 3 }, function(o)
+	sampled(5, { island = 3 }, function(o)
 		local r = build(o)
 		o.direction = 2
 		local l = build(o)
@@ -266,7 +298,7 @@ test("traffic side: near-side slip lanes turn the short way and use the near lan
 end)
 
 test("islands: one per slip lane and per splitter, base textures, colliders inside; the roads do not depend on Islands", function()
-	each({}, function(o)
+	sampled(5, {}, function(o)
 		local none = build(o)
 		eq(none.island, nil)
 		for island = 2, 3 do
@@ -342,15 +374,18 @@ local function copy(o, over)
 	return c
 end
 
--- one test per scale, so the runner can shard them
+-- one test per scale, layout and splitter, so the runner can shard them
 for scale = 2, #ch.SCALES do
-	test("Scale " .. ch.SCALE_NAMES[scale] .. ": every combination: set-backs = XS x factor rounded up, the same checks, islands, bend, arm length", function()
+	for layout = 1, 2 do
+	for splitter = 1, 2 do
+	test("Scale " .. ch.SCALE_NAMES[scale] .. ": every combination: set-backs = XS x factor rounded up, the same checks, islands, bend, arm length"
+		.. string.format(" (layout %s, splitter %s)", LAYOUT_NAMES[layout], splitter == 2 and "on" or "off"), function()
 		local count, worstFree = 0, math.huge
 		local step = ch.SETBACK_STEP
 		local f = ch.SCALES[scale]
-		each({ island = 2, scale = scale }, function(o)
+		sampled(11, { island = 2, scale = scale, layout = layout, splitter = splitter }, function(o)
 			local b = build(o)
-			local xs = build(copy(o, { scale = 1 }))
+			local xs = buildXs(o)
 			local n = name(o)
 			count = count + 1
 			-- set-backs: XS x factor, rounded up to the step, always beyond XS
@@ -405,6 +440,8 @@ for scale = 2, #ch.SCALES do
 		end)
 		print(string.format("    %d builds, smallest free length %.1f m", count, worstFree))
 	end)
+	end
+	end
 end
 
 test("Scale: set-backs of the default junction at every scale", function()
@@ -418,10 +455,14 @@ test("Scale: set-backs of the default junction at every scale", function()
 	print("    default set-backs (main / side, m): " .. table.concat(row, ", "))
 end)
 
+local channelUpdateFn
 for scale = 2, #ch.SCALES do
-	test("Scale " .. ch.SCALE_NAMES[scale] .. ": left-hand traffic mirrors it; no new -0 in the result; the Islands param moves no road", function()
-		local updateFn = loadData("square_roundabouts_channel.script.lua").updateFn
-		each({ scale = scale }, function(o)
+	for layout = 1, 2 do
+	test("Scale " .. ch.SCALE_NAMES[scale] .. ": left-hand traffic mirrors it; no new -0 in the result; the Islands param moves no road (layout " .. LAYOUT_NAMES[layout] .. ")", function()
+		-- loaded once (ug_require runs a file once: data() is then the last one loaded)
+		channelUpdateFn = channelUpdateFn or loadData("square_roundabouts_channel.script.lua").updateFn
+		local updateFn = channelUpdateFn
+		sampled(11, { scale = scale, layout = layout }, function(o)
 			for direction = 1, 2 do
 				local p = params(copy(o, { direction = direction, island = 3 }))
 				local _, n = checks.negativeZeros(updateFn({}, p))
@@ -442,4 +483,5 @@ for scale = 2, #ch.SCALES do
 			end
 		end)
 	end)
+	end
 end

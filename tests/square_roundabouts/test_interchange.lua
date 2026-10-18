@@ -51,6 +51,13 @@ local function each(grid, fn)
 	rec(1, {})
 end
 
+-- Quick runs (no TEST_FULL) check every stride-th case of a sweep plus the first of each value the
+-- stride misses and the default (checks.sampled); --full checks every case.
+local isDefault = checks.defaultCase(function(o) return ix.readParams(params(o)) end)
+local function sampledEach(stride, grid, fn)
+	checks.sampled(function(f) each(grid, f) end, stride, isDefault)(fn)
+end
+
 -- Engine limits from the base interchanges (PHASE5.md "Phase 5a notes", spike 4).
 local MIN_SEP = 7          -- vertical separation where roads cross (base 6-8 m; ours 8 m)
 local AVG_MAX = 0.10       -- slip road gradient, average over its plan length
@@ -327,9 +334,12 @@ end)
 
 -- The full sweep: every layout x highway x level x traffic side x ring lanes x four cross roads
 -- (town small / large, country small / large) at the default radius, slip and arm length.
-test("every layout x highway x level x side x lanes x cross road: tags, levels, gradients, gores, engine model, overlaps, islands", function()
+-- (one test per layout, so the runner can shard them)
+for layout = 1, 3 do
+test("every layout x highway x level x side x lanes x cross road: tags, levels, gradients, gores, engine model, overlaps, islands (layout " .. layout .. ")", function()
 	local count = 0
-	each({ layout = { 1, 2, 3 }, highway = { 1, 2, 3 }, level = { 1, 2 }, direction = { 1, 2 }, lanes = { 1, 2, 3 },
+	for k in pairs(stats) do stats[k] = nil end -- this test's numbers only
+	sampledEach(7, { layout = { layout }, highway = { 1, 2, 3 }, level = { 1, 2 }, direction = { 1, 2 }, lanes = { 1, 2, 3 },
 		cross = { 1, 3, 4, 6 }, island = { 3 } }, function(o)
 		local b = build(o)
 		count = count + 1
@@ -340,10 +350,11 @@ test("every layout x highway x level x side x lanes x cross road: tags, levels, 
 	print(string.format("    %d builds: smallest free length %.1f m; slip roads avg <= %.1f %%, peak <= %.1f %%, shortest %.0f m; gore %.1f-%.1f m (slip road up to %.1f m there); smallest separation at crossings %.1f m",
 		count, stats.free, stats.avg * 100, stats.peak * 100, stats.rampMin, stats.goreMin, stats.gore, stats.goreZ, stats.minSep))
 end)
+end
 
 test("radius, slip road length and arm length: every value passes (sample)", function()
 	local count = 0
-	each({ layout = { 1, 2, 3 }, highway = { 1, 3 }, level = { 1, 2 }, radius = { 1, 4, #ix.RADII }, slipLength = { 1, #ix.SLIP_LENGTHS },
+	sampledEach(5, { layout = { 1, 2, 3 }, highway = { 1, 3 }, level = { 1, 2 }, radius = { 1, 4, #ix.RADII }, slipLength = { 1, #ix.SLIP_LENGTHS },
 		armLength = { 1, #ix.ARM_LENGTHS }, cross = { 6 }, lanes = { 3 } }, function(o)
 		count = count + 1
 		checkBuild(build(o), name(o), o.armLength == 1 and o.slipLength == 1)

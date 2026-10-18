@@ -2,6 +2,20 @@
 
 Status: archive. Text moved verbatim out of `PLAN.md` and `TESTING.md`, newest first. Read it only to learn why something is the way it is. Code comments and older docs that cite `PLAN.md "Phase N notes"` (Phases 1 to 4b) mean the sections below; the finished phase plans (`PHASE5.md`, `INTERCHANGES.md`, `PHASE6.md`, `PHASE7_RUNBOOK.md`) stay in this folder, and `research.md`, `types.md` and `PERF_REVIEW.md` moved to `history/`.
 
+## 2026-10-14: moved from PLAN.md (revision 7 released)
+
+Revision 7 went live with the Hub upload of 2026-10-14 05:29Z (session `2026-10-14_0502_sqot`; live modfile
+8324961 = `mods/square_roundabouts/`; an earlier revision 7 modfile, 8321067, holds the b160f53 code without
+the dev ring mid override, its upload is not in the log archive). The scratch test named below no longer
+exists. Old status line and open-work item, verbatim:
+
+Status: revision 7 in progress (2026-10-12; code, test and changelog written; rev 7 committed in b160f53, not uploaded; a Nodes between arms param added and removed again 2026-10-14). Revision 6 (2026-10-10) is the live mod.io release. Display name "Roundabouts & Interchanges", seven menu entries.
+
+1. **Finish revision 7** (next step): `make test MOD=mods/square_roundabouts`, the in-game check in
+   `TESTING.md` "Open checks", commit, then the Hub upload ("Releasing updates" in `CLAUDE.md`).
+   `tests/square_roundabouts/test_zz_scratch_rev7cmp.lua` is marked "TEMPORARY review scratch (delete
+   after use)".
+
 ## 2026-10-12: moved from PLAN.md (Phases 1 to 4b, the MVP design, params and phase list, branding)
 
 From the top of the file:
@@ -180,7 +194,7 @@ clockwise). One-way legs X->S and S->E (`town_new_one_way_xsmall`, 14 m; with tr
 nearly parallel to the ring normal at the arm (5 deg towards the traffic). The two-way arm runs
 from S and reaches max(arm length, 26 + 10 m) beyond the ring's outer edge. Legs were tuned
 numerically for a clear triangle at every radius (about 27-30 m^2, base about 6 m).
-Triangle island: between the legs' inner kerbs (+1 m) and the ring's outer kerb (+1.5 m), only
+Triangle island: between the legs' inner curbs (+1 m) and the ring's outer curb (+1.5 m), only
 when Centre island is not None, same surface as the centre (trees -> grass, fountain -> paving),
 no collider and no models (too small; no town building fits). Decision: "Centre island = None"
 means no landscaping at all, as in the base roundabout.
@@ -270,12 +284,12 @@ arms. The large-arm failures logged nothing in stdout.txt.
   2:1) the ring junction took 12.1 m of the 16.5 m stub.
 
 ### Root cause of (3) and (4): junctions that eat whole edges
-The engine shapes a junction from the kerbs of neighbouring roads; scripts can't see it. Offline
+The engine shapes a junction from the curbs of neighbouring roads; scripts can't see it. Offline
 model (`tests/square_roundabouts/checks.lua` `checks.junctions`): at every node, sort the roads
-by angle; each neighbouring pair meets at a kerb corner, the crossing of their facing kerbs (each
-kerb is the road's offset curve, extended straight behind the node). Each road is cut back to its
+by angle; each neighbouring pair meets at a curb corner, the crossing of their facing curbs (each
+curb is the road's offset curve, extended straight behind the node). Each road is cut back to its
 farthest corner; free length = edge length minus the cut-backs at both ends. "Behind" = how far a
-corner lies behind a road's own node (a narrow road running along the extended kerb of a much
+corner lies behind a road's own node (a narrow road running along the extended curb of a much
 wider one). Results for the old layouts (default params):
 
 | case | in game | free length (worst edge) | corner behind node |
@@ -286,13 +300,13 @@ wider one). Results for the old layouts (default params):
 | Splitter, small / medium arms | works | 6.8 m (ring), legs 15.6 m | 0 / 5.7 m (town medium) |
 | Splitter, town large / country large | fails | ring 6.8 m, legs 7.3 / 10.1 m | **15.6 / 12.7 m** |
 
-- Magic: a 1-lane mini ring (centreline 17 m, outer kerb 21.5 m) with the arm node at 0 deg and the
+- Magic: a 1-lane mini ring (centreline 17 m, outer curb 21.5 m) with the arm node at 0 deg and the
   link nodes at about +-99 deg had its in-between nodes at +-49.7 deg: 14.7 m edges next to the arm.
-  A 32 m arm's kerb line (lateral 16 m) meets the mini's outer kerb at asin(16 / 21.5) = 48 deg:
+  A 32 m arm's curb line (lateral 16 m) meets the mini's outer curb at asin(16 / 21.5) = 48 deg:
   14.3 m of the 14.7 m edge are junction. Country large (30 m): 44 deg, 13.1 m. Medium (24 m):
   34 deg, 10.1 m, leaving 4.7 m.
-- Splitter: the legs left the split node at +-40 deg. A 32 m arm's kerb line meets the legs' outer
-  kerbs 15.6 m behind the split node (the leg runs alongside the arm's extended kerb), and the
+- Splitter: the legs left the split node at +-40 deg. A 32 m arm's curb line meets the legs' outer
+  curbs 15.6 m behind the split node (the leg runs alongside the arm's extended curb), and the
   legs lose 20.1 m (country large 17.3 m) to that junction, against 11.9 m for small and medium.
   Also the arm beyond the split was only 10 m long (default arm length 20 m: max(20, 36) - 26).
 - Calibration: free length >= `geom.JUNCTION_FREE` = 4.5 m (just below the smallest working
@@ -316,7 +330,7 @@ wider one). Results for the old layouts (default params):
 - **Junction room in the ring plan** (`geom.plan` -> `geom.ringFree`, `geom.kerbCut`): every ring
   edge must keep `geom.JUNCTION_PLAN` = 5 m (a margin over the 4.5 m test threshold) outside the
   junctions at its ends, for every arm, leg (using its real curve) and through road. The cut is
-  where the ring's kerb crosses the facing kerb of the road (signed, so a leg crossing the ring
+  where the ring's curb crosses the facing curb of the road (signed, so a leg crossing the ring
   obliquely on a tight oval end counts the whole way across). Plus: the nearer start corners of
   neighbouring roads keep LEG_CLEARANCE from each other's band (wide plain arms on small rings
   overlapped each other, the Phase 1/2 test exemption `legacySkip` is gone). The ring grows as
@@ -326,16 +340,16 @@ wider one). Results for the old layouts (default params):
   0.01 m on the cases compared.
 - **Plain arms leave along the ring normal** (`geom.armDir`; radial on a round ring, so round
   layouts are unchanged). Radial arms on a 2:1 oval's flank met the ring up to 35 deg off square
-  and a large arm's kerb corner lay 7-9 m behind its node at any ring size. Splitter arms stay
+  and a large arm's curb corner lay 7-9 m behind its node at any ring size. Splitter arms stay
   radial (the split node and fork were tuned and tested that way; the normal broke the leg fit on
   long ovals).
-- More plan rules from the full sweep: no kerb corner more than `BEHIND_PLAN` = 5 m behind a
+- More plan rules from the full sweep: no curb corner more than `BEHIND_PLAN` = 5 m behind a
   road's node; a leg is out of the ring road's band beyond `LEG_HUG` = 28 m along it; the through
   road's strip check allows a junction of max(25 m, through hw + ring hw + 4 m) (a 6-lane road
   through a 4-lane ring could never meet 25 m); the ring may grow past the slider to
   `GROW_RADII` = 70 / 80 / 90 / 100 m (103 of 6480 swept combinations at the 8 m start, mostly
   wide arms with splitters on 5-6 arms or long ovals).
-- Split node in the plan too (`geom.splitBehind`): the wide arm's kerb corner at the split node
+- Split node in the plan too (`geom.splitBehind`): the wide arm's curb corner at the split node
   may lie at most BEHIND_PLAN = 5.8 m behind it (town medium's tested 5.7 m passes). On small or
   long oval rings the legs bend to reach the ring's flank and the corner moves back; if no radius
   fits, the fork opens by 8 deg (max 80 deg) and the legs spread 2 m further per step (up to 4
@@ -355,6 +369,15 @@ wider one). Results for the old layouts (default params):
   than JUNCTION_PLAN, or neighbouring arms come closer than LEG_CLEARANCE. Result: town large
   needs Size 4 (Compact..Medium build Large), town medium and country medium need Size 2, country
   large fits Size 3 (5.1 m free), small arms fit every size.
+- *Added 2026-10-14 (not in the original notes):* **revision 2 (2026-10-07) changed the Magic sizes** to
+  mini radius 8 / 10 / 12 / **20 / 35** m, center distance 40 / 46 / 52 / **76 / 121** m (`magic.SIZES`; Large
+  = the old Very large, Very large about twice as wide as Small; rev 2 changelog), so large arm roads fit
+  from Large (4) instead of Very large. The same revision added **Mini roundabout lanes** (`sqrb_magic_lanes`,
+  1 or 2). 2-lane floor: the tuning rows `"armType,direction,2"` (search_magic2) say the engine accepted
+  Medium (3), but `magic.layout`'s offline check rejects Medium with 2-lane satellites for every arm road, so
+  `magic.chooseLayout` grows every 2-lane build to **Large or bigger** (checked offline 2026-10-14: 6 arm
+  roads x 2 directions x 5 sizes, effective size 4 4 4 4 5). The tooltip and the rev 2 changelog ("Large or
+  bigger") are right.
 - Main entry: the Radius tooltip now says it is the size and that the ring grows to fit.
 
 ### New offline checks (tests/square_roundabouts/test_junctions.lua)
@@ -485,7 +508,7 @@ built them, the sweep with the Phase 3b geometry) and fitted thresholds:
 | Phase 3b test model (free 4.5 m, behind 6 m) | 71.9% | 8,385 | 804 |
 | engine-fitted model (Phase 4b) | 91.7% | 2,678 | 26 |
 
-Engine-fitted: free length >= 2.5 m (engine took 2.0 m), plain arm kerb corner <= 1 m behind its
+Engine-fitted: free length >= 2.5 m (engine took 2.0 m), plain arm curb corner <= 1 m behind its
 node (legs 6 m), tram stub >= 16 m and middle >= 21 m, neck at most 4.5 m narrower than the arm
 and legs at most 2.5 m wider than the neck. The remaining disagreements are mostly the
 ring-level failures above (not junction geometry) and splitter fork/spread combos.

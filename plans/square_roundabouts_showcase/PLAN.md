@@ -24,7 +24,7 @@ game-script state: nothing is written to the save except the constructions it bu
    base `util.useFn` (`scripts/util.tl`: `loaderHelper:useFn(ref)`, then the `game` table path) and called
    as `fn(captureParams, params)`; its `edgeLists` (position/tangent pairs) are sampled as Hermite curves.
    Every sample grows by **its own street's half width** (sum of the template's `laneConfigs` widths from
-   `api.res.streetTemplateRep`, cached, one INFO line per template) + 4 m kerb, plus a 1:1.5 earth slope
+   `api.res.streetTemplateRep`, cached, one INFO line per template) + 4 m curb, plus a 1:1.5 earth slope
    x |z| where the street is raised and not a bridge (Hwy-level embankments); floor 6 m. Fallbacks: the
    geometry module named after the script, then a 400 m box (WARN). Only `sqrb_*` keys are enumerated.
 5. **layout** (`sc_layout.lua`, pure; run in a coroutine that yields every 50 ms of CPU, `LAYOUT_SLICE`, so a
@@ -56,7 +56,7 @@ non-finite -> placement skipped (findings "Negative zero": +0 transforms are the
 
 The bounding box of a star-shaped roundabout is mostly empty corners, so the boxes are only the broad
 phase. Each footprint also carries its road shape: probes every 6 m along every edge with their own
-buffer (half street width + kerb by kind + 1.5 x height for raised non-bridge roads), field segments
+buffer (half street width + curb by kind + 1.5 x height for raised non-bridge roads), field segments
 (3 probe steps, chord sag added to the buffer) and island outlines (ground faces; the inside counts as
 occupied, the island has colliders). Per combo a sparse clearance field (5 m cells, built once,
 lazily, to the range the layout needs) holds the distance to the buffered roads. Two placements whose

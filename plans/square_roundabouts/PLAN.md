@@ -1,6 +1,6 @@
 # square_roundabouts: plan
 
-Status: revision 7 in progress (2026-10-12; code, test and changelog written, not committed, not uploaded). Revision 6 (2026-10-10) is the live mod.io release. Display name "Roundabouts & Interchanges", seven menu entries.
+Status: revision 7 released (code 2026-10-12, b160f53; Hub upload 2026-10-14 05:29Z, session `2026-10-14_0502_sqot`; the live modfile 8324961 matches `mods/square_roundabouts/` file for file, including the dev-only ring mid override below). A Nodes between arms param was added and removed again before that upload (2026-10-14). Display name "Roundabouts & Interchanges", seven menu entries.
 
 Read this file and `TESTING.md` first. Finished phases, run logs and superseded designs are in `HISTORY.md` (moved verbatim from this file and `TESTING.md`), in the finished phase docs `PHASE5.md`, `INTERCHANGES.md`, `PHASE6.md`, `PHASE7_RUNBOOK.md` (they stay in this folder because mod code and tests cite them) and in `history/` (research, types, perf review). The DEV engine probe's manual is `PROBE.md`. Code comments that cite `PLAN.md "Phase N notes"` (Phases 1 to 4b) now mean `HISTORY.md`.
 
@@ -16,7 +16,8 @@ roundabout, it then dissolves into ordinary, editable roads.
   uses the vanilla one-way set (`highway_new_small`, `town_new_one_way_small`,
   `town_new_one_way_medium`). Arms use base two-way town/country templates. This rules out a
   3-lane ring.
-- modId `square_roundabouts`, display name "Roundabouts".
+- modId `square_roundabouts`, display name "Roundabouts" (renamed "Roundabouts & Interchanges" in revision 4,
+  2026-10-09; the main menu entry keeps "Better Roundabouts").
 
 ## What ships
 Changelog: `mods/square_roundabouts/_metadata/description.html`.
@@ -29,7 +30,7 @@ Changelog: `mods/square_roundabouts/_metadata/description.html`.
   button row; settings in the left toolbar; menu icon badge.
 - rev 5 (2026-10-10): translations into all 13 game languages.
 - rev 6 (2026-10-10): Channelized Junction Scale XS-XL; every size row is called Scale.
-- rev 7 (2026-10-12, in progress): small 1-lane ovals with wide plain arms grow until the arms fit
+- rev 7 (2026-10-12, uploaded 2026-10-14): small 1-lane ovals with wide plain arms grow until the arms fit
   (`geom.ARM_BEHIND_PLAN`, `geom.radiusSearched`, `tests/square_roundabouts/test_oval_arm_room.lua`;
   found by the Stress Test Showcase, `plans/square_stress_test/SHOWCASE.md` finding E).
 
@@ -66,8 +67,8 @@ Detail and evidence in `HISTORY.md` or the named doc, under the named section.
   `tools/gen_roundabouts_tuning.py` from the probe CSVs here; never edit by hand) sets exact engine
   radii and floors where the probe searched. `geom.plan` stays as it was searched on probed patterns,
   so rev 7's arm rule applies only outside them (`geom.radiusSearched`: round and 2:1 rings).
-- The engine shapes junctions from the kerbs, invisible to scripts. Offline model fitted to ~33,000
-  engine verdicts: `checks.engineModel` (free edge length >= 2.5 m, a plain arm's kerb corner <= 1 m
+- The engine shapes junctions from the curbs, invisible to scripts. Offline model fitted to ~33,000
+  engine verdicts: `checks.engineModel` (free edge length >= 2.5 m, a plain arm's curb corner <= 1 m
   behind its node) (`HISTORY.md` "Phase 3b notes", "Phase 4b notes").
 - Tram line through the centre: 16 m tram road stubs, a tram-only middle only from 21 m
   (`geom.TRAM_MIDDLE_MIN`); `tram_new` must not join the ring node (crash, "Phase 3 fixes").
@@ -90,10 +91,8 @@ Detail and evidence in `HISTORY.md` or the named doc, under the named section.
 - Perf review 2026-10-08: nothing worth changing (`history/PERF_REVIEW.md`).
 
 ## Open work
-1. **Finish revision 7** (next step): `make test MOD=mods/square_roundabouts`, the in-game check in
-   `TESTING.md` "Open checks", commit, then the Hub upload ("Releasing updates" in `CLAUDE.md`).
-   `tests/square_roundabouts/test_zz_scratch_rev7cmp.lua` is marked "TEMPORARY review scratch (delete
-   after use)".
+1. **Revision 7 in-game check** (`TESTING.md` "Open checks" 1): revision 7 is live (released without it);
+   no result recorded yet.
 2. **Open in-game checks** (`TESTING.md` "Open checks"): traffic lights field (7.4, decides a highway
    signals param), Channelized Junction Scale S-XL (12.11, never probed), highway editing and removal
    (16C), loop speeds (16B).
@@ -109,11 +108,32 @@ Detail and evidence in `HISTORY.md` or the named doc, under the named section.
    hover previews of the Channelized Junction and Roundabout Interchange are still the main entry's,
    the three highway previews are drawn placeholders.
 
+## Nodes between arms: removed again (2026-10-14)
+A menu param "Nodes between arms" (On by default, 2-lane rings) existed briefly in the unreleased rev 7: placed from the
+menu, the game joined the nodes away on XS-M rings (16-24 m pieces), also with a 4 degree corner at them
+(docs/findings/roads.md "Menu placements join short ring pieces"). User decision: Smart Lanes adds the mid nodes itself
+(square_smart_lanes PLAN.md "Smart Lanes adds the mid nodes"); the param, its corner, its strings and its changelog line
+are gone, the con params are as in HEAD (keys and order unchanged). Only the dev override below stays (the bench).
+
+## Ring mid nodes (dev) (2026-10-14; ran in game: Stress Test Sheet 4 v3, mids=4 on every twin)
+Dev override `sqrb_dev_ring_mid = n` (1-3; geom.DEV_KEYS.ringMid, read only when present, in no menu): every ring gap
+between two different arms gets at least n + 1 edges (`geom.ringParams` minPieces), i.e. n plain ring nodes evenly
+between neighbouring arms, always (the ring grows when they need room: the bench's 4-lane ring with 2 per gap, 10 -> 20 m); the two legs of one splitter arm stay one edge apart. Main
+Roundabout entry only (geom.plan); the plan's checks run on the split edges as on any ring (MIN_EDGE, JUNCTION_PLAN).
+Without the key every ring is byte for byte as before (golden tests). User: the Stress Test bench Sheet 4 v3 ring
+`bench_rb2tm` (2 lanes, XS, 4 Town small arms: radius 10 m as without the override, 8 edges of 14.5 m chord), where
+Smart Lanes' `sl_rsplit` writes its lane change at those nodes (square_smart_lanes PLAN.md "Mid-node spiral").
+Tests: `tests/square_roundabouts/test_ring_mid.lua`. In-game check: square_stress_test TESTING.md 6Y (`BENCH_TWIN ...
+geometry=ok ... mids=4`). Players get mid nodes from Smart Lanes (above).
+
 ## Working on the code
 From `PHASE7_RUNBOOK.md`, still valid:
-- `make test MOD=mods/square_roundabouts ARGS="-f <file> -k <text>"` while iterating; `SQRB_FULL=1` adds
-  the exhaustive sweep. Once at the end: `make gate MOD=mods/square_roundabouts` (check, validate, test;
-  add `MOD2=mods/square_roundabouts_probe` when the probe changed).
+- `make test MOD=mods/square_roundabouts ARGS="-f <file> -k <text>"` while iterating. Three tiers:
+  quick (default, ~15 s): sweeps check a sample (`checks.sampled`: every n-th case, every param value,
+  the defaults; golden tests a sample of groups); `ARGS=--full` (TEST_FULL, what `make gate` runs,
+  ~60 s): every case; `SQRB_FULL=1`: also the exhaustive test_finite / negative_zero sweeps. Once at the
+  end: `make gate MOD=mods/square_roundabouts` (check, validate, full test; add
+  `MOD2=mods/square_roundabouts_probe` when the probe changed).
 - `make hx-dump KEY='...'` (one highway build's edges), `make probe-report LOGS=...`,
   `make probe-split LOG=...` (refusal patterns of a probe run).
 - In-game refusal: bisect in the UI first; diff every number against the probe, sign of zero included.

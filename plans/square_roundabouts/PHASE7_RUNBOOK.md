@@ -40,9 +40,11 @@ Short, practical tips. Later phase reviews update this file. Last review: after 
 - Refusal pattern over a whole sweep: `make probe-split LOG=plans/square_roundabouts/probe_<run>.log` (2 s):
   per feature (reach, radial, longest edge / ramp, grade) placed max vs refused min, best threshold and errors,
   overall and per level. `ARGS=--uncap` for runs before the 7e2 cap; `--near xmax` lists the borderline keys.
-- `make test MOD=mods/square_roundabouts ARGS="-f highway"` (9 s). `-f` picks files (repeatable), `-k TEXT` a
-  test-name substring. Cheap (< 3 s): ramps, base_interchanges, tuning, script, dev, replay_report.
-  `-f short_edges` 25 s: once, after highway changes. Label / tooltip edits: `-f entries -f highway`.
+- `make test MOD=mods/square_roundabouts ARGS="-f highway"` (3 s quick, 12 s `--full`). `-f` picks files
+  (repeatable), `-k TEXT` a test-name substring. Quick (default) samples every sweep (`checks.sampled`) and
+  golden group; `ARGS=--full` checks every case (make gate does). Cheap (< 3 s): ramps, base_interchanges,
+  tuning, script, dev, replay_report. `-f short_edges` 3 s quick, 33 s full. Label / tooltip edits:
+  `-f entries -f highway`.
 - **Refused highway combo:** `make hx-dump KEY='<refused> <placed neighbour>'` (0.7 s; `DEV='sqrb_dev_x=1'`):
   R, dx, xm, frame, every edge (bridge, tags, lengths; `<15` marks short edges).
 - Golden re-record (deliberate default-geometry change only):
@@ -50,11 +52,15 @@ Short, practical tips. Later phase reviews update this file. Last review: after 
 - Edits: a python `edit(p, pairs)` with `assert s.count(a) == 1` worked well (7c3: no failed edits).
 
 ## -0 (negative zero) check
-- `make test MOD=mods/square_roundabouts ARGS="-f negative_zero"` (4 s; SQRB_FULL=1 every build, ~20 s).
+- `make test MOD=mods/square_roundabouts ARGS="-f negative_zero"` (4 s, quick and `--full` alike: every 7th
+  build; SQRB_FULL=1 every build, ~20 s).
   Game-accurate (pre-5.3 doubles): `TEALRT_LUA=52 make test ... ARGS="-f negative_zero"` (only this file is
   5.2-clean). KNOWN counts for both are in the test. Never hand-write a scan.
 - Released entries at 0°: only the Channelized Junction (layout 2, left-hand side-road tangents `(-0, -y)`),
-  released since rev 1; harm unproven, pending the user's check. Highway output: 0 raw -0 (`hx.positiveZeros`).
+  released since rev 1; left as it is: probe p7_presets (2026-10-09, at the builder's exact 0° transform)
+  placed all 6 X left-hand combos, so this world `-0` in a tangent's x did no harm (`docs/findings/roads.md`
+  "Negative zero"; `test_negative_zero.lua` KNOWN). Highway output: 0 raw -0 (`hx.positiveZeros`).
+  (Updated 2026-10-14; was "harm unproven, pending the user's check".)
 
 ## Debugging in-game refusals (7e fix-up retro: 2 h 47 min, 13 rounds)
 - **The UI is ground truth: bisect there first** with TEMPORARY DEV params in the `.con.lua`; halve the layout
@@ -74,7 +80,8 @@ Short, practical tips. Later phase reviews update this file. Last review: after 
   intro / Notes count the menu entries as they are now. Changelog `<h4>Revision 4 (date)</h4>` first (`<h2>`
   only for "Changelog"): New: Parclo, Parclo two quadrants and Diamond highway interchanges; Changed: size
   settings are button rows, menu icons carry the mod badge, **menu choices for radius reset once** (Radius
-  rows moved to presets: the menu opens on Medium 20 m; placed roads unaffected); Fixed: -0 values in new
+  rows moved to presets: the menu opens on Medium 20 m; placed roads unaffected; *shipped instead: every size
+  row starts at its smallest, XS 10 m, user 2026-10-09; noted 2026-10-14*); Fixed: -0 values in new
   geometry; Channelized Junction -0 only if the user's check confirms it. modinfo summary <= 100 chars.
 - Gallery: mod.io is append-only. Append `Square.slides` after "Mix and match" in `branding/shots.js`
   (10.png, 11.png ...); never edit 1-9 (slide 5 says "Four menu entries"). `make shots`; `git status`
@@ -83,9 +90,9 @@ Short, practical tips. Later phase reviews update this file. Last review: after 
 
 ## Pitfalls
 - Copy edit anchors from `sed -n` output, never retype indentation. `make test` without MOD runs ~30 mods.
-- Wall times vary +-20 % (game often running). Clean HEAD check: `git worktree add --detach <scratchpad>/wt HEAD`.
+- Wall times vary +-20 % (game often running). No clean-HEAD worktree baseline: the probe CSVs under `plans/square_roundabouts/` are untracked, so `test_engine_verdicts` and a junctions test fail there; baseline with `--no-cache` before editing instead.
 - A parallel agent may edit the probe / tests: end with a `grep` for removed names.
 
 ## Gate (run once, at the end)
-- `make gate MOD=mods/square_roundabouts MOD2=mods/square_roundabouts_probe` (~50 s): check, validate and
-  test per mod, one line each plus any FAIL. 7c3 end state: 206 + 61 passed. Drop MOD2 if the probe is untouched.
+- `make gate MOD=mods/square_roundabouts MOD2=mods/square_roundabouts_probe` (~70 s): check, validate and
+  `--full` test per mod, one line each plus any FAIL. 7c3 end state: 206 + 61 passed (2026-10-13: 320). Drop MOD2 if the probe is untouched.

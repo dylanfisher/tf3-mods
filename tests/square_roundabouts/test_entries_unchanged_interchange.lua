@@ -15,4 +15,4 @@ local G = loadfile(here .. "golden.lua", "t", _ENV)()
 local golden = loadfile(here .. "golden_entries.lua", "t", _ENV)()
 
 ug_require(DIR .. "square_roundabouts_interchange.script.lua")
-G.entryTest("interchange", mod, geom, data().updateFn, golden)
+G.entryTest("interchange", mod, geom, data().updateFn, golden, 6, 9)

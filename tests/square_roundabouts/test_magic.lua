@@ -52,7 +52,13 @@ test("five satellites, five links, five arms; base templates", function()
 end)
 
 test("tags, edge lengths >= 10 m, no overlaps, islands clear of the roads", function()
-	each(function(over)
+	-- quick runs (no TEST_FULL) check a sample (checks.sampled), --full every combination
+	local function spec(over)
+		local p = {}
+		for k, v in pairs(over) do p[magic.PARAM_KEYS[k]] = v end
+		return magic.readParams(p)
+	end
+	checks.sampled(each, 5, checks.defaultCase(spec))(function(over)
 		local b = build(over)
 		local name = over.armType .. "/" .. over.size .. "/" .. over.direction .. "/" .. over.lanes .. " lanes"
 		checks.report(checks.tags(b.lists), name)

@@ -29,10 +29,24 @@ end
 
 local write = os.getenv and os.getenv("SQRB_GOLDEN_WRITE")
 
-test("golden: default builds are unchanged (main + magic)", function()
-	local lines, bad = {}, {}
-	for _, g in ipairs(all()) do
+-- PARTS tests, each a slice of the groups (G.groupSlice: a sample in quick runs, every group with
+-- --full), so the runner can shard them; SQRB_GOLDEN_WRITE prints the whole table under part 1.
+local PARTS = 6
+for part = 1, PARTS do
+test(string.format("golden: default builds are unchanged (main + magic), part %d/%d", part, PARTS), function()
+	local list = all()
+	local slice = {}
+	if write then
+		if part > 1 then return end
+		for i = 1, #list do slice[i] = i end
+	else
+		slice = G.groupSlice(#list, part, PARTS, 4)
+	end
+	local lines, bad, builds = {}, {}, 0
+	for _, i in ipairs(slice) do
+		local g = list[i]
 		local h = G.fingerprint(g[2], g[3])
+		builds = builds + #g[3]
 		lines[#lines + 1] = string.format("\t[%q] = %d,", g[1], h)
 		if not write and golden[g[1]] ~= h then bad[#bad + 1] = g[1] end
 	end
@@ -40,8 +54,21 @@ test("golden: default builds are unchanged (main + magic)", function()
 		print("return {\n" .. table.concat(lines, "\n") .. "\n}")
 		return
 	end
+	if part == 1 then
+		-- every recorded group is still built
+		local names = {}
+		for _, g in ipairs(list) do names[g[1]] = true end
+		local recorded = 0
+		for name in pairs(golden) do
+			recorded = recorded + 1
+			ok(names[name], "recorded group not built: " .. name)
+		end
+		eq(recorded, #list, "recorded vs built groups")
+	end
 	ok(#bad == 0, #bad .. " groups changed: " .. table.concat(bad, "; "))
+	print(string.format("    %d of %d groups, %d builds", #slice, #list, builds))
 end)
+end
 
 test("golden: unrelated and empty dev keys change nothing", function()
 	local base = { [K.arms] = 3, [K.splitter] = 2, [K.armType] = 3, [K.centre] = 3 }

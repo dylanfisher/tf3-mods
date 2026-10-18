@@ -4,6 +4,9 @@
 local geom = ug_require "square_roundabouts::/infrastructure/street_construction/square_roundabouts_geometry.lua"
 local K = geom.PARAM_KEYS
 
+local here = debug.getinfo(1, "S").source:match("^@(.*/)") or "tests/square_roundabouts/"
+local checks = loadfile(here .. "checks.lua", "t", _ENV)()
+
 local PI = math.pi
 local atan2 = math.atan2 or math.atan
 
@@ -57,12 +60,25 @@ local function pointInPolygon(x, y, poly)
 end
 
 -- minimum distance from p to the ellipse (a, b), by dense sampling
+-- Shortest distance from p to the ellipse: 720 samples, then a golden-section refinement around
+-- every local minimum of them (at least as exact as 3600 plain samples, ~4x faster).
 local function distToEllipse(p, a, b)
-	local best = math.huge
-	for k = 0, 3599 do
-		local t = 2 * PI * k / 3600
-		local d = dist(p, { a * math.cos(t), b * math.sin(t), 0 })
-		if d < best then best = d end
+	local N = 720
+	local function at(t) return dist(p, { a * math.cos(t), b * math.sin(t), 0 }) end
+	local d = {}
+	for k = 0, N - 1 do d[k] = at(2 * PI * k / N) end
+	local best, step, g = math.huge, 2 * PI / N, (math.sqrt(5) - 1) / 2
+	for k = 0, N - 1 do
+		if d[k] <= d[(k - 1) % N] and d[k] <= d[(k + 1) % N] then
+			local lo, hi = 2 * PI * k / N - step, 2 * PI * k / N + step
+			local x1, x2 = hi - g * (hi - lo), lo + g * (hi - lo)
+			local f1, f2 = at(x1), at(x2)
+			for _ = 1, 40 do
+				if f1 < f2 then hi, x2, f2 = x2, x1, f1; x1 = hi - g * (hi - lo); f1 = at(x1)
+				else lo, x1, f1 = x1, x2, f2; x2 = lo + g * (hi - lo); f2 = at(x2) end
+			end
+			best = math.min(best, d[k], f1, f2)
+		end
 	end
 	return best
 end
@@ -275,7 +291,8 @@ test("mini roundabouts (radius below 15 m): trees and fountain become a flat pav
 end)
 
 test("island outline keeps the margin to the ring road and is anticlockwise", function()
-	eachConfig(function(over)
+	-- quick runs (no TEST_FULL) check a sample of the configs (checks.sampled), --full every one
+	checks.sampled(eachConfig, 5, checks.defaultCase(spec))(function(over)
 		over.island = geom.ISLAND_TREES
 		local b = build(over)
 		local isl = b.island

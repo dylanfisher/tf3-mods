@@ -172,9 +172,39 @@ test("synthetic: CSV reader (quotes, empty fields)", function()
 end)
 
 -- One test per group of replay stages (each loads the CSVs, about 0.7 s), so the runner can shard
--- them: radius ~17 s, sweep ~12 s, channel ~14 s, the rest ~1 s. Gap counts print per test.
+-- them; the slow stages (radius ~17 s, sweep ~12 s, channel ~14 s with --full) also split their
+-- rows into parts. Gap counts print per test.
 local CH = DIR .. "square_roundabouts_channel.lua"
 local IX = DIR .. "square_roundabouts_interchange.lua"
+
+-- The rows of a stage: those it judges (judges(r)) thinned in quick runs (no TEST_FULL) to every
+-- stride-th plus the first row of each key value the stride misses (checks.pick), then part
+-- `part` of `parts` contiguous slices of them; rows it skips stay. --full: every judged row.
+local function rowsOf(rows, judges, stride, part, parts)
+	local idx = {}
+	for i, r in ipairs(rows) do if judges(r) then idx[#idx + 1] = i end end
+	local picked = checks.pick(#idx, stride, function(k)
+		local r = rows[idx[k]]
+		local tag, v = V.parseKey(r.key)
+		local out = { "entry=" .. tostring(r.entry or tag) }
+		for i, x in ipairs(v) do out[#out + 1] = tostring(tag) .. i .. "=" .. tostring(x) end
+		return out
+	end)
+	local per = math.ceil(#picked / parts)
+	local keep = {}
+	for k = (part - 1) * per + 1, math.min(#picked, part * per) do keep[idx[picked[k]]] = true end
+	local judged = {}
+	for _, i in ipairs(idx) do judged[i] = true end
+	local out = {}
+	for i, r in ipairs(rows) do
+		if keep[i] or not judged[i] then out[#out + 1] = r end
+	end
+	return out
+end
+local function radiusJob(j) return j.kind == "radius" and (j.fixed or "") == "" and (j.skipped or "") == "" end
+local function rejectedRow(r) return r.ok ~= "true" and (r.entry == "magic" or r.entry == "main") end
+local function channelRow(r) return r.entry == "channel" end
+
 local function verdictTest(what, run)
 	test("engine verdicts: every rejected combo now ships an accepted layout, or a documented gap (" .. what .. ")", function()
 		ok(V.readCsv(PLANS .. "probe_search.csv") ~= nil, "plans/square_roundabouts/probe_search.csv is missing")
@@ -206,10 +236,22 @@ local function verdictTest(what, run)
 	end)
 end
 
-verdictTest("radius", function(add, jobs) add(V.radius(geom, magic, jobs)) end)
-verdictTest("sweep", function(add, jobs, trials, sweep) add(V.sweep(geom, magic, sweep, jobs, trials)) end)
+for part = 1, 3 do
+	verdictTest("radius, part " .. part .. "/3", function(add, jobs)
+		add(V.radius(geom, magic, rowsOf(jobs, radiusJob, 7, part, 3)))
+	end)
+end
+for part = 1, 2 do
+	verdictTest("sweep, part " .. part .. "/2", function(add, jobs, trials, sweep)
+		add(V.sweep(geom, magic, rowsOf(sweep, rejectedRow, 7, part, 2), jobs, trials))
+	end)
+end
 -- Phase 5f: the Channelized Junction and the Roundabout Interchange (p5_all, p5_search, p5f_*)
-verdictTest("channel", function(add, _, trials, sweep) add(V.channel(geom, ug_require(CH), sweep, trials)) end)
+for part = 1, 2 do
+	verdictTest("channel, part " .. part .. "/2", function(add, _, trials, sweep)
+		add(V.channel(geom, ug_require(CH), rowsOf(sweep, channelRow, 7, part, 2), trials))
+	end)
+end
 verdictTest("magic, splitter, tram, through, interchange, 4b", function(add, jobs, trials, sweep)
 	add(V.magicSize(magic, jobs))
 	add(V.splitter(geom, trials))

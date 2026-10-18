@@ -40,10 +40,11 @@ local function problems(res)
 	return bad
 end
 
--- The full sweep is 28,080 builds per case (5,616 per shape) (several minutes in all). By default every STRIDE-th
--- combination runs, from a different start per case; 7 is prime to every dimension's size, so
--- each value of each param still comes up. SQRB_FULL=1 runs every combination.
-local STRIDE = (os.getenv and os.getenv("SQRB_FULL")) and 1 or 7
+-- The full sweep is 28,080 builds per case (5,616 per shape) (several minutes in all). Every
+-- STRIDE-th combination runs, from a different start per case: 29 in quick runs, 7 with
+-- TEST_FULL (--full, make gate); both are prime to every dimension's size, so each value of each
+-- param still comes up. SQRB_FULL=1 runs every combination.
+local STRIDE = (os.getenv and os.getenv("SQRB_FULL")) and 1 or (os.getenv and os.getenv("TEST_FULL")) and 7 or 29
 
 -- One test per case x shape (so the runner can shard the full sweep); n counts as if the shapes ran
 -- in one loop, so the default STRIDE picks the same combinations as a single sweep would.
