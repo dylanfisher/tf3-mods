@@ -1,7 +1,7 @@
 {
     "name": "Line Manager Plus",
     "summary": "Line info on hover, Shift-click a line to manage it, undo/redo, line actions and rate matching.",
-    "description": "See any line's vehicles and statistics by hovering it in the line list, on the map or in Send to Line (with a before/after estimate), Shift-click a line on the map to open it in the line manager, undo and redo stop edits, duplicate or reverse a line, and size a line's fleet to its supply. Replaces Line Editor Undo. GUI only: stores nothing in the savegame.",
+    "description": "See any line's vehicles and statistics by hovering it in the line list, on the map or in Send to Line (with a before/after estimate), Shift-click a line on the map to open it in the line manager, undo and redo stop edits, duplicate or reverse a line, and size a line's fleet to its supply. Replaces Line Editor Undo. GUI only: the savegame keeps just its interface data.",
     "localization": {
         "ru": {
             "name": "Управление маршрутами Plus",

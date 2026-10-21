@@ -142,9 +142,9 @@ before_each(function()
 		TextView = function(p) return { kind = "TextView", meta = p.meta, text = p.text } end,
 		ImageView = function(p)
 			for k in pairs(p) do
-				if k ~= "path" and k ~= "scaling" then error("unexpected ImageView field " .. tostring(k)) end
+				if k ~= "path" and k ~= "scaling" and k ~= "meta" then error("unexpected ImageView field " .. tostring(k)) end
 			end
-			return { kind = "ImageView", path = p.path }
+			return { kind = "ImageView", path = p.path, meta = p.meta }
 		end,
 	}
 	local engine_react_util = {
@@ -235,7 +235,7 @@ test("the Line actions button sits right of A+ with A+'s look, only for one sele
 	eq(toggle.meta.tooltip, "Line actions")
 	eq(toggle.content.path, actions.ICON)
 	eq(toggle.value, 0)
-	eq(actions.ids(), { "duplicate", "reverse", "duplicate_reversed" })
+	eq(actions.ids(), { "duplicate", "reverse", "duplicate_reversed", "set_cargo" })
 
 	manager(2)
 	btn = renderToolbar()
@@ -316,7 +316,7 @@ end)
 
 -- menu ---------------------------------------------------------------------------------------------------------------
 
-test("menu: header card, then Duplicate, Reverse and Duplicate + reverse, enabled, with icons and tooltips", function()
+test("menu: header card, then Duplicate, Reverse, Duplicate + reverse and Set cargo, enabled, with icons and tooltips", function()
 	manager()
 	local it, m, list = items()
 	eq(m.orientation, "V")
@@ -329,10 +329,14 @@ test("menu: header card, then Duplicate, Reverse and Duplicate + reverse, enable
 	eq(card.layout.children[1].meta.class, "font-scale-headline")
 	eq(card.layout.children[1].text, "Line actions")
 	eq(m.children[2].meta.class, "horizontal-spacer")
-	eq(#list, 3)
+	eq(#list, 4)
 	eq(list[1].text, "Duplicate line")
 	eq(list[2].text, "Reverse line")
 	eq(list[3].text, "Duplicate + reverse line")
+	eq(list[4].text, "Set cargo for all stops")
+	ok(list[4].enabled)
+	eq(list[4].path, "::/gui/line_vehicle_mgmt/icons/symbol_cargo.tga")
+	ok(list[4].tooltip:find("clear the cargo selection", 1, true))
 	ok(it["Duplicate line"].enabled)
 	ok(it["Reverse line"].enabled)
 	ok(it["Duplicate + reverse line"].enabled)
@@ -634,8 +638,233 @@ end)
 
 test("install twice registers once", function()
 	ok(ops.install({}, {}))
-	eq(actions.ids(), { "duplicate", "reverse", "duplicate_reversed" })
+	eq(actions.ids(), { "duplicate", "reverse", "duplicate_reversed", "set_cargo" })
 	eq(actions.build({ params = {} }) ~= nil, true)
+end)
+
+-- set cargo for all stops ----------------------------------------------------------------------------------------------
+-- cargo ids 0 Passengers, 1 Coal (order 20), 2 Grain (order 10), 3 Goods (order 30, not produced), 4 Logs (order 40)
+
+local stockCalls
+
+-- terminals per group: flags { p, pu, c, cu }; stocks per group: { input = {..}, output = {..} }
+local function cargoWorld(terminals, stocks)
+	stockCalls = 0
+	world.stations = {}
+	for g, flags in pairs(terminals) do
+		world.groups[g] = { stations = { 100 + g } }
+		world.stations[100 + g] = { terminals = { { passengersLoad = flags.p == true,
+			passengersUnload = flags.pu == true, cargoLoad = flags.c == true, cargoUnload = flags.cu == true } } }
+	end
+	local cargo = {
+		[0] = { name = "Passengers", icon = "passengers.tga", order = 0 },
+		[1] = { name = "Coal", icon = "coal.tga", order = 20 },
+		[2] = { name = "Grain", icon = "grain.tga", order = 10 },
+		[3] = { name = "Goods", icon = "goods.tga", order = 30 },
+		[4] = { name = "Logs", icon = "logs.tga", order = 40 },
+	}
+	api.res = { cargoTypeRep = {
+		getAll = function(inv) eq(inv, true); return { [0] = "PASSENGERS", [1] = "COAL", [2] = "GRAIN", [3] = "GOODS",
+			[4] = "LOGS" } end,
+		getPassengerCargoTypeId = function() return 0 end,
+		get = function(id) return cargo[id] end,
+	} }
+	api.engine.util.stock = { isCargoTypeCurrentlyProduced = function(id) return id ~= 3 end }
+	api.type.ComponentType.STATION = "STATION"
+	local getComponent = api.engine.getComponent
+	api.engine.getComponent = function(e, ct)
+		if ct == "STATION" then return world.stations[e] end
+		return getComponent(e, ct)
+	end
+	local function set(list)
+		local t = {}
+		for _i, c in ipairs(list or {}) do t[c] = true end
+		return t
+	end
+	stub_module("::/gui/main/cargo_util.tl", {
+		getInputOutputStocksForStation = function(station)
+			stockCalls = stockCalls + 1
+			local sk = stocks[station - 100] or {}
+			return set(sk.input), #(sk.input or {}), set(sk.output), #(sk.output or {})
+		end,
+	})
+end
+
+local function cargoStop(group, load, maxLoad)
+	local s = stop(group)
+	s.loadMode = "LOAD_IF_AVAILABLE"
+	s.stopConfig = { load = load or {}, maxLoad = maxLoad or {}, forceUnload = true, destroyForConfigChange = false,
+		destroyForRefresh = true }
+	return s
+end
+
+-- bus stop 1 (passengers), cargo stop 2 (coal + grain in reach, loads coal), cargo stop 3 (logs to unload), bus stop 4
+local function cargoLine()
+	cargoWorld({ [1] = { p = true, pu = true }, [2] = { c = true, cu = true }, [3] = { cu = true },
+		[4] = { p = true, pu = true } },
+		{ [2] = { output = { 1, 2 } }, [3] = { input = { 4 } } })
+	return manager(1, { cargoStop(1, { true }, { 1 }), cargoStop(2, { false, true }, { 1, 0.5 }), cargoStop(3),
+		cargoStop(1) })
+end
+
+local function headerText(m)
+	return m.children[1].layout.children[1].layout.children[1].text
+end
+
+local function openCargoPage()
+	renderToolbar().children[1].onValueChange(1)
+	items()["Set cargo for all stops"].onClick()
+end
+
+test("set cargo: the entry opens a second page in the same popover: Back, Clear all, Passengers, then by order", function()
+	cargoLine()
+	openCargoPage()
+	ok(windows.open, "the menu stays open")
+	eq(#windows.removed, 0)
+	eq(actions.page(), "set_cargo")
+	local it, m, list = items()
+	eq(headerText(m), "Set cargo for all stops")
+	local texts = {}
+	for i, r in ipairs(list) do texts[i] = r.text end
+	eq(texts, { "Back", "Clear all", "Passengers", "Grain", "Coal", "Logs" }, "goods: not produced")
+	eq(it["Back"].path, "::/gui/menu/icons/back.tga")
+	eq(it["Clear all"].path, "::/gui/line_vehicle_mgmt/icons/symbol_trash_bin.tga")
+	ok(it["Clear all"].enabled)
+	eq(it["Grain"].path, "grain.tga")
+	eq(it["Grain"].node.content.layout.children[1].meta.class, "text-icon-size-hack")
+	eq(it["Back"].node.content.layout.children[1].meta, nil)
+	ok(it["Passengers"].enabled)
+	eq(it["Passengers"].tooltip, "Load only Passengers at the 2 of 4 stops that can take it.\nThe other stops stay as they are.")
+	-- coal: stop 2 has it in reach and loads only it; stop 3 (a cargo terminal) takes it because stop 2 loads it
+	ok(it["Coal"].enabled)
+	eq(it["Coal"].tooltip, "Load only Coal at the 2 of 4 stops that can take it.\nThe other stops stay as they are.")
+	ok(it["Logs"].enabled)
+	eq(stockCalls, 2, "one catchment query per cargo station")
+	items()
+	eq(stockCalls, 2, "the page's rows are cached")
+	clockUs = clockUs + ops.CHOICES_TTL_US
+	items()
+	eq(stockCalls, 4, "re-read after the TTL")
+end)
+
+test("set cargo: Passengers -> one update command; supported stops load only passengers, the others unchanged", function()
+	cargoLine()
+	local before = world.lines[7]
+	openCargoPage()
+	items()["Passengers"].onClick()
+	eq(windows.removed[#windows.removed], actions.KEY, "menu closed")
+	eq(actions.page(), nil)
+	eq(#sent, 1)
+	local c = sent[1].cmd
+	eq(c.kind, "update")
+	eq(c.line, 7)
+	eq(c.comp.customFilters, true)
+	local stops = c.comp.stops
+	eq(#stops, 4)
+	eq(stops[1].stopConfig.load, { true, false, false, false, false }, "sized to the cargo types")
+	eq(stops[1].stopConfig.maxLoad, { 1, 1, 1, 1, 1 })
+	eq(stops[4].stopConfig.load, { true, false, false, false, false })
+	eq(stops[2].stopConfig.load, { false, true }, "cargo stop: unchanged")
+	eq(stops[2].stopConfig.maxLoad, { 1, 0.5 })
+	eq(stops[3].stopConfig.load, {})
+	eq(stops[1].stopConfig.forceUnload, true)
+	eq(stops[1].stopConfig.destroyForConfigChange, false)
+	eq(stops[1].loadMode, "LOAD_IF_AVAILABLE")
+	eq(world.modes, { { "SEGMENT", nil }, { "SEGMENT", nil } }, "editor mode reset")
+	ok(world.lines[7] == before, "the live line is not touched")
+	eq(items()["Duplicate line"].enabled, false, "busy while in flight")
+	sent[1].cb({}, true)
+	eq(#feedbacks, 0)
+	ok(items()["Duplicate line"].enabled)
+end)
+
+test("set cargo: a freight choice; refusal gives feedback", function()
+	cargoLine()
+	openCargoPage()
+	items()["Logs"].onClick()
+	local stops = sent[1].cmd.comp.stops
+	eq(stops[3].stopConfig.load, { false, false, false, false, true }, "unloading terminal with logs in its inputs")
+	eq(stops[1].stopConfig.load, { true }, "bus stops unchanged")
+	eq(stops[2].stopConfig.load, { false, true })
+	sent[1].cb({}, false)
+	eq(feedbacks[1], { "Line Manager Plus: the game refused the cargo change.", "Error" })
+end)
+
+test("set cargo: Clear all clears every stop; disabled when no stop loads anything", function()
+	cargoLine()
+	openCargoPage()
+	items()["Clear all"].onClick()
+	local stops = sent[1].cmd.comp.stops
+	for k = 1, 4 do
+		for _i, v in ipairs(stops[k].stopConfig.load) do eq(v, false) end
+	end
+	eq(#stops[1].stopConfig.load, 5)
+	eq(stops[2].stopConfig.maxLoad, { 1, 0.5, 1, 1, 1 })
+	eq(sent[1].cmd.comp.customFilters, true)
+	sent[1].cb({}, true)
+
+	world.lines[7] = sent[1].cmd.comp
+	openCargoPage()
+	local it = items()
+	eq(it["Clear all"].enabled, false)
+	eq(it["Clear all"].tooltip, "No stop of this line has a cargo selected.")
+	-- a click anyway (state changed between render and click): no command, a feedback line
+	it["Clear all"].onClick()
+	eq(#sent, 1)
+	eq(feedbacks[1], { "Line Manager Plus: the stops already have this cargo selection.", nil })
+end)
+
+test("set cargo: Back returns to the entries; reopening starts there; hint rows send nothing", function()
+	cargoWorld({ [1] = {}, [2] = {}, [3] = {} }, {})
+	manager()
+	openCargoPage()
+	local it, m = items()
+	eq(it["No cargo type fits these stops"].enabled, false)
+	ok(it["No cargo type fits these stops"].tooltip:find("No stop has a terminal", 1, true))
+	it["No cargo type fits these stops"].onClick()
+	eq(#sent, 0)
+	openCargoPage()
+	it, m = items()
+	it["Back"].onClick()
+	eq(actions.page(), nil)
+	ok(windows.open, "still open")
+	it, m = items()
+	eq(headerText(m), "Line actions")
+	ok(it["Set cargo for all stops"])
+	actions.openPage("set_cargo")
+	renderToolbar().children[1].onValueChange(0)
+	renderToolbar().children[1].onValueChange(1)
+	eq(actions.page(), nil, "a new menu starts at the entries")
+	eq(headerText(select(2, items())), "Line actions")
+end)
+
+test("set cargo: while a command is in flight the page shows one disabled reason row", function()
+	cargoLine()
+	openCargoPage()
+	ops.setCargo({ params = makeParams(7), line = 7 }, 0)
+	eq(#sent, 1)
+	clockUs = clockUs + ops.CHOICES_TTL_US
+	local _it, _m, list = items()
+	eq(#list, 2)
+	eq(list[2].text, "A change to this line is still in progress.")
+	eq(list[2].enabled, false)
+end)
+
+test("set cargo: a failing choices list shows only Back and warns once; a failing choose gives feedback", function()
+	manager()
+	actions.register({ id = "pick", order = 500, label = "Broken entry",
+		view = function() return { enabled = true } end,
+		choices = function() error("c boom") end, choose = function() error("x boom") end })
+	renderToolbar().children[1].onValueChange(1)
+	items()["Broken entry"].onClick()
+	local _it, _m, list = items()
+	eq(#list, 1)
+	eq(list[1].text, "Back")
+	items()
+	eq(warnings("c boom"), 1)
+	actions.runChoice("pick", 1)
+	eq(feedbacks[1], { "Line Manager Plus: the line action failed (see log).", "Error" })
+	eq(warnings("x boom"), 1)
 end)
 
 -- undo integration ----------------------------------------------------------------------------------------------------
@@ -663,4 +892,23 @@ test("with the undo feature installed, a reverse is one Undo step that restores 
 	for i, st in ipairs(sent[2].cmd.comp.stops) do g[i] = st.stationGroup end
 	eq(g, { 1, 2, 3 })
 	eq(sent[2].cmd.comp.stops[1].waypoints[1].tag, original.stops[1].waypoints[1].tag)
+end)
+
+test("with the undo feature installed, a cargo change is one Undo step that restores every stop's selection", function()
+	local undo = ug_require "square_line_manager_plus::/line_manager_plus/undo.lua"
+	ok(undo.install({}))
+	cargoLine()
+	local original = world.lines[7]
+	renderToolbar() -- undo session starts with the original line
+	openCargoPage()
+	items()["Passengers"].onClick()
+	world.lines[7] = sent[1].cmd.comp
+	sent[1].cb({}, true)
+	local _btn, row = renderToolbar()
+	local undoBtn = row.children[1].children[1]
+	ok(undoBtn.meta.enabled)
+	ok(undoBtn.meta.tooltip:find("2 stops changed", 1, true), undoBtn.meta.tooltip)
+	undoBtn.onClick()
+	eq(#sent, 2)
+	for k = 1, 4 do eq(sent[2].cmd.comp.stops[k].stopConfig.load, original.stops[k].stopConfig.load) end
 end)

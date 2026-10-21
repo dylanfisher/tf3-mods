@@ -114,6 +114,109 @@ function M.missingCount(stops, stationCount)
 	return missing
 end
 
+-- Set cargo for all stops (PLAN.md D9) -------------------------------------------------------------------------
+-- A stop's cargo selection is stopConfig.load, one bool per cargo type indexed cargoId + 1 (api/engine.d.tl:503-519;
+-- there is no stored unload field). Per-stop facts come from the game code (line_ops.lua stopInfos) as plain tables:
+--   info = { pLoad, pUnload, cLoad, cUnload,   -- the stop's terminal flags (all nil: terminal unknown)
+--            input = { [cargoId] = true }, output = { [cargoId] = true },  -- catchment stocks (cargo_util)
+--            load = { [cargoId] = true } }     -- what the stop loads now
+
+local MAX_CARGO_TYPES = 1024 -- loop cap for a load list (the game has a few dozen cargo types)
+
+--- Whether stop k of `infos` can take cargo `cargoId`. Passengers: the terminal handles passengers (base
+--- line_util.isTerminalCargoTypeAllowed, line_util.tl:1366-1388). Other cargo: the terminal handles cargo and the
+--- base cargo chooser's "compatible" hint holds (cargofilter_window.tl:346-366): a loading terminal with the cargo in
+--- the catchment's output stocks, an unloading one with it in the input stocks, or another stop of the line loads it.
+function M.supportsCargo(infos, k, cargoId, passengerId)
+	local s = infos[k]
+	if s == nil then return false end
+	if cargoId == passengerId then return s.pLoad == true or s.pUnload == true end
+	if not (s.cLoad or s.cUnload) then return false end
+	if (s.cLoad and s.output and s.output[cargoId]) or (s.cUnload and s.input and s.input[cargoId]) then return true end
+	for j, o in ipairs(infos) do
+		if j ~= k and o.load and o.load[cargoId] then return true end
+	end
+	return false
+end
+
+-- true when `load` (a set { [cargoId] = true }) is exactly { cargoId }
+local function onlyLoads(load, cargoId)
+	if not (load and load[cargoId]) then return false end
+	for c in pairs(load) do
+		if c ~= cargoId then return false end
+	end
+	return true
+end
+
+--- The cargo choices of the menu: for each type in `cargoTypes` (a list of { id, order }: the types worth offering,
+--- e.g. currently produced) that at least one stop supports, { id, supported = stops that take it, done = of those,
+--- the stops that already load only it }. Passengers first, then by order, then id. `infos` as above.
+function M.cargoChoices(infos, cargoTypes, passengerId)
+	local out = {}
+	for _i, t in ipairs(cargoTypes or {}) do
+		local supported, done = 0, 0
+		for k, s in ipairs(infos) do
+			if M.supportsCargo(infos, k, t.id, passengerId) then
+				supported = supported + 1
+				if onlyLoads(s.load, t.id) then done = done + 1 end
+			end
+		end
+		if supported > 0 then
+			out[#out + 1] = { id = t.id, order = t.order or 0, supported = supported, done = done }
+		end
+	end
+	table.sort(out, function(a, b)
+		if (a.id == passengerId) ~= (b.id == passengerId) then return a.id == passengerId end
+		if a.order ~= b.order then return a.order < b.order end
+		return a.id < b.id
+	end)
+	return out
+end
+
+--- Number of stops that load anything now (Clear all has nothing to do when 0).
+function M.loadingStops(infos)
+	local n = 0
+	for _k, s in ipairs(infos) do
+		if s.load and next(s.load) ~= nil then n = n + 1 end
+	end
+	return n
+end
+
+--- The snapshot with every stop's cargo selection set: `cargoId` nil clears every stop's load (all false); otherwise
+--- each stop k with supported(k) loads only `cargoId` (the other cargos cleared there) and the other stops are left
+--- unchanged. load is sized to `cargoCount` (the number of cargo ids, max id + 1, from cargoTypeRep.getAll(true)) or
+--- the old list's length if longer; maxLoad, forceUnload, the destroy flags and the stop's loadMode stay as they are
+--- (maxLoad padded with 1, the base default 100 %, up to the load list's length). customFilters = true, as the base
+--- cargo chooser sets it (cargofilter_window.tl:438). Returns the new snapshot (`snap` unchanged) and the number of
+--- stops whose load changed.
+function M.setAllStopsCargo(snap, cargoId, supported, cargoCount)
+	local result = copy(snap)
+	local changed = 0
+	for k, s in ipairs(result.stops or {}) do
+		if cargoId == nil or supported(k) then
+			local cfg = s.stopConfig
+			if cfg == nil then
+				cfg = { load = {}, maxLoad = {}, forceUnload = true, destroyForConfigChange = true,
+					destroyForRefresh = true }
+				s.stopConfig = cfg
+			end
+			local old = cfg.load or {}
+			local n = math.min(math.max(cargoCount or 0, #old, cargoId and (cargoId + 1) or 0), MAX_CARGO_TYPES)
+			local load, maxLoad = {}, cfg.maxLoad or {}
+			local differs = false
+			for i = 1, n do
+				load[i] = (cargoId ~= nil and i == cargoId + 1)
+				if load[i] ~= (old[i] == true) then differs = true end
+			end
+			for i = #maxLoad + 1, n do maxLoad[i] = 1 end
+			cfg.load, cfg.maxLoad = load, maxLoad
+			if differs then changed = changed + 1 end
+		end
+	end
+	result.customFilters = true
+	return result, changed
+end
+
 --- Why an action can't run on a line with `stopCount` stops of which `missing` have no station any more, or nil.
 --- Returns the English key of the reason (the caller translates it).
 function M.blockReason(stopCount, missing)

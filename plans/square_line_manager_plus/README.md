@@ -12,7 +12,7 @@ table below; PLAN.md "Open work").
 | Line editor: Undo and Redo buttons | `line_undo` | `square_line_revert` "Line Editor Undo" (published, rev 4) | `content/line_manager_plus/undo.lua` + `undo_core.lua` + `lmp.css.lua` |
 | Line list: line info on hover | `line_list_hover_info` | new (PLAN.md feature 3; replaced the colour dot tooltip `line_dot_tooltip`, user request 2026-10-11) | `content/line_manager_plus/line_list_hover.lua` (+ `lmp_callout.lua`, `lmp_stats.lua`, `lmp.css.lua`) |
 | Send to Line list: line info panel | `send_to_line_list_info` | new (PLAN.md feature 1, phase 4) | `content/line_manager_plus/stl_list.lua` (+ `lmp_callout.lua`, `lmp_stats.lua`, `lmp.css.lua`) |
-| Line editor: Line actions button (Duplicate / Reverse / Duplicate + reverse line) | `line_actions` | new (PLAN.md feature 4, phase 5) | `content/line_manager_plus/line_ops.lua` + `line_ops_core.lua` (+ `lmp_actions.lua`, `lmp.css.lua`) |
+| Line editor: Line actions button (Duplicate / Reverse / Duplicate + reverse line / Set cargo for all stops) | `line_actions` | new (phase 5; Set cargo for all stops: PLAN.md D9, 2026-10-20) | `content/line_manager_plus/line_ops.lua` + `line_ops_core.lua` (+ `lmp_actions.lua`, `lmp.css.lua`) |
 | Line actions: Match line rate | `line_rate_matcher` | `square_line_rate_matcher` "Line Rate Matcher" (never published, retired; merged 2026-10-11, MERGE_RM_PLAN.md) | `content/line_manager_plus/rate_matcher.lua` + `rate_matcher_*.tl` (+ `lmp_actions.lua`, `lmp.css.lua`) |
 | Map: Shift-click a line opens the Line Manager | `map_shift_click` | `square_passenger_destinations` rev 5 (moved before upload, 2026-10-11) | `content/line_manager_plus/map_shift_click.lua` (+ `lmp_line.script.lua` / `lmp_line.res.lua`) |
 | Map: line info on hover | `line_map_hover_info` | new (user request 2026-10-11) | `content/line_manager_plus/line_hover.lua` (+ `lmp_stats.lua`, `lmp.css.lua`) |
@@ -21,7 +21,12 @@ table below; PLAN.md "Open work").
 All feature params: `uiType` Button, values `{"Off", "On"}`, `defaultIndex` 1 (On). At runtime the value is the 1-based
 index (Off = 1, On = 2); a missing table or key counts as On. `sqperf_log` (Debug: performance log) stays, default Off.
 
-Nothing is saved: GUI only, `severityAdd`/`severityRemove` None, `cosmetic` true, safe to add to or remove from saves.
+GUI only, `severityAdd`/`severityRemove` None, `cosmetic` true, safe to add to or remove from saves. The savegame keeps
+only the mod's GUI save data (`api.gui.game.setGuiSaveData("square_line_manager_plus", ...)`), written by one module,
+`lmp_save.lua`, which merges the parts: `lineManager` (boolean, `lmp_visible.lua`) and `util` (the utilization
+history, `lmp_util_avg.lua`, format in its header); unknown parts are kept, and a failed read never writes. Always-on
+modules without a setting: `vehicle_columns.lua`, `lmp_visible.lua`, `lmp_util_avg.lua` (+ host
+`lmp_util_host.res.lua`), `lmp_balance.lua` (the Balance tooltip); their headers are the design reference.
 
 ## Install path
 
@@ -42,7 +47,9 @@ Nothing is saved: GUI only, `severityAdd`/`severityRemove` None, `cosmetic` true
     build in its own pcall; nothing added → the base node unchanged. Undo is injector `undo`, order -100.
   - `lmp_actions.lua`: the "Line actions" toggle button right of A+ (an `lmp_rows` injector, order 100) and its
     popover menu. Menu entries: `actions.register{ id, order, label, icon, view(ctx) -> {enabled, tooltip}, run(ctx) }`
-    (ctx = `{ params, line }`), each view/run in its own pcall. Duplicate / Reverse / Duplicate + reverse (line_ops.lua) and Match line
+    (ctx = `{ params, line }`), each view/run in its own pcall; or `choices(ctx)` + `choose(ctx, id)` instead of `run`
+    for a second page in the same popover (Back row). Duplicate / Reverse / Duplicate + reverse / Set cargo for all
+    stops (line_ops.lua) and Match line
     rate (rate_matcher.lua, order 50, first in the menu; it needs `line_actions` On and reports "not installed" otherwise). Balance
     vehicles was dropped, PLAN.md D8. `lmp_capture.resetEditorMode` is shared by
     undo and Reverse.
@@ -176,7 +183,7 @@ no panel. Design and evidence: header of `stl_list.lua`. In short:
   gets the recipe we wrapped.
 - Strings: only the param name and tooltip (13 languages); the line name is the game's, the stats lines are stli's.
 
-## Line actions: Duplicate and Reverse line (PLAN.md feature 4)
+## Line actions: Duplicate, Reverse and Set cargo for all stops
 
 A "Line actions" button right of A+ opens a small popover menu with **Duplicate line**, **Reverse line** and
 **Duplicate + reverse line** (decision D1; the third added 2026-10-20), after Match line rate. Design and evidence: headers of `lmp_actions.lua` (button and menu) and `line_ops.lua` (the two actions). In short:
@@ -215,6 +222,21 @@ A "Line actions" button right of A+ opens a small popover menu with **Duplicate 
   engine's terminals for the new direction, asked of the original line), named and coloured as Duplicate, selected on
   success; the original line and the editor mode are untouched. Guards of both (blockReason + the 3-stop reason); a
   mirror-image route gives the reverse's "same stops" message and sends nothing. Log `duplicated line N reversed as M`.
+- Set cargo for all stops (order 400, D9, 2026-10-20): the registry's one second level. An entry with
+  `choices(ctx)` / `choose(ctx, id)` instead of `run` switches the open popover to a page (`lmp_actions` `menu.page`;
+  reset whenever the menu opens or closes): the header card shows the entry's label, a **Back** row (base
+  `menu/icons/back.tga`) returns to the entries, then one row per choice in the same row look (cargo icons with the
+  base class `text-icon-size-hack`, 20 x 20; no new stylesheet rules). Rows: **Clear all** (base
+  `symbol_trash_bin.tga`, the cargo chooser's remove icon; disabled when no stop loads anything), then each cargo type
+  some stop supports, Passengers first, then `cargoType.order` (freight only while currently produced). A cargo row is
+  disabled when every supporting stop already loads only it; no supported cargo → one disabled hint row. Support
+  (`line_ops_core.supportsCargo`): passengers need a terminal with passengersLoad/Unload; freight a terminal with
+  cargoLoad/Unload and (cargoLoad + catchment output stock, cargoUnload + input stock, or another stop loading it).
+  Stop facts: `line_ops.stopInfos` (terminal flags; `cargo_util.getInputOutputStocksForStation`, one query per
+  station); the page's rows cached 1 s. A choice: snapshot → `line_ops_core.setAllStopsCargo` (load sized from
+  `cargoTypeRep.getAll(true)`, maxLoad padded with 1, flags / loadMode kept, customFilters = true) → `resetEditorMode`
+  → one `makeLineUpdateCmd`; unchanged → message, no command; refused → feedback. Undo records it as "N stops
+  changed".
 - Guards: < 2 stops or a stop whose station is gone → entry disabled, the reason as tooltip (re-checked on click); a
   command in flight → both disabled (cleared by the callback or after 10 s, logged). Failures in a view/run are
   isolated per entry. No noPath check after the reverse (the path is computed later by the engine; not reliable from

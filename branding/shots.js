@@ -194,14 +194,6 @@ Square.slides('square_line_manager_plus', [
   // strip (y < 150) and top centre (x 1400-1660, y < 140): crops stay clear of both.
   { title: 'Every line, one hover away', sub: 'Hover a line on the map; Shift-click to manage it',
     media: { src: '01-map-hover-bus.jpg', crop: [2300, 880, 1960, 1260] } },
-  // 17-19 (rev 6, 2026-10-18): 1418/1414/1452 x ~2470 window captures (not 5120 wide, hence srcW), same UI scale as
-  // the 5K ones; the Line Manager's bottom stats row (cells y ~2300-2415), cropped to Capacity, Utilization and
-  // Frequency so the light-blue "avg ~51%" stays legible. Train below its 12-month average, ship above, bus below.
-  { title: 'Utilization, now and on average', sub: 'The past 12 months beside the live value',
-    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Train: quieter than usual', 'Ship: busier than usual', 'Bus: quieter than usual'],
-             items: [{ src: '17-utilization-avg-train.jpg', srcW: 1418, crop: [52, 2294, 845, 128] },
-                     { src: '18-utilization-avg-ship.jpg', srcW: 1414, crop: [42, 2292, 845, 128] },
-                     { src: '19-utilization-avg-bus.jpg', srcW: 1452, crop: [58, 2300, 845, 128] }] } },
   // 16 (rev 5, 2026-10-11): 5120x2880, a furniture truck line's vehicle list with the adaptive columns: a long
   // vehicle name runs up to the load, the picture column only as wide as the pictures. Line Manager x 205-1575; from
   // the line list to the line's stops (y 640-2150), both ends faded. Replaces 15 (rev 4's fixed columns).
@@ -234,16 +226,28 @@ Square.slides('square_line_manager_plus', [
   // table, before Compare models), then the line menu it opens from (05: a 1310x670 close-up of the Auto-Rename-style
   // menu, rev 10 2026-10-20: header card, Match line rate, Duplicate, Reverse, Duplicate + reverse). The stack aligns
   // on the first item's width, so the wider window goes first.
-  { title: 'Match, duplicate, reverse', sub: 'Fleet sized to the cargo in reach, from one line menu',
-    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Match line rate', 'One menu, next to Undo and Redo'],
-             items: [{ src: '06-rate-matcher.jpg', crop: [2156, 536, 2036, 850] },
-                     { src: '05-line-actions-menu.jpg', srcW: 1310, crop: [0, 0, 1310, 670] }] } },
+  // rev 12 (2026-10-20): collage so all three read larger: the rate matcher window on top, the menu with Set cargo
+  // for all stops (22) and its cargo page (23, Back, Clear all, the cargos the stops can take) side by side below.
+  // 22/23 are window captures (srcW).
+  { title: 'Match, duplicate, reverse, set cargo', sub: 'Fleet sizing and whole-line edits from one line menu',
+    media: { layout: 'collage', items: [
+      { src: '06-rate-matcher.jpg', crop: [2156, 536, 2036, 850], x: 1345, y: 330, w: 1070 },
+      { src: '22-line-actions-set-cargo.jpg', srcW: 1450, crop: [153, 1556, 1175, 645], x: 1065, y: 765, w: 520 },
+      { src: '23-set-cargo-page.jpg', srcW: 1462, crop: [150, 1544, 1170, 578], x: 1615, y: 751, w: 520 }] } },
   // 07/08: same camera, 5 stops (Undo tooltip) and 3 stops after two Undos (Redo tooltip). Line editor panel
   // x 208-1576 from y 1620; the Undo tooltip runs to x 2140; stops 3 and 5 on the map at x 2730-2830, y 1580-1700.
   { title: 'Undo any stop edit', sub: 'Shift+click Undo reverts it all; Redo brings it back',
     media: { layout: 'stack', labels: ['Undo', 'Redo'],
              items: [{ src: '07-undo-tooltip.jpg', crop: [208, 1540, 2760, 680] },
                      { src: '08-redo-tooltip.jpg', crop: [208, 1540, 2760, 680] }] } },
+  // 26/27 (rev 11, 2026-10-20): window captures (not 5120 wide, hence srcW) of the AP Passengers line; the bottom
+  // stats row with the hover tooltip under it: Utilization (12 months / 2 / 5 years, "~" while filling) and Balance
+  // (last year / 2 / 5 years). Replaces the rev 6 "Utilization, now and on average" slide (17-19) to stay within
+  // the 9-slide cap.
+  { title: 'Hover for the long view', sub: 'Utilization and balance over 12 months, 2 and 5 years',
+    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Utilization', 'Balance'],
+             items: [{ src: '27-utilization-tooltip.jpg', srcW: 1614, crop: [346, 2299, 1078, 346] },
+                     { src: '26-balance-tooltip.jpg', srcW: 1844, crop: [586, 2310, 1070, 286] }] } },
 ]);
 
 Square.slides('square_better_auto_vehicle_renamer', [

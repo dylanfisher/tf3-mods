@@ -7,9 +7,10 @@
 --     opens with the Line Manager's value. A click on the popover's own eye works for that popover only and is not
 --     recorded: recording it would mean wrapping builtin.ToggleButton for every toggle in the game (user decision
 --     2026-10-17: not worth it).
--- The value is kept in the GUI save data (api.gui.game.setGuiSaveData(PREFS_KEY, { lineManager = bool }), gui.d.tl:
--- 773-781, as Photo Mode's bookmarks): per savegame, kept when the player saves; a new game starts with vanilla Off.
--- setGuiSaveData replaces the whole table for the modId, so every write carries the full prefs table. The game
+-- The value is kept in the GUI save data as the part "lineManager" (boolean) of the mod's table, written through
+-- lmp_save.lua, the one writer that merges it with the other parts (the utilization history, lmp_util_avg.lua):
+-- setGuiSaveData replaces the whole table for the modId. Per savegame, kept when the player saves; a new game starts
+-- with vanilla Off. The game
 -- settings are not used: mod.io's upload check rejects mods that write the game settings save. No setting: it only
 -- repeats the player's own choice. Writes nothing to the game state.
 --
@@ -40,6 +41,7 @@ local function say(msg)
 end
 
 local react = ug_require "::/gui/main/react.lua"
+local save = ug_require "square_line_manager_plus::/line_manager_plus/lmp_save.lua"
 
 local M = {}
 
@@ -49,7 +51,7 @@ M.FILTER_STATS_TYPE = "Lines"
 M.POP = "::/gui/main/popover_react_util.tl"
 M.MANAGER = "::/gui/line_vehicle_mgmt/manager_window.tl"
 M.STATS = "::/gui/statistics/statistics_react_util.tl"
-M.PREFS_KEY = "square_line_manager_plus"
+M.PREFS_KEY = save.KEY
 
 -- remembered settings ------------------------------------------------------------------------------------------------
 
@@ -58,14 +60,11 @@ local prefs = nil
 
 local function readPrefs()
 	local p = {}
-	local ok, err = pcall(function()
-		-- any shape may come back (another version, a corrupt save): only a boolean lineManager is kept
-		local raw = api.gui.game.getGuiSaveData(M.PREFS_KEY)
-		if type(raw) ~= "table" then return end
-		local lm = raw.lineManager
-		if type(lm) == "boolean" then p.lineManager = lm end
-	end)
-	if not ok then warnOnce("load settings", err) end
+	-- any shape may come back (another version, a corrupt save): only a boolean lineManager is kept
+	local lm = save.get("lineManager")
+	if type(lm) == "boolean" then p.lineManager = lm end
+	local err = save.readError()
+	if err ~= nil then warnOnce("load settings", err) end
 	return p
 end
 
@@ -79,10 +78,8 @@ end
 function M.set(which, value)
 	if M.get(which) == value then return end
 	prefs[which] = value
-	local ok, err = pcall(function()
-		-- setGuiSaveData replaces our whole table: write every pref
-		api.gui.game.setGuiSaveData(M.PREFS_KEY, { lineManager = prefs.lineManager })
-	end)
+	-- lmp_save.lua writes the whole table, our part merged with the others
+	local ok, err = save.set(which, value)
 	if ok then
 		say("saved " .. which .. " = " .. tostring(value))
 	else

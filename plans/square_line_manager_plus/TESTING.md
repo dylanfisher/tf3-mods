@@ -4,7 +4,7 @@ Status: rev 5 (2026-10-11). Phases 1-5 and Shift-click: user "looks good" 2026-1
 sections stay as the regression checklist. Record results under "Results" (date, build, language) and move confirmed
 game facts to `docs/findings.md`. Passed one-off checks and old results: HISTORY.md.
 
-Open checks (not yet run in game): "Line actions menu: Auto-Rename look, Duplicate + reverse" (2026-10-20), "Phase 2: line list, line info on hover" (rework), "Expired line state", "Line Rate
+Open checks (not yet run in game): "Longer time frames on hover" (2026-10-20), "Line actions menu: Auto-Rename look, Duplicate + reverse" (2026-10-20), "Phase 2: line list, line info on hover" (rework), "Expired line state", "Line Rate
 Matcher", "Match line rate: a line with no vehicles", "Map: line info on hover". The vehicle list features of revs 3-5 have no section yet (PLAN.md "Open work").
 
 ## Setup
@@ -106,7 +106,8 @@ Change them in the mod selection when loading the save (settings only change on 
 
 - [ ] Add Line Manager Plus to an existing save (load a save made without it): no warning beyond the usual, both
       features work.
-- [ ] Remove it again and load: no warning about missing content, nothing changes in the save (GUI only).
+- [ ] Remove it again and load: no warning about missing content, nothing changes in the game (only the mod's GUI
+      save data table stays in the save, unused).
 - [ ] Switching from Line Editor Undo to Line Manager Plus on an existing save: no warning (both have severity None).
 
 ## Language
@@ -114,6 +115,35 @@ Change them in the mod selection when loading the save (settings only change on 
 - [ ] Other language (e.g. Russian or German, Settings then restart if needed): tooltips, feedback messages and our
       Send to Line block are translated, the stat names match the Line Manager's own labels, CJK renders (also "×"
       and "·").
+
+## Longer time frames on hover (2026-10-20, not yet run)
+
+Utilization history in the savegame (`lmp_util_avg.lua`, part `util` of the GUI save data via `lmp_save.lua`) and
+the Balance tooltip (`lmp_balance.lua`). Log lines: `[LineManagerPlus] balance: installed`, `[LineManagerPlus]
+average utilization: restored the history of N lines` after a load, `... saved history not used (<reason>)` for
+rejected data. Inspect the saved data in the console:
+`local d = api.gui.game.getGuiSaveData("square_line_manager_plus") or {}; local u = d.util or {}; print("[LMPSAVE]", tostring(d.lineManager), u.v, u.t, u.m, u.lines and #u.lines, u.lines and u.lines[1])`
+
+- [ ] Utilization tooltip: hover the live % and the "avg" text in the Line Manager's bottom row: "Average
+      utilization:" then "Last 12 months", "Last 2 years", "Last 5 years", each "~NN% (N of 24 months)" while
+      partial. The title's own tooltip ("Percentage of the capacity ...") unchanged.
+- [ ] Persistence: play until a game month passed (the console line shows `u.v = 1` and lines), save, load that save:
+      the log says "restored the history of N lines", the averages and the months covered are as before (the samples
+      since that month began are not saved: at most a month's worth), and the count goes on from there.
+- [ ] A save made without this revision (or a new game): history starts empty ("~", 0 of 12 months), no warning.
+- [ ] Removing the mod from a save with history: loads without a warning; adding it back restores the history of that
+      save.
+- [ ] "Show Only Visible Lines" still remembered after save/load (the console line's first value), and toggling it
+      does not clear the history (`u.lines` still there).
+- [ ] Balance tooltip: hover the Balance value in the Line Manager's bottom row, in the Statistics window's lines
+      table (several rows) and in the line window ("Last Year"): "Last year / Last 2 years / Last 5 years" with money
+      values; the last-year value matches the cell. In a game younger than 5 years the longest shown window says
+      "(since the game started)" and the longer ones are left out. The look is unchanged: the Statistics table's
+      Balance column still right-aligned, the line window's value still indented, colors as before.
+- [x] **Journal retention** (2026-10-20, screenshot `shots/26-balance-tooltip.jpg`): 1 / 2 / 5 years $4.55M / $9.0M /
+      $20.5M on an airline: older entries are kept (docs/findings/lines-vehicles.md).
+- [ ] Cost: open the Statistics window's lines table with many lines: no hitch (the 2- and 5-year values fill in over
+      a few seconds, 40 lines a second).
 
 ## Phase 2: line list, line info on hover (reworked 2026-10-11; not yet run)
 
@@ -258,6 +288,40 @@ Code: `lmp_actions.lua` (header), `lmp.css.lua` (3 menu rules), `line_ops.lua` (
       rest backwards, terminals on the other side of the street where the engine picks them; the Line Manager selects
       it; the original line is unchanged (stops, terminals, vehicles). Log `[LineManagerPlus] line ops: duplicated line
       N reversed as M (K stops)`. A mirror route (A, B, C, B): the "same stops" message, no new line.
+
+## Line actions: Set cargo for all stops (2026-10-20, not yet run)
+
+Code: `line_ops.lua` (entry `set_cargo`, `cargoRows`, `setCargo`, `stopInfos`), `line_ops_core.lua`
+(`supportsCargo`, `cargoChoices`, `setAllStopsCargo`), `lmp_actions.lua` (second page: `choices` / `choose`). No new
+stylesheet rules.
+
+- [ ] Menu: "Set cargo for all stops" (cargo icon) last, enabled. Click it: the same popover switches to a page with
+      the header "Set cargo for all stops", a **Back** row (arrow icon; note whether it shows white like the other
+      icons), **Clear all** (trash icon), then the cargo types: Passengers first, then the game's cargo order. The menu
+      stays open. Back returns to the entries; closing and reopening the menu starts at the entries.
+- [ ] Cargo icons: the game's colored cargo icons at 20 x 20, in line with the text (note if they are cut off or the
+      rows grow taller than the entry rows).
+- [ ] **Bus line, Passengers:** set two stops to load nothing in the base cargo settings first; pick Passengers: every
+      stop loads only passengers (base cargo settings of each stop), fill levels and unload settings unchanged; the
+      Undo tooltip says "N stops changed" and one Undo restores the previous selection. Log
+      `[LineManagerPlus] line ops: set cargo 0 on line N (K of M stops changed)` (the id is the game's passenger id).
+- [ ] **Mixed line** (a truck line with a freight-only truck stop and a bus stop, or a train line with a cargo and a
+      passenger platform): Passengers changes only the passenger stops, the freight stop keeps its cargo; a freight
+      cargo (e.g. Coal near a coal mine) changes only stops whose terminal handles cargo and has it in its catchment
+      (or where another stop loads it); bus stops stay unchanged. Each row's tooltip says "the N of M stops".
+- [ ] **Open: an empty selection.** Clear all on a running line: does a vehicle then load nothing at all, or does the
+      game treat "no cargo selected" like a line without custom filters (load everything)? Watch a bus at a stop after
+      Clear all (log `set cargo none`). If it loads everything, note it: Clear all might better restore
+      customFilters = false (the base default) instead of setting it true.
+- [ ] Clear all with no stop selecting a cargo: greyed out, tooltip "No stop of this line has a cargo selected.". A
+      cargo every supporting stop already loads alone: greyed out, "Every stop that can take X already loads only it.".
+- [ ] Freight list: only cargo types produced in the game appear; a cargo in no stop's catchment does not appear. A
+      line with only passenger stops shows Passengers only. Note a cargo that should show but doesn't (or the reverse).
+- [ ] Page height with many cargo types (a train line through an industrial area with 10+ types): the popover grows;
+      note whether it gets cut off (the rows are not in a ScrollArea).
+- [ ] German / Russian / Japanese: the page's rows and tooltips translated; the cargo names are the game's.
+- [ ] **Debug: performance log** On, page open for a while: SQPERF `line_actions` stays small (the rows are re-read
+      once a second). No `[LineManagerPlus] line ops:` / `line actions:` warnings.
 
 ## Phase 5: Line actions, Duplicate and Reverse line (2026-10-10; 2026-10-11 user: looks good)
 

@@ -21,6 +21,8 @@ local VIS = "square_line_manager_plus::/line_manager_plus/lmp_visible.lua"
 local visInstalls -- lmp_visible.install calls (no setting: always installed, after the features)
 local AVG = "square_line_manager_plus::/line_manager_plus/lmp_util_avg.lua"
 local avgInstalls -- lmp_util_avg.install calls (no setting: always installed, after the features and lmp_visible)
+local BAL = "square_line_manager_plus::/line_manager_plus/lmp_balance.lua"
+local balInstalls -- lmp_balance.install calls (no setting: always installed, last)
 
 local LR = { filePath = "square_line_revert::/line_revert/line_revert.script", doReplaceFn = "doReplace", order = 200 }
 local LR5 = { filePath = LR.filePath, doReplaceFn = "doReplace", order = 200, yieldsTo = "square_line_manager_plus" }
@@ -84,6 +86,12 @@ local function setup(opts)
 	stub_module(AVG, { install = function(api)
 		if opts.avg == "error" then error("avg boom") end
 		avgInstalls[#avgInstalls + 1] = { api = api, after = installs and #installs or 0, visBefore = #visInstalls }
+		return true
+	end })
+	balInstalls = {}
+	stub_module(BAL, { install = function(api)
+		if opts.bal == "error" then error("bal boom") end
+		balInstalls[#balInstalls + 1] = { api = api, avgBefore = #avgInstalls }
 		return true
 	end })
 	ug_require "square_line_manager_plus::/line_manager_plus/lmp.script.lua"
@@ -423,4 +431,19 @@ test("average utilization: an install error is logged once and stops nothing els
 	eq(#visInstalls, 1)
 	eq(vcolsInstalls, 1)
 	eq(logs("warning", "[LineManagerPlus] average utilization: "), 1)
+	eq(#balInstalls, 1)
+end)
+
+test("balance tooltip: installed once, last, with the api; an install error is logged once and stops nothing", function()
+	setup()
+	script.doReplace(RAPI)
+	script.doReplace(RAPI)
+	eq(#balInstalls, 1)
+	ok(balInstalls[1].api == RAPI)
+	eq(balInstalls[1].avgBefore, 1)
+	setup({ bal = "error" })
+	script.doReplace(RAPI)
+	eq(#installs, 12)
+	eq(#avgInstalls, 1)
+	eq(logs("warning", "[LineManagerPlus] balance: "), 1)
 end)

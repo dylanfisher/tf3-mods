@@ -1,6 +1,6 @@
 {
     "modId": "square_line_manager_plus",
-    "revision": 11,
+    "revision": 13,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -71,7 +71,7 @@
         {
             "key": "line_actions",
             "name": "Line editor: Line actions button",
-            "tooltip": "On: a Line actions button right of Auto-Rename for the\nselected line. Duplicate line makes a new line with the same\nstops and settings, a new color and no vehicles. Reverse\nline serves the stops in the opposite order, stop 1 staying\nfirst (Undo takes it back). Off: no button.",
+            "tooltip": "On: a Line actions button right of Auto-Rename for the\nselected line, with Duplicate line, Reverse line (stop 1\nstays first), Duplicate + reverse line and Set cargo for\nall stops (one cargo or none at every stop that can take\nit). Match line rate (own setting) also lives there.\nOff: no button.",
             "uiType": "Button",
             "values": [
                 "Off",

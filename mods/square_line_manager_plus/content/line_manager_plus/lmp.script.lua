@@ -1,4 +1,5 @@
--- Line Manager Plus: installs its Line Manager features at GUI start. GUI only: nothing in the savegame.
+-- Line Manager Plus: installs its Line Manager features at GUI start. GUI only; the one thing kept in the savegame is
+-- GUI save data (lmp_save.lua: the "Show Only Visible Lines" choice and the utilization history), never game state.
 --   * "send_to_line_info" (stli.lua): target line's vehicles and stats under the Send to Line hover text.
 --   * "send_to_line_estimate" (stli_estimate.lua): before -> after estimate in that text (needs the one above).
 --   * "line_undo" (undo.lua): Undo / Redo buttons in the line editor (the former Line Editor Undo mod).
@@ -21,9 +22,10 @@
 --   * "buy_vehicles_line_filter" (buy_line_filter.lua): Buy Vehicles for a selected line that carries one cargo type
 --     opens the vehicle store with that cargo ticked in its cargo filter.
 -- Always on, no setting: the vehicle list's name column width (vehicle_columns.lua) and the Line Manager's "Show Only
--- Visible Lines" remembered with the savegame, followed by the Send to Line popover (lmp_visible.lua), and the line's
--- average utilization over the last 12 game months beside the Utilization value (lmp_util_avg.lua, sampled by the
--- always-mounted lmp_util_host.res.lua plugin).
+-- Visible Lines" remembered with the savegame, followed by the Send to Line popover (lmp_visible.lua), the line's
+-- average utilization over the last 12 game months beside the Utilization value, with 12 months, 2 and 5 years in its
+-- tooltip (lmp_util_avg.lua, sampled by the always-mounted lmp_util_host.res.lua plugin, kept in the savegame), and
+-- the Balance tooltip with the last year, 2 and 5 years (lmp_balance.lua).
 -- Each feature has its own mod setting (values {"Off", "On"}, default On) and its own module, required and
 -- installed in its own pcall: a feature that fails to load or install is logged once and never stops the others.
 -- Features that need the manager's commonParams or a button next to A+ use the shared groundwork instead of wrapping
@@ -157,6 +159,12 @@ local function doReplace(replacementApi)
 		ug_require("square_line_manager_plus::/line_manager_plus/lmp_util_avg.lua").install(replacementApi)
 	end)
 	if not okAvg then warnOnce("average utilization", errAvg) end
+	-- no setting: hovering a line's Balance (Line Manager, Statistics window, line window) shows the last year, 2 and
+	-- 5 years (lmp_balance.lua; wraps line_react_util.LineBalance, which no feature wraps)
+	local okBal, errBal = pcall(function()
+		ug_require("square_line_manager_plus::/line_manager_plus/lmp_balance.lua").install(replacementApi)
+	end)
+	if not okBal then warnOnce("balance", errBal) end
 	perf:phase("install", t0)
 end
 

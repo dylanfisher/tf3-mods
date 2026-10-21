@@ -153,3 +153,115 @@ test("missingCount and blockReason", function()
 	eq(core.blockReason(3, 1), "A station of this line no longer exists.")
 	eq(core.blockReason(2, 0), nil)
 end)
+
+-- Set cargo for all stops ----------------------------------------------------------------------------------------
+-- cargo ids: 0 passengers, 1 coal, 2 grain, 3 goods
+
+local P = 0
+
+-- stop facts as line_ops.stopInfos gives them
+local function info(flags, input, output, load)
+	local function set(list)
+		local t = {}
+		for _i, c in ipairs(list or {}) do t[c] = true end
+		return t
+	end
+	return { pLoad = flags.p, pUnload = flags.pu, cLoad = flags.c, cUnload = flags.cu, input = set(input),
+		output = set(output), load = set(load) }
+end
+
+local function cargoStop(g, load, maxLoad)
+	return stop(g, nil, { loadMode = "LOAD_IF_AVAILABLE", stopConfig = { load = load, maxLoad = maxLoad,
+		forceUnload = true, destroyForConfigChange = false, destroyForRefresh = true } })
+end
+
+test("supportsCargo: passengers need a passenger terminal; freight a cargo terminal plus catchment or another stop", function()
+	local infos = {
+		info({ p = true }),                                   -- bus stop
+		info({ pu = true }),                                  -- unload-only passengers
+		info({ c = true }, nil, { 1 }),                       -- loading terminal, coal mine in reach
+		info({ cu = true }, { 3 }, nil),                      -- unloading terminal, goods consumer in reach
+		info({ c = true, cu = true }, nil, nil, { 2 }),       -- loads grain already, nothing in reach
+		info({}),                                             -- terminal unknown
+	}
+	eq(core.supportsCargo(infos, 1, P, P), true)
+	eq(core.supportsCargo(infos, 2, P, P), true)
+	eq(core.supportsCargo(infos, 3, P, P), false)
+	eq(core.supportsCargo(infos, 6, P, P), false)
+	eq(core.supportsCargo(infos, 1, 1, P), false, "no freight at a passenger-only terminal")
+	eq(core.supportsCargo(infos, 3, 1, P), true, "loading + output stock")
+	eq(core.supportsCargo(infos, 4, 1, P), false, "unloading terminal, coal not an input")
+	eq(core.supportsCargo(infos, 4, 3, P), true, "unloading + input stock")
+	eq(core.supportsCargo(infos, 3, 3, P), false, "loading terminal: an input stock alone doesn't count")
+	eq(core.supportsCargo(infos, 3, 2, P), true, "another stop loads grain")
+	eq(core.supportsCargo(infos, 5, 2, P), false, "its own load doesn't count")
+	eq(core.supportsCargo(infos, 9, 2, P), false, "no such stop")
+end)
+
+test("cargoChoices: only supported types, passengers first then order; counts supported and done stops", function()
+	local infos = {
+		info({ p = true, c = true }, nil, { 1, 2 }, { 0 }),
+		info({ p = true, c = true }, nil, { 2 }, { 0, 2 }),
+		info({ c = true }, nil, { 2 }, { 2 }),
+	}
+	local types = { { id = 2, order = 10 }, { id = 1, order = 20 }, { id = 3, order = 5 }, { id = 0, order = 99 } }
+	local choices = core.cargoChoices(infos, types, P)
+	eq(#choices, 3, "goods: no stop takes it")
+	eq(choices[1], { id = 0, order = 99, supported = 2, done = 1 })
+	eq(choices[2], { id = 2, order = 10, supported = 3, done = 1 })
+	eq(choices[3], { id = 1, order = 20, supported = 1, done = 0 }, "coal: only stop 1 has it in reach")
+end)
+
+test("loadingStops counts stops with any load", function()
+	eq(core.loadingStops({ info({}, nil, nil, { 1 }), info({}), info({}, nil, nil, { 0, 3 }) }), 2)
+	eq(core.loadingStops({}), 0)
+end)
+
+test("setAllStopsCargo: supported stops load only the cargo, the others stay; sizing, flags and maxLoad kept", function()
+	local snap = { customFilters = false, reservationPriority = 3, stops = {
+		cargoStop(1, { true, false, true }, { 1, 0.5, 0.25 }),
+		cargoStop(2, { false, true }, { 0.8 }),
+		cargoStop(3, { false, false, true }, { 1, 1, 1 }),
+	} }
+	local before = core.copy(snap)
+	local new, changed = core.setAllStopsCargo(snap, 2, function(k) return k ~= 2 end, 4)
+	eq(snap, before, "input unchanged")
+	eq(changed, 1, "stop 3 already loads only grain")
+	eq(new.customFilters, true)
+	eq(new.reservationPriority, 3)
+	eq(new.stops[1].stopConfig.load, { false, false, true, false })
+	eq(new.stops[1].stopConfig.maxLoad, { 1, 0.5, 0.25, 1 }, "kept, padded with 100 %")
+	eq(new.stops[1].stopConfig.forceUnload, true)
+	eq(new.stops[1].stopConfig.destroyForConfigChange, false)
+	eq(new.stops[1].stopConfig.destroyForRefresh, true)
+	eq(new.stops[1].loadMode, "LOAD_IF_AVAILABLE")
+	eq(new.stops[2], before.stops[2], "unsupported stop untouched")
+	eq(new.stops[3].stopConfig.load, { false, false, true, false })
+	eq(new.stops[1].waypoints, before.stops[1].waypoints)
+end)
+
+test("setAllStopsCargo: passengers, clear all, a longer old list, a missing stopConfig, nothing to change", function()
+	local snap = { stops = { cargoStop(1, { false, true, false, false, true }, { 1 }), cargoStop(2, {}, {}) } }
+	local new, changed = core.setAllStopsCargo(snap, P, function() return true end, 3)
+	eq(changed, 2)
+	eq(new.stops[1].stopConfig.load, { true, false, false, false, false }, "the old list's length kept")
+	eq(new.stops[2].stopConfig.load, { true, false, false })
+	eq(new.stops[2].stopConfig.maxLoad, { 1, 1, 1 })
+
+	local cleared, n = core.setAllStopsCargo(snap, nil, function() error("not asked for clear all") end, 3)
+	eq(n, 1, "stop 2 loads nothing already")
+	eq(cleared.stops[1].stopConfig.load, { false, false, false, false, false })
+	eq(cleared.stops[2].stopConfig.load, { false, false, false })
+	eq(cleared.customFilters, true)
+
+	local bare = stop(1)
+	bare.stopConfig = nil
+	local fromNil = core.setAllStopsCargo({ stops = { bare } }, 1, function() return true end, 2)
+	eq(fromNil.stops[1].stopConfig, { load = { false, true }, maxLoad = { 1, 1 }, forceUnload = true,
+		destroyForConfigChange = true, destroyForRefresh = true })
+
+	local _same, none = core.setAllStopsCargo(new, P, function() return true end, 3)
+	eq(none, 0)
+	local _skip, zero = core.setAllStopsCargo(snap, 1, function() return false end, 3)
+	eq(zero, 0, "no stop supports it")
+end)

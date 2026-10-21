@@ -24,6 +24,17 @@
 -- direction asked of the original line), named and coloured as Duplicate, selected on success. Guards of both
 -- (blockReason + the 3-stop reason; a mirror-image route sends nothing). The original line is untouched.
 --
+-- Set cargo for all stops (order 400; PLAN.md "Open work" and D9, 2026-10-20): the entry opens a second page of the
+-- menu (lmp_actions choices / choose) with "Clear all" and each cargo type at least one stop of the line can take
+-- (Passengers first, then by the cargo type's order; freight only while currently produced, as the base cargo chooser
+-- lists it, cargofilter_window.tl:576-588). A choice is one makeLineUpdateCmd as Reverse (snapshot,
+-- line_ops_core.setAllStopsCargo, customFilters = true as the base chooser, cargofilter_window.tl:438, editor mode
+-- reset, one toolbar undo step): every stop that can take the cargo (line_ops_core.supportsCargo) loads only it, the
+-- others are left unchanged (user decision); Clear all sets every stop's load to all false. maxLoad, the unload flags
+-- and the load mode stay. Stop facts (M.stopInfos): the terminal (STATION_GROUP.stations[station + 1] ->
+-- STATION.terminals[terminal + 1]) flags and the catchment's stocks (cargo_util.getInputOutputStocksForStation, as the
+-- chooser, one query per station); the page's rows are cached for CHOICES_TTL_US while it is open.
+--
 -- Guards (each entry's view, shown as a disabled entry with the reason as tooltip): fewer than 2 stops, a stop whose
 -- station is gone, a command of ours still in flight (max BUSY_US). lmp_actions shows the menu only for exactly one
 -- selected, edited, unprotected line. Every command is atomic: the game applies the whole line or refuses it
@@ -56,6 +67,10 @@ end
 -- abDuplicate; gui.zip gui/line_vehicle_mgmt/icons/*@2x.tga, 48x48 masks)
 local ICON_DUPLICATE = "::/gui/line_vehicle_mgmt/icons/symbol_square_copy.tga"
 local ICON_REVERSE = "::/gui/line_vehicle_mgmt/icons/symbol_arrow_reverse.tga"
+-- the manager's cargo settings icon (manager_window.tl:6321 hudConfigure) and the cargo chooser's remove icon
+-- (cargofilter_window.tl:734)
+local ICON_CARGO = "::/gui/line_vehicle_mgmt/icons/symbol_cargo.tga"
+local ICON_CLEAR = "::/gui/line_vehicle_mgmt/icons/symbol_trash_bin.tga"
 
 local M = {}
 
@@ -265,6 +280,163 @@ function M.duplicateReversed(ctx)
 	end)
 end
 
+-- Set cargo for all stops -----------------------------------------------------------------------------------------
+
+M.CLEAR_ID = "clear"
+M.CHOICES_TTL_US = 1000000 -- the page's rows are re-read at most once a second
+M.MAX_STOPS = 1000 -- loop cap for a line's stops
+
+local cargoUtil -- base cargo_util (GUI state), required on first use; false when missing
+local function cargo_util()
+	if cargoUtil == nil then
+		local ok, cu = pcall(ug_require, "::/gui/main/cargo_util.tl")
+		cargoUtil = ok and type(cu) == "table" and cu or false
+		if not cargoUtil then warnOnce("cargo_util", cu) end
+	end
+	return cargoUtil or nil
+end
+
+--- Cargo types as { count = max id + 1, passenger = id, list = { { id, order, name, icon } } } with every type that
+--- can be offered: passengers and the freight currently produced.
+function M.cargoTypes()
+	local all = api.res.cargoTypeRep.getAll(true)
+	local passenger = api.res.cargoTypeRep.getPassengerCargoTypeId()
+	local count, list = 0, {}
+	for id in pairs(all) do
+		if id + 1 > count then count = id + 1 end
+		if id == passenger or api.engine.util.stock.isCargoTypeCurrentlyProduced(id) then
+			local ct = api.res.cargoTypeRep.get(id)
+			if ct ~= nil then
+				list[#list + 1] = { id = id, order = ct.order or 0, name = ct.name, icon = ct.icon }
+			end
+		end
+	end
+	return { count = count, passenger = passenger, list = list }
+end
+
+--- Per-stop facts of the live LINE component `comp` for line_ops_core.supportsCargo: { pLoad, pUnload, cLoad,
+--- cUnload, input, output, load } per stop (see line_ops_core). A terminal that can't be read leaves the flags nil.
+function M.stopInfos(comp)
+	local infos, stocks = {}, {}
+	local cu = cargo_util()
+	local n = math.min(#comp.stops, M.MAX_STOPS)
+	for k = 1, n do
+		local s = comp.stops[k]
+		local info = { load = {}, input = {}, output = {} }
+		local load = s.stopConfig and s.stopConfig.load
+		for i = 1, math.min(load and #load or 0, 1024) do
+			if load[i] then info.load[i - 1] = true end
+		end
+		local ok, err = pcall(function()
+			local sg = api.engine.getComponent(s.stationGroup, api.type.ComponentType.STATION_GROUP)
+			local station = sg and sg.stations[s.station + 1]
+			local st = station and api.engine.getComponent(station, api.type.ComponentType.STATION)
+			local t = st and st.terminals[s.terminal + 1]
+			if not t then return end
+			info.pLoad, info.pUnload = t.passengersLoad == true, t.passengersUnload == true
+			info.cLoad, info.cUnload = t.cargoLoad == true, t.cargoUnload == true
+			if (info.cLoad or info.cUnload) and cu then
+				local io = stocks[station]
+				if io == nil then
+					local input, _ni, output = cu.getInputOutputStocksForStation(station)
+					io = { input = input or {}, output = output or {} }
+					stocks[station] = io
+				end
+				info.input, info.output = io.input, io.output
+			end
+		end)
+		if not ok then warnOnce("stop info", err) end
+		infos[k] = info
+	end
+	return infos
+end
+
+local choicesCache = nil -- { line, at, rows }
+
+--- The page's rows: Clear all, then one per cargo type some stop can take (or one disabled hint row).
+function M.cargoRows(ctx)
+	if choicesCache and choicesCache.line == ctx.line and now() - choicesCache.at < M.CHOICES_TTL_US then
+		return choicesCache.rows
+	end
+	local rows = {}
+	local comp = readLine(ctx.line)
+	local reason = (isBusy() and "A change to this line is still in progress.") -- i18n: keys
+		or blockReason(comp)
+	if reason then
+		rows[1] = { id = "blocked", label = _(reason), icon = ICON_CARGO, enabled = false } -- i18n: ignore
+	else
+		local infos = M.stopInfos(comp)
+		local types = M.cargoTypes()
+		local byId = {}
+		for _i, t in ipairs(types.list) do byId[t.id] = t end
+		local loading = core.loadingStops(infos)
+		rows[1] = { id = M.CLEAR_ID, label = _("Clear all"), icon = ICON_CLEAR, enabled = loading > 0,
+			tooltip = loading > 0 and _("Remove the cargo selection of every stop of this line.")
+				or _("No stop of this line has a cargo selected.") }
+		local choices = core.cargoChoices(infos, types.list, types.passenger)
+		for _i, c in ipairs(choices) do
+			local t = byId[c.id]
+			local values = { cargo = t.name, n = c.supported, total = #infos }
+			local tooltip
+			if c.done >= c.supported then
+				tooltip = core.fill(_("Every stop that can take {cargo} already loads only it."), values)
+			elseif c.supported >= #infos then
+				tooltip = core.fill(_("Load only {cargo} at all {total} stops."), values)
+			else
+				tooltip = core.fill(_("Load only {cargo} at the {n} of {total} stops that can take it.\nThe other stops stay as they are."), values)
+			end
+			rows[#rows + 1] = { id = c.id, label = t.name, icon = t.icon, iconClass = "text-icon-size-hack",
+				enabled = c.done < c.supported, tooltip = tooltip }
+		end
+		if #choices == 0 then
+			rows[#rows + 1] = { id = "none", label = _("No cargo type fits these stops"), icon = ICON_CARGO,
+				enabled = false,
+				tooltip = _("No stop has a terminal and catchment for a produced cargo.") }
+		end
+	end
+	choicesCache = { line = ctx.line, at = now(), rows = rows }
+	return rows
+end
+
+--- A click on a row of the page: `choice` is M.CLEAR_ID or a cargo type id.
+function M.setCargo(ctx, choice)
+	choicesCache = nil
+	local cargoId = nil
+	if choice ~= M.CLEAR_ID then
+		if type(choice) ~= "number" then return end -- a hint row
+		cargoId = choice
+	end
+	local comp = checkedLine(ctx)
+	if not comp then return end
+	local params, line = ctx.params, ctx.line
+	local types = M.cargoTypes()
+	local infos = M.stopInfos(comp)
+	local snap = undo_core.snapshot(comp)
+	local new, changed = core.setAllStopsCargo(snap, cargoId, function(k)
+		return core.supportsCargo(infos, k, cargoId, types.passenger)
+	end, types.count)
+	if changed == 0 then
+		actions.feedback(params, _("Line Manager Plus: the stops already have this cargo selection."), false)
+		return
+	end
+	local built = undo_core.build(new, api.type)
+	capture.resetEditorMode(params)
+	busy = { since = now(), kind = "set cargo" }
+	api.cmd.sendCommand(api.cmd.makeLineUpdateCmd(line, built), function(_result, success)
+		local ok, err = pcall(function()
+			busy = nil
+			choicesCache = nil
+			if success then
+				say("set cargo " .. (cargoId and tostring(cargoId) or "none") .. " on line " .. tostring(line) .. " ("
+					.. changed .. " of " .. #new.stops .. " stops changed)")
+			else
+				actions.feedback(params, _("Line Manager Plus: the game refused the cargo change."), true)
+			end
+		end)
+		if not ok then warnOnce("set cargo callback", err) end
+	end)
+end
+
 -- Install ----------------------------------------------------------------------------------------------------------
 local installed = false
 
@@ -297,6 +469,15 @@ function M.install(_replacementApi, _params)
 				reverseReason)
 		end,
 		run = M.duplicateReversed,
+	})
+	actions.register({
+		id = "set_cargo", order = 400, label = "Set cargo for all stops", icon = ICON_CARGO, -- i18n: keys label
+		view = function(ctx)
+			return entryView(ctx,
+				_("Choose one cargo type for every stop that can take it,\nor clear the cargo selection of all stops."))
+		end,
+		choices = M.cargoRows,
+		choose = M.setCargo,
 	})
 	installed = true
 	say("installed")

@@ -9,6 +9,12 @@
 -- open and must be cheap; run() runs from the click (GUI thread), may send commands, and the menu closes after it.
 -- Each view() and run() runs in its own pcall: a failing view shows its entry disabled, a failing run gives one
 -- feedback line; both are logged once per entry.
+-- A second level (the registry's only one): an entry with choices = fn(ctx) -> { { id, label = translated text,
+-- icon, iconClass?, enabled, tooltip } } and choose = fn(ctx, choiceId) (instead of run) opens a page in the same
+-- popover when clicked: the header card shows the entry's label, a "Back" row (base back.tga, town window tabs) leads
+-- to the entries again, then one row per choice in the entries' look. choices() runs every step while its page is
+-- open (cache in the entry when it is costly); a click on a choice runs choose() (pcall, as run) and closes the menu.
+-- The page is closed whenever the menu opens or closes. Set cargo for all stops (line_ops.lua) uses it.
 --
 -- The button: an lmp_rows injector (order 100: right of A+). Shown only while exactly one line is selected and edited
 -- and that line isn't protected (as the undo buttons), otherwise an empty BoxLayout (a recipe must return a layout).
@@ -81,13 +87,15 @@ local seq = 0
 --- Adds (or replaces, same id) a menu entry. Errors on a malformed entry.
 function M.register(e)
 	assert(type(e) == "table" and type(e.id) == "string" and type(e.label) == "string"
-		and type(e.view) == "function" and type(e.run) == "function", "entry needs id, label, view and run")
+		and type(e.view) == "function"
+		and (type(e.run) == "function" or (type(e.choices) == "function" and type(e.choose) == "function")),
+		"entry needs id, label, view and run (or choices and choose)")
 	for i = #entries, 1, -1 do
 		if entries[i].id == e.id then table.remove(entries, i) end
 	end
 	seq = seq + 1
 	entries[#entries + 1] = { id = e.id, order = type(e.order) == "number" and e.order or 0, label = e.label,
-		icon = e.icon, view = e.view, run = e.run, seq = seq }
+		icon = e.icon, view = e.view, run = e.run, choices = e.choices, choose = e.choose, seq = seq }
 	table.sort(entries, function(a, b)
 		if a.order ~= b.order then return a.order < b.order end
 		return a.seq < b.seq
@@ -132,49 +140,25 @@ end
 
 -- Menu -------------------------------------------------------------------------------------------------------------
 -- shown: our popover window is open (set on open, cleared on close / unmount); gen: counts the opens, so the unmount
--- of an older menu window never clears the flag of a newer one
-local menu = { shown = false, gen = 0 }
+-- of an older menu window never clears the flag of a newer one; page: the id of the entry whose choices are shown
+local menu = { shown = false, gen = 0, page = nil }
+
+M.BACK = "::/gui/menu/icons/back.tga" -- the town window's back tab (entity_window/town/town.tl:765)
+M.BACK_ID = "__back"
+M.MAX_ROWS = 64 -- rows of one page (loop cap)
 
 local function windowApi(params)
 	return params.gameCtx.windowContainer:get():getApi()
 end
 
 local function closeMenu(params)
+	menu.page = nil
 	if not menu.shown then return end
 	menu.shown = false
 	local ok, err = pcall(function() windowApi(params).removeWindow(popover_react_util.PopoverWindow, M.KEY) end)
 	if not ok then warnOnce("close", err) end
 end
 M.closeMenu = closeMenu
-
---- { hidden } or { line, items = { { id, enabled, tooltip } } } for the open menu.
-local HIDDEN = { hidden = true }
-local function menuView()
-	local ctx = M.context()
-	if not ctx then return HIDDEN end
-	local items = {}
-	for i, e in ipairs(entries) do
-		local ok, v = pcall(e.view, ctx)
-		if not ok or type(v) ~= "table" then
-			if not ok then warnOnce(e.id .. " view", v) end
-			v = { enabled = false, tooltip = _(e.label) } -- i18n: ignore
-		end
-		items[i] = { id = e.id, enabled = v.enabled == true, tooltip = v.tooltip }
-	end
-	return { line = ctx.line, items = items }
-end
-M.menuView = menuView
-
-local function sameView(a, b)
-	if a.hidden or b.hidden then return a.hidden == b.hidden end
-	if a.line ~= b.line or #a.items ~= #b.items then return false end
-	for i, x in ipairs(a.items) do
-		local y = b.items[i]
-		if x.id ~= y.id or x.enabled ~= y.enabled or x.tooltip ~= y.tooltip then return false end
-	end
-	return true
-end
-M.sameView = sameView
 
 local function entryById(id)
 	for _i, e in ipairs(entries) do
@@ -183,15 +167,107 @@ local function entryById(id)
 	return nil
 end
 
+-- the open page's rows: Back, then the entry's choices (at most MAX_ROWS)
+local function pageItems(e, ctx)
+	local items = { { id = M.BACK_ID, enabled = true, label = _("Back"), icon = M.BACK } }
+	local ok, list = pcall(e.choices, ctx)
+	if not ok or type(list) ~= "table" then
+		if not ok then warnOnce(e.id .. " choices", list) end
+		list = {}
+	end
+	for i, c in ipairs(list) do
+		if i > M.MAX_ROWS then break end
+		if type(c) == "table" and c.id ~= nil then
+			items[#items + 1] = { id = c.id, enabled = c.enabled == true, tooltip = c.tooltip,
+				label = tostring(c.label or c.id), icon = c.icon, iconClass = c.iconClass }
+		end
+	end
+	return items
+end
+
+--- { hidden } or { line, page, title, items = { { id, enabled, tooltip, label, icon, iconClass } } } for the open
+--- menu: page nil lists the entries (title "Line actions"), page = an entry id lists its choices.
+local HIDDEN = { hidden = true }
+local function menuView()
+	local ctx = M.context()
+	if not ctx then return HIDDEN end
+	local pageEntry = menu.page and entryById(menu.page)
+	if pageEntry and pageEntry.choices then
+		return { line = ctx.line, page = pageEntry.id, title = _(pageEntry.label), -- i18n: ignore
+			items = pageItems(pageEntry, ctx) }
+	end
+	local items = {}
+	for i, e in ipairs(entries) do
+		local ok, v = pcall(e.view, ctx)
+		if not ok or type(v) ~= "table" then
+			if not ok then warnOnce(e.id .. " view", v) end
+			v = { enabled = false, tooltip = _(e.label) } -- i18n: ignore
+		end
+		items[i] = { id = e.id, enabled = v.enabled == true, tooltip = v.tooltip,
+			label = _(e.label), icon = e.icon } -- i18n: ignore
+	end
+	return { line = ctx.line, title = _("Line actions"), items = items }
+end
+M.menuView = menuView
+
+local function sameView(a, b)
+	if a.hidden or b.hidden then return a.hidden == b.hidden end
+	if a.line ~= b.line or a.page ~= b.page or a.title ~= b.title or #a.items ~= #b.items then return false end
+	for i, x in ipairs(a.items) do
+		local y = b.items[i]
+		if x.id ~= y.id or x.enabled ~= y.enabled or x.tooltip ~= y.tooltip or x.label ~= y.label
+			or x.icon ~= y.icon or x.iconClass ~= y.iconClass then return false end
+	end
+	return true
+end
+M.sameView = sameView
+
+--- Shows entry `id`'s choices (id nil: the entries again); the menu stays open.
+function M.openPage(id)
+	menu.page = id
+end
+
+--- The id of the entry whose choices are shown, or nil.
+function M.page()
+	return menu.page
+end
+
 --- Runs entry `id` on the current context (a click in the menu); closes the menu.
 function M.runEntry(id, params)
 	local tPerf = perf:start()
 	local e = entryById(id)
+	if e and e.choices and not e.run then
+		-- a second level: show its choices, keep the menu open
+		M.openPage(e.id)
+		perf:stop("line_actions", tPerf)
+		return
+	end
 	local ctx = M.context()
 	if e and ctx then
 		local ok, err = pcall(e.run, ctx)
 		if not ok then
 			warnOnce(id .. " run", err)
+			M.feedback(ctx.params, _("Line Manager Plus: the line action failed (see log)."), true)
+		end
+	end
+	closeMenu(params or (ctx and ctx.params))
+	perf:stop("line_actions", tPerf)
+end
+
+--- Runs choice `choiceId` of entry `entryId`'s page (a click in it); Back returns to the entries, any other choice
+--- runs the entry's choose() and closes the menu.
+function M.runChoice(entryId, choiceId, params)
+	if choiceId == M.BACK_ID then
+		M.openPage(nil)
+		return
+	end
+	local tPerf = perf:start()
+	local e = entryById(entryId)
+	local ctx = M.context()
+	if e and e.choose and ctx then
+		local ok, err = pcall(e.choose, ctx, choiceId)
+		if not ok then
+			warnOnce(entryId .. " choose", err)
 			M.feedback(ctx.params, _("Line Manager Plus: the line action failed (see log)."), true)
 		end
 	end
@@ -262,19 +338,25 @@ local function fill(styleSheet, children)
 	}
 end
 
-local function header(sh)
+local function header(sh, title)
 	return builtin.Component{
 		meta = { class = "horizontal-spacer", styleSheet = sh.header },
 		layout = builtin.BoxLayout{
 			orientation = builtin.type.Orientation.Horizontal,
-			children = { builtin.TextView{ meta = { class = "font-scale-headline" }, text = _("Line actions") } },
+			children = { builtin.TextView{ meta = { class = "font-scale-headline" }, text = title } },
 		},
 	}
 end
 
---- One menu row: an Auto-Rename style Button (icon, gap, text left-aligned); lmp.css.lua colours it.
-local function row(e, item, onClick)
+--- One menu row: an Auto-Rename style Button (icon, gap, text left-aligned); lmp.css.lua colours it. `item` carries
+--- the translated label, the icon path and an optional icon class (cargo icons: the base "text-icon-size-hack",
+--- 20 x 20, default.css.lua:70-72).
+local function row(item, onClick)
 	local sh = sheets()
+	local icon = item.iconClass
+		and builtin.ImageView{ meta = { class = item.iconClass }, path = item.icon,
+			scaling = builtin.type.ImageViewScaling.AutoFit }
+		or builtin.ImageView{ path = item.icon, scaling = builtin.type.ImageViewScaling.AutoFit }
 	return builtin.Button{
 		meta = {
 			tooltip = item.tooltip,
@@ -286,9 +368,9 @@ local function row(e, item, onClick)
 			layout = builtin.BoxLayout{
 				orientation = builtin.type.Orientation.Horizontal,
 				children = {
-					builtin.ImageView{ path = e.icon, scaling = builtin.type.ImageViewScaling.AutoFit },
+					icon,
 					builtin.Component{ meta = { styleSheet = sh.gap } },
-					builtin.TextView{ meta = { class = "font-scale-body" }, text = _(e.label) }, -- i18n: ignore
+					builtin.TextView{ meta = { class = "font-scale-body" }, text = item.label },
 				},
 			},
 		},
@@ -316,18 +398,19 @@ local Menu = react.RegisterRecipe("SquareLmpLineActionsMenu", function(p)
 	local rowsList = {}
 	if not v.hidden then
 		for i, item in ipairs(v.items) do
-			local e = entryById(item.id)
-			if e then
-				rowsList[#rowsList + 1] = row(e, item, function() M.runEntry(item.id, p and p.params) end)
+			if v.page then
+				rowsList[#rowsList + 1] = row(item, function() M.runChoice(v.page, item.id, p and p.params) end)
+			elseif entryById(item.id) then
+				rowsList[#rowsList + 1] = row(item, function() M.runEntry(item.id, p and p.params) end)
 			end
-			if i > 64 then break end
+			if i > M.MAX_ROWS then break end
 		end
 	end
 	local children = {}
 	if #rowsList > 0 then
 		local sh = sheets()
 		children = {
-			fill(sh.headerWrap, { header(sh) }),
+			fill(sh.headerWrap, { header(sh, v.title or _("Line actions")) }),
 			fill(sh.rowsWrap, rowsList),
 		}
 	end
@@ -349,6 +432,7 @@ local function openMenu(params, selfRef)
 	end)
 	if not okPos then warnOnce("position", err) end
 	wc.removeAllWindows(popover_react_util.PopoverWindow)
+	menu.page = nil
 	menu.gen = menu.gen + 1
 	menu.shown = true
 	wc.addWindow(popover_react_util.PopoverWindow, M.KEY, {

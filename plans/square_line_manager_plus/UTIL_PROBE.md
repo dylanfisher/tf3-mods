@@ -123,3 +123,6 @@ ticking while paused" (index line in `docs/findings.md`).
 - Display: `avg 87%` / `avg ~87%` (class `font-scale-annotation, positive`, inline padding 2 top / 4 left) right of
   the base value in a horizontal BoxLayout; tooltip "over the last 12 months" or "since the game was loaded (N of 12
   months so far)".
+- Superseded 2026-10-20: the 52-sample ring became monthly buckets (up to 60 closed months) kept in the savegame
+  (GUI save data part `util`), and the tooltip lists the last 12 months, 2 and 5 years; current design in the
+  `lmp_util_avg.lua` header and PLAN.md "Open work".
