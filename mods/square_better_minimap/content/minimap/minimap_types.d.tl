@@ -69,7 +69,7 @@ global record SquareMinimapMarkerPx
 end
 
 -- Module: ug_require "square_better_minimap::/minimap/minimap_geom.tl" as SquareMinimapGeom
---- Minimap settings remembered across game loads (stored in the game settings, never the save).
+--- Minimap settings remembered across game loads (in the savegame's GUI save data).
 --- Every field may be nil (missing or invalid in the stored table).
 global record SquareMinimapPrefs
 	posX : number           -- window anchor (top-right) in screen fractions; set together with posY

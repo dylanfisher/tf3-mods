@@ -1,9 +1,9 @@
 -- Minimap window (plans/square_better_minimap/PLAN.md, phases 2-3): a ridge button toggles a
 -- pinnable window with builtin.MapPreviewComp fed by api.engine.terrain.makeMapFromGame, industry
 -- icons and a camera box on top, and click-to-jump. GUI-only: reads the game, never writes game
--- state (no commands, no game script); session settings live in module-level Lua tables, nothing
--- goes into the save. Position, pin, size and the industry toggle are also remembered across game
--- loads in the game settings (AppConfig.mainMenuState; see "Remembered settings" below).
+-- state (no commands, no game script); session settings live in module-level Lua tables. Position,
+-- pin, size and the toggles are also remembered in the savegame's GUI save data
+-- (api.gui.game.setGuiSaveData; see "Remembered settings" below).
 --
 -- WIRING (same as square_problem_radar's radar_hud.script.tl):
 --   * minimap_hud.res.lua mounts MinimapHudPlugin at "::MainModButtonAreaExtension"
@@ -288,13 +288,13 @@ local session : Session = {
 
 ---------------------------------------------------------------------------
 -- Remembered settings: position, pin, size, industry toggle and whether a pinned window was open
--- survive game loads (the GUI scripts reload and reset `session`). Stored in the game settings, not
--- the save: AppConfig.mainMenuState is "filled by the UI scripts to persist things"
--- (type.d.tl:2885). Same read-copy-write as the base new-game page
--- (new_game_or_map_settings_page.tl:532-541); setAppConfig "does not save" (util.d.tl:260), so
--- saveAppConfig follows (settings_page.tl:1400). Main thread only (the plugin's onStep): loaded
--- once, written once the values have been stable for PREFS_STABLE_TICKS guard ticks (a drag
--- produces many positions; only the final one is written).
+-- survive game loads (the GUI scripts reload and reset `session`). Stored in the savegame's GUI save
+-- data (api.gui.game.getGuiSaveData / setGuiSaveData(modId, table), gui.d.tl:773-781), so they are
+-- per savegame and kept when the player saves (mod.io's upload check rejects mods writing the game
+-- settings save, which held them before). setGuiSaveData replaces the mod's whole table: the full prefs
+-- table is written each time. Main thread only (the plugin's onStep): loaded once, written once the
+-- values have been stable for PREFS_STABLE_TICKS guard ticks (a drag produces many positions; only
+-- the final one is written).
 
 local PREFS_KEY <const> = "square_better_minimap"
 local PREFS_STABLE_TICKS <const> = 4 -- x GUARD_SECONDS (0.25 s) = 1 s without changes
@@ -330,8 +330,9 @@ local function loadPrefs()
 	if prefsLoaded then return end
 	prefsLoaded = true
 	local ok, rawOrErr = pcall(function() : any
-		local mm = api.type.AppConfig.new(api.util.getAppConfig()).mainMenuState as {string : any}
-		return mm ~= nil and mm[PREFS_KEY] or nil
+		local data = api.gui.game.getGuiSaveData(PREFS_KEY) as any
+		if type(data) ~= "table" or next(data as {any : any}) == nil then return nil end
+		return data
 	end)
 	if not ok then
 		warnOnce("load settings", tostring(rawOrErr))
@@ -353,17 +354,11 @@ end
 
 local function writePrefs(p : SquareMinimapPrefs)
 	local ok, err = pcall(function() : any
-		local cfg = api.type.AppConfig.new(api.util.getAppConfig())
-		local mm = cfg.mainMenuState
-		local t = (mm ~= nil and table_util.copy(mm) or {}) as {string : any}
-		t[PREFS_KEY] = {
+		api.gui.game.setGuiSaveData(PREFS_KEY, {
 			posX = p.posX, posY = p.posY, pinned = p.pinned, sizeIdx = p.sizeIdx,
 			showIndustries = p.showIndustries, showNet = p.showNet, hiVis = p.hiVis, open = p.open,
 			filterTypes = p.filterTypes,
-		}
-		cfg.mainMenuState = t
-		api.util.setAppConfig(cfg, false)
-		api.util.saveAppConfig()
+		})
 		return nil
 	end)
 	-- Marked saved even on failure, so a broken API is warned about once, not retried every second.
@@ -2837,13 +2832,18 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, per
 
 	-- Unpinned: ESC closes the minimap when it has focus, like an unpinned entity window
 	-- (view_manager.tl:245-247). Pinned: Disabled (not Inactive), which "leaves the keys for other
-	-- actions" (gui.d.tl:332-335), so ESC reaches the pause menu.
-	react.useInputAction("IA_MENU_BACK", react.iaHandler(function()
-		onWindowClose()
-	end, function() : Gui.InputAction.InputActionState
-		if session.pinned then return api.gui.inputAction.InputActionState.Disabled end
-		return api.gui.inputAction.InputActionState.Enabled
-	end))
+	-- actions" (gui.d.tl:332-335), so ESC reaches the pause menu. Only where this platform's react has both
+	-- (PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI modules differ by platform"): a
+	-- platform check is constant, so the hooks stay the same every render.
+	local r = react as {string : any}
+	if type(r.useInputAction) == "function" and type(r.iaHandler) == "function" then
+		react.useInputAction("IA_MENU_BACK", react.iaHandler(function()
+			onWindowClose()
+		end, function() : Gui.InputAction.InputActionState
+			if session.pinned then return api.gui.inputAction.InputActionState.Disabled end
+			return api.gui.inputAction.InputActionState.Enabled
+		end))
+	end
 
 	local pinned = pinnedState:old()
 	local winParams : Builtin.WindowParam = {

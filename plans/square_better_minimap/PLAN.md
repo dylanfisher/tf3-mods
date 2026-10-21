@@ -53,7 +53,7 @@ checks and draws the real game state. It must be performant, and have no impact 
 ### Design
 
 - **Toggle**: a **Net** checkbox in the control row (Ind, Net, S/L), default off, remembered with the other prefs
-  (`showNet` in `AppConfig.mainMenuState`). A checkbox rather than a button: it is an on/off state like Ind next to it.
+  (`showNet` in the GUI save data). A checkbox rather than a button: it is an on/off state like Ind next to it.
 - **Off = no cost**: the layer recipe `MinimapNetLayer` is mounted only while Net is on, so off means no onStep, no
   timer, no engine read, no ImageView. Unmounting the window or an error drops every cache (`netRelease`); toggling off parks them for 60 s (round 3, below).
   While on but hidden, nothing is read (looked at once a second); after 60 s hidden the caches are dropped as well
@@ -177,7 +177,7 @@ filtering (square_industry_flows)."
 - **Shift mute = hover preview.** Shift held + mouse over an industry icon: every icon of another type is drawn muted
   (faded). Nothing changes with Shift held over the empty map.
 - **Filter box = its own small movable window**, like Industry Flows' panel.
-- **Filter is remembered** with the other prefs (AppConfig.mainMenuState, never in the save).
+- **Filter is remembered** with the other prefs (the savegame's GUI save data, `api.gui.game.setGuiSaveData`; per savegame).
 
 ### Design
 
@@ -224,7 +224,7 @@ As designed, with these details and differences:
   rule `geom.controlRows` in `minimap_geom.tl` (tests in `test_geom.lua`).
 - Industries without a construction get the key `filter.OTHER_KEY` = `"(other)"`, shown as "Other", listed last.
 - Prefs: the selection is stored as one string, sorted keys joined by `|` (`filterTypes`), not as a list, to keep the
-  `mainMenuState` table flat. The search text is session-only.
+  GUI save data table flat. The search text is session-only.
 - With Ind off, Shift+click jumps like a plain click (there is nothing to filter); the filter stays and applies again
   when Ind is switched back on.
 - Selection semantics as Industry Flows: no box ticked = all shown; ticked boxes = only those. The window's heading

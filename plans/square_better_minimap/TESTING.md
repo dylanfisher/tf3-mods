@@ -30,8 +30,8 @@ Report every `[Minimap] filter` / `filter window` / `settings:` line, any Lua er
       while the window is open; "Show all" clears both.
 - [ ] Switching Ind off closes the filter window (`filter window closed (Ind off)`); hiding the minimap (Map button, X,
       ESC) closes it too; opening the minimap again does **not** reopen it.
-- [ ] **Persistence**: set a filter, wait 1 s (`settings: saved ... filter=<keys>`), restart the game or load a
-      save: `settings: loaded ... filter=<keys>` and the same types shown. "Show all" saves `filter=all`.
+- [ ] **Persistence**: set a filter, wait 1 s (`settings: saved ... filter=<keys>`), save the game and load
+      it: `settings: loaded ... filter=<keys>` and the same types shown. "Show all" saves `filter=all`.
 - [ ] **Narrow picture control row**: on a portrait map or with the minimap at S on a 1:2+ map, the row must not clip:
       rows are packed greedily by estimated widths (`CONTROL_W`: 47 px per 3-letter checkbox, Filter 68, spacing 6,
       padding 8): all four on one row from ~235 px, "Ind Filter Net" / "Viz" below that, "Ind Filter" / "Net Viz"
@@ -248,17 +248,18 @@ The title bar now has a pin toggle. Pinned = the window stays until you close it
 
 ## 5b. Remembered settings (revision 3)
 
-Stored in the game settings (`AppConfig.mainMenuState["square_better_minimap"]`), not the save. Log: `settings: loaded ...` once per load, `settings: saved ...` about 1 s after a change.
+Stored in the savegame's GUI save data (`api.gui.game.getGuiSaveData("square_better_minimap")`), per savegame (earlier revisions used the game settings, which mod.io's upload check rejects). Log: `settings: loaded ...` once per load, `settings: saved ...` about 1 s after a change.
 
 - [ ] Position (fixed after the first test: the Window's own getPosition returned 0,0-0,0, so `pos (none)` was saved). On open: `position: none saved, default anchor 1.0000,0.1200` (or `restore anchor ...`), then within ~0.5 s `position: frame offset dx,dy (requested anchor ...)`. Drag it: `position: saved content (...) -> anchor x,y`. Report the offset line and any `position: ignored` / `moved before the frame offset` lines.
 - [ ] Default spot (no remembered position) is still the top right below the top bar, like before (CSS gravity was replaced by initialX/Y).
 - [ ] Open the minimap, pin it, drag it somewhere, set size M, untick Ind. Within ~1 s: one `settings: saved pos ..., pinned=true, size=2, industries=false, open=true` (one line per drag, not per frame).
 - [ ] Save, then load that save (or another): `settings: loaded ...` with the same values, `settings: re-opening the pinned minimap`, and the window is back at the same place, pinned, size M, industries off.
-- [ ] Quit the game completely and start it again, load a save: same as above (checks that `saveAppConfig` really wrote it to disk).
+- [ ] Change the settings, save the game, quit the game completely and start it again, load that save: same as above (checks that the GUI save data goes into the savegame).
+- [ ] Load a different savegame (or start a new game): it has its own settings (defaults if it never stored any).
 - [ ] Close the pinned minimap with the Map button, load again: it stays closed, but opens at the remembered place with the Map button.
 - [ ] Unpinned + open, then load: it does **not** re-open by itself (only pinned windows do).
 - [ ] Any `[Minimap] load settings failed` / `save settings failed` warning? (Would mean the settings API isn't usable from in-game GUI scripts.)
-- [ ] Change a game setting in Settings afterwards (e.g. volume) and confirm the minimap position still survives a reload (nothing overwrote the key).
+- [ ] With Photo Mode active too (its bookmarks also use the GUI save data), add a bookmark, save, load: both the minimap settings and the bookmark survive (each mod has its own key).
 
 ## 6. Rebuilds (no timer, change-driven)
 
