@@ -6964,11 +6964,19 @@ test("all lights (tool): selecting a lit junction not enrolled yet enrolls it at
 	end)
 end)
 
-test("all lights (welcome): the background step opens the welcome once in a save without an answer; Apply sends the ticked boxes; closing is Not now", function()
+test("all lights (welcome): the background step opens the welcome once in a save without an answer; Apply sends the ticked boxes; closing is Not now; PS5 (no makeInfoHint, gamepad)", function()
 	local AllModeW = ug_require "square_smart_lanes::/smart_lanes/sl_allmode.lua"
-	local function load(state, editor)
-		local R = { plugins = {}, steps = {}, recipes = {}, windows = {}, removed = 0, events = {}, logs = {} }
-		stub_module("::/gui/main/react.lua", {
+	local function load(state, editor, opts)
+		opts = opts or {}
+		local R = { plugins = {}, steps = {}, recipes = {}, windows = {}, removed = 0, events = {}, logs = {},
+			mounts = {}, actions = {} }
+		local gamepad = opts.gamepad and {
+			useInputAction = function(name, h) R.actions[name] = h end,
+			iaHandler = function(fn) return { action = fn } end,
+			useSelfRef = function() return { get = function() return R.selfNode end } end,
+			onMount = function(fn) R.mounts[#R.mounts + 1] = fn end,
+		} or {}
+		stub_module("::/gui/main/react.lua", setmetatable({
 			RegisterPluginRecipe = function(_ext, name, fn)
 				R.plugins[name] = fn
 				return name
@@ -6987,7 +6995,7 @@ test("all lights (welcome): the background step opens the welcome once in a save
 				local cur = v
 				return { old = function() return cur end, set = function(_, x) cur = x end }
 			end,
-		})
+		}, { __index = gamepad }))
 		local function node(kind) return function(p) p.kind = kind return p end end
 		stub_module("::/gui/main/builtin.lua", { BoxLayout = node("BoxLayout"), TextView = node("TextView"), CheckBox = node("CheckBox"),
 			Button = node("Button"), Component = node("Component"), Window = node("Window"),
@@ -7001,7 +7009,10 @@ test("all lights (welcome): the background step opens the welcome once in a save
 			}
 		end })
 		stub_module("::/gui/main/styleutil.tl", { makeStyle = function(t) return t end })
-		stub_module("::/gui/main/content_card.tl", { makeInfoHint = function(t) return { kind = "hint", text = t } end })
+		-- the PS5 build's content_card has no makeInfoHint (player report 2026-10-19)
+		stub_module("::/gui/main/content_card.tl", opts.noHint and {} or { makeInfoHint = function(t) return { kind = "hint", text = t } end })
+		stub_module("::/gui/main/gui_react_util.tl", opts.gamepad
+			and { FocusTraversalScope = function(p) p.kind = "FocusTraversalScope" return p end } or {})
 		local fakeApi = {
 			type = { ComponentType = { GAME_SCRIPT = "GS" }, Vec4f = { new = function(...) return { ... } end } },
 			gui = { StyleSheet = { new = function() return {} end }, mouse = { hasTerrainPosition = function() return false end },
@@ -7088,6 +7099,36 @@ test("all lights (welcome): the background step opens the welcome once in a save
 		local R5 = load({}, true)
 		R5.run(AllModeW.WELCOME_DELAY_FRAMES * 3)
 		eq(#R5.windows, 0)
+		-- PS5: no makeInfoHint in the base content_card: the hint's own tree instead of a UI reload; the controller
+		-- takes the focus on mount, the d-pad scope holds the rows, the back button answers Not now
+		local R6 = load({}, false, { noHint = true, gamepad = true })
+		R6.run(AllModeW.WELCOME_DELAY_FRAMES)
+		eq(#R6.windows, 1)
+		local win6 = R6.recipes.SmartLanesWelcomeWindow({ onClose = R6.windows[1].params.onClose })
+		eq(win6.autoFocusOnBecomingVisible, true)
+		eq(win6.content.param.meta.forceFocusable, true)
+		local c6 = R6.recipes.SmartLanesWelcome({})
+		local scope = c6.children[1]
+		eq(scope.kind, "FocusTraversalScope")
+		eq({ scope.horizontal, scope.vertical }, { true, true })
+		local hint6
+		for _, r in ipairs(scope.layout.children[1].layout.children) do
+			if r.kind == "Component" and r.meta.class == "info-hint-comp" then hint6 = r end
+		end
+		ok(hint6 ~= nil, "the fallback hint")
+		local tv = hint6.layout.children[1]
+		eq(tv.kind, "TextView")
+		ok(tv.text:find("Save your game first", 1, true) ~= nil)
+		local focused = 0
+		R6.selfNode = { focus = function() focused = focused + 1 end }
+		for _, fn in ipairs(R6.mounts) do fn() end
+		ok(focused >= 1, "focused on mount")
+		R6.selfNode = nil
+		for _, fn in ipairs(R6.mounts) do fn() end -- nothing to focus: logged, nothing raised
+		ok(R6.actions.IA_MENU_BACK ~= nil, "a back-button handler")
+		R6.actions.IA_MENU_BACK.action()
+		eq(R6.events[1].param, { op = "welcome", src = "welcome", answer = "later", lanes = false, lights = false })
+		eq(R6.removed, 1, "closed")
 	end)
 	g.core, g.auto = savedCore, savedAuto
 	if not okT then error(e, 0) end

@@ -40,6 +40,9 @@ local AllMode = ug_require "square_smart_lanes::/smart_lanes/sl_allmode.lua"
 local game_react_globals = ug_require "::/gui/main/game_react_globals.tl"
 local styleutil = ug_require "::/gui/main/styleutil.tl"
 local content_card = ug_require "::/gui/main/content_card.tl"
+-- (pcall: base GUI modules differ by platform, see infoHint below)
+local okGru, gui_react_util = pcall(ug_require, "::/gui/main/gui_react_util.tl")
+if not okGru or type(gui_react_util) ~= "table" then gui_react_util = {} end
 
 local errors = 0
 
@@ -122,6 +125,27 @@ local function line(text)
 	return builtin.TextView{ meta = { class = "font-scale-body" }, text = AllMode.wrapLine(text, WRAP_COLS) }
 end
 
+-- The base info hint, when this platform has it. The PS5 build's content_card has no makeInfoHint (player report
+-- 2026-10-19, rev 9: "attempt to call field 'makeInfoHint' (a nil value)" reloaded the UI; docs/findings/gui.md
+-- "Base GUI modules differ by platform"): then the base hint's own tree (content_card.tl:479-497) without the icon
+-- image, whose texture may be missing there too. Its base classes style it where they exist; plain text otherwise.
+local function infoHint(text)
+	local make = content_card.makeInfoHint
+	if type(make) == "function" then
+		local ok, node = pcall(make, text, true)
+		if ok and node ~= nil then return node end
+	end
+	return builtin.Component{
+		meta = { class = "info-hint-comp" },
+		layout = builtin.BoxLayout{
+			orientation = builtin.type.Orientation.Horizontal,
+			children = {
+				builtin.TextView{ meta = { class = "font-scale-body, info-hint-text, no-icon" }, text = AllMode.wrapLine(text, WRAP_COLS) },
+			},
+		},
+	}
+end
+
 local SmartLanesWelcomeWindow -- set below (the Window wrapper)
 
 --- Sends the answer once (Apply or Not now; closing the window is Not now) and closes the window.
@@ -142,6 +166,24 @@ local SmartLanesWelcome = react.RegisterRecipe("SmartLanesWelcome", function(_pa
 	local lanes = react.useState(1)
 	local lights = react.useState(0) -- opt-in: the light timing box starts unticked
 	local S = wstyles()
+	-- Gamepad (PS5: the window has no X there, and a window without the focus gets no controller input; LMP rev 8,
+	-- docs/findings/gui.md "Gamepad windows"): as the base popover (popover_react_util.tl:8-15) the content is
+	-- focusable (meta.forceFocusable, set by the window), takes the focus when it mounts, and the back button
+	-- (IA_MENU_BACK: Circle / B / Esc) answers Not now
+	-- (each piece only where this platform's react has it: the same hooks every render)
+	if type(react.useInputAction) == "function" and type(react.iaHandler) == "function" then
+		react.useInputAction("IA_MENU_BACK", react.iaHandler(function() answerWelcome("later", false, false) end))
+	end
+	if type(react.useSelfRef) == "function" and type(react.onMount) == "function" then
+		local selfRef = react.useSelfRef()
+		react.onMount(function()
+			local okFocus, e = pcall(function() selfRef:get():focus() end)
+			if not okFocus and errors < 3 then
+				errors = errors + 1
+				emit("ERROR", { { "where", "welcome_focus" }, { "err", tostring(e) } })
+			end
+		end)
+	end
 	local function box(label, tip, state)
 		return builtin.CheckBox{
 			meta = { tooltip = tip },
@@ -165,7 +207,7 @@ local SmartLanesWelcome = react.RegisterRecipe("SmartLanesWelcome", function(_pa
 		box(_("Switch all traffic lights to automatic timing"),
 			_("Also lights you build later. To leave one out,\nchoose No in the Smart Lanes tool."), lights),
 		spacer(S.wide),
-		content_card.makeInfoHint(_("Save your game first, so you can go back if you change your mind."), true),
+		infoHint(_("Save your game first, so you can go back if you change your mind.")),
 		spacer(S.wide),
 		builtin.BoxLayout{
 			orientation = builtin.type.Orientation.Horizontal,
@@ -187,15 +229,20 @@ local SmartLanesWelcome = react.RegisterRecipe("SmartLanesWelcome", function(_pa
 			},
 		},
 	}
-	return builtin.BoxLayout{
-		orientation = builtin.type.Orientation.Vertical,
-		children = {
-			builtin.Component{
-				meta = { styleSheet = S.root },
-				layout = builtin.BoxLayout{ orientation = builtin.type.Orientation.Vertical, children = rows },
-			},
-		},
+	-- d-pad moves the focus between the boxes and the buttons (as the base mission end window,
+	-- mission_framework_react.tl:823-826); a child, since the recipe's root must stay a layout
+	local body = builtin.Component{
+		meta = { styleSheet = S.root },
+		layout = builtin.BoxLayout{ orientation = builtin.type.Orientation.Vertical, children = rows },
 	}
+	if type(gui_react_util.FocusTraversalScope) == "function" then
+		body = gui_react_util.FocusTraversalScope{
+			horizontal = true,
+			vertical = true,
+			layout = builtin.BoxLayout{ orientation = builtin.type.Orientation.Vertical, children = { body } },
+		}
+	end
+	return builtin.BoxLayout{ orientation = builtin.type.Orientation.Vertical, children = { body } }
 end)
 
 -- Window fields differ by platform: PS5 rejects `closable` (docs/findings/gui.md). Each field is tried once on a
@@ -226,8 +273,10 @@ SmartLanesWelcomeWindow = react.RegisterWrapperRecipe("SmartLanesWelcomeWindow",
 		title = _("Smart Lanes"),
 		closable = true,
 		movable = true,
+		-- the base vehicle store and mission end windows (vehicle_store_window.tl:4611-4623)
+		autoFocusOnBecomingVisible = true,
 		onClose = params.onClose,
-		content = SmartLanesWelcome{},
+		content = SmartLanesWelcome{ meta = { forceFocusable = true } },
 	})
 end)
 
