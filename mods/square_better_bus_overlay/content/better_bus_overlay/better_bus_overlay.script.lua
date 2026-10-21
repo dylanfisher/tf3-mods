@@ -1,6 +1,6 @@
 -- Better Bus Overlay: while a street bus/tram stop (ACTION_STREET_TERMINAL_BUILDER) or a bus/tram station (isStopDefinition) is being placed, the map shows every
 -- bus and tram line in its colour, tints town buildings by type (residential / commercial / industrial) with the ones nobody
--- reaches by your lines in full colour and the served ones faded, and puts a waiting-passenger badge on every stop.
+-- reaches by your lines in full colour and the served ones faded, and puts a waiting-passenger badge on every bus and tram stop (other stations keep their base icon).
 -- GUI only: no game script, nothing in the savegame.
 --
 -- Two module-table wrappers, installed by doReplace (better_bus_overlay_replace.res.lua):
@@ -149,12 +149,77 @@ end
 -- so no recipe of our own (a recipe must return a layout: a Component root crashed the game, 2026-10-09).
 -- Earlier tries: the Passenger Satisfaction layer's tag with the emote (too big), the game's HUD scale (no effect,
 -- docs/findings.md) and an own number-only pill (too minimal).
+-- The base tag builder, when this platform has it. Console builds ship their own base GUI scripts, which can lack
+-- functions the PC copy has (PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI modules differ by
+-- platform"). Resolved on the first tag: the base function's first call runs in pcall; when it works it is called
+-- directly from then on (no per-tag pcall), else fallbackTag for the session. fallbackTag is the base HUD-mode tree
+-- (gui_react_util.tl:113-140, 277-310) for the params our tags pass (one icon path, label, labelFontColor, labelMode
+-- "HudIconMain", shippingState), with the same classes, so base styling applies where the stylesheet has them.
+local SHIPPING_CLASS = {
+	Warehouse = "warehouse", WaitingPassenger = "waiting-passenger", Vehicle = "vehicle",
+	IndustryInput = "industry-input", IndustryOutput = "industry-output",
+}
+local tagFn = nil
+
+local function fallbackTag(p)
+	if type(react.setStyleClasses) == "function" then react.setStyleClasses("hud-icon-main") end
+	local hud = p.labelMode == "HudIconMain" or p.labelMode == "HudIconLayer"
+	local inner = {}
+	if p.iconPath ~= nil then
+		inner[#inner + 1] = builtin.ImageView{
+			meta = { tooltip = p.tooltip, class = "iconlabelindicator-icon-size" .. (hud and ",hud-icon" or "") },
+			path = p.iconPath,
+			scaling = builtin.type.ImageViewScaling.AutoFit,
+		}
+	end
+	if p.label ~= nil then
+		inner[#inner + 1] = builtin.TextView{
+			meta = { class = "iconlabelindicator-label, font-scale-annotation", tooltip = p.tooltip },
+			text = p.label,
+		}
+	end
+	local bg = "hud-icon-background, " .. (p.labelFontColor or "Default")
+	local ship = p.shippingState and SHIPPING_CLASS[p.shippingState]
+	if ship then bg = bg .. ", " .. ship end
+	return builtin.BoxLayout{
+		orientation = builtin.type.Orientation.Vertical,
+		children = {
+			builtin.Component{
+				meta = { class = bg },
+				layout = builtin.BoxLayout{
+					meta = { class = "iconlabelindicator-layout" },
+					orientation = builtin.type.Orientation.Horizontal,
+					children = { builtin.BoxLayout{ orientation = builtin.type.Orientation.Horizontal, children = inner } },
+				},
+			},
+		},
+	}
+end
+
+local function hudTag(p)
+	local f = tagFn
+	if f ~= nil then return f(p) end
+	local base = gui_react_util.makeContentLabelIndictator
+	if type(base) == "function" then
+		local ok, node = pcall(base, p)
+		if ok and node ~= nil then
+			tagFn = base
+			return node
+		end
+		warnOnce("tag", node)
+	else
+		warnOnce("tag", "base makeContentLabelIndictator " .. type(base) .. ", own tags")
+	end
+	tagFn = fallbackTag
+	return fallbackTag(p)
+end
+
 local function stationBadge(happiness)
 	local fontColor = "Normal"
 	if happiness.unhappy > 0 then
 		fontColor = happiness.unhappy > happiness.totalWaiting / 2 and "Poor" or "Inferior"
 	end
-	return gui_react_util.makeContentLabelIndictator{
+	return hudTag{
 		iconPath = cargo_util.getPassengerCargoIcon(),
 		label = lang_util.formatInt(happiness.totalWaiting),
 		labelFontColor = fontColor,
@@ -183,7 +248,7 @@ local function noLineTag()
 		meta = { class = "station-icon-layout" },
 		orientation = builtin.type.Orientation.Horizontal,
 		children = {
-			gui_react_util.makeContentLabelIndictator{
+			hudTag{
 				iconPath = NO_LINE_ICON,
 				label = NO_LINE_TEXT,
 				labelFontColor = "Default",
@@ -195,6 +260,48 @@ end
 
 local function hasNoLine(stationGroup)
 	return #api.engine.system.lineSystem.getLineStops(stationGroup) == 0
+end
+
+-- The stop tags and the shaded pin are for bus and tram stops only. Every other station group keeps its base icon:
+-- an oil rig's helicopter / ship station, harbors, airports, train stations and truck stations all showed the bus
+-- tag or pin (player report, 2026-10-18). A street stop: every carrier is road or tram (stationGroupSystem.getCarriers,
+-- api/engine/system.d.tl:98-102; base tests carriers the same way, constructionHudIconMaster.tl:82-90) and it holds a
+-- passenger station (util.station.isStationOfType(station, false), as station_group.tl:642). `terminal` (a
+-- StationTerminal, zero-based) narrows both to the terminal of a per-terminal icon, so the bus terminals of a group
+-- that also has a rail station still count; nil checks the whole group.
+local function isStreetStop(stationGroup, terminal)
+	local st, tm = -1, -1
+	if terminal ~= nil then st, tm = terminal.station, terminal.terminal end
+	local carriers = api.engine.system.stationGroupSystem.getCarriers(stationGroup, st, tm)[1]
+	if carriers == nil or #carriers == 0 then return false end
+	local road, tram = api.type.enum.Carrier.ROAD, api.type.enum.Carrier.TRAM
+	for _, c in ipairs(carriers) do
+		if c ~= road and c ~= tram then return false end
+	end
+	local group = api.engine.getComponent(stationGroup, api.type.ComponentType.STATION_GROUP)
+	local stations = group and group.stations or {}
+	if terminal ~= nil then
+		local station = stations[terminal.station + 1]
+		return station ~= nil and api.engine.util.station.isStationOfType(station, false)
+	end
+	for _, station in ipairs(stations) do
+		if api.engine.util.station.isStationOfType(station, false) then return true end
+	end
+	return false
+end
+
+-- the terminal of a per-terminal station icon (index >= 0, near the camera), nil for the group icon
+local function iconTerminal(param)
+	if param.index ~= -1 and param.details and param.details.data
+			and param.details.data.kind == api.gui.SelectionDetails.Type.Station then
+		return param.details.data.stationTerminal
+	end
+	return nil
+end
+
+local function isStreetStopIcon(param)
+	local ok, street = pcall(isStreetStop, param.entity, iconTerminal(param))
+	return ok and street == true
 end
 
 -- Stations: the base icon (or the default one when base would skip stations) plus the badge. Anything else goes to
@@ -216,16 +323,18 @@ local HudIconMaster = react.RegisterRecipe("SquareBetterBusLinesHudIconMaster", 
 		local t = perfHud:start()
 		if old ~= nil and not old.station then return pollDone(t, old) end
 		if param.entity < 0 or not api.engine.entityExists(param.entity) then return pollDone(t, nil) end
-		if old == nil and api.engine.getComponent(param.entity, api.type.ComponentType.STATION_GROUP) == nil then
+		-- other station groups (harbors, airports, oil rigs, rail, trucks) count as non-stations: the base master
+		if old == nil and (api.engine.getComponent(param.entity, api.type.ComponentType.STATION_GROUP) == nil
+				or not isStreetStopIcon(param)) then
 			return pollDone(t, { station = false })
 		end
 		local passenger = cargo_util.getPassengerCargoTypeId()
 		local data
 		-- SelectionDetails.Type.Station: a plain enum field read (api/gui.d.tl:112-123), no call; base reads it in
 		-- the same HUD context (HudStationWithLineStops, manager_hud_util.tl:382)
-		if param.index ~= -1 and param.details and param.details.data
-				and param.details.data.kind == api.gui.SelectionDetails.Type.Station then
-			data = api.engine.util.cargo.getCargoQualityDataAtTerminal(param.entity, param.details.data.stationTerminal, passenger)
+		local terminal = iconTerminal(param)
+		if terminal ~= nil then
+			data = api.engine.util.cargo.getCargoQualityDataAtTerminal(param.entity, terminal, passenger)
 		else
 			data = api.engine.util.cargo.getCargoQualityDataAtStationGroup(param.entity, passenger)
 		end
@@ -385,16 +494,30 @@ local function pinLayer(class, item)
 	}
 end
 
+local origUseDefaultHudIcon -- the engine's builtin, kept by doReplace
+
 -- SQPERF sections "pin_render" and "pin_poll" (perfHud)
 local ShadedStopIcon = react.RegisterRecipe("SquareBetterBusLinesShadedStopIcon", perfHud:wrap("pin_render", function(param)
-	local state = engine_react_util.useStepStateTimer(function()
+	-- whether it is a street stop is read once; other stations keep the base pin at no further engine cost
+	local state = engine_react_util.useStepStateTimer(function(old)
 		local t = perfHud:start()
+		if old ~= nil and not old.street then
+			perfHud:stop("pin_poll", t)
+			return old
+		end
+		if old == nil and not isStreetStopIcon(param) then
+			perfHud:stop("pin_poll", t)
+			return { street = false }
+		end
 		local ok, step = pcall(pinStep, param.entity)
 		local okLine, noLine = pcall(hasNoLine, param.entity)
 		perfHud:stop("pin_poll", t)
-		return { step = ok and step or 0, noLine = okLine and noLine }
+		return { street = true, step = ok and step or 0, noLine = okLine and noLine }
 	end)
 	react.setMouseTransparent(true)
+	if not state:old().street then
+		return builtin.BoxLayout{ children = { origUseDefaultHudIcon(param) } }
+	end
 	if state:old().noLine then
 		return noLineTag()
 	end
@@ -424,8 +547,6 @@ local ShadedStopIcon = react.RegisterRecipe("SquareBetterBusLinesShadedStopIcon"
 		},
 	}
 end))
-
-local origUseDefaultHudIcon
 
 -- builtins are called as (params) or (ref, params); only the plain form from the stop recipe is replaced
 local function useDefaultHudIcon(p, ...)

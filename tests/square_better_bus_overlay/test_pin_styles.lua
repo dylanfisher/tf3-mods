@@ -86,13 +86,17 @@ local function fakeApi(sqperfLog)
 		engine = {
 			config = { getModParams = function() return { [MOD] = { sqperf_log = sqperfLog } } end },
 			entityExists = function() return true end,
-			getComponent = function() return {} end,
-			system = { lineSystem = {
-				getLines = function() return {} end,
-				getLineStops = function() return { 1 } end,
-			} },
+			getComponent = function() return { stations = { 1 } } end,
+			system = {
+				stationGroupSystem = { getCarriers = function() return { { 1 }, {} } end },
+				lineSystem = {
+					getLines = function() return {} end,
+					getLineStops = function() return { 1 } end,
+				},
+			},
 			util = {
 				line = { isLineCompatibleWithAnyCarrier = function() return true end },
+				station = { isStationOfType = function(_st, cargo) return not cargo end },
 				cargo = { getCargoQualityDataAtStationGroup = function(e)
 					return { countTotal = F.waiting[e] or 0, countBad = 0 }
 				end },

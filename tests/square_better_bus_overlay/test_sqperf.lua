@@ -92,13 +92,17 @@ local function fakeApi(sqperfLog)
 		engine = {
 			config = { getModParams = function() return { [MOD] = { sqperf_log = sqperfLog } } end },
 			entityExists = function() return true end,
-			getComponent = function(_e, ct) return ct == "STATION_GROUP" and {} or nil end,
-			system = { lineSystem = {
-				getLines = function() return { 500 } end,
-				getLineStops = function() return { 1 } end,
-			} },
+			getComponent = function(_e, ct) return ct == "STATION_GROUP" and { stations = { 1 } } or nil end,
+			system = {
+				stationGroupSystem = { getCarriers = function() return { { 1 }, {} } end },
+				lineSystem = {
+					getLines = function() return { 500 } end,
+					getLineStops = function() return { 1 } end,
+				},
+			},
 			util = {
 				line = { isLineCompatibleWithAnyCarrier = function() return true end },
+				station = { isStationOfType = function(_st, cargo) return not cargo end },
 				cargo = { getCargoQualityDataAtStationGroup = function() return { countTotal = 12, countBad = 0 } end },
 			},
 		},
