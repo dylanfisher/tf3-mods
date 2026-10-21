@@ -226,11 +226,13 @@ end
 
 local function vec(x, y, z) return { x = x, y = y, z = z } end
 
-local function load()
+--- platform: optional, edits the base module fakes after stubs() (a console build that lacks functions).
+local function load(platform)
 	F = { polls = {}, hooks = {}, hookIdx = 0, clockUs = 1e9, visible = {}, steps = {}, events = {} }
 	F.W = world()
 	clear_logs()
 	stubs()
+	if platform then platform() end
 	local W = F.W
 	local LayerConfig = { new = function() return { layerConfig = true } end }
 	LayerConfig.CatchmentAreaRenderableConfig = { new = function() return {} end }
@@ -745,4 +747,28 @@ test("entry: a tool pushed over the Shift entry (Shift-click opened the line man
 	eq(F.pushed, nil)
 	mapHover(1)
 	eq(F.pushed, nil, "no new Shift hover while the line manager is on top")
+end)
+
+-- PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI modules differ by platform": the console
+-- build's base GUI scripts lack functions the PC copies have.
+test("platform without content_card.ContentCard / selector helpers: no card, the arrows still draw", function()
+	local m = load(function()
+		stub_module("::/gui/main/content_card.tl", {})
+		F.selectorModule.makeDefaultSelectorAction = nil
+		F.selectorModule.makeDefaultSelector = nil
+		F.selectorModule.makeDefaultSelectorTooltips = nil
+	end)
+	local node = render(m)
+	eq(node.w, "BoxLayout", "a layout root")
+	eq(#node.p.children, 0, "empty: no card")
+	eq(find(node, function(n) return n.w == "ContentCard" end), nil)
+	-- the tool action (pushed by the checkbox in a real card): built here directly through hover
+	local h = hoverNode(F.lineReactUtil.LocateButton({ entity = 1 }))
+	h.p.meta.onMouseOver(true)
+	ok(F.pushed ~= nil, "hover pushed the tool")
+	F.hookIdx = 900000
+	local action = F.pushed.actionFn()
+	eq(action.w, "ActionDescriptor", "no default action: our own descriptor")
+	eq(find(action, function(n) return n.w == "Selector" end), nil, "no base selector")
+	ok(F.layerConfig ~= nil, "the arrows' layer config")
 end)

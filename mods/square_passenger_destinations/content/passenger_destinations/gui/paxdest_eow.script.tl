@@ -866,20 +866,23 @@ local function makeActionFn(gameCtx : GameContext, owner : integer, current : fu
 		end, ACTION_POLL_S)
 		local layerConfig = buildLayerConfig(snapState:old())
 		local ctx = gameCtx or lastGameCtx
-		if ctx == nil then
+		-- each base selector helper only where this platform has it (PS5 report 2026-10-19, Smart Lanes;
+		-- docs/findings/gui.md "Base GUI modules differ by platform"): the arrows alone otherwise
+		local su = selector_react_util as {string : any}
+		local sAction, sSelector, sTips = su.makeDefaultSelectorAction, su.makeDefaultSelector, su.makeDefaultSelectorTooltips
+		if ctx == nil or not sAction is function then
 			-- no game context seen yet: the arrows and the map selector, no HUD icons. The selector must stay:
 			-- without it nothing reports the mouse while our tool is on top, so Shift hover took every push
 			-- for "mouse left", popped, the map's selector reported the entity again, and the arrows flashed
 			-- on and off ~3 times a second (in game 2026-10-11, until a window had been opened).
 			local selectedRef : ReactRefT<Engine.Entity> = react.useRef(-1)
-			return builtin.ActionDescriptor{
-				children = {
-					selector_react_util.makeDefaultSelector(game_react_globals.getDefaultRendererComponent(), selectedRef, nil),
-					selector_react_util.makeDefaultSelectorTooltips(selectedRef),
-					builtin.LayerConfig{ config = layerConfig },
-				},
-				terrainCirclePolicy = "Never",
-			}
+			local children : {TreeNodeId} = {}
+			if sSelector is function and sTips is function then
+				children[1] = selector_react_util.makeDefaultSelector(game_react_globals.getDefaultRendererComponent(), selectedRef, nil)
+				children[2] = selector_react_util.makeDefaultSelectorTooltips(selectedRef)
+			end
+			children[#children + 1] = builtin.LayerConfig{ config = layerConfig }
+			return builtin.ActionDescriptor{ children = children, terrainCirclePolicy = "Never" }
 		end
 		return selector_react_util.makeDefaultSelectorAction(ctx, layerConfig, true)()
 	end
@@ -1395,6 +1398,12 @@ end
 local function card(gameCtx : GameContext, showOnRight : boolean, localKey : string, rows : {TreeNodeId}) : TreeNodeId
 	-- a plugin's root must be a layout (memory "Recipe must return layout"); card shape as base
 	-- sim_person_eow.script.tl:476-495 and AAT's line plugin; no title (content_card.tl:231 skips it)
+	-- No card where this platform's content_card has no ContentCard, rather than a UI reload (PS5 report
+	-- 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI modules differ by platform").
+	local ccCard = (content_card as {string : any}).ContentCard
+	if not ccCard is function then
+		return builtin.BoxLayout{ children = {} }
+	end
 	return builtin.BoxLayout{
 		child = content_card.ContentCard{
 			meta = { localKey = localKey },

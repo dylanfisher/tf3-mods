@@ -1,6 +1,6 @@
 {
     "modId": "square_passenger_destinations",
-    "revision": 6,
+    "revision": 7,
     "severityAdd": "None",
     "severityRemove": "Warning",
     "visible": true,
