@@ -445,7 +445,7 @@ end)
 -- EU organic and MED hill deep vs hug vs clear in the grove fixture, 4 town seeds x 8 increments
 local SEEDS = { 21, 22, 23, 24 }
 for _, id in ipairs({ "EU_ORGANIC", "MED_HILL" }) do
-	test("plan (" .. id .. "): deep keeps the groves, locks the forest edges, winds (max straight <= 80 m), still grows", function()
+	test("plan (" .. id .. "): deep keeps the groves, locks the forest edges, winds (max straight <= 2 blocks), still grows", function()
 		local r = {}
 		for _, mode in ipairs({ "deep", "hug", "clear" }) do
 			local acc = { kept = 0, lock = 0, len = 0, maxS = 0, bends = 0, edges = 0, geoBad = 0, grove = 0, adj = 0 }
@@ -470,10 +470,14 @@ for _, id in ipairs({ "EU_ORGANIC", "MED_HILL" }) do
 				mode, acc.kept, acc.lock, acc.adj, acc.len, acc.maxS, acc.bends, acc.edges, acc.grove, acc.geoBad, acc.badWhy or ""))
 		end
 		local dp, hg = r.deep, r.hug
-		ok(dp.kept >= 0.88, "deep keeps the groves inside its frame: " .. dp.kept)
+		-- (MED hill 0.85 since the 44 m minimum block, 2026-10-18: its 30 m lanes floor at the minimum, so its pieces are
+		-- longer and fewer fit between the groves; deep 0.95 -> 0.86, hug 0.91 -> 0.68, clear 0.68 -> 0.61)
+		ok(dp.kept >= (id == "MED_HILL" and 0.85 or 0.88), "deep keeps the groves inside its frame: " .. dp.kept)
 		ok(dp.kept >= hg.kept, "at least as many as a hug town")
 		ok(dp.lock >= 0.95 and dp.lock > hg.lock, "deep locks its forest-adjacent edges: " .. dp.lock .. " vs " .. hg.lock)
-		ok(dp.maxS <= 80, "no straight run over 80 m: " .. dp.maxS)
+		-- (two minimum blocks: 80 m until the 44 m minimum, 2026-10-18; a deep town's block depth floors at MIN_BLOCK, so
+		-- its lanes, and the straight runs between them, are 10 % farther apart: EU organic 72 -> 88 m)
+		ok(dp.maxS <= 2 * ST.MIN_BLOCK, "no straight run over two blocks: " .. dp.maxS)
 		eq(dp.geoBad, 0, "geoBad=none in every increment")
 		ok(dp.len >= 0.35 * r.clear.len, "the deep town still grows: " .. dp.len .. " vs clear " .. r.clear.len)
 	end)

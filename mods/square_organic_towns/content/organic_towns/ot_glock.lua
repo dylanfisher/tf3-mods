@@ -106,6 +106,16 @@ local function isTownTemplate(path)
 end
 M.isTownTemplate = isTownTemplate
 
+--- §73: a medium / large town street (also `_trees`)? Tips and valve stubs never go on one: the game's own growth
+--- from an open wide dead end could carry the wide street on in its own way (unverified in game; the precaution is cheap).
+local function wideTemplate(path)
+	if type(path) ~= "string" then return false end
+	local s = path:match("town_%a+_(%a+)%.street_template$") or path:match("town_%a+_(%a+)_trees%.street_template$")
+	return s == "medium" or s == "large"
+end
+M.wideTemplate = wideTemplate
+M.NO_WIDE_TIPS = true
+
 local function mid(ed) return (ed.p0[1] + ed.p1[1]) / 2, (ed.p0[2] + ed.p1[2]) / 2 end
 local function len(ed) return G.dist(ed.p0[1], ed.p0[2], ed.p1[1], ed.p1[2]) end
 M.mid, M.len = mid, len
@@ -337,7 +347,8 @@ function M.pickStub(edges, a, cx, cy, extR)
 	local r = math.max(100, tonumber(extR) or 0)
 	for i = 1, math.min(#(edges or {}), M.SCAN_MAX) do
 		local e = edges[i]
-		if e.key ~= nil and not e.existing and not e.forestLane and not e.bridge and e.p0 and e.p1 then
+		if e.key ~= nil and not e.existing and not e.forestLane and not e.bridge and e.p0 and e.p1
+			and not (M.NO_WIDE_TIPS and wideTemplate(e.template)) then
 			local tip = (e.node0 and e.node0 < 0 and degN[e.node0] == 1) or (e.node1 and e.node1 < 0 and degN[e.node1] == 1)
 			local mx, my = mid(e)
 			local d = G.dist(cx, cy, mx, my)
@@ -385,7 +396,8 @@ function M.pickTips(edges, locked, ctx, cx, cy, extR, open, max)
 			elseif e.node0 and e.node0 < 0 and degN[e.node0] == 1 then tipNode, tx, ty = e.node0, e.p0[1], e.p0[2] end
 			if tipNode then
 				local d = G.dist(cx, cy, tx, ty)
-				if d < M.TIP_OUT * r then rej.inner = (rej.inner or 0) + 1
+				if M.NO_WIDE_TIPS and wideTemplate(e.template) then rej.wide = (rej.wide or 0) + 1
+				elseif d < M.TIP_OUT * r then rej.inner = (rej.inner or 0) + 1
 				elseif ctx.fg ~= nil and ctx.fg.cover ~= nil and SK.pointClear(ctx.fg, tx, ty, isWood) < SK.CLEAR_M then
 					rej.forest = (rej.forest or 0) + 1
 				elseif M.TIP_CORRIDOR and ctx.fg ~= nil and d > 1e-6

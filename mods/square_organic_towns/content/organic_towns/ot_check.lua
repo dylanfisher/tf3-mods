@@ -9,7 +9,7 @@
 --   M.edge(e)                 -> { length, chord, minRadius, slope, dev0, dev1 (deg: tangent vs chord), ratio }
 --   M.increment(inc, g, lim)  -> report { edges = {per-edge info}, bad = {violations}, minRadius, minAngle, ... }
 --   M.summary(report)         -> one log-friendly line
--- A violation is { kind = "radius"|"short"|"slope"|"angle"|"kink"|"tangent", edge = entity or nil, node = id,
+-- A violation is { kind = "radius"|"short"|"slope"|"angle"|"side"|"kink"|"tangent", edge = entity or nil, node = id,
 -- value = number }.
 
 local G = ug_require "square_organic_towns::/organic_towns/ot_geom.lua"
@@ -23,12 +23,57 @@ M.LIMITS = {
 	hardRadius = 44,   -- m: template minCurveRadius ("final proposal")
 	minLen = 10,       -- m: shortest edge the planner emits
 	maxSlope = 0.2,    -- template maxSlopeBuild
-	minAngle = 25,     -- deg: between two edges at a node (actual tangents)
+	minAngle = 25,     -- deg: between two edges at a node (actual tangents): a bend at a node with two streets
+	sideAngle = 60,    -- deg: at a junction (3+ streets) a new street meets every other street there at least this far
+	                   -- off (a side street leaves at 60-120 deg; 2026-10-19 §75), except the two arms of a fork
 	maxKink = 3,       -- deg: tangent break at a degree-2 node where one street continues (not a corner)
 	cornerFrom = 45,   -- deg: a break this large at a degree-2 node is a deliberate corner, not a kink
 	maxDev = 60,       -- deg: tangent vs chord at an edge end (beyond: the curve is an S or a loop)
 }
 M.SAMPLES = 24
+
+-- §75 (2026-10-19; user shots: a side street leaving a curving street at ~20-30 deg and running back beside it): a
+-- junction's side street leaves at least LIMITS.sideAngle off every street there. A fork is the one exception: two arms
+-- under it that split a third street's straight continuation between them, each at least FORK_DEV (and at most
+-- FORK_MAX) off it (a Y; a street going on straight with a branch at 25 deg beside it is no fork).
+M.FORK_DEV = 12
+M.FORK_MAX = 50
+-- deg: the checker's report (PLAN geoSide=) counts a side street only this far under LIMITS.sideAngle. The planner and the
+-- near-miss T hold the rule exactly (a T's heading is clamped to TEE_MIN_DEG 60), and the built edges' tangents
+-- read back 59.99x: run 2026-10-19_1949_sqot's 6 geoSide=1 plans were near-miss joins at minAngle=60.00 (§75 follow-up)
+M.SIDE_TOL = 0.1
+
+--- Is the pair (i, j) of the headings hs (radians, the streets leaving one node) a fork? Only at a node of three.
+function M.isFork(hs, i, j)
+	if #hs ~= 3 then return false end
+	local k = 6 - i - j
+	local opp = hs[k] + math.pi
+	local di, dj = G.angleDiff(hs[i], opp), G.angleDiff(hs[j], opp)
+	local lo, hi = math.rad(M.FORK_DEV), math.rad(M.FORK_MAX)
+	if di < lo or dj < lo or di > hi or dj > hi then return false end
+	-- (the continuation lies between them)
+	return abs(di + dj - G.angleDiff(hs[i], hs[j])) < 1e-3
+end
+
+--- The side-street rule at one node: arms = { { h = heading leaving the node (radians), new = bool, free = bool } }.
+--- At a node with three or more streets, the smallest angle (radians) of a pair with a new arm (and no `free` one:
+--- streets exempt by design) under `side` (radians) that is no fork, and the pair's indices; nil when none.
+function M.sideBad(arms, side)
+	if side == nil or side <= 0 or #arms < 3 then return nil end
+	local hs = {}
+	for i, a in ipairs(arms) do hs[i] = a.h end
+	local worst, wi, wj = nil, nil, nil
+	for i = 1, #arms do
+		for j = i + 1, #arms do
+			local a, b = arms[i], arms[j]
+			if (a.new or b.new) and not a.free and not b.free then
+				local d = G.angleDiff(a.h, b.h)
+				if d < side - 1e-9 and not M.isFork(hs, i, j) and (worst == nil or d < worst) then worst, wi, wj = d, i, j end
+			end
+		end
+	end
+	return worst, wi, wj
+end
 
 local function lim(l, k)
 	if l and l[k] ~= nil then return l[k] end
@@ -129,10 +174,10 @@ function M.increment(inc, g, limits)
 	local R, hardR, minLen = lim(limits, "radius"), lim(limits, "hardRadius"), lim(limits, "minLen")
 	local maxSlope, maxDev = lim(limits, "maxSlope"), lim(limits, "maxDev")
 	local at = {}   -- node id -> { {heading, edge entity, street key} }
-	local function add(id, h, ent, key)
+	local function add(id, h, ent, key, free)
 		at[id] = at[id] or {}
 		local l = at[id]
-		l[#l + 1] = { h = h, edge = ent, key = key }
+		l[#l + 1] = { h = h, edge = ent, key = key, free = free }
 	end
 	for _, e in ipairs(inc.edges) do
 		local info = M.edge(e)
@@ -149,8 +194,8 @@ function M.increment(inc, g, limits)
 		if info.dev0 > maxDev or info.dev1 > maxDev then
 			bad("tangent", { edge = e.entity, value = max(info.dev0, info.dev1) })
 		end
-		add(e.node0, leaving(e, e.node0), e.entity, e.key)
-		add(e.node1, leaving(e, e.node1), e.entity, e.key)
+		add(e.node0, leaving(e, e.node0), e.entity, e.key, e.sideFree)
+		add(e.node1, leaving(e, e.node1), e.entity, e.key, e.sideFree)
 	end
 	-- existing edges at the nodes the increment touches
 	if g then
@@ -167,7 +212,13 @@ function M.increment(inc, g, limits)
 		end
 	end
 	local minAngle, maxKink, corner = lim(limits, "minAngle"), lim(limits, "maxKink"), lim(limits, "cornerFrom")
+	local side = math.rad(lim(limits, "sideAngle") - M.SIDE_TOL)
 	for id, l in pairs(at) do
+		-- (§75: a side street at a junction; the new edges' arms only, an existing junction's own angles stand)
+		local arms = {}
+		for i, x in ipairs(l) do arms[i] = { h = x.h, new = not x.existing, free = x.free } end
+		local sb, si, sj = M.sideBad(arms, side)
+		if sb then bad("side", { node = id, value = deg(sb), edges = { l[si].edge, l[sj].edge } }) end
 		for i = 1, #l do
 			for j = i + 1, #l do
 				local a = deg(G.angleDiff(l[i].h, l[j].h))
@@ -190,7 +241,7 @@ function M.increment(inc, g, limits)
 	end
 	table.sort(rep.bad, function(p, q)
 		if p.kind ~= q.kind then return p.kind < q.kind end
-		if p.kind == "radius" or p.kind == "short" or p.kind == "angle" then return p.value < q.value end
+		if p.kind == "radius" or p.kind == "short" or p.kind == "angle" or p.kind == "side" then return p.value < q.value end
 		return p.value > q.value
 	end)
 	if rep.minRadius == math.huge then rep.minRadius = -1 end
@@ -400,8 +451,8 @@ function M.selfClearance(inc)
 	return out
 end
 
---- True when the report has no violation of the given kinds (default: radius, short, slope, angle, tangent,
---- kink).
+--- True when the report has no violation of the given kinds (default: radius, short, slope, angle, tangent, kink;
+--- not "side": the planner holds it for steer towns' plans only, §75).
 function M.passes(rep, kinds)
 	kinds = kinds or { "radius", "short", "slope", "angle", "tangent", "kink" }
 	for _, k in ipairs(kinds) do
@@ -410,7 +461,8 @@ function M.passes(rep, kinds)
 	return true
 end
 
---- Violation counts as "radius:2/kink:1" ("none" without).
+--- Violation counts as "radius:2/kink:1" ("none" without; "side" not: steer towns' plans only, the PLAN line's
+--- `geoSide=`).
 function M.badText(rep)
 	local parts = {}
 	for _, k in ipairs({ "radius", "short", "slope", "angle", "kink", "tangent" }) do

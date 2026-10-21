@@ -252,8 +252,11 @@ end)
 -- wooded pieces only up to FO.CUT_FILL of an increment: it grows slower, the grids most). Nordic's cluster cells
 -- (~230 m) can't thread 160 m clearings: it gets 440 m wide ones (on the 160 m cross: cut 0.63 vs 0.71).
 local SEEDS = { 21, 22, 23, 24, 25, 26 }
-local WANT = { EU_ORGANIC = 0.5, NORDIC = 0.65, MED_HILL = 0.5, JP_DENSE = 0.5, NA_GRID = 0.5 }
-local GROW = { EU_ORGANIC = 0.65, NORDIC = 0.8, MED_HILL = 0.65, JP_DENSE = 0.6, NA_GRID = 0.5 }
+-- (MED hill 0.65 / 0.6 since the 44 m minimum block, 2026-10-18, 0.5 / 0.65 before: its 30 m lanes floor at the minimum,
+-- so fewer pieces fit the clearings and the hug town takes its share of wooded pieces sooner: cut 0.19 -> 0.35 of the
+-- clear town's 0.53, length 0.68 -> 0.63 of it)
+local WANT = { EU_ORGANIC = 0.5, NORDIC = 0.65, MED_HILL = 0.65, JP_DENSE = 0.5, NA_GRID = 0.5 }
+local GROW = { EU_ORGANIC = 0.65, NORDIC = 0.8, MED_HILL = 0.6, JP_DENSE = 0.6, NA_GRID = 0.5 }
 local CROSS = { NORDIC = crossOf(220) }
 for _, id in ipairs({ "EU_ORGANIC", "NORDIC", "MED_HILL", "JP_DENSE", "NA_GRID" }) do
 	test("cross of clearings: a hugging " .. id .. " cuts little forest and grows along the clearings", function()

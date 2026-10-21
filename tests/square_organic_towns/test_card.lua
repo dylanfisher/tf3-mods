@@ -176,18 +176,18 @@ test("growth by deliveries: off, no deliveries, rows with the pull and the lean"
 	ok(type(sec.lines[3].tip) == "string" and #sec.lines[3].tip > 0, "the bar explains itself")
 	eq(sec.lines[6].key, "Industrial")
 	local function ascii(v) return (tostring(v):gsub("\226\134\146", "->")) end
-	ok(sec.lines[6].value == "15% → 70%", ascii(sec.lines[6].value))
+	ok(sec.lines[6].value == "15% → 58%", ascii(sec.lines[6].value)) -- §75: residential floor 0.25
 	eq(sec.lines[7].color, "ind")
-	near(sec.lines[7].mark, 0.7, 0.006)
+	near(sec.lines[7].mark, 0.58, 0.006)
 	-- the aim below the built share reads too (the first pass showed nothing then)
-	ok(sec.lines[2].value == "63% → 18%", "aim below now: " .. ascii(sec.lines[2].value))
+	ok(sec.lines[2].value == "63% → 30%", "aim below now: " .. ascii(sec.lines[2].value))
 	eq(CARD.aimText(0.452, 0.448), "45%, on its aim")
 	ok(CARD.aimText(0 / 0, 2) == "0% → 100%", "garbage clamped: " .. ascii(CARD.aimText(0 / 0, 2)))
 	ok(texts(sec):find("toward industry", 1, true), texts(sec))
 	-- a weighted town that leans industrial and sits at its aim
 	inp.init = { 140, 100, 760 }
 	inp.rc = { e = { 0, 0, 1000 } }
-	local aim = { 0.12, 0.12, 0.76 }
+	local aim = { 0.25, 0.12, 0.63 }
 	inp.init = { aim[1] * 1000, aim[2] * 1000, aim[3] * 1000 }
 	sec = CARD.rciSection(inp)
 	ok(texts(sec):find("already matches", 1, true), texts(sec))
@@ -383,7 +383,7 @@ test("card GUI: base pieces; inline style only for the thin bar and the fixed ga
 		ok(not code:find(w, 1, true), "no " .. w)
 	end
 	for _, w in ipairs({ "builtin.ProgressBar", "thresholds", "font-scale-annotation", "makeInfoHint",
-		"card-children-separator", "makeHorizontalSpacer", "selectEntity", "gapBefore" }) do
+		"card-children-separator", "horizontal-spacer", "selectEntity", "gapBefore" }) do
 		ok(code:find(w, 1, true), "uses " .. w)
 	end
 	-- (the only inline sheets: barSheet and the gap spacer; never read back)
@@ -506,4 +506,71 @@ test("driver: summaries noted at checks on a new map, written in batches only wh
 	eq(#events[#events].p.towns, SV.UI_BATCH)
 	d3:uiTick(1e6 + D.UI_FLUSH_S * 1e6, d3.saved)
 	eq(#events[#events].p.towns, 5, "the rest next time")
+end)
+
+test("card GUI on a platform whose base content_card lacks makeInfoHint / ContentCard (PS5 report 2026-10-19): guarded, no direct call", function()
+	local fh = assert(io.open(here .. "../../mods/square_organic_towns/content/organic_towns/gui/ot_card.script.tl", "r"))
+	local code = fh:read("a"):gsub("%-%-[^\n]*", "")
+	fh:close()
+	ok(not code:find("content_card.makeInfoHint(", 1, true), "makeInfoHint only through infoHint")
+	ok(code:find("make is function", 1, true) and code:find("info-hint-comp", 1, true), "infoHint falls back to the base tree")
+	ok(code:find("ccCard is function and ccRecipe is function", 1, true), "no card without ContentCard")
+end)
+
+test("card GUI rendered on a platform whose base modules lack makeInfoHint / makeHorizontalSpacer (PS5 report 2026-10-19): no error", function()
+	-- docs/findings/gui.md "Base GUI modules differ by platform": the console build's base GUI scripts lack functions
+	-- the PC copies have. Here content_card has only ContentCard / makeRecipeAndParam and gui_react_util nothing.
+	local nodes, recipes, cardP = {}, {}, nil
+	local function node(kind) return function(p) local n = { kind = kind, p = p or {} } nodes[#nodes + 1] = n return n end end
+	local b = { type = { Orientation = { Vertical = 1, Horizontal = 0 }, ImageViewScaling = { AutoFit = 0 } } }
+	for _, k in ipairs({ "BoxLayout", "FlowLayout", "Component", "TextView", "Button", "ImageView", "ProgressBar" }) do b[k] = node(k) end
+	stub_module("::/gui/main/react.lua", {
+		RegisterRecipe = function(name, fn) recipes[name] = fn return fn end,
+		RegisterPluginRecipe = function(_, name, fn) recipes[name] = fn return fn end,
+		getCurrentRecipeId = function() return 1 end,
+		fireEvent = function() end,
+	})
+	stub_module("::/gui/main/builtin.lua", b)
+	stub_module("::/gui/main/content_card.tl", {
+		ContentCard = function(p) cardP = p return { kind = "ContentCard" } end,
+		makeRecipeAndParam = function(r, p) return { r = r, p = p } end,
+	})
+	stub_module("::/gui/main/gui_react_util.tl", {})
+	stub_module("::/gui/main/engine_react_util.tl", {
+		useStepStateTimer = function(fn) local v = fn() return { old = function() return v end } end })
+	stub_module("::/gui/main/styleutil.tl", { makeStyle = function(t) return { style = t } end })
+	stub_module("::/gui/main/color_util.tl", { withTransparencyRaw = function(c, a) return { c[1], c[2], c[3], a } end })
+	stub_module("::/gui/entity_window/town/town_eow.script.tl", { TownEowExtensionPoint = {} })
+	set_global("api", {
+		engine = { config = { getModParams = function() return {} end }, entityExists = function() return false end,
+			system = { gameScriptSystem = { getEntityForGameScript = function() return -1 end } },
+			getComponent = function() return nil end },
+		type = { ComponentType = {} },
+		gui = { genericRep = { find = function() return -1 end, get = function() return nil end } },
+	})
+	reset_modules()
+	local M = ug_require(F.DIR .. "gui/ot_card.script.tl")
+	ok(M.SquareOrganicTownsCard ~= nil)
+	local view = { summary = "Character", summaryValue = "Young", sections = { { title = "Growth", lines = {
+		{ kind = "row", key = "Buildings", value = "12" },
+		{ kind = "bar", value = 0.5, color = "res" },
+		{ kind = "hint", text = "Explanation" },
+		{ kind = "towns", towns = { { id = 7, name = "Ashby" } } },
+	} } } }
+	nodes = {}
+	recipes.SquareOrganicTownsCardSummary({ view = view })
+	recipes.SquareOrganicTownsCardBody({ view = view })
+	local spacers, hint = 0, nil
+	for _, n in ipairs(nodes) do
+		if n.kind == "Component" and n.p.meta and n.p.meta.class == "horizontal-spacer" then spacers = spacers + 1 end
+		if n.kind == "Component" and n.p.meta and n.p.meta.class == "info-hint-comp" then hint = n end
+	end
+	eq(spacers, 2, "the summary row and the body row keep the base spacer, built inline")
+	ok(hint ~= nil, "the hint falls back to the base hint's own tree")
+	eq(hint.p.layout.p.children[1].p.text, "Explanation")
+	-- the whole card: no error with the plugin params of the town window
+	local out = M.SquareOrganicTownsCard({ entityId = 5, setCollapsibleExpanded = function() end,
+		getCollapsibleExpanded = function() return false end })
+	ok(out ~= nil and out.kind == "BoxLayout")
+	if cardP ~= nil then ok(cardP.recipeAndParamPermanent.r ~= nil, "the card's summary recipe") end
 end)

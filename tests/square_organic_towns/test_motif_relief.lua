@@ -505,11 +505,13 @@ test("rules: map edge margin, lead limit from the houses, configs for every new 
 			end
 		end
 		if m.geo then for _, p in ipairs(m.geo.line) do ok(MAP.edgeDist(bounds, p[1], p[2]) >= MAP.MARGIN - 45, "line near the edge") end end
-		local cases = { { F.plane(0.085, 0), "switchbacks", "msb" }, { F.valley(0, true), "ridge_street", "mrs" },
+		-- (the switchbacks town: 2; town 5's no longer reaches them within 8 increments with house data at the 44 m
+		-- minimum block, 2026-10-18, though it does without; town 2 does both, then and now)
+		local cases = { { F.plane(0.085, 0), "switchbacks", "msb", town = 2 }, { F.valley(0, true), "ridge_street", "mrs" },
 			{ F.cliff(), "headland_street", "mhl" } }
 		-- house data: no new piece farther than the lead limit from a housed street; each motif builds
 		for _, c in ipairs(cases) do
-			local st2, stats2 = resolve(c[1], { motif = c[2], style = "EU_ORGANIC" })
+			local st2, stats2 = resolve(c[1], { id = c.town, motif = c[2], style = "EU_ORGANIC" })
 			local g2 = F.vanillaTown(nil, { n = 4, spacing = 80 })
 			local motif = 0
 			for k = 1, 8 do

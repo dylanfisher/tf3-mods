@@ -14,8 +14,9 @@
 --     gentle (MAX_GRADE);
 --   * up to MAX_OUT passing routes come back, best first (length + detour), so the driver plans them one after the
 --     other with ot_plan and sends the first whose both ends are joined (no more `notJoined`).
--- Joining at a node in the middle of a street is not supported by the planner and the proposal layer (only dead ends
--- with a node config are joined: the crash rule), so it is not tried. Every loop is bounded by MAX_PAIRS x OFFSETS and
+-- A link never joins a node in the middle of a street (only dead ends with a node config; since §74 the planner can end a
+-- street at such a node through `joinExtra`, used only by the near-miss joins, ot_nearmiss, after the driver's
+-- midJoinOk), so it is not tried. Every loop is bounded by MAX_PAIRS x OFFSETS and
 -- MAX_TESTS. Plain Lua, pre-5.3.
 
 local G = ug_require "square_organic_towns::/organic_towns/ot_geom.lua"

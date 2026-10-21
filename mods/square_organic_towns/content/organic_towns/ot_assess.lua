@@ -130,6 +130,136 @@ function M.extent(points)
 	return { cx = cx, cy = cy, r = q, rMax = d[n], n = n }
 end
 
+-- Main body (§75 follow-up "Far-out streets after an extent jump", 2026-10-20; logging only, CHECK rBody= / r50= / out=):
+-- the extent's r (EXTENT_QUANTILE 0.9 of the distances from the mean) jumped 478 -> 1070 m (Wheatden, run
+-- 2026-10-19_1949) once an outlying group of the town's own houses 0.7-1.2 km out held over 10 % of them. The body:
+-- the houses on BODY_CELL_M cells flood-filled across gaps up to BODY_GAP_M (cells within ceil(gap / cell) of an
+-- occupied cell join its group), the group with the most houses (ties: nearer the mean of all houses). Not the group
+-- holding the town centre: the mean of a ring, crescent or twin town can sit in an empty cell, and the game's town
+-- position is not in the point list; the outlying groups seen held 10-20 % of the houses. Pure; at most BODY_PTS_MAX
+-- points (every k-th beyond) and their cells, one visit per cell.
+M.BODY_CELL_M = 100
+M.BODY_GAP_M = 200
+M.BODY_PTS_MAX = 4000
+
+--- The q quantile of a list { {d, w}, ... } (w: weight), sorted in place by d; nil when empty.
+local function quantile(list, q)
+	if #list == 0 then return nil end
+	table.sort(list, function(a, b) return a[1] < b[1] end)
+	local total = 0
+	for _, x in ipairs(list) do total = total + x[2] end
+	local want, acc = q * total, 0
+	for _, x in ipairs(list) do
+		acc = acc + x[2]
+		if acc >= want then return x[1] end
+	end
+	return list[#list][1]
+end
+
+--- The main body of a point cloud { {x, y [, w]}, ... } (w: the houses the point stands for, default 1; see above):
+--- { n (houses read), bodyN, rBody (EXTENT_QUANTILE of the body's distances from its mean), bx, by (its mean), r50
+--- (median distance of all houses from their mean), out (houses outside the body), groups (other groups), farN / farD /
+--- farDeg (the largest other group: houses, distance of its mean from the body's mean, heading in degrees, 0 = +x,
+--- counter-clockwise; nil without one), reachC (with o.cx / o.cy: the body's farthest point from there) } or nil for
+--- no points. o = { cell, gap, maxPts, cx, cy }.
+function M.body(points, o)
+	o = o or {}
+	local cell = o.cell or M.BODY_CELL_M
+	local reach = math.max(1, math.ceil((o.gap or M.BODY_GAP_M) / cell))
+	local nAll = #points
+	if nAll == 0 then return nil end
+	local stride = math.max(1, math.ceil(nAll / (o.maxPts or M.BODY_PTS_MAX)))
+	local pts = {}
+	for i = 1, nAll, stride do pts[#pts + 1] = points[i] end
+	local n, sx, sy = 0, 0, 0
+	for _, p in ipairs(pts) do
+		local w = p[3] or 1
+		n, sx, sy = n + w, sx + p[1] * w, sy + p[2] * w
+	end
+	if n <= 0 then return nil end
+	local mx, my = sx / n, sy / n
+	-- cells: key -> { i, j, pts = { index... } }
+	local cells, keys = {}, {}
+	for k, p in ipairs(pts) do
+		local i, j = math.floor(p[1] / cell), math.floor(p[2] / cell)
+		local key = i .. ":" .. j
+		local c = cells[key]
+		if c == nil then
+			c = { i = i, j = j, idx = {} }
+			cells[key] = c
+			keys[#keys + 1] = key
+		end
+		c.idx[#c.idx + 1] = k
+	end
+	-- flood fill (each cell queued once: the visited mark is set on queueing; the loops end with the cell list)
+	local groups = {}
+	for _, key in ipairs(keys) do
+		local c0 = cells[key]
+		if c0.grp == nil then
+			local grp = { cells = {}, n = 0, sx = 0, sy = 0 }
+			groups[#groups + 1] = grp
+			c0.grp = grp
+			local queue, head = { c0 }, 1
+			while head <= #queue do
+				local c = queue[head]
+				head = head + 1
+				grp.cells[#grp.cells + 1] = c
+				for _, k in ipairs(c.idx) do
+					local w = pts[k][3] or 1
+					grp.n = grp.n + w
+					grp.sx, grp.sy = grp.sx + pts[k][1] * w, grp.sy + pts[k][2] * w
+				end
+				for di = -reach, reach do
+					for dj = -reach, reach do
+						local nb = cells[(c.i + di) .. ":" .. (c.j + dj)]
+						if nb and nb.grp == nil then
+							nb.grp = grp
+							queue[#queue + 1] = nb
+						end
+					end
+				end
+			end
+		end
+	end
+	for _, grp in ipairs(groups) do
+		grp.mx, grp.my = grp.sx / grp.n, grp.sy / grp.n
+		grp.dm = G.dist(mx, my, grp.mx, grp.my)
+	end
+	table.sort(groups, function(a, b)
+		if a.n ~= b.n then return a.n > b.n end
+		return a.dm < b.dm
+	end)
+	local body = groups[1]
+	local dBody, dAll = {}, {}
+	local reachC = 0
+	for _, c in ipairs(body.cells) do
+		for _, k in ipairs(c.idx) do
+			local p = pts[k]
+			dBody[#dBody + 1] = { G.dist(body.mx, body.my, p[1], p[2]), p[3] or 1 }
+			if o.cx then reachC = math.max(reachC, G.dist(o.cx, o.cy, p[1], p[2])) end
+		end
+	end
+	for k, p in ipairs(pts) do dAll[k] = { G.dist(mx, my, p[1], p[2]), p[3] or 1 } end
+	local out = { n = n, bodyN = body.n, rBody = quantile(dBody, M.EXTENT_QUANTILE), bx = body.mx, by = body.my,
+		r50 = quantile(dAll, 0.5), out = n - body.n, groups = #groups - 1, reachC = o.cx and reachC or nil }
+	local far = groups[2]
+	if far then
+		out.farN, out.farD = far.n, G.dist(body.mx, body.my, far.mx, far.my)
+		out.farDeg = math.deg(G.atan2(far.my - body.my, far.mx - body.mx)) % 360
+	end
+	return out
+end
+
+--- CHECK text of M.body: "rBody=<m> r50=<m> out=<houses>/<groups> outFar=<houses>@<m>/<deg>" pieces as fields
+--- { rBody, r50, out, outFar } ("-" without data; counts scaled back by the stride when points were skipped).
+function M.bodyFields(b, nAll)
+	if b == nil then return "-", "-", "-", "-" end
+	local k = (nAll and b.n > 0) and nAll / b.n or 1
+	local far = b.farN and string.format("%d@%.0f/%.0f", math.floor(b.farN * k + 0.5), b.farD, b.farDeg) or "-"
+	return string.format("%.0f", b.rBody or 0), string.format("%.0f", b.r50 or 0),
+		string.format("%d/%d", math.floor(b.out * k + 0.5), b.groups), far
+end
+
 --- Lots on a town's streets. edges = { { id, mx, my (midpoint), len, parcels = count or nil (nil: the edge
 --- is not in the parcel map yet), built = count, town = bool (a town street template; only those get a
 --- virtual estimate), own = bool (a street the mod built: locked, or built this session) } }; ext = M.extent result. Returns { free, built, total, virtual, room (every free lot,

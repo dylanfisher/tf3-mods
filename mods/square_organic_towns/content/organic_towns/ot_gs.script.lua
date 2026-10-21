@@ -7,6 +7,11 @@
 --                (onPostBuildProposal; the driver renames them from guiUpdate).
 --   guiUpdate    (Main Thread) ticks the driver with a read-only copy of the saved state. It runs while the game is
 --                paused too: the driver reads the game speed and starts nothing then (Driver:gameClock / pausedTick).
+--                The copy (state:get()) is taken only when the state's change number moved (ot_saved Reader, 2026-10-20:
+--                handleEvent bumps `rev` with every state:set; the number comes from the GAME_SCRIPT component's
+--                state_native, the town window card's read), or after the driver sent an event until the copy shows
+--                it, else the last copy is passed again. Any error of that read, or a cost check it fails, puts the
+--                session back on a full copy every frame (one STATEREAD line).
 -- Every entry point runs in pcall and logs a failure once, so a script error never reaches the game loop
 -- (a throwing chunk would log "Expected table at path" every tick).
 
@@ -65,6 +70,7 @@ function script.update(_userParams, state, _dt)
 		state:subscribeToEvent(SV.EV_RCI)
 		state:subscribeToEvent(SV.EV_GLOCK)
 		state:subscribeToEvent(SV.EV_UI)
+		state:subscribeToEvent(SV.EV_PROV)
 		state:subscribeToEvent(EV_POST)
 	end)
 	subscribed = true
@@ -79,7 +85,7 @@ function script.handleEvent(_userParams, state, _src, id, name, param)
 			local found = E.collectStops(param)
 			if #found == 0 or not stopsWanted() then return end
 			local s, changed = SV.addStops(state:get(), found, E.osTime())
-			if changed then state:set(s) end
+			if changed then state:set(SV.bumpRev(s)) end
 		end)
 		if not ok then warnOnce("stops", err) end
 		return
@@ -123,13 +129,29 @@ function script.handleEvent(_userParams, state, _src, id, name, param)
 			s, changed = SV.applyGlock(state:get(), param)
 		elseif name == SV.EV_UI then
 			s, changed = SV.applyUi(state:get(), param)
+		elseif name == SV.EV_PROV then
+			s, changed = SV.applyProv(state:get(), param)
 		end
-		if changed then state:set(s) end
+		if changed then state:set(SV.bumpRev(s)) end
 	end)
 	if not ok then warnOnce("handleEvent", err) end
 end
 
 local dead = false
+local reader = nil
+
+--- The saved change number through the GAME_SCRIPT component's state_native (Main Thread; the town window card and the
+--- console lookup read the same way, findings game-scripts.md). Errors when there is no state to read (the reader then
+--- stays on full copies for the session).
+local function readRev()
+	local e = api.engine.system.gameScriptSystem.getEntityForGameScript(SV.GS_NAME)
+	if e == nil or e < 0 then error("no game script entity") end
+	local gs = api.engine.getComponent(e, api.type.ComponentType.GAME_SCRIPT)
+	if gs == nil then error("no GAME_SCRIPT component") end
+	local st = gs.state_native
+	if st == nil then error("no state_native") end
+	return st:find(SV.REV_KEY)
+end
 
 function script.guiUpdate(_userParams, state, _guiState)
 	if dead then return end
@@ -143,16 +165,26 @@ function script.guiUpdate(_userParams, state, _guiState)
 			H.main = driver
 		end
 		-- (frame cost, 2026-10-14: every tick timed, state:get() apart; one TICKCOST line per window, Driver:costNote)
+		-- (2026-10-20: the whole copy only when the saved change number moved, ot_saved Reader; TICKCOST getN / stateMode)
 		local nowUs = driver.E.nowUs
+		if reader == nil then reader = SV.newReader() end
 		local t0 = nowUs()
-		local saved = nil
-		pcall(function() saved = state:get() end)
+		local getFull = function() return state:get() end
+		local okRd, saved, full, why = pcall(reader.read, reader, getFull, readRev, nowUs)
+		if not okRd then   -- (never expected: the old path for the session)
+			why = reader:fallBack("reader: " .. tostring(saved))
+			local okG, v = pcall(getFull)
+			saved, full = okG and v or nil, true
+		end
 		local t1 = nowUs()
+		if why ~= nil then log.warning("[SQOT] STATEREAD mode=get reason=" .. tostring(why)) end
 		local at = driver:costStage()
+		local sent = driver.E.sentN
 		driver:tick(t1, saved)
 		local t2 = nowUs()
+		if driver.E.sentN ~= sent then reader:expect(t2) end   -- (its own changes: copied again until they show)
 		if at == "idle" then at = driver:costStage() end
-		pcall(driver.costNote, driver, t2, t2 - t0, t1 - t0, at)
+		pcall(driver.costNote, driver, t2, t2 - t0, t1 - t0, at, full, reader.mode, reader.miss)
 	end)
 	if not ok then
 		warnOnce("guiUpdate", err)

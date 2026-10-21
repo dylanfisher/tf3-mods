@@ -195,9 +195,13 @@ test("build: every lane index is valid for its segment (templates x eras x joins
 								end
 							end
 						end
-						-- the edges' lane counts are their own street's (the join edges copy the dead end)
-						eq(lanes[-1], lanesBy[deadSize])
-						eq(lanes[-3], lanesBy[other])
+						-- the edges' lane counts are their own street's (the join edges copy the dead end; §73: a narrower
+						-- town street joining a medium / large dead end keeps its own)
+						local function joined(mine, dead)
+							return PR.narrowJoin(path(era, mine), path(era, dead)) and lanesBy[mine] or lanesBy[dead]
+						end
+						eq(lanes[-1], joined(aSize, deadSize))
+						eq(lanes[-3], joined(bSize, other))
 						eq(lanes[-4], lanesBy[bSize])
 					end
 				end
@@ -329,4 +333,54 @@ test("junctionConnsDir: the engine's one-way ring pattern with wide arms and 4-l
 		ok(x[1] ~= 2, "nothing out of the leaving ring edge")
 		ok(x[2] >= 1 and x[2] <= 4 and x[4] >= 1, "lane indices exist")
 	end
+end)
+
+-- Left-hand traffic (user report 2026-10-20 with the Left Hand Traffic mod `left_hand_traffic_1`: misaligned junction
+-- lane connections; the mod reverses `forward` of every two-way street template's road lanes).
+test("leftHandFrom: the driving side from a template's road lanes", function()
+	eq(PR.leftHandFrom({ false, true }), false, "base town_*_small: backward on the left")
+	eq(PR.leftHandFrom({ false, false, false, true, true, true }), false, "base town_new_large")
+	eq(PR.leftHandFrom({ true, false }), true, "Left Hand Traffic mod: flipped")
+	eq(PR.leftHandFrom({ true, true, false, false }), true)
+	eq(PR.leftHandFrom({ true, true }), nil, "one-way: no side")
+	eq(PR.leftHandFrom({}), nil)
+	eq(PR.leftHandFrom(nil), nil)
+end)
+
+test("junctionConns leftHand: the mirror image of the right-hand pattern (each street's own lanes)", function()
+	eq(PR.junctionConns({ 10, -1 }, 4, true), { { 10, 2, -1, 1, true }, { -1, 2, 10, 1, true } },
+		"straight joint: in lane 2 (right half from the node) -> out lane 1")
+	eq(PR.junctionConns({ 1, 2 }, { [1] = 4, [2] = 6 }, true), { { 1, 2, 2, 1, true }, { 2, 4, 1, 1, true } })
+	local mixes = { 4, { [1] = 4, [2] = 6, [3] = 8 }, { [1] = 8, [2] = 4, [3] = 6 }, 8 }
+	for _, lanes in ipairs(mixes) do
+		local function m(s) return (type(lanes) == "table" and lanes[s] or lanes) - 2 end
+		local r, l = PR.junctionConns({ 1, 2, 3 }, lanes), PR.junctionConns({ 1, 2, 3 }, lanes, true)
+		eq(#l, #r)
+		for i, x in ipairs(r) do
+			eq(l[i], { x[1], m(x[1]) + 1 - x[2], x[3], m(x[3]) + 1 - x[4], true }, "lane k -> m + 1 - k on both sides")
+			ok(l[i][2] > m(x[1]) / 2 and l[i][4] <= m(x[3]) / 2, "in from the right half, out to the left half")
+		end
+	end
+end)
+
+test("build leftHand: every node config mirrored; one-way edges refused", function()
+	local inf = info(true)
+	local r = assert(PR.build(inc2(), inf))
+	inf.leftHand = true
+	local l = assert(PR.build(inc2(), inf))
+	eq(#l.cfgAdd, #r.cfgAdd)
+	for i, c in ipairs(l.cfgAdd) do
+		eq(c.node, r.cfgAdd[i].node)
+		eq(#c.conns, #r.cfgAdd[i].conns)
+		for k, x in ipairs(c.conns) do
+			local y = r.cfgAdd[i].conns[k]
+			eq({ x[1], x[3] }, { y[1], y[3] })
+			ok(x[2] ~= y[2] or x[4] ~= y[4], "a different lane pair than right-hand traffic")
+		end
+	end
+	local inc = inc2()
+	inc.edges[2].oneway = true
+	local spec, why = PR.build(inc, inf)
+	eq(spec, nil)
+	eq(why, "leftHandOneway")
 end)

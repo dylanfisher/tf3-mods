@@ -397,6 +397,10 @@ M.WOBBLE = 0.14
 M.WOBBLE_ARC = 0.12
 M.RING_MIN_GAP = 0.5      -- x ringEvery: two rings never closer on a spoke
 M.RING_ROAD_GAP = 0.45
+-- (tests: a table here collects { kind = "lane" | "radial" | "row", m = metres } for every pair of neighbouring parallel
+-- streets the master plan lays out (lanes along both strips, secondary radials along the shorter arc, back rows off their
+-- spoke), the strips' ends included; nil in game)
+M.TRACE = nil
 M.SR_JITTER = 0.35        -- secondary radials: at least this much of a strip's share jittered
 M.SR_DROP = 0.15          -- ... and this share of them left out (a cell keeps one at least)
 
@@ -563,16 +567,22 @@ function M.masterPlan(style, opts)
 				-- deep arms: back rows beside arm spokes (L: left of spoke i, R: right of spoke i2), as many as fit
 				local Lr, Rr = {}, {}
 				if deep and (armOf[i] or armOf[i2]) and j >= M.BACK_FROM_RING then
-					local u = M.BACK_OFFSET * bd
+					-- (rows at least MIN_BLOCK apart: MED hill's 30 m block depth made one-row blocks; the arm's band
+					-- stays as wide as BACK_ROWS rows of the style's depth, so wider rows mean fewer of them, not a
+					-- wider cut into the land beside the arm: deep towns' groves)
+					local u = max(style_.MIN_BLOCK, M.BACK_OFFSET * bd)
+					local uMax = max(u, M.BACK_ROWS * M.BACK_OFFSET * bd)
 					for side = 1, 2 do
 						local sp = side == 1 and i or i2
 						if armOf[sp] then
 							local list = side == 1 and Lr or Rr
 							for lv = 1, M.BACK_ROWS do
+								if lv * u > uMax + 1e-6 then break end
 								local fi = backFraction(inner, spokes[sp], lv * u, side == 2, cx, cy)
 								local fo = fi and backFraction(outer, spokes[sp], lv * u, side == 2, cx, cy)
 								if not (fi and fo) then break end
 								list[lv] = { fi = fi, fo = fo, d = lv * u }
+								if M.TRACE then M.TRACE[#M.TRACE + 1] = { kind = "row", m = u } end
 							end
 						end
 					end
@@ -599,17 +609,33 @@ function M.masterPlan(style, opts)
 				local minGap = math.max(style_.MIN_BLOCK, 0.5 * M.BACK_OFFSET * bd)
 				local lIn, lOut = Lr[#Lr] and Lr[#Lr].fi, Lr[#Lr] and Lr[#Lr].fo
 				local rIn, rOut = Rr[#Rr] and Rr[#Rr].fi, Rr[#Rr] and Rr[#Rr].fo
+				-- (the jitter never brings two secondary radials, or one and the cell's spokes, closer than MIN_BLOCK
+				-- on the shorter arc: stripCount caps only the mean spacing. A jittered radial is shifted into
+				-- [previous kept + fMin, 1 - (radials left + 1) x fMin], so the count stays; stripCount's cap,
+				-- (m + 1) x MIN_BLOCK <= the shorter arc, keeps that range open)
+				local fMin = style_.MIN_BLOCK / max(1, math.min(inner.len, outer.len))
+				local fPrev = 0
 				for s = 1, m do
 					local jit = 0.6 * (1 - gridness)
 					if wob then jit = max(jit, M.SR_JITTER) end
 					local f = (s + jit * (rng.unit(seed, "sub", i, j, s) - 0.5)) / (m + 1)
+					f = math.min(max(f, fPrev + fMin), 1 - (m - s + 1) * fMin)
+					local fits = f >= fPrev + fMin - 1e-9 and f <= 1 - fMin + 1e-9
 					-- (organic rings: some secondary radials left out, so the stubs onto the rings are not evenly spaced)
 					local drop = wob and m >= 2 and rng.unit(seed, "srDrop", i, j, s) < M.SR_DROP
 					-- (secondary radials too close to a back row are left out: the rows replace them)
 					local clear = (lIn == nil or ((f - lIn) * inner.len >= minGap and (f - lOut) * outer.len >= minGap))
 						and (rIn == nil or ((rIn - f) * inner.len >= minGap and (rOut - f) * outer.len >= minGap))
 					local ka, kb
-					if clear and not drop then ka, kb = tap(mp, inner, f), tap(mp, outer, f) end
+					if clear and not drop and fits then
+						ka, kb = tap(mp, inner, f), tap(mp, outer, f)
+						if M.TRACE then
+							local L = math.min(inner.len, outer.len)
+							M.TRACE[#M.TRACE + 1] = { kind = "radial", m = (f - fPrev) * L }
+							M.TRACE[#M.TRACE + 1] = { kind = "radialEnd", m = (1 - f) * L }
+						end
+						fPrev = f
+					end
 					local key = "sr" .. i .. ":" .. j .. ":" .. s
 					local a, b = ka and mp.junctions[ka], kb and mp.junctions[kb]
 					if a and b and ka ~= kb and G.dist(a[1], a[2], b[1], b[2]) > MIN_GAP then
@@ -642,6 +668,15 @@ function M.masterPlan(style, opts)
 					-- between an arm spoke and its rows: cross lanes about a block length apart
 					local armPair = j > 0 and strips[a].armSpoke ~= nil and strips[a].armSpoke == strips[a + 1].armSpoke
 					local n = armPair and nArm or n0
+					-- (each lane at least MIN_BLOCK from the previous one, or the strip's start, on both strips, and from
+					-- its end: the offsets and wobble below moved the first lane to ~0.55 of a block off the ring it runs
+					-- along; laneCount caps only the mean spacing. A lane is shifted into [previous kept + gMin,
+					-- 1 - (lanes left + 1) x gMin] on both strips, its tilt dropped when both don't fit; only a lane
+					-- with no room even then (small core cells, strips shortened by a wobbled ring) is left out. gMin
+					-- from the shorter of the two strips and the ring gap)
+					local lenA, lenB = strips[a].len, strips[a + 1].len
+					local gMin = style_.MIN_BLOCK / max(1, math.min(gap, lenA, lenB))
+					local pa, pb = 0, 0
 					for t = 1, n do
 						local wob = (1 - gridness) * (rng.unit(seed, "cl", i, j, a, t) - 0.5)
 						local g
@@ -660,8 +695,20 @@ function M.masterPlan(style, opts)
 						else
 							g = (t + off + 0.4 * wob) / (n + 1)
 						end
+						local hi = 1 - (n - t + 1) * gMin
+						local lo, up = max(pa + tilt, pb - tilt) + gMin, hi - abs(tilt)
+						if lo > up + 1e-9 then tilt, lo, up = 0, max(pa, pb) + gMin, hi end
+						if lo > up + 1e-9 then keep = false else g = math.min(max(g, lo), up) end
 						-- irregular cores: lanes start a little apart on each side and some are missing
 						if keep then
+							if M.TRACE then
+								local T_ = M.TRACE
+								T_[#T_ + 1] = { kind = "lane", m = (g - tilt - pa) * lenA }
+								T_[#T_ + 1] = { kind = "lane", m = (g + tilt - pb) * lenB }
+								T_[#T_ + 1] = { kind = "laneEnd", m = (1 - g + tilt) * lenA }
+								T_[#T_ + 1] = { kind = "laneEnd", m = (1 - g - tilt) * lenB }
+							end
+							pa, pb = g - tilt, g + tilt
 							local ka, kb = tap(mp, strips[a], g - tilt), tap(mp, strips[a + 1], g + tilt)
 							lane(mp, ka, kb, "small", "ln" .. i .. ":" .. j .. ":" .. a .. ":" .. t, bend, seed, style.wiggle)
 						end

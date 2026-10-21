@@ -103,6 +103,17 @@
 --                                           ot_card.summary): the growth phase index (ot_card.PHASES), the level maturity
 --                                           and the offshoot readiness in twentieths ("-" unknown), written in batches by
 --                                           the driver (EV_UI) only when a value moved; at most UI_CAP towns
+--           pv = "<entries>" | nil          street provenance (§75 follow-up, 2026-10-19; one string 2026-10-20, ot_prov):
+--                                           the street edges the mod built, "<town>,<edge>,<src>,<trig>,<year>,<x0>,<y0>,
+--                                           <dx>,<dy>,<mx>,<my>" joined by ";", oldest first; at most ot_prov.TOWN_N a
+--                                           town and ot_prov.TOTAL_MAX chars in all (the oldest go first). One string, as
+--                                           guiUpdate copies the whole state (every frame until 2026-10-20, now on a
+--                                           change: M.Reader). Read by the console lookup
+--                                           (ot_prov.who). nil: a save from before (no record, no work)
+--           rev = n | nil                   the state's change number (2026-10-20, M.Reader): handleEvent bumps it with every
+--                                           state:set (M.bumpRev), so guiUpdate copies the whole state only when it moved
+--                                           (read from the GAME_SCRIPT component's state_native). nil: a save from before
+--                                           (or no change since): the first change writes 1
 --           wk = { townId, ... }                 industrial satellite towns ("Works") the mod created (ot_works,
 --                                           2026-10-13): never a second one for their parent, the map quota
 --                                           plan frame (and town shape, street style) fixed at the town's first
@@ -116,6 +127,7 @@
 local SH = ug_require "square_organic_towns::/organic_towns/ot_shape.lua"
 local FM = ug_require "square_organic_towns::/organic_towns/ot_form.lua"
 local MO = ug_require "square_organic_towns::/organic_towns/ot_motif.lua"
+local PV = ug_require "square_organic_towns::/organic_towns/ot_prov.lua"
 
 local M = {}
 
@@ -143,6 +155,7 @@ M.EV_PAIR = "square_organic_towns.pair"
 M.EV_RCI = "square_organic_towns.rci"
 M.EV_GLOCK = "square_organic_towns.glock"
 M.EV_UI = "square_organic_towns.ui"
+M.EV_PROV = "square_organic_towns.prov"
 M.GX_TOWN_CAP = 800
 M.GX_TOWNS = 4000
 M.CHARS_CAP = 16
@@ -166,6 +179,8 @@ M.UI_BATCH = 64           -- towns per summary event at most
 
 -- a fresh map: the game clock has barely moved when the mod first looks (GAME_TIME.gameTime in ms)
 M.FRESH_GAME_TIME = 120000
+M.REV_KEY = "rev"          -- the change number's key (M.bumpRev, M.Reader)
+M.REV_WRAP = 1000000000    -- it wraps to 1 past this (a whole number in any float)
 
 local function isList(t)
 	return type(t) == "table"
@@ -178,9 +193,26 @@ local function finiteNum(v)
 	return v
 end
 
+--- The state's change number (`rev`): a whole number 1..REV_WRAP, or nil (none yet / not a state).
+function M.revOf(raw)
+	if type(raw) ~= "table" then return nil end
+	local r = finiteNum(raw[M.REV_KEY])
+	if r == nil or r < 1 or r > M.REV_WRAP or r ~= math.floor(r) then return nil end
+	return r
+end
+
+--- Bumps s's change number (handleEvent, right before every state:set); returns s.
+function M.bumpRev(s)
+	if type(s) ~= "table" then return s end
+	s[M.REV_KEY] = (M.revOf(s) or 0) % M.REV_WRAP + 1
+	return s
+end
+
 --- A clean copy of a raw state (nil / foreign / older layouts -> an uninitialised v1 state).
 function M.normalize(raw)
 	local s = { v = M.VERSION, frames = {} }
+	-- (the change number survives even a foreign layout, so the next bump never repeats a number a reader cached)
+	s.rev = M.revOf(raw)
 	if type(raw) ~= "table" or raw.v ~= M.VERSION then return s end
 	if isList(raw.known) then
 		s.known = {}
@@ -238,6 +270,7 @@ function M.normalize(raw)
 	end
 	s.rc = M.normRci(raw.rc)
 	s.gx = M.normGlock(raw.gx)
+	s.pv = PV.norm(raw.pv)
 	s.sp = M.normPace(raw.sp)
 	s.cm = M.normChars(raw.cm)
 	if tonumber(raw.nm) == 1 then s.nm = 1 end
@@ -590,6 +623,17 @@ function M.applyGlock(raw, param)
 	while #list > M.GX_TOWN_CAP do table.remove(list, 1) end
 	if not changed then return s, false end
 	s.gx[key] = list
+	return s, true
+end
+
+--- handleEvent "prov" { town, add = { entry, ... } } (§75 follow-up, ot_prov): the street edges the mod built in town,
+--- appended to the record (each edge once: idempotent), the oldest dropped past ot_prov.TOWN_N / TOTAL_MAX.
+function M.applyProv(raw, param)
+	local s = M.normalize(raw)
+	if type(param) ~= "table" or type(param.add) ~= "table" then return s, false end
+	local pv, changed = PV.add(s.pv, param.town, param.add)
+	if not changed then return s, false end
+	s.pv = pv
 	return s, true
 end
 
@@ -1145,6 +1189,122 @@ function M.frameParam(town, style, mp, ic, b0, ex)
 		if tonumber(R) then out.rr = math.floor(R * 10 + 0.5) / 10 end
 	end
 	return out
+end
+
+---------------------------------------------------------------------------
+-- The per-frame read (2026-10-20, PLAN §75 "Follow-ups built", "The saved state off the frame path"). guiUpdate used to
+-- copy the whole saved state with state:get() every frame (Main Thread, ~110 Hz; TICKCOST getMaxUs 180-330 us before
+-- the provenance record `pv`, which only the console lookup reads). Now it reads the change number (`rev`, M.bumpRev in
+-- handleEvent) and copies the whole state only when needed, passing the last copy again otherwise:
+--   * a full read (state:get(), as before) when there is no copy yet, when the native number differs from the number
+--     inside the last copy (either side may lag: until both agree every frame reads in full, as before), and at least
+--     every READ_REFRESH_S (a save loaded into the same Lua state, anything that changed the state without a bump);
+--   * after the driver sent an event (Reader:expect; ot_engine.sentN), every frame until the copy's number moved, at most
+--     READ_WATCH_S: the driver sees its own changes as soon as the old path did, even if the native number lagged the
+--     copy (only the player's new Road Stops, onPostBuildProposal, rely on the native number alone);
+--   * any error of the number read (no game-script entity, no component, no state_native, not a number) switches the
+--     reader to full reads every frame for the session (`mode` "get", the old path), with the reason once;
+--   * so does a cost check every READ_CHECK_N frames: the window's number reads plus its copies must cost less than a
+--     copy every frame (the session's mean copy); otherwise the old path is cheaper.
+-- The driver gets the same table (read-only: the driver never writes into it, test_driver "state reader") or, after
+-- a change, the new copy; a full read that fails gives nil, as before. `miss` counts full reads whose copy disagreed
+-- with the native number read just before (TICKCOST revMiss: whether the two views lag each other in game).
+M.READ_REV = true          -- false: always the old path (full read every frame)
+M.READ_REFRESH_S = 2       -- s: a full read at least this often
+M.READ_WATCH_S = 2         -- s: after a sent event, full reads until the copy's number moved, at most this long
+M.READ_CHECK_N = 2000      -- frames per cost check (~20 s at 110 Hz)
+M.READ_FULL_MIN = 4        -- copies the session needs before the cost check compares
+
+local Reader = {}
+Reader.__index = Reader
+
+--- A reader for one game script's Lua state (o.mode "get": the old path from the start).
+function M.newReader(o)
+	o = o or {}
+	local mode = (o.mode == "get" or not M.READ_REV) and "get" or "rev"
+	return setmetatable({ mode = mode, has = false, cache = nil, rev = nil, fullAt = 0, why = nil, watchUntil = nil,
+		watchBase = nil, n = 0, revSum = 0, fullN = 0, allFullN = 0, allFullSum = 0, miss = 0 }, Reader)
+end
+
+local function us(v)
+	v = tonumber(v) or 0
+	if v ~= v or v < 0 or v == math.huge then return 0 end
+	return v
+end
+
+--- Back to the old path for the session; returns the reason (once).
+function Reader:fallBack(why)
+	self.mode, self.why = "get", tostring(why)
+	self.has, self.cache, self.rev, self.watchUntil = false, nil, nil, nil
+	return self.why
+end
+
+--- The driver sent an event this frame (now = us): full reads until the copy's number moved (READ_WATCH_S at most).
+function Reader:expect(now)
+	if self.mode ~= "rev" then return end
+	self.watchUntil = us(now) + M.READ_WATCH_S * 1e6
+	self.watchBase = self.rev
+end
+
+--- The cost check (every READ_CHECK_N number reads): the reason when the reader fell back, else nil.
+function Reader:check()
+	if self.n < M.READ_CHECK_N then return nil end
+	local n, revMean, fullN = self.n, self.revSum / self.n, self.fullN
+	self.n, self.revSum, self.fullN = 0, 0, 0
+	if self.allFullN < M.READ_FULL_MIN then return nil end
+	local fullMean = self.allFullSum / self.allFullN
+	-- per frame: the number read every frame plus the copies' share, against a copy every frame (the old path)
+	if fullMean > 0 and revMean + fullN / n * fullMean >= fullMean then
+		return self:fallBack(string.format("rev read %.0f us + %d copies in %d frames vs copy %.0f us", revMean, fullN, n,
+			fullMean))
+	end
+	return nil
+end
+
+--- One frame. getFull() = the whole state (state:get(); may error), readRev() = the saved change number (nil: none yet;
+--- errors when it can't be read), now() = us. Returns the state (nil when the full read failed, as before), whether
+--- a full read ran, and a fallback reason the frame the reader fell back (else nil).
+function Reader:read(getFull, readRev, now)
+	if self.mode ~= "rev" then
+		local okG, v = pcall(getFull)
+		return okG and v or nil, true, nil
+	end
+	local t0 = us(now())
+	local okR, rev = pcall(readRev)
+	local t1 = us(now())
+	local why = nil
+	if not okR then
+		why = self:fallBack("rev read: " .. tostring(rev))
+	elseif rev ~= nil and type(rev) ~= "number" then
+		why = self:fallBack("rev read: a " .. type(rev))
+	end
+	if why ~= nil then
+		local okG, v = pcall(getFull)
+		return okG and v or nil, true, why
+	end
+	self.n = self.n + 1
+	self.revSum = self.revSum + math.max(0, t1 - t0)
+	if self.watchUntil ~= nil and (t1 >= self.watchUntil or (self.has and self.rev ~= self.watchBase)) then
+		self.watchUntil = nil   -- (the copy moved since the send, or the watch timed out)
+	end
+	if self.has and self.watchUntil == nil and rev == self.rev and t1 >= self.fullAt
+		and t1 - self.fullAt < M.READ_REFRESH_S * 1e6 then
+		return self.cache, false, self:check()
+	end
+	local okG, v = pcall(getFull)
+	local t2 = us(now())
+	self.fullN = self.fullN + 1
+	self.allFullN = self.allFullN + 1
+	self.allFullSum = self.allFullSum + math.max(0, t2 - t1)
+	if okG then
+		self.has, self.cache, self.rev, self.fullAt = true, v, M.revOf(v), t2
+		if self.rev ~= rev then self.miss = self.miss + 1 end
+	else
+		self.has, self.cache, self.rev = false, nil, nil
+		v = nil
+	end
+	if self.watchUntil ~= nil and self.has and self.rev ~= self.watchBase then self.watchUntil = nil end
+	return v, true, self:check()
 end
 
 return M

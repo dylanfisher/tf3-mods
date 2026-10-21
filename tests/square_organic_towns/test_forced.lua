@@ -227,6 +227,12 @@ test("the held text and the STUCK line's schedule", function()
 	eq(t, "lead=2,sparse=14,sparseRelax")
 	eq(top, "sparse")
 	ok(D.STUCK_AT >= 2 and D.STUCK_EVERY >= 1)
+	-- (§75 follow-up: the knot holds on the empty PLAN / STUCK lines too)
+	eq(D.knotText(nil), "0")
+	eq(D.knotText({ knotHeld = 0 }), "0")
+	eq(D.knotText({ knotHeld = 3, knotWhy = { parallel = 1, side = 2 } }), "3:0/1/0/2/0")
+	-- (one empty row at a time, 2026-10-19: a fifth count)
+	eq(D.knotText({ knotHeld = 4, knotWhy = { row = 4 } }), "4:0/0/0/0/4")
 end)
 
 ---------------------------------------------------------------------------

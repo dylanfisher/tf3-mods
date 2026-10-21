@@ -26,7 +26,9 @@
 -- Dev tools (square_organic_towns_dev, never uploaded) reuse this module: a second Driver instance runs single
 -- jobs through the same stages (startJob / advance: forced, another style, dry run), and ot_hooks lets them hold
 -- this game script's driver (paused / devBusy) and override the debug log. Without the dev mod the hooks keep
--- their defaults. Each successful build records the edges it added (townState(t).history, this session only).
+-- their defaults. Each successful build records the edges it added (townState(t).history, this session only) and,
+-- since 2026-10-19, their provenance (Driver:provNote: debug PROV lines, the saved record ot_saved `pv` that the
+-- console lookup ot_prov.who reads in any later session).
 
 local G = ug_require "square_organic_towns::/organic_towns/ot_geom.lua"
 local OG = ug_require "square_organic_towns::/organic_towns/ot_graph.lua"
@@ -87,6 +89,9 @@ local GL = ug_require "square_organic_towns::/organic_towns/ot_glock.lua"
 local LP = ug_require "square_organic_towns::/organic_towns/ot_lockpol.lua"
 local KN = ug_require "square_organic_towns::/organic_towns/ot_knot.lua"
 local CARD = ug_require "square_organic_towns::/organic_towns/ot_card.lua"
+-- (not `NM`: that is ot_names)
+local NMISS = ug_require "square_organic_towns::/organic_towns/ot_nearmiss.lua"
+local PV = ug_require "square_organic_towns::/organic_towns/ot_prov.lua"
 
 local D = {}
 
@@ -191,6 +196,14 @@ D.LOCK_LEAD_K = 1.5        -- "mod" towns: open lots allowed on the mod's own st
                            -- the game no longer adds frontage off them, so the mod keeps more ahead of the demand
 D.STEER_LEAD_K = 1.2       -- "steer" towns: the same, less (the game fills inside the town again)
 D.STEER_LIMITS = true      -- "steer" towns' plans: the lead cap, the continuous arm front, the rake / wiggle rules
+-- §74 close the gap (ot_nearmiss, 2026-10-17): every town plan joins up to MAX_PER_INC near-miss dead ends to the street
+-- ahead (a bend into another dead end, a T or a crossroads at a street node); the street nodes joined pass
+-- Driver:midJoinOk (a node config, plain town streets of this town only, no track, no construction)
+D.NEAR_MISS = true
+D.NEAR_MISS_US = 8000      -- us: the pass's time per plan at most (it runs in one slice: no yield inside its pcall);
+                           -- offline ~8-12 ms for a 500-edge town with 60-100 dead ends, the nearest gaps go first
+D.NEAR_MISS_RETIRED = true -- (2026-10-18) a retired own dead end (empty, never extended) may still be closed by a join
+                           -- (Driver:retiredJoinOk): a join adds no street out into the field, it ends the stub
 D.LOCK_RIM = 0.75          -- rim: effective distance above this x the envelope level (ot_select.envelopeCap)
 D.FILL_POINTS = 2          -- dosed fill: DevelopAt points per build of a shaped town (0 = off)
 D.FILL_SHORE_M = 300       -- shore towns: the dose beside the build's streets within this of the shore (waterfront first)
@@ -221,6 +234,8 @@ D.FILL_CONCURRENT = true   -- a build's DevelopAt calls go out back to back (Sho
 -- restored like a shaped town's dose). false: the styles grow as in v8.
 D.MECH = true
 D.IND_REFRESH_S = 300      -- away from industries (ot_industry): the map's industry list re-read this often (real s)
+D.FAC_REFRESH_S = 120      -- away from player facilities (ot_industry FAC_KINDS): depots / stations re-read this often
+                           -- (real s); the towns' info is redone only when the list changed
 D.STATION_REFRESH_S = 120  -- station quarter (M3, ot_motif_town): the map's rail stations re-read this often (real s)
 D.STATION_REACH = 1500     -- m from a town's centre: stations kept for it
 D.STATION_TRACKS_R = 350   -- m around a station: its tracks read once per listing (the quarter keeps off them)
@@ -803,7 +818,8 @@ end
 -- Frame cost (2026-10-14, real-play prep): the game script's guiUpdate times every tick (state:get() and Driver:tick)
 -- and hands it to Driver:costNote; every COST_EVERY_S real seconds one TICKCOST line (always on, not debug): the ticks,
 -- their mean and slowest cost, the stage of the slowest (chars / names:<phase> / job:<stage> / idle), the slowest
--- state:get() and how many ticks passed 4 / 16 / 50 ms. Nothing is logged while the mod is off.
+-- state:get() and how many ticks passed 4 / 16 / 50 ms. Nothing is logged while the mod is off. (2026-10-20: the state read
+-- copies only on a change, ot_saved Reader: `getN` copies per window, `stateMode`, `revMiss`.)
 D.COST_EVERY_S = 300
 D.COST_MS = { 4, 16, 50 }
 
@@ -815,9 +831,12 @@ function Driver:costStage()
 	return self.phase == "run" and "idle" or tostring(self.phase or "?")
 end
 
---- Adds one tick's cost (us = the whole tick, getUs = its state:get() part, at = its stage); returns the TICKCOST line
---- when the window closed, else nil.
-function Driver:costNote(now, us, getUs, at)
+--- Adds one tick's cost (us = the whole tick, getUs = its state read part, at = its stage, full = the read copied the
+--- whole state (nil: counted as a full read, the old path), mode = the reader's mode, miss = its copies that disagreed
+--- with the native number so far (session total), ot_saved Reader); returns the
+--- TICKCOST line when the window closed, else nil. Since 2026-10-20 getUs is the change-number read plus the copy when
+--- one ran: getMaxUs stays a copy's cost, getAvgUs falls with the copies (`getN` per window; `stateMode` rev | get).
+function Driver:costNote(now, us, getUs, at, full, mode, miss)
 	if self.phase == "off" then
 		self.cost = nil
 		return nil
@@ -827,22 +846,29 @@ function Driver:costNote(now, us, getUs, at)
 	if getUs ~= getUs or getUs < 0 or getUs == math.huge then getUs = 0 end
 	local c = self.cost
 	if c == nil or now < c.t0 then
-		c = { t0 = now, n = 0, sum = 0, max = 0, at = "-", getMax = 0, over = { 0, 0, 0 } }
+		c = { t0 = now, n = 0, sum = 0, max = 0, at = "-", getMax = 0, getSum = 0, getN = 0, over = { 0, 0, 0 } }
 		self.cost = c
 	end
 	c.n = c.n + 1
+	if full ~= false then c.getN = c.getN + 1 end
+	if mode ~= nil then c.mode = tostring(mode) end
+	if tonumber(miss) then c.miss = tonumber(miss) end
 	c.sum = c.sum + us
 	if us > c.max then c.max, c.at = us, at or "-" end
 	if getUs > c.getMax then c.getMax = getUs end
+	c.getSum = c.getSum + getUs
 	for i, ms in ipairs(D.COST_MS) do
 		if us > ms * 1000 then c.over[i] = c.over[i] + 1 end
 	end
 	if now - c.t0 < D.COST_EVERY_S * 1e6 then return nil end
 	self.cost = nil
+	-- (the provenance record's size, ot_prov: copied with the state every frame; read here once a window)
+	local pvB, pvN = PV.size(type(self.saved) == "table" and self.saved.pv or nil)
 	return self:log("TICKCOST", { { "s", string.format("%.0f", (now - c.t0) / 1e6) }, { "ticks", c.n },
 		{ "avgUs", math.floor(c.sum / math.max(1, c.n) + 0.5) }, { "maxUs", math.floor(c.max + 0.5) }, { "at", c.at },
-		{ "getMaxUs", math.floor(c.getMax + 0.5) }, { "over4ms", c.over[1] }, { "over16ms", c.over[2] },
-		{ "over50ms", c.over[3] } })
+		{ "getMaxUs", math.floor(c.getMax + 0.5) }, { "getAvgUs", math.floor(c.getSum / math.max(1, c.n) + 0.5) },
+		{ "over4ms", c.over[1] }, { "over16ms", c.over[2] }, { "over50ms", c.over[3] }, { "pvB", pvB }, { "pvN", pvN }, { "getN", c.getN },
+		{ "stateMode", c.mode or "get" }, { "revMiss", c.miss or "-" } })
 end
 
 --- Debug lines on? The dev tools' hook overrides the param for the session; a verbose instance (the dev
@@ -1238,9 +1264,29 @@ function Driver:charIndustry(x, y, now)
 	return best
 end
 
+--- Left-hand traffic? (2026-10-20, the Left Hand Traffic mod: ot_engine.driveSide from the loaded street templates),
+--- once per session on the root driver, with one DRIVE line. Junction lane connections are mirrored then
+--- (ot_proposal.junctionConns) and the one-way rings stay off (rbGeo "leftHand": they run counter-clockwise).
+function Driver:leftHand()
+	local r = self:root()
+	if r.driveSide == nil then
+		local side, from = "right", nil
+		if self.E.driveSide then
+			local ok, s1, s2 = pcall(self.E.driveSide, PR.leftHandFrom)
+			if ok and (s1 == "left" or s1 == "right") then side, from = s1, s2 end
+		end
+		r.driveSide = side
+		self:log("DRIVE", { { "side", side }, { "from", from or "default" } })
+	end
+	return r.driveSide == "left"
+end
+
 --- The one-way ring geometry (ot_ring.load: square_roundabouts' sizes), once per session on the root driver.
 function Driver:rbGeo()
 	local r = self:root()
+	if r.rbGeoTried == nil and self:leftHand() then
+		r.rbGeoTried, r.rbGeoData, r.rbGeoWhy = true, nil, "leftHand"
+	end
 	if r.rbGeoTried == nil then
 		r.rbGeoTried = true
 		local okL, geo, why = pcall(RG.load, ug_require)
@@ -1608,10 +1654,15 @@ end
 --- Industries near town t (ot_industry.forTown, or nil when there are none): the map's list is read once per
 --- IND_REFRESH_S (industries rarely change: one listing for all towns), each town's share recomputed when the list
 --- was re-read. An industry file name the classifier doesn't know is logged once per session (IND unknown).
+--- Player facilities (harbors, airports, depots, freight stations: ot_industry FAC_KINDS, soft only) join the info:
+--- re-read every FAC_REFRESH_S (debug line `FAC`), the towns' share redone only when the classified list changed.
 function Driver:industryFor(t, now, ext)
 	local E = self.E
-	if not IND.ON or E.industries == nil then return nil end
-	if self.indAll == nil or now - (self.indAllUs or 0) > D.IND_REFRESH_S * 1e6 then
+	if not IND.ON or (E.industries == nil and E.facilities == nil) then return nil end
+	self:facilitiesRead(now)
+	if E.industries == nil then
+		self.indAll, self.indVer = self.indAll or {}, self.indVer or 1
+	elseif self.indAll == nil or now - (self.indAllUs or 0) > D.IND_REFRESH_S * 1e6 then
 		local t0 = self:nowUs()
 		local okL, all = pcall(E.industries)
 		self.indAll = okL and all or {}
@@ -1624,13 +1675,13 @@ function Driver:industryFor(t, now, ext)
 	-- 2026-10-13_2240_sqot-dev; recomputed when the radius moved by 250 m)
 	local reach = math.max(IND.SEARCH_R, ((ext and ext.r) or s.indR or 0) + IND.ZONE_REACH)
 	local rKey = math.floor(reach / 250)
-	if s.indVer ~= self.indVer or s.indRKey ~= rKey then
+	if s.indVer ~= self.indVer or s.indRKey ~= rKey or s.facVer ~= self.facVer then
 		local cx, cy
 		if s.pos then cx, cy = s.pos[1], s.pos[2] else cx, cy = E.boxCentre(t) end
 		if cx == nil and ext then cx, cy = ext.cx, ext.cy end
 		if cx == nil then return s.ind end
-		local info, unknown = IND.forTown(self.indAll, cx, cy, E.year(), reach)
-		s.ind, s.indVer, s.indRKey = info, self.indVer, rKey
+		local info, unknown = IND.forTown(self.indAll, cx, cy, E.year(), reach, self.facAll)
+		s.ind, s.indVer, s.indRKey, s.facVer = info, self.indVer, rKey, self.facVer
 		if ext and ext.r then s.indR = ext.r end
 		self.indUnknown = self.indUnknown or {}
 		for file in pairs(unknown or {}) do
@@ -1641,6 +1692,44 @@ function Driver:industryFor(t, now, ext)
 		end
 	end
 	return s.ind
+end
+
+--- The map's player facilities (E.facilities, ot_industry.classifyFacility; unverified in game), re-read every
+--- FAC_REFRESH_S: self.facAll keeps the classified ones; self.facVer moves only when that list changed (a new or removed
+--- depot / harbor / airport / freight station), so the towns' info and the planner's caches stay put otherwise.
+function Driver:facilitiesRead(now)
+	local E = self.E
+	if not IND.FAC_ON or E.facilities == nil then
+		self.facAll = nil
+		return
+	end
+	if self.facAllUs ~= nil and now - self.facAllUs <= D.FAC_REFRESH_S * 1e6 then return end
+	local t0 = self:nowUs()
+	local okL, all = pcall(E.facilities)
+	self.facAllUs = now
+	local keep, parts, counts = {}, {}, {}
+	if okL and type(all) == "table" then
+		for i, it in ipairs(all) do
+			if i > 20000 then break end
+			local kind = IND.classifyFacility(it)
+			local x, y = tonumber(it[1] or it.x), tonumber(it[2] or it.y)
+			if kind and x and y then
+				keep[#keep + 1] = it
+				counts[kind] = (counts[kind] or 0) + 1
+				parts[#parts + 1] = string.format("%s:%.0f:%.0f", kind, x, y)
+			end
+		end
+	end
+	table.sort(parts)
+	local sig = table.concat(parts, ";")
+	if sig ~= self.facSig then
+		self.facSig, self.facAll = sig, keep
+		self.facVer = (self.facVer or 0) + 1
+		self:debug("FAC", { { "facilities", #keep }, { "port", counts.port or 0 }, { "airport", counts.airport or 0 },
+			{ "heliport", counts.heliport or 0 }, { "depot", counts.depot or 0 }, { "freight", counts.freight or 0 },
+			{ "read", okL and type(all) == "table" and #all or -1 }, { "ok", okL and all ~= nil },
+			{ "us", self:nowUs() - t0 } })
+	end
 end
 
 --- Rail passenger stations near town t (M3 station quarter, ot_motif_town; E.railStations, unverified in game): the
@@ -1748,6 +1837,8 @@ function Driver:init(now, saved)
 			-- (the plan hang guard needs debug.sethook in the game's Lua: "on" or "off", 2026-10-13)
 			{ "hangGuard", (D.PLAN_GUARD and type(debug) == "table" and type(debug.sethook) == "function") and "on" or "off" },
 			{ "params", self.opts.raw } })
+		-- (the name list and the founded towns' name language, NEXT_PHASE_BRIEF 72)
+		if reason == nil then self:nameListLine(inputs) end
 		if reason then
 			self.phase = "off"
 			self.offReason = reason
@@ -3238,6 +3329,7 @@ end
 ---------------------------------------------------------------------------
 -- §65 (2026-10-15): street builders, the stall guard
 
+D.FAST_FRONT = 1           -- (2026-10-18) blocks beyond the growth front per unit of a demand build's fast factor above 1
 D.STALL = true             -- the stall guard (ot_assess.stall) for "mod"-locked towns; false: off
 D.STALL_INC_MUL = 1.5      -- a stalled town's increment: this x its usual size ...
 D.STALL_MAX_EDGES = 36     -- ... at most this many edges
@@ -3296,15 +3388,27 @@ function Driver:streetsNote(t, m, split, now)
 		valves = s.glock and #s.glock.valves or 0, glocked = s.glock and s.glock.tally and s.glock.tally.glocked or 0,
 		open = s.glock and s.glock.tally and s.glock.tally.open or 0, gk = s.gameLock == true,
 		lockShare = s.lockShare, tips = s.glock and D.tipCount(s.glock.valves) or 0, spikeTrim = s.spikeTrim,
-		rakeJoin = s.rakeJoin, wiggleHeld = s.wiggleHeld, knotHeld = s.knotHeld, hookHeld = s.hookHeld }
+		rakeJoin = s.rakeJoin, wiggleHeld = s.wiggleHeld, knotHeld = s.knotHeld, hookHeld = s.hookHeld, wideRuns = s.wideRuns,
+		nearMiss = s.nearMissBuilt }
 	if self.streetsUs == nil then self.streetsUs = now end
 	if now - self.streetsUs < D.STREETS_EVERY_S * 1e6 then return end
 	self.streetsUs = now
 	local n, edges, mod, game, core, stalled, fires, nMod, nLegacy = 0, 0, 0, 0, 0, 0, 0, 0, 0
 	local valves, glocked, open, nGk = 0, 0, 0, 0
 	local nSteer, lsN, lsSum, tips, spike, rake, wig, knot, hook = 0, 0, 0, 0, 0, 0, 0, 0, 0
+	local nmBuilt = 0
+	-- (§73: the towns' medium / large runs summed, from their last SNAPSHOT)
+	local wide = { runs = 0, edges = 0, len = 0, short = 0, lone = 0, max = 0, by = {} }
+	local wideTowns = 0
 	for _, st in pairs(self.towns) do
 		local x = type(st) == "table" and st.streets or nil
+		local xw = x and x.wideRuns
+		if xw then
+			wideTowns = wideTowns + 1
+			for _, k in ipairs({ "runs", "edges", "len", "short", "lone" }) do wide[k] = wide[k] + (xw[k] or 0) end
+			wide.max = math.max(wide.max, xw.max or 0)
+			for k, v in pairs(xw.by or {}) do wide.by[k] = (wide.by[k] or 0) + v end
+		end
 		if x then
 			n = n + 1
 			edges, mod = edges + x.edges, mod + (x.mod or 0)
@@ -3316,6 +3420,7 @@ function Driver:streetsNote(t, m, split, now)
 			tips, spike, rake, wig = tips + (x.tips or 0), spike + (x.spikeTrim or 0), rake + (x.rakeJoin or 0), wig + (x.wiggleHeld or 0)
 			knot = knot + (x.knotHeld or 0)
 			hook = hook + (x.hookHeld or 0)
+			nmBuilt = nmBuilt + (x.nearMiss or 0)
 			valves, glocked, open = valves + (x.valves or 0), glocked + (x.glocked or 0), open + (x.open or 0)
 			if x.gk then nGk = nGk + 1 end
 		end
@@ -3326,7 +3431,8 @@ function Driver:streetsNote(t, m, split, now)
 		{ "glocked", glocked }, { "gameOpen", open }, { "glockedSession", self.glockN or 0 },
 		{ "glockRefund", self.glockRefundSum or 0 }, { "refund", self.refundSum or 0 }, { "lockSteer", nSteer },
 		{ "lockShare", lsN > 0 and string.format("%.2f", lsSum / lsN) or "-" }, { "tips", tips }, { "spikeTrim", spike },
-		{ "rakeJoin", rake }, { "wiggleHeld", wig }, { "knotHeld", knot }, { "hookHeld", hook } })
+		{ "rakeJoin", rake }, { "wiggleHeld", wig }, { "knotHeld", knot }, { "hookHeld", hook },
+		{ "wideRuns", wideTowns > 0 and D.wideAuditText(wide) or "-" }, { "nearMiss", nmBuilt } })
 end
 
 ---------------------------------------------------------------------------
@@ -3947,7 +4053,16 @@ function Driver:assess(job, now, saved)
 		self:log("WARN", { { "stage", "glock" }, { "town", t }, { "err", gls } })
 		gls, job.glockQ = nil, nil
 	end
+	-- (§75 follow-up, 2026-10-20: the main body, ot_assess.body; only when the debug line is written; logging only)
+	local bRBody, bR50, bOut, bFar, bUs = "-", "-", "-", "-", "-"
+	if self:debugOn() and m.pts then
+		local b0 = self:nowUs()
+		local okB, b = pcall(A.body, m.pts)
+		if okB and b then bRBody, bR50, bOut, bFar = A.bodyFields(b, #m.pts) end
+		bUs = self:nowUs() - b0
+	end
 	self:debug("CHECK", { { "town", t }, { "name", E.name(t) }, { "buildings", m.buildings }, { "r", m.ext.r },
+		{ "rBody", bRBody }, { "r50", bR50 }, { "out", bOut }, { "outFar", bFar }, { "bodyUs", bUs },
 		{ "edges", lots.edges }, { "free", lots.free }, { "open", lots.open }, { "openEdges", lots.openEdges },
 		{ "gaps", lots.gaps }, { "virtual", lots.virtual }, { "built", lots.built }, { "need", m.threshold },
 		{ "cap", caps and string.format("%.0f/%.0f", caps.actual, caps.target) or "?" },
@@ -4124,12 +4239,34 @@ function D.speciesText(tally)
 	return table.concat(out, ",")
 end
 
+--- ot_core.wideAuditText (the STREETS line's sum: Driver:streetsNote has a local `core`, the core edge count, that
+--- shadows the module there).
+function D.wideAuditText(w) return core.wideAuditText(w) end
+
+--- PLAN `runs=` (§73): the increment's medium / large runs kept / cut (all passes) / the longest kept (m), or "-".
+function D.runsText(h)
+	local r = h and h.runs
+	if r == nil then return "-" end
+	return string.format("%d/%d/%.0f", r.kept or 0, r.cut or 0, r.maxLen or 0)
+end
+
+--- Builder of a snapshot edge for the SNAPSHOT `wideRuns` audit (§73): "mod" (ours: locked or built this session),
+--- "game" (the game's, locked by us after it built them, §67), else "other" (the town's core and the game's open streets).
+function D.edgeBuilder(s, ed)
+	if ed == nil then return "other" end
+	if ed.locked == true or (s and s.own and s.own[ed.id]) then return "mod" end
+	if ed.glocked then return "game" end
+	return "other"
+end
+
 --- Street graph + join info for the town's dead ends (noJoin marks every dead end we must not touch).
 function Driver:snapshotGraph(job)
 	local E, t = self.E, job.town
 	local snap = { nodes = {}, edges = {} }
 	local seen, local1 = {}, {}
 	local edgeById = {}
+	-- (the mod's own streets built this session: ot_knot.emptyOurs, one empty row at a time; locked ones say so anyway)
+	local ownIds = self.towns[t] and self.towns[t].own or nil
 	for _, ed in ipairs(job.edges) do
 		edgeById[ed.id] = ed
 		for k = 0, 1 do
@@ -4143,7 +4280,7 @@ function Driver:snapshotGraph(job)
 		end
 		snap.edges[#snap.edges + 1] = { id = ed.id, node0 = ed.n0, node1 = ed.n1, class = classOf(ed.template),
 			t0 = ed.t0, t1 = ed.t1, template = ed.template, built = job.builtBy and (job.builtBy[ed.id] or 0) or nil,
-			locked = ed.locked == true or nil }
+			locked = ed.locked == true or nil, own = (ownIds and ownIds[ed.id]) or nil }
 	end
 	local g = OG.fromSnapshot(snap)
 	local joinInfo, joinable, why = {}, 0, {}
@@ -4163,10 +4300,9 @@ function Driver:snapshotGraph(job)
 			if (job.builtBy[eid] or 0) > 0 then s.emptyDE[n] = nil else s.emptyDE[n] = (s.emptyDE[n] or 0) + 1 end
 		end
 		local real = E.nodeStreetEdges(n)
-		if (s.emptyDE[n] or 0) > D.RETIRE_CHECKS then
-			reason = "retired"
-			retired = retired + 1
-		elseif #real ~= 1 then reason = "degree"
+		local isRetired = (s.emptyDE[n] or 0) > D.RETIRE_CHECKS
+		local info = nil
+		if #real ~= 1 then reason = "degree"
 		elseif not D.plainTownEdge(ed) then reason = "edge"
 		elseif E.nodeInConstruction(n) then reason = "construction"
 		else
@@ -4178,13 +4314,28 @@ function Driver:snapshotGraph(job)
 				-- (a Works link job: the Works town's dead ends may be joined too, job.otherTownOk)
 				if ct ~= t and not (job.otherTownOk ~= nil and ct == job.otherTownOk) then reason = "otherTown"
 				else
-					joinInfo[n] = { hasConfig = hasCfg, edges = real, lanes = ed.lanes, src = ed.id, template = ed.template }
-					joinable = joinable + 1
+					info = { hasConfig = hasCfg, edges = real, lanes = ed.lanes, src = ed.id, template = ed.template }
 				end
 			end
 		end
+		-- (retired comes first in the report, as before; §74 2026-10-18: a dead end retired for nothing else is marked
+		-- nmRetired with its join info in g.nmRetiredInfo, so a near-miss join may still close it: Driver:retiredJoinOk)
+		if isRetired then
+			retired = retired + 1
+			if reason == nil and info then
+				g.nmRetiredInfo = g.nmRetiredInfo or {}
+				g.nmRetiredInfo[n] = info
+				g.nodeById[n].nmRetired = true
+			end
+			reason = "retired"
+		elseif info then
+			joinInfo[n] = info
+			joinable = joinable + 1
+		end
 		if reason then
 			g.nodeById[n].noJoin = true
+			-- (a snapshot dead end with more street edges in the game: the snapshot's cut, no dead end; §74 `cut`)
+			if reason == "degree" then g.nodeById[n].nmCut = true end
 			why[reason] = (why[reason] or 0) + 1
 		end
 	end
@@ -4197,6 +4348,50 @@ function Driver:snapshotGraph(job)
 		if why[k] then whyText[#whyText + 1] = k .. ":" .. why[k] end
 	end
 	return g, joinInfo, joinable, table.concat(whyText, "/")
+end
+
+--- §74 (2026-10-18): may a near-miss join start or end at retired dead end n (the snapshot's nmRetired: the mod's own
+--- empty dead end, retired for nothing else)? Its join info goes to job.nmInfo[n] for ot_proposal, as midJoinOk's.
+function Driver:retiredJoinOk(job, n)
+	local info = job.g and job.g.nmRetiredInfo and job.g.nmRetiredInfo[n]
+	if info == nil then return false end
+	job.nmInfo = job.nmInfo or {}
+	job.nmInfo[n] = info
+	return true
+end
+
+--- §74 (ot_nearmiss): may a near-miss join end at street node n (degree 2 / 3 in the snapshot: a T or a crossroads)?
+--- Only a node with a node config (rewritten with the new segment in the engine pattern, ot_proposal, as at a joined dead
+--- end), whose street segments are all in the snapshot and plain town streets (no country road, bridge object, player
+--- owned or construction street), no track segment at it (a level crossing), not in a construction, in this town.
+--- The join info for ot_proposal goes to job.nmInfo[n] (the narrowest segment as the copy source).
+function Driver:midJoinOk(job, n)
+	local E = self.E
+	if job.g == nil or job.g.nodeById[n] == nil or job.g.nodeById[n].noJoin then return false end
+	local byId = job.nmEdgeById
+	if byId == nil then
+		byId = {}
+		for _, ed in ipairs(job.edges or {}) do byId[ed.id] = ed end
+		job.nmEdgeById = byId
+	end
+	local real = E.nodeStreetEdges(n)
+	if #real < 2 or #real ~= OG.degree(job.g, n) then return false end
+	if E.nodeSegmentCount and E.nodeSegmentCount(n) ~= #real then return false end
+	local src, edgeLanes = nil, {}
+	for _, id in ipairs(real) do
+		local ed = byId[id]
+		if ed == nil or not D.plainTownEdge(ed) or LN.isCountry(ed.template) then return false end
+		edgeLanes[id] = ed.lanes
+		if src == nil or (ed.lanes or 0) < (src.lanes or 0) then src = ed end
+	end
+	if not E.hasConfig(n) then return false end
+	if E.nodeInConstruction(n) then return false end
+	local node = job.g.nodeById[n]
+	if E.closestTown(node.x, node.y) ~= job.town then return false end
+	job.nmInfo = job.nmInfo or {}
+	job.nmInfo[n] = { hasConfig = true, edges = real, lanes = src.lanes, src = src.id, template = src.template,
+		edgeLanes = edgeLanes, mid = true }
+	return true
 end
 
 --- Edges to copy: one per wanted template, plus a plain town street as the fallback.
@@ -4751,6 +4946,15 @@ D.HELD_FIELDS = { { "leadHeld", "lead" }, { "sparseHeld", "sparse" }, { "ringHel
 	{ "groveHeld", "grove" }, { "emptyLoopHeld", "emptyLoop" }, { "envHeld", "env" }, { "armFill", "armFill" },
 	{ "armFrontHeld", "armFront" }, { "wideHeld", "wide" }, { "frontHeld", "front" } }
 
+--- The knot holds of a plan report as text: "<held>:<cross>/<parallel>/<loop>/<side>/<row>" ("0" without a knot report;
+--- row: one empty row at a time, 2026-10-19, ot_knot ROW).
+--- (§75 follow-up, 2026-10-19: also on the empty PLAN and STUCK lines, as side / parallel never give way: the
+--- 2026-10-19_1949 run could not tell whether they emptied a plan)
+function D.knotText(report)
+	if type(report) ~= "table" or report.knotWhy == nil then return "0" end
+	return string.format("%d:%s", report.knotHeld or 0, KN.text(report.knotWhy))
+end
+
 --- The holds of a plan report as text ("sparse=14,lead=2", "-" for none) and the one holding the most pieces (or nil).
 function D.heldText(report)
 	if type(report) ~= "table" then return "-", nil end
@@ -4833,8 +5037,31 @@ function Driver:snapshot(job, now, saved)
 	-- bridgehead quarter (M4): the town's river bridge (its frame's `br`, or this session's build with its geometry)
 	self:bridgeRefresh(job, style, saved)
 	local sources, fallback = self:sources(job, style)
+	-- (§73: the town's medium / large runs, short and lone ones, by builder; also on the STREETS line)
+	local wideText = "-"
+	local okW, wa = pcall(function()
+		local byId = {}
+		for _, ed in ipairs(job.edges or {}) do byId[ed.id] = ed end
+		local ts = self:townState(job.town)
+		return core.wideAudit(g, function(e) return D.edgeBuilder(ts, byId[e.id]) end)
+	end)
+	if okW and wa then
+		wideText = core.wideAuditText(wa)
+		-- (not `wide`: that field is the town's 2 km site survey, ot_terrain.wide, read by the site classifier)
+		self:townState(job.town).wideRuns = wa
+	end
+	-- (§75 follow-up, 2026-10-20: the town's own empty rows, ot_knot.emptyRows; only when the debug line is written)
+	-- (`us` the snapshot without it, `rowsUs` the measure)
+	local snapUs, rowsText, rowsUs = self:nowUs() - t0, nil, nil
+	if self:debugOn() then
+		local r0 = self:nowUs()
+		local okR, rows = pcall(function() return KN.emptyRows(g, KN.limits(style)) end)
+		rowsText = okR and KN.rowsText(rows) or "err"
+		rowsUs = self:nowUs() - r0
+	end
 	self:debug("SNAPSHOT", { { "town", job.town }, { "nodes", #g.nodes }, { "edges", #g.edges }, { "net", job.net or 0 },
-		{ "deadEnds", #OG.deadEnds(g) }, { "joinable", joinable }, { "noJoin", why }, { "us", self:nowUs() - t0 } })
+		{ "deadEnds", #OG.deadEnds(g) }, { "joinable", joinable }, { "noJoin", why }, { "wideRuns", wideText },
+		{ "emptyRows", rowsText or "-" }, { "us", snapUs }, { "rowsUs", rowsUs or "-" } })
 	if joinable == 0 then
 		job.why = "noJoinableDeadEnd:" .. (why ~= "" and why or "none")
 		return self:finish(job.town, "empty", now)
@@ -4918,6 +5145,14 @@ function Driver:plan(job, now)
 	-- between its rounds once PLAN_SLICE_US passed in this tick; without coroutines (or if one fails) in one go
 	local opts = { terrain = job.sampler, stats = s.stats, maxEdges = job.maxEdges, join = "deadEnd", exclude = s.exclude,
 		jointRule = job.jointRule, limits = job.limits }
+	-- (§74: near-miss joins; the street nodes they may end at checked against the engine, cached on the job)
+	if D.NEAR_MISS and NMISS.ON then
+		-- (a new plan starts afresh; a plan going on in its coroutine keeps what its earlier slices found)
+		if job.planCo == nil then job.nmInfo = {} end
+		opts.nearMiss = { midOk = function(n) return self:midJoinOk(job, n) end,
+			retiredOk = D.NEAR_MISS_RETIRED and function(n) return self:retiredJoinOk(job, n) end or nil, buildings = job.pts,
+			clock = self:clockFn(), budgetUs = D.NEAR_MISS_US }
+	end
 	-- own empty budget (ot_core OWN_EMPTY_*, 2026-10-13): the mod's own unhoused streets (locked or built this session)
 	-- (forced increments, 2026-10-14 §57: the showcase forces increments regardless of demand; its roundabout town's long
 	-- empty snaking roads, Shape cross's empty combs and EU organic's thin fingers came from forced plans skipping the own
@@ -4930,6 +5165,20 @@ function Driver:plan(job, now)
 		lim.sparse = true
 		opts.limits = lim
 		opts.ownEmptyFloor = core.OWN_EMPTY_MIN
+	end
+	-- (2026-10-18: a fast grower's demand increment, up to 2 x the usual edges, may reach FAST_FRONT blocks per unit of
+	-- its fast factor beyond the growth front, ot_select FRONT_RELAX note; the housed front and the lead limit hold)
+	-- (... and a demand build of a town whose last plan came out empty (s.emptyRun) may take the front up to
+	-- ot_select.FRONT_RELAX blocks wider when it would come out empty again: the town is not stuck for good)
+	local demandJob = job.trigger == "demand" and not job.force
+	local fast = demandJob and job.dem and tonumber(job.dem.fast) or 1
+	local stuck = demandJob and (s.emptyRun or 0) > 0
+	if (D.FAST_FRONT > 0 and fast > 1) or stuck then
+		local lim = {}
+		for k, v in pairs(opts.limits or {}) do lim[k] = v end
+		if D.FAST_FRONT > 0 and fast > 1 then lim.frontExtra = (fast - 1) * D.FAST_FRONT end
+		if stuck then lim.frontRelax = SEL.FRONT_RELAX end
+		opts.limits = lim
 	end
 	if D.OWN_EMPTY and (forcedEmpty or not job.force) and not job.head then
 		local own = s.own or {}
@@ -4948,6 +5197,9 @@ function Driver:plan(job, now)
 		if not job.force or job.head then
 			lim.leadCap = LP.leadCap(job.style)
 			lim.housedMin = LP.HOUSED_MIN_B
+		else
+			-- (one empty row at a time, ot_knot ROW: forced plans grow regardless of the houses)
+			lim.rowHold = false
 		end
 		lim.armCont = LP.armGap(job.style)
 		opts.limits = lim
@@ -5034,11 +5286,15 @@ function Driver:plan(job, now)
 			{ "dropped", table.concat(rt, "/") },
 			{ "ownEmpty", report and report.ownEmpty and string.format("%.0f/%s", report.ownEmpty, tostring(report.ownEmptyCap or "-")) or "-" },
 			{ "forestHeld", report and report.forestHeld or 0 }, { "gapHeld", report and report.gapHeld or 0 },
-			{ "zoneHeld", report and report.zoneHeld or 0 }, { "held", heldText }, { "emptyRun", s.emptyRun },
-			{ "forced", job.force == true }, { "stall", job.stall or 0 }, { "us", us }, { "slices", slices } })
+			{ "zoneHeld", report and report.zoneHeld or 0 }, { "held", heldText }, { "knotHeld", D.knotText(report) },
+			{ "knotRelax", report and report.knotRelax == true }, { "emptyRun", s.emptyRun },
+			{ "forced", job.force == true }, { "stall", job.stall or 0 }, { "us", us }, { "slices", slices },
+			{ "nearMiss", (NMISS.text(report and report.nearMiss)) }, { "nmKept", select(2, NMISS.text(report and report.nearMiss)) },
+			{ "nmErr", report and report.nearMissErr or "-" } })
 		-- (a town held for many plans in a row: one line in every log, also without debug, then every STUCK_EVERY more)
 		if s.emptyRun == D.STUCK_AT or (s.emptyRun > D.STUCK_AT and (s.emptyRun - D.STUCK_AT) % D.STUCK_EVERY == 0) then
 			self:log("STUCK", { { "town", t }, { "name", E.name(t) }, { "emptyRun", s.emptyRun }, { "held", heldText },
+				{ "knotHeld", D.knotText(report) },
 				{ "reached", report and report.reached or 0 }, { "blocked", report and report.blocked or 0 },
 				{ "excluded", report and report.excluded or 0 },
 				{ "ownEmpty", report and report.ownEmpty and string.format("%.0f/%s", report.ownEmpty, tostring(report.ownEmptyCap or "-")) or "-" },
@@ -5070,6 +5326,11 @@ function Driver:plan(job, now)
 		job.why = "straight"
 		return self:finish(t, "empty", now)
 	end
+	-- (§73) the run rule again on what goes out: a run the straight guard cut or a forest lane split may have become
+	-- too short (its edges get the narrower template, no medium stub is left)
+	local okRun, errRun = pcall(core.continuity, job.g, inc, job.style)
+	if okRun then inc.mix = core.mix(inc)
+	else self:log("WARN", { { "stage", "continuity" }, { "town", t }, { "err", errRun } }) end
 	-- the offline geometry checker over what goes to the engine (curve radius vs the town templates' 44/60 m,
 	-- angles at the nodes, kinks where one line continues; ot_check)
 	local geo = CK.increment(inc, job.g)
@@ -5080,9 +5341,10 @@ function Driver:plan(job, now)
 	self:debug("PLAN", { { "town", t }, { "edges", #inc.edges }, { "nodes", #inc.nodes }, { "joins", #inc.joins },
 		{ "maxEdges", job.maxEdges }, { "length", inc.stats.length }, { "minR", geo.minRadius },
 		{ "minAngle", geo.minAngle }, { "maxKink", geo.maxKink }, { "maxCorner", geo.maxCorner },
-		{ "shortest", geo.shortest }, { "geoBad", CK.badText(geo) }, { "self", #selfC }, { "pruned", job.pruneRounds or 0 },
+		{ "shortest", geo.shortest }, { "geoBad", CK.badText(geo) }, { "geoSide", geo.counts.side or 0 }, { "self", #selfC }, { "pruned", job.pruneRounds or 0 },
 		{ "shape", job.style.shape and job.style.shape.id or "-" },
 		{ "hier", (core.hierText(inc.hier)) }, { "wideDefl", select(2, core.hierText(inc.hier)) or "-" },
+		{ "runs", D.runsText(inc.hier) },
 		{ "armFill", report and report.armFill or 0 }, { "armBuilt", report and report.armBuilt or "-" }, { "armWait", report and report.armWait or 0 },
 		{ "mix", core.mixText(inc.mix) }, { "gridShare", D.gridShare(inc, job.style) },
 		{ "emptyLen", D.emptyText(job.g) }, { "emptyCap", report and report.emptyCap or "-" },
@@ -5107,7 +5369,8 @@ function Driver:plan(job, now)
 		{ "trees", D.treesText(inc) }, { "lanes", inc.lanes or 0 }, { "gapHeld", report and report.gapHeld or 0 },
 		{ "retired", self:townState(t).retired or 0 }, { "emptyLoopHeld", report and report.emptyLoopHeld or 0 },
 		{ "gaps", GP.text(job.style.gaps) }, { "zoneHeld", report and report.zoneHeld or 0 },
-		{ "zones", IND.zoneText(job.style.industry) }, { "zoneLock", job.zoneLockN or 0 }, { "straight", straightText },
+		{ "zones", IND.zoneText(job.style.industry) }, { "fac", IND.facText(job.style.industry) },
+		{ "zoneLock", job.zoneLockN or 0 }, { "straight", straightText },
 		{ "deepLocks", D.deepLockText(inc, job.style) }, { "bends", D.deepWind(inc, job.style).bends },
 		{ "maxStraight", D.deepWind(inc, job.style).maxStraight }, { "groveHeld", report and report.groveHeld or 0 },
 		{ "char", CH.text(job.style.charKind, job.style.densify) }, { "roundabouts", self:townState(t).rbBuilt or 0 },
@@ -5117,11 +5380,14 @@ function Driver:plan(job, now)
 		{ "leadCap", report and report.leadM and string.format("%.0f", report.leadM) or "-" },
 		{ "rakeHeld", report and report.rakeHeld or 0 }, { "rakeJoin", report and report.rakeJoin or 0 },
 		{ "wiggleHeld", report and report.wiggleHeld or 0 }, { "lookRelax", report and report.lookRelax == true },
-		{ "knotHeld", report and report.knotWhy and string.format("%d:%s", report.knotHeld or 0, KN.text(report.knotWhy)) or "0" },
+		{ "knotHeld", D.knotText(report) },
 		{ "knotRelax", report and report.knotRelax == true },
 		{ "hookHeld", report and report.hookWhy and string.format("%d:%d/%d", report.hookHeld or 0, report.hookWhy.turn or 0,
 			report.hookWhy.back or 0) or "0" },
-		{ "hookRelax", report and report.hookRelax == true } })
+		{ "hookRelax", report and report.hookRelax == true },
+		{ "nearMiss", (NMISS.text(report and report.nearMiss)) }, { "nmKept", select(2, NMISS.text(report and report.nearMiss)) },
+		{ "nmJoins", report and report.nearMiss and #report.nearMiss.joins > 0 and table.concat(report.nearMiss.joins, ",") or "-" },
+		{ "nmErr", report and report.nearMissErr or "-" } })
 	do
 		local s9 = self:townState(t)
 		if report then
@@ -5537,7 +5803,8 @@ function Driver:shapeLine(job, inc, report)
 			-- the game's?)
 			{ "ownShore", MT.shoreText(MT.shore(job.g, sh.shore or (job.style.waterPremium and job.style.waterPremium.shore),
 				nil, function(e) return ownIds[e.id] == true end)) }, { "shoreFront", job.style.shoreFront and (job.style.shoreFront.row and "row" or "promenade") or "-" },
-			{ "ind", IND.text(job.style.industry) }, { "indTurned", sh.indTurned == true },
+			{ "ind", IND.text(job.style.industry) }, { "fac", IND.facText(job.style.industry) },
+			{ "indTurned", sh.indTurned == true },
 			{ "forest", D.forestText(job.style) },
 			-- (round 5, 2026-10-13) land spread of the buildings (ratio / % beyond 1.5 x the equal-area disc / lobes) and the
 			-- armed towns' steepest arm (length / climb / houses along it)
@@ -5576,8 +5843,15 @@ function Driver:buildInfo(job)
 		for _, p in ipairs(job.steerTips) do unlock[p.key] = true end
 	end
 	local lockAll = D.locksAll(mode) or (mode == "steer" and job.lockModeUsed == "works")
-	return { nodes = job.joinInfo, sources = job.sources, fallback = job.fallback, edgeLanes = edgeLanes,
-		templateLanes = templateLanes, allowNoConfig = self.allowNoConfig or D.ALLOW_NO_CONFIG,
+	-- (§74: the street nodes a near-miss join ends at, Driver:midJoinOk, beside the dead ends)
+	local nodes = job.joinInfo
+	if job.nmInfo and next(job.nmInfo) ~= nil then
+		nodes = {}
+		for k, v in pairs(job.joinInfo or {}) do nodes[k] = v end
+		for k, v in pairs(job.nmInfo) do if nodes[k] == nil then nodes[k] = v end end
+	end
+	return { nodes = nodes, sources = job.sources, fallback = job.fallback, edgeLanes = edgeLanes,
+		templateLanes = templateLanes, allowNoConfig = self.allowNoConfig or D.ALLOW_NO_CONFIG, leftHand = self:leftHand(),
 		lock = lockAll, lockKeys = job.lockKeys, unlockKeys = unlock,
 		bridgeType = job.bridgePlan and job.bridgePlan.typeIndex or nil }
 end
@@ -5869,11 +6143,13 @@ function Driver:recordBuilt(job, now)
 	local rec = { edges = {}, nodes = {}, joins = spec.joins or {}, us = now, style = job.style and job.style.id,
 		mode = job.styleMode or "main", expected = #spec.edges }
 	local used, nodeSeen = {}, {}
+	local pairs_ = {}
 	for _, e in ipairs(spec.edges) do
 		for _, ed in ipairs(found) do
 			if not used[ed.id] and ((near(ed.p0, e.p0) and near(ed.p1, e.p1)) or (near(ed.p0, e.p1) and near(ed.p1, e.p0))) then
 				used[ed.id] = true
 				rec.edges[#rec.edges + 1] = ed.id
+				pairs_[#pairs_ + 1] = { e, ed }
 				for _, nd in ipairs({ ed.n0, ed.n1 }) do
 					if not joins[nd] and not nodeSeen[nd] then
 						nodeSeen[nd] = true
@@ -5886,9 +6162,64 @@ function Driver:recordBuilt(job, now)
 	end
 	local s = self:townState(job.town)
 	for _, id in ipairs(rec.edges) do s.own[id] = true end
+	-- (§74: near-miss joins built, STREETS `nearMiss=`)
+	for _, e in ipairs(spec.edges) do
+		if type(e.key) == "string" and e.key:sub(1, 3) == "nm:" then s.nearMissBuilt = (s.nearMissBuilt or 0) + 1 end
+	end
 	s.history[#s.history + 1] = rec
 	while #s.history > D.HISTORY_MAX do table.remove(s.history, 1) end
+	local okP, errP = pcall(self.provNote, self, job, pairs_)
+	if not okP then self:log("WARN", { { "stage", "prov" }, { "town", job.town }, { "err", errP } }) end
 	return rec
+end
+
+--- The job's kind for the provenance source (ot_prov.source): "sat" | "lead" | "works" | "bridge" | "frame" | nil (a
+--- plan).
+function D.provKind(job)
+	if job.satPlan then return "sat" end
+	if job.leadPlan then return "lead" end
+	if job.worksPlan then return "works" end
+	if job.bridgePlan then return "bridge" end
+	if job.framePlan then return "frame" end
+	return nil
+end
+
+--- Street provenance (§75 follow-up, 2026-10-19; ot_prov): after a build, one debug PROV line per built edge (at most
+--- PV.LINES_MAX, then one with `more=`) and the record sent to the game script (ot_saved `pv`, always: the console lookup
+--- ot_prov.who reads it). pairs = { { spec edge, built edge (ot_engine edgeTable) } }. Nothing for a dry run.
+function Driver:provNote(job, pairs_)
+	if job.dry or #pairs_ == 0 then return end
+	local E, t = self.E, job.town
+	local s = self:townState(t)
+	local kind = D.provKind(job)
+	local trig = job.head and "head" or (job.force and "force") or job.trigger or "-"
+	local year = E.year and E.year() or nil
+	local entries, n = {}, 0
+	local dbg = self:debugOn()
+	-- (§75 follow-up, 2026-10-20: `d=` the edge middle's distance from the town centre (the style's, as the plans and
+	-- frames use; the houses' mean without a style), to read far-out builds against CHECK r / rBody)
+	local ctr = (job.style and job.style.centre) or (job.ext and { job.ext.cx, job.ext.cy }) or nil
+	for _, pr in ipairs(pairs_) do
+		local e, ed = pr[1], pr[2]
+		local src = PV.source(kind, e)
+		local en = PV.entry({ id = ed.id, src = src, trig = trig, year = year, p0 = ed.p0, p1 = ed.p1,
+			t0 = ed.t0, t1 = ed.t1 })
+		if en then entries[#entries + 1] = en end
+		n = n + 1
+		if dbg and n <= PV.LINES_MAX then
+			self:log("PROV", { { "town", t }, { "name", E.name(t) }, { "edge", ed.id },
+				{ "n", string.format("%s,%s", tostring(ed.n0), tostring(ed.n1)) },
+				{ "a", string.format("%.0f,%.0f", ed.p0[1], ed.p0[2]) }, { "b", string.format("%.0f,%.0f", ed.p1[1], ed.p1[2]) },
+				{ "len", string.format("%.0f", tonumber(e.length) or G.dist(ed.p0[1], ed.p0[2], ed.p1[1], ed.p1[2])) },
+				{ "d", ctr and string.format("%.0f", G.dist(ctr[1], ctr[2], (ed.p0[1] + ed.p1[1]) / 2, (ed.p0[2] + ed.p1[2]) / 2)) or "-" },
+				{ "src", src }, { "key", PV.clean(e.key or "-") }, { "trig", trig }, { "seq", s.builds or 0 },
+				{ "year", year or "-" }, { "lock", e.locked and 1 or 0 } })
+		end
+	end
+	if dbg and n > PV.LINES_MAX then
+		self:log("PROV", { { "town", t }, { "name", E.name(t) }, { "more", n - PV.LINES_MAX }, { "seq", s.builds or 0 } })
+	end
+	if #entries > 0 and E.sendEvent then E.sendEvent(SV.EVENT_ID, SV.EV_PROV, { town = t, add = entries }) end
 end
 
 ---------------------------------------------------------------------------
@@ -8340,7 +8671,7 @@ function Driver:hasDistrict(t, saved)
 end
 
 --- The name list's classifier for composed names (stop names' folder, else the names phase's, else the list's
---- fallback; "usa" on a US map without a base list, else "en").
+--- fallback; another mod's list: its language, Driver:listLang; else "usa" on a US map, else "en").
 function Driver:nameCls(saved)
 	if self.stopsCfg and self.stopsCfg.cls then return self.stopsCfg.cls end
 	local path = NM.basePath(self.cfg and self.cfg.nameList)
@@ -8348,13 +8679,110 @@ function Driver:nameCls(saved)
 		local dir = (type(saved) == "table" and type(saved.nd) == "string" and saved.nd) or self.listDir or NM.LISTS[path].langs.fallback
 		local cls = NM.classOf(path, dir)
 		if cls then return cls end
+	elseif path == nil then
+		local L = self:listLang()
+		if L.cls then return L.cls end
 	end
 	return self.nameRegion == "US" and "usa" or "en"
 end
 
+--- The language of another mod's name list for the towns the mod founds (2026-10-17, NEXT_PHASE_BRIEF 72; the
+--- list's own towns and stops keep their names: basePath "notBase"). Once per session: { base = bool, region, country,
+--- word (the path word that named the country), cls (a classifier id; false: unused names of the list itself),
+--- clsSource ("base" | "country" | "guess" | "list" | "fallback"), guess (the shares, log), list, listPath, tries, why }.
+--- The classifier: the country the list's path names (ot_names.countryCls), else a confident guess from the map's town
+--- names (ot_names.guessCls, at most GUESS_MAX names), else the list's own towns.lua (Driver:moddedTownList: offshoots
+--- take unused names of it, as base lists without a classifier do), else the old composed English / US names.
+function Driver:listLang()
+	local L = self.nameLang
+	if L then return L end
+	local nl = self.cfg and self.cfg.nameList
+	local path, why = NM.basePath(nl)
+	local region, country, word = I.region(nl)
+	L = { base = path ~= nil, region = region, country = country, word = word, tries = 0 }
+	self.nameLang = L
+	if path then
+		L.clsSource = "base"
+		return L
+	end
+	local fb = self.nameRegion == "US" and "usa" or "en"
+	if why == "noList" then
+		L.cls, L.clsSource, L.why = fb, "fallback", why
+		return L
+	end
+	local E = self.E
+	local names = {}
+	if E.towns and E.name then
+		local okT, ids = pcall(E.towns)
+		for i, id in ipairs((okT and type(ids) == "table") and ids or {}) do
+			if #names >= NM.GUESS_MAX or i > NM.MAX_TOWNS then break end
+			local okN, nm = pcall(E.name, id)
+			if okN and type(nm) == "string" then names[#names + 1] = nm end
+		end
+	end
+	local c = NM.countryCls(country, names)
+	if c then
+		L.cls, L.clsSource = c, "country"
+		return L
+	end
+	local g, gwhy, gtxt = NM.guessCls(names)
+	L.guess = gtxt
+	if g then
+		L.cls, L.clsSource = g, "guess"
+		return L
+	end
+	local list, lpath, lwhy = self:moddedTownList(nl, country, L)
+	if list then
+		L.cls, L.clsSource, L.list, L.listPath = false, "list", list, lpath
+		return L
+	end
+	L.cls, L.clsSource, L.why = fb, "fallback", tostring(gwhy) .. "+" .. tostring(lwhy)
+	return L
+end
+
+--- Another mod's towns.lua (ot_names.moddedTownPaths: the game language's folder, the country's, en, common ones; at
+--- most MAX_MOD_TRIES requires, each in pcall), or nil and why ("noEngine" | "noPath" | "noTownsFile"). L.tries counts.
+function Driver:moddedTownList(nl, country, L)
+	local E = self.E
+	if E.townListAt == nil then return nil, nil, "noEngine" end
+	local lang = nil
+	if E.language then
+		local okG, code = pcall(E.language)
+		if okG and type(code) == "string" then lang = code end
+	end
+	local paths = NM.moddedTownPaths(nl, lang, NM.COUNTRY_DIR[country or ""])
+	if #paths == 0 then return nil, nil, "noPath" end
+	for _, p in ipairs(paths) do
+		if L then L.tries = (L.tries or 0) + 1 end
+		local okL, list = pcall(E.townListAt, p)
+		if okL and type(list) == "table" and #list > 0 then return list, p, nil end
+	end
+	return nil, nil, "noTownsFile"
+end
+
+--- The NAMELIST line (once per session at the driver's start): which list, how its region and the founded towns'
+--- name language were found.
+function Driver:nameListLine(inputs)
+	local okL, L = pcall(self.listLang, self)
+	if not okL or type(L) ~= "table" then
+		self:log("NAMELIST", { { "list", self.cfg and self.cfg.nameList or "nil" }, { "error", tostring(L) } })
+		return
+	end
+	local cls = L.cls
+	if L.base then cls = self:nameCls(nil) end
+	self:log("NAMELIST", { { "list", self.cfg and self.cfg.nameList or "nil" }, { "base", L.base },
+		{ "region", inputs and inputs.region or self.region or "-" },
+		{ "country", L.country or "-" }, { "regionSource", inputs and inputs.regionSource or "-" },
+		{ "nameRegion", self.nameRegion or "-" }, { "word", L.word or "-" },
+		{ "cls", cls == false and "list" or tostring(cls) }, { "clsSource", L.clsSource or "-" },
+		{ "guess", L.guess or "-" }, { "listPath", L.listPath or "-" }, { "listN", L.list and #L.list or 0 },
+		{ "tries", L.tries or 0 }, { "why", L.why or "-" } })
+end
+
 --- The classifier for an offshoot's composed name, or false on a list ot_names has no classes for (asia, oceania,
 --- china, korea, poland: 2026-10-14, NEXT_PHASE_BRIEF 48 item 2, "High Wuhan", "Wenzhou Works": no English words glued
---- onto its names; the offshoot takes an unused name of the list, Driver:offshootListName). Unknown lists: nameCls.
+--- onto its names; the offshoot takes an unused name of the list, Driver:offshootListName). Another mod's list:
+--- false when Driver:listLang read its own towns.lua (no classifier for its language), else nameCls.
 function Driver:offshootCls(saved)
 	if self.stopsCfg and self.stopsCfg.cls then return self.stopsCfg.cls end
 	local path = NM.basePath(self.cfg and self.cfg.nameList)
@@ -8363,6 +8791,9 @@ function Driver:offshootCls(saved)
 		local dir = (type(saved) == "table" and type(saved.nd) == "string" and saved.nd) or self.listDir or L.langs.fallback
 		-- (a list the generator speaks without a classifier: oceania in English, NEXT_PHASE_BRIEF 49)
 		if NM.classOf(path, dir) == nil then return PN.listLang(path) or false end
+	elseif path == nil and self:listLang().cls == false then
+		-- (another mod's list in a language without a classifier: unused names of its own towns.lua, NEXT_PHASE_BRIEF 72)
+		return false
 	end
 	return self:nameCls(saved)
 end
@@ -8371,6 +8802,12 @@ end
 function Driver:offshootListName(saved, used, seed, ok)
 	local path = NM.basePath(self.cfg and self.cfg.nameList)
 	local L = path and NM.LISTS[path]
+	if L == nil and path == nil then
+		-- (another mod's list: its towns.lua, read once by Driver:listLang)
+		local LL = self:listLang()
+		if type(LL.list) ~= "table" then return nil end
+		return OFF.listName(LL.list, used, seed, ok, NW.clean)
+	end
 	if L == nil or self.E.townList == nil then return nil end
 	if self.offList == nil then
 		local dir = (type(saved) == "table" and type(saved.nd) == "string" and saved.nd) or self.listDir or L.langs.fallback
@@ -8476,7 +8913,15 @@ function Driver:offshootName(kind, job, t, site, pos, o)
 	if ocls == false then
 		local nm = self:offshootListName(saved, used, o.listSeed, okName) or self:offshootListName(saved, used, o.listSeed)
 		if nm then return nm, "list", { pattern = "list", suffix = "-" } end
-		return nil
+		-- (another mod's list with every name used: the old composed name rather than no offshoot, NEXT_PHASE_BRIEF 72)
+		local LL = NM.basePath(self.cfg and self.cfg.nameList) == nil and self:listLang() or nil
+		if LL == nil or LL.base then return nil end
+		if not LL.usedUp then
+			LL.usedUp = true
+			self:log("NAMELIST", { { "event", "listUsedUp" }, { "listN", type(LL.list) == "table" and #LL.list or 0 },
+				{ "fallback", self.nameRegion == "US" and "usa" or "en" } })
+		end
+		ocls = self.nameRegion == "US" and "usa" or "en"
 	end
 	local osite = self:offshootSite(job.sampler or E.sampler(), site, pos, o.lake)
 	if kind == "district" then osite.forestEdge = site.forestEdge else osite.harbour = site.kind == "harbour" end
@@ -9481,14 +9926,29 @@ function Driver:frameDecide(job, now)
 	info = info or {}
 	if inc == nil then
 		self:debug("FRAME", { { "town", t }, { "outcome", "none" }, { "kind", info.kind or "-" }, { "why", why }, { "cands", info.cands or 0 },
-			{ "links", info.links or 0 }, { "coreR", info.coreR and math.floor(info.coreR) or "-" }, { "us", self:nowUs() - t0 } })
+			{ "links", info.links or 0 }, { "coreR", info.coreR and math.floor(info.coreR) or "-" }, { "tipCap", D.tipCapText(info) },
+			{ "tipCut", D.tipCutText(info) }, { "maxTipR", info.maxTipR and math.floor(info.maxTipR) or "-" },
+			{ "bodyOut", info.bodyOut or "-" }, { "us", self:nowUs() - t0 } })
 		return
 	end
 	job.framePlan = { inc = inc, info = info }
 	self:log("FRAME", { { "town", t }, { "name", E.name(t) }, { "outcome", "plan" }, { "kind", info.kind or "wedge" },
 		{ "shape", job.style.shape and job.style.shape.id or "-" },
 		{ "cands", info.cands or 0 }, { "links", info.links or 0 }, { "edges", #inc.edges },
-		{ "coreR", math.floor(info.coreR or 0) }, { "env", math.floor(info.env or 0) }, { "us", self:nowUs() - t0 } })
+		{ "coreR", math.floor(info.coreR or 0) }, { "env", math.floor(info.env or 0) }, { "tipCap", D.tipCapText(info) },
+		{ "tipCut", D.tipCutText(info) }, { "maxTipR", info.maxTipR and math.floor(info.maxTipR) or "-" },
+		{ "bodyOut", info.bodyOut or "-" }, { "us", self:nowUs() - t0 } })
+end
+
+--- FRAME fields of the §75 tip cap (ot_wedge.tipCap; info from ot_core.frameIncrement): `tipCap=<m>` ("-": no cap, no
+--- house data), `tipCut=<tips dropped>` (+ "@<m>" the farthest of them).
+function D.tipCapText(info)
+	return info and info.tipCap and string.format("%.0f", info.tipCap) or "-"
+end
+function D.tipCutText(info)
+	local n = info and info.tipCut or 0
+	if n > 0 and info.cutMaxR and info.cutMaxR > 0 then return string.format("%d@%.0f", n, info.cutMaxR) end
+	return tostring(n)
 end
 
 --- The frame increment goes out as planned: every edge locked, no fill.

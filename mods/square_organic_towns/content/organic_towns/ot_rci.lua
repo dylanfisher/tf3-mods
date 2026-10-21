@@ -14,7 +14,7 @@
 --   usage u      = the base game's own usage weights (M.usage: line use x 2 averaged with residential cargo; commercial
 --                  and industrial cargo supply / demand), read through the base town_util helpers, not recomputed
 --   smoothed e   = e + (u - e) x (1 - exp(-dt / TAU_YEARS))                    (M.smooth; dt in game years)
---   aim w        = FLOOR + (1 - 3 FLOOR) x e / Σe     (M.aim; no deliveries at all: none, the town is left alone)
+--   aim w        = FLOORS + (1 - ΣFLOORS) x e / Σe   (M.aim; no deliveries at all: none, the town is left alone)
 --   shares s     = init x sf / Σ(init x sf)          (M.shares: the town's current target mix)
 --   budget b     = min(STEP_MAX, MOVE_K x the target's growth since the last step / the target)
 --   goal q       = s + (w - s) x min(1, b / Σ max(w - s, 0))                    (never past w: no overshoot)
@@ -22,7 +22,7 @@
 --                  Σ init x growth factor is the base game's: the mix changes, not the speed)
 --
 -- Floors: no district's target goes below what is built (built capacity / sf, so nothing has to be torn down), and no
--- aim below FLOOR. A floor that blocks the losers lets the gainers take the move up to CEIL above the town's initial sum
+-- aim below its FLOORS share. A floor that blocks the losers lets the gainers take the move up to CEIL above the town's initial sum
 -- when the weighting first wrote (`n0`, saved): the only way the total can grow, by CEIL at most. The current total
 -- target may move by TOTAL_DEV at most per step (the move is halved until it fits). Steps under MIN_MOVE are not sent.
 -- A town that does not grow is not moved (the budget is its growth), so an old save's towns turn slowly, with their
@@ -31,7 +31,9 @@
 local M = {}
 
 M.ON = true
-M.FLOOR = 0.12          -- no district aims below this share (so the most a district can aim at is 1 - 2 x FLOOR = 0.76)
+-- no district aims below its share (R, C, I). Residential keeps a quarter (§75, 2026-10-18: a town stays a place people
+-- live in and makes its own passengers); the most residential can aim at is 0.76, commercial / industrial 0.63
+M.FLOORS = { 0.25, 0.12, 0.12 }
 M.TAU_YEARS = 0.5       -- the usage is smoothed over about this many game years (half a year: six game months)
 M.STEP_YEARS = 1 / 12   -- a town is stepped at most once per game month ...
 M.STEP_S = 60           -- ... (real seconds when the game date can't be read)
@@ -103,13 +105,14 @@ function M.smooth(e, u, dtYears)
 	return out
 end
 
---- The aimed shares from a smoothed usage (FLOOR each, the rest by usage); nil when there are no deliveries at all.
+--- The aimed shares from a smoothed usage (FLOORS each, the rest by usage); nil when there are no deliveries at all.
 function M.aim(e)
 	if type(e) ~= "table" then return nil end
 	local sum = num(e[1]) + num(e[2]) + num(e[3])
 	if sum <= 1e-6 then return nil end
-	local free = 1 - 3 * M.FLOOR
-	return { M.FLOOR + free * num(e[1]) / sum, M.FLOOR + free * num(e[2]) / sum, M.FLOOR + free * num(e[3]) / sum }
+	local f = M.FLOORS
+	local free = 1 - f[1] - f[2] - f[3]
+	return { f[1] + free * num(e[1]) / sum, f[2] + free * num(e[2]) / sum, f[3] + free * num(e[3]) / sum }
 end
 
 --- The target per district (init x sf), its total and the shares; nil when a value is missing, zero or not finite.

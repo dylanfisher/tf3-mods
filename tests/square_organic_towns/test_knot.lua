@@ -133,7 +133,7 @@ test("knot geometry: crossings off a shared end, near-parallel runs, loop area, 
 	-- a curve leaving a node and coming back across its neighbour street
 	ok(KN.crosses({ { 0, 0 }, { 50, 60 }, { -30, 60 }, { -30, -40 } }, { { 0, 0 }, { -150, 0 } }, { [1] = true }, { [1] = true }))
 	local lim = KN.limits({ block = { len = 60, depth = 45 } })
-	near(lim.parM, 0.65 * 45, 1e-9)
+	near(lim.parM, KN.PAR_K * 45, 1e-9)   -- (§75: 1.0 x the depth, was 0.65)
 	eq(lim.parRun, 60)
 	-- 22 m beside a straight street for 260 m: a run; 60 m apart (a block): none; a continuation: none
 	ok(KN.parallelRun({ { 0, 22 }, { 300, 22 } }, { { { -50, 0 }, { 350, 0 } } }, lim) >= 200)
@@ -188,8 +188,9 @@ test("knot rule: a piece crossing its own node's street, one running beside a st
 			{ key = "beside", a = "N1", b = "P", pts = { { 0, 0 }, { 20, 22 }, { 280, 22 } }, class = "small" },
 			-- leaves node 2, loops round and crosses the street 1-2 (an edge at its own end node: skipped by the chord test)
 			{ key = "lasso", a = "N2", b = "X", pts = { { 150, 0 }, { 200, 60 }, { 120, 60 }, { 120, -40 } }, class = "small" },
-			-- from 2 to 4 beside the street 2-4: a loop of 2000 m2 (half a block is 3000)
-			{ key = "sliver", a = "N2", b = "N4", pts = { { 150, 0 }, { 110, -50 }, { 150, -100 } }, class = "small" },
+			-- from the dead end 1 to the dead end 4, cutting the corner at 2: a loop of 1750 m2 (half a block is 3000)
+			-- (§75: no longer from node 2, where it would leave the junction under 60 deg: `side`)
+			{ key = "sliver", a = "N1", b = "N4", pts = { { 0, 0 }, { 130, -10 }, { 150, -100 } }, class = "small" },
 			-- straight on from 3: fine
 			{ key = "on", a = "N3", b = "O", pts = { { 300, 0 }, { 400, 0 } }, class = "small" } } }
 	local plain = run(mp, nil)
@@ -201,11 +202,17 @@ test("knot rule: a piece crossing its own node's street, one running beside a st
 	ok((rep.knotWhy.cross or 0) >= 1 and (rep.knotWhy.parallel or 0) >= 1 and (rep.knotWhy.loop or 0) >= 1,
 		KN.text(rep.knotWhy))
 	ok(not rep.knotRelax)
-	-- only a knot left: it gives way rather than an empty increment
+	-- only a knot left: a crossing gives way rather than an empty increment (§75: the lasso also leaves node 2 at 50 deg
+	-- off its east street, a side street, which never gives way: SIDE off here; with it the lasso stays out)
 	local mp2 = { junctions = mp.junctions, pieces = { mp.pieces[2] } }
+	SEL.SIDE = false
 	local st2, rep2 = run(mp2, { steer = true })
+	SEL.SIDE = true
 	ok(st2.lasso, "relaxed when nothing else fits")
 	ok(rep2.knotRelax)
+	local st2b, rep2b = run(mp2, { steer = true })
+	-- (tallied as the cross it is first; held by the side rule after the relax)
+	ok(not st2b.lasso and rep2b.knotRelax, "side never relaxed: " .. KN.text(rep2b.knotWhy))
 	-- off: the old behaviour (§71: the lasso is a curled dead end too, so the hook rule goes off with it)
 	SEL.KNOT, SEL.HOOK = false, false
 	local st3 = run(mp, { steer = true })

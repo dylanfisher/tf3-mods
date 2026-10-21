@@ -24,6 +24,7 @@
 local G = ug_require "square_organic_towns::/organic_towns/ot_geom.lua"
 local OG = ug_require "square_organic_towns::/organic_towns/ot_graph.lua"
 local SH = ug_require "square_organic_towns::/organic_towns/ot_shape.lua"
+local A = ug_require "square_organic_towns::/organic_towns/ot_assess.lua"
 
 local M = {}
 
@@ -50,6 +51,23 @@ M.FAR_SLACK_M = 15
 M.MIN_LINKS = 2            -- a frame increment needs at least this many links
 M.MAX_EDGES = 48           -- edges per frame increment (24 cut the first frame short: the game ran out through the gap)
 M.EVERY = 1                -- at most every this many demand builds of a town one goes to the frame
+-- Frame tip cap (§75 follow-up "Far-out streets after an extent jump", 2026-10-20): the frame had a floor (MIN_R_K x
+-- the core zone) and the housed test (LEAD_M) but no outer limit, so once the game's growth put an outlying group of a
+-- town's houses 0.7-1.2 km out (runs 2026-10-19_1949 / 2026-10-20_0205: CHECK r jumped 478 -> 1070, 682 -> 998 m) its
+-- dead ends there were tips like any other (Merehythe / Dovemouth frame pieces ~950 m out). A tip farther from the frame
+-- centre than tipCap = the main body's reach + TIP_LEAD_M is dropped before linking (M.lastTipCut; FRAME tipCut= /
+-- maxTipR= / tipCap=). The main body (ot_assess.body: the houses on 100 m cells flood-filled across gaps up to 200 m,
+-- the largest group) is read from the snapshot's housed streets (midpoints, e.built houses each); its reach is its
+-- farthest house from the centre. A tip needs a housed street within LEAD_M anyway, so a town that is one body never
+-- loses a tip (the cap lies beyond every tip it has: offline, test_bigform / test_spread towns, 0 of 289 frames
+-- changed); only tips beyond the body's reach, i.e. at an outlying group's houses, go. Not a multiple of a radius: the
+-- game's tips run up to LEAD_M ahead of the houses, up to 2.5 x the 75 % house radius and 2.2 x env offline, so a cap
+-- of ~1.3 x any radius either cut normal frames (q75 x 1.6: 56 of 272 calls) or let the outlying group through; env (the
+-- street-length envelope level) is an effective distance whose plain reach differs by shape and is low in the wedges.
+-- PLAN.md 6.2 §75 "Far-out streets after an extent jump" has the numbers.
+M.TIP_CAP = true
+M.TIP_LEAD_M = 300         -- m: beyond the body's farthest house (LEAD_M + 50 m: the tip's street half length)
+M.TIP_EDGES_MAX = 4000     -- body: at most this many edges read (every k-th beyond)
 M.FRAME_AND_BUILD = true   -- a frame build serves no demand: the town's normal build follows (the driver's "more" re-check)
 
 --- Does the wedge rule apply to this style? (armed shape, not a metropolis or a mech grid style, M.ON)
@@ -116,6 +134,26 @@ function M.atGate(shape, x, y)
 	return false
 end
 
+--- The frame tip cap (m from (cx, cy)) for g: the main body's reach (ot_assess.body over the housed streets'
+--- midpoints, e.built houses each; at most TIP_EDGES_MAX edges) + TIP_LEAD_M, and the body; nil when off or without
+--- house data.
+function M.tipCap(g, cx, cy)
+	if not M.TIP_CAP or g == nil or not g.hasBuilt or #g.edges == 0 then return nil end
+	local stride = math.max(1, math.ceil(#g.edges / M.TIP_EDGES_MAX))
+	local pts = {}
+	for i = 1, #g.edges, stride do
+		local e = g.edges[i]
+		local w = e.built or 0
+		if w > 0 then
+			local a, b = g.nodeById[e.n0], g.nodeById[e.n1]
+			if a and b then pts[#pts + 1] = { (a.x + b.x) / 2, (a.y + b.y) / 2, w } end
+		end
+	end
+	local body = A.body(pts, { cx = cx, cy = cy })
+	if body == nil or body.reachC == nil then return nil end
+	return body.reachC + M.TIP_LEAD_M, body
+end
+
 local function wedgeIndex(arms, a)
 	-- arms sorted by heading; the wedge between arms[i] and arms[i + 1] (wrapping) is index i
 	local n = #arms
@@ -131,13 +169,15 @@ local function wedgeIndex(arms, a)
 end
 
 --- Streets of a wedge frame for graph g (ot_plan input: startNode / endNode joins, key "frame:a:b", class small) or
---- {} and why. o = { coreR, housedIdx (ot_select.housedIndexM or nil), maxLinks, accept = fn(x, y) (only tips it
+--- {} and why. o = { coreR, housedIdx (ot_select.housedIndexM or nil), maxLinks, maxTipR (m from the centre: farther
+--- tips dropped, M.lastTipCut; M.lastMaxTipR the farthest tip kept), accept = fn(x, y) (only tips it
 --- accepts: ot_meadow's sectors), noTails (no tails toward the arm axes: a meadow frame leaves the lobes free) }. Candidates: dead ends (degree 1,
 --- joinable: not noJoin), their street not locked, beyond MIN_R_K x coreR and not inside a frame (a locked street
 --- within INSIDE_RAY on the ray outward); linked in angular order within each wedge.
 function M.frameStreets(g, shape, o)
 	o = o or {}
 	local coreR = o.coreR
+	M.lastTipCut, M.lastMaxTipR, M.lastCutMaxR = 0, 0, 0
 	if shape == nil or coreR == nil or g == nil or #g.edges == 0 then return {}, "noShape" end
 	local cx, cy = shape.centre[1], shape.centre[2]
 	-- (a tip already inside a frame: the ray from it outward meets a locked street within INSIDE_RAY)
@@ -169,11 +209,18 @@ function M.frameStreets(g, shape, o)
 				and (o.accept == nil or o.accept(node.x, node.y))
 				and (o.housedIdx == nil or o.housedDist(o.housedIdx, node.x, node.y) <= M.LEAD_M)
 				and not insideLocked(node.x, node.y) then
-				local wi, rel = wedgeIndex(arms, G.atan2(node.y - cy, node.x - cx))
-				byWedge[wi] = byWedge[wi] or {}
-				local l = byWedge[wi]
-				l[#l + 1] = { node = node, rel = rel, r = r }
-				nCand = nCand + 1
+				if o.maxTipR and r > o.maxTipR then
+					-- (beyond the tip cap: an outlying group's tip, not the town's edge)
+					M.lastTipCut = M.lastTipCut + 1
+					if r > M.lastCutMaxR then M.lastCutMaxR = r end
+				else
+					if r > M.lastMaxTipR then M.lastMaxTipR = r end
+					local wi, rel = wedgeIndex(arms, G.atan2(node.y - cy, node.x - cx))
+					byWedge[wi] = byWedge[wi] or {}
+					local l = byWedge[wi]
+					l[#l + 1] = { node = node, rel = rel, r = r }
+					nCand = nCand + 1
+				end
 			end
 		end
 	end

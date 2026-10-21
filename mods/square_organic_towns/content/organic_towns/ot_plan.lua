@@ -6,13 +6,17 @@
 --                 (end tangents of a jittered lattice piece), startNode = existing node id or nil,
 --                 endNode = existing node id or nil }, ... }  (priority order)
 --   opts    = { terrain = ot_terrain sampler or nil, maxSeg = 100, snapR = 8, minLen = 10, minAngle = 25 (deg),
+--               sideAngle = 0 (deg: §75, a new street at a junction of 3+ streets meets every other street there at
+--               least this far off, a fork's two arms excepted, ot_check.sideBad; 0 = off, the default: steer towns'
+--               plans and the near-miss joins pass ot_check.LIMITS.sideAngle 60; streets with `sideFree` are exempt),
 --               maxGrade = 0.10, waterSetback = 25, maxEdges = 24, join = "deadEnd"|"any"|"none",
 --               clear = 6 (m: new nodes keep this far from existing streets, new edges from existing nodes),
 --               clearEdge = 16 (m: every point of a new edge keeps this far from existing street centre lines it
 --               doesn't meet: two small town streets are 16 m wide together; the showcase's pre-checks refused
 --               plans whose edges ran alongside existing streets with "Collision", 2026-10-11),
 --               templatePaths = { main = ..., medium = ..., small = ... }, requireConnected = bool
---               (default: true when the graph has nodes) }
+--               (default: true when the graph has nodes), joinExtra = { [existing node id] = true } (§74: may be a
+--               street's explicit start / end node whatever its degree) }
 --   graph nodes with `noJoin = true` are never joined (M.joinable)
 -- Out: increment = {
 --   nodes = { { entity = -k, x, y, z } },                                new nodes only
@@ -38,7 +42,7 @@ local C = ug_require "square_organic_towns::/organic_towns/ot_check.lua"
 
 local M = {}
 
-M.DEFAULTS = { maxSeg = 100, snapR = 8, minLen = 10, minAngle = 25, maxGrade = 0.10, waterSetback = 25,
+M.DEFAULTS = { maxSeg = 100, snapR = 8, minLen = 10, minAngle = 25, sideAngle = 0, maxGrade = 0.10, waterSetback = 25,
 	maxEdges = 24, join = "deadEnd", clear = 6, clearEdge = 16 }
 
 local function opt(opts, k)
@@ -173,6 +177,7 @@ function M.plan(g, streets, opts)
 	opts = opts or {}
 	local maxSeg, snapR, minLen = opt(opts, "maxSeg"), opt(opts, "snapR"), opt(opts, "minLen")
 	local minAngle = math.rad(opt(opts, "minAngle"))
+	local sideAngle = math.rad(opt(opts, "sideAngle"))
 	local maxGrade, setback, maxEdges = opt(opts, "maxGrade"), opt(opts, "waterSetback"), opt(opts, "maxEdges")
 	local join = opt(opts, "join")
 	local clear = opt(opts, "clear")
@@ -185,7 +190,7 @@ function M.plan(g, streets, opts)
 	local newNodes = {}         -- [-k] = {x, y}
 	local newNodeList = {}      -- local ids in creation order
 	local accepted = {}         -- accepted edges {a, b, class, street, prev = {x,y}|nil, next = {x,y}|nil, curved}
-	local nodeHeadings = {}     -- [nodeRef] = {heading...} of accepted new edges
+	local nodeHeadings = {}     -- [nodeRef] = { { h = heading, new = true, free } } of accepted new edges
 	local pairUsed = {}         -- "a|b" -> true
 	local dropped = {}
 
@@ -196,12 +201,19 @@ function M.plan(g, streets, opts)
 	end
 
 	local function joinable(node) return M.joinable(g, node, join) end
+	-- (§74 near-miss joins, ot_nearmiss: these existing nodes may be a street's explicit end whatever their degree, a
+	-- node in the middle of a street becoming a T; never one marked noJoin, except a value "retired" for a node marked
+	-- nmRetired: the driver's retired dead end, whose only noJoin reason is that it stayed empty)
+	local joinExtra = opts.joinExtra
 
 	-- node for a point: snaps to a new node, or at street ends to an existing one; false = blocked
 	local function nodeFor(x, y, isEnd, explicit)
 		if explicit ~= nil then
 			local ex = g.nodeById[explicit]
-			if ex and joinable(ex) then return explicit end
+			local xj = joinExtra and joinExtra[explicit]
+			if ex and (joinable(ex) or (xj and join ~= "none" and (not ex.noJoin or (xj == "retired" and ex.nmRetired)))) then
+				return explicit
+			end
 			return false
 		end
 		local best, bd = nil, snapR
@@ -224,18 +236,26 @@ function M.plan(g, streets, opts)
 		return k
 	end
 
-	local function headingsAt(ref)
-		local hs = {}
+	-- the streets at a node: { h = heading leaving it, new = accepted in this increment, free = its street is sideFree }
+	local function armsAt(ref)
+		local arms = {}
 		if ref > 0 then
-			for _, id in ipairs(g.adj[ref] or {}) do hs[#hs + 1] = OG.headingFrom(g, g.edgeById[id], ref) end
+			for _, id in ipairs(g.adj[ref] or {}) do arms[#arms + 1] = { h = OG.headingFrom(g, g.edgeById[id], ref) } end
 		end
-		for _, h in ipairs(nodeHeadings[ref] or {}) do hs[#hs + 1] = h end
-		return hs
+		for _, a in ipairs(nodeHeadings[ref] or {}) do arms[#arms + 1] = a end
+		return arms
 	end
 
-	local function angleOk(ref, h)
-		for _, o in ipairs(headingsAt(ref)) do
-			if G.angleDiff(o, h) < minAngle then return false end
+	-- a new street leaving node ref at heading h: minAngle off every street there (a bend), and at a junction the
+	-- side-street rule (§75, ot_check.sideBad) over the pairs with a new street
+	local function angleOk(ref, h, free)
+		local arms = armsAt(ref)
+		for _, o in ipairs(arms) do
+			if G.angleDiff(o.h, h) < minAngle then return false end
+		end
+		if sideAngle > 0 and #arms >= 2 then
+			arms[#arms + 1] = { h = h, new = true, free = free }
+			if C.sideBad(arms, sideAngle) then return false end
 		end
 		return true
 	end
@@ -320,7 +340,7 @@ function M.plan(g, streets, opts)
 		return nil
 	end
 
-	local function check(a, b, hA, hB, d0, d1, arc, class)
+	local function check(a, b, hA, hB, d0, d1, arc, class, free)
 		local ax, ay = pos(a)
 		local bx, by = pos(b)
 		if a == b then return "short" end
@@ -360,7 +380,7 @@ function M.plan(g, streets, opts)
 			if T.pathMaxGrade(terrain, { { ax, ay }, { bx, by } }) > maxGrade then return "steep" end
 			if T.wetAlong(terrain, { { ax, ay }, { bx, by } }, setback) then return "water" end
 		end
-		if not angleOk(a, hA) or not angleOk(b, hB) then return "angle" end
+		if not angleOk(a, hA, free) or not angleOk(b, hB, free) then return "angle" end
 		if d0 and hermiteRadius(ax, ay, bx, by, d0, d1, arc) < M.MIN_RADIUS then return "curve" end
 		local fpBad, fpA, fpB = footprintFail(a, b, hA, hB, widthOf(class), arc or l)
 		if fpBad then return fpBad end
@@ -403,7 +423,8 @@ function M.plan(g, streets, opts)
 					end
 					local hA = G.atan2(d0[2], d0[1])
 					local hB = G.wrap(G.atan2(d1[2], d1[1]) + math.pi)
-					local reason, key, P, fpA, fpB = check(a, b, hA, hB, (not p.chord) and d0 or nil, d1, arc, st.class)
+					local reason, key, P, fpA, fpB = check(a, b, hA, hB, (not p.chord) and d0 or nil, d1, arc, st.class,
+						st.sideFree == true)
 					if reason then
 						dropped[#dropped + 1] = { street = si, reason = reason }
 					else
@@ -426,8 +447,9 @@ function M.plan(g, streets, opts)
 						nodeHeadings[a] = nodeHeadings[a] or {}
 						nodeHeadings[b] = nodeHeadings[b] or {}
 						local ha, hb = nodeHeadings[a], nodeHeadings[b]
-						ha[#ha + 1] = hA
-						hb[#hb + 1] = hB
+						local free = st.sideFree == true or nil
+						ha[#ha + 1] = { h = hA, new = true, free = free }
+						hb[#hb + 1] = { h = hB, new = true, free = free }
 					end
 				end
 			end
@@ -507,6 +529,7 @@ function M.plan(g, streets, opts)
 			t0 = { r(d0x * L), r(d0y * L), r(dz) }, t1 = { r(d1x * L), r(d1y * L), r(dz) },
 			length = L, street = e.street, key = streets[e.street] and streets[e.street].key or nil,
 			origin = streets[e.street] and streets[e.street].origin or nil,
+			sideFree = streets[e.street] and streets[e.street].sideFree or nil,
 		}
 		total = total + L
 		inc.edges[#inc.edges + 1] = edge

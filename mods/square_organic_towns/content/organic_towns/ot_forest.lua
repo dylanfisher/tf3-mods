@@ -638,7 +638,7 @@ M.WIGGLE = { amp = 7, wave = 90 }   -- deep towns' long plan lanes / secondary r
 --- 70 m edge check; ot_plan.MIN_RADIUS). Returns p.
 function M.deepStyle(p)
 	if p == nil then return p end
-	local MB = 40   -- (ot_style.MIN_BLOCK: 2 x 2 lots of 8 m + a street)
+	local MB = 44   -- (= ot_style.MIN_BLOCK: a 16 m street + a row of 3-cell lots; ot_style requires this module)
 	p.curve = math.max(p.curve or 0, 35)
 	p.jitter = math.max(p.jitter or 0, 20)
 	p.contour = math.max(p.contour or 0, 0.8)

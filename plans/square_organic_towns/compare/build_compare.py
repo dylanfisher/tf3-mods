@@ -481,7 +481,9 @@ def build(specs, out, verdicts, notes_in, no_shots, title=None, single=False):
             nm = R["alltown"][u].get("name", "").replace("_", " ")
             rel = f"{run['dir']}/{nn}-{slug(nm)}.jpg"
             shots = {s["town"]: s for s in R["shots"] if s["town"]}
-            ok = copy_shot(shots.get(u, {}).get("file"), os.path.join(out, rel), not no_shots)
+            # (a shot already in the folder is kept, as for the extra towns: re-encoding the earlier runs' originals
+            # on --add overwrote their committed JPEG Q82 versions, 2026-10-18)
+            ok = os.path.exists(os.path.join(out, rel)) or copy_shot(shots.get(u, {}).get("file"), os.path.join(out, rel), not no_shots)
             m = town_metrics(R, u, rel if ok else existing_shot(out, rel))
             ex = R["extras"].get(u, {})
             fo = [v for v in ex.get("forest", []) if v is not None]

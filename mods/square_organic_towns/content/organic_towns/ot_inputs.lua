@@ -15,31 +15,113 @@ M.REGION = { US = "US", OCEANIA = "OCEANIA", EU = "EU", MED = "MED", NORDIC = "N
 -- (MIXED, 2026-10-14, NEXT_PHASE_BRIEF 55: only from the "Town style" setting, never from a name list: every
 -- regional style alike, ot_site / ot_metro / ot_angles)
 
--- nameList path fragment -> region, country (country tells e.g. Spain apart inside MED). Checked in order;
--- the first match wins, so specific names come before generic ones (`asia` after japan/korea/china).
-M.NAME_RULES = {
+-- nameList path -> region, country (country tells e.g. Spain apart inside MED, and picks the classifier of satellite
+-- names on another mod's list: ot_names.COUNTRY_CLS).
+-- (2026-10-17, NEXT_PHASE_BRIEF 72: a player's "Deutsche Städte und Gemeinden" list; the old raw substring rules only
+-- knew "germany", so a list named german_* / deutsch* fell back to the climate.) The path's words are matched, not
+-- substrings: the lower-cased path is split at every non-letter ("::", "/", "_", "-", ".", digits; UTF-8 bytes count
+-- as letters), so "uk" never hits "duke" and "arizonaranger" is no Arizona. A word matches a rule's `words` exactly or
+-- starts with one of its `stems` (a few long stems only, for glued names such as "deutschestaedte").
+-- Most specific wins: our own state mods' prefixes (NAME_PREFIX, substrings) first, then a country / language word
+-- over a continent word (tier 2 over 1: "europe" + "german" -> Germany), and between two country words the later one
+-- in the path (the list's folder and file name say more than the mod id).
+-- Not matched on purpose: "america(n)" ("South American" lists), two-letter language codes except "us" / "uk".
+M.NAME_PREFIX = {
 	{ "square_names_us_", "US", "usa" },
-	{ "/usa", "US", "usa" },
 	{ "square_names_ca_", "US", "canada" },
-	{ "canada", "US", "canada" },
-	{ "oceania", "OCEANIA", "oceania" },
-	{ "germany", "EU", "germany" },
-	{ "france", "EU", "france" },
-	{ "england", "EU", "england" },
-	{ "netherlands", "EU", "netherlands" },
-	{ "poland", "EU", "poland" },
-	{ "italy", "MED", "italy" },
-	{ "spain", "MED", "spain" },
-	{ "portugal", "MED", "portugal" },
-	{ "norway", "NORDIC", "norway" },
-	{ "sweden", "NORDIC", "sweden" },
-	{ "russia", "RU", "russia" },
-	{ "japan", "JP", "japan" },
-	{ "korea", "EAST_ASIA", "korea" },
-	{ "china", "EAST_ASIA", "china" },
-	{ "asia", "ASIA", "asia" },
-	{ "europe", "EU", "europe" },
 }
+-- { region, country, words, stems, tier } (tier 2 = a country or language, 1 = a continent)
+M.NAME_WORDS = {
+	{ "US", "usa", { "usa", "us", "unitedstates" } },
+	{ "US", "canada", { "canada", "canadian" } },
+	{ "OCEANIA", "australia", { "australia", "australian" } },
+	{ "OCEANIA", "newzealand", { "zealand", "newzealand", "aotearoa" } },
+	{ "EU", "germany", { "germany", "german", "deutsch", "deutsche", "deutscher", "deutsches", "deutschen",
+		"deutschland" }, { "deutsch", "german" } },
+	{ "EU", "austria", { "austria", "austrian", "osterreich", "oesterreich", "\195\182sterreich" },
+		{ "osterreich", "oesterreich" } },
+	{ "EU", "switzerland", { "switzerland", "swiss", "schweiz", "suisse", "svizzera", "helvetia" } },
+	{ "EU", "france", { "france", "french", "francais", "francaise", "fran\195\167ais", "fran\195\167aise" },
+		{ "francais" } },
+	{ "EU", "england", { "england", "english" } },
+	{ "EU", "uk", { "uk", "britain", "british", "greatbritain", "scotland", "scottish", "wales", "welsh" } },
+	{ "EU", "ireland", { "ireland", "irish", "eire" } },
+	{ "EU", "netherlands", { "netherlands", "dutch", "holland", "nederland", "nederlands", "nederlandse" },
+		{ "nederland" } },
+	{ "EU", "belgium", { "belgium", "belgian", "belgie", "belgique" } },
+	{ "EU", "poland", { "poland", "polish", "polska", "polski", "polskie" } },
+	{ "EU", "czechia", { "czech", "czechia", "cesko", "ceske" } },
+	{ "MED", "italy", { "italy", "italian", "italia", "italiano", "italiane", "italiani" }, { "italian" } },
+	{ "MED", "spain", { "spain", "spanish", "espana", "espanol", "espanola", "espa\195\177a", "espa\195\177ol" } },
+	{ "MED", "portugal", { "portugal", "portuguese", "portugues", "portuguesa", "portugu\195\170s" } },
+	{ "MED", "greece", { "greece", "greek", "hellas" } },
+	{ "NORDIC", "norway", { "norway", "norwegian", "norge", "noreg", "norsk", "norske" } },
+	{ "NORDIC", "sweden", { "sweden", "swedish", "sverige", "svensk", "svenska", "svenske" } },
+	{ "NORDIC", "denmark", { "denmark", "danish", "danmark", "dansk", "danske" } },
+	{ "NORDIC", "finland", { "finland", "finnish", "suomi" } },
+	{ "RU", "russia", { "russia", "russian", "rossiya", "rossija", "rossia" } },
+	{ "JP", "japan", { "japan", "japanese", "nippon", "nihon" } },
+	{ "EAST_ASIA", "korea", { "korea", "korean", "hanguk" } },
+	{ "EAST_ASIA", "china", { "china", "chinese", "zhongguo" } },
+	{ "OCEANIA", "oceania", { "oceania" }, nil, 1 },
+	{ "ASIA", "asia", { "asia", "asian" }, nil, 1 },
+	{ "EU", "europe", { "europe", "european", "europa" }, nil, 1 },
+}
+M.WORD_INDEX = {}
+for i, r in ipairs(M.NAME_WORDS) do
+	r.tier = r[5] or 2
+	for _, w in ipairs(r[3]) do M.WORD_INDEX[w] = i end
+end
+
+-- ASCII-only lower case (string.lower would fold single bytes of UTF-8 letters in a UTF-8 C locale, ot_names.lower)
+local LOWER = {}
+for c = 65, 90 do LOWER[string.char(c)] = string.char(c + 32) end
+
+M.MAX_PATH = 512          -- path bytes looked at
+M.MAX_WORDS = 64          -- words of the path looked at
+
+--- The path's words: lower-cased runs of letters (ASCII a-z and UTF-8 bytes), at most MAX_WORDS.
+function M.pathWords(nameList)
+	local out = {}
+	if type(nameList) ~= "string" then return out end
+	local s = nameList:sub(1, M.MAX_PATH):gsub("[A-Z]", LOWER)
+	for w in s:gmatch("[a-z\128-\255]+") do
+		out[#out + 1] = w
+		if #out >= M.MAX_WORDS then break end
+	end
+	return out
+end
+
+--- The NAME_WORDS rule a word names, or nil (an exact word, else a stem the word starts with and is longer than).
+function M.wordRule(w)
+	local i = M.WORD_INDEX[w]
+	if i then return M.NAME_WORDS[i] end
+	for _, r in ipairs(M.NAME_WORDS) do
+		for _, st in ipairs(r[4] or {}) do
+			if #w > #st and w:sub(1, #st) == st then return r end
+		end
+	end
+	return nil
+end
+
+--- Region and country from a nameList resource path (e.g. "::/names/europe/europe.names",
+--- "square_names_us_texas::/names/...", "german_towns::/names/deutschland/deutschland.names"). Returns region, country
+--- and the word that decided (or the prefix), or nil, nil when unknown.
+function M.region(nameList)
+	if type(nameList) ~= "string" or nameList == "" then return nil, nil end
+	local s = nameList:sub(1, M.MAX_PATH):gsub("[A-Z]", LOWER)
+	for _, r in ipairs(M.NAME_PREFIX) do
+		if s:find(r[1], 1, true) then return r[2], r[3], r[1] end
+	end
+	local best, bw = nil, nil
+	for _, w in ipairs(M.pathWords(s)) do
+		local r = M.wordRule(w)
+		-- (>=: of two words of the same tier the later one wins)
+		if r and (best == nil or r.tier >= best.tier) then best, bw = r, w end
+	end
+	if best then return best[1], best[2], bw end
+	return nil, nil
+end
 
 M.CLIMATES = { "temperate", "dry", "subarctic", "tropical" }
 
@@ -52,17 +134,6 @@ M.NEW_TEMPLATES_FROM = 1940
 
 -- Size tiers by total person capacity (upper bounds, exclusive).
 M.SIZE_BOUNDS = { 500, 2000, 6000 }
-
---- Region and country from a nameList resource path (e.g. "::/names/europe/europe.names",
---- "square_names_us_texas::/names/..."). Returns region, country or nil, nil when unknown.
-function M.region(nameList)
-	if type(nameList) ~= "string" or nameList == "" then return nil, nil end
-	local s = nameList:lower()
-	for _, r in ipairs(M.NAME_RULES) do
-		if s:find(r[1], 1, true) then return r[2], r[3] end
-	end
-	return nil, nil
-end
 
 --- Climate id from a config dict value (an id like "temperate" or a path containing it); default temperate.
 function M.climate(value)

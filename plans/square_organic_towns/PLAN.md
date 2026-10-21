@@ -156,7 +156,7 @@ scheduler (GUI Main Thread) ─► assess town ─► snapshot graph ─► plan
 | `ot_form.lua` | yes | Town form (2026-10-12, Showcase v8 round): clustered / radiating / sprawling / linear / wide / fingers per town on top of the style (character); pick from dev / saved frame / site-picked shape / seeded draw; shape, block, front, sector, meadows |
 | `ot_shore.lua` | yes | Waterfront streets (2026-10-12, shore towns): promenade along the traced shoreline at the setback, a row of small blocks behind it (shore towns), the plan cut at it |
 | `ot_crescent.lua` | yes | Crescents around a green (2026-10-12, Showcase v9 round): the master plan cut at a crescent meadow, arcs around it between the crossings, one side open |
-| `ot_industry.lua` | yes | Away from industries (2026-10-12): the industries near a town from the map's list, heavy / medium / light by file name, era weight; penalty field, buffers, arm exposure for the shape axis, `ind=` / `indPen=` texts |
+| `ot_industry.lua` | yes | Away from industries (2026-10-12): the industries near a town from the map's list, heavy / medium / light by file name, era weight; penalty field, buffers, arm exposure for the shape axis, `ind=` / `indPen=` texts; (2026-10-18) player facilities (harbors, airports, heliports, depots / maintenance stations, freight-only stations: `FAC_KINDS`, `classifyFacility`) as a soft list `info.soft` in the cost penalty only (`pen`), never a zone or hold (`penHold`), `fac=` text |
 | `ot_indstreets.lua` | yes | "Streets at industries" (2026-10-13): preRunFn writes `baseConfig.locations.makeInitialStreets` (Off: false, Game default: untouched), INDSTREETS line |
 | `ot_satpace.lua` | yes | Staggered offshoots (2026-10-14, 6.3 "Staggered satellites"): per-town readiness milestones, map-wide slots by the map's growth (and game years; SPACE_B 850 since §64), a seeded draw among the ready towns (`rng.draw` since §64), refunds, pod growth cadence, the saved `sp` record; SATPACE lines |
 | `ot_satellite.lua` | yes | Satellite villages (2026-10-13; since §64, 2026-10-15, no new seeds (ot_driver `STREET_SAT` false): only a save's existing satellites grow, and the dev tools' forced hamlet): who gets one (seeded, grown towns), the site 0.65-1.2 km out (dry, gentle, away from heavy industry, nearer this town, by a road; 0.8-1.5 km until 2026-10-14 late), one link (since 2026-10-14 late a winding locked country lane, `curvedLink`, at most MAX_LINK 900 m, no straight run over 150 m) + a compact core (dosed at the seed build), growth by a block from its own dead ends, meadow discs along the link |
@@ -164,13 +164,15 @@ scheduler (GUI Main Thread) ─► assess town ─► snapshot graph ─► plan
 | `ot_motif.lua`, `ot_motif_land.lua`, `ot_motif_road.lua`, `ot_motif_town.lua`, `ot_motif_relief.lua`, `ot_motif_point.lua` | yes | Town motifs (M0-M4, 2026-10-13): the registry and pick (0-2 per town, saved on the frame), the terrain / water kinds (hill climb, valley fishbone, harbour crescent, fishing village), the road / village kinds (ribbon village, village green, crossroads hamlet), the town-structure / era kinds (ring road, station quarter (derived, extra), workers' terraces, cul-de-sac pods), more terrain (switchbacks, ridge street, headland street, bridgehead quarter (derived, extra)), the peninsula tip (final-test round: the spit search, a street out along it with a cluster at its tip) |
 | `ot_upward.lua` | yes | Upward density (later-ideas phase, 2026-10-13): who is an upward town (>= 1500 buildings, or >= 700 with 3 held demand plans, or 250+ under 4.5 persons per building; no metropolis), the demand increment's cut (0.2-0.5), the core points along main streets where houses stand (DevelopAt with upgradeBuildings, restored exactly after); since 2026-10-14 late the town-wide level weights (`levelDecide` / `levelWeights`: strength from persons per building, a player's own weights never touched; driver LEVELS); since 2026-10-15 by maturity (`levelMat` / `levelPhase` young / blend / mature / densify, a signed tilt, `eraTop`, owner `fill` via `editorLike`, `share1`: a hold never lowers a town) |
 | `ot_meadow.lua` | yes | Protected meadows (later-ideas phase): lobe headings of sprawling / unarmed character towns, meadow sectors between them beyond the core zone (no mod pieces; ot_select `meadowHeld`), the meadow frame's tip filter (ot_wedge.frameStreets `accept`, no tails) |
-| `ot_entry.lua` | yes | Tree-lined town entries (later-ideas phase): the `_trees` variants of the town templates, which new streets are entry streets (along a country road's first 320 m out of town, or wide at its entry), seeded per town |
+| `ot_entry.lua` | yes | Tree-lined town entries (later-ideas phase; off since 2026-10-18, `M.ON = false`: plain streets only): the `_trees` variants of the town templates, which new streets are entry streets (along a country road's first 320 m out of town, or wide at its entry), seeded per town |
 | `ot_poly.lua` | yes | Polycentric next steps (later-ideas phase): the grid cores of a polycentric metropolis's secondary centres laid into the master plan (ot_motif_town.layGrid), METRO `cores=` text; centre placement at junctions / third centre / core kinds live in ot_metro |
 | `ot_forest.lua` | yes | (deep forest round, 2026-10-14: mode deep, `deepPick` / `ringShare` / `deepStyle` / `groveCells` / `inGrove` / `lotSpend` / `windStats`, `M.k` deep values, saved `fd`; 6.3 "Deep forest towns") (§71: `woodSizes` / `bigWoodAt` / `bigWoodNear` / `bigWoodBy`, woods of at least `WOOD_MIN_HA` for the steer lock's face rules) (round after the names run: `facesForest`, a hug town's new streets facing the forest locked; the clearing budget's windows per decade or 1.5x growth, the tier's total, spent at the build) Forest-aware towns (phase F, 2026-10-13): the tree grid per town (50 m cells within 1.5 km, from ot_engine.forestReader), the mode per town (hug / clear / none: seeded, era, size, style, character), the planner's forest cost / hold / edge premium, `forestCut=` / `forest=` texts; R1 (2026-10-13): the corridor (centreline + both sides' lots to 36 m + the band beyond), the clearing budget per town and decade, `forestLot=` / `forestBudget=` |
 | `ot_land.lua` | yes | The landscape pull (§62, 2026-10-15; 6.2 "Landscape pull"): one angular field per town from the tree grid, the wide survey's rays and the disc's water (forest / steep push, open land pulls hardest, along the water, never across), style factors, the lean at a heading, lobe order, LAND / `land=` texts |
 | `ot_skeleton.lua` | yes | The landscape-aware skeleton (§63, 2026-10-15; 6.2 "Landscape-aware skeleton"): per arm of a shaped town a clearance survey against dense forest (both sides' lots, ahead), bend / shorten / drop / boxed, longer reach for open arms, the saved `sk` text; hotspot moves for unshaped towns and the satellite sites' forest clearance; SKEL texts |
 | `ot_lockpol.lua` | yes | The steering lock (§69, 2026-10-15; 6.2 "Steering lock policy (§69)"): the town's built outline, the lock maturity (§70: persons, size, age) and its inner zone, per street lock or open (facing forest / water / neighbour / lean, arms while young, out / rim / fill; §71: only big woods face forest, `smallWood`), the game-street rule, the lead cap and the continuous arm front, policy texts |
-| `ot_knot.lua` | yes | Knot look rules (§70, 2026-10-15; 6.2 "Steering lock policy (§69)", "§70"): on the curves, a new piece crossing a street off a shared node, running beside one for long, or closing a loop under half a block (ot_select M.KNOT, steer towns); §71 hooks: a dead-end street curling over 120 deg or back by its own street (`hook`, ot_select M.HOOK) |
+| `ot_knot.lua` | yes | Knot look rules (§70, 2026-10-15; 6.2 "Steering lock policy (§69)", "§70"): on the curves, a new piece crossing a street off a shared node, running beside one for long, or closing a loop under half a block (ot_select M.KNOT, steer towns); §71 hooks: a dead-end street curling over 120 deg or back by its own street (`hook`, ot_select M.HOOK); §75 (6.2 "Side streets and parallel streets (§75)"): the parallel run over the whole street through a piece (`chainBehind`, `streetLine`, `graphAt`, `parallelRun` options), `text` with `side`; one empty row at a time (§75 follow-up, 2026-10-19: `ROW`, `rowM`, `rowNeed`, `emptyOurs`, knot reason `row`); the empty-row measure (2026-10-20: `emptyRows`, `rowsText`, SNAPSHOT `emptyRows=`) |
+| `ot_prov.lua` | yes (console part: engine reads) | Street provenance (§75 follow-up, 2026-10-19; 6.2 "Side streets and parallel streets (§75)" "Follow-ups built"): the source of each built edge (`source`), the saved record (`entry` / `parse` / `append` / `add`, ot_saved `pv`), lookups (`find`, `nearest`, `describe`) and the console helper `who()` |
+| `ot_nearmiss.lua` | yes | Close the gap (§74, 2026-10-17; 6.2 "Close the gap (§74)"): near-miss dead ends (a street within 80 m ahead) joined to a node ahead (a bend to another dead end, a T / crossroads at a street node the driver allows), shapes (line, arcs, Hermite; §75 a pair's `corner`), place / planner / curve checks (§75 `parallelKnot` over the whole street), the seeded chance by gap, woods kept (§75 `woodRun`: only through a big wood), the cap, `merge`, the near-miss share (tests) |
 | `ot_rci.lua` | yes | Supply-driven district weighting (§66, 2026-10-15; 6.2 "Supply-driven district weighting"): the base game's usage weights (`usage`), smoothing, the aim with floors, the step (initial sum kept, built floor, ceiling, total cap, no overshoot), the lean and its draw multipliers, the RCI texts |
 | `ot_lane.lua` | yes | (deep forest towns, 2026-10-14: DEEP_P 0.67, DEEP_MAX_PER_TOWN 8, `maxFor`) Forest lanes (R2, 2026-10-13): stretches of an increment wooded on both sides to lot depth go out as locked `country_{old,new}_small` (no houses), seeded ~1 in 3 (hug more, clear fewer, later eras fewer), MAX_PER_TOWN; FORESTLANE lines. Round after the names run: one stretch of ONE plan line (no block-interior lines `bk` / `sr` / `q` / `conn`, no side streets inside, town streets at both ends, 2+ edges, 60-400 m), hug towns' held crossings freed as a bundle (`free`, ot_select laneBundle) |
 | `ot_lead.lua` | yes | Country lanes laid ahead (round after the names run): who (seeded 30 % of towns of 60-1500 buildings, map quota 25 %), where (toward a neighbour / the satellite / the shape axis / the frame axis, 250-600 m beyond a dead end at the edge (400-1000 m and straight until 2026-10-14; now curved, none for a town with a district), short of the gap line, dry, gentle, not along a road), the streets (the locked country lane + a town-street T or ribbon at the far end), the marking; LEADLANE lines |
@@ -188,8 +190,8 @@ scheduler (GUI Main Thread) ─► assess town ─► snapshot graph ─► plan
 | `ot_namewords.lua` | yes | The map's word budget (2026-10-14): generic landscape words per list language (`WORDS`, keys such as lake / forest / woods / -see / -wald / 湖 and the compass), at most one per 8 towns, never twice within 5 km (SOFT words twice / half), Landscape names also whole repeated words; tag rarity; landscape cue words (`CUES`: North / Upper / Forks / Falls / Mount ...); `clean` (list disambiguators) |
 | `ot_card.lua` | yes | The town window's Organic Towns card and the new-town notification (rev 4, 2026-10-17; 6.2 "Town window card and new-town notification (rev 4)"): the display model from a polled input (`view`: five sections), the driver's per-town summary (`summary` / `summaryMoved`), name origin codes (`originCode` / `originOf`), the notification's dedupe, params and texts; the ID lists mirrored from ot_character / ot_form / ot_motif / ot_upward (test_card checks them) |
 | `gui/ot_card.res.lua` + `gui/ot_card.script.tl`, `notify/ot_new_town.res.lua` + `.script.tl` | no | The card plugin (`::TownEowExtensionPoint`, order 45; state_native reads, the town's components) and the notification type (rev 4) |
-| `ot_plan.lua` | yes | Polylines → node/edge specs: split to ≤ maxSeg, snap to existing nodes, min angle/length, no crossings, z and tangents, every `-0` → `+0` |
-| `ot_engine.lua` | no | Reads (octree, components, parcels, terrain sampler adapter), builds `SimpleProposal`, precheck, send, verify |
+| `ot_plan.lua` | yes | Polylines → node/edge specs: split to ≤ maxSeg, snap to existing nodes, min angle/length, the §75 side-street angle (`sideAngle`, off by default; steer organic towns' plans and the near-miss joins pass 60), no crossings, z and tangents, every `-0` → `+0` |
+| `ot_engine.lua` | no | Reads (octree, components, parcels, terrain sampler adapter), builds `SimpleProposal`, precheck, send, verify; (2026-10-18) `facilities()`: player depots and station constructions with cargo / passenger flags (reads verified by console 2026-10-18, docs/findings/lines-vehicles.md; airports not yet); `sentN` (events sent, 2026-10-20: the state reader's watch) |
 | `ot_driver.lua` | no | Scheduler, budget, cooldowns, SQPERF lines, log `[SQOT]` |
 | `organic_towns.gs.lua` + `.script.lua` | no | Game script: `guiUpdate` drives (GUI Main Thread), engine `update` only for optional per-town state |
 | `mod.script.lua` | no | `runFn`: `rawset(_G, "SQOT_CONFIG", configDict)`; `preRunFn`: global angle knobs by detected region |
@@ -440,6 +442,9 @@ fingers 2, linear / compact 1.5, fan 0.5.
   farther (500 m buffer) than medium (400 m) and light ones (food factory, farms: 320 m); a seeded shape axis turns its
   arms away; before ~1920 the pull is weaker. A preference only: a town with works on every side still grows (6.3
   "Away from industries"). Grid towns respond least (their housed front leaves few pieces to reorder).
+- **Away from player facilities** (any style, 2026-10-18): the same lean, lighter, away from the harbors, airports /
+  airfields, heliports, vehicle depots / maintenance stations and freight-only stations the player builds near a town
+  (6.3 "Away from player facilities"). Never a keep-clear zone or a hold; passenger rail stations and stops keep pulling.
 - **Around the forest** (phase F, 2026-10-13; in-game tree read unverified): towns with dense forest around them (8 %+
   within 1 km) split into forest-hugging and clearing towns. Hugging (seeded; ~80 % of small EU organic / MED hill towns
   in 1900-1920, ~20 % by 1990, fewer big towns, grids ~10 %, character towns more, a metropolis never): new streets keep
@@ -459,7 +464,13 @@ fingers 2, linear / compact 1.5, fan 0.5.
   shore) beyond its core: the mod plans nothing there and locks short frame streets across the game's tips that face
   them. Look for green gaps between the clusters that stay green as the town grows. MEADOW, FRAME `kind=meadow`, PLAN
   `meadowHeld=`.
-- **Tree-lined entries** (later-ideas phase; a seeded ~55 % of EU organic towns, fewer JP / Nordic, most metropolises):
+- **Plain streets only** (2026-10-18, user; first seen in game the same day, seed `a`: 0 ENTRY lines, PLAN `trees=-`
+  everywhere, no `specialJoin`, plain grey streets in the shots): the mod's new streets never take a special variant (tram tracks, bus
+  lanes, barriers, tree rows): tree-lined entries are off (`ot_entry.ON = false`), a joint at a dead end the player
+  built as a variant takes the plain template with the dead end's lanes (`ot_proposal.plainPath`; another mod's street:
+  the edge's own template, else refused `specialJoin`), and every new edge drops its copy source's decorations
+  (ot_engine.proposal). The §67 lock rebuild still copies existing edges as they are. test_later "plain streets only".
+- **Tree-lined entries** (off since 2026-10-18, see above; was: a seeded ~55 % of EU organic towns, fewer JP / Nordic, most metropolises):
   the mod's new streets along a country road's first ~300 m out of town (frontage streets, ribbon streets) and wide
   streets right where the road enters get the base game's tree-lined town street (`town_*_trees`: same lanes, a tree row
   on both sides, houses still built). The country roads themselves are never touched. ENTRY lines, PLAN `trees=`.
@@ -505,7 +516,8 @@ all locks" button, an Act on value "Paused", "no other saved state") described i
   `known`, `fresh`, `nm` / `nd` / `rv` (names done, list folder, river and lake names), `sq` / `sb` (stop queue and
   street sections), `frames[town]` (axis, shape, style, form, motifs, `b0`, `ck`, `dz`, `og`, `lw` / `ls`, the pair
   `px py ph pr pn pk`, ...), `cm` (strong characters), `sp` (satellite pacing), `lb` / `lbs` (level baseline), `wk` /
-  `wm` / `dk` (Works and district towns). All additive: an older save without `sp` counts from the towns' starting
+  `wm` / `dk` (Works and district towns), `rev` (the change number handleEvent bumps with every set, 2026-10-20: the
+  per-frame read copies the state only when it moved, 6.2 §75 "The saved state off the frame path"). All additive: an older save without `sp` counts from the towns' starting
   sizes, without `b0` from the frame's initial capacity, without `cm` gets no strong characters (`why=oldMap`), a frame
   without `og` keeps the even rings, without `pk` an older outward-only twin. Every apply in `handleEvent` is idempotent
   and capped (MAX_FRAMES 4000, MAX_KNOWN 20000, LEVELBASE_MAX 4000, WORKS_CAP 64, STOP_CAP 64, STOPBASE_CAP 300,
@@ -519,6 +531,12 @@ all locks" button, an Act on value "Paused", "no other saved state") described i
   them), the renamed towns, rivers, stops and industries keep their names, Works and district towns stay ordinary
   towns, and the level weights the mod set stay with their town (the town editor's custom weights: a lasting effect,
   the description says so). The saved table stays in the save, unread. Never remove a mod with a save loaded.
+- **Left-hand traffic** (2026-10-20, user report with Left Hand Traffic `left_hand_traffic_1`): the driver reads the
+  driving side once per session from the loaded base town templates (`ot_engine.driveSide`, `ot_proposal.leftHandFrom`;
+  log `DRIVE side=`) and mirrors every node config it writes (`junctionConns` leftHand); the counter-clockwise one-way
+  rings stay off (`rbGeo` "leftHand", `PR.build` refuses one-way edges `leftHandOneway`). Junctions built before the fix
+  stay as they are unless a new street joins them (that node's config is rewritten in full); no repair pass. Open:
+  clockwise rings for left-hand traffic. In game: `2026-10-20_2051_lht-seed-a` (findings roads.md "Left-hand traffic").
 - Never touches player-owned edges, stations, tracks, constructions, or nodes with 2+ edges. Never bulldozes
   buildings: precheck `collisionInfo.buildingEntities` must be empty.
 - Money: builds go out with the player in the context and are charged (2026-10-11); since rev 2 (2026-10-17) the
@@ -617,7 +635,7 @@ Changes from the plan above:
 Phase 2 preview fixes (HANDOFF): strict grids (`gridness` >= `ot_style.STRICT_GRID` 0.9) get no junction jitter and
 no bent suburb pieces; NA suburb cul-de-sacs only on even cross lines (share 0.35 -> 0.2); grid line spacing and
 organic infill (`ot_grow_organic.stripCount/laneCount`) never below `ot_style.MIN_BLOCK` = 40 m (two 2-cell lots of
-8 m back to back + street); grid selections drop dangling small streets (`ot_select.prune`, not for organic
+8 m back to back + street; 44 m since 2026-10-18, 6.2 "Wider minimum block"); grid selections drop dangling small streets (`ot_select.prune`, not for organic
 styles, kept when it would empty the increment). NA grid preview: 23 -> 7 dead ends after 16 increments. SVGs
 regenerated. EU outer rings still look ragged mid-growth (Phase 4).
 
@@ -632,12 +650,12 @@ New modules (all in `content/organic_towns/`):
 | Module | Pure? | Job |
 |---|---|---|
 | `ot_params` | yes | mod params -> options (runtime values are 1-based indices) |
-| `ot_saved` | yes | per-save state: known towns (New towns only), plan frame per town; idempotent event apply |
-| `ot_assess` | yes | extent from building positions, free / virtual lots, needs room, round-robin scheduler + cooldowns |
+| `ot_saved` | yes | per-save state: known towns (New towns only), plan frame per town; idempotent event apply; the change number `rev` (`bumpRev` / `revOf`) and the per-frame `Reader` (2026-10-20, 6.2 §75 "The saved state off the frame path") |
+| `ot_assess` | yes | extent from building positions, free / virtual lots, needs room, round-robin scheduler + cooldowns; the main body of the houses (`body` / `bodyFields`, 2026-10-20, 6.2 §75 "Far-out streets after an extent jump": CHECK `rBody=` / `r50=` / `out=` / `outFar=`; the frame tip cap's reach) |
 | `ot_proposal` | yes | increment -> proposal spec: copy sources, D3 joint, config-remove rule, -0 |
 | `ot_driver` | logic (engine injected) | state machine, one stage per tick, `[SQOT]` log |
 | `ot_engine` | no | api reads, SimpleProposal, pre-check, send, events, grow |
-| `organic_towns.gs.lua` + `ot_gs.script.lua` | no | game script: update subscribes, handleEvent writes state, guiUpdate ticks the driver |
+| `organic_towns.gs.lua` + `ot_gs.script.lua` | no | game script: update subscribes, handleEvent writes state (and bumps `rev`), guiUpdate ticks the driver with the Reader's copy (a full copy only when `rev` moved, read through the GAME_SCRIPT component's `state_native`; fallback to a copy every frame) |
 | `mod.script.lua` | no | runFn: `SQOT_CONFIG = {nameList, climate}` (replaces the Teal stub) |
 
 Decisions:
@@ -959,7 +977,7 @@ deliveries (default) / Game default.
   cargo supply / demand when there is any demand; commercial / industrial = clamp(supply / demand) (0 without
   demand). Reachability is not an input (the base growth doesn't use it).
 - **Formula (ot_rci, pure).** Smoothed usage e += (u - e) x (1 - exp(-dt / `TAU_YEARS` 0.5)) (dt in game years, first
-  sight e = u). Aim w = `FLOOR` 0.12 + 0.64 x e / Σe (none when Σe = 0: a town without deliveries is left alone, as the
+  sight e = u). Aim w = `FLOORS` (residential 0.25, commercial / industrial 0.12; §75, 2026-10-18: was 0.12 each) + 0.51 x e / Σe, so residential aims at 0.25-0.76, commercial / industrial at 0.12-0.63 (none when Σe = 0: a town without deliveries is left alone, as the
   game grows nothing there). Target shares s = init x sf / Σ. Budget b = min(`STEP_MAX` 0.03, `MOVE_K` 1 x the total
   target's growth since the last step / the target). Goal q = s + (w - s) x min(1, b / Σ max(w - s, 0)): never past
   w. New initial capacities λ q / sf with λ = Σ init / Σ(q / sf): **the initial sum is kept**, so the game's next total
@@ -1236,7 +1254,9 @@ good."
     Now, on the curves (graph edges as Hermite curves from the snapshot tangents): **cross** (a street or a piece chosen
     in this increment, other than at a shared node, `TRIM_M` 6 m of a shared end left out), **parallel** (at least
     `PAR_RUN` max(60 m, a block length) within `PAR_M` 0.65 x block depth, 20-35 m, at most `PAR_DEG` 25 deg off; the
-    other street's own ends and `END_SKIP` 30 m of the piece's ends don't count) and **loop** (the piece closes a loop
+    other street's own ends and `END_SKIP` 30 m of the piece's ends don't count; **§75 changed it**: the whole street,
+    `PAR_K` 0.9, `PAR_MAX` 50 m, the run 60-200 m, `END_SKIP` only at a junction end, never relaxed, connectors too:
+    "Side streets and parallel streets (§75)" below) and **loop** (the piece closes a loop
     enclosing under `LOOP_K` 0.5 x len x depth; the way back by a capped Dijkstra, `WALK_MAX` 400 nodes, within 3 x
     (len + depth)). Motif, ring and connector pieces exempt; relaxed only when the increment would be empty (after the
     rake / wiggle relax). PLAN `knotHeld=<n>:<cross>/<parallel>/<loop> knotRelax=`, STREETS `knotHeld=`.
@@ -1468,7 +1488,8 @@ already was; slicing the plan stage over ticks is the next step if frames hitch.
   Wide only on through routes (`ot_select.through`: a main / medium plan piece continuing at both junctions into
   a piece of at least its class; tips, cul-de-sacs and connectors are local width) and only when the piece meets
   another street in the built result (`ot_core.hierarchy`: a node with 3+ streets; a bare spur, also one
-  continuing a wide street, stays local). PLAN line `hier=wide<n>/stub<n>/bare<n>`. A wide edge starting at a
+  continuing a wide street, stays local). PLAN line `hier=wide<n>/stub<n>/bare<n>/bent<n>/short<n>` (`short`: the
+  §73 run rule, 6.2 "Continuous thoroughfares"). A wide edge starting at a
   narrower dead end is marked `wideJoin`: `ot_proposal` gives the joint edge the wide template (copy of the dead
   end's town street with the template overridden; the node config pairs each street's own lanes, checkLanes
   valid; test_hierarchy). Half widths by template (`ot_check.halfWidth(class, template)`: 7 / 8 / 12 / 16 m) feed
@@ -1677,6 +1698,547 @@ game's feed when the mod founds a Works or district town.
   origins, the five sections from plain inputs incl. garbage and old saves, family buttons and readiness, the
   notification's dedupe and texts, `no` / `ui` normalised, capped and idempotent, the driver's batches and reload),
   test_demand (created towns: one notification per claimed town, never twice).
+
+**Name lists from other mods (§72) (2026-10-17; player question; NEXT_PHASE_BRIEF 72; in game: TESTING.md "Name
+lists from other mods").** A German list from another mod ("Deutsche Städte und Gemeinden") was not recognized and its
+satellite towns got English names.
+- **Region by the path's words** (`ot_inputs.region`, also `ot_angles.region` for "Vanilla town street angles"): the
+  nameList path (`<modId>::/names/<dir>/<file>.names`) split at every non-letter, matched against country and
+  language words in English and native forms (`NAME_WORDS`: german / deutsch / deutschland, francais, nederland,
+  polska, italia, espana, norge, sverige, ...; a few long stems for glued names); our state mods' prefixes first, a
+  country over a continent, the later of two countries. Words, not substrings: "uk" never hits "duke". Base lists
+  and square_names_us_ / ca_ keep their region and country. Unknown lists: the climate, as before.
+- **Satellite names in the list's language** (`Driver:listLang`, `nameCls`, `offshootCls`, `offshootListName`,
+  `offshootName`): another mod's list keeps its towns' and stops' names (no landscape / stop names, `basePath`
+  "notBase"); the Works / districts the mod founds take the country's classifier (`ot_names.COUNTRY_CLS`), else a
+  confident guess from the map's town names (`ot_names.guessCls`: script, then site-tag shares; en / de / fr / nl /
+  sv / ru / ja only), else unused names of the list's own towns.lua (`ot_names.moddedTownPaths`,
+  `ot_engine.townListAt`: the base names.script layout `<modId>::/names/<dir>/<lang>/towns.lua`, at most 12 pcall'd
+  requires once per session), else the old composed English / US names. With a German classifier the generator
+  candidate (GEN_OFFSHOOT_P) and the word budget run in German too; nothing renames the list's towns.
+- **Log:** `[SQOT] NAMELIST list= base= region= country= regionSource= nameRegion= word= cls= clsSource= guess=
+  listPath= listN= tries= why=` once after INIT (mod on); `NAMELIST event=listUsedUp` when the list's names run out.
+- **Tooltips:** "Town style" (lists from other mods are recognized by their file names, else the climate) and "Town
+  and stop names" (their towns keep their names, new satellite towns are named in the list's language), 13 languages.
+- Not verified in game: that a missing towns.lua only raises a Lua error under pcall (no log spam, no assert); that
+  other mods' lists follow the base folder layout (arizonaranger_washington_names does; our state mods use their own
+  script and are recognized by prefix anyway).
+- Tests: test_namelist72 (12: detection table incl. base / state-mod parity with the old rules and false-positive
+  guards, the dry-map German list's EU region and angle, classifier per country / script, the guess (and its accuracy
+  on the real base lists), the list fallback and its paths / caps, base lists unchanged, the NAMELIST line, offshoot
+  names on a German list and a used-up list).
+
+**Continuous thoroughfares (§73) (2026-10-17; user: "early on (~1909) medium streets get built in weird
+configurations (like just a single track in-between small streets) and causes the car path finding to go in weird
+roundabouts"; NEXT_PHASE_BRIEF 73; in game: TESTING.md "Continuous thoroughfares").** Medium / large streets only as
+deliberate through routes; everything else at the style's narrower template.
+- **Cause (offline, reproduced):** `ot_core.hierarchy` judged each wide piece alone: a main / medium piece whose plan
+  line goes on at both ends (`ot_select.through`) and that meets a street kept its wide template, whether or not the
+  rest of the line was ever built. EU organic spokes (`sp<i>:<ring>#<n>`, class main, 25-56 m pieces between rings)
+  were built one or two pieces per increment, scattered: EU organic 1905 from a vanilla core, 6 increments: 4 medium
+  runs of 7 edges, the longest 92 m, one a single edge. Second leak: `ot_proposal.build` gave every edge joining a
+  dead end the dead end's own template, so a small street continuing a medium dead end became one medium edge.
+- **The run rule** (`ot_core.continuity`, in `hierarchy` after the straight-wide rule, and again in
+  `Driver:plan` after the straight guard / forest lanes cut the increment): the connected set of medium / large edges
+  (existing + the increment's) a new wide edge belongs to must be >= `RUN_MIN_M` 300 m (three of our <= 100 m
+  edges, five EU-organic blocks, 1.5 NA blocks) and reach an anchor: an existing medium / large street (an extension
+  or a crossing), a country road at one of its nodes (the exit), the town centre or a rail station within
+  `RUN_ANCHOR_M` 150 m; the late hierarchy (`style.hierarchy == "late"`: the sprawling styles from 1950 and the
+  metropolis, whose arterial lattice is planned as such) also counts a start on any existing street. Otherwise its
+  new edges get `ot_core.narrowTemplate` (the collector template when it isn't wide, else the local one; a JP metro
+  main street small, not xsmall) and lose `wideJoin`. A build is one proposal (all or nothing) and a refused one is
+  replanned smaller (the rule runs again), so no partial run is left; a run only grows on from an existing one.
+- **Early era** (old templates, before 1940): a town of 1900 had one high street, the road through it, and narrow
+  lanes; so a new run that doesn't continue an existing one starts only while the town has fewer than `RUN_OLD_MAX`
+  (1) runs of 300 m; extensions of the high street (the game core's or ours) go on. From 1940 no count cap.
+- **Joins** (`ot_proposal.narrowJoin`): a narrower town street joining a medium / large dead end keeps its own
+  template (override; the node config pairs each street's lanes, as for `wideJoin`). A small dead end is still
+  copied (no xsmall joints for JP / MED hill).
+- **The game's own growth** (unverified whether it carries a wide street on): the §69 open tips and the §67 valve stub
+  are never a medium / large edge (`ot_glock.NO_WIDE_TIPS`; BUILT `tipRej=wide:n`). Nothing is removed from the
+  sim templates (findings towns.md "Town development needs its small street templates").
+- **Logs:** PLAN `hier=.../short<n>` (edges narrowed by the rule) and `runs=<kept>/<cut>/<longest m>`; SNAPSHOT
+  `wideRuns=<runs>/<edges>/<m>:short<n>,lone<n>,max<m>;mod<n>,game<n>,other<n>` (the town's medium / large runs
+  before the build: shorter than 300 m, single-edge, the longest, the wide edges by builder: ours / the game's
+  locked by us / the core and the game's open streets; "0" without one); STREETS `wideRuns=` the same summed over
+  the towns' last snapshots.
+- Not changed: medium edges already built (saves keep them; a short one becomes part of a run only when a build
+  makes it 300 m with an anchor). Offline effect (test_hierarchy, 10 increments, vanilla core 1970): NA grid
+  L/M/S 2/46/52 -> 0/24/76, NA suburb 5/33/61 -> 0/23/77, superblock 5/28/67 -> 1/22/77; EU organic 1905: no
+  medium (no anchor reaches a 300 m run), from nothing: one 430 m run.
+- Tests: test_runs (new, 11: lone edge, long run kept / unanchored cut / station / exit, extensions and stubs, the
+  old era's one run, the second pass after a cut and a forest lane, the narrower template, joins, the audit and its
+  text, the capped walk, no tips on wide edges, growth over 8 styles x 4 years x vanilla / empty: no short run, the
+  old era at most one), test_hierarchy (unit run 300 m from the centre), test_proposal (join lanes), three
+  geometry thresholds relaxed (test_head spokes +1 -> +0.75, test_shore bay 1.3 -> 1.25, test_skeleton hug within
+  2 %: the narrower streets shift the footprints).
+
+**Close the gap (§74) (2026-10-17; user: "Is it feasible to have our roads connect to each other slightly more
+logically when they are so close?"; NEXT_PHASE_BRIEF 74; in game: TESTING.md "Close the gap").** Near-miss dead ends
+are joined to the street ahead now and then, more often the closer they are.
+- **Cause (from the code):** the planner joins only existing dead ends (`join = "deadEnd"`), and the lattice pieces
+  stop short of a street they would meet off a node (ot_select occR block, ot_plan `nearExisting` 16 m centre line /
+  `blockedNode` 6 m), so fronts end a piece short of a street (a T never comes) or pass each other; the game's growth
+  adds cul-de-sacs. The logs can't say which builder made a given stub (no per-edge geometry).
+- **The pass** (`ot_nearmiss.joins`, `ot_core.nearMissPass` after each increment's plan, also when the own empty
+  budget holds the town; the driver passes `opts.nearMiss`): dead ends with a street within `JOIN_MAX` 80 m,
+  `AHEAD_DEG` 60 ahead, smallest gap first; targets within `NODE_MAX` 100 m: another dead end (`pair`), a street node
+  (`tee`), a small 3-way junction (`cross`) that `Driver:midJoinOk` allows (node config, plain town streets of the
+  snapshot, no track, no construction, this town). Shapes: line, single arc (>= 74 m), arc-and-straight (100 / 150 /
+  240 m), Hermite (up to 8 on the place checks, 4 planned); kink <= 45 deg at a dead end, >= 60 deg to every street at
+  a street node (values since "Less cautious" below; 60 since §75, was 50); §75 adds a pair's corner. Checks: buildings (12 m), gap lines, zones,
+  greens, country roads on the shape; ot_plan on the street (`joinExtra`); slope / water / crossings / 16 m clearance /
+  parallel run (§75: over the whole street the join makes) / loops under 0.25 block / junction spacing 20 m on the
+  planned curve. Chance 0.97 to 25 m -> 0.4 at 80 m, fixed per pair; joins through the woods of hug / deep towns keep
+  0.5 / 0.75 (§75: through, i.e. 16 m of the join in big-wood cells; was any big wood within 40 m); cap 2 per
+  increment; time budget 8 ms per plan.
+  Joins are small streets (`nm:<D>:<N>` keys), locked by the policy like any piece; the street node's config is
+  rewritten over all its segments (ot_proposal, as at a dead end).
+- **Logs:** PLAN `nearMiss=<found>/<joined>/<kept> nmKept= nmJoins= nmErr=`, STREETS `nearMiss=<built>`; `nmKept`
+  reasons as in NEXT_PHASE_BRIEF 74 plus `cut` (2026-10-18). `nmJoins=<kind>:<gap>` and since §75 a `c` (a pair's
+  corner) / `r` (closing a retired dead end) suffix. Two kept reasons in words (from the code): `curve` no shape of
+  the dead end's targets bends gently enough (an arc under ARC_MIN 74 m, a Hermite under 0.9 x 70 m, or the planner's
+  own `curve` / `short`); `target` every node ahead failed the target test (a dead end the snapshot marks noJoin:
+  retired, a country lane / bridge (`edge`), no config, another town; a 4-way node; a 3-way node with a medium street;
+  the driver's midOk; a country road's node).
+- **Offline effect:** 36 % of near misses joinable at all (the rest: no node of the street in reach, too sharp, 4-way
+  nodes); growth sweep (10 increments): dead ends with a street within 40 m ahead 0.160 -> 0.130 of all dead ends.
+- **In game (run 2026-10-18, session `2026-10-18_2222_sqot`, seed `a`, Quick 40; TESTING.md "Close the gap"):** 20
+  joins (19 `tee`, 1 `cross`, gaps 19-68 m) in 17 builds, all `ok=true`, 0 REFUSED, no assert / crash in the ~3 min of
+  simulated growth after the first one: the config rewrite at a street node builds (docs/findings/towns.md). No `pair`
+  join at all; the joins are rare (20 over 271 plans; `nmKept` mostly `curve` 454, `building` 268, `target` 228,
+  `noJoin` 200, `noNode` 183). Dead ends on the 16 towns 353 -> 305 against the §71 run.
+- **Less cautious (2026-10-18; user: "in game it joins too rarely to notice"):**
+  - `KINK_DEG` 35 -> 45 (the join's corner at a dead end, both ends of a pair; still under ot_select `JOINT_TURN` 60),
+    `ARC_MIN` 78 -> 74 (ot_plan still holds every cut edge to `MIN_RADIUS` 70); `MAX_TURN_DEG` 120 kept (150 gained
+    nothing offline).
+  - `NODE_MAX` 100 (was `JOIN_MAX` 80): target nodes up to 100 m away while the street ahead stays within 80 m (the
+    next node of a long street ahead often lies just past 80 m: offline `noNode` 63 -> 20).
+  - `GEN_SHAPES` 8: up to 8 shapes per target on the place checks (houses, water, gap lines: no plan), still at most
+    `MAX_SHAPES` 4 planned (the per-plan cost unchanged): a shape over a house gives way to one beside it.
+  - Chance: `SURE_M` 15 -> 25 m, `P_FAR` 0.15 -> 0.4 (in game `chance` kept 86 against 20 joined). `MAX_PER_INC` 2
+    kept (`cap` never kept a join in the seed `a` run), the 8 ms budget kept.
+  - Retired dead ends (the mod's own empty stubs, R4; snapshot `retired` 298 in the seed `a` run): still never
+    extended, but a near-miss join may now close one, as its start or as a pair's partner, when retirement is its only
+    noJoin reason (`nmRetired`, its join info in `g.nmRetiredInfo`; `Driver:retiredJoinOk` -> `job.nmInfo`;
+    ot_plan `joinExtra[n] = "retired"`; `D.NEAR_MISS_RETIRED`). Likely the main reason no `pair` joined in game: the
+    stubs "curling past each other" are mostly lattice fronts that stayed empty, so both were noJoin (`noJoin` 200 /
+    `target` 228). The geometry is the other reason: two parallel stubs a lattice row apart (offset 50 m, overlapping
+    30 m) or side by side pointing the same way need a Z-jog / hairpin, and stay.
+  - New kept reason `cut`: a snapshot dead end that the game sees more streets at (snapshot `degree`, 600 in the run:
+    the snapshot's edge, no dead end) was counted as `noJoin`. Country roads' nodes are no targets now (a pair's partner
+    or a street node; before only midOk caught them in game).
+  - Tried and dropped: a corner shape (two straight legs meeting at a new node, corner <= 45 deg, legs >= 20 m) for
+    joins no curve can make: 0 extra joins in the census (the 45 deg kinks already cover what it could reach).
+  - Side T (edge split, `noNode`): deferred. Splitting a town edge removes it (findings towns.md D4: removing a dead-end
+    edge and rebuilding it longer cost 776k, likely the houses along it; only a same-geometry rebuild is known to keep
+    its houses), and no build of ours has split an edge; it needs a console probe first (a split of a housed town
+    edge: buildings before / after, the collision list, the two halves' parcels).
+  - Offline (`test_nearmiss_census`, full: 18 towns grown 10 increments without the pass, houses 15 m off every street,
+    every chance 1, no cap): joinable near misses 87 -> 116 of 267 (pair 7 -> 6, tee 67 -> 93, cross 6 -> 11); kept
+    `noNode` 63 -> 20, `curve` 47 -> 35, `building` 26 -> 37, `target` 37 -> 46 (more targets tried per dead end);
+    expected joins under the chance 36.8 -> 67.2 (+83 %). Growth sweep (full, 40 m share): organic 0.114 -> 0.090,
+    others 0.198 -> 0.130. Slowest uncapped pass 9.3 -> 13.6 ms offline (in game MAX_TESTS / MAX_PLANS and the 8 ms
+    budget hold it).
+- **In game, less cautious (run 2026-10-19, session `2026-10-19_0024_sqot`, seed `a`, Quick 40; TESTING.md "Close
+  the gap"):** 34 joins (23 `tee`, 10 `cross`, 1 `pair`; gaps 26-95 m, 4 past 80 m) in 32 builds, all `ok=true`,
+  0 REFUSED, no assert / crash: 1.7x the last run (offline 1.8x). `nmKept` `noNode` 183 -> 36, `noJoin` 200 -> 93,
+  `building` 268 -> 461, `target` 228 -> 170, but `curve` 455 and `chance` 86 unchanged; `cut` 6. Plan time median /
+  p90 / max 42 / 193 / 398 ms; `nmKept=budget` on 7 plans (late, big towns). No house loss beyond the other builds'.
+  Still rare to the eye: joins can't be picked out in the tour shots, and dead ends on the 16 towns 331 vs 305
+  (run-to-run spread of the game's growth). Retired joins aren't logged (no token), so whether `D.NEAR_MISS_RETIRED`
+  ever closed one is unknown (at most 1). (§75, 2026-10-19: none could: ot_core.nearMissPass did not pass the driver's
+  `retiredOk` on to the pass, so every retired dead end stayed `noJoin` / `target`; fixed, and `r` marks such a join.)
+- **Open:** a T on an edge's side (edge split, deferred above; only `noNode` 36 left, so it would add little now);
+  `curve` (455) is the biggest kept reason left, then `building` (461); pair joins still about none (1); cars routing
+  through a rewritten street node (no vehicles in either seed `a` run); a close-up look at a few joins (dev showcase or
+  zoomed shots). (The retired-join token: done in §75, `r`.)
+- Tests: test_nearmiss (22), test_nearmiss_census (new: old rules against new), test_driver (+1, R4 retire +
+  retiredJoinOk).
+
+**Wider minimum block (2026-10-18; user: "several examples of a square of road where only one large building
+fits in between ... two roads very close where you can only fit the smallest size building ... it's too frequent";
+the light touch; in game: TESTING.md "Wider minimum block").** Two parallel streets' centerlines at least 44 m apart
+(`ot_style.MIN_BLOCK`, was 40: it counted the street as 8 m, but a small town street is 16 m with its sidewalks, so 40 m
+left 24 m of land and 1-cell slivers; 44 m leaves 28 m, a row of 3-cell lots; 48 m would fit two 2-cell lots back to
+back but thins the towns more). Copies in `ot_character.MIN_BLOCK` and `ot_forest.deepStyle` (require cycle).
+- **The jitter no longer undercuts it** (`ot_grow_organic.masterPlan`): stripCount / laneCount / armLaneCount capped only
+  the mean spacing; the offsets, wobble and tilt put a cross lane ~0.55 block off the ring it runs along (5 m at worst
+  in the sweep) and secondary radials closer than a block. Now each cross lane is shifted into [previous kept lane + 44 m,
+  strip end - 44 m x (lanes left + 1)] on both its strips (the shorter strip and the ring gap set the fraction; its tilt
+  dropped when both don't fit; a lane with no room even then is left out, ~1 %), each secondary radial into [previous +
+  44 m, arc end - 44 m x (radials left + 1)] on the shorter arc: the shift itself keeps the counts (the MIN_BLOCK caps in laneCount / stripCount do not: see
+  the growth-front bullet below), the positions get more even (most lanes
+  sit at a cap, so ~80 % are shifted). Deep arms' back rows at least 44 m apart, within the band of BACK_ROWS x the
+  style's depth (MED hill: one row at 44 m instead of two at 30 / 60: the band does not cut wider into the woods).
+- **Data:** MED hill `block.len` 40 -> 44 (blocks never under the minimum); the hilltop kind's rings 110 -> 118 m (the
+  narrowest wobbled gap, 0.75 x ringEvery, keeps two blocks and its lane; at 110 those cells lost the lane and hilltop
+  towns stalled in the test model).
+- **Offline effect** (probe: 5 styles x 4 towns x 10 increments on the round test core; spacing of each street to its
+  nearest parallel neighbour): below 40 m 18 % -> 0.7 % of streets, below 44 m 25 % -> 10 %; EU organic median 54 -> 52 m,
+  n 465 -> 502; MED hill below 40 m 41 % -> 0 %, median 47 -> 54 m, n 334 -> 281; JP dense (grid grower, lines >= 44 m,
+  node jitter +-5 m) below 40 m 18.5 % -> 1.2 %. Master plan length within 500 m: MED hill / EU organic -10 % / -8 %.
+- **Growth model side effects:** fewer pieces in reach of the growth front: in the test models MED hill towns stall a
+  little more often (3 of 36 vs 2 in the probe's model); the hug / deep MED towns cut more woods (cross of clearings
+  0.19 -> 0.35 of the clear town's cut). The test suite's seeded single-town checks moved with the plan (any plan change
+  reshuffles ~8-14 of them): those re-seeded or re-calibrated name the change and the pass rate over other towns.
+- **The growth front after the wider block (same day; the full tier's 4 failures).** The plan is sparser than "the
+  counts stay" suggested: laneCount / stripCount cap at MIN_BLOCK, so EU organic (45 m deep blocks) lost one lane per
+  ring cell (8358 lanes vs 9575 over 30 towns, ~1 % from the shift itself) and ~20 % of its pieces within 450 m. The
+  growth front (`ot_select` FRONT_Q of the junctions + FRONT_REACH blocks) moves only with junctions, i.e. the mod's own
+  streets (the test models' game extends its dead ends), so fewer pieces in reach fed back: in test_demand's EU organic
+  models increments came out half full and towns stopped for good (no brake, 36 towns: grown-phase mod share 0.39 ->
+  0.24, young 0.47 -> 0.44; a fast grower's allowance gained + 0.010 over the old cap instead of + 0.063). Two driver
+  limits fix it, not a global lever (an under-filled-increment relaxation in the select restored it too but broke 5
+  shape tests: shore, linear head start, hilltop, street village): `limits.frontRelax` (a demand build of a town whose
+  last plan came out empty, `s.emptyRun`: up to `ot_select.FRONT_RELAX` = 2 blocks, one per step, only when the front
+  alone would leave this increment empty, last of the relaxations) and `limits.frontExtra` (a fast grower's demand build:
+  `ot_driver.FAST_FRONT` = 1 block per unit of its fast factor above 1, up to + 2). The lead limit, housed front and depth
+  caps hold. Now (same models): grown share 0.56, young 0.46; fast allowance + 0.058 (scarce checks + 0.046, was + 0.042);
+  EU organic / frontage runs that never build 7 of 40 (10 at 40 m, 14 at 44 m without it), share 0.27 (0.21 at 40 m).
+  In game (seed `a`, Quick 40, run 2026-10-18 `2026-10-18_2222_sqot`, against the §71 run `2026-10-16_1846_sqot`):
+  0 STALL, 2 STUCK (as before), persons 44155 vs 44159, buildings 9212 vs 9384, mod street 100 vs 108 km, median
+  radius 457 vs 495 m, persons / ha +13 %; the game's own streets fill more (game share of the towns' street length 0.51
+  vs 0.48). `frontRelax` / `frontExtra` are not logged, so their in-game effect is unseen; narrow blocks can't be
+  judged in the 1800 m overview shots (TESTING.md "Wider minimum block"). Two seeded checks were luck, re-set
+  with the pass rates in their comments: test_demand EU organic / frontage "at most one of 5 runs builds nothing"
+  (was every run builds; old plan 10 of 40 towns never built, so 24 % luck), test_arms "at most one more lasso" (over 40
+  towns the deep arms make ~2x the lassos of the plain arms in both plans; fingers 15 / 7 at 40 m, 17 / 7 at 44 m).
+- Tests: test_fixes (+2: the trace `ot_grow_organic.TRACE` over 3 organic styles x deep / not, every lane, radial and
+  back row >= MIN_BLOCK; the MIN_BLOCK pin 44; the growth front's frontRelax / frontExtra), the re-seeds / calibrations
+  listed in each test's comment. `make gate-full` green.
+
+**Side streets and parallel streets (§75) (2026-10-19; user shots: (A) a side street leaving a curving street at
+~20-30 deg and running back beside it ~20-30 m away to a hairpin dead end; (B) a street running 200 m+ beside a
+diagonal main street ~40-50 m center to center, one row of houses between, then turning to join it; (C) a forest town
+by the water: two dead ends ~60-80 m apart at right angles, the corner closing the block never made; in game: TESTING.md
+"Side streets and parallel streets").**
+- **Why (from the code; the logs hold no per-edge geometry, and the game's own streets can look the same):** (A) the
+  planner's only junction angle was `minAngle` 25 deg (ot_plan DEFAULTS, ot_check LIMITS) for any two streets at a
+  node; (B) ot_knot's parallel rule could practically never fire: it left out `END_SKIP` 30 m at both ends of each
+  piece and needed a 60 m run, and pieces are cut at maxSeg 100 m (40 m left at most); it saw one piece, never the
+  street it extends; `PAR_MAX` 35 m was under the 40-50 m seen; motif / ring / connector pieces were exempt and the
+  rule gave way when the increment would be empty. (C) below, "close the gap review".
+- **Side-street rule** (`ot_check.sideBad` / `isFork`, `LIMITS.sideAngle` 60): at a junction (a node with 3+ streets)
+  a new street meets every other street there at least 60 deg off (a side street at 60-120 deg); the one exception is
+  a fork, two arms splitting a third street's straight continuation between them, each 12-50 deg off it
+  (`FORK_DEV` / `FORK_MAX`); a bend (two streets) keeps `minAngle` 25. Pairs of existing streets stand. Held by the
+  planner (`ot_plan` `sideAngle`, off by default; ot_core passes 60 for steer towns of organic growers) and by the
+  selector (`ot_select` `SIDE`: a fourth knot reason `side`, from the actual node position and the graph's tangents,
+  so pieces don't spend the budget only to be refused; never relaxed). ot_check reports `side` (PLAN `geoSide=`), not
+  in `geoBad` / `passes` (other towns' plans keep it). Exempt: the climbing motifs (`SIDE_FREE` switchbacks /
+  hill_climb: their streets follow the slope and branch where the shelf is; the piece's `sideFree` goes on to the
+  planner's edges) and grid growers (`SIDE_GRID` false: their lattice meets at right angles; the acute joins are where
+  it meets the old core's stubs, and holding them cost NA grid / JP dense 14-26 % of their street length offline).
+  The near-miss T: `TEE_MIN_DEG` 50 -> 60 and its planner runs with `sideAngle` 60.
+- **Parallel streets** (`ot_knot`): the run over the whole street through the piece: `chainBehind` walks back from
+  each end through nodes with exactly one other street (graph streets and this increment's chosen pieces; `CHAIN_WALK`
+  8 edges, `CHAIN_BACK_M` 300 m, each node once), `streetLine` joins chain + piece + chain, and `parallelRun` leaves
+  `END_SKIP` 30 m out only at a junction end (its approach), counts a street bent back beside itself (`SELF_ARC_K` 3 x
+  parM of arc apart) and only runs reaching `PIECE_RUN_M` 30 m (or half the piece) into the piece (a piece turning away
+  from an old parallel street is no knot). `PAR_K` 0.65 -> **0.9**, `PAR_MAX` 35 -> **50 m**, the run
+  clamp(1 x block length, 60, **200** m). Why 50: two 16 m streets and one row of the deepest (4-cell, 32 m) lots are
+  48 m apart; closer, both streets share one row of houses. Why 0.9 and not 1.0: the organic lattice lays lanes and
+  back rows a block depth apart, at least MIN_BLOCK 44 m (EU organic 45 m blocks): at 1.0 its own lanes at 44-45 m
+  counted whenever two lane pieces were built before the radial crossing them; 0.9 keeps the limit just under them (EU organic 40.5 m, MED hill 27 m, EU
+  extension and larger 50 m). Never relaxed; connector pieces too (motif and ring pieces still exempt); the near-miss
+  joins through `parallelKnot` (the streets behind both ends of a pair).
+- **Offline effect** (6 seeds x 10 increments, steer towns on the round test core, before / after): street length EU
+  organic 42.6 -> 41.8 km, EU extension 64.6 -> 59.2 km, MED hill 35.0 -> 38.8 km (seed spread), grids unchanged;
+  side junctions under 60 deg in what was built 11 / 4 / 23 -> 0; holds `side` 22 / 14 / 38, `parallel` 21 / 2 / 7.
+  test_demand's fast grower (EU organic model): pooled mod share 0.44 -> 0.40 with the side rule (both arms of the
+  comparison), its margin re-set (comment there).
+- **Close the gap review (case C; §74 joins):**
+  - **Retired dead ends never joined (bug):** `ot_core.nearMissPass` passed `midOk` but not the driver's `retiredOk`
+    to `ot_nearmiss.joins`, so `D.NEAR_MISS_RETIRED` (2026-10-18) never worked: a retired dead end (the mod's own
+    street empty for more than `RETIRE_CHECKS` 4 snapshots; SNAPSHOT `noJoin=retired:` 631 in the 2 h real-play
+    session `2026-10-19_0531_sqot-sqrl`) stayed `noJoin` as a start and `target` as a partner. That session joined 1
+    of 962 near misses (`noJoin` 338, `target` 265, `building` 192, `curve` 78, `chance` 38). A forest town's own stubs
+    stay empty longest, so case C's pair was likely two retired stubs. Fixed; `r` marks such a join.
+  - **Woods:** the forest keep (0.5 hug / 0.75 deep, fixed per pair) applied when a big wood lay within 40 m (+ half a
+    50 m cell) of the join's middle or the dead end: in a forest town nearly every join, also one closing a block on
+    the town's cleared land. Now only a join running `WOOD_RUN_M` 16 m through big-wood cells (`woodRun`).
+  - **The corner:** two dead ends at right angles 60-80 m apart can't join in one arc of 74 m+ (a quarter turn needs
+    ~105 m) and the arcs / line with 45 deg kinks at both ends make a chamfer; the corner (`M.corner`, `CORNER` on:
+    both streets straight on to where they meet, a 45-100 deg turn at a new node, legs at least 20 m, within DETOUR)
+    is the shape the eye expects, scored ahead of the kinked arcs. (2026-10-18 tried a corner of at most 45 deg: no
+    gain; a block corner is what case C lacks.) ot_check passes it: a break of `cornerFrom` 45 deg or more at a
+    two-street node is a deliberate corner, not a kink (the NA grid's corners build in game).
+  - **The 2026-10-19_1745 session** (Long Fork Beach: EU extension, coast, forest share 0.46, not deep): 2 near misses,
+    `curve:1,target:1`, both plans (`nearMiss=2/0/2`): one dead end whose arcs were all too tight (the corner case
+    above, likely), one whose node ahead failed the target test (a noJoin dead end: there `edge:2` / `degree:2`).
+  - Checked and kept: `AHEAD_DEG` 60 (a right-angle pair is found from the dead end whose line points at the other's
+    street; the corner then needs no kink at either end), `JOIN_MAX` 80 / `NODE_MAX` 100, `KINK_DEG` 45, `MAX_PER_INC`
+    2 (`cap` never kept a join in game), the fixed per-pair chance (recommendation: a draw per decade instead, so a pair
+    left by chance may close later).
+  - Offline census (full, 18 towns): joinable near misses 115 of 267 (§74: 116; TEE 60 costs one).
+- Tests: test_side75 (new, 12: the side rule and forks; case A in the planner / checker and the selector; case B's
+  geometry, chain and caps, the selector holding it (never relaxed, connectors too), 70 m off free, a chain through
+  pieces chosen earlier in the same increment; the lattice's own
+  lanes free; a near-miss join extending a parallel street; case C joined by a corner in a hug / deep town on cleared
+  land, still kept through the woods; retiredOk reaching the pass; the T at 60 deg; the knot text), test_knot (parM;
+  the sliver from dead end 1, the lasso's relax with SIDE off), test_tune71 (a junction piece at 73 deg), test_nearmiss
+  (case 2 at 40 m, the 28 m stub stays; the old-rules check without the corner), test_demand (fast grower margin).
+- **In game (run 2026-10-19, session `2026-10-19_1949_sqot`, seed `a`, Quick 40; TESTING.md "Side streets and
+  parallel streets"):** holds 92 pieces (`side` 40, `parallel` 22, `cross` 28, `loop` 2); mod street 95.9 km on the 16
+  towns vs 106.1 (§74 run) and 97.3 (§73 run), buildings the same, 3 STUCK as before; 39 near-miss joins incl. 4 pairs,
+  2 corners and the first 5 closing retired stubs, all built; `nmKept=noJoin` 10 (0531 baseline 338), `target` 139
+  (265). Two fixes from it (2026-10-19): `ot_check.SIDE_TOL` 0.1 deg (the 6 `geoSide=1` plans were near-miss Ts clamped
+  to exactly 60 deg, read back at 59.99x), and `knotHeld` / `knotRelax` on the empty PLAN line and `knotHeld` on STUCK
+  (`ot_driver.knotText`: whether the never-relaxed holds empty a town's plans was unreadable). Tests: test_side75 (+1),
+  test_forced (+3 checks).
+- **Follow-ups after the 2026-10-19_1949 run (shot 4 (a) and shot 5 (a) built 2026-10-19, the rest open; user shots
+  4 and 5, taken mid-run; the log couldn't name the town or the builder: no per-edge geometry, no camera line outside
+  the tour; since 2026-10-19 the PROV lines and the console lookup can):**
+  - **Shot 4, a triangle island at a 90 deg bend** (a chord leaves the bend's start and meets the far arm at ~30 deg,
+    ~40 x 60 m, three houses). A grower piece can't make it now: at the far node the chord is ~30 deg off the street
+    going on straight there (side rule; no fork, the through street is 0 deg off its own continuation). At the near
+    node it could pass as a fork (12-50 deg each off the continuation), and the loop rule would not hold it: the
+    triangle's ~2000-2500 m2 is over `LOOP_K` 0.5 x 60 x 45 = 1350 m2 in EU organic (MED hill 660, EU extension 4400),
+    and loop gives way in a relaxed plan. Left: the game's own growth (about half the towns' street length; no side
+    rule), a starting-town street, a climbing motif's piece (`SIDE_FREE`), or a pair of streets that were both there.
+    Proposals: (a) **first, provenance** (no design risk; **built 2026-10-19**, "Follow-ups built" below): a SQOT_DEV
+    line per built edge (entity, town, key / origin, end points) and a console line that names the builder of the edge
+    nearest a point, so a screenshot can be traced;
+    (b) if it is ours: a floor on the loop area for 3-street loops (`LOOP_MIN` ~2500 m2, never relaxed for
+    triangles; costs: small greens the village-green motif makes on purpose are motif pieces, exempt); (c) no fork at
+    a bend: the fork's third street straight for ~40 m (or `FORK_MAX` 50 -> 40); costs some natural Y splits; (d) if
+    it is the game's: only the lock policy reaches it.
+  - **Shot 5, three long empty parallel dead ends ~45 m apart on open grass, a comb of two short streets off the
+    middle one** (straight, right angles, rounded ends: the game's dead-end caps). Most likely the organic lattice's
+    lanes / back rows (MIN_BLOCK 44 m apart) built by demand plans ahead of the houses. Why the rules let them: PAR_K
+    0.9 keeps the parallel limit under the lattice's own spacing on purpose (EU organic 40.5 m; EU extension 50 m
+    would hold 45 m when the run reaches its 110 m block length); the lead limit lets empty streets go to `leadCap`
+    150 m from any housed street (the housed plaza beside them); the own empty budget allows several hundred metres of
+    the mod's empty street; the sparse rule (§57) runs only on forced plans (`sparseHeld` 0 in this run and the last);
+    the near-miss pass joins only a dead end with a street ahead (60 deg cone), and parallel fingers have none.
+    Proposals: (a) **one empty row at a time** (**built 2026-10-19**, "Follow-ups built" below): hold a lane piece
+    running within ~1.2 block depths beside a mod street that is still empty (no houses) over its run; the houses come
+    on the first row before the next is laid; (b)
+    **closed blocks before combs:** a lane piece parallel to an empty dead end waits until the cross piece tying the two
+    ends exists or is chosen in the same plan (the comb becomes a block); (c) a shorter lead for parallel lanes (150 ->
+    ~90 m, one block depth past a housed street); (d) the sparse rule on demand plans of organic towns at a lower
+    threshold. Costs: (a)-(c) slow the growth front, the same feedback as "the growth front after the wider block"
+    (fewer pieces in reach, more STUCK; `frontRelax` / `frontExtra` may need to cover them); (b) needs the selector to
+    pair pieces. Needs a decision; (a) is the smallest change.
+  - **Follow-ups built (2026-10-19; user approved shot 4 (a) and shot 5 (a); offline only, in game: TESTING.md "Side
+    streets and parallel streets" 5.-6.):**
+    - **Street provenance** (`ot_prov`): after every successful build the driver logs (debug log on) one line per built
+      edge, `PROV town= name= edge=<entity> n=<node0>,<node1> a=<x>,<y> b=<x>,<y> len= src= key=<plan piece key>
+      trig=<demand|head|force|...> seq=<the town's build number this session> year= lock=0|1` (at most `LINES_MAX` 24
+      per build, then `PROV ... more=<n>`), and always sends the record to the game script (event
+      `square_organic_towns.prov`, ot_saved `pv`; layout and caps: "Provenance record: bounded" below). `src` = `nm:<tee|cross|pair>[c]` for a near-miss join (c: a pair's corner;
+      ot_nearmiss now marks `nearMissCorner`), the job kind (`sat` / `lead` / `works` / `bridge` / `frame`), else the
+      plan piece's origin (`plain`, `arm`, `ring`, `crescent`, `link`, `m:<motif>`), then `/<key head>` (organic
+      lattice `sp` spoke, `sr` secondary radial, `bk` back row, `ln` cross lane, `tip`, `rg` ring; `conn` connector;
+      left out when it repeats the kind: `frame`, `lead`, not `frame/frame`).
+      The console lookup `ug_require("square_organic_towns::/organic_towns/ot_prov.lua").who()` (the street under the
+      cursor; or `who(<edge id>)`, `who(<x>, <y>)`) reads the saved record through `state_native` (the console's own
+      `ug_require` can't see the driver's memory, docs/console.md) and prints `[SQOT] WHO edge= a= b= locked= ours=yes
+      | likely | probably | no ...`: `yes` (the edge is in the record), `likely` (a record within 12 m along it: the
+      game split or rebuilt the street since, a new entity), a §67 game lock (`gx`), `probably` (locked, no record:
+      built before the records began or dropped past the cap), `no` (no record, not locked: the game's own growth or
+      the original layout; or an open tip the mod built before 2026-10-19). Records exist only from this version on;
+      the session's `own` set is not restored from them (left as is: the retire / own-empty logic keeps its meaning).
+      Tests: test_prov (10).
+    - **Provenance record: bounded (2026-10-20, before release; user: "make sure we do that cap, or otherwise don't
+      impact performance").** Cost: the game script's `guiUpdate` copies the whole saved state with `state:get()`
+      every frame (Main Thread, TICKCOST `getMaxUs` 180-330 us in the 1949 / 0001 runs, before any `pv`); event
+      applies run on the simulation threads only when an event comes. The first layout (one string per town, 12,000
+      chars each, 1,000 towns) grew ~66 chars an edge: 994 edges = ~65 KB in the 4-minute 0205 run (16 towns), and
+      up to 12 MB on a big map in a long game, all copied every frame. Now: **one string for the map** (one Lua
+      object to copy, not one per town), entries `<town>,<edge>,<src>,<trig>,<year>,<x0>,<y0>,<dx>,<dy>,<mx>,<my>` in
+      build order (plain pieces stored `/<piece>`, trig one letter `d`/`h`/`f`/`o`, the far end and the Hermite
+      middle as offsets, whole metres, no session `seq`): ~40-46 chars an edge. Caps: **`TOTAL_MAX` 32768 chars**
+      (~700-800 edges, ~40 km of street: a per-frame copy of at most 32 KB, a memcpy of a few us, beside the existing
+      state's 180-330 us) with the map's oldest dropped first, and **`TOWN_N` 120 entries a town** (its oldest first,
+      so one busy town can't push the others out). An append is a few plain string finds over the record, one rebuild
+      of the string and a cut at the front: no parse of the record, nothing per tick; a 1,000-town x 12-round worst
+      case (36,000 events, test_prov) stays under the cap in about a second offline. A save from before has no `pv`
+      (nil: no work); the per-town tables of the 2026-10-19 dev build convert once (at most `CONVERT_MAX` 2000
+      entries, by year). Kept with the debug log off too (32 KB is cheap, and players' bug reports can use `who()`).
+      TICKCOST now ends `getAvgUs= ... pvB=<chars> pvN=<entries>`.
+      (The whole-state copy each frame itself: taken off the frame path 2026-10-20, "The saved state off the frame
+      path" below.)
+    - **`who()` fixes (2026-10-20, session `2026-10-20_0228_sqot-sqrl` + the live log):** the first try was a bare
+      `who()` (console history: "attempt to call global 'who' (a nil value)", shown only in the console window);
+      the full line then printed `[SQOT] WHO no street within 40 m of -408,-4743` with the cursor on a street: the
+      octree matches an edge by its middle (findings roads.md "Octree edge search"), so a 40 m circle missed a long
+      street. Now the circle is `SEARCH_R` 300 m (PICK_R + half the longest street edge), the nearest street by its
+      curve within `PICK_R` 40 m wins (at most `EDGES_MAX` 3000 read), and a miss names the nearest street's
+      distance and how many edges the circle held. The whole lookup runs in pcall: an error prints `[SQOT] WHO error
+      <reason>`; no game-script state or no record says so.
+    - **The saved state off the frame path (2026-10-20; user: "no regressions in behavior or performance"; offline
+      only, in game: TESTING.md "Side streets and parallel streets" 5. (d), 7.).** `guiUpdate` copied the whole saved
+      state (`state:get()`, `pv` included) every frame on the Main Thread for the driver, which needs every key but
+      `pv`. Options checked against the API (`base/tealdef/scripts/gamescript.d.tl`, `api/tealdef/api/engine.d.tl`,
+      `api/type.d.tl`; findings game-scripts.md / gui.md): (a) per-key reads through `state_native:find(key)`: the
+      driver reads every key but `pv`, so each frame would still convert nearly the whole state (`asTable()` per key);
+      (c) a second state the driver never reads: a game script has one state, guiUpdate's is a
+      `GameScriptStateReadOnly` with `get` only, and a second game script would need its own `.gs.lua`, a split of
+      the record's events and a migration: no. **(b) built: copy only when the state changed.** handleEvent bumps a
+      change number `rev` with every `state:set` (`ot_saved.bumpRev`; `normalize` keeps it, a foreign layout too);
+      guiUpdate reads it through the GAME_SCRIPT component's `state_native:find("rev")` (the town window card's read,
+      verified on the Main Thread 2026-10-17, findings gui.md; never the game script's own `get_native`, which asserts
+      on the simulation thread) and passes the last copy again while the number inside that copy matches
+      (`ot_saved.Reader`). A full copy (the old `state:get()`) still runs: with no copy yet; when the native number
+      and the copy's differ (either view may lag: every frame until they agree, as the old path); at least every
+      `READ_REFRESH_S` 2 s (a save loaded into the same Lua state, a change without a bump); and after the driver sent
+      an event (`ot_engine.sentN` moved; `Reader:expect`) every frame until the copy's number moved, at most
+      `READ_WATCH_S` 2 s, so the driver sees its own changes the frame the old path did even if the native number lags
+      (only a player's new Road Stop, written from `onPostBuildProposal`, relies on the native number alone; the stop
+      queue is drained at `STOP_CHECK_S` pace anyway). **Never worse than before:** any error of the number read (no
+      entity, no component, no `state_native`, not a number) or of the reader puts the session back on a copy every
+      frame (`mode` get) with one `[SQOT] STATEREAD mode=get reason=...` warning; so does a cost check every
+      `READ_CHECK_N` 2000 frames when the number reads plus that window's copies cost as much as a copy every frame
+      (the session's mean copy; e.g. if `getComponent` itself copied the whole state); `READ_REV = false` is the old
+      path. A failed copy gives nil as before. The driver never writes into the copy (twin-driver test). Expected
+      saving: from a copy every frame (~110 Hz) to one per change / 2 s plus a few after each sent event: TICKCOST
+      `getAvgUs` from about the copy's cost to a few us, `getN` from the tick count to a few hundred per 5-minute
+      window; `getMaxUs` stays a copy's cost (copies still happen on changes). TICKCOST adds `getN=<full copies>
+      stateMode=rev|get revMiss=<copies that disagreed with the number read just before, session total>` (revMiss >
+      0: the two views lag each other, the watch covers the driver's own events). Tests: test_stateread (8: the
+      number; the same data as the old path with every key; lag either way and the watch; an old save, a nil state, a
+      failed copy; fallback on every error kind, reason once; the cost check; handleEvent's bump; guiUpdate with a fake
+      engine, cached / fallback), test_driver (+3: two drivers on two fake engines, one fed a copy every frame and one
+      through the reader with the native number lagging 0 / 3 / 25 frames, send the same events and log the same
+      lines, the copy never written; the TICKCOST fields; SNAPSHOT `emptyRows`).
+    - **Empty-row measure (2026-10-20; open decision (1) of the 0205 run, approved):** SNAPSHOT (debug, one per
+      check) carries `emptyRows=<m>/<dead-end m>/<edges>` (`ot_knot.emptyRows` / `rowsText`): the town's own empty
+      edges (`emptyOurs`: locked or built this session, no house) of at least `ROWS_RUN_M` 40 m running 40 m or more
+      within the row distance `rowM` of another such edge (not one sharing a node), at most `PAR_DEG` 25 deg off; an
+      edge at a dead end counts in the second figure too (the offline metric of the row rule's table below). Computed
+      only when the debug line is written, at most `ROWS_EDGES_MAX` 400 edges (`+<n>` the rest), `SCAN_MAX`
+      neighbours each (offline worst case 400 edges in a 30-lane comb: 6 ms); `rowsUs=` its time, `us=` stays the
+      snapshot's own. "-" without house counts. Tests: test_row75 (+2), test_driver (+1).
+    - **One empty row at a time** (`ot_knot` `ROW`, ot_select `ROW`, a fifth knot reason `row`): a steer organic
+      town's piece that leaves a new dead end (an end at no town street and no piece chosen in the increment) waits
+      while it runs beside one of the mod's own streets without a house (`emptyOurs`: locked, or built this session,
+      ot_driver's snapshot now carries `own`; fewer than `ROW_HOUSED` 1 buildings; unknown house counts never count)
+      or beside a piece chosen in the same increment, within `rowM` = `ROW_K` 1.2 x max(`ROW_DEPTH_MIN` 44 m = the
+      lattice's least row spacing, block depth), at most `ROW_MAX` 80 m (EU organic 54 m, MED hill 52.8 m), for
+      `rowNeed` = max(20, min(40 m, 0.6 x the piece)), at most `PAR_DEG` 25 deg off. Decisions: never gives way (as
+      `parallel`: offline it did not stall towns, below); a piece closing a block (both ends at streets or chosen
+      pieces) passes, so a connector or the far street tying a comb's ends lets the lanes come as a block ("closed
+      blocks before combs" for free within one increment); exempt: grid growers (as `SIDE_GRID`), motif / ring /
+      crescent / connector pieces, forced plans (ot_driver sets `rowHold = false` where it skips the lead cap), plans
+      without house data. `knotHeld=<n>:<cross>/<parallel>/<loop>/<side>/<row>` on PLAN, the empty PLAN and STUCK
+      lines (`ot_knot.text`).
+    - **Offline effect** (6 seeds x 10 increments of 12 edges, steer limits, the round test core, F.markBuilt houses
+      after each increment, +15 / +40 / +80 lots per increment; "empty rows" = our unhoused edges running >= 40 m
+      within 1.2 x max(44, depth) of another, in brackets the dead-end ones; before -> after):
+
+      | houses / inc | style | street km | empty km | empty rows km (dead-end) | empty plans | `row` holds |
+      |---|---|---|---|---|---|---|
+      | +15 | EU organic | 13.3 -> 11.7 | 9.5 -> 7.9 | 1.54 (0.69) -> 0.31 (0.00) | 8 -> 8 | 70 |
+      | +15 | EU extension | 13.3 -> 13.4 | 8.6 -> 8.5 | 1.68 (0.74) -> 1.11 (0.42) | 20 -> 18 | 21 |
+      | +15 | MED hill | 12.9 -> 13.0 | 9.0 -> 8.9 | 1.28 (0.50) -> 0.22 (0.10) | 5 -> 6 | 48 |
+      | +40 | EU organic | 21.6 -> 20.4 | 2.3 -> 1.9 | 0.15 (0.08) -> 0.00 | 2 -> 1 | 49 |
+      | +40 | EU extension | 25.2 -> 24.7 | 2.8 -> 2.7 | 0.72 (0.00) -> 0.64 (0.00) | 2 -> 0 | 20 |
+      | +40 | MED hill | 18.4 -> 19.2 | 1.9 -> 1.5 | 0.24 (0.00) -> 0.00 | 0 -> 0 | 32 |
+      | +80 | all three | 79.4 -> 77.9 | 1.9 -> 2.0 | 0 -> 0 | 3 -> 3 | 47 |
+
+      The driver against the fake growing town (test_demand, EU organic, 5 seeds each): independent model builds 105 ->
+      108, mod edges 1076 -> 983 (share 71 -> 69 %), houses on mod streets 2547 -> 2452 of 5025, max own open lots
+      (sum) 1528 -> 1315; frontage model builds 67 -> 81, mod edges 404 -> 497 (29 -> 34 %); the fast grower's
+      pooled share 0.40 -> 0.45 became 0.38 -> 0.43 (test margin + 0.05 -> + 0.04, comment there), scarce checks
+      0.19 -> 0.22 became 0.18 -> 0.20. No stall: empty plans flat or down, builds up. The EU extension's remaining
+      empty rows (0.42 km dead-end at +15) are the model's (F.markBuilt re-ranks every lot by network distance after
+      each increment, so a street housed when its neighbour was laid can lose its houses) or block-closing pieces.
+    - Tests: test_row75 (5: limits; shot 5 held beside our empty lane (locked or own), passing beside a housed lane or
+      a game street; a block-closing lane passes; grid / forced / no house data / ROW off exempt; one increment's comb
+      comes one row at a time, all of it as a closed block with the far street; the snapshot's `own`), test_forced /
+      test_side75 (the fifth count), test_demand (fast grower margin).
+    - **In game (run 2026-10-20, session `2026-10-20_0205_sqot`, seed `a`, Quick 40, same map as 1949; TESTING.md
+      "Side streets and parallel streets" run 2026-10-20):** the row rule held 53 pieces in 44 plans (9 of 16 towns),
+      never stalled a town (0 STUCK vs 3; the longest empty run with a `row` hold 3 plans, always beside wedge / env /
+      lead holds); buildings 9340 vs 8915, plans with edges 194 vs 172. Its gain is not visible at the town level: mod
+      street 106.2 vs 95.9 km, the mod's own empty street (`ownEmpty`) 16.6 vs 14.1 km (within the run-to-run spread;
+      the logs held no empty-row measure: SNAPSHOT `emptyRows` since 2026-10-20). `geoSide=0` on every plan; 47 joins, all built; PLAN `us=` +5-10 %.
+      Provenance: one PROV line per built edge (994 of 994), but `src` read `plain/<key>` for every plan piece and
+      near-miss join: `ot_proposal.build` dropped the plan edge's `origin` / `nearMiss*` fields. **Fixed 2026-10-20**
+      (the spec edge carries them; test_prov +1 through the proposal). Not seen yet: `who()` from the console, the
+      record after a reload (`2026-10-20_0001_sqot-sqrl` ran the code from before ot_prov).
+    - **Status (2026-10-20):** provenance built, `src` fixed, the console lookup unverified; row rule kept (no give-way
+      needed: it stalled nothing); the state read off the frame path and the empty-row measure built (above; in game
+      next run). Open decisions: (1) done (SNAPSHOT `emptyRows`); (2) rebuilding `own` from the saved record on load (small: 898 of 994 built edges are locked
+      and count as ours without it; the 96 unlocked, plan pieces and 17 lead lanes the steer policy left open, drop out of `emptyOurs` after a reload); (3) shot 4's triangle
+      fixes (b) / (c) wait for a `who()` on a real triangle; (4) the record's size: `PV_MAX` 12000 chars x up to
+      `PV_TOWNS` 1000 towns can reach megabytes on a big map in a long game (this run: ~55 KB for 16 towns over 40
+      years); a lower town cap or a total cap is cheap (done 2026-10-20: "Provenance record: bounded").
+  - Also open from this run: a close look at a corner (`c`) join in game; the forest keep and the fixed per-pair chance
+    unchanged (`chance` 133 kept).
+  - **Far-out streets after an extent jump (investigated 2026-10-20 from the logs; frame tip cap and log fields built
+    2026-10-20, below; the main-body decision pending the next run's numbers):**
+    Wheatden (1949: CHECK `r` 478 -> 1070 m at 452 -> 495 buildings, simulated years 28-32, the mod sending nothing for
+    it then; game edges 34 -> 59) and Seachurch Cove (0205: `r` 682 -> 998 m at 424 -> 481, game edges 27 -> 53,
+    `foreignLen=0`). **Not a Works / satellite / other-town mix-up:** `r` is the 90 % quantile of the distances of the
+    town's own houses (the game's town-to-building map, keyed by town id: an offshoot's houses never count; `A.extent`,
+    ot_assess `EXTENT_QUANTILE` 0.9) from their mean; the game's own growth put an outlying group of the town's houses
+    0.7-1.2 km out, and once it held over 10 % of them the quantile jumped from the main body's edge to that group.
+    Wheatden Foundry came after the jump (`WORKS event=create ... d=1500 ... simYear=32`, its site pushed out by the
+    inflated r + `GAP_EXTENT`; its link `outcome=none why=crossing`: no access road). **Which jobs:** plain plan pieces
+    (`sr` / `rg` / `conn`, every PLAN `@far=` <= 190 m: each within the lead limit of a street carrying the town's far
+    houses, joining dead ends the game built in the simulated years) and frames (Merehythe 925-1003 m, Dovemouth
+    935-996 m out, env 749 / 284 m: `ot_wedge.frameStreets` has a floor (0.6 x coreR) and the 250 m housed-street test
+    but no outer limit). Verdict: the measure is fragile (one radius from the mean for a body plus an outlying group)
+    and the mod then treats the outlying houses as the town's front: a design gap, not misattribution. The empty-street
+    / dead-end jumps of the tour are partly the dev ALLTOWN circle (r + 300) growing with r. Also scaled by the
+    inflated r: Works sites, the industry reach (r + 900), the snapshot and the lot set. **Proposals (decision open):**
+    (1) a main-body extent: houses on ~100 m cells flood-filled from the town's cell across gaps up to ~200 m, `r` from
+    that body (pro: one fix for all the users of r; con: a gappy ribbon, a lead hamlet or a bridgehead cut off unless
+    groups joined by the mod's own streets stay in the body); (2) an outer cap on frame tips (~1.3 x env, or the
+    sector outline): cheap; (3) the lead / housed-street tests on the main body only (outlying groups left to the game);
+    (4) fallback: a growth cap on r per CHECK (x 1.25; lags real growth). Log fields to confirm first: CHECK
+    `rBody=` / `r50=` / `out=<n>@<m>/<heading>` and the template under the outlying houses (country road or town
+    street), PROV `d=` from the town, FRAME `maxTipR=`.
+    - **Built 2026-10-20 (proposal (2) as a frame tip cap, plus the log fields; in game next run):**
+      - **Frame tip cap** (`ot_wedge.tipCap`, `TIP_CAP`, `TIP_LEAD_M` 300; ot_core.frameIncrement, wedge and meadow
+        frames): a tip farther from the frame centre than **the main body's reach + 300 m** is dropped before linking
+        (the main body: `ot_assess.body` over the snapshot's housed streets, midpoints weighted by `e.built`; its reach
+        the farthest body house from the centre; at most `TIP_EDGES_MAX` 4000 edges). Base decided against the two
+        proposed: a multiple of a radius cannot separate the cases, because the game's tips legitimately run up to
+        `LEAD_M` 250 m ahead of the houses. Offline (test_bigform growth 1x -> 10x, 13 armed towns over EU organic /
+        extension, MED hill, Nordic + 4 meadow twins; 272 frame calls, 145 frames) the farthest tip of a call reached
+        up to 2.2 x env, median 1.7 / max 2.5 x the 75 % house radius (from the frame centre), median 1.4 / max 2.1 x
+        the 90 %; so ~1.3 x env cuts normal frames (env is an effective distance, low in the wedges where frame tips
+        live; Dovemouth's in-game frame, by the earlier reading 935-996 m out, ran ~3.3 x its env 284 m beside
+        fingers arms housed to 835 m (`armBuilt`): likely a legitimate arm-end frame), q75 x 1.6 cut 56 of 272 calls
+        (151 tips), q90 x 1.3 62 calls (186 tips), and a cap loose enough for all of them (q75 x 2.5) sat inside or
+        past the synthetic outlying group below, letting part or all of it through. The body's reach + `LEAD_M` + 50 m lies beyond
+        every tip a one-body town can have (a tip needs a housed street within `LEAD_M`), so it is a no-op there by
+        construction, and cuts only tips past the body, i.e. at an outlying group (gap over 200 m).
+      - **Offline before / after** (cap off vs on, same graphs; `make test` scratch runs, not kept):
+
+        | towns | frame calls | frames | frame edges off -> on | tips cut | least margin cap - farthest tip |
+        |---|---|---|---|---|---|
+        | test_bigform armed: EU organic linear x3 / fingers x3 / cross x3, EU extension linear / fingers, MED hill linear, Nordic linear | 208 | 116 | 671 -> 671 | 0 | 56 m (MED hill) |
+        | test_bigform meadow (sprawling twins x4) | 64 | 29 | 107 -> 107 | 0 | 177 m |
+        | test_spread sites x 6 towns, to 10x (28 with frames): flat, flat + roads (cross), coast (shore x3, linear, fingers), valley (linear x6), hillside MED (linear x6) | 168 | 144 | 1088 -> 1088 | 0 | 96 m |
+        | + an outlying comb (12-20 % of the houses, 350 m past the farthest house, mid-wedge; 6 towns x steps 6 / 10 / 14 x 2 shares) | 36 | 36 | its 2-8 frame edges -> 0 | 5 (all the comb's) in every case | - |
+
+        Growth metrics (elong / arms / wedge share / housed at 5x, 10x) identical with the cap on. A twin or bridgehead
+        across a gap over 200 m with fewer houses than the main part would lose its far tips: none offline; CHECK
+        `out=` in game says whether such towns exist.
+      - **FRAME** plan / none lines: `tipCap=<m>` ("-" without house data), `tipCut=<n>[@<m> the farthest cut]`,
+        `maxTipR=<m>` (the farthest tip kept, from the frame centre), `bodyOut=<houses outside the body>`.
+      - **CHECK** (debug; computed only when the line is written; logging only): `rBody=` (the main body's 90 % radius
+        from its own mean, as `r`), `r50=` (median radius of all houses), `out=<houses outside the body>/<other groups>`,
+        `outFar=<houses>@<m>/<deg>` (the largest other group: houses, distance of its mean from the body's mean,
+        heading 0 = +x counter-clockwise), `bodyUs=`. The body: houses on `BODY_CELL_M` 100 m cells flood-filled across
+        gaps up to `BODY_GAP_M` 200 m (cells within 2 of an occupied cell join), the group with the most houses (not
+        the group at the town centre: a ring / crescent / twin town's mean can sit in an empty cell; the outlying groups
+        seen held 10-20 %), at most `BODY_PTS_MAX` 4000 points, one visit per cell.
+      - **PROV**: `d=<m>` the edge middle's distance from the town centre (the style's, as plans and frames use).
+      - Tests: test_far75 (5: body with an outlying group / gappy ribbon / largest group / weights / caps; the cap cuts an
+        outlying comb's tips and keeps the town's frame; normal towns cap on = off over growth), test_prov (`d=`),
+        test_driver (CHECK fields).
+      - **Decisions left (after the next run's numbers):** (a) the main body for `r` itself (proposal (1): every user
+        of `r`: Works sites, industry reach, snapshot, lot set, plain pieces' lead) or (3) the lead / housed-street
+        tests on the body only (the plain `sr` / `rg` / `conn` pieces of 1949 / 0205 are not capped by this change);
+        read CHECK `rBody` / `out` / `outFar` against `r` on the jumping towns and PROV `d=` of far builds; (b) whether
+        `TIP_LEAD_M` 300 holds in game (FRAME `maxTipR` vs `tipCap`; `tipCut` on towns with `out=0` would mean a
+        tip beyond the houses' lead, not expected).
 
 ### 6.3 Town shapes (2026-10-11, offline; `ot_shape`)
 
@@ -2342,6 +2904,67 @@ turned, every arm >= 40 deg off). Single seeds are chaotic (one reordered piece 
 *Open:* the industry read in the game script's guiUpdate state is unverified (the same calls work in Industry Flows'
 GUI state); the file names on real maps (IND unknown lines); whether grid towns need more (their housed front); a green
 strip toward heavy works.
+
+#### Away from player facilities (2026-10-18, offline; in game: TESTING.md "Away from player facilities")
+
+*Why.* User: "Is it easy to try to encourage our residents to move away from shipping ports that we build? Same for
+things like vehicle depots, etc. It doesn't have to be a hard rule, maybe just a small suggestion." Scope (confirmed):
+harbors, vehicle depots (road, tram, rail, water) and maintenance stations, airports and heliports, freight stations;
+not passenger rail stations (the M3 station quarter pulls toward them) and not kerbside bus stops.
+
+*Read* (`ot_engine.facilities`, `ot_driver:facilitiesRead`; the depot and station reads verified by console 2026-10-18, docs/findings/lines-vehicles.md: depots, cargo rail / truck stations, harbors as expected, industry stations report cargo + passenger and are excluded by path; airports not yet seen):
+`getEntitiesWithComponent(VEHICLE_DEPOT)` (base GUI lists it; maintenance stations are VehicleDepot entities with a
+catchment area) -> `streetConnectorSystem.getConstructionEntityForDepot` -> `CONSTRUCTION.fileName`, the construction's
+`BOUNDING_VOLUME` centre (the depot's as fallback); the stations from the module's `stationList()` (as railStations /
+harbours) -> `getConstructionEntityForStation` (kerbside stops have none) -> fileName, and
+`util.station.isStationOfType(st, true / false)` for cargo / passenger, merged per construction (an unreadable
+passenger flag counts as passenger). Re-read every `D.FAC_REFRESH_S` (120 s); the classified list's signature (kind and
+rounded position) decides whether `facVer` moves, so the towns' info (and the planner's cached sector preference) is
+redone only when the player built or removed one. Debug line `FAC facilities= port= airport= heliport= depot= freight=
+read= ok= us=` when the list changed.
+
+*Classes* (`ot_industry.classifyFacility`, `FAC_KINDS`; w at the site, r buffer): depot (any VEHICLE_DEPOT or
+`depots/` file: road, tram, rail, water depots and maintenance stations) w 0.25 r 180 m; heliport (`heli`) 0.25 / 200;
+airport (`stations/air/`, airport, airfield) 0.45 / 400 (noise); port (`stations/water/`, harbor / harbour; passenger
+harbors too) 0.4 / 300; freight (a station construction with cargo and no passenger support: cargo rail / truck
+stations) 0.3 / 220. Everything else (passenger rail, bus / small stops, underground, mixed stations): none. All lighter
+than a light works (0.5 / 320). Era weight (`strength`) kept: dockside and depot-side housing was normal before ~1920.
+
+*Where it applies:* `IND.forTown(all, cx, cy, year, reach, facs)` puts them in `info.soft` (within the same reach) and
+into the away direction; `IND.pen` sums industries + facilities (same cap), so the select cost, the envelope lean, the
+M3 path pick, the shape axis turn (`rayExposure` / `bestAxis`) and the sector lean see them. Not: the hold
+(`ot_select` now reads `IND.penHold`, industries only), keep-clear zones, zone locks / refusals, dose-fill avoidance,
+`indPen=`, satellites (`penHeavy`, `nearestLight`), Works, `enclosure`: all read `info.list` / `info.zones`, which stay
+industries only. With no facility near, every industry number and plan is unchanged (tests). `IND.FAC_ON = false`
+switches it off.
+
+*Logs:* PLAN and SHAPE `fac=count:port/airport/heliport/depot/freight` (`0` none); `ind=` stays industries only (`0`
+for a town with facilities only); `FAC` debug line as above.
+
+*Offline* (`tests/square_organic_towns/test_facilities.lua`; round ~260 m core, 8 increments of 18 edges, the facility
+450 m east, 3 seeds in quick mode (6 full); share of new street length within 400 m of it):
+
+| Style | none | depot | harbor | airport | steel mill | length (harbor) | held |
+|---|---|---|---|---|---|---|---|
+| EU organic | 0.35 | 0.29 | 0.25 | 0.23 | 0.10 | +2 % | 0 |
+| MED hill | 0.41 | 0.40 | 0.25 | 0.24 | 0.15 | -5 % | 0 |
+| Nordic | 0.26 | 0.25 | 0.22 | 0.23 | 0.09 | +8 % | 0 |
+
+Full mode (6 seeds): EU organic none 0.35 / depot 0.31 / harbor 0.25 / airport 0.19 / steel 0.10; MED hill 0.31 / 0.28
+/ 0.18 / 0.17 / 0.08; Nordic 0.29 / 0.28 / 0.28 / 0.27 / 0.11 (Nordic responds least, as with industries). A small
+suggestion: a harbor or airport cuts the share near it by up to ~45 % (Nordic barely), a depot by 0-15 %, a heavy works
+by 60-75 %; no piece is ever held. Penalty at the site (1990): airport 0.45, port 0.40, freight 0.30, depot 0.25 (light works 0.50).
+
+*Save safety:* nothing saved; read-only calls, each pcall-guarded, capped at `MAX_FAC` (20000) entries. Existing towns
+lean from the next load on (saved frames keep their axis).
+
+*Open:* the reads are verified by console (2026-10-18); inside the mod's own script state the reader has run only on a
+fresh map without player facilities (seed `a`, `2026-10-18_2222_sqot`: `FAC facilities=0 ... read=15 ok=true us=53-102`,
+every PLAN `fac=0`, no error), so the classification there and the `fac=` lean are unseen; no airport was on the map;
+the strength on real maps. DEV only: the dev simulation's pool drivers (otd_runner.poolDriver) each read the facilities
+(and industries) on their own, hence one FAC / IND line per pool driver in that run (17 / 16); a pool driver can briefly
+hold an older list than the main driver (the shared town state's `facVer` / `indVer` then flips). Harmless in normal
+play (one driver).
 
 #### Real map round 2 (2026-10-13; NEXT_PHASE_BRIEF 20; in game: TESTING.md "Real map test")
 
@@ -4002,7 +4625,7 @@ ot_lane, ot_saved, ot_driver; ot_upward / ot_works / ot_district gates).
   `mode=deep why=ring=..,p=..,u=..|saved|force share= ring= dense= count=` (always logged; a not-deep reason is debug).
 - **Winding geometry** (`FO.deepStyle`, in ot_style.resolve before shape / form / greens / motifs read the blocks; only
   the existing knobs, each inside the grower's own radius checks): curve >= 35 deg, jitter >= 20, contour >= 0.8, blocks
-  x 0.8 / x 0.85 (never under MIN_BLOCK 40 m), sd >= 0.35, no outer zone (organic all the way out). Organic grower:
+  x 0.8 / x 0.85 (never under MIN_BLOCK, 44 m since 2026-10-18), sd >= 0.35, no outer zone (organic all the way out). Organic grower:
   gridness <= 0.15, spoke wobble wavelength `curveWave` 110 m (200), `spokeRadius` 80 m (90; = LINE_RADIUS, the planner's
   edge check is 70 m), ring spacing x 0.8 (>= 150 m), and `wiggle` { amp 7, wave 90 }: secondary radials and cross lanes
   of 50 m or more become bows (ot_grow_organic.wiggle: A sin(pi m s / L), m = round(L / 90) half waves, A <= 0.9 (L / m
@@ -5041,7 +5664,7 @@ name could potentially take into account what type of industry they are". `ot_pl
 | Strong characters pick (2026-10-14) | once per new map: `CHARS_SLICE_US` 6 ms per tick (at least one town), `CHARS_MAX_S` 90 s, then the towns read so far are scored |
 | Map survey (names, 2026-10-14) | once per new map: `NAMES_SLICE_US` 2 ms per tick, `NAMES_SHAPE_MAX_S` 45 s (`capped=timeout`), every phase capped at `cells x PHASE_K` units |
 | Satellite pacing (2026-10-14) | the map's size re-read at most every 2 s, only when a founding is asked (one `townCaps` per town, `PACE_MAX_TOWNS` 4000) |
-| Frame cost line (2026-10-14) | `TICKCOST` every 300 s (always on): ticks, `avgUs`, `maxUs` and its stage (`at=` chars / names:<phase> / job:<stage> / idle), `getMaxUs` (the GUI `state:get()` copy of the saved table, every frame), ticks over 4 / 16 / 50 ms |
+| Frame cost line (2026-10-14) | `TICKCOST` every 300 s (always on): ticks, `avgUs`, `maxUs` and its stage (`at=` chars / names:<phase> / job:<stage> / idle), `getMaxUs` / `getAvgUs` (the GUI `state:get()` copy of the saved table, every frame; avg from 2026-10-20), ticks over 4 / 16 / 50 ms, `pvB` / `pvN` (the provenance record's chars / entries, 2026-10-20, cap 32768) |
 | Master plan rebuild | sliced since the final-test round (yields between grower, motif hooks, promenade; the final test had up to ~144 ms in one tick) |
 
 Heavy work could move to the GS `update` (no frame cost, findings.md:585-589) only if probe I shows a safe pattern for

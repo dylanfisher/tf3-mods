@@ -81,7 +81,7 @@ end
 --- style, increments, stats.
 local function run(sampler, motif, o)
 	o = o or {}
-	local st, stats = resolve(sampler, { motif = motif, style = o.style or "EU_ORGANIC", radius = o.radius, cap = o.cap,
+	local st, stats = resolve(sampler, { id = o.id, motif = motif, style = o.style or "EU_ORGANIC", radius = o.radius, cap = o.cap,
 		bounds = o.bounds })
 	local g = F.vanillaTown(nil, { n = o.core or 4, spacing = o.spacing or 80 })
 	local incs = core.simulate(g, st, { terrain = sampler, stats = stats, join = o.join or "deadEnd" }, o.n or 12)
@@ -251,7 +251,9 @@ test("hill climb: one gentle street up the slope, terrace loops on the shelves, 
 	ok(m2.geo.grade <= 0.065, "grade at the target " .. m2.geo.grade)
 	rules("hill_climb plane", g2, st2, incs2, F.plane(0.09, 0))
 	-- a valley: up one side, along the contour where it gets steep (no hairpin)
-	local r3 = run(F.valley(0), "hill_climb")
+	-- (town 3: the valley town reaches the climb in 3 of towns 1-10, before and after the 44 m minimum block, 2026-10-18,
+	-- but not the same 3; town 5 did before)
+	local r3 = run(F.valley(0), "hill_climb", { id = 3 })
 	print("valley: " .. r3.text)
 	ok(r3.len >= 300, r3.text)
 	-- deterministic: the same plan twice

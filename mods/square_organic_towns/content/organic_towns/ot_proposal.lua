@@ -39,7 +39,11 @@ end
 --- dead-end sign.)
 --- nLanes is one count for all segments, or a table { [segment] = count } (streets of different widths at one
 --- node: each side uses its own lanes, connecting min(halfA, halfB) lanes per pair).
-function M.junctionConns(segs, nLanes)
+--- leftHand (left-hand traffic, M.leftHandFrom): the mirror image. Looking from the node the incoming lanes are the
+--- right half, so incoming kerb lane m(a) + 1 - i -> outgoing kerb lane i (user report 2026-10-20 with the Left Hand
+--- Traffic mod `left_hand_traffic_1`, which reverses `forward` of every two-way street template's road lanes: the
+--- right-hand entries misaligned every junction the mod touched).
+function M.junctionConns(segs, nLanes, leftHand)
 	local function m(seg)
 		local n = type(nLanes) == "table" and nLanes[seg] or nLanes
 		return (tonumber(n) or 4) - 2
@@ -48,13 +52,38 @@ function M.junctionConns(segs, nLanes)
 	for _, a in ipairs(segs) do
 		for _, b in ipairs(segs) do
 			if a ~= b then
-				local mb = m(b)
-				local half = math.min(math.floor(m(a) / 2), math.floor(mb / 2))
-				for i = 1, half do out[#out + 1] = { a, i, b, mb + 1 - i, true } end
+				local ma, mb = m(a), m(b)
+				local half = math.min(math.floor(ma / 2), math.floor(mb / 2))
+				for i = 1, half do
+					if leftHand then
+						out[#out + 1] = { a, ma + 1 - i, b, i, true }
+					else
+						out[#out + 1] = { a, i, b, mb + 1 - i, true }
+					end
+				end
 			end
 		end
 	end
 	return out
+end
+
+--- The driving side from a two-way street template's road lanes (sidewalks excluded), listed as laneConfigs lists them
+--- (left to right along the edge): `forward` booleans. Right-hand traffic has the backward lanes on the left (the base
+--- templates: first half false), left-hand traffic the forward ones (the Left Hand Traffic mod reverses every flag of a
+--- two-way template; its own audit asserts first forward, last backward). The base game decides the same way
+--- (trafficlightutil.lua leftHandTraffic: the majority). Returns true (left), false (right) or nil (one-way, empty).
+function M.leftHandFrom(forwards)
+	local n = #(forwards or {})
+	if n < 2 then return nil end
+	local mid = math.ceil(n / 2)
+	local left, right, fw, bw = 0, 0, false, false
+	for i = 1, n do
+		local f = forwards[i] == true
+		if f then fw = true else bw = true end
+		if f == (i <= mid) then left = left + 1 else right = right + 1 end
+	end
+	if not (fw and bw) then return nil end
+	return left > right
 end
 
 --- Incoming and outgoing road lanes of one segment at a node, outer lane first, in node-relative indices
@@ -144,6 +173,7 @@ end
 ---   sources = { [template path] = edge id },   town street edges to copy per template
 ---   fallback = edge id,                        any town street edge (template overridden)
 ---   allowNoConfig = bool,
+---   leftHand = bool,                           left-hand traffic (M.leftHandFrom): mirrored junction lanes
 ---   lock = bool,                               every new edge roadDevelopmentLocked (dev lock probe)
 ---   lockKeys = { [plan edge key] = true },     these new edges locked (shaped towns' arm / rim streets)
 ---   unlockKeys = { [plan edge key] = true } }  these new edges never locked (§67 valve stubs; not forest lanes)
@@ -162,6 +192,52 @@ function M.pathLanes(path)
 	-- road lanes, base/content/infrastructure/street/town/town_new_one_way_small.street_template.lua)
 	if size == nil and path:find("town_%a+_one_way_small%.street_template$") then return 4 end
 	return size and M.SIZE_LANES[size] or nil
+end
+
+--- Plain streets only (2026-10-18, user): the base game's special street variants are templates of their own with the
+--- plain template's lanes (base/content/infrastructure/street/town/*: `_tram`, `_tram_electrified` (tram tracks in
+--- the outer road lanes), `_bus` (bus lanes), `_barriers`, `_trees` (edge decorations)). A new edge never takes one,
+--- also not by copying the dead end it joins.
+M.VARIANTS = { "_tram_electrified", "_tram", "_bus", "_barriers", "_trees" }
+local PLAIN_SIZES = { xsmall = true, small = true, medium = true, large = true }
+
+--- true for a plain base street template path: town_{old,new}_<size>, town_{old,new}_one_way_<size>,
+--- country_{old,new}_<size>.
+function M.isPlain(path)
+	if type(path) ~= "string" then return false end
+	local name = path:match("([%w_]+)%.street_template$")
+	if name == nil then return false end
+	local size = name:match("^town_old_(%a+)$") or name:match("^town_new_(%a+)$")
+		or name:match("^town_old_one_way_(%a+)$") or name:match("^town_new_one_way_(%a+)$")
+		or name:match("^country_old_(%a+)$") or name:match("^country_new_(%a+)$")
+	return size ~= nil and PLAIN_SIZES[size] == true
+end
+
+--- The plain template of a path: itself when plain, else the path without its variant suffix when that is plain,
+--- else nil (another mod's street, a highway, ...).
+function M.plainPath(path)
+	if M.isPlain(path) then return path end
+	if type(path) ~= "string" then return nil end
+	for _, v in ipairs(M.VARIANTS) do
+		local plain, n = path:gsub(v .. "%.street_template$", ".street_template")
+		if n == 1 and M.isPlain(plain) then return plain end
+	end
+	return nil
+end
+
+local JOIN_RANK = { xsmall = 0, small = 1, medium = 2, large = 3 }
+local function townSize(path)
+	if type(path) ~= "string" then return nil end
+	return path:match("town_%a+_(%a+)%.street_template$") or path:match("town_%a+_(%a+)_trees%.street_template$")
+end
+
+--- §73: does a new edge planned with town template `mine` joining a dead end whose street is `theirs` keep its own
+--- template? Only when theirs is medium / large and mine is a narrower town street with known lanes (the node config
+--- pairs each street's own lanes, as for `wideJoin`); a small dead end keeps being copied (no xsmall joints in JP / MED).
+function M.narrowJoin(mine, theirs)
+	local a, b = townSize(mine), townSize(theirs)
+	if a == nil or b == nil or JOIN_RANK[a] == nil or JOIN_RANK[b] == nil then return false end
+	return JOIN_RANK[b] >= 2 and JOIN_RANK[a] < JOIN_RANK[b] and M.pathLanes(mine) ~= nil
 end
 
 local function validLanes(n)
@@ -193,6 +269,11 @@ function M.build(inc, info)
 	local nodesInfo = info.nodes or {}
 	local spec = { nodes = {}, edges = {}, cfgRemove = {}, cfgAdd = {}, joins = {} }
 	if inc == nil or #inc.edges == 0 then return nil, "empty" end
+	-- (left-hand traffic: the one-way ring pattern, junctionConnsDir, and ot_ring's counter-clockwise rings are
+	-- right-hand only; the driver keeps rings off then, Driver:rbGeo "leftHand")
+	if info.leftHand then
+		for _, e in ipairs(inc.edges) do if e.oneway then return nil, "leftHandOneway" end end
+	end
 
 	-- joins: which new edges touch which existing node
 	local touching, order = {}, {}
@@ -219,7 +300,7 @@ function M.build(inc, info)
 		spec.nodes[#spec.nodes + 1] = { entity = nd.entity, pos = v3({ nd.x, nd.y, nd.z }) }
 	end
 	for _, e in ipairs(inc.edges) do
-		local src, template, override
+		local src, template, override, variantJoin
 		local joinNode = (e.node0 > 0 and e.node0) or (e.node1 > 0 and e.node1) or nil
 		if joinNode then
 			local ni = nodesInfo[joinNode]
@@ -228,6 +309,23 @@ function M.build(inc, info)
 			-- takes its own template (the node config pairs each street's own lanes, as at any mixed junction)
 			if e.wideJoin and e.template and e.template ~= ni.template and M.pathLanes(e.template) then
 				template, override = e.template, e.template
+			elseif M.narrowJoin(e.template, ni.template) then
+				-- (§73) a narrower street joining a medium / large dead end keeps its own template: copying the dead end's
+				-- spread the wide street one edge into the small ones (a lone medium edge between small streets)
+				template, override = e.template, e.template
+			elseif not M.isPlain(template) then
+				-- a dead end built as a special variant (a player's tram / bus-lane / tree-lined street): the joint
+				-- edge takes the plain template with the dead end's lanes; no plain one (another mod's street, or a
+				-- variant whose lanes differ): the edge's own template, as for `wideJoin`
+				local plain = M.plainPath(template)
+				local known = plain and info.templateLanes and info.templateLanes[plain]
+				if plain and (known == nil or known == ni.lanes) then
+					template, override, variantJoin = plain, plain, true
+				elseif e.template and M.isPlain(e.template) and M.pathLanes(e.template) then
+					template, override = e.template, e.template
+				else
+					return nil, "specialJoin:" .. joinNode
+				end
 			end
 		else
 			template = e.template
@@ -265,7 +363,7 @@ function M.build(inc, info)
 		-- the new edge's own lane count: its copy source's, or the overriding template's (known from the
 		-- resource, else from the path); never a guess from another street
 		local lanes
-		if joinNode and not override then lanes = nodesInfo[joinNode].lanes
+		if joinNode and (not override or variantJoin) then lanes = nodesInfo[joinNode].lanes
 		elseif override then lanes = (info.templateLanes and info.templateLanes[override]) or M.pathLanes(override)
 		else lanes = (info.edgeLanes and info.edgeLanes[src]) or M.pathLanes(template) end
 		edgeLanesNew[e.entity] = validLanes(lanes)
@@ -276,6 +374,10 @@ function M.build(inc, info)
 			locked = ((info.lock == true or lane ~= nil or (info.lockKeys ~= nil and e.key ~= nil and info.lockKeys[e.key] == true))
 				and not (lane == nil and info.unlockKeys ~= nil and e.key ~= nil and info.unlockKeys[e.key] == true)) or nil,
 			forestLane = lane ~= nil or nil,
+			-- (§75 provenance, ot_prov.source via Driver:provNote: the piece's origin and the near-miss join's kind; not
+			-- read by the engine. Before 2026-10-20 they were dropped here and every PROV src read plain/<key>.)
+			origin = e.origin, nearMiss = e.nearMiss or nil, nearMissKind = e.nearMissKind,
+			nearMissCorner = e.nearMissCorner or nil,
 			-- a river bridge edge (ot_bridge): the bridge type index (info.bridgeType), else nil
 			bridge = (e.bridge and info.bridgeType) or nil }
 		if e.bridge and info.bridgeType == nil then return nil, "noBridgeType" end
@@ -307,7 +409,7 @@ function M.build(inc, info)
 		table.sort(existing)
 		for _, id in ipairs(existing) do segs[#segs + 1] = id end
 		for _, ent in ipairs(touching[n]) do segs[#segs + 1] = ent end
-		spec.cfgAdd[#spec.cfgAdd + 1] = { node = n, conns = M.junctionConns(segs, lanesOf) }
+		spec.cfgAdd[#spec.cfgAdd + 1] = { node = n, conns = M.junctionConns(segs, lanesOf, info.leftHand) }
 		if ni.hasConfig then spec.cfgRemove[#spec.cfgRemove + 1] = n end
 		spec.joins[#spec.joins + 1] = n
 	end
@@ -343,7 +445,7 @@ function M.build(inc, info)
 				end
 				conns = M.junctionConnsDir(segs, info2)
 			else
-				conns = M.junctionConns(segs, lanesOf)
+				conns = M.junctionConns(segs, lanesOf, info.leftHand)
 			end
 		end
 		spec.cfgAdd[#spec.cfgAdd + 1] = { node = n, conns = conns }

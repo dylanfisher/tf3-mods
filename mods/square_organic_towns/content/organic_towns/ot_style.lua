@@ -17,11 +17,14 @@ local M = {}
 M.CLASSES = { "main", "medium", "small" }
 M.TEMPLATE_DIR = "::/infrastructure/street/town/"
 
--- Lots: the town developer cuts parcels in 8 m cells, up to 4 cells deep (TOWN_BUILDING.depth 1-4). A block
--- narrower than two 2-cell lots back to back plus a street (2 x 2 x 8 + 8 = 40 m between street centres) only
--- holds shallow slivers, so no grower makes blocks below MIN_BLOCK.
+-- Lots: the town developer cuts parcels in 8 m cells, up to 4 cells deep (TOWN_BUILDING.depth 1-4). MIN_BLOCK is the
+-- least spacing of two parallel street centerlines; no grower makes blocks below it. The small town street is 16 m
+-- wide with its sidewalks (town_{old,new}_small laneConfigs 3 + 5 + 5 + 3; medium 24, large 32), so 44 m leaves 28 m
+-- of land: one row of 3-cell lots, no 1-cell slivers. A compromise (2026-10-18, user: "too frequent" one-building
+-- blocks at the old 40 m, which counted the street as 8 m): 48 m would fit two 2-cell lots back to back, but thins
+-- the towns more than wanted.
 M.LOT_CELL = 8
-M.MIN_BLOCK = 2 * 2 * M.LOT_CELL + 8
+M.MIN_BLOCK = 44
 -- Grids at or above this gridness are strict: no junction jitter, no bent pieces (NA grid, MED ensanche).
 M.STRICT_GRID = 0.9
 M.LATE_ERA = 4   -- era band (ot_inputs: 1950-1980) from which `lateTemplates` apply
@@ -83,7 +86,8 @@ local DEFAULTS = {
 	-- street hierarchy by era (user 2026-10-11: more wide streets in later years where they fit): from LATE_ERA
 	-- (1950) the sprawling styles map arterial = large, collector = medium, local = small; old cores, MED hill,
 	-- JP and the EU styles keep `templates`. Wide streets only on through routes (ot_select.through, ot_core
-	-- hierarchy), never on dead-end stubs.
+	-- hierarchy), never on dead-end stubs, and only as runs of 300 m or more that reach an anchor (§73,
+	-- ot_core.continuity: a planned main street otherwise goes out at the narrower template).
 	lateTemplates = nil,
 	-- Irregular growth (ot_select cost; PLAN.md 6.2 "Irregular growth"): real towns don't grow as even rings.
 	--   sector    0..0.5 amplitude of a seeded angular preference (growth reaches 1 +- sector x as far)
@@ -117,7 +121,8 @@ M.PROFILES = {
 		gridness = 0.8, jitter = 4, curve = 5, radial = { spokes = 6, ringEvery = 300 }, arterialEvery = 5,
 		maxSlope = 0.10, contour = 0.3, lead = 1, ribbon = 0.3, weights = { res = { 0.2, 0.6, 1, 0.8 } }, crescents = 1,
 		irregular = { sector = 0.25, lobes = 2, ribbon = 1.2, hotspots = 0, pull = 0, coast = 0.3 } },
-	MED_HILL = { logName = "MED hill town", grower = "organic", block = { len = 40, depth = 30, sd = 0.4 }, gridness = 0.2,
+	-- (block.len 44 = MIN_BLOCK, 40 until 2026-10-18: the blocks never come smaller; the depth stays the lanes' nominal 30)
+	MED_HILL = { logName = "MED hill town", grower = "organic", block = { len = 44, depth = 30, sd = 0.4 }, gridness = 0.2,
 		jitter = 20, curve = 30, radial = { spokes = 4, ringEvery = 150 }, arterialEvery = 0, maxSlope = 0.10,
 		contour = 0.9, lead = 0, ribbon = 0.1, angleRange = 45,
 		templates = { main = "small", medium = "small", small = "xsmall" },

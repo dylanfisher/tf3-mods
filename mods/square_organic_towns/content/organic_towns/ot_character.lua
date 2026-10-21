@@ -222,8 +222,8 @@ local EASTASIA = { JP = true, EAST_ASIA = true }
 ---------------------------------------------------------------------------
 -- the kinds
 
--- (MIN_BLOCK as ot_style: 2 x 2 lots of 8 m + a street)
-CH.MIN_BLOCK = 40
+-- (= ot_style.MIN_BLOCK, 44 m: a 16 m street + a row of 3-cell lots; ot_style requires this module, so a copy)
+CH.MIN_BLOCK = 44
 
 local function blockScale(p, kl, kd)
 	if p.block == nil then return end
@@ -272,7 +272,9 @@ CH.register({ id = "hilltop", selectable = true,
 		p.gridness = math.min(p.gridness or 0.5, 0.1)
 		-- (steep lanes: the planner's grade limit up from 0.10; the street checks keep their own limits)
 		p.maxSlope = math.max(p.maxSlope or 0.1, 0.14)
-		if p.radial then p.radial = { spokes = 5, ringEvery = 110 } end
+		-- (rings 118 m apart, 110 until 2026-10-18: the narrowest wobbled ring gap, 0.75 x ringEvery, still holds two
+		-- 44 m minimum blocks and the lane between them; at 110 those cells lost their lane and the town stalled)
+		if p.radial then p.radial = { spokes = 5, ringEvery = 118 } end
 		p.templates = { main = "small", medium = "small", small = "xsmall" }
 		p.outer, p._outerCache = nil, nil
 		if p.irregular then p.irregular.ribbon, p.irregular.hotspots, p.irregular.sector = 0.5, 0, 0.1 end

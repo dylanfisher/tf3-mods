@@ -46,7 +46,19 @@ local function edge(x0, y0, x1, y1, class, template)
 		t1 = { x1 - x0, y1 - y0, 0 }, class = class or "small", template = template or OLD_SMALL, key = "k" }
 end
 
+test("entry: off by default (plain streets only, 2026-10-18): no town lines its entries", function()
+	ok(not EN.ON)
+	local inc = { edges = { edge(350, 40, 440, 40) } }
+	for t = 1, 20 do
+		ok(not EN.on(roadStyle(t)))
+		eq(EN.mark(inc, roadStyle(t)), 0)
+	end
+	eq(inc.trees, nil)
+end)
+
 test("entry: streets along a road's first stretch out of town (beside, parallel) and wide streets at the entry", function()
+	local wasOn = EN.ON
+	EN.ON = true
 	local st = roadStyle()
 	ok(EN.isEntry(st.roads, edge(350, 40, 440, 40)), "beside the road, parallel")
 	ok(EN.isEntry(st.roads, edge(500, -50, 600, -50)), "the other side")
@@ -79,6 +91,7 @@ test("entry: streets along a road's first stretch out of town (beside, parallel)
 	for t = 1, 200 do if EN.on(roadStyle(t)) then share = share + 1 end end
 	print(string.format("      EU organic towns lining their entries: %.2f (P %.2f)", share / 200, EN.P.EU_ORGANIC))
 	ok(math.abs(share / 200 - EN.P.EU_ORGANIC) < 0.12)
+	EN.ON = wasOn
 end)
 
 --- One new edge -1 from dead end 500 (its edge 900, template `tpl`) to new node -3, then -2 on to -4.
@@ -123,6 +136,43 @@ test("entry (proposal): a tree-lined edge takes the `_trees` template + its deco
 	ok(joint and #joint.conns > 0, "the joint node gets its full config")
 end)
 
+test("plain streets only: a joint at a tram / bus-lane / barrier / tree-lined dead end takes the plain template", function()
+	ok(PR.isPlain(OLD_SMALL) and PR.isPlain(NEW_XS) and PR.isPlain(DIRS .. "town_new_one_way_small.street_template"))
+	ok(PR.isPlain("::/infrastructure/street/country/country_new_small.street_template"))
+	for _, v in ipairs({ "_tram", "_tram_electrified", "_bus", "_barriers", "_trees" }) do
+		local p = DIRS .. "town_new_medium" .. v .. ".street_template"
+		ok(not PR.isPlain(p), v)
+		eq(PR.plainPath(p), NEW_MED, v)
+	end
+	eq(PR.plainPath(DIRS .. "town_new_one_way_small_bus.street_template"), DIRS .. "town_new_one_way_small.street_template")
+	eq(PR.plainPath("other_mod::/infrastructure/street/fancy_avenue.street_template"), nil)
+	eq(PR.plainPath("::/infrastructure/street/highway/highway_new_small.street_template"), nil)
+	for _, tpl in ipairs({ DIRS .. "town_old_small_tram.street_template", DIRS .. "town_old_small_tram_electrified.street_template",
+			DIRS .. "town_old_small_barriers.street_template" }) do
+		local spec = assert(PR.build(inc2(tpl), info(tpl)))
+		local a = spec.edges[1]
+		eq(a.template, OLD_SMALL, tpl); eq(a.override, OLD_SMALL, tpl); eq(a.src, 900)
+		ok(a.decor ~= "template", tpl)
+		eq(spec.edges[2].template, OLD_SMALL)
+		ok(PR.checkLanes(spec, function(_seg) return 4 end), "the dead end's lanes")
+	end
+	-- the plain template's lanes known and different from the dead end's: the edge's own template instead
+	local i = info(DIRS .. "town_old_medium_tram.street_template")
+	i.nodes[500].lanes = 6
+	i.templateLanes = { [DIRS .. "town_old_medium.street_template"] = 8 }
+	local spec = assert(PR.build(inc2(DIRS .. "town_old_medium_tram.street_template"), i))
+	eq(spec.edges[1].template, OLD_SMALL); eq(spec.edges[1].override, OLD_SMALL)
+	-- another mod's street at the dead end: the edge's own plain template
+	local mi = info("other_mod::/infrastructure/street/fancy_avenue.street_template")
+	local ms = assert(PR.build(inc2("other_mod::/infrastructure/street/fancy_avenue.street_template"), mi))
+	eq(ms.edges[1].template, OLD_SMALL); eq(ms.edges[1].override, OLD_SMALL)
+	-- and no plain template of its own either: refused, never copied
+	local bad = inc2("other_mod::/infrastructure/street/fancy_avenue.street_template")
+	bad.edges[1].template = "other_mod::/infrastructure/street/fancy_avenue.street_template"
+	local none, why = PR.build(bad, mi)
+	eq(none, nil); eq(why, "specialJoin:500")
+end)
+
 test("polycentric: a centre at a country-road junction in range, the third from POLY_THIRD_CAP, core kinds seeded", function()
 	eq(MET.centreCount(MET.POLY_MIN_CAP - 1), 0)
 	eq(MET.centreCount(MET.POLY_MIN_CAP), 1)
@@ -153,8 +203,8 @@ end)
 
 --- A polycentric metropolis style with forced centres, the given core kind on each.
 local JD = 1150
-local function polyStyle(kind, junction)
-	local base = F.style({ forceStyle = "EU_ORGANIC", townId = 9, year = 1970, capacity = 20000,
+local function polyStyle(kind, junction, townId)
+	local base = F.style({ forceStyle = "EU_ORGANIC", townId = townId or 9, year = 1970, capacity = 20000,
 		nameList = "::/names/europe/europe.names" }, F.flat)
 	if junction then
 		-- a crossroads JD m out along the town axis (the first centre's heading), roads along / across it
@@ -214,7 +264,9 @@ test("polycentric (plan): a grid core at a secondary centre, squared, off the ro
 end)
 
 test("polycentric (growth): the grid core is built once the town reaches it; every new node valid, no -0", function()
-	local st = polyStyle("grid")
+	-- (town 1: at the 44 m minimum block, 2026-10-18, town 9 stopped growing after 40 edges in this model, short of the
+	-- grid centre; towns 1-12 build on the grid 9 of 12 times (10 before), town 1 then and now)
+	local st = polyStyle("grid", nil, 1)
 	-- a forced centre near the town so a few increments reach it
 	st.metro.centres = MET.centres(st.centre, 0, 1, st.seed, F.flat, MET.POLY_D_FORCED)
 	st.metro.centres[1].core = "grid"

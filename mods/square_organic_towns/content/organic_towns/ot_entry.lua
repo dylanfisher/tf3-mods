@@ -25,7 +25,9 @@ local rng = ug_require "square_organic_towns::/organic_towns/ot_rng.lua"
 
 local M = {}
 
-M.ON = true
+-- off (2026-10-18, user): the mod builds plain streets only, never tree-lined, tram, bus-lane or barrier variants
+-- (ot_proposal.plainPath). The module stays for its tests and in case the idea comes back.
+M.ON = false
 M.P = { EU_ORGANIC = 0.55, EU_EXTENSION = 0.65, MED_HILL = 0.35, MED_ENSANCHE = 0.5, NA_GRID = 0.35, NA_SUBURB = 0.6,
 	NORDIC = 0.3, JP_DENSE = 0.2, SUPERBLOCK = 0.5 }
 M.P_DEFAULT = 0.4

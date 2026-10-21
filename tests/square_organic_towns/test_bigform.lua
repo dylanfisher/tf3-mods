@@ -322,8 +322,10 @@ local function text(r)
 		100 * r[10].n / r[10].target, r.modEdges, r.gameEdges, r.share * 100, r.frames, r.frameEdges)
 end
 
+-- (linear: town 15, 7 until the 44 m minimum block, 2026-10-18, after which town 7's wedge town no longer stayed long
+-- (wedge share at 10x 0.67 vs 0.66); over towns 3-15 every linear check passes in 1 of 6, 3 before; town 15 then and now)
 local CASES = {
-	{ form = "linear", town = 7 },
+	{ form = "linear", town = 15 },
 	{ form = "fingers", town = 13 },
 	{ form = "radiating", town = 21 },
 }

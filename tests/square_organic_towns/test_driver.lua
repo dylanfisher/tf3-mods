@@ -233,6 +233,8 @@ test("enough free lots: the check ends without planning", function()
 	local checks = logsWith(E, "CHECK")
 	ok(#checks >= 1)
 	ok(checks[1]:find("needsRoom=false", 1, true), checks[1])
+	-- (§75 follow-up: the main body on CHECK, logging only)
+	ok(checks[1]:find(" rBody=%d+ r50=%d+ out=%d+/%d+ outFar=") ~= nil, checks[1])
 	eq(#E.prechecks, 0)
 end)
 
@@ -1451,6 +1453,41 @@ test("away from industries: ind= on CHECK / STYLE, indPen= on PLAN, unknown name
 	ok(logsWith(E2, "PLAN")[1]:find("indPen=-", 1, true))
 end)
 
+test("away from player facilities: FAC debug line, fac= on PLAN, soft info only, re-read keeps the version unless changed", function()
+	local E = fakeEngine({ cfg = { nameList = "::/names/germany/germany.names", climate = "temperate" },
+		params = { act_on = 3, debug_log = 2 } })
+	local reads, list = 0, nil
+	list = { { 400, 0, file = "stations/water/harbor_modular.con", cargo = true, passenger = false },
+		{ -300, 0, file = "stations/rail/modular_station/modular_station.con", passenger = true } }
+	function E.facilities()
+		reads = reads + 1
+		return list
+	end
+	local d = D.new(E)
+	d:loadConfig()
+	d.phase = "manual"
+	local job = d:startJob(TOWN, E.t, { force = true, dry = true })
+	for _ = 1, 40 do
+		if not d:advance(E.t, nil) then break end
+		E.t = E.t + 100000
+	end
+	local ind = job.style.industry
+	ok(ind ~= nil and ind.fac == 1 and ind.n == 0 and #ind.zones == 0, "harbor only, soft, no zone")
+	local fl = logsWith(E, "FAC")[1]
+	ok(fl and fl:find("facilities=1", 1, true) and fl:find("port=1", 1, true), tostring(fl))
+	local plan = logsWith(E, "PLAN")[1]
+	ok(plan and plan:find("fac=1:1/0/0/0/0", 1, true) and plan:find("zones=-", 1, true), tostring(plan))
+	ok(plan:find("indHeld=0", 1, true) or not plan:find("indHeld=", 1, true), "never held")
+	local v = d.facVer
+	d:facilitiesRead(E.t + (D.FAC_REFRESH_S + 1) * 1e6)
+	eq(reads, 2, "re-read after FAC_REFRESH_S")
+	eq(d.facVer, v, "same list: same version")
+	list = { list[1], { -500, 0, file = "depots/road/road_depot/road_depot.con", depot = true } }
+	d:facilitiesRead(E.t + (2 * D.FAC_REFRESH_S + 2) * 1e6)
+	eq(d.facVer, v + 1, "a new depot: new version")
+	eq(#logsWith(E, "FAC"), 2)
+end)
+
 -- Upward density (ot_upward, later-ideas phase 2026-10-13)
 local UP = ug_require(F.DIR .. "ot_upward.lua")
 local OGu = ug_require(F.DIR .. "ot_graph.lua")
@@ -1582,7 +1619,8 @@ local EN = ug_require(F.DIR .. "ot_entry.lua")
 
 test("entry (driver): ENTRY once per town; a pre-check refused with tree-lined edges goes out again without them", function()
 	local E = fakeEngine()
-	local mark0 = EN.mark
+	local mark0, on0 = EN.mark, EN.ON
+	EN.ON = true   -- (off by default since 2026-10-18: plain streets only)
 	-- (the fake town has no country roads: every planned edge with a trees variant is flagged)
 	EN.mark = function(inc)
 		local n = 0
@@ -1609,7 +1647,7 @@ test("entry (driver): ENTRY once per town; a pre-check refused with tree-lined e
 		for _, e in ipairs(E.pending.spec.edges) do ok(e.decor ~= "template", "sent without trees") end
 		ok(E.prechecks[1] ~= nil and #E.prechecks >= 2)
 	end)
-	EN.mark = mark0
+	EN.mark, EN.ON = mark0, on0
 	assert(okRun, err)
 	-- trees off: entryMark leaves increments plain
 	local d2 = D.new(E)
@@ -1704,17 +1742,23 @@ test("R4 retire: an own dead end without a house for more than RETIRE_CHECKS sna
 	local function snap(built)
 		local edges, builtBy = {}, {}
 		for _, e in ipairs(W.edges) do edges[#edges + 1] = e; builtBy[e.id] = e.id == eid and built or 5 end
-		local _, joinInfo, _, why = d:snapshotGraph({ town = TOWN, edges = edges, builtBy = builtBy })
-		return joinInfo, why
+		local g, joinInfo, _, why = d:snapshotGraph({ town = TOWN, edges = edges, builtBy = builtBy })
+		return joinInfo, why, g
 	end
 	for _ = 1, D.RETIRE_CHECKS do
 		local ji = snap(0)
 		ok(ji[de] ~= nil, "still joinable")
 	end
-	local ji, why = snap(0)
+	local ji, why, g = snap(0)
 	eq(ji[de], nil, "retired")
 	ok(why:find("retired:1", 1, true), why)
 	eq(s.retired, 1)
+	-- (§74 2026-10-18) still closable by a near-miss join: marked nmRetired, its join info kept aside for retiredJoinOk
+	ok(g.nodeById[de].noJoin and g.nodeById[de].nmRetired, "nmRetired")
+	local job = { g = g }
+	eq(d:retiredJoinOk(job, de), true)
+	eq(job.nmInfo[de].src, eid)
+	eq(d:retiredJoinOk(job, W.deadEnds.west or -1), false, "not retired: not this path")
 	-- a house on it: back in play
 	ji = snap(2)
 	ok(ji[de] ~= nil, "a house: joinable again")
@@ -1966,4 +2010,216 @@ test("refund: a booking in flight counts into the next send's balance; a build i
 	d:buildRefund(job, 0)
 	eq(#E.booked, 1)
 	eq(E.booked[1], 400)
+end)
+
+test("near-miss joins (§74): a stub ending 25 m short of a street becomes a T; the node's config in the spec, PLAN nearMiss=", function()
+	local NMISS = ug_require(F.DIR .. "ot_nearmiss.lua")
+	local pn, pf = NMISS.P_NEAR, NMISS.P_FAR
+	NMISS.P_NEAR, NMISS.P_FAR = 1.01, 1.01
+	local okT, errT = pcall(function()
+		local E = fakeEngine()
+		local W = E.W
+		-- the east stub carried on to (300, 0): its old dead end (200, 0) becomes a street node; a stub from (100, 100) east
+		-- then south ends at (200, 25), pointing at it
+		local function node(id, x, y) W.nodes[id] = { id = id, x = x, y = y, z = 10, cfg = true } end
+		local function edge(id, a, b)
+			local na, nb = W.nodes[a], W.nodes[b]
+			W.edges[#W.edges + 1] = { id = id, n0 = a, n1 = b, p0 = { na.x, na.y, 10 }, p1 = { nb.x, nb.y, 10 },
+				t0 = { nb.x - na.x, nb.y - na.y, 0 }, t1 = { nb.x - na.x, nb.y - na.y, 0 }, template = SMALL, lanes = 4,
+				objects = 0, owned = false, inConstruction = false, parcels = 10, built = 10 }
+		end
+		local mid = W.deadEnds.east
+		node(301, 300, 0); edge(901, mid, 301)
+		local corner = nil
+		for id, n in pairs(W.nodes) do if n.x == 100 and n.y == 100 then corner = id end end
+		node(302, 200, 100); edge(902, corner, 302)
+		node(303, 200, 25); edge(903, 302, 303)
+		function E.nodeSegmentCount(n) return #E.nodeStreetEdges(n) end
+		local d = D.new(E)
+		local sent = run(d, E, 400, nil, function() return E.pending ~= nil end)
+		ok(sent, "sent")
+		local plan = logsWith(E, "PLAN")[1]
+		ok(plan and plan:find("nearMiss=", 1, true), tostring(plan))
+		local key = "nm:303:" .. mid
+		local join = nil
+		for _, e in ipairs(E.pending.spec.edges) do if e.key == key then join = e end end
+		if join == nil then
+			-- (the grower may have used the stub itself: then the pass names it `inc`)
+			ok(plan:find("nmKept=[^ ]*inc", 1) or plan:find("nmKept=[^ ]*taken", 1), plan)
+			return
+		end
+		ok(plan:find("nmJoins=tee:25", 1, true), plan)
+		local cfg = nil
+		for _, c in ipairs(E.pending.spec.cfgAdd) do if c.node == mid then cfg = c end end
+		ok(cfg ~= nil, "the street node's config rewritten")
+		eq(#cfg.conns, 6, "three segments: one connection per ordered pair")
+		local rm = false
+		for _, n in ipairs(E.pending.spec.cfgRemove) do if n == mid then rm = true end end
+		ok(rm, "its old config removed first (it has one)")
+		-- built: counted for STREETS
+		E.pending.cb(true, { cost = 1, msgs = {} })
+		d:advance(E.t, nil)
+		eq(d.towns[TOWN].nearMissBuilt, 1)
+		-- the driver's street-node rule: a config, all segments plain town streets in the snapshot, no track, this town
+		local OG = ug_require(F.DIR .. "ot_graph.lua")
+		local snap = { nodes = {}, edges = {} }
+		for id, n in pairs(W.nodes) do snap.nodes[#snap.nodes + 1] = { id = id, x = n.x, y = n.y, z = n.z } end
+		for _, e in ipairs(W.edges) do snap.edges[#snap.edges + 1] = { id = e.id, node0 = e.n0, node1 = e.n1 } end
+		local job = { g = OG.fromSnapshot(snap), town = TOWN, edges = W.edges }
+		eq(d:midJoinOk(job, 302), true)
+		eq(job.nmInfo[302].src ~= nil and #job.nmInfo[302].edges, 2)
+		W.nodes[302].cfg = false
+		job.nmInfo = nil
+		eq(d:midJoinOk(job, 302), false, "no config")
+		W.nodes[302].cfg = true
+		function E.nodeSegmentCount(_n) return 3 end
+		eq(d:midJoinOk(job, 302), false, "a track at the node")
+		function E.nodeSegmentCount(n) return #E.nodeStreetEdges(n) end
+		W.edges[#W.edges].owned = true
+		eq(d:midJoinOk(job, 302), false, "a player-owned street at it")
+		W.edges[#W.edges].owned = false
+		function E.closestTown(_x, _y) return TOWN + 1 end
+		eq(d:midJoinOk(job, 302), false, "another town's")
+	end)
+	NMISS.P_NEAR, NMISS.P_FAR = pn, pf
+	assert(okT, errT)
+end)
+
+-- The saved state off the frame path (2026-10-20, ot_saved Reader): the game script copies the whole state only when its
+-- change number moved. Two drivers on two identical fake engines, the events applied to a master state as handleEvent
+-- does (apply, bumpRev, set); one gets a full copy every frame (the old path), the other the reader's copy (cached, the
+-- native number optionally lagging the copy): the same events, the same log lines, and the cached copy never written to.
+local function deepCopy(v)
+	if type(v) ~= "table" then return v end
+	local o = {}
+	for k, x in pairs(v) do o[k] = deepCopy(x) end
+	return o
+end
+
+local function ser(v)
+	if type(v) ~= "table" then return type(v) == "string" and string.format("%q", v) or tostring(v) end
+	local keys = {}
+	for k in pairs(v) do keys[#keys + 1] = k end
+	table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+	local parts = {}
+	for _, k in ipairs(keys) do parts[#parts + 1] = tostring(k) .. "=" .. ser(v[k]) end
+	return "{" .. table.concat(parts, ",") .. "}"
+end
+
+local APPLY = {
+	[SV.EV_INIT] = SV.applyInit, [SV.EV_FRAME] = SV.applyFrame, [SV.EV_SAT] = SV.applySat, [SV.EV_BRIDGE] = SV.applyBridge,
+	[SV.EV_NAMES] = SV.applyNames, [SV.EV_STOPS] = SV.applyStopsDone, [SV.EV_LEAD] = SV.applyLead,
+	[SV.EV_WORKS] = SV.applyWorks, [SV.EV_STOPBASE] = SV.applyStopBase, [SV.EV_LEVELS] = SV.applyLevels,
+	[SV.EV_LEVELBASE] = SV.applyLevelBase, [SV.EV_PACE] = SV.applyPace, [SV.EV_CHARS] = SV.applyChars,
+	[SV.EV_DENSE] = SV.applyDense, [SV.EV_PAIR] = SV.applyPair, [SV.EV_RCI] = SV.applyRci, [SV.EV_GLOCK] = SV.applyGlock,
+	[SV.EV_UI] = SV.applyUi, [SV.EV_PROV] = SV.applyProv }
+
+local function twinRun(lag, frames)
+	local function side()
+		local E = fakeEngine({ params = { act_on = 2, debug_log = 2 }, gameTime = 0 })
+		return { E = E, d = D.new(E), master = nil, applied = 0, revs = {} }
+	end
+	local A, B = side(), side()
+	local reader = SV.newReader()
+	local fulls, written = 0, 0
+	local function apply(S)
+		while S.applied < #S.E.events do
+			S.applied = S.applied + 1
+			local ev = S.E.events[S.applied]
+			local fn = APPLY[ev.name]
+			if fn then
+				local s, changed = fn(deepCopy(S.master), deepCopy(ev.param))
+				if changed then S.master = SV.bumpRev(s) end
+			end
+		end
+	end
+	for f = 1, frames do
+		A.d:tick(A.E.t, deepCopy(A.master))
+		B.revs[f] = SV.revOf(B.master)
+		local saved, full = reader:read(function() return deepCopy(B.master) end,
+			function() return B.revs[math.max(1, f - lag)] end, function() return B.E.t end)
+		if full then fulls = fulls + 1 end
+		local before, sent = ser(saved), #B.E.events
+		B.d:tick(B.E.t, saved)
+		if ser(saved) ~= before then written = written + 1 end
+		if #B.E.events ~= sent then reader:expect(B.E.t) end   -- (the game script: ot_engine.sentN moved)
+		for _, S in ipairs({ A, B }) do
+			if S.E.pending then
+				local p = S.E.pending
+				S.E.pending = nil
+				p.cb(true, { cost = 300000, msgs = {} })
+			end
+			apply(S)
+			S.E.t = S.E.t + 100000
+		end
+	end
+	return A, B, reader, fulls, written
+end
+
+test("state reader: the driver sends the same events and logs the same lines as with a full copy every frame", function()
+	for _, lag in ipairs({ 0, 3, 25 }) do
+		local A, B, reader, fulls, written = twinRun(lag, 900)
+		eq(reader.mode, "rev", "no fallback")
+		eq(written, 0, "the driver never writes into the saved copy")
+		ok(#A.E.events >= 3, "init, frame and more were sent: " .. #A.E.events)
+		eq(#B.E.events, #A.E.events)
+		for i = 1, #A.E.events do
+			eq(B.E.events[i].name, A.E.events[i].name)
+			eq(ser(B.E.events[i].param), ser(A.E.events[i].param), "event " .. i)
+		end
+		eq(#B.E.logs, #A.E.logs)
+		for i = 1, #A.E.logs do eq(B.E.logs[i], A.E.logs[i]) end
+		ok(SV.revOf(A.master) ~= nil and SV.revOf(A.master) >= 2, "changes bumped the number")
+		ok(fulls < 900 / 4, "full copies " .. fulls .. " of 900 frames (lag " .. lag .. ")")
+	end
+end)
+
+test("TICKCOST: getN counts the full copies (nil: the old path, every tick), stateMode and revMiss", function()
+	local E = { logs = {} }
+	function E.log(l) E.logs[#E.logs + 1] = l end
+	local d = D.new(E)
+	d.phase = "run"
+	local W = D.COST_EVERY_S * 1e6
+	d:costNote(0, 1000, 150, "idle", true, "rev", 0)
+	d:costNote(1e6, 1000, 3, "idle", false, "rev", 0)
+	d:costNote(2e6, 1000, 3, "idle", false, "rev", 1)
+	local l = d:costNote(W + 1, 1000, 3, "idle", false, "rev", 1)
+	for _, part in ipairs({ "getN=1", "stateMode=rev", "revMiss=1", "getMaxUs=150", "getAvgUs=40", "pvB=0" }) do
+		ok(l:find(part, 1, true), part .. " in " .. l)
+	end
+	-- the old call (no reader fields): every tick a copy, mode get
+	d:costNote(W + 2, 1000, 100, "idle")
+	local l2 = d:costNote(2 * W + 3, 1000, 100, "idle")
+	for _, part in ipairs({ "getN=2", "stateMode=get", "revMiss=-" }) do ok(l2:find(part, 1, true), part .. " in " .. l2) end
+end)
+
+test("SNAPSHOT: the empty-row measure (emptyRows= m/dead-end m/edges) and its own time, with the debug log on", function()
+	local E = fakeEngine()
+	local d = D.new(E)
+	run(d, E, 400, nil, function() return E.pending ~= nil end)
+	local snap = logsWith(E, "SNAPSHOT")
+	ok(#snap >= 1)
+	ok(snap[1]:find("emptyRows=0/0/0", 1, true) and snap[1]:find("rowsUs=", 1, true), snap[1])
+end)
+
+test("left-hand traffic (2026-10-20): mirrored junctions in buildInfo, rings off; right-hand by default", function()
+	local E = fakeEngine({ params = { act_on = 3, debug_log = 2 } })
+	local d = D.new(E)
+	d:loadConfig()
+	local job = { town = TOWN, edges = {}, style = {} }
+	eq(d:buildInfo(job).leftHand, false, "no driveSide: the base game's right-hand traffic")
+	local EL = fakeEngine({ params = { act_on = 3, debug_log = 2 } })
+	-- (the Left Hand Traffic mod's flipped template: forward lane first)
+	EL.driveSide = function(from) return from({ true, false }) and "left" or "right", SMALL end
+	local dl = D.new(EL)
+	dl:loadConfig()
+	eq(dl:buildInfo({ town = TOWN, edges = {}, style = {} }).leftHand, true)
+	local geo, why = dl:rbGeo()
+	eq(geo, nil, "no one-way rings: they run counter-clockwise")
+	eq(why, "leftHand")
+	local EE = fakeEngine({ params = { act_on = 3, debug_log = 2 } })
+	EE.driveSide = function() error("boom") end
+	local de = D.new(EE)
+	de:loadConfig()
+	eq(de:buildInfo({ town = TOWN, edges = {}, style = {} }).leftHand, false, "a failing read stays right-hand")
 end)

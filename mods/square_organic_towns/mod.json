@@ -1,6 +1,6 @@
 {
   "modId": "square_organic_towns",
-  "revision": 4,
+  "revision": 8,
   "severityAdd": "None",
   "severityRemove": "Warning",
   "visible": true,
@@ -64,7 +64,7 @@
     {
       "key": "town_names",
       "name": "Town and stop names",
-      "tooltip": "Landscape names: on a new map every town gets a new name\nmade up from its region, climate and map: the name list's\nlanguage with the town's coast, river, hills and trees\n(palms and reefs in the tropics, birch and fells in the\nnorth). Rivers and lakes are named too, satellite towns\nfit their site. New road stops get a street name that\nfits their spot. Game names: the game's names. Lists without\na generator (Asian, Chinese, Korean, Polish, Russian) keep\nthe game's names. Towns of older saves are never renamed.",
+      "tooltip": "Landscape names: on a new map every town gets a new name\nmade up from its region, climate and map: the name list's\nlanguage with the town's coast, river, hills and trees\n(palms and reefs in the tropics, birch and fells in the\nnorth). Rivers and lakes are named too, satellite towns\nfit their site. New road stops get a street name that\nfits their spot. Game names: the game's names. Lists without\na generator (Asian, Chinese, Korean, Polish, Russian) keep\nthe game's names. Towns of older saves are never renamed.\nTowns on a name list from another mod keep their names; new\nsatellite towns are named in that list's language.",
       "uiType": "ComboBox",
       "values": [
         "Landscape names",
@@ -110,7 +110,7 @@
     {
       "key": "style",
       "name": "Town style",
-      "tooltip": "Automatic: the towns' look follows the map's name list.\nPick a region to choose it apart from the names, e.g. US\nnames with European organic towns. Each town still fits its\nstyle to its site within the region's mix: flat open land\ngrows grids and suburbs; coasts, hills and valleys denser,\nwinding streets. The climate adds its own bias. North\nAmerican grid: every town grows a grid. Mixed: all regions\nalike. Town names always follow the name list.\nWith Roundabouts & Interchanges, towns also build some one-way\nroundabouts from about 1960 (none in dense Japanese towns).",
+      "tooltip": "Automatic: the towns' look follows the map's name list.\nPick a region to choose it apart from the names, e.g. US\nnames with European organic towns. Each town still fits its\nstyle to its site within the region's mix: flat open land\ngrows grids and suburbs; coasts, hills and valleys denser,\nwinding streets. The climate adds its own bias. North\nAmerican grid: every town grows a grid. Mixed: all regions\nalike. Town names always follow the name list.\nWith Roundabouts & Interchanges, towns also build some one-way\nroundabouts from about 1960 (none in dense Japanese towns).\nName lists from other mods are recognized by their\nfile names (e.g. german, deutsch), else the climate decides.",
       "uiType": "ComboBox",
       "values": [
         "Automatic",

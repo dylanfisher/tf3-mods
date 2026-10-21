@@ -24,6 +24,7 @@ local LAND = ug_require "square_organic_towns::/organic_towns/ot_land.lua"
 local SK = ug_require "square_organic_towns::/organic_towns/ot_skeleton.lua"
 local LP = ug_require "square_organic_towns::/organic_towns/ot_lockpol.lua"
 local KN = ug_require "square_organic_towns::/organic_towns/ot_knot.lua"
+local CK = ug_require "square_organic_towns::/organic_towns/ot_check.lua"
 
 local M = {}
 
@@ -329,6 +330,15 @@ M.ARM_LEAD_SMALL = false -- (small pieces too: longer stems, lassos in MED hill 
 M.FRONT_Q = 0.9          -- the growth front: this quantile of the existing nodes' effective distance ...
 M.FRONT_REACH = 2.5      -- ... plus this many blocks is as far as a new piece may reach (shaped towns)
 M.FRONT_REACH_PLAIN = 4  -- ... (compact / unshaped towns: the irregular growth leapfrogs to hotspots)
+-- (2026-10-18) The growth front counts junctions only, so it moves with the mod's own streets (a game that extends its
+-- dead ends never moves it), and the 44 m minimum block left fewer plan pieces in reach (EU organic: one lane fewer
+-- per ring cell, ~20 % fewer pieces within 450 m): in test_demand's models towns stopped for good (EU organic, no
+-- brake: 8 of 12 grown towns built ~nothing, 4 with the 40 m plan) and a fast grower's larger increments came out half
+-- full. Two driver limits widen it: opts.limits.frontRelax (a town whose last plan came out empty, ot_driver: up to
+-- FRONT_RELAX blocks, one per step, when the front alone would leave this increment empty too, last of the
+-- relaxations) and opts.limits.frontExtra (a fast grower's demand increment, ot_driver FAST_FRONT). The lead limit
+-- (MAX_LEAD_M from the housed streets), the housed front and the depth caps hold.
+M.FRONT_RELAX = 2
 M.SMOOTH = true          -- saw-tooth rules (corner penalty, straight bonus, dangling L legs); tests compare off
 M.CORNER_DEG = math.rad(60)
 M.CORNER_PEN = 1.5
@@ -842,9 +852,25 @@ M.WIGGLE_WALK = 6         -- edges at most
 -- knots (§70, 2026-10-15; run 2026-10-15_2031_sqot: Merehythe's south, curved locked streets crossing away from a junction,
 -- looping back across a neighbour, running a few metres beside each other): steer towns' pieces must not cross a street
 -- other than at a shared node, run alongside one for long, or close a loop smaller than half a block (ot_knot, on the
--- curves; the chord / middle-point tests of classifyPiece and ot_plan missed them). Relaxed when the increment would be
--- empty. Motif, ring and connector pieces exempt.
+-- curves; the chord / middle-point tests of classifyPiece and ot_plan missed them). Cross / loop relaxed when the
+-- increment would be empty; motif, ring and connector pieces exempt. §75 (2026-10-19): the parallel run is measured on
+-- the whole street through the piece (ot_knot.chainBehind, only a junction end's approach left out), applies to
+-- connectors too and never gives way.
 M.KNOT = true
+-- side streets (§75, 2026-10-19; user shots: a side street leaving a curving street at ~20-30 deg and running back beside
+-- it): a steer town's piece meeting a junction (3+ streets with it) leaves at least ot_check LIMITS.sideAngle (60 deg)
+-- off every street there, a fork's two arms excepted (ot_check.sideBad); the planner refuses the rest of a steer town's
+-- plan the same way (ot_core passes sideAngle). Never relaxed. Organic growers only (SIDE_GRID); the climbing motifs
+-- exempt (SIDE_FREE: their streets follow the slope and branch where the shelf is).
+M.SIDE = true
+M.SIDE_FREE = { switchbacks = true, hill_climb = true }
+M.SIDE_GRID = false      -- grid growers exempt: their lattice meets at right angles by design; the acute joins are
+                         -- where it meets the old core's stubs, and holding those cost NA grid / JP dense 14-26 % of
+                         -- their growth offline (the shots were organic towns'), as M.HOOK_GRID
+-- one empty row at a time (§75 follow-up, 2026-10-19; ot_knot ROW): a steer organic town's piece leaving a new dead end
+-- waits while it runs beside one of the mod's own streets that has no house yet (or a piece chosen in this increment)
+-- within ~1.2 block depths: knot reason `row`, never relaxed (as parallel). See the knot section in M.select.
+M.ROW = true
 -- hooks (§71, 2026-10-16; run 2026-10-16_0405_sqot: small curled "P" dead ends in Merehythe and Shaw): a steer town's
 -- chosen piece that leaves a new dead end must not make that dead-end street curl round (ot_knot.hook: its chain back
 -- to the junction turns over HOOK_DEG, or its end comes back within a block depth of its own street). Tested once the
@@ -1562,12 +1588,16 @@ function M.select(g, mp, style, opts)
 		end
 		return true
 	end
-	-- §70 knots (M.KNOT, ot_knot): crossings off a shared node, long near-parallel runs, small loops (steer towns)
+	-- §70 knots (M.KNOT, ot_knot): crossings off a shared node, long near-parallel runs, small loops (steer towns); §75
+	-- (2026-10-19): the parallel run over the whole street (the piece and the street behind its ends through two-street
+	-- nodes, ot_knot.chainBehind), connectors too, and a side street leaving a junction under 60 deg (`side`, ot_check
+	-- sideBad); `parallel` and `side` never give way (the planner refuses a side street anyway).
 	local knotOn = steerLook and M.KNOT and KN.ON
 	report.knotHeld, report.knotWhy = 0, {}
 	local knotRelaxed = false
 	local knotHeldKeys = {}
 	local knotLim = KN.limits(style)
+	-- (knotAdj[id] = { { other id, len, pts from id, tag } } of the chosen pieces: KN.way reads the first two)
 	local knotChosen, knotAdj, knotPos = {}, {}, {}
 	cache.knotEdgePts = cache.knotEdgePts or {}
 	local function edgeCurve(e)
@@ -1578,26 +1608,6 @@ function M.select(g, mp, style, opts)
 		end
 		return c or nil
 	end
-	-- (static per select: the piece against the graph's streets: "cross" | "parallel" | false)
-	local function knotGraph(pc, st, P)
-		if st.knotG ~= nil then return st.knotG end
-		st.knotG = false
-		local na, nb = jnode[pc.a], jnode[pc.b]
-		local others = {}
-		for _, id in ipairs(KN.near(g, P, knotLim.parM)) do
-			local e = g.edgeById[id]
-			local Q = e and edgeCurve(e)
-			if Q then
-				local sp = { [1] = na ~= nil and (e.n0 == na or e.n1 == na), [2] = nb ~= nil and (e.n0 == nb or e.n1 == nb) }
-				local sq = { [1] = (na ~= nil and e.n0 == na) or (nb ~= nil and e.n0 == nb),
-					[2] = (na ~= nil and e.n1 == na) or (nb ~= nil and e.n1 == nb) }
-				if KN.crosses(P, Q, sp, sq) then st.knotG = "cross" return st.knotG end
-				others[#others + 1] = Q
-			end
-		end
-		if KN.parallelRun(P, others, knotLim) >= knotLim.parRun then st.knotG = "parallel" end
-		return st.knotG
-	end
 	local function knotPosOf(id)
 		if type(id) == "number" then
 			local n = g.nodeById[id]
@@ -1607,6 +1617,179 @@ function M.select(g, mp, style, opts)
 		local p = knotPos[id]
 		if p then return p[1], p[2] end
 		return nil
+	end
+	-- (one table for the §75 helpers: the function is at the local variable limit)
+	local kc = { side = math.rad(CK.LIMITS.sideAngle), sideOn = M.SIDE and (M.SIDE_GRID or style.grower == "organic") }
+	-- the streets at node id ({ other id, pts from id outward, tag }): the graph's, and with `chosen` this increment's
+	function kc.at(id, chosen)
+		local out = type(id) == "number" and KN.graphAt(g, id, edgeCurve) or {}
+		if chosen then for _, x in ipairs(knotAdj[id] or {}) do out[#out + 1] = { x[1], x[3], x[4] } end end
+		return out
+	end
+	-- heading from (x, y) to the first point of polyline Q at least 20 m away (its last point if none): a piece's way out
+	-- of its node as the planner sees it (a lattice junction mapped to a node a few metres off; ot_plan's first edge)
+	function kc.head(x, y, Q)
+		if Q == nil or #Q < 2 then return nil end
+		local k = 2
+		while k < #Q and G.dist(x, y, Q[k][1], Q[k][2]) < 20 do k = k + 1 end
+		if G.dist(x, y, Q[k][1], Q[k][2]) < 1 then return nil end
+		return G.heading(x, y, Q[k][1], Q[k][2])
+	end
+	-- the side rule at the piece's end node id leaving along Q (from that end; with `chosen`: only when a chosen piece is
+	-- there). Graph streets by their tangents (ot_plan's headings), pieces from the node's position.
+	function kc.sideAt(id, Q, chosen)
+		if id == nil or Q == nil then return false end
+		local x, y = knotPosOf(id)
+		if x == nil then x, y = Q[1][1], Q[1][2] end
+		local arms, any = {}, false
+		if type(id) == "number" and g.adj[id] then
+			for _, eid in ipairs(g.adj[id]) do arms[#arms + 1] = { h = OG.headingFrom(g, g.edgeById[eid], id) } end
+		end
+		if chosen then
+			for _, c in ipairs(knotAdj[id] or {}) do
+				local hc = kc.head(x, y, c[3])
+				if hc then arms[#arms + 1] = { h = hc }; any = true end
+			end
+		end
+		if #arms < 2 or (chosen and not any) then return false end
+		local h = kc.head(x, y, Q)
+		if h == nil then return false end
+		arms[#arms + 1] = { h = h, new = true }
+		return CK.sideBad(arms, kc.side) ~= nil
+	end
+	-- the piece's side rule at both ends (static: the graph; chosen: this increment's pieces too)
+	function kc.side2(pc, P, chosen)
+		if not kc.sideOn or (pc.motif and M.SIDE_FREE[pc.motif]) then return false end
+		local R = {}
+		for i = #P, 1, -1 do R[#R + 1] = P[i] end
+		local a, b = pc.a, pc.b
+		if chosen then a, b = aid(a), aid(b) else a, b = jnode[a], jnode[b] end
+		return kc.sideAt(a, P, chosen) or kc.sideAt(b, R, chosen)
+	end
+	-- the parallel run of the whole street through the piece (§75): its chain behind both ends, the streets near it
+	-- (the chain's own left out); `chosen` adds this increment's pieces. Returns true when it is a knot, and whether the
+	-- chosen pieces took part (else the static answer stands).
+	function kc.par(pc, P, chosen)
+		local own = "p" .. tostring(pc.key)
+		local ia, ib = aid(pc.a), aid(pc.b)
+		local function at(id) return kc.at(id, chosen) end
+		local pa, ta, ea = KN.chainBehind(ia, own, at)
+		local R = {}
+		for i = #P, 1, -1 do R[#R + 1] = P[i] end
+		local pb, tb, eb = KN.chainBehind(ib, own, at)
+		local tags = {}
+		for k in pairs(ta) do tags[k] = true end
+		for k in pairs(tb) do tags[k] = true end
+		local used = false
+		local function others(Q)
+			local out = {}
+			for _, id in ipairs(KN.near(g, Q, knotLim.parM)) do
+				local e = g.edgeById[id]
+				local E = e and not tags["e" .. tostring(id)] and edgeCurve(e)
+				if E then out[#out + 1] = E end
+			end
+			if chosen then
+				local x0, y0, x1, y1 = KN.bbox(Q)
+				local pad = knotLim.parM
+				for _, c in ipairs(knotChosen) do
+					if not tags[c.tag] and not (c.x0 > x1 + pad or c.x1 < x0 - pad or c.y0 > y1 + pad or c.y1 < y0 - pad) then
+						out[#out + 1] = c.pts
+						used = true
+					end
+				end
+			end
+			return out
+		end
+		if chosen then
+			for k in pairs(tags) do if k:sub(1, 1) == "p" then used = true end end
+		end
+		-- (the piece alone first, no skips: nothing beside it, no run through it; with `chosen`, nothing new: the static
+		-- answer stands)
+		local oP = others(P)
+		if chosen and not used then return false, used end
+		-- (the chain's own streets too: a street bent back beside itself)
+		for _, Q in ipairs(pa) do oP[#oP + 1] = Q end
+		for _, Q in ipairs(pb) do oP[#oP + 1] = Q end
+		if KN.parallelRun(P, oP, knotLim, { skip0 = 0, skip1 = 0 }) <= 0 then return false, used end
+		local C, s0, s1, k0, k1 = KN.streetLine(P, pa, ea, pb, eb)
+		local run = KN.parallelRun(C, others(C), knotLim, { s0 = s0, s1 = s1, skip0 = k0, skip1 = k1, self = true })
+		return run >= knotLim.parRun, used
+	end
+	-- one empty row at a time (§75 follow-up, 2026-10-19, KN.ROW; user shot 5: three long empty parallel dead-end lanes
+	-- ~45 m apart, no houses): a piece leaving a new dead end (an end at no town street and no chosen piece) waits while
+	-- it runs beside one of the mod's own streets without a house (KN.emptyOurs) or a piece chosen in this increment,
+	-- within rowM for rowNeed m. Organic growers (grid towns lay their lattice by design, as SIDE_GRID), house data
+	-- needed, opts.limits.rowHold ~= false (the driver: false on forced plans, which grow regardless of demand); never
+	-- relaxed; motif / ring / crescent / connector pieces exempt; a piece closing a block passes.
+	kc.rowOn = M.ROW and KN.ROW and style.grower == "organic" and g.hasBuilt == true
+		and not (opts.limits ~= nil and opts.limits.rowHold == false)
+	kc.rowLim = { parM = knotLim.rowM, parCos = knotLim.parCos }
+	function kc.openEnd(k)
+		local id = aid(k)
+		if type(id) == "number" then return false end
+		local a = knotAdj[id]
+		return a == nil or #a == 0
+	end
+	function kc.row(pc, st, P)
+		if not kc.rowOn or pc.motif or pc.ringArc or pc.crescent or pc.connector then return false end
+		if not (kc.openEnd(pc.a) or kc.openEnd(pc.b)) then return false end
+		local na, nb = jnode[pc.a], jnode[pc.b]
+		if st.rowO == nil then
+			-- (the graph's empty streets of ours near the piece, those at its own end nodes left out: static per select)
+			st.rowO = {}
+			for _, id in ipairs(KN.near(g, P, knotLim.rowM)) do
+				local e = g.edgeById[id]
+				if e and KN.emptyOurs(e) and e.n0 ~= na and e.n1 ~= na and e.n0 ~= nb and e.n1 ~= nb then
+					local Q = edgeCurve(e)
+					if Q then st.rowO[#st.rowO + 1] = Q end
+				end
+			end
+			st.rowNeed = KN.rowNeed(G.polyLen(P))
+		end
+		local others = st.rowO
+		if #knotChosen > 0 then
+			local ia, ib = aid(pc.a), aid(pc.b)
+			local x0, y0, x1, y1 = KN.bbox(P)
+			local pad = knotLim.rowM
+			local tag = "p" .. tostring(pc.key)
+			others = {}
+			for i, Q in ipairs(st.rowO) do others[i] = Q end
+			for _, c in ipairs(knotChosen) do
+				if c.tag ~= tag and c.a ~= ia and c.b ~= ia and c.a ~= ib and c.b ~= ib
+					and not (c.x0 > x1 + pad or c.x1 < x0 - pad or c.y0 > y1 + pad or c.y1 < y0 - pad) then
+					others[#others + 1] = c.pts
+				end
+			end
+		end
+		if #others == 0 then return false end
+		return KN.parallelRun(P, others, kc.rowLim, { skip0 = 0, skip1 = 0 }) >= st.rowNeed
+	end
+	-- (static per select, the piece against the graph's streets: side / parallel (never relaxed), cross)
+	-- (cross first, then side / parallel: a relaxed increment still holds the last two)
+	local function knotGraph(pc, st, P)
+		if not (knotRelaxed or pc.motif or pc.connector or pc.ringArc) then
+			if st.knotGc == nil then
+				st.knotGc = false
+				local na, nb = jnode[pc.a], jnode[pc.b]
+				for _, id in ipairs(KN.near(g, P, knotLim.parM)) do
+					local e = g.edgeById[id]
+					local Q = e and edgeCurve(e)
+					if Q then
+						local sp = { [1] = na ~= nil and (e.n0 == na or e.n1 == na), [2] = nb ~= nil and (e.n0 == nb or e.n1 == nb) }
+						local sq = { [1] = (na ~= nil and e.n0 == na) or (nb ~= nil and e.n0 == nb),
+							[2] = (na ~= nil and e.n1 == na) or (nb ~= nil and e.n1 == nb) }
+						if KN.crosses(P, Q, sp, sq) then st.knotGc = "cross" break end
+					end
+				end
+			end
+			if st.knotGc then return st.knotGc end
+		end
+		if st.knotG == nil then
+			st.knotG = false
+			if kc.side2(pc, P, false) then st.knotG = "side"
+			elseif not (pc.motif or pc.ringArc) and kc.par(pc, P, false) then st.knotG = "parallel" end
+		end
+		return st.knotG
 	end
 	local function knotNbrs(id)
 		local out = {}
@@ -1620,7 +1803,12 @@ function M.select(g, mp, style, opts)
 		return out
 	end
 	local function knotWhy(pc)
-		if not knotOn or knotRelaxed or pc.motif or pc.connector or pc.ringArc then return nil end
+		if not knotOn then return nil end
+		-- (cross / loop: not motif, ring or connector pieces; parallel: not motif or ring pieces; side: every piece but
+		-- the climbing motifs')
+		local exK = pc.motif or pc.connector or pc.ringArc
+		local sideOn = kc.sideOn and not (pc.motif and M.SIDE_FREE[pc.motif])
+		if (pc.motif or pc.ringArc) and not sideOn then return nil end
 		local st = info[pc.key]
 		if st.knotP == nil then st.knotP = KN.dense(pc.pts) or false end
 		local P = st.knotP
@@ -1628,21 +1816,27 @@ function M.select(g, mp, style, opts)
 		local w = knotGraph(pc, st, P)
 		if w then return w end
 		-- (against this increment's chosen pieces and the loop it may close: again only when the chosen set changed)
-		if st.knotStamp == #knotChosen then return st.knotDyn or nil end
-		st.knotStamp, st.knotDyn = #knotChosen, false
+		if st.knotStamp == #knotChosen and st.knotRelaxed == knotRelaxed then return st.knotDyn or nil end
+		st.knotStamp, st.knotRelaxed, st.knotDyn = #knotChosen, knotRelaxed, false
 		local ia, ib = aid(pc.a), aid(pc.b)
-		local x0, y0, x1, y1 = KN.bbox(P)
-		local pad = knotLim.parM
-		local others = {}
-		for _, c in ipairs(knotChosen) do
-			if not (c.x0 > x1 + pad or c.x1 < x0 - pad or c.y0 > y1 + pad or c.y1 < y0 - pad) then
-				local sp = { [1] = c.a == ia or c.b == ia, [2] = c.a == ib or c.b == ib }
-				local sq = { [1] = c.a == ia or c.a == ib, [2] = c.b == ia or c.b == ib }
-				if KN.crosses(P, c.pts, sp, sq) then st.knotDyn = "cross" return "cross" end
-				others[#others + 1] = c.pts
+		if not (knotRelaxed or exK) then
+			local x0, y0, x1, y1 = KN.bbox(P)
+			local pad = knotLim.parM
+			for _, c in ipairs(knotChosen) do
+				if not (c.x0 > x1 + pad or c.x1 < x0 - pad or c.y0 > y1 + pad or c.y1 < y0 - pad) then
+					local sp = { [1] = c.a == ia or c.b == ia, [2] = c.a == ib or c.b == ib }
+					local sq = { [1] = c.a == ia or c.a == ib, [2] = c.b == ia or c.b == ib }
+					if KN.crosses(P, c.pts, sp, sq) then st.knotDyn = "cross" return "cross" end
+				end
 			end
 		end
-		if #others > 0 and KN.parallelRun(P, others, knotLim) >= knotLim.parRun then st.knotDyn = "parallel" return "parallel" end
+		if #knotChosen > 0 then
+			if kc.side2(pc, P, true) then st.knotDyn = "side" return "side" end
+			if not (pc.motif or pc.ringArc) and kc.par(pc, P, true) then st.knotDyn = "parallel" return "parallel" end
+		end
+		-- (one empty row at a time: never relaxed; its dead-end test reads the chosen pieces, so it is dynamic)
+		if kc.row(pc, st, P) then st.knotDyn = "row" return "row" end
+		if knotRelaxed or exK then return nil end
 		if reached[pc.a] and reached[pc.b] then
 			local path = KN.way(ia, ib, knotNbrs, knotPosOf, knotLim.perim)
 			if path and #path >= 2 and KN.loopArea(P, path) < knotLim.loopA then st.knotDyn = "loop" return "loop" end
@@ -1667,12 +1861,15 @@ function M.select(g, mp, style, opts)
 		if P == nil or #P < 2 then return end
 		local ia, ib = aid(pc.a), aid(pc.b)
 		local x0, y0, x1, y1 = KN.bbox(P)
-		knotChosen[#knotChosen + 1] = { pts = P, a = ia, b = ib, x0 = x0, y0 = y0, x1 = x1, y1 = y1 }
+		local tag = "p" .. tostring(pc.key)
+		knotChosen[#knotChosen + 1] = { pts = P, a = ia, b = ib, x0 = x0, y0 = y0, x1 = x1, y1 = y1, tag = tag }
 		local L = G.polyLen(P)
+		local R = {}
+		for i = #P, 1, -1 do R[#R + 1] = P[i] end
 		knotAdj[ia] = knotAdj[ia] or {}
 		knotAdj[ib] = knotAdj[ib] or {}
-		knotAdj[ia][#knotAdj[ia] + 1] = { ib, L }
-		knotAdj[ib][#knotAdj[ib] + 1] = { ia, L }
+		knotAdj[ia][#knotAdj[ia] + 1] = { ib, L, P, tag }
+		knotAdj[ib][#knotAdj[ib] + 1] = { ia, L, R, tag }
 		if type(ia) ~= "number" then knotPos[ia] = { P[1][1], P[1][2] } end
 		if type(ib) ~= "number" then knotPos[ib] = { P[#P][1], P[#P][2] } end
 	end
@@ -1839,6 +2036,10 @@ function M.select(g, mp, style, opts)
 			end
 		end
 	end
+	-- (a fast grower's demand increment: the front opts.limits.frontExtra blocks farther, M.FRONT_RELAX note)
+	if frontCap and opts.limits and opts.limits.frontExtra then
+		frontCap = frontCap + opts.limits.frontExtra * math.max(style.block.len, style.block.depth)
+	end
 	report.frontCap = frontCap
 	report.armTrim = cache.armBuilt and cache.armBuilt.trimmed or 0
 	-- housed front (M.HOUSED, style.housedLead): every point of a piece within the lead of a housed street
@@ -1881,9 +2082,10 @@ function M.select(g, mp, style, opts)
 	report.leadHeld = 0
 	report.leadM = leadIdx and leadIdx.lead or nil
 	local leadHeldKeys = {}
-	-- away from industries (ot_industry HOLD_PEN): pieces deep in a works' buffer wait while the increment can fill
-	-- elsewhere (the cost alone can't steer when the fronts leave fewer pieces than the budget: grid towns); they come
-	-- back when the increment would starve (last of the relaxations below), so a boxed-in town still grows
+	-- away from industries (ot_industry HOLD_PEN, penHold: industries only, never player facilities): pieces deep in a
+	-- works' buffer wait while the increment can fill elsewhere (the cost alone can't steer when the fronts leave fewer
+	-- pieces than the budget: grid towns); they come back when the increment would starve (last of the relaxations
+	-- below), so a boxed-in town still grows
 	local indInfo = style.industry
 	local indLevel = (indInfo ~= nil and IND.HOLD_PEN ~= nil) and IND.HOLD_PEN or nil
 	report.indHeld = 0
@@ -1893,7 +2095,7 @@ function M.select(g, mp, style, opts)
 		local st = info[pc.key]
 		if st.pen == nil then
 			local mx, my = G.polyAt(pc.pts, 0.5)
-			st.pen = IND.pen(indInfo, mx, my)
+			st.pen = IND.penHold(indInfo, mx, my)
 		end
 		if st.pen >= indLevel then
 			indHeldNow = indHeldNow + 1
@@ -2112,6 +2314,7 @@ function M.select(g, mp, style, opts)
 	-- houses filled the new side streets near the core first: the linear town grew round, elong 1.26)
 	local strongArms = M.ARM_STRONG_HOLD and not opts.envWide and cache.armBuilt ~= nil and shape ~= nil and (shape.reach or 1) >= 1
 	local blkMax = math.max(style.block.len, style.block.depth)
+	local frontRelax, frontRelaxMax = 0, (opts.limits and tonumber(opts.limits.frontRelax)) or 0
 	local envCap, armExtra, relax = cache.envCap and cache.envCap * (strongArms and 1 or envScale), 0, 0
 	local fillExtra = 0
 	if envScale > 1 then
@@ -2684,6 +2887,11 @@ function M.select(g, mp, style, opts)
 			-- (§70: the knot holds would leave the increment empty: they give way, after the rake / wiggle ones)
 			knotRelaxed = true
 			report.knotRelax = true
+		elseif best == nil and #chosen == 0 and frontCap and report.frontHeld > 0 and frontRelax < frontRelaxMax then
+			-- (a stuck town, opts.limits.frontRelax: the front would leave the increment empty, one block wider per step)
+			frontRelax = frontRelax + 1
+			frontCap = frontCap + blkMax
+			report.frontRelax, report.frontCap = frontRelax, frontCap
 		elseif best == nil then
 			report.zigzagWait, report.loopWait = report.zigzagWait + waitZ, report.loopWait + waitL
 			break
@@ -2813,7 +3021,8 @@ function M.select(g, mp, style, opts)
 		for i, p in ipairs(pc.pts) do pts[i] = { p[1], p[2], p[3], p[4] } end
 		streets[#streets + 1] = { pts = pts, class = pc.class, curved = pc.curved, smooth = pc.smooth,
 			dirA = pc.dirA, dirB = pc.dirB, startNode = jnode[pc.a], endNode = jnode[pc.b], key = pc.key,
-			through = M.through(mp, pc) and not info[pc.key].ahead, origin = M.origin(pc) }
+			through = M.through(mp, pc) and not info[pc.key].ahead, origin = M.origin(pc),
+			sideFree = (pc.motif ~= nil and M.SIDE_FREE[pc.motif]) or nil }
 	end
 	report.info = info
 	-- (the held pieces let through as forest lanes and chosen: ot_lane.mark's `freed`)

@@ -6,7 +6,7 @@
 -- window keeps one card expanded at a time). Base pieces only and no stylesheet rule of ours; inline style only
 -- for the two looks no base class gives (native-UI passes 2026-10-17, plans/square_organic_towns/TESTING.md "Rev 3"):
 --   * the permanent part is a key / value row, the base Line "Transported" card's (line_eow.script.tl:80-97: body
---     TextView, gui_react_util.makeHorizontalSpacer, value): the character left, the phase right. ContentCard draws
+--     TextView, the base horizontal spacer, value): the character left, the phase right. ContentCard draws
 --     its collapse triangle at a fixed x near the right, straddling the permanent part's bottom border
 --     (content_card.tl:318-337, content_card.css.lua:139-143 `arrow-component` margin 358); the base cards keep a
 --     right-aligned value above it (Town Level: the growth state, entity_window.css.lua:601; Transported: the value);
@@ -50,7 +50,6 @@ local react = ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
 local content_card = ug_require "::/gui/main/content_card.tl" as ContentCard
 local engine_react_util = ug_require "::/gui/main/engine_react_util.tl" as EngineReactUtil
-local gui_react_util = ug_require "::/gui/main/gui_react_util.tl" as GuiReactUtil
 local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 local color_util = ug_require "::/gui/main/color_util.tl" as ColorUtil
 local town_eow = ug_require "::/gui/entity_window/town/town_eow.script.tl" as TownEow
@@ -293,13 +292,38 @@ local function body(text : string, tip : string) : TreeNodeId
 	return builtin.TextView{ meta = { class = "font-scale-body", tooltip = tip }, text = text or "" }
 end
 
+-- The base info hint, when this platform has it. The PS5 build's content_card has no makeInfoHint (Smart Lanes player
+-- report 2026-10-19: "attempt to call field 'makeInfoHint' (a nil value)" reloaded the UI; docs/findings/gui.md
+-- "Base GUI modules differ by platform"): then the base hint's own tree (content_card.tl:479-497) without the icon
+-- image. Its base classes style it where they exist; plain text otherwise.
+local function infoHint(text : string) : TreeNodeId
+	local make = (content_card as {string : any}).makeInfoHint
+	if make is function(string, boolean) : TreeNodeId then
+		local ok, node = pcall(make, text, true)
+		if ok and node ~= nil then return node end
+	end
+	return builtin.Component{
+		meta = { class = "info-hint-comp" },
+		layout = builtin.BoxLayout{
+			orientation = builtin.type.Orientation.Horizontal,
+			children = { builtin.TextView{ meta = { class = "font-scale-body, info-hint-text, no-icon" }, text = text } },
+		},
+	}
+end
+
+-- The base horizontal spacer, inline: gui_react_util.makeHorizontalSpacer's own body (gui_react_util.tl:367), so the
+-- card does not depend on the function (base GUI modules differ by platform, see infoHint).
+local function horizontalSpacer() : TreeNodeId
+	return builtin.Component{ meta = { class = "horizontal-spacer" } }
+end
+
 -- key left, value right (line_eow.script.tl:80-97)
 local function row(key : string, value : string, tip : string) : TreeNodeId
 	return builtin.BoxLayout{
 		orientation = builtin.type.Orientation.Horizontal,
 		children = {
 			body(key, tip),
-			gui_react_util.makeHorizontalSpacer(),
+			horizontalSpacer(),
 			value and body(value, tip) or nil,
 		},
 	}
@@ -340,7 +364,7 @@ local function lineWidget(l : OtCardLine) : TreeNodeId
 	elseif l.kind == "note" then
 		return builtin.TextView{ meta = { class = "font-scale-annotation" }, text = l.text or "" }
 	elseif l.kind == "hint" then
-		return content_card.makeInfoHint(l.text or "", true)
+		return infoHint(l.text or "")
 	elseif l.kind == "towns" then
 		local kids : {TreeNodeId} = {}
 		for _i, tw in ipairs(l.towns or {}) do kids[#kids + 1] = townButton(tw) end
@@ -397,6 +421,12 @@ local SquareOrganicTownsCard = react.RegisterPluginRecipe(town_eow.TownEowExtens
 		local okL, txt = pcall(card.logText, input)
 		log.message("[SQOT] CARD event=read town=" .. tostring(t) .. " sections=" .. tostring(#view.sections) .. " "
 			.. (okL and txt or "-"))
+	end
+	-- (base GUI modules differ by platform, see infoHint: no card rather than a UI reload)
+	local cc = content_card as {string : any}
+	local ccCard, ccRecipe = cc.ContentCard, cc.makeRecipeAndParam
+	if not (ccCard is function and ccRecipe is function) then
+		return builtin.BoxLayout{ children = {} }
 	end
 	return builtin.BoxLayout{
 		child = content_card.ContentCard{

@@ -23,6 +23,16 @@
 -- `zoneHeld=`), the driver refuses any other plan that would (satellites, lanes ahead, Works links: `industryZone`),
 -- drops dose points in a zone and locks its new streets within ZONE_LOCK_M of one (PLAN `zoneLock=`).
 -- Nothing is saved: existing towns get the preference from the next load on (frames keep their axis).
+--
+-- Player facilities (2026-10-18, user: "encourage our residents to move away from shipping ports that we build? Same
+-- for things like vehicle depots ... maybe just a small suggestion"): harbors, airports / airfields, heliports /
+-- helipads, vehicle depots and maintenance stations (road, tram, rail, water) and freight-only stations (cargo rail /
+-- truck stations) near a town get the soft part only (M.FAC_KINDS, lighter than any industry): the select cost, the
+-- envelope lean, the sector lean (M.away) and the shape axis turn (all through M.pen). Never a keep-clear zone, never
+-- the hold (M.penHold, industries only), never the dose-fill avoidance, satellite or Works checks (M.inBuffer,
+-- penHeavy, nearestLight and enclosure read info.list, which stays industries only). Passenger rail stations (the M3
+-- station quarter pulls toward them) and kerbside / small passenger stops are not facilities. Input: ot_engine
+-- facilities { {x, y, file, depot = bool, cargo = bool, passenger = bool} }, classified by M.classifyFacility.
 
 local G = ug_require "square_organic_towns::/organic_towns/ot_geom.lua"
 
@@ -70,6 +80,35 @@ M.PATTERNS = {
 	{ "printing", "light" }, { "pharma", "light" }, { "blanket", "light" }, { "bakery", "light" },
 	{ "distillery", "light" }, { "winery", "light" }, { "orchard", "light" },
 }
+
+-- player facilities (2026-10-18, header): soft kinds, never a zone or a hold. w / r chosen with test_facilities
+-- (a harbor beside a town: a clear lean, about half a light works'; an airport a little more, wider for the noise)
+M.FAC_ON = true
+M.FAC_KINDS = {
+	port = { w = 0.4, r = 300 },
+	airport = { w = 0.45, r = 400 },
+	heliport = { w = 0.25, r = 200 },
+	depot = { w = 0.25, r = 180 },
+	freight = { w = 0.3, r = 220 },
+}
+
+--- Kind of a player facility (ot_engine.facilities record { file, depot, cargo, passenger }): "port" | "airport" |
+--- "heliport" | "depot" | "freight", or nil (a passenger station, anything else: no lean).
+function M.classifyFacility(rec)
+	if type(rec) ~= "table" then return nil end
+	local s = string.lower(tostring(rec.file or ""))
+	if rec.depot or s:find("depots/", 1, true) or s:find("depot/", 1, true) then return "depot" end
+	if s:find("heli", 1, true) then return "heliport" end
+	if s:find("stations/air/", 1, true) or s:find("station/air/", 1, true) or s:find("airport", 1, true)
+		or s:find("airfield", 1, true) then return "airport" end
+	if s:find("stations/water/", 1, true) or s:find("station/water/", 1, true) or s:find("harbor", 1, true)
+		or s:find("harbour", 1, true) then return "port" end
+	-- (an industry's own station reports cargo and passenger (game 2026-10-18): never a facility, industries are read
+	-- on their own)
+	if s:find("industries/", 1, true) then return nil end
+	if rec.cargo == true and rec.passenger ~= true then return "freight" end
+	return nil
+end
 
 ---------------------------------------------------------------------------
 -- Keep-clear zones (2026-10-13, run 2026-10-13_2240_sqot-dev: Budleigh Salterton grew all round its crop farm). Read
@@ -191,9 +230,11 @@ function M.strength(year)
 end
 
 --- Industries near a town: info = { list = {{x, y, kind, w, r, file}}, n, nearest = m (or nil), heavy = count,
---- strength, away = rad or nil, awayMag = 0..1, unknown = {file = true} } or nil when there are none (so a town
---- without industries is planned exactly as before). all: { {x, y, file} }; (cx, cy): the town centre.
-function M.forTown(all, cx, cy, year, reach)
+--- strength, away = rad or nil, awayMag = 0..1, unknown = {file = true}, soft = {{x, y, kind, w, r, file}} (player
+--- facilities, header), fac = count, facKinds = {kind = count} } or nil when there are none (so a town without
+--- industries or facilities is planned exactly as before). all: { {x, y, file} }; (cx, cy): the town centre; facs:
+--- ot_engine.facilities records or nil.
+function M.forTown(all, cx, cy, year, reach, facs)
 	if not M.ON or all == nil then return nil end
 	-- (reach: the town's radius + ZONE_REACH when bigger than SEARCH_R; run 2026-10-13_2240_sqot-dev: Budleigh
 	-- Salterton reached r = 1850 m, its crop farm lay beyond the fixed 1500 m and every check said ind=0)
@@ -227,7 +268,29 @@ function M.forTown(all, cx, cy, year, reach)
 			end
 		end
 	end
-	if #list == 0 and #zones == 0 then return nil, unknown end
+	-- player facilities: the soft list, and their share of the away direction (after the industries': with none the
+	-- sums are unchanged)
+	local soft, facKinds = {}, {}
+	if M.FAC_ON and facs ~= nil then
+		for i, it in ipairs(facs) do
+			if i > 20000 then break end
+			local x, y = it[1] or it.x, it[2] or it.y
+			if x and y then
+				local d = G.dist(cx, cy, x, y)
+				local kind = d <= reach and M.classifyFacility(it) or nil
+				local k = kind and M.FAC_KINDS[kind]
+				if k then
+					soft[#soft + 1] = { x, y, kind = kind, w = k.w, r = k.r, file = it.file, d = d }
+					facKinds[kind] = (facKinds[kind] or 0) + 1
+					if d > 1 then
+						local f = k.w * math.exp(-(d / (k.r + 400)) ^ 2)
+						ax, ay = ax + (cx - x) / d * f, ay + (cy - y) / d * f
+					end
+				end
+			end
+		end
+	end
+	if #list == 0 and #zones == 0 and #soft == 0 then return nil, unknown end
 	table.sort(list, function(a, b)
 		if a.d ~= b.d then return a.d < b.d end
 		if a[1] ~= b[1] then return a[1] < b[1] end
@@ -237,18 +300,40 @@ function M.forTown(all, cx, cy, year, reach)
 	local info = { list = list, n = #list, nearest = nearest, heavy = heavy, strength = M.strength(year),
 		awayMag = G.clamp(mag, 0, 1), away = mag > 1e-6 and G.atan2(ay, ax) or nil, unknown = unknown,
 		centre = { cx, cy }, zones = zones, reach = reach }
+	if #soft > 0 then
+		table.sort(soft, function(a, b)
+			if a.d ~= b.d then return a.d < b.d end
+			if a[1] ~= b[1] then return a[1] < b[1] end
+			return a[2] < b[2]
+		end)
+		info.soft, info.fac, info.facKinds = soft, #soft, facKinds
+	end
 	return info, unknown
 end
 
---- Penalty at (x, y): era x min(PEN_CAP, sum w x exp(-FALL (d / r)^2)), 0 without info.
-function M.pen(info, x, y)
-	if info == nil then return 0 end
-	local s = 0
-	for _, it in ipairs(info.list) do
+local function sumPen(list, x, y, s)
+	for _, it in ipairs(list) do
 		local dx, dy = x - it[1], y - it[2]
 		local q = (dx * dx + dy * dy) / (it.r * it.r)
 		if q < 9 then s = s + it.w * math.exp(-M.FALL * q) end
 	end
+	return s
+end
+
+--- Penalty at (x, y): era x min(PEN_CAP, sum w x exp(-FALL (d / r)^2)) over the industries and the player facilities,
+--- 0 without info.
+function M.pen(info, x, y)
+	if info == nil then return 0 end
+	local s = sumPen(info.list, x, y, 0)
+	if info.soft then s = sumPen(info.soft, x, y, s) end
+	if s > M.PEN_CAP then s = M.PEN_CAP end
+	return s * (info.strength or 1)
+end
+
+--- The penalty from the industries only (ot_select hold: player facilities never hold a piece back), 0 without info.
+function M.penHold(info, x, y)
+	if info == nil then return 0 end
+	local s = sumPen(info.list, x, y, 0)
 	if s > M.PEN_CAP then s = M.PEN_CAP end
 	return s * (info.strength or 1)
 end
@@ -347,8 +432,17 @@ end
 
 --- "count/nearest m/heavy count" for CHECK / STYLE / SHAPE (`ind=`), "0" without industries nearby.
 function M.text(info)
-	if info == nil then return "0" end
+	if info == nil or (info.n == 0 and info.nearest == nil and #(info.zones or {}) == 0) then return "0" end
 	return string.format("%d/%.0f/%d", info.n, info.nearest or -1, info.heavy)
+end
+
+--- Player facilities near a town for PLAN / STYLE (`fac=`): "count:port/airport/heliport/depot/freight" counts, "0"
+--- without any.
+function M.facText(info)
+	local k = info and info.facKinds
+	if k == nil or (info.fac or 0) == 0 then return "0" end
+	return string.format("%d:%d/%d/%d/%d/%d", info.fac, k.port or 0, k.airport or 0, k.heliport or 0, k.depot or 0,
+		k.freight or 0)
 end
 
 --- Industries in a town and how many it encloses (2026-10-14 late; dev ALLTOWN `ind=`, works with the main mod off).

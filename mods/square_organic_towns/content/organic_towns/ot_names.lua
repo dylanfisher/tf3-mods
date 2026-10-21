@@ -1405,4 +1405,139 @@ function M.pickStop(cls, themes, streets, used, cache)
 	return nil, nil
 end
 
+---------------------------------------------------------------------------
+-- Another mod's name list (2026-10-17, NEXT_PHASE_BRIEF 72). Its towns and stops keep their names (basePath "notBase":
+-- no landscape names, no stop names); only the towns the mod founds (Works, districts) are named, in the list's
+-- language: the country its path names (ot_inputs.region) -> COUNTRY_CLS, else a guess from the map's town names
+-- (M.guessCls), else unused names of the list itself (M.moddedTownPaths), else the old composed English.
+
+-- country -> classifier ("ru*" / "ja*": ru / ja when the map's names are in Cyrillic / Japanese script, else the
+-- romanized ru_r / ja_r). Not here: countries ot_names has no rules for (poland, czechia, korea, china, greece,
+-- finland), mixed-language ones (switzerland, belgium) and continents: the guess decides, else the list's own names.
+-- (Danish lists take the Norwegian rules: "Lille X" is Danish too.)
+M.COUNTRY_CLS = { germany = "de", austria = "de", france = "fr", england = "en", uk = "en", ireland = "en",
+	usa = "usa", canada = "usa", australia = "en", newzealand = "en", oceania = "en", netherlands = "nl", italy = "it",
+	spain = "es", portugal = "pt", sweden = "sv", norway = "nb", denmark = "nb", russia = "ru*", japan = "ja*" }
+
+M.GUESS_MAX = 60          -- map town names looked at
+M.GUESS_MIN = 8           -- fewer: no guess
+M.GUESS_SHARE = 0.3       -- the best classifier must tag this share of the names ...
+M.GUESS_MARGIN = 2        -- ... and this many times the runner-up's share
+M.SCRIPT_SHARE = 0.5      -- names in Cyrillic / Japanese script for ru / ja
+-- (the classifiers a guess may pick: the site-tag rules tell German, English, French, Dutch and the Nordic lists
+-- apart from 16 names; Italian, Spanish and Portuguese names score low and alike, and the romanized Japanese rules tag
+-- Italian / Spanish endings, so those never come from a guess. Measured offline 2026-10-17 over the base lists,
+-- 300 draws of 16 names each: de 95 %, en 89-100 %, sv 64-85 %, nl 24-67 %, fr 8-12 %, wrong < 0.5 %.)
+M.GUESS_CLS = { "en", "de", "fr", "nl", "sv", "it", "es", "pt" }
+M.GUESS_PICK = { en = true, de = true, fr = true, nl = true, sv = true }
+
+local function scriptOf(name)
+	if name:find("[\208-\211][\128-\191]") then return "cyr" end
+	-- (kana E3 81-83 .., or a Japanese municipal suffix)
+	if name:find("\227[\129-\131]") then return "ja" end
+	for _, sfx in ipairs(JA_SUFFIX) do
+		if #name > #sfx and name:sub(-#sfx) == sfx then return "ja" end
+	end
+	return nil
+end
+
+--- The share of names in Cyrillic ("cyr") and Japanese ("ja") script: { cyr, ja, n } (at most GUESS_MAX names).
+function M.scriptShares(names)
+	local c, j, n = 0, 0, 0
+	for _, nm in ipairs(names or {}) do
+		if n >= M.GUESS_MAX then break end
+		if type(nm) == "string" and nm ~= "" then
+			n = n + 1
+			local sc = scriptOf(nm)
+			if sc == "cyr" then c = c + 1 elseif sc == "ja" then j = j + 1 end
+		end
+	end
+	if n == 0 then return { cyr = 0, ja = 0, n = 0 } end
+	return { cyr = c / n, ja = j / n, n = n }
+end
+
+--- The classifier for a detected country (COUNTRY_CLS; "ru*" / "ja*" resolved by the names' script), or nil.
+function M.countryCls(country, names)
+	local c = M.COUNTRY_CLS[country or ""]
+	if c == "ru*" or c == "ja*" then
+		local sh = M.scriptShares(names)
+		if c == "ru*" then return (sh.cyr >= M.SCRIPT_SHARE) and "ru" or "ru_r" end
+		return (sh.ja >= M.SCRIPT_SHARE) and "ja" or "ja_r"
+	end
+	return c
+end
+
+--- A confident guess of the names' classifier from the map's town names, or nil and why ("fewTowns" | "unsure"),
+--- plus a short text of the shares (log). Cyrillic / Japanese script first (ru / ja), then the site-tag share of each
+--- GUESS_CLS classifier (usa's rules count for en): the best must reach GUESS_SHARE and GUESS_MARGIN x the runner-up
+--- and be in GUESS_PICK. At most GUESS_MAX names x #GUESS_CLS classify calls.
+function M.guessCls(names)
+	local list = {}
+	for _, nm in ipairs(names or {}) do
+		if #list >= M.GUESS_MAX then break end
+		if type(nm) == "string" and nm ~= "" then list[#list + 1] = nm end
+	end
+	if #list < M.GUESS_MIN then return nil, "fewTowns", "n=" .. #list end
+	local sh = M.scriptShares(list)
+	if sh.cyr >= M.SCRIPT_SHARE then return "ru", nil, string.format("cyr=%.2f", sh.cyr) end
+	if sh.ja >= M.SCRIPT_SHARE then return "ja", nil, string.format("ja=%.2f", sh.ja) end
+	local share = {}
+	for _, c in ipairs(M.GUESS_CLS) do
+		local n = 0
+		for _, nm in ipairs(list) do
+			if M.classify(nm, c) or (c == "en" and M.classify(nm, "usa")) then n = n + 1 end
+		end
+		share[c] = n / #list
+	end
+	local best, second = nil, nil
+	for _, c in ipairs(M.GUESS_CLS) do
+		if best == nil or share[c] > share[best] then best, second = c, best
+		elseif second == nil or share[c] > share[second] then second = c end
+	end
+	local txt = string.format("%s=%.2f,%s=%.2f", best, share[best], second, share[second])
+	if share[best] >= M.GUESS_SHARE and share[best] >= M.GUESS_MARGIN * share[second] and M.GUESS_PICK[best] then
+		return best, nil, txt
+	end
+	return nil, "unsure", txt
+end
+
+-- folders tried for another mod's towns.lua after the game language's and en (the base lists' and common ones)
+M.MOD_DIRS = { "de", "fr", "it", "es", "nl", "pl", "cs", "pt", "ru", "sv", "nb", "da", "fi", "hu", "sk" }
+M.MAX_MOD_TRIES = 12
+
+--- The towns.lua paths to try for another mod's list "<modId>::/names/<dir>/<file>.names[.lua]": the base layout
+--- (names.script.lua townsNameScriptFn: "<modId>::/names/<path>/<lang>/towns.lua", the .names.lua's `path` being its
+--- folder in the base lists and arizonaranger_washington_names), folders: the game language (e.g. "pt_BR", then
+--- "pt"), extra (the country's language), "en", MOD_DIRS; at most MAX_MOD_TRIES. {} for a base or unreadable path.
+function M.moddedTownPaths(nameList, lang, extra)
+	if type(nameList) ~= "string" then return {} end
+	local mod, dir = nameList:match("^([%w_]+)::/names/([%w_%-]+)/[^/]+$")
+	if mod == nil or mod == "" then return {} end
+	local dirs, seen = {}, {}
+	local function add(d)
+		if type(d) == "string" and d:match("^[%w_]+$") and not seen[d] then
+			seen[d] = true
+			dirs[#dirs + 1] = d
+		end
+	end
+	if type(lang) == "string" then
+		add(lang)
+		add(lang:sub(1, 2))
+	end
+	add(extra)
+	add("en")
+	for _, d in ipairs(M.MOD_DIRS) do add(d) end
+	local out = {}
+	for _, d in ipairs(dirs) do
+		if #out >= M.MAX_MOD_TRIES then break end
+		out[#out + 1] = mod .. "::/names/" .. dir .. "/" .. d .. "/towns.lua"
+	end
+	return out
+end
+
+-- a detected country's language folder (moddedTownPaths' extra; countries without a classifier, where the list's own
+-- names are what offshoots take)
+M.COUNTRY_DIR = { poland = "pl", czechia = "cs", korea = "ko", china = "zh_CN", greece = "el", finland = "fi",
+	switzerland = "de", belgium = "nl", asia = "en", europe = "en" }
+
 return M

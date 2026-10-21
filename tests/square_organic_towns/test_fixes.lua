@@ -40,7 +40,9 @@ test("grid lines never closer than MIN_BLOCK (lot depth), even with a big spread
 	for i = -30, 29 do
 		ok(pos[i + 1] - pos[i] >= ST.MIN_BLOCK - 1e-9, "gap " .. i .. " = " .. (pos[i + 1] - pos[i]))
 	end
-	eq(ST.MIN_BLOCK, 2 * 2 * ST.LOT_CELL + 8)
+	-- (44 m since 2026-10-18: a 16 m small street + 28 m of land, one row of 3-cell lots; 40 m left 1-cell slivers)
+	eq(ST.MIN_BLOCK, 44)
+	ok(ST.MIN_BLOCK - 16 >= 3 * ST.LOT_CELL, "a row of 3-cell lots between two small streets")
 end)
 
 test("suburb cul-de-sacs only on even cross lines (never two facing each other)", function()
@@ -70,6 +72,53 @@ test("organic infill respects MIN_BLOCK along the inner arc and across the ring 
 		if nc > 0 then ok(gap * 0.65 / nc >= ST.MIN_BLOCK, "core lanes " .. nc .. " on " .. gap) end
 	end
 	eq(ORG.stripCount(60, 80, 60), 0, "a narrow cell gets no secondary radial")
+end)
+
+-- (2026-10-18, user: "a square of road where only one large building fits", "two roads very close": the offsets,
+-- wobble and tilt of the organic grower brought neighbouring parallel streets below MIN_BLOCK, since laneCount /
+-- stripCount cap only the mean spacing. Every lane along both its strips, every secondary radial along the shorter
+-- arc, every back row off its spoke, the strips' ends included, at least MIN_BLOCK apart: ot_grow_organic.TRACE)
+local FULL = os.getenv("TEST_FULL") ~= nil
+test("organic plans: neighbouring parallel streets never closer than MIN_BLOCK, whatever the jitter", function()
+	local I = ug_require(F.DIR .. "ot_inputs.lua")
+	local STRIDE = FULL and 1 or 5
+	local styles = { "EU_ORGANIC", "MED_HILL", "EU_EXTENSION" }
+	local n, worst, kinds = 0, {}, {}
+	local k = 0
+	for town = 1, 30 do
+		for si, id in ipairs(styles) do
+			for _, deep in ipairs({ false, true }) do
+				k = k + 1
+				-- (every style, both deep modes and the first towns always; a stride over the rest)
+				if FULL or town <= 2 or k % STRIDE == 0 then
+					local inp = I.build({ forceStyle = id, townId = town, year = 1900 + 7 * town, pos = { 0, 0 },
+						capacity = 900 + 300 * si, nameList = "::/names/germany/germany.names" })
+					inp.deep = deep or nil
+					local style = ST.resolve(inp)
+					ORG.TRACE = {}
+					local okP, err = pcall(ORG.masterPlan, style, { extent = 900, terrain = F.flat })
+					local tr = ORG.TRACE
+					ORG.TRACE = nil
+					assert(okP, err)
+					for _, r in ipairs(tr) do
+						n = n + 1
+						kinds[r.kind] = (kinds[r.kind] or 0) + 1
+						if worst[r.kind] == nil or r.m < worst[r.kind].m then
+							worst[r.kind] = { m = r.m, at = id .. (deep and " deep" or "") .. " town " .. town }
+						end
+					end
+				end
+			end
+		end
+	end
+	local t = {}
+	for kind, w in pairs(worst) do t[#t + 1] = string.format("%s %d min %.1f m (%s)", kind, kinds[kind], w.m, w.at) end
+	table.sort(t)
+	print("      " .. table.concat(t, " | "))
+	for _, kind in ipairs({ "lane", "laneEnd", "radial", "radialEnd", "row" }) do
+		ok((kinds[kind] or 0) > 0, "traced " .. kind)
+		if worst[kind] then ok(worst[kind].m >= ST.MIN_BLOCK - 1e-6, kind .. " " .. worst[kind].m .. " m at " .. worst[kind].at) end
+	end
 end)
 
 test("prune drops dangling small streets, keeps main stubs, cul-de-sacs and existing-node ends", function()
@@ -231,4 +280,34 @@ test("green reserves over every dead end: an empty increment plans again without
 		eq(report.greenRelax, #greens - 1)
 		eq(#style.greens, #greens, "the style keeps its reserves")
 	end)
+end)
+
+test("growth front (2026-10-18): a stuck town's limits.frontRelax and a fast grower's limits.frontExtra widen it", function()
+	-- (a front at the innermost junction: every piece of the shaped town beyond its junctions is held, the plan comes out empty;
+	-- frontRelax lets it through only when the increment would be empty, at most that many blocks, frontExtra always)
+	local reach0, q0 = SEL.FRONT_REACH, SEL.FRONT_Q
+	SEL.FRONT_REACH, SEL.FRONT_Q = 0, 0.01
+	local okRun, err = pcall(function()
+		local function plan(limits)
+			local style, stats = F.style({ forceStyle = "EU_EXTENSION", townId = 7, year = 2020, shape = "linear",
+				axis = { angle = 2.1, strength = 1 } }, F.flat)
+			local g = F.roundCore(OG.new(), { angle = 2.1 })
+			local inc, report = core.planIncrement(g, style, { terrain = F.flat, stats = stats, join = "deadEnd",
+				maxEdges = 18, limits = limits })
+			return inc, report
+		end
+		local inc0, rep0 = plan(nil)
+		local incR, repR = plan({ frontRelax = SEL.FRONT_RELAX })
+		local incX, repX = plan({ frontExtra = 3 })
+		print(string.format("        edges: none %d, frontRelax %d (steps %s), frontExtra %d; front %.0f / %.0f / %.0f m",
+			#inc0.edges, #incR.edges, tostring(repR.frontRelax), #incX.edges, rep0.frontCap or -1, repR.frontCap or -1,
+			repX.frontCap or -1))
+		ok((rep0.frontHeld or 0) > 0, "the front holds pieces")
+		ok(#incR.edges > #inc0.edges, "frontRelax: more edges than with the bare front")
+		ok((repR.frontRelax or 0) >= 1 and repR.frontRelax <= SEL.FRONT_RELAX, "frontRelax: 1..FRONT_RELAX steps")
+		ok(#incX.edges > #inc0.edges, "frontExtra: more edges")
+		ok(repX.frontCap > rep0.frontCap, "frontExtra: the front farther out")
+	end)
+	SEL.FRONT_REACH, SEL.FRONT_Q = reach0, q0
+	assert(okRun, err)
 end)

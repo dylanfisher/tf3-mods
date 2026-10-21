@@ -49,12 +49,17 @@ test("smooth: first sight is the usage, then an exponential approach in game yea
 	for k = 1, 3 do ok(isNum(eN[k]) and eN[k] >= 0 and eN[k] <= 1) end
 	eq(RCI.aim({ 0, 0, 0 }), nil, "no deliveries: no aim")
 	local w = RCI.aim({ 0, 0, 1 })
-	near(w[1], RCI.FLOOR)
-	near(w[2], RCI.FLOOR)
-	near(w[3], 1 - 2 * RCI.FLOOR)
+	near(w[1], 0.25, 1e-12)
+	near(w[2], 0.12, 1e-12)
+	near(w[3], 0.63, 1e-12)
+	w = RCI.aim({ 0, 1, 0 })
+	near(w[1], 0.25, 1e-12)
+	near(w[2], 0.63, 1e-12)
+	w = RCI.aim({ 1, 0, 0 })
+	near(w[1], 0.76, 1e-12)
 	w = RCI.aim({ 0.5, 0.5, 0.5 })
 	near(w[1] + w[2] + w[3], 1, 1e-12)
-	near(w[1], 1 / 3, 1e-12)
+	near(w[1], 0.25 + 0.51 / 3, 1e-12)
 end)
 
 test("step: guards (bad values, small town, no aim, no growth, at the mix)", function()
@@ -176,12 +181,12 @@ local function simulate(o)
 end
 
 test("a lopsided town converges toward its aim without overshoot; the total stays the base game's", function()
-	-- fed only industrial cargo, no passengers: aim 12 / 12 / 76
+	-- fed only industrial cargo, no passengers: aim 25 / 12 / 63 (§75: residential keeps a quarter)
 	local usage = { 0, 0, 1 }
 	local base = simulate({ init = { 400, 300, 300 }, usage = usage, years = 20, rate = 0.006, buildK = 0.5, on = false })
 	local mod = simulate({ init = { 400, 300, 300 }, usage = usage, years = 20, rate = 0.006, buildK = 0.5, on = true })
 	ok(base.s[3] <= 0.52, string.format("the base game evens it out: industrial %.2f", base.s[3]))
-	ok(mod.s[3] >= 0.6, string.format("weighted: industrial %.2f (a mill town)", mod.s[3]))
+	ok(mod.s[3] >= 0.55, string.format("weighted: industrial %.2f (a mill town; 0.57 after 20 years toward 0.63)", mod.s[3]))
 	local w = RCI.aim(usage)
 	local prev = nil
 	for i, h in ipairs(mod.hist) do
@@ -388,11 +393,11 @@ test("driver: By deliveries re-splits an industrial town through setInitialCaps;
 	ok(back ~= nil and back.k == ev.param.k and back.n0 == 1000)
 	eq(d:rciLean(7), "ind", "45 % industrial after five steps")
 	ok(d:rciManaged(7))
-	ok(l[1]:find("aim=12/12/76", 1, true) and l[1]:find("sum=1000->1000", 1, true), l[1])
-	ok(d:rciText(7):find("aim=12/12/76:use=0.00/0.00/0.90", 1, true), d:rciText(7))
+	ok(l[1]:find("aim=25/12/63", 1, true) and l[1]:find("sum=1000->1000", 1, true), l[1])
+	ok(d:rciText(7):find("aim=25/12/63:use=0.00/0.00/0.90", 1, true), d:rciText(7))
 	-- the dev readout (ALLTOWN rci=, the inspector): the engine's reads, then the main driver's state
 	local ro = D.rciReadout(E, 7, d)
-	ok(ro:find("31/24/45:use=0.00/0.00/0.90:aim=12/12/76:lean=ind|main:", 1, true), ro)
+	ok(ro:find("33/22/45:use=0.00/0.00/0.90:aim=25/12/63:lean=ind|main:", 1, true), ro)
 	eq(D.rciReadout(E, 99, nil), "-:use=-:aim=-:lean=-", "an unknown town")
 end)
 

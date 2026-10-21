@@ -2545,3 +2545,184 @@ Results (2026-10-16, offline):
 - Tests: test_tune71.lua (new, 8); test_knot's off-switch case turns M.HOOK off too; test_demand unchanged.
 - Next: the real play-through (TESTING.md "Real play (first)", its "What to watch" lists §61-§71). The seed `a` check
   is optional now (expect Shaw / Dalemere / Little Dalemere game share up, forestLot within ~36 ha, no hooks).
+
+## 72. Name lists from other mods: their region by name, satellite towns in their language (2026-10-17; done offline 2026-10-17; player question on "Deutsche Städte und Gemeinden" (mod.io german-cities-and-municipalities5, modId unknown); details PLAN.md 6.2 "Name lists from other mods (§72)"; in game: TESTING.md "Name lists from other mods")
+
+A player uses a German name list from another mod and asked whether "Town style: Automatic" and "Vanilla town street
+angles: Automatic (by region)" recognize Germany. Found: `ot_inputs.NAME_RULES` matched raw substrings of the nameList
+path (`<modId>::/names/<dir>/<file>.names`), so only "germany" / "europe" etc. hit; `german_cities` or `deutschland`
+fell back to the climate (dry -> MED, subarctic -> NORDIC, else EU). The country only matters for France
+(roundabout year, ot_character / ot_ring) and Spain (MED_ENSANCHE). Landscape / stop names already leave a modded list
+alone (`ot_names.basePath` -> nil, "notBase"); keep that. The bug: the Works / districts the mod founds
+(`Driver:offshootName`) got English composed names on any modded list ("Ulm Heights", "Freiburg Works"), since
+`nameCls` fell back to "usa" / "en"; on a list without a classifier English words were glued onto native names
+(the "High Wuhan" problem base lists avoid with an unused name of the list, `offshootListName`).
+
+Asked: (1) detect a modded list's country / language from the path's words (split on non-letters, English and
+native forms; base lists and square_names_us_ / ca_ unchanged; most specific match wins); (2) satellite names in the
+list's language: the country's classifier, else a confident cheap guess from the map's town names (or skip and say
+why), else unused names of the modded list's own towns.lua (pcall, capped), else today's composed English (logged);
+never rename the list's towns; (3) one `[SQOT] NAMELIST` line per session; (4) tooltips only if needed; (5) tests;
+(6) a TESTING.md item and a console line.
+
+Results (2026-10-17, offline):
+- DONE detection (`ot_inputs.NAME_PREFIX` / `NAME_WORDS` / `pathWords` / `wordRule` / `region` -> region, country,
+  word): the lower-cased path split at every non-letter (UTF-8 bytes count as letters), exact words plus a few long
+  stems (deutsch, german, osterreich, francais, nederland, italian); our state mods' prefixes first, then a country /
+  language word over a continent word, the later of two country words. New countries: austria, switzerland, uk,
+  ireland, belgium, czechia, greece, denmark, finland, australia, newzealand. Not matched on purpose: america(n)
+  ("South American" lists), two-letter codes except us / uk. Base lists and our state mods: same region and country
+  as before (test against the old rules).
+- DONE satellite names (`Driver:listLang`, once per session; `ot_names.COUNTRY_CLS / countryCls / guessCls /
+  moddedTownPaths`, `ot_engine.townListAt`): country -> classifier (germany / austria de, france fr, england / uk /
+  ireland / australia / newzealand en, usa / canada usa, netherlands nl, italy it, spain es, portugal pt, sweden sv,
+  norway / denmark nb, russia ru or ru_r and japan ja or ja_r by the map names' script); else a guess from at most 60
+  map town names (Cyrillic / Japanese script -> ru / ja; else the site-tag share per classifier: best >= 0.3 and
+  >= 2 x the runner-up, only en / de / fr / nl / sv; it / es / pt never, they score low and alike and the ja_r rules
+  tag their endings; measured over the base lists, 300 draws of 16 names: wrong < 0.5 %); else the list's towns.lua
+  at `<modId>::/names/<dir>/<lang>/towns.lua` (the game language's folder, its 2 letters, the country's folder, en,
+  common ones; at most 12 pcall'd requires) and offshoots take unused names of it; else the old composed names. A
+  list used up falls back to composed names too (`NAMELIST event=listUsedUp`, once). Base lists unchanged.
+- DONE `[SQOT] NAMELIST list= base= region= country= regionSource= nameRegion= word= cls= clsSource=
+  (base|country|guess|list|fallback) guess= listPath= listN= tries= why=` after INIT when the mod is on.
+- DONE tooltips: "Town style" and "Town and stop names" got one sentence each (13 languages).
+- Tests: test_namelist72.lua (new, 12).
+- Open (in game): TESTING.md "Name lists from other mods" (a missing towns.lua only raising a Lua error under
+  pcall is not verified in game).
+
+## 73. Continuous thoroughfares: medium / large streets only as long, anchored runs (2026-10-17; done offline 2026-10-17; user report on early (~1909) towns; details PLAN.md 6.2 "Continuous thoroughfares (§73)"; in game: TESTING.md "Continuous thoroughfares")
+
+The user: "The main issue I encounter is early on (~1909) medium streets get built in weird configurations (like just
+a single track in-between small streets) and causes the car path finding to go in weird roundabouts. The whole point
+of the larger streets is intentional thoroughfares where it would make sense." Before: "let's make it so the game
+doesn't auto-build medium or large streets. it's too inconsistent. small town streets like base game." Agreed:
+medium / large only as deliberate, continuous through routes; everything else small (xsmall where a style uses it);
+the base game's sim templates stay (findings towns.md: removing them crashed town development).
+
+Asked: (1) diagnose which code path makes an isolated medium edge around 1900-1920, with evidence; (2) a run rule:
+one continuous chain, a minimum length, meaningful ends (exit, centre, station, another main run), no stub from a
+partly built run; joins don't spread templates; an early-era choice; the same rule for late / metro arterials; a
+remedy if the game's growth is a source, without removing sim templates; an audit token; tests; docs.
+
+Results (2026-10-17, offline):
+- DONE diagnosis. The logs can't name a single medium edge: no line lists town street templates per edge (ROADS
+  `wide=` leaves `town_*` out). What they show: in `2026-10-16_1846_sqot` (seed `a`, EU, 1900) 17 PLAN lines with
+  `hier=wide1..4` and BUILT `mix=0/9/91 ... 0/71/29` on 4-17 edge increments (e.g. `PLAN town=60267 edges=10
+  hier=wide1/...`: one medium edge in ten; `BUILT town=60262 ... mix=0/71/29 townMix=0/16/84`); `2026-10-18_0122_sqot-sqrl`
+  (old templates, era 2: the user's early play) built only small (`mix=0/0/100`, 7 builds), so its medium streets came from earlier builds, the
+  game core or the game's own growth (unknown: now logged). The code path, reproduced offline: `ot_core.hierarchy`
+  kept any main piece whose plan line goes on (`ot_select.through`) and that meets a street, however little of the
+  line was built: EU organic spokes (`sp<i>:<ring>#<n>`, 25-56 m pieces) came one or two per increment, scattered;
+  EU organic 1905 on a vanilla core after 6 increments: 4 medium runs of 7 edges, the longest 92 m, one a single edge
+  (test_runs growth sweep with `RUN_RULE = false`). Second leak: `ot_proposal.build` gave an edge joining a dead end
+  that dead end's template, so a small street continuing a medium dead end became one medium edge.
+- DONE run rule (`ot_core.continuity`, `wideRuns`, `runAnchor`, `narrowTemplate`; in `hierarchy` and again in
+  `Driver:plan` after the straight guard and forest lanes): a new wide edge's run (connected medium / large edges,
+  existing + new) >= `RUN_MIN_M` 300 m and anchored (existing wide street, country road, centre or station within
+  150 m; the late hierarchy also any existing street), else the narrower template. A build is all or nothing and
+  a refused one is replanned (rule again): no partial stub.
+- DONE early era: before 1940 (old templates) a separate new run only while the town has fewer than `RUN_OLD_MAX` = 1
+  runs of 300 m (the high street); extensions go on. Choice: a town of ~1900 had one high street, the road through
+  it, and narrow lanes; the user wants "small town streets like base game".
+- DONE joins: `ot_proposal.narrowJoin` (a narrower town street at a medium / large dead end keeps its own template).
+- DONE game growth precaution (unverified as a source): no §69 tip / §67 valve stub on a medium / large edge
+  (`ot_glock.NO_WIDE_TIPS`, BUILT `tipRej=wide:n`). Sim templates untouched.
+- DONE logs: PLAN `hier=.../short<n>` and `runs=<kept>/<cut>/<longest>`, SNAPSHOT `wideRuns=` (runs, edges, length,
+  short, lone, longest, by builder mod / game / other), STREETS `wideRuns=` (summed). The audit lives in the town
+  state as `wideRuns` (first stored as `wide`, which clobbered the 2 km site survey `ot_terrain.wide`; and
+  `streetsNote`'s local `core` count shadowed the `ot_core` module, so the STREETS line raised in the assess stage:
+  test_demand EU frontage built nothing). Both fixed 2026-10-17 (`D.wideAuditText`; regression test in
+  test_namelist72 "STREETS line with a town's §73 run audit").
+- Tests: test_runs (new, 11), test_hierarchy / test_proposal updated, three geometry thresholds relaxed (test_head,
+  test_shore, test_skeleton; the narrower streets shift footprints).
+- Not done: built medium edges in existing saves are left as they are (no rebuilds; a short one joins a run only when
+  a build makes it 300 m with an anchor).
+- Open (in game): TESTING.md "Continuous thoroughfares" (lone medium edges and car detours gone; whether the game's
+  own growth builds medium streets: SNAPSHOT `wideRuns=...;game<n>`).
+
+## 74. Close the gap: near-miss dead ends joined to the street ahead (2026-10-17; done offline 2026-10-17; user shots of an EU organic town at a forest edge, ~1900s; details PLAN.md 6.2 "Close the gap (§74)"; in game: TESTING.md "Close the gap")
+
+The user (2026-10-17): "Is it feasible to have our roads connect to each other slightly more logically when they are
+so close? I like the loose and organic, but sometimes it feels a little too random, and would make more sense if they
+were auto-connecting a bit more often." The shots show (1) two dead ends curling past each other ~20-40 m apart, (2) a
+stub running beside a street, ending ~10-30 m beside a junction / the street, (3) a stub ending a few metres short of
+a street's side, pointing at it (an obvious T).
+
+Asked: (1) diagnose why, with evidence; (2) join near-miss dead ends (mod- or game-built; adding streets only) within
+~80 m roughly ahead: a T on the other street (3), a bend meeting another dead end (1), a join at a node near a junction
+(2); base street limits, no buildings / tracks / constructions, sane junction angles and spacing, the §70 knot rules,
+gap lines, no bridges, the §73 width rule, the lock policy; (3) organic: a seeded chance rising as the gap shrinks,
+forest dead ends partly left, a per-increment cap; (4) existing saves; (5) a per-town log with reasons; (6) tests incl.
+a growth sweep; (7) docs.
+
+Results (2026-10-17, offline):
+- DONE diagnosis (from the code; the logs hold no per-edge geometry, so no shot can be traced to a builder or a rule):
+  the planner joins only existing DEAD ENDS (ot_plan join "deadEnd"; the in-game-verified D3 joint is a dead end's,
+  findings towns.md), and the selector's pieces come from the master plan's lattice, which knows nothing of the
+  streets already there. A piece whose middle lies within occR (8-30 m) of a street or that crosses one is blocked
+  (ot_select.classifyPiece), a planned edge within clearEdge (16 m centre line: ~8 m of open ground between two small
+  streets' kerbs) of a street it doesn't meet is dropped (`nearExisting`), a new node within 6 m of a street is
+  refused (`blockedNode`); a dead end joins another only when a lattice junction lies within snapR (8 m) of it, or
+  through a connector to a lattice junction (ot_select CONN_*). So every lattice front that meets an existing street
+  stops one piece short (case 3: the 16 m rule leaves exactly the "few metres" of kerb gap), and two fronts from
+  different lattices pass each other (case 1). §69's lead cap / wiggle (40 deg) and §71's hook rule stop extensions
+  that would have curled in. The game's own growth adds cul-de-sacs (findings towns.md: "loops and cul-de-sacs at its
+  edge"). Evidence in the logs: `2026-10-16_1846_sqot` PLAN lines (empty plans) list `dropped=nearExisting` 16x and
+  `blockedNode` 12x, plus mixed; `2026-10-18_0122_sqot-sqrl` (the user's play) SNAPSHOT `deadEnds=30 joinable=25` for a
+  190-edge town and only 7 mod builds in the session, so most of what the shots show was the game core / the game's
+  growth (STREETS `coreEdges=637 modEdges=217 gameEdges=59`); which of the shown stubs is whose can't be told.
+- DONE `ot_nearmiss` (new, pure) and the pass (`ot_core.nearMissPass`, after each increment's plan, also on a town
+  held by its own empty budget; opts.nearMiss from the driver only): for each joinable dead end with another street
+  within `JOIN_MAX` 80 m and `AHEAD_DEG` 60 deg ahead (smallest gap first), the nearest target nodes ahead: another
+  dead end (a bend joining both, `pair`), a node in the middle of a street (`tee`), a small 3-way junction
+  (`cross`, all arms small). Shapes (best first): the straight line, one circular arc (radius >= 78 m), arc-and-straight
+  either way (100 / 150 / 240 m), Hermite curves; D's kink <= `KINK_DEG` 35, a pair's kink at N <= 35, a street node
+  met >= `TEE_MIN_DEG` 50 off every street there. Place checks on the shape (buildings within 12 m of the curve, gap
+  lines, industry zones, greens, country roads), then ot_plan with the one street (its angles, footprints, chord
+  clearance, slope, water; ot_plan `joinExtra` lets the street end at that node), then on the planned curve: slope
+  (node heights and ground, style.maxSlope <= 0.2), water, streets crossed or passed within 16 m, §70 parallel run,
+  a loop under `LOOP_K` 0.25 x a block, another junction within 20 m of a street node. Chance: 0.97 up to 15 m,
+  falling linearly to 0.15 at 80 m (the pair's draw is fixed per town seed: a pair left by chance stays left); in a
+  big wood of a hug / deep town left with 0.5 / 0.75; at most 2 per increment, none touching a node the increment
+  uses; joins planned together and checked against the increment's own new streets, then merged (`NM.merge`).
+  Retired / otherTown / no-config dead ends stay out (their noJoin); forest lanes (country template) too.
+- DONE driver: `Driver:midJoinOk` (a street node may be joined only with a node config, all its segments plain town
+  streets of the snapshot, no track segment (`ot_engine.nodeSegmentCount`), not in a construction, this town; its
+  join info goes to `job.nmInfo` and into the proposal's node info, so ot_proposal rewrites its config in the engine
+  pattern over all three / four segments, as at a joined dead end). Joins are small streets (§73: never a wide edge;
+  `narrowJoin` keeps them small at a medium dead end), keyed `nm:<D>:<N>`, so the lock policy treats them like any
+  piece and a refused pre-check excludes them for the session. Time budget `D.NEAR_MISS_US` 8 ms per plan (the pass
+  runs in one slice, inside a pcall; the hang guard's error passes through).
+- DONE logs: PLAN `nearMiss=<found>/<joined>/<kept> nmKept=<reason:n,...> nmJoins=<kind:gap m,...> nmErr=`
+  (also on empty plans), STREETS `nearMiss=<joins built>`. Kept reasons: inc, cut (2026-10-18), noJoin, lane, noNode,
+  target, angle, curve, slope, water, gap, zone, green, road, building, cross, near, parallel, loop, spacing,
+  footprint, plan, refused, forest, chance, cap, taken, conflict, budget.
+- Measured offline (vanilla core + 7 increments, 6 styles x 3 towns): with every chance 1 and no cap, 71 of 195
+  near-miss dead ends (36 %) are joinable; the rest `curve` 44, `noNode` 38 (no node of the street ahead in reach:
+  a T on an edge's side would need the edge split), `target` 32 (4-way nodes, junctions with a wide arm), `loop` 6.
+  With the chance and the cap (test_nearmiss growth sweep, 10 increments, full): dead ends with a street within 40 m
+  ahead 91 of 568 (0.160) -> 64 of 493 (0.130); organic styles 0.127 -> 0.109, others 0.231 -> 0.184.
+- Tests: test_nearmiss.lua (new, 18), test_driver (+1: the T through the driver, the node config in the spec, PLAN
+  fields, midOk's refusals).
+- Not done / open: a T on the side of an edge without a node (`noNode`) needs splitting that edge (remove + two edges
+  + the T), which no build of ours has done; a locked same-geometry rebuild keeps its houses (findings towns.md), a
+  split is untested (console probe first). Joining a degree-2 / 3 town node rewrites a config that has through
+  connections: the same remove + add as at a dead end and as the Crossing Tool / Smart Lanes do on junctions
+  (findings roads.md), but not yet seen for a street T in game (TESTING.md "Close the gap" 2). All constants offline
+  guesses.
+- Less cautious (2026-10-18; user: joins too rare to notice in game): kink 45, arcs 74 m, nodes to 100 m, 8 shapes on
+  the place checks, chance 0.97 to 25 m -> 0.4 at 80 m, retired dead ends closable, `cut` reason; side T deferred.
+  Details and offline numbers: PLAN.md 6.2 "Close the gap (§74)" "Less cautious".
+
+## 75. By deliveries: residential keeps a quarter (2026-10-18; done offline 2026-10-18; user decision after reviewing §66; details PLAN.md 6.2 "Supply-driven district weighting" (Formula); in game: TESTING.md "Combined test iteration" step 15)
+
+User: keep "Town growth: By deliveries", but a town fed only goods should stay a place people live in. With a 12 %
+floor per district a goods-only town aimed at 12 % residential, made few passengers of its own and earned little
+passenger experience; its commercial capacity relied on visitors from other towns.
+
+- DONE `ot_rci.FLOORS = { 0.25, 0.12, 0.12 }` (R, C, I) replaces the single `FLOOR` 0.12. Aim w = FLOORS + 0.51 x e /
+  Σe: residential 0.25-0.76, commercial / industrial 0.12-0.63 (was 0.12-0.76 each). Vanilla caps a district at 0.5 in
+  a town; the 0.63 lean is still clearly lopsided.
+- DONE test_rci aim cases (goods-only, industry-only, passengers-only, even).
+- Unchanged: the step rate, the built floor (nothing torn down), the tooltip (it names no numbers).
+- Not done: showing the lean in the town card (offered as item 3, not chosen).

@@ -14,6 +14,8 @@ local SHF = ug_require "square_organic_towns::/organic_towns/ot_shore.lua"
 local WG = ug_require "square_organic_towns::/organic_towns/ot_wedge.lua"
 local MD = ug_require "square_organic_towns::/organic_towns/ot_meadow.lua"
 local PO = ug_require "square_organic_towns::/organic_towns/ot_poly.lua"
+local NM = ug_require "square_organic_towns::/organic_towns/ot_nearmiss.lua"
+local CK = ug_require "square_organic_towns::/organic_towns/ot_check.lua"
 
 local M = {}
 
@@ -158,6 +160,8 @@ function M.hierarchy(g, inc, style)
 	end
 	-- straight wide streets: a wide piece that bends too much gets a narrower template (M.straightWide)
 	M.straightWide(inc, kept, small, h)
+	-- (§73) medium / large only as long, continuous, anchored runs (M.continuity)
+	M.continuity(g, inc, style, h)
 	for _, e in ipairs(kept) do
 		if wide(e.template) then
 			h.wide = h.wide + 1
@@ -282,12 +286,249 @@ function M.straightWide(inc, list, small, h)
 	return h
 end
 
---- "wide/stub/bare/bent" and the kept wide pieces' largest deflection "L/M" (deg) for the PLAN line.
+--- "wide/stub/bare/bent/short" and the kept wide pieces' largest deflection "L/M" (deg) for the PLAN line.
 function M.hierText(h)
 	if h == nil then return "-" end
 	local md = h.maxDefl or { large = 0, medium = 0 }
-	return string.format("wide%d/stub%d/bare%d/bent%d", h.wide or 0, h.stub or 0, h.bare or 0, h.bent or 0),
-		string.format("%.0f/%.0f", md.large or 0, md.medium or 0)
+	return string.format("wide%d/stub%d/bare%d/bent%d/short%d", h.wide or 0, h.stub or 0, h.bare or 0, h.bent or 0,
+		h.short or 0), string.format("%.0f/%.0f", md.large or 0, md.medium or 0)
+end
+
+---------------------------------------------------------------------------
+-- Continuous thoroughfares (§73, 2026-10-17; user: "early on (~1909) medium streets get built in weird configurations
+-- (like just a single track in-between small streets) and causes the car path finding to go in weird roundabouts. The
+-- whole point of the larger streets is intentional thoroughfares"). The hierarchy above keeps a wide piece when its
+-- plan line goes on at both ends and it meets a street: one block of a planned main line, built while the rest of
+-- the line was not (and maybe never is), was a lone medium edge between small streets. Now medium / large edges
+-- are kept only as runs: the connected set of medium / large edges (the town's existing ones and the increment's
+-- new ones) an increment's wide edges belong to must
+--   * be at least RUN_MIN_M long (300 m: three of our <= 100 m edges, five EU-organic blocks, 1.5 NA blocks; a cut,
+--     orphaned or one-block run is shorter), and
+--   * reach a meaningful place: an existing medium / large street (it continues or crosses one), a country road
+--     (the town's exit), the town centre or a rail station (a node within RUN_ANCHOR_M). The late street hierarchy
+--     (style.hierarchy "late": the sprawling styles from 1950 and the metropolis, whose arterial lattice is planned
+--     as such) also counts the town itself: a run that sets off from an existing street node.
+-- Early era (old templates, before 1940): a town of 1900 had one high street, the road through it, and narrow lanes
+-- (PLAN.md 6.2 "Continuous thoroughfares"): a new run that doesn't continue an existing one starts only while the
+-- town has fewer than RUN_OLD_MAX runs of RUN_MIN_M. Every other new medium / large edge is built at the
+-- style's narrower template. The run is judged on what the increment builds at once (a build is one proposal,
+-- all or nothing), so a refused or cut run leaves no stub; a run grows on only from an existing run.
+M.RUN_RULE = true
+M.RUN_MIN_M = 300
+M.RUN_ANCHOR_M = 150
+M.RUN_OLD_MAX = 1
+M.RUN_MAX_EDGES = 20000   -- edges walked per call at most (a capped walk logs nothing: the rest stays as planned)
+
+local SIZE_RANK = { xsmall = 0, small = 1, medium = 2, large = 3 }
+
+--- Size of a town street template ("small", "medium" ...; the `_trees` variant too), else nil.
+function M.townSize(t)
+	if type(t) ~= "string" then return nil end
+	return t:match("town_%a+_(%a+)%.street_template$") or t:match("town_%a+_(%a+)_trees%.street_template$")
+end
+
+--- Is an edge (graph or increment) a medium / large street? By template, else by class (main / medium) when it has none.
+function M.isWideEdge(e)
+	if e == nil or e.forestLane then return false end
+	local s = M.townSize(e.template)
+	if s then return (SIZE_RANK[s] or 0) >= 2 end
+	if e.template ~= nil then return false end
+	return e.class == "main" or e.class == "medium"
+end
+
+local function isRoadTemplate(t)
+	return type(t) == "string" and t ~= "" and t ~= "nil" and t:find("town_", 1, true) == nil
+end
+
+--- The narrower template a cut run gets: the style's collector template when it isn't medium / large, else its local one.
+function M.narrowTemplate(style)
+	local tp = style and style.templatePaths or {}
+	local m = tp.medium
+	if m and SIZE_RANK[M.townSize(m) or "small"] < 2 then return m end
+	return tp.small
+end
+
+--- Medium / large runs of graph g plus (optionally) increment inc's wide edges: the connected sets of wide edges (two
+--- edges sharing a node are one run). Returns the runs { edges = { {e, new, len} ... }, len, nodes = {id = true},
+--- existing = m of existing edges, newN = new edges } and walked (edges looked at; capped at RUN_MAX_EDGES).
+function M.wideRuns(g, inc)
+	local items, at, walked = {}, {}, 0
+	local nodePos = {}
+	local function add(e, isNew, len, a, b)
+		items[#items + 1] = { e = e, new = isNew, len = len, a = a, b = b }
+		for _, n in ipairs({ a, b }) do
+			local l = at[n]
+			if l == nil then l = {}; at[n] = l end
+			l[#l + 1] = #items
+		end
+	end
+	for _, e in ipairs(g and g.edges or {}) do
+		walked = walked + 1
+		if walked > M.RUN_MAX_EDGES then break end
+		if M.isWideEdge(e) then add(e, false, OG.edgeLength(g, e), e.n0, e.n1) end
+	end
+	if inc then
+		for _, nd in ipairs(inc.nodes or {}) do nodePos[nd.entity] = { nd.x, nd.y } end
+		for _, e in ipairs(inc.edges or {}) do
+			walked = walked + 1
+			if walked > M.RUN_MAX_EDGES then break end
+			if M.isWideEdge(e) then
+				local len = 0
+				if e.p0 and e.p1 then len = math.sqrt((e.p1[1] - e.p0[1]) ^ 2 + (e.p1[2] - e.p0[2]) ^ 2) end
+				if e.p0 and nodePos[e.node0] == nil then nodePos[e.node0] = { e.p0[1], e.p0[2] } end
+				if e.p1 and nodePos[e.node1] == nil then nodePos[e.node1] = { e.p1[1], e.p1[2] } end
+				add(e, true, len, e.node0, e.node1)
+			end
+		end
+	end
+	local runs, seen = {}, {}
+	for i = 1, #items do
+		if not seen[i] then
+			local run = { edges = {}, len = 0, nodes = {}, existing = 0, newN = 0 }
+			local stack, steps = { i }, 0
+			seen[i] = true
+			-- (each item is pushed once: seen; steps capped at the item count as a guard)
+			while #stack > 0 and steps <= #items do
+				steps = steps + 1
+				local k = table.remove(stack)
+				local it = items[k]
+				run.edges[#run.edges + 1] = it
+				run.len = run.len + it.len
+				if it.new then run.newN = run.newN + 1 else run.existing = run.existing + it.len end
+				for _, n in ipairs({ it.a, it.b }) do
+					run.nodes[n] = true
+					for _, j in ipairs(at[n]) do
+						if not seen[j] then seen[j] = true; stack[#stack + 1] = j end
+					end
+				end
+			end
+			runs[#runs + 1] = run
+		end
+	end
+	return runs, walked, nodePos
+end
+
+--- Does run reach a meaningful place (an existing wide street, a country road, the centre, a station; late hierarchy:
+--- the town's network)? Returns the anchor kind ("run", "exit", "centre", "station", "town") or nil.
+function M.runAnchor(g, run, style, nodePos)
+	if run.existing > 0 then return "run" end
+	local centre = style and style.centre
+	local stations = style and style.stations or {}
+	local late = style ~= nil and style.hierarchy == "late"
+	local R = M.RUN_ANCHOR_M
+	local best = nil
+	for n in pairs(run.nodes) do
+		local x, y
+		local node = g and g.nodeById[n]
+		if node then
+			x, y = node.x, node.y
+			for _, id in ipairs(g.adj[n] or {}) do
+				local ed = g.edgeById[id]
+				if ed and isRoadTemplate(ed.template) then return "exit" end
+			end
+			if late and best == nil and #(g.adj[n] or {}) > 0 then best = "town" end
+		elseif nodePos and nodePos[n] then
+			x, y = nodePos[n][1], nodePos[n][2]
+		end
+		if x then
+			if centre and best == nil and math.sqrt((x - centre[1]) ^ 2 + (y - centre[2]) ^ 2) <= R then best = "centre" end
+			if best == nil then
+				for _, s in ipairs(stations) do
+					local sx, sy = s[1] or s.x, s[2] or s.y
+					if sx and sy and math.sqrt((x - sx) ^ 2 + (y - sy) ^ 2) <= R then best = "station" break end
+				end
+			end
+		end
+	end
+	return best
+end
+
+--- The continuity rule (above) on increment inc over graph g: new wide edges of a run that is too short, reaches no
+--- anchor, or (old era) would be one run too many get the narrower template (M.narrowTemplate); their `wideJoin` is
+--- cleared. Idempotent; the driver runs it again after cutting edges (straight guard) and marking forest lanes. Adds
+--- h.short (edges narrowed) and h.runs = { kept, cut, maxLen } to h (default inc.hier). Returns h.
+function M.continuity(g, inc, style, h)
+	h = h or inc.hier or {}
+	inc.hier = inc.hier or h
+	h.short = h.short or 0
+	-- (kept / maxLen describe the last pass, the increment as it goes out; cut adds up over the passes)
+	h.runs = { kept = 0, cut = h.runs and h.runs.cut or 0, maxLen = 0 }
+	if not M.RUN_RULE or inc == nil then return h end
+	local narrow = M.narrowTemplate(style)
+	if narrow == nil then return h end
+	local runs, _, nodePos = M.wideRuns(g, inc)
+	-- existing runs of RUN_MIN_M (old era: the town's high streets)
+	local have = 0
+	for _, r in ipairs(runs) do
+		if r.existing >= M.RUN_MIN_M then have = have + 1 end
+	end
+	local fresh = {}
+	for _, r in ipairs(runs) do
+		if r.newN > 0 then fresh[#fresh + 1] = r end
+	end
+	-- (the longest first: it gets the old era's slot)
+	table.sort(fresh, function(a, b)
+		if a.len ~= b.len then return a.len > b.len end
+		return a.newN > b.newN
+	end)
+	local old = style and style.newTemplates == false
+	for _, r in ipairs(fresh) do
+		local anchor = M.runAnchor(g, r, style, nodePos)
+		local keep = r.len >= M.RUN_MIN_M and anchor ~= nil
+		if keep and old and r.existing < M.RUN_MIN_M then
+			if have >= M.RUN_OLD_MAX then keep = false else have = have + 1 end
+		end
+		if keep then
+			h.runs.kept = h.runs.kept + 1
+			if r.len > h.runs.maxLen then h.runs.maxLen = r.len end
+		else
+			h.runs.cut = h.runs.cut + 1
+			for _, it in ipairs(r.edges) do
+				if it.new then
+					it.e.template = narrow
+					it.e.wideJoin = nil
+					h.short = h.short + 1
+				end
+			end
+		end
+	end
+	return h
+end
+
+--- Audit of the medium / large streets graph g holds (the SNAPSHOT `wideRuns` token): runs, their edges and length,
+--- runs shorter than RUN_MIN_M (short), one-edge runs (lone: a single wide edge between narrower streets), the longest,
+--- and the wide edges by builder (by(edge) -> "mod" / "game" / other key; optional). Returns the table.
+function M.wideAudit(g, by)
+	local a = { runs = 0, edges = 0, len = 0, short = 0, lone = 0, max = 0, by = {} }
+	local runs = M.wideRuns(g, nil)
+	for _, r in ipairs(runs) do
+		a.runs = a.runs + 1
+		a.edges = a.edges + #r.edges
+		a.len = a.len + r.len
+		if r.len < M.RUN_MIN_M then a.short = a.short + 1 end
+		if #r.edges == 1 then a.lone = a.lone + 1 end
+		if r.len > a.max then a.max = r.len end
+		for _, it in ipairs(r.edges) do
+			local k = by and by(it.e) or "other"
+			a.by[k] = (a.by[k] or 0) + 1
+		end
+	end
+	return a
+end
+
+--- "runs/edges/len:short<n>,lone<n>,max<m>;mod<n>,game<n>,other<n>" for the audit (or "0" without a wide street).
+function M.wideAuditText(a)
+	if a == nil then return "-" end
+	if a.runs == 0 then return "0" end
+	local by = {}
+	for _, k in ipairs({ "mod", "game", "other" }) do
+		if a.by[k] then by[#by + 1] = k .. a.by[k] end
+	end
+	for k, n in pairs(a.by) do
+		if k ~= "mod" and k ~= "game" and k ~= "other" then by[#by + 1] = k .. n end
+	end
+	return string.format("%d/%d/%.0f:short%d,lone%d,max%.0f;%s", a.runs, a.edges, a.len, a.short, a.lone, a.max,
+		table.concat(by, ","))
 end
 
 --- Street mix of an increment (the hierarchy target, PLAN.md 6.2 "Street mix"): new street length (m, chords) by
@@ -473,7 +714,10 @@ function M.planIncrement(g, style, opts)
 	if maxEdges <= 0 then
 		local empty = { nodes = {}, edges = {}, joins = {}, dropped = {}, stats = { edges = 0, nodes = 0, length = 0 },
 			style = style.id }
-		return empty, { ownEmptyCap = 0, ownEmpty = ownEmpty, emptyCap = emptyCap }, nil
+		local rep = { ownEmptyCap = 0, ownEmpty = ownEmpty, emptyCap = emptyCap }
+		-- (§74: a town held by its own empty budget still closes its near misses: joins add no frontage ahead of the houses)
+		M.nearMissPass(g, style, empty, rep, opts, M.MAX_SEG_FLAT)
+		return empty, rep, nil
 	end
 	local bucket = opts.bucket or math.floor(#g.edges / 16)
 	local snapR = 8
@@ -495,6 +739,10 @@ function M.planIncrement(g, style, opts)
 	local envScale = envScale0
 	local connRelax = nil
 	local envWide = nil
+	-- (§75: a steer town's side streets leave a junction at 60-120 deg, ot_select SIDE / ot_check.LIMITS.sideAngle;
+	-- organic growers only, SEL.SIDE_GRID)
+	local sideAngle = (opts.limits and opts.limits.steer == true and SEL.SIDE
+		and (SEL.SIDE_GRID or style.grower == "organic")) and CK.LIMITS.sideAngle or 0
 	local function rounds()
 	for round = 1, M.ROUNDS_EMPTY do
 		if round > M.ROUNDS and #best.edges > 0 then break end
@@ -505,7 +753,7 @@ function M.planIncrement(g, style, opts)
 			limits = opts.limits, waitRefused = waitRefused, yield = opts.yield,
 		})
 		local inc = P.plan(g, streets, {
-			terrain = opts.terrain, maxSeg = maxSeg, snapR = snapR, minLen = minLen, minAngle = 25,
+			terrain = opts.terrain, maxSeg = maxSeg, snapR = snapR, minLen = minLen, minAngle = 25, sideAngle = sideAngle,
 			maxGrade = style.maxSlope, waterSetback = style.waterSetback, maxEdges = maxEdges,
 			join = opts.join or "deadEnd", templatePaths = style.templatePaths, yield = opts.yield,
 		})
@@ -627,7 +875,34 @@ function M.planIncrement(g, style, opts)
 		end
 	end
 	if bestReport then bestReport.emptyCap, bestReport.ownEmptyCap, bestReport.ownEmpty = emptyCap, ownEmptyCap, ownEmpty end
+	-- (§74 close the gap: near-miss dead ends joined to the street ahead, appended to the increment; opts.nearMiss)
+	if bestReport == nil then bestReport = {} end
+	M.nearMissPass(g, style, best, bestReport, opts, maxSeg)
 	return best, bestReport, mp
+end
+
+--- §74 (ot_nearmiss): the near-miss joins appended to inc (in place) when opts.nearMiss is set (the driver: { midOk,
+--- retiredOk (passed on since §75: it was dropped here, so no retired dead end was ever joined in game), buildings,
+--- clock, budgetUs }; tests: {}), report.nearMiss = the pass's report (report.nearMissErr when it raised: the
+--- increment stays as planned). No yield inside (pcall).
+function M.nearMissPass(g, style, inc, report, opts, maxSeg)
+	local nmo = opts and opts.nearMiss
+	if not (nmo and NM.ON) or g == nil or #g.edges == 0 then return end
+	local okN, add, rep = pcall(NM.joins, g, style, inc, { terrain = opts.terrain, maxSeg = maxSeg,
+		maxGrade = style.maxSlope, waterSetback = style.waterSetback, join = opts.join or "deadEnd", midOk = nmo.midOk,
+		retiredOk = nmo.retiredOk, buildings = nmo.buildings, seed = nmo.seed, exclude = opts.exclude, cap = nmo.cap,
+		clock = nmo.clock, budgetUs = nmo.budgetUs })
+	if not okN then
+		-- (the driver's hang guard fires inside the pass: passed on, as anywhere else in the plan)
+		if tostring(add):find("planHang", 1, true) then error(add, 0) end
+		report.nearMissErr = tostring(add)
+		return
+	end
+	report.nearMiss = rep
+	if add and #add.edges > 0 then
+		NM.merge(inc, add)
+		inc.mix = M.mix(inc)
+	end
 end
 
 M.GREEN_RELAX = true
@@ -649,8 +924,8 @@ function M.greensClearOfDeadEnds(g, style)
 end
 
 --- Runs `n` increments on graph g (building each into it, tagged 1..n). Stops early when an increment is
---- empty. Joins any node unless opts.join says otherwise (in game only dead ends until probe D clears a
---- variant). Returns the list of increments. For tests and the SVG preview.
+--- empty. Joins any node unless opts.join says otherwise (in game only dead ends, plus the street nodes of the §74
+--- near-miss joins that the driver allows). Returns the list of increments. For tests and the SVG preview.
 function M.simulate(g, style, opts, n)
 	opts = opts or {}
 	if opts.join == nil then
@@ -671,18 +946,21 @@ end
 
 --- A wedge frame increment (ot_wedge, 2026-10-13) for an armed town: links the unlocked dead ends in its green wedges
 --- (beyond the core zone at the envelope level) with locked small streets. opts = { terrain }. Returns inc (ot_plan
---- increment, its edges' keys "frame:a:b") or nil, why, info = { cands, links, coreR, env }.
+--- increment, its edges' keys "frame:a:b") or nil, why, info = { cands, links, coreR, env, kind, and the §75 tip cap
+--- (ot_wedge.tipCap): tipCap (m; nil without house data), tipCut / cutMaxR (tips beyond it dropped, the farthest),
+--- maxTipR (the farthest tip kept), bodyOut (houses outside the main body) }.
 function M.frameIncrement(g, style, opts)
 	opts = opts or {}
 	local hidx = g.hasBuilt and SEL.housedIndexM(g, WG.LEAD_M) or nil
-	local streets, why, nCand, coreR, env, kind
+	local streets, why, nCand, coreR, env, kind, tipCap, body
 	if WG.applies(style) then
 		kind = "wedge"
 		env = SEL.envelopeCap(g, style, opts.terrain)
 		coreR = WG.coreR(style.shape, env)
 		if coreR == nil then return nil, "noEnv", {} end
+		tipCap, body = WG.tipCap(g, style.shape.centre[1], style.shape.centre[2])
 		streets, why, nCand = WG.frameStreets(g, style.shape, { coreR = coreR, housedIdx = hidx, housedDist = SEL.housedDist,
-			ringLead = SEL.RING_LEAD_M })
+			ringLead = SEL.RING_LEAD_M, maxTipR = tipCap })
 	elseif style.meadows and MD.applies(style) then
 		-- protected meadows (ot_meadow, later-ideas phase): the game's tips in a meadow sector linked, no tails (the lobes
 		-- between the meadows stay free)
@@ -690,8 +968,9 @@ function M.frameIncrement(g, style, opts)
 		local z = MD.zone(g, style, SEL.irregularity(style))
 		if z == nil then return nil, "noMeadow", { kind = kind } end
 		coreR, env = z.coreR, nil
+		tipCap, body = WG.tipCap(g, z.centre[1], z.centre[2])
 		streets, why, nCand = WG.frameStreets(g, { centre = z.centre, arms = z.lobes, axis = z.lobes[1] }, { coreR = coreR,
-			housedIdx = hidx, housedDist = SEL.housedDist, noTails = true, ringLead = SEL.RING_LEAD_M,
+			housedIdx = hidx, housedDist = SEL.housedDist, noTails = true, ringLead = SEL.RING_LEAD_M, maxTipR = tipCap,
 			accept = function(x, y) return MD.inSector(z, x, y) end })
 	else
 		return nil, "style", {}
@@ -705,7 +984,10 @@ function M.frameIncrement(g, style, opts)
 		streets = kept
 		if #streets == 0 then why = "excluded" end
 	end
-	local info = { cands = nCand or 0, links = #streets, coreR = coreR, env = env, kind = kind }
+	-- (§75 tip cap: tipCut tips beyond tipCap dropped, maxTipR the farthest kept; bodyOut the houses outside the body)
+	local info = { cands = nCand or 0, links = #streets, coreR = coreR, env = env, kind = kind, tipCap = tipCap,
+		bodyOut = body and body.out or nil,
+		tipCut = WG.lastTipCut or 0, maxTipR = WG.lastMaxTipR or 0, cutMaxR = WG.lastCutMaxR or 0 }
 	if why then return nil, why, info end
 	local inc = P.plan(g, streets, { terrain = opts.terrain, maxSeg = M.MAX_SEG_FLAT, snapR = 8, minLen = 10, minAngle = 25,
 		maxGrade = style.maxSlope, waterSetback = style.waterSetback, maxEdges = WG.MAX_EDGES, join = "deadEnd",

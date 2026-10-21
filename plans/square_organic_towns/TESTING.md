@@ -104,6 +104,465 @@ Run 2026-10-17 22:43-22:49Z (seed A, new map; log not archived): items 1-6 pass,
 docs/findings/gui.md. Still open: 7's click, icon look and no repeat after a reload, 8 (map editor),
 9 (older save), 10 (German / Japanese), and whether `condition` is evaluated per render.
 
+## Name lists from other mods (2026-10-17; NEXT_PHASE_BRIEF 72; PLAN.md 6.2 "Name lists from other mods (§72)")
+
+Not yet seen in game. Needs a German name list from another mod: subscribe to "Deutsche Städte und Gemeinden"
+(mod.io german-cities-and-municipalities5; `make subscribed` copies it to `.cache/subscribed/` so its folder layout can
+be read), or any other mod's list. Quit TF3 fully first (`make link` done).
+
+1. **New map, dry climate,** the German list, Town style Automatic, Vanilla town street angles Automatic, Town and
+   stop names Landscape names, Satellite towns On. Expect `[SQOT] ANGLE ... region=EU regionSource=nameList
+   nameList=<modId>::/names/...` (not MED from the dry climate) and `[SQOT] NAMELIST list=<same path> base=false
+   region=EU country=germany regionSource=nameList word=<german / deutsch...> cls=de clsSource=country`. If the
+   path has no German word: `country=- clsSource=guess cls=de` (from the map's names), else `clsSource=list` with
+   `listPath=` and `listN=`, or `clsSource=fallback why=...` (send the line: the list's layout differs).
+2. **The list's towns keep their names:** `[SQOT] NAMES on=false why=notBase`, no STOPNAME renames; the map's towns
+   carry the list's names.
+3. **Satellite names:** play (or the dev Simulate) until a `DISTRICT ... event=created` / `WORKS ... event=created`:
+   the new town has a German name ("Ober<parent>", "<parent>-Heide", "<parent>-Hütte"), no English word ("Heights", "Works",
+   "Upper"). With `clsSource=list`: an unused name of the list itself.
+4. **A missing towns.lua is harmless** (only when step 1 shows `clsSource=list` or `fallback`): `tries=` > 1 and no
+   error dialog, no `[SQOT] ERROR`, no assert; note what the game logged for the missing paths (findings).
+5. **Base lists unchanged:** a European map shows `NAMELIST ... base=true clsSource=base` and the same names as before.
+
+Console (any running game; read the output with `make logs-grep PAT='SQOT_NL' ARGS='--session live'`): the map's list,
+as base copies it into baseConfig (`nameId`, findings towns.md; reading it from the console is untested):
+`print("SQOT_NL", api.res.getBaseConfig().nameId)`. Whether another mod's towns.lua loads, and what a missing one
+does (replace `<modId>` / `<dir>` with the printed path's parts): `local ok, l = pcall(ug_require, "<modId>::/names/<dir>/de/towns.lua"); print("SQOT_NL", ok, type(l) == "table" and #l or tostring(l))`.
+
+Lines to send: `make logs-grep PAT='\[SQOT\] (ANGLE|NAMELIST|NAMES|DISTRICT|WORKS|ERROR)'`.
+
+## Continuous thoroughfares (2026-10-17; NEXT_PHASE_BRIEF 73; PLAN.md 6.2 "Continuous thoroughfares (§73)")
+
+Not yet seen in game. Quit TF3 fully first (`make link` done). New map, start year 1900, Town style Automatic (or
+EU organic), Satellite towns On, debug log On; play (or Quick / the dev Simulate) to about 1920, then on to the
+1950s for the late arterials.
+
+1. **No lone medium edges, early:** zoom over a few towns around 1905-1920. Medium streets only as long through
+   streets (a high street, the road out to the country road, a street to the station); no single medium edge or
+   short medium piece between small streets. `[SQOT] SNAPSHOT ... wideRuns=` per town: `lone0` and `short0` on
+   the runs our builds make (a short run may still be the game core's or the game's own: see 3).
+2. **PLAN lines:** `hier=wide<n>/.../short<n>` and `runs=<kept>/<cut>/<longest m>`: before 1940 mostly `short`
+   counts and `runs=0/...`; a kept run's longest >= 300. BUILT `tipRej=wide:n` when a tip would have been a wide edge.
+3. **Who builds medium streets:** `wideRuns=...;mod<n>,game<n>,other<n>`. `game` > 0 means the game's own growth
+   built a medium / large street after it started (a §67-locked game street): note the town and look at it (record
+   in docs/findings/towns.md). `other` is the town's core and the game's open streets.
+4. **Car routes:** watch a few cars / buses through an early town: no detour through a lone medium edge.
+5. **Late hierarchy (1950s, NA grid / suburb / superblock, or a metropolis):** arterials still come as long lines
+   (PLAN `runs=` kept with longest well over 300), STREETS `wideRuns=` short / lone stay low.
+6. **No refusals from the joins:** a small street joining the end of a medium street builds (no `REFUSED` /
+   "Construction not possible" at such a joint; mixed widths at a 2-street node, as `wideJoin` already does).
+
+Lines to send: `make logs-grep PAT='\[SQOT\] (SNAPSHOT|PLAN|BUILT|STREETS|REFUSED)'`.
+
+## Wider minimum block (2026-10-18; PLAN.md 6.2 "Wider minimum block")
+
+First seen in game 2026-10-18 (results below). Quit TF3 fully first (`make link` done). A new map with a few MED hill, EU organic and JP dense
+towns (Town style Automatic on a European map with hills, or the setting per style), debug log On; play (or Quick / the
+dev Simulate) a few decades.
+
+1. **Fewer slivers:** zoom over grown towns. Blocks between two parallel mod streets where only one large building or
+   only the smallest buildings fit should be rare now (were frequent in MED hill and EU organic): two neighbouring
+   parallel streets about 44 m apart at least (a row of 3-cell lots between them). Cross streets still about a block
+   apart, just more evenly spaced. Screenshots of any narrow block left (with the town's style from the PLAN line).
+2. **Density about as before:** towns grow as fast and as dense as on the last run (STREETS / CHECK `buildings=` per
+   decade); MED hill towns a little less street per house. A town that stops growing for many checks (STALL lines)
+   is worth a note with its style.
+3. **Deep forest and hug towns** keep their groves (no wider cuts beside the arms).
+
+Lines to send: `make logs-grep PAT='\[SQOT\] (PLAN|STREETS|STALL|CHECK)'`.
+
+**Run 2026-10-18 22:22Z** (session `2026-10-18_2222_sqot`; seed `a`, EU, 1900, dev Quick 40 years, tour; compared
+with the §71 run `2026-10-16_1846_sqot` load 2, same seed; compare page `compare/2026-10-15_a-lock`, run `mod-2222`).
+No MED hill / JP dense site test: the map has 3 MED hill towns (Seachurch Cove, Wheatden, Ashgrove), the rest EU.
+1. **Fewer slivers: not judged.** The tour's overview shots (1800 m) are too far out for block widths. Crops at full
+   resolution (Dovemouth, Watersmeet, Dalemere, Two Waters) show no obvious one-row blocks between parallel mod
+   streets; narrow blocks are mostly in the game's own curved fill. A close-up pass (dev showcase or zoomed shots) is
+   still needed.
+2. **Density about as before: pass.** Persons at year 40 44155 vs 44159, capacity 43782 vs 43814, buildings 9212 vs
+   9384 (the towns build bigger: pb median 4.86 vs 4.77), persons / ha median 39.3 vs 34.7, median radius 457 vs 495 m,
+   `spread` 1.23 vs 1.36. Mod street built 100.1 vs 108.5 km (planned length 27.8 vs 30.1 km, SEND edges 926 vs 955 to
+   the SIMGROW stop); the game's own street length 104.1 vs 100.5 km (share 0.51 vs 0.48: Seven Oaks 9.6 vs 5.4 km,
+   Two Waters 14.1 vs 9.9, Seachurch Cove 8.1 vs 3.5, Lower Arunmouth 9.0 vs 5.7). MED hill street per house: Wheatden
+   13.6 vs 16.0 km for 597 vs 628 buildings, Seachurch Cove 14.5 vs 11.1 km for 678 vs 552. **0 STALL**, 2 STUCK
+   (Little Dalemere year 31 `emptyRun=6 held=wedge=1,env=3`, Hornholt Isle year 35 `emptyRun=6 held=lead=1,wedge=4,env=4`;
+   the §71 run also had 2: Wheatden, Ashgrove); empty plans 98 vs 107. `frontRelax` / `frontExtra` are not logged
+   (ot_select keeps `report.frontRelax` but no line prints it), so whether they fired is unseen. Hornholt Isle's
+   buildings fell 345 -> 239 at year 12: a LEVELS set (`was=0.527/0.278/0/0` -> `0.769/1/1/1`, pb 3.35 -> 5.79), not a
+   stall; it ended at 443 buildings with the same capacity as before (2755 vs 2739).
+3. **Deep forest and hug towns keep their groves: pass (shots).** Dovemouth (deep, `forest=0.35:deep`) keeps the
+   woods round it; forestLot sum 29.7 ha vs 30.6 (same count).
+
+
+## Away from player facilities (2026-10-18; PLAN.md 6.3 "Away from player facilities")
+
+Harbors, airports / heliports, vehicle depots / maintenance stations and freight-only stations the player builds near a
+town get a light lean (never a zone, never a hold). The reads are unverified in game. Debug log On, quit TF3 fully first.
+
+1. **Listing (console, any game with a few depots / stations built):** paste
+   `local E = ug_require "square_organic_towns::/organic_towns/ot_engine.lua"; local I = ug_require "square_organic_towns::/organic_towns/ot_industry.lua"; local l = E.facilities() or {}; print("SQOT_FAC n=", #l); for i = 1, math.min(#l, 60) do local f = l[i]; print("SQOT_FAC", i, I.classifyFacility(f) or "-", math.floor(f[1]), math.floor(f[2]), f.depot and "depot" or "-", tostring(f.cargo), tostring(f.passenger), f.file) end`
+   and read it with `make logs-grep PAT='SQOT_FAC' ARGS='--session live'`. Expect every depot / maintenance station as
+   `depot` (file under `depots/`), a harbor as `port`, an airport `airport`, a truck or cargo rail station `freight`
+   (`cargo=true passenger=false`), passenger rail stations and bus stops `-`. If `n= 0` with depots on the map, try
+   the depot read alone: `local d = api.engine.getEntitiesWithComponent(api.type.ComponentType.VEHICLE_DEPOT); print("SQOT_DEP n=", #d); for i = 1, math.min(#d, 20) do local c = api.engine.system.streetConnectorSystem.getConstructionEntityForDepot(d[i]); print("SQOT_DEP", d[i], c, c and c >= 0 and api.engine.getComponent(c, api.type.ComponentType.CONSTRUCTION).fileName) end`.
+   Record the result in `docs/findings/towns.md` (the reads' entry).
+2. **In play:** build a harbor (or a road depot, or an airport) 300-500 m from the edge of a town the mod is growing.
+   Within ~2 min: `[SQOT] FAC facilities=<n> port=1 ...` (only when the list changed). The town's next PLAN / SHAPE lines
+   carry `fac=1:1/0/0/0/0` (port), `zones=` unchanged by it and no extra `indHeld=`. Over a few game years the mod's
+   new streets favor the other sides a little (a depot barely, a harbor or airport more), and the town still grows
+   toward it when nothing else is left.
+3. **Passenger rail station:** build one beside a town: no `fac=` count for it (the M3 station quarter still pulls).
+
+**Run 2026-10-18 22:22Z** (session `2026-10-18_2222_sqot`, fresh seed `a` map, no player facilities): the reader ran
+in the mod's script state without error: `FAC facilities=0 port=0 airport=0 heliport=0 depot=0 freight=0 read=15
+ok=true us=53-102`, every PLAN `fac=0` (342), no zone or hold. Items 1-3 not tested (nothing built). Oddity: 17
+identical FAC lines in the first 3 s (22:23:03-06), although `Driver:facilitiesRead` logs only when the signature
+changes: `self.facSig` seems not to persist between those calls; harmless here, but on a map with facilities it may
+also redo the towns' share each time. Check it in the next facility test.
+
+
+## Side streets and parallel streets (2026-10-19; PLAN.md 6.2 "Side streets and parallel streets (§75)")
+
+First seen in game 2026-10-19, again 2026-10-20 (results below: `geoSide=0` and the empty lines' `knotHeld` confirmed,
+6. fires without stalls; next run: 5. with the fixed PROV `src` (`nm:<kind>`, `link/conn`, `m:<motif>/...`), `who()`
+from the console on a street of this session and again after a save / reload, and shot 5's comb looked for on
+screen; since 2026-10-20 also 7. (TICKCOST before / after the state read change), 8. (SNAPSHOT `emptyRows`) and 9.
+(CHECK `rBody` / `out`, FRAME `tipCut` / `maxTipR`, PROV `d=`)). Quit TF3 fully first (`make link` done). The 2026-10-19 save with the shots (or a new map), Town
+style Automatic, debug log On; play (or Quick / the dev Simulate) a few decades in organic towns (EU organic / EU
+extension / MED hill) and at least one forest town.
+
+1. **No shallow side streets (case A):** new mod streets leave a junction at 60 deg or more (a Y fork aside). PLAN
+   `geoSide=0` on steer towns of organic styles (grids may show some: exempt), `knotHeld=<n>:<cross>/<parallel>/<loop>/<side>/<row>`
+   counts the holds (`<row>` since 2026-10-19, 6.).
+2. **No long parallel back streets (case B):** no new mod street runs more than a block length (60-200 m) beside
+   another within ~40-50 m without a cross street; PLAN `knotHeld` `parallel` counts. The towns still grow about as
+   fast (CHECK `buildings=` per decade; STALL / STUCK as before): the holds never give way, so a town whose PLAN shows
+   `edges=0` with only `knotHeld` side / parallel for many plans in a row is worth a note.
+3. **Corners close up (case C):** PLAN `nmJoins=pair:<gap>c` (a corner of two dead ends) and `...r` (a join closing a
+   retired dead end: the first ever, retiredOk was never passed on before). Over a session expect `nmKept=noJoin` and
+   `target` well down against `2026-10-19_0531_sqot-sqrl` (338 / 265 of 962). The forest town by the water: the
+   corner south of the T in the shots closes within a few builds unless its draw left it (`chance` / `forest`).
+4. **The corners build:** after a `c` join, no `REFUSED` / "Construction not possible"; a right-angle corner node
+   between two small streets, houses along both legs later.
+
+5. **Street provenance (2026-10-19, record bounded and who() fixed 2026-10-20; PLAN.md §75 "Follow-ups built"):**
+   with the debug log on, every build is followed by one `[SQOT] PROV` line per new edge: `town= name= edge=<entity>
+   n=<node0>,<node1> a=<x>,<y> b=<x>,<y> len= src= key= trig= seq= year= lock=` (`src`: `plain/ln` an organic lattice
+   cross lane, `plain/sr` a secondary radial, `plain/bk` a back row, `plain/sp` a spoke, `nm:tee` / `nm:pairc`
+   near-miss joins, `link/conn` a connector, `m:<motif>/...`, `lead` / `works` / `sat` / `bridge` / `frame`; more than
+   24 edges: a `more=` line). To name the builder of a street on screen, hover it and paste **the whole line** in the
+   console (the key below Esc; a bare `who()` is undefined there):
+   `ug_require("square_organic_towns::/organic_towns/ot_prov.lua").who()`
+   (or `.who(<edge id>)`, `.who(<x>, <y>)`); the answer shows in the console (the echoed return value) and in
+   stdout: `make logs-grep PAT='\[SQOT\] WHO' ARGS='--session live'`: `ours=yes src=...` (ours, with the piece),
+   `ours=likely` (ours, split or rebuilt by the game since), `ours=probably` (locked, no record: built before this
+   version or older than the record's ~700 newest edges), a §67 game lock, or `ours=no` (the game's growth or the
+   original layout). Check: (a) on a long street (the 0228 miss, `no street within 40 m`) it now names the edge; a
+   miss says `the nearest street <d> m`; (b) `ours=yes` for a street built this session and again after a reload
+   (`state_native` from the console); (c) an error prints `[SQOT] WHO error ...`, never nothing; (d) TICKCOST `pvB`
+   stays at most 32768 over a long session and `getMaxUs` as before the record (1949 / 0001 runs: `getMaxUs`
+   180-330; `getAvgUs` now falls, 7.); (e) an old save (no `pv`): `pvB=0` until the first build, no load cost. Then note the console
+   facts in docs/findings/debugging.md.
+6. **One empty row at a time (2026-10-19, shot 5):** no new comb of empty parallel dead-end lanes ~45 m apart beside
+   an empty street of ours: a second row comes once the first has houses, or as a closed block. PLAN `knotHeld` `<row>`
+   counts the holds; the empty PLAN and STUCK lines carry it too: a town whose plans stay empty with only `row` holds
+   for many plans in a row is worth a note (offline it never stalled a town). CHECK `buildings=` per decade about as
+   before; empty street km (the run's table) down.
+
+7. **The saved state off the frame path (2026-10-20; PLAN.md §75 "The saved state off the frame path"):** the game
+   script copies the whole saved state only when its change number moved (and after the mod's own events, and every
+   2 s), no longer every frame. TICKCOST (always on, every 5 min) before / after: `getAvgUs` from about a copy's cost
+   (the 0001 run: `avgUs` 150-230 per tick with the copy inside; `getMaxUs` 166-475) to a few us; `getN=` (full
+   copies in the window) from the tick count (~20,000-23,000) to a few hundred; `getMaxUs` about as before (copies
+   still run on changes); `avgUs` down by about the copy's mean. `stateMode=rev` on every line; `stateMode=get` or a
+   `[SQOT] STATEREAD mode=get reason=...` warning means the session fell back to the old path (say the reason: the
+   native read failed, or the cost check found it no cheaper; e.g. `getComponent` copying the state itself).
+   `revMiss=` (session total) > 0 means the native number and the copy lag each other (harmless: the mod's own
+   events are watched; note the figure). Check also: no `gamescript_util.cpp` assertion and no crash dump (the read
+   is the town window card's, on the Main Thread, never `get_native`); growth as before (the same events); after a
+   save / load and after loading another save, the towns' frames still read (no style or shape flip at the next
+   build: a stale copy would show there). Then note the facts in docs/findings/game-scripts.md.
+   **Run 2026-10-20_0424_sqot-sqrl (54 min, existing save "Organic Towns - Subarctic", loaded twice: 04:26 and
+   04:29Z):** 9 TICKCOST lines, all `stateMode=rev revMiss=0`, `getAvgUs=13-14`, `getN=250-397` full copies per
+   ~17,000-23,000 ticks (~1.5 %), `getMaxUs` 159-233; tick `avgUs` 103-128 vs 214-236 in the 0001 run on the same
+   save (about half). No STATEREAD warning, no `gamescript_util` assert, no traceback of ours. `maxUs` spikes
+   (41-90 ms at `job:plan`) as before. Record: `pvN=8 pvB=395` (few streets built this session). who() run 8 times
+   (05:18-05:19Z): 4 answers (`ours=no` game lock town 55226; `ours=no` x2; `ours=probably`), 4 misses with the
+   nearest street 43-149 m from the cursor point (open: was the cursor on a street? the console window may cover it).
+   No `ours=yes` yet: none of the 8 recorded streets was picked.
+8. **Empty-row measure (2026-10-20):** SNAPSHOT (debug) `emptyRows=<m>/<dead-end m>/<edges>`: the town's own empty
+   edges running 40 m+ beside another within the row distance (`rowsUs=` its time, under a few ms). Read it per town
+   over the run (last SNAPSHOT per town, summed): the row rule's gain in game (offline: 1.5 -> 0.3 km, dead-end 0.7 ->
+   0 km per EU organic town at +15 houses per increment); compare with shot 5's comb if one is seen.
+
+9. **Far-out streets after an extent jump (2026-10-20; PLAN.md §75 "Far-out streets after an extent jump"):** a
+   town whose CHECK `r` jumps (1949: Wheatden 478 -> 1070 m; 0205: Seachurch Cove 682 -> 998 m) gets no frame pieces
+   out at its outlying houses. Check: (a) CHECK (debug) `rBody=` / `r50=` / `out=<houses>/<groups>` /
+   `outFar=<houses>@<m>/<deg>`: on a jumping town `rBody` stays near the old `r` while `r` jumps, `out=` holds the
+   outlying group (note its size, distance and heading, and whether its houses stand on a country road or town
+   streets; the console line of PLAN §75 for the buildings beyond 700 m); on the other towns `out=0/0` or small
+   (note any town with a big second group: a twin, a bridgehead or a forest town split by a gap over 200 m, the
+   cases the cap would trim); `bodyUs=` a few hundred us at most; (b) FRAME plan / none lines `tipCap=` /
+   `tipCut=<n>[@<m>]` / `maxTipR=` / `bodyOut=`: `tipCut` > 0 only on towns with `bodyOut` > 0 (a cut on a one-body
+   town would mean a tip beyond its houses' lead: note it), `maxTipR` <= `tipCap`, frames still come for the armed and
+   meadow towns as before (FRAME `outcome=plan` lines about as in 0205: 22); (c) PROV `d=` (the edge
+   middle from the town centre): the far plain pieces (`plain/sr`, `plain/conn`, `plain/rg`) of a jumping town show as
+   `d=` well past its `rBody` (not capped by this change: the decision on the main body waits for these numbers).
+
+**Run 2026-10-20_0803_sqot (seed `a`, Quick 40, all §75 work incl. the frame cap; vs 0205):** plans 298 (empty 96)
+vs 302 (108); knotHeld cross/parallel/loop/side/row 99/15/0/40/37 vs 50/21/1/23/53; knotRelax 12 vs 10; nmJoins
+tee/cross/pair 35/12/7 vs 34/8/5; buildings (last CHECK, all towns) 8898 vs 9374 (-5 %; the 1949 run had 8915: within
+run spread); PLAN us median/p90/max 44/228/395 ms vs 42/233/517. STUCK 3 (Far Ashworth, Wheatden, Hornholt Isle: held
+by wedge / env / forest / armFill, not by knot or row holds) vs 0; REFUSED 3 (precheck collisions / CNP, 1-8 edge
+pieces) vs 0; FAILED 1 (Far Ashworth, 18 edges) vs 1; GLOCK `ok=false` 8 (Ashgrove; also 18 / 12 / 10 in the 2222 /
+0024 / 1949 dev runs: older). Tracebacks: only the base GUI's expired ReactRef. **Frame cap:** `tipCut` never fired
+(no change in this run). **Outlying groups (CHECK `out`/`outFar`):** Dovemouth-in-the-Forest 41 houses @ 3164 m,
+Merehythe-on-Redwater 59 in 2 groups (41 @ 1159 m), Seachurch Cove 10 @ 1095 m; every other town `out=0/...`.
+**emptyRows** (last SNAPSHOT per town): 13 of 16 towns 0; three with 50 / 166 (89 dead-end) / 182 (182 dead-end) m,
+about 0.4 km in all. Verdict: no regression from §75; ready for revision 6.
+
+Lines to send: `make logs-grep PAT='\[SQOT\] (PLAN|BUILT|REFUSED|STALL|STUCK|PROV|WHO|STATEREAD|TICKCOST|SNAPSHOT|CHECK|FRAME)'`.
+
+**Run 2026-10-19 19:49Z** (session `2026-10-19_1949_sqot`; seed `a`, EU, 1900, dev Quick 40 years, tour; against the
+§74 "less cautious" run `2026-10-19_0024_sqot` load 1 and the §73 run `2026-10-18_2222_sqot`, same map, read with the
+same script; the 16 starting towns compared, each run's new works / satellite towns left out; two user shots taken
+mid-run at 19:59:10Z / 19:59:17Z: "shot 4" / "shot 5" below):
+
+| | 2222 | 0024 | 1949 (§75) |
+|---|---|---|---|
+| plans (with edges / empty) | 271 (- / 100) | 276 (172 / 104) | 285 (172 / 113) |
+| PLAN `knotHeld` sum: cross / parallel / loop / side | - | 20 / 0 / 1 / - | 28 / 22 / 2 / 40 (92 pieces) |
+| plans with `knotRelax=true` | - | 0 | 3 (each then built only a near-miss join) |
+| plans with `geoSide` > 0 | - | - | 6, 1 each (see 1.) |
+| `nearMiss` found / joined / kept | 1655 / 20 / 1635 | 1541 / 35 / 1506 | 1423 / 42 / 1381 |
+| `nmJoins` (tee / cross / pair; `c` / `r`) | 20 (19 / 1 / 0) | 34 (23 / 10 / 1) | 39 (27 / 8 / 4; 2 `c`, 5 `r`) |
+| `nmKept` curve / building / target / noJoin / chance | 454 / 268 / 228 / 200 / 86 | 455 / 461 / 172 / 93 / 86 | 496 / 339 / 139 / 10 / 133 |
+| `nmKept` noNode / inc / slope / budget / cut | 183 / 98 / 46 / 3 / - | 36 / 71 / 35 / 24 / 6 | 72 / 68 / 61 / 11 / 11 |
+| REFUSED / FAILED / CNP / Lua error | 0 / 1 / 0 / 0 | 0 / 3 / 0 / 0 | 2 / 1 / 0 / 0 (none with a join) |
+| STUCK | 2 | 3 | 3 (Hornholt Isle, Far Ashworth, Ashgrove: `held=wedge,env`) |
+| PLAN `us=` median / p90 / max | 48 / 224 / 462 ms | 42 / 193 / 398 ms | 38 / 224 / 494 ms |
+| 16 towns: buildings / capacity | 9212 / 43782 | 8911 / 44342 | 8915 / 43720 |
+| 16 towns: street / mod street / empty street (km) | 197.1 / 97.3 / 47.6 | 196.0 / 106.1 / 49.2 | 190.7 / 95.9 / 44.1 |
+| 16 towns: dead ends / median radius | 305 / 457 m | 331 / 474 m | 325 / 467 m |
+
+1. **No shallow side streets: pass.** 40 pieces held as `side` and 22 as `parallel` over 285 plans. `geoSide=1` on 6
+   plans (Lower Arunmouth, Seachurch Cove, Watersmeet, Little Dalemere x2, Norfield), every one a plan with a
+   near-miss join, 5 at `minAngle=60.00`: a T's heading is clamped to exactly TEE_MIN_DEG 60 and the built tangents
+   read back a hair under it (the sixth, Little Dalemere `cross:25` at `minAngle=40.43`, likely the same). Fixed in the
+   checker's report (`ot_check.SIDE_TOL` 0.1 deg; test_side75): the next run should show `geoSide=0`. No grower piece
+   under 60 deg in the logs.
+2. **No long parallel back streets: pass on the holds; the growth cost is small.** Mod street 95.9 km vs 106.1 (0024)
+   and 97.3 (2222); buildings 8915 vs 8911, capacity -1.4 %; empty street 44.1 vs 49.2 km. 3 STUCK as before (wedge /
+   env holds). Whether side / parallel holds ever emptied a plan could not be read: the empty PLAN and the STUCK lines
+   had no `knotHeld` (fixed: both carry `knotHeld=<n>:<cross>/<parallel>/<loop>/<side>`, the empty PLAN line also
+   `knotRelax`; `ot_driver.knotText`, test_forced). The 3 relaxed plans built only near-miss joins (Seven Oaks: its
+   parallel hold stayed after the relax, as designed).
+3. **Corners close up: pass.** `nmJoins` 39 (0024: 34): 4 `pair` (0024: 1), 2 of them corners (Watersmeet `pair:64c`,
+   Seachurch Cove `pair:54cr`), and 5 joins closing a retired dead end (`tee:60r`, `tee:44r`, `tee:42r`, `pair:54cr`,
+   `pair:33r`), the first ever. `nmKept=noJoin` 338 -> **10** and `target` 265 -> **139** against the 0531 baseline
+   (35 % -> 0.7 % and 28 % -> 10 % of the near misses); against 0024 noJoin 93 -> 10, target 172 -> 139. Left:
+   `curve` 496, `building` 339, `chance` 133 (more candidates reach the roll), `noNode` 72.
+4. **The corners build: pass.** Every join build `BUILT ok=true` (docs/findings/towns.md); the 2 REFUSED (pre-check
+   Collision) and the FAILED one were 1-edge plain pieces. A close look at a corner is still open.
+- **Frame time:** median lower, p90 / max a little up (224 / 494 vs 193 / 398 ms: the chain walks). SQPERF: nothing of
+  ours (only the minimap's).
+- **Oddity:** Wheatden's radius 448 -> 1125 m (empty street 4.5 -> 7.4 km, dead ends 9 -> 34) with Wheatden Foundry
+  (a new works town 1.5 km off, created after the jump) this run; looked into 2026-10-20: an outlying group of the
+  town's own houses, not the Works (PLAN.md §75 "Far-out streets after an extent jump").
+- **User shots (mid-run; the log can't name the town: no camera line outside the tour, no per-edge geometry):** shot
+  4, a triangle island (~40 x 60 m, three houses) where a street bends 90 deg and a chord cuts the bend; shot 5, three
+  long empty straight dead ends ~45 m apart on open grass with a comb of two short streets off the middle one.
+  Diagnoses and proposed fixes: PLAN.md §75 "Follow-ups after the 2026-10-19_1949 run".
+
+**Run 2026-10-20 02:05Z (row rule + provenance)** (session `2026-10-20_0205_sqot`; seed `a`, EU, 1900, dev Quick 40
+years, tour; the same map as 1949 (same town ids and positions, 16 starting towns: 12 EU organic / MED hill, 3 EU
+extension); read with the same script as the 1949 column. The matching point: both are one dev Quick run from 1900 to
+year 40 (1901-1940), Quick itself ~2 min in both; the 1949 session ran on into other loads (1h36m), but its 16
+starting towns exist only in the first, so both columns cover the same 40 simulated years. Town end figures from the
+tour's ALLTOWN lines at year 40):
+
+| | 1949 (§75) | 0205 (+ row, provenance) |
+|---|---|---|
+| plans (with edges / empty) | 285 (172 / 113) | 302 (194 / 108) |
+| PLAN `knotHeld` sum: cross / parallel / loop / side / row | 28 / 22 / 2 / 40 / - (92 pieces) | 50 / 21 / 1 / 23 / **53** (148 pieces) |
+| plans with a `row` hold (with edges / empty) | - | 44 (32 / 12) |
+| plans with `knotRelax=true` (with edges / empty) | 3 / not logged | 3 / 7 |
+| empty plans with a knot hold (cross / parallel / row pieces) | not logged | 37 of 108 (9 / 6 / 12) |
+| plans with `geoSide` > 0 | 6 | **0** |
+| `nearMiss` found / joined / kept | 1423 / 42 / 1381 | 1666 / 52 / 1614 |
+| `nmJoins` (tee / cross / pair; `c` / `r`) | 39 (27 / 8 / 4; 2 `c`, 5 `r`) | 47 (34 / 8 / 5; 1 `c`, 1 `r`) |
+| `nmKept` curve / building / target / noJoin / chance | 496 / 339 / 139 / 10 / 133 | 609 / 261 / 278 / 28 / 124 |
+| `nmKept` noNode / inc / slope / budget / cut | 72 / 68 / 61 / 11 / 11 | 69 / 77 / 70 / 14 / 0 |
+| REFUSED / FAILED / CNP / Lua error | 2 / 1 / 0 / 0 | 0 / 1 / 0 / 0 (FAILED: Monkton, a 5-edge frame wedge, no msgs) |
+| STUCK / STALL | 3 / 1 | **0** / 3 (Dovemouth-in-the-Forest, valve fires as in 1949) |
+| PLAN `us=` median / p90 / max | 38 / 224 / 494 ms | 42 / 233 / 517 ms |
+| 16 towns: buildings / capacity | 8915 / 43720 | 9340 / 44165 |
+| 16 towns: street / mod street / empty street (km) | 190.7 / 95.9 / 44.1 | 201.6 / 106.2 / 47.6 |
+| 16 towns: the mod's own empty street, last PLAN `ownEmpty` summed (km) | 14.1 | 16.6 |
+| 16 towns: dead ends / median radius | 325 / 467 m | 333 / 500 m |
+| PROV lines (= BUILT edges) | - | 994 (= 994 in 216 builds; no `more=`, no edge twice) |
+
+5. **Street provenance: lines pass, `src` was wrong (fixed).** One PROV line per built edge (994 = the BUILT
+   `edges=` sum), no `more=` (no build over 24 edges), no edge id twice, all `trig=demand`, `lock=1` 898 / `lock=0` 96.
+   But `src` never named an origin or a near-miss kind: `plain/sr` 140, `plain/ln` 135, `plain/conn` 112, `plain/rg`
+   100, `plain/nm` 72, `plain/sp` 48, `plain/mvgL` 26, `plain/bk` 26, ... beside `frame/frame` 211, `lead/lead` 33,
+   `works/*` 11, `bridge/br` 4. Cause: `ot_proposal.build` copied the plan edge into the spec edge field by field and
+   dropped `origin`, `nearMiss`, `nearMissKind`, `nearMissCorner`, so `ot_prov.source` saw every plan piece as `plain`
+   (test_prov had fed it hand-made spec edges). Fixed 2026-10-20: the spec edges carry those four fields (not read by
+   the engine); test_prov +1 through `ot_proposal.build` (`link/conn`, `nm:pairc`, `m:village_green/mvg`). The saved
+   record of this run holds the old `src` text for its edges. **Not seen yet:** no `[SQOT] WHO` line in any archived
+   session (the console helper never run), no reload in this session, and `2026-10-20_0001_sqot-sqrl` started at
+   17:01 local, before ot_prov existed (17:17; its PLAN lines carry the old 4-count `knotHeld`): the console lookup
+   and the record after a reload are still open.
+6. **One empty row at a time: fires, costs no growth; its gain is not readable from the logs.** 53 pieces held as
+   `row` in 44 plans (15 % of the plans), in 9 of the 16 towns (Watersmeet 12, Woodfield 9, Seachurch Cove 7,
+   Hornholt Isle 7, Lakeside 6). No town stalled on it: 0 STUCK (1949: 3, `wedge,env`), the longest run of empty
+   plans with a `row` hold 3 (Woodfield, 8 empty plans with one `row` piece held, each beside `wedge` / `env` / `lead`
+   holds and a reach of 8-11 pieces; it still went 134 -> 481 buildings), empty plans 108 vs 113, plans with edges 194
+   vs 172, buildings +4.8 %, capacity +1.0 %. But the town-level empty figures did not fall: the mod's street +10.7 %
+   (95.9 -> 106.2 km), all empty street +7.9 %, the mod's own empty street (PLAN `ownEmpty`) 14.1 -> 16.6 km;
+   within the run-to-run spread (2222 -> 0024: mod street +9 %) and not the measure the rule targets (empty parallel
+   rows; the logs carry no houses per edge). Shot 5's comb needs a look on screen or a log measure.
+1. **No shallow side streets: pass.** `geoSide=0` on every plan (the `SIDE_TOL` fix); `side` holds 23 (1949: 40).
+- **Joins:** 47 (1949: 39), all built (0 REFUSED); `target` 139 -> 278 and `noJoin` 10 -> 28 (spread over the towns,
+  Lakeside 64 as in 1949's 60; the same dead ends counted plan after plan); `r` 5 -> 1, `c` 2 -> 1.
+- **Frame time:** PLAN `us=` +5-10 % (the row check's walks): fine.
+- **Wheatden-like:** Wheatden normal this time (radius 500 m, 18 dead ends); instead Seachurch Cove (MED hill) went
+  radius 649 -> 998 m between two CHECKs at 1928-1936 with 374 -> 481 buildings (1949: 516 m at the end), and its 1940
+  builds landed 750 m and 1190 m from the town (secondary radials / a connector, `plain/sr`, `plain/conn`); Merehythe
+  and Dovemouth's 1936 frame pieces ~950 m out. The town's extent jumps first, then the mod builds out there. Looked into 2026-10-20
+  (PLAN.md §75 "Far-out streets after an extent jump"): another town's houses ruled out (`foreignLen=0`, the extent
+  counts only the town's own buildings); an outlying group of its own houses pulled the 90 % radius out, then plan
+  pieces (within the lead limit of those houses) and frames (no outer limit) followed. Open: whether the outlying
+  houses stand along a country road (console: the town's buildings beyond 700 m, PLAN §75).
+
+
+## Close the gap (2026-10-17; NEXT_PHASE_BRIEF 74; PLAN.md 6.2 "Close the gap (§74)")
+
+First seen in game 2026-10-18 (results below). Quit TF3 fully first (`make link` done). New map (or a save whose towns the mod acts on), Town
+style Automatic or EU organic, debug log On; play (or Quick / the dev Simulate) a few decades. The joins come with the
+mod's own builds (at most 2 per build), so watch towns that grow.
+
+1. **The three cases close up, now and then:** zoom over grown towns. Stubs ending a few metres short of a street now
+   and then end in a T at a street node; two dead ends curling past each other get joined by one bend; a stub beside a
+   junction joins the street ahead. Not every one: far ones (60-80 m) mostly stay, some in the woods stay on purpose.
+   PLAN `nearMiss=<found>/<joined>/<kept>`, `nmJoins=tee:25,pair:34` (kind and gap; §75: `c` a corner, `r` a
+   retired dead end closed), `nmKept=` the reasons.
+2. **The T works (the first config rewrite at a street node with through traffic):** after a `nmJoins=tee:` or
+   `cross:` build, no `REFUSED` / "Construction not possible", no assert / crash; cars and buses go straight through
+   the street and turn into the new one both ways (no red dead-end sign, no U-turns at the node). Note the node in
+   docs/findings/towns.md either way.
+3. **No houses lost:** a build with a join shows no drop in the town's buildings (CHECK `buildings=` before / after),
+   and `preCost` on SEND stays near the other builds' (a join over a house is refused by the pre-check: `REFUSED`
+   then the key `nm:<D>:<N>` stays out for the session).
+4. **Looks:** joins read as streets (gentle bends, a T near square), no slivers or knots next to them, no join across
+   the gap toward a neighbouring town, none over water.
+5. **Frame time:** PLAN `us=` (the whole plan) stays in its usual range; the pass has an 8 ms budget (`nmKept=budget`
+   when it runs out).
+6. **What stays:** `nmKept=noNode:n` (the street ahead has no node in reach: a T there needs an edge split, not built)
+   and `curve` / `target` show what the next step would gain; send a few PLAN lines.
+
+Console (a street node of a town street, to see its lane connections before / after a T; replace `<node>`; read with
+`make logs-grep PAT='SQOT_NM' ARGS='--session live'`):
+`local c = api.engine.getComponent(<node>, api.type.ComponentType.BASE_NODE_CONFIG); print("SQOT_NM", c and #c.laneConnections, #api.engine.system.streetSystem.getNodeStreetSegments(<node>))`
+
+Lines to send: `make logs-grep PAT='\[SQOT\] (PLAN|SEND|BUILT|REFUSED|STREETS|ERROR)'`.
+
+**Run 2026-10-18 22:22Z** (session `2026-10-18_2222_sqot`; seed `a`, EU, 1900, dev Quick 40 years; the §71 run
+`2026-10-16_1846_sqot` for comparison):
+1. **The cases close up now and then: partly.** PLAN `nearMiss=` summed over 271 plans: 1655 found / 20 joined /
+   1635 kept (the same dead ends counted again plan after plan). `nmJoins`: 19 `tee` (gaps 19, 20, 20, 25, 28, 29, 31,
+   31, 33, 33, 35, 41, 44, 44, 45, 47, 64, 67, 68 m), 1 `cross` (42 m, Far Ashworth), **0 `pair`**. `nmKept`: curve
+   454, building 268, target 228, noJoin 200, noNode 183, inc 98, chance 86, slope 46, forest 45, green 15, road 6,
+   budget 3, taken / spacing / gap 1. Dead ends on the 16 towns 305 vs 353 (dead ends per km median 1.56 vs 1.61). The
+   Ts can't be picked out in the 1800 m overview shots.
+2. **The T works: pass (build), routing not seen.** All 17 join builds `BUILT ok=true` (e.g. Seachurch Cove 22:23:11
+   `tee:28`, Dalemere 22:23:44 `tee:19`, Far Ashworth 22:24:41 `cross:42`), 0 REFUSED in the session, no assert, a
+   normal shutdown at 22:26:23Z (~28 fast simulated years after the first T). No cars in this run: routing through the
+   node is still open. Recorded in docs/findings/towns.md.
+3. **No houses lost: pass.** Buildings CHECK before -> after a join build fell in 6 of 17 builds (-11 in all: Seachurch
+   Cove 127 -> 125, Watersmeet 232 -> 228 ...), the same rate as the other 145 builds (44 fell, -155). SEND `preCost`
+   median 38306 (join) vs 32156 (other); per edge 5768 vs 9281. No `nm:` refusal.
+4. **Looks: not judged** (overview shots only; no join across a town gap or over water in the logs' targets).
+5. **Frame time: pass.** PLAN `us=` median 46.3 ms, p90 220 ms, max 462 ms vs 44.8 / 219 / 640 ms in the §71 run;
+   `nmKept=budget` once (Wheatden, 3 kept).
+6. **What stays:** `noNode` 183 and `curve` 454 are the big ones; `target` 228. A side T (edge split) and a looser
+   curve rule would gain the most; why no `pair` ever passes is worth a look.
+
+**Next run: less cautious (2026-10-18; PLAN.md §74 "Less cautious").** Same setup (seed `a`, Quick 40 or play); compare
+with the run above (`2026-10-18_2222_sqot`). Kink 45 deg, arcs from 74 m, target nodes to 100 m, 8 shapes on the
+place checks, chance 0.97 to 25 m -> 0.4 at 80 m, retired own stubs closable, new kept reason `cut`. Offline the
+joinable share rose 87 -> 116 of 267 near misses and the expected joins under the chance 36.8 -> 67.2.
+1. **More joins:** `nmJoins` summed over the session clearly above 20 (offline about 1.8x); gaps up to ~100 m now
+   (a node past 80 m when the street ahead is within 80 m). `nmKept`: `chance` and `noNode` well down, `curve` down;
+   `building` / `target` may rise (more candidates reach the place checks). `noJoin` drops by the snapshot's cut, now
+   `cut` (about 2 per snapshot in the last run).
+2. **Pair joins appear:** at least a few `nmJoins=pair:` (two stubs closed by one bend, often a retired own stub:
+   SNAPSHOT `noJoin=retired:` falls after them). Zoom on one: one smooth bend, at most a 45 deg corner where it meets
+   each old street.
+3. **No refusals, no assert:** 0 `REFUSED` with an `nm:` key, no "Construction not possible", no crash; a retired
+   stub's join builds like any dead end's (its config rewritten: no red dead-end sign at either end).
+4. **Looks:** the 45 deg corners at the old dead ends read as a bend in the street, not a kink; the 90-100 m joins
+   read as a street of the block, not a long diagonal; none over water, none across a town gap, none through houses
+   (CHECK `buildings=` before / after a join build no worse than other builds, `preCost` similar).
+5. **Frame time:** PLAN `us=` median / p90 / max near the last run's 46 / 220 / 462 ms; `nmKept=budget` rare.
+6. **Routing (still open):** with vehicles running, cars through a T'd street node both ways (no U-turns at it).
+7. **Side T:** not built (deferred: an edge split needs a console probe of a housed town edge first). `noNode` left
+   shows what it would add.
+
+**Run 2026-10-19 00:24Z (less cautious)** (session `2026-10-19_0024_sqot`, load 1; seed `a`, EU, 1900, dev Quick 40
+years, tour; against `2026-10-18_2222_sqot`, both read with the same script, so the 2222 medians differ slightly from
+the block above):
+
+| | 2222 | 0024 |
+|---|---|---|
+| PLAN `nearMiss=` found / joined / kept (sum over plans) | 1655 / 20 / 1635 (271 plans) | 1539 / 35 / 1504 (274 plans) |
+| `nmJoins` entries (tee / cross / pair) | 20 (19 / 1 / 0) | 34 (23 / 10 / 1) |
+| join builds (plans with a join) | 17 (18) | 32 (32) |
+| join gaps | 19-68 m | 26-95 m, 4 over 80 m (tee 81, 93; cross 81, 95) |
+| `nmKept` curve / building / target / noJoin / noNode | 454 / 268 / 228 / 200 / 183 | 455 / 461 / 170 / 93 / 36 |
+| `nmKept` chance / inc / slope / forest / road / budget | 86 / 98 / 46 / 45 / 6 / 3 | 86 / 71 / 35 / 18 / 22 / 24 |
+| new reasons | - | cut 6, near 5, cross 1 |
+| plans with `nmKept=budget` | 1 | 7 |
+| PLAN `us=` median / p90 / max | 48.0 / 224 / 462 ms | 42.1 / 193 / 398 ms |
+| REFUSED / `nm:` refusals / FAILED | 0 / 0 / 1 | 0 / 0 / 3 (none with a join) |
+| SEND `preCost` median join / other (per edge) | 38306 / 32156 (5768 / 9281) | 24190 / 27805 (6246 / 7019) |
+| CHECK buildings fell after a build: join / other | 6 of 17 (-11) / 44 of 145 (-155) | 12 of 31 (-42) / 31 of 129 (-186) |
+| dead ends on the 16 towns (per km, median) | 305 (1.55) | 331 (1.61) |
+
+1. **More joins: pass on the count, partly on the reasons.** 1.7x the joins (34 vs 20; offline 1.8x), 32 of 274 plans
+   with a join; gaps up to 95 m (a node past 80 m: 4 joins). `noNode` 183 -> 36 and `noJoin` 200 -> 93 fell as
+   expected, `building` rose (268 -> 461) and `target` fell (228 -> 170); but `curve` stayed (454 -> 455) and `chance`
+   stayed (86 -> 86, more candidates reach the roll). `cut` only 6 (not ~2 per snapshot: the snapshot's `degree` ends
+   rarely have a street ahead).
+2. **Pair joins appear: barely (1).** One `pair:64`: Watersmeet 00:26:15, its first plan (5-edge build, both stubs
+   fresh: snapshot `retired` 0 there). Retired joins can't be read from the log (no token marks a join that closes a
+   retired stub): the snapshots' `retired:` summed 298 -> 274, and only one join build lowered its town's count
+   (Dovemouth `cross:95`, 1 -> 0). Not zoomed (no close-up shot).
+3. **No refusals, no assert: pass.** All 32 join builds `BUILT ok=true` (10 at a 3-way: `cross`, the 4-way case),
+   0 REFUSED, no `nm:` key refused, no Construction Not Possible, no assert, no crash (the game ran on into a second
+   load). The 3 FAILED builds (`ok=false msgs=` empty: Holtbottom 00:26:18 a frame of 7 edges, Two Waters 00:26:57
+   6 edges, Lower Arunmouth 00:27:26 1 edge) had no join (`nmJoins=-`).
+4. **Looks: not judged at join level; no houses lost: pass.** The 1800 m tour shots can't pick out a join, a 45 deg
+   corner or a 90 m join; full-resolution crops (Watersmeet, Dalemere, Seachurch Cove, Seven Oaks) show smooth closed
+   loops and no visible kink, no street over water or across a town gap. Buildings: 12 of 31 join builds fell (-42),
+   but -24 of that is one Lower Arunmouth `tee:38` build (1 edge, `preCost` 4204: no house in its way) whose next CHECK
+   came 6 s later, after SIMGROW years 36-39 and a LEVELS read; without it -18 over 30, about the other builds' rate
+   (-1.44 per build). Big join-build pre-costs come from the other pieces of the same proposal: Dovemouth `cross:95`
+   4.03 M (9 edges, forest steering, buildings 602 -> 701 after), Seachurch Cove `cross:49` 1.72 M (9 edges).
+5. **Frame time: pass, budget less rare.** Plan time lower than the last run; `nmKept=budget` on 7 plans (24 dead
+   ends), all late (years ~33-40) in the big towns (Dovemouth 3x, its last plan `budget:11`, Dalemere, Far Ashworth,
+   Holtbottom, Merehythe).
+6. **Routing:** not seen (no vehicles).
+7. **Side T:** not built; `noNode` 36 left (was 183), so an edge split would now add little.
+- **Dead ends did not fall:** 331 vs 305 on the 16 towns, most of it the game's own growth (Holtbottom 10 -> 25,
+  Little Dalemere 8 -> 20, Dovemouth 26 -> 36; Wheatden 15 -> 9); 34 joins over 40 years are too few to show in the
+  totals against that run-to-run spread.
+
+**Run 2026-10-19 19:49Z (§75 rules)**: 39 joins (4 `pair`, 2 corners, the first 5 closing retired dead ends), all
+built, `noJoin` 93 -> 10; the numbers in "Side streets and parallel streets" above.
+
+
 ## Real play (first) (2026-10-14, updated 2026-10-16 for §61-§71; the first test without the dev Simulate)
 
 **The next test (2026-10-16).** After §71 the seed `a` Quick check (Combined test iteration step 20) is optional; this
@@ -913,6 +1372,72 @@ on its page (same seed, so towns pair by id): `--out plans/square_organic_towns/
 <session>:<load> --label 'Mod <hhmm>' --dir mod-<hhmm>`. Once the vanilla run on `a` exists: `--add <vanilla
 session>:<load> --label 'Vanilla' --dir vanilla` to the same page. Then a dated section in BASELINE_VANILLA.md.
 
+**Run 2026-10-18 22:22Z** (session `2026-10-18_2222_sqot`, load 1: `Map seed text: a`, EU, 1900, dev Quick 40 years
+with the tour; this build: plain streets only, the 44 m minimum block with the growth-front relaxation, close the gap
+(§74), away from player facilities; added to the compare page `compare/2026-10-15_a-lock` as run `mod-2222`, beside
+the §71 run `mod-71` = `2026-10-16_1846_sqot`). No save (step 5 skipped: normal shutdown after the tour).
+1. **Pass.** No crash, normal shutdown; `SQOT[_A-Z]*] (ERROR|WARN)` = 0. One FAILED build (Merehythe-on-Redwater
+   22:23:34, 1 edge, `msgs=Collision`), the game's refusal as in earlier runs.
+2. **LEVELS: pass.** `LEVELS event=base from=firstSight towns=16 custom=0`, `read at=load ... changed=0`; 7 `action=set`
+   (7 `why=fill`, 2 `why=sparse` among the LEVELS lines), 2 `action=clear`, 0 `owner=player`.
+3. **Mature hold:** MATURE `event=cap` lines (Two Waters `mat=0.21`, Merehythe 0.05, Far Ashworth 0.06 ...), CHECK
+   `why=mature` 1; level 3-4 capacity 0 (expected before 1950).
+4. **Satellites: n/a** (all 16 `why=retired`, as since §64: offshoot towns instead).
+5. **Bridges:** none (as in the §70 / §71 runs).
+6. **Links: 3 of 4.** Merehythe Forge (Works, 514 m, 6 edges), Blackmerehall (district of Seven Oaks, 163 m), Wheatden
+   Timber Yard (212 m) linked; Two Waters Riverside (shore district, year ~12) has no link line.
+7. **Works:** Merehythe Forge (plain) and Wheatden Timber Yard (timber, beside the timber industry); not judged from the
+   shots.
+8. **Deep forest:** Dovemouth-in-the-Forest `forest=0.35:deep` (ring 0.48).
+9. **Names:** not checked this run.
+10. **Speed: pass.** `SIMGROW stop ... buildings=1991->9212 s=125 sPerYear=3.1` (§71: 9384, 132 s), 11 rounds, 179
+    round builds, fails 0.
+11. **Tour: pass.** 20 SHOT lines, all `fallback=false`, one `SHOT reaim` (Two Waters, off=833); shots in
+    `~/Library/Application Support/Steam/userdata/65263351/3493540/local/screenshots/2026-10-18_15-25-10_img_0.png`
+    .. `15-26-07_img_19.png` (the Mac's local time is UTC-7).
+
+New in this build:
+- **Plain streets only: pass.** 0 ENTRY lines (the §71 run: 19), PLAN `trees=-` on every plan (§71: `trees=1` / `2`
+  on 3), INIT `trees=off`, no `_trees` / `_tram` / `_bus` / `barrier` template in the log, no `specialJoin`; the shots
+  show plain grey streets only (no tree rows). A player-built variant dead end was not on this map.
+- **Wider minimum block / close the gap / player facilities:** results in their own sections above.
+
+Shots (main questions):
+- **Organic quality:** the best towns read well: Two Waters (radial organic core by the river, blocks fairly even),
+  Dovemouth-in-the-Forest (bigger and less knotted than in §71, organic, woods kept), Seachurch Cove (compact branching
+  MED hill harbor town), Hornholt Isle, Merehythe (organic along the shore). Weak spots, mostly as before: Watersmeet's
+  west half a zig-zag "staircase" street and parallel rakes, an empty Y-fork of bare streets east of it; Dalemere's
+  south edge still two big rectangular loops and a square loop without houses (noted in the §71 run too); Wheatden and
+  Little Dalemere empty loops at the edge; Shaw a few bare spokes; Seven Oaks a dense knot of short curved streets
+  (mostly the game's own fill: its game street length 9.6 vs 5.4 km in §71). Unhoused street share about as before
+  (empty length 24.7 vs 22.1 % median per town).
+- **Clusters (form `clustered`: Seachurch Cove, Watersmeet, Dalemere):** tighter than in §71: Seachurch Cove radius
+  425 vs 614 m, `spread` 1.12/0 vs 1.44/14, dens 12.0 vs 4.7, empty street 0.19 vs 0.23; Dalemere 0.26 vs 0.30 empty;
+  Watersmeet about the same. Offshoot clusters: Blackmerehall a compact clump on its link; the Forge and the Timber Yard
+  small radial clumps on the country road; Two Waters Riverside a loose shore strip without a link.
+
+**Run 2026-10-19 00:24Z** (session `2026-10-19_0024_sqot`, load 1: `Map seed text: a`, EU, 1900, dev Quick 40 years
+with the tour; this build: "Close the gap" less cautious, otherwise as 2222; compare page run `mod-0024`). After the
+tour the user loaded the save "Organic Towns - Subarctic" in the same session (00:30Z on); only load 1 is read here.
+- **Pass:** no crash, `SQOT[_A-Z]*] (ERROR|WARN)` = 0 (2 game GUI tracebacks "Ignoring Set() on expired ReactRefWrap",
+  as in 2222); `SIMGROW stop ... buildings=1992->8911 s=128 sPerYear=3.2`, 11 rounds, 176 round builds, fails 0;
+  tour 20 SHOT lines (one `fallback=true`: Two Waters), shots `2026-10-18_17-28-25_img_0.png` .. `17-29-19_img_19.png`.
+- **Plain streets: pass.** 0 ENTRY, no `_trees` / `_tram` / `_bus` / `barrier` template, no `specialJoin`, no PLAN
+  `trees=` count.
+- **STALL 0, STUCK 3** (Hornholt Isle year 24 `held=wedge=2,env=2`, Ashgrove year 32 `wedge=1,env=3`, Wheatden year 32
+  `wedge=12,env=12`); 2222: 0 / 2. Empty plans 102 vs 100. FAILED 3 (no join; see "Close the gap").
+- **Totals (16 towns) vs 2222:** persons 44432 vs 44155, capacity 44342 vs 43782, buildings 8911 vs 9212 (pb median
+  5.06 vs 4.86), persons / ha median 37.2 vs 39.3, median radius 474 vs 457 m, `spread` 1.27 vs 1.23, dead ends 331 vs
+  305 (per km 1.61 vs 1.55); mod streets 106.1 vs 97.3 km, the game's own 89.9 vs 99.8 km (share 0.46 vs 0.51).
+  Seachurch Cove 544 buildings (2222: 678, §71: 552), Seven Oaks 553 (702) with less game street (11.8 vs 17.3 km).
+- **FAC:** still 17 identical lines (1 at 00:26:08, 16 at the SIMGROW start 00:26:14: one per town), the `facSig`
+  oddity of the 2222 run.
+- **Shots:** organic quality about as in 2222. Watersmeet better (closed curved loops in the east half instead of the
+  Y-fork of bare streets; still two long empty streets beside the river and a game-grown grid quarter across the
+  bridge); Seachurch Cove looser and less knotted (curved loops, fewer stubs); Dalemere much the same (one squarish
+  loop at the east edge); Seven Oaks now a linear town along the road with a bare hook loop and a bare diagonal at
+  its south end. The joins themselves can't be told apart at 1800 m.
+
 ## Deep forest towns (2026-10-14; NEXT_PHASE_BRIEF 43; PLAN.md 6.3 "Deep forest towns")
 
 1-3 towns per map in dense forest plan as **deep** forest towns: winding streets, every street near the trees locked,
@@ -1177,7 +1702,7 @@ stdout.txt`, the ALLTOWN lines and the SIMGROW year lines. Or just "done" + the 
 | `FILL effect town=… kind=… s=… near=a->b far=a->b buildings=a->b cap=… initial=a->b sizeFactors=…` | debug, the town's next check after a fill | where the growth went (60 m / 200 m around the points); `initial` should stay restored |
 | `GROW town=… sizeFactors=… to=…` | testing param on | |
 | `LEVELS town=… action=set\|clear why=sparse\|change\|dense pb=… k=… was=… weights=a/b/c/d\|default lvl=a:…,u:…,w:…,c:…` | always (a world change; skips debug, once per reason) | new maps only; k 0.25-1 by how far persons per building are below 4.5; never on a town with a player's own weights (`skip=player`); 2026-10-14 late |
-| `TICKCOST s=… ticks=… avgUs=… maxUs=… at=… getMaxUs=… over4ms=… over16ms=… over50ms=…` | always, every 300 real s while the mod runs (2026-10-14) | the GUI tick's cost (state:get() + Driver:tick); `at` = the slowest tick's stage (chars / names:<phase> / job:<stage> / idle); `getMaxUs` = the slowest saved-state copy |
+| `TICKCOST s=… ticks=… avgUs=… maxUs=… at=… getMaxUs=… getAvgUs=… over4ms=… over16ms=… over50ms=… pvB=… pvN=…` | always, every 300 real s while the mod runs (2026-10-14; getAvgUs, pvB, pvN 2026-10-20) | the GUI tick's cost (state:get() + Driver:tick); `at` = the slowest tick's stage (chars / names:<phase> / job:<stage> / idle); `getMaxUs` / `getAvgUs` = the slowest / mean saved-state copy; `pvB` / `pvN` = the provenance record's chars (cap 32768) / entries |
 | `NAMES words … towns=… assignMs=…` | always, once per new map | the names assign runs in one tick: its cost in ms (offline 40-100 ms at 30-60 towns) |
 | `ERROR stage=… err=…` | always | report every one |
 

@@ -88,6 +88,8 @@ function M.fromSnapshot(snap)
 			ed.template = e.template
 			-- roadDevelopmentLocked (the mod's own locked streets; ot_wedge frames look for them)
 			if e.locked then ed.locked = true end
+			-- (the mod's own street built this session, ot_driver snapshot; ot_knot.emptyOurs)
+			if e.own then ed.own = true end
 			-- buildings on its parcels (ot_driver snapshot; ot_select.armBuiltFronts), nil when unknown
 			if e.built ~= nil then
 				ed.built = e.built

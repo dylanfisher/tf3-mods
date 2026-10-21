@@ -86,13 +86,16 @@ end)
 test("hierarchy: a bare wide spur and a non-through tip get the local template; a wide joint is marked", function()
 	local SMALL = "::/infrastructure/street/town/town_new_small.street_template"
 	local LARGE = "::/infrastructure/street/town/town_new_large.street_template"
-	local style = { templatePaths = { small = SMALL, medium = SMALL, main = LARGE } }
+	-- (§73: the run is 300 m long and starts at the centre, so the run rule keeps it)
+	local style = { templatePaths = { small = SMALL, medium = SMALL, main = LARGE }, centre = { 0, 0 } }
 	local g = OG.new()
 	OG.addNode(g, 1, 0, 0, 0)
 	OG.addNode(g, 2, -100, 0, 0)
 	OG.addEdge(g, 10, 2, 1, "small").template = SMALL
+	local X = { [1] = 0, [-3] = 150, [-4] = 300, [-5] = 150 }
 	local function e(ent, n0, n1, through, key)
-		return { entity = ent, node0 = n0, node1 = n1, class = "main", template = LARGE, through = through, key = key }
+		return { entity = ent, node0 = n0, node1 = n1, class = "main", template = LARGE, through = through, key = key,
+			p0 = { X[n0], 0, 0 }, p1 = { X[n1], 0, 0 } }
 	end
 	-- a spur 1 -> -3 -> -4 with nothing crossing it: bare
 	local inc = { edges = { e(-1, 1, -3, true, "a"), e(-2, -3, -4, true, "a") }, nodes = {} }

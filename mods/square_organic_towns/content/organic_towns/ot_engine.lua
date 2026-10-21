@@ -424,6 +424,77 @@ function M.harbours()
 	return out
 end
 
+---------------------------------------------------------------------------
+-- Player facilities (away from facilities, ot_industry FAC_KINDS, 2026-10-18; read from the tealdefs and base files,
+-- NOT verified in a game script): vehicle depots and maintenance stations = getEntitiesWithComponent(VEHICLE_DEPOT)
+-- (base GUI lists it so, docs/findings/lines-vehicles.md; maintenance stations are VehicleDepot entities with a
+-- catchment area, engine.d.tl VehicleDepot) -> streetConnectorSystem.getConstructionEntityForDepot -> CONSTRUCTION
+-- fileName (base depots/road, depots/rail, depots/water ...); stations = stationList() (as railStations / harbours)
+-- -> getConstructionEntityForStation (kerbside stops have none) -> fileName (stations/air/, stations/water/ ...) and
+-- util.station.isStationOfType(st, true / false) for cargo / passenger support, merged per construction. Position: the
+-- construction's BOUNDING_VOLUME centre (the depot entity's as the fallback). Classified in ot_industry.classifyFacility.
+M.MAX_FAC = 20000
+
+--- Every player depot and station construction: { { x, y, file, depot = true | nil, cargo = bool, passenger = bool,
+--- id = construction } }, one per construction; nil when both listings fail.
+function M.facilities()
+	local out, byCon, any = {}, {}, false
+	local okD, deps = pcall(api.engine.getEntitiesWithComponent, CT().VEHICLE_DEPOT)
+	if okD and deps ~= nil then
+		any = true
+		for i, e in ipairs(deps) do
+			if i > M.MAX_FAC then break end
+			pcall(function()
+				local okC, con = pcall(api.engine.system.streetConnectorSystem.getConstructionEntityForDepot, e)
+				local file, x, y = "", nil, nil
+				if okC and con ~= nil and con >= 0 then
+					if byCon[con] then return end
+					local c = M.comp(con, CT().CONSTRUCTION)
+					local okF, f = pcall(function() return c and c.fileName end)
+					if okF and f ~= nil then file = tostring(f) end
+					x, y = M.boxCentre(con)
+				else
+					con = nil
+				end
+				if x == nil then x, y = M.boxCentre(e) end
+				if x == nil then return end
+				local rec = { x, y, file = file, depot = true, id = con or e }
+				if con then byCon[con] = rec end
+				out[#out + 1] = rec
+			end)
+		end
+	end
+	local okS, sts = pcall(stationList)
+	if okS and sts ~= nil then
+		any = true
+		for i, st in ipairs(sts) do
+			if i > M.MAX_FAC then break end
+			pcall(function()
+				local okC, con = pcall(api.engine.system.streetConnectorSystem.getConstructionEntityForStation, st)
+				if not okC or con == nil or con < 0 then return end
+				local okG, cargo = pcall(api.engine.util.station.isStationOfType, st, true)
+				local okP, pass = pcall(api.engine.util.station.isStationOfType, st, false)
+				local rec = byCon[con]
+				if rec == nil then
+					local c = M.comp(con, CT().CONSTRUCTION)
+					if c == nil then return end
+					local okF, f = pcall(function() return tostring(c.fileName) end)
+					local x, y = M.boxCentre(con)
+					if x == nil then return end
+					rec = { x, y, file = okF and f or "", cargo = false, passenger = false, id = con }
+					byCon[con] = rec
+					out[#out + 1] = rec
+				end
+				if okG and cargo == true then rec.cargo = true end
+				-- (an unreadable passenger flag counts as passenger: no freight lean on a guess)
+				if not okP or pass == true then rec.passenger = true end
+			end)
+		end
+	end
+	if not any then return nil end
+	return out
+end
+
 --- Creates a town (industrial satellites, ot_works 2026-10-13; the dev probe's path, verified in game 2026-10-13:
 --- mapgen.createTowns lays out a Map.Town at the position, its TownInfo gets the initial land use capacities and the
 --- name, makeTownCreateCmd builds it). o = { x, y, name, caps = {r, c, i}, seed }. cb(success). Returns sent, info.
@@ -636,6 +707,13 @@ function M.nodeStreetEdges(n)
 		for i = 1, #l do out[#out + 1] = l[i] end
 	end
 	return out
+end
+
+--- Number of segments of any kind (streets and tracks) at node n (streetSystem.getNodeSegments), or nil.
+function M.nodeSegmentCount(n)
+	local ok, l = pcall(api.engine.system.streetSystem.getNodeSegments, n)
+	if ok and l then return #l end
+	return nil
 end
 
 function M.hasConfig(n)
@@ -913,6 +991,30 @@ function M.templateExists(path)
 	return template(path) ~= nil
 end
 
+--- The driving side (2026-10-20, Left Hand Traffic mod `left_hand_traffic_1`: it reverses `forward` of every two-way
+--- street template's road lanes in loadStreetTemplate, so the loaded resource tells): `forward` of the road lanes
+--- (laneConfigs without the two sidewalks) of the base town street templates, ot_proposal.leftHandFrom. Returns
+--- "left" | "right" and the template it was read from; "right" when none can be read (the base game's side).
+M.DRIVE_SIDE_TEMPLATES = { "::/infrastructure/street/town/town_new_small.street_template",
+	"::/infrastructure/street/town/town_old_small.street_template",
+	"::/infrastructure/street/town/town_new_medium.street_template" }
+function M.driveSide(leftHandFrom)
+	for _, path in ipairs(M.DRIVE_SIDE_TEMPLATES) do
+		local tpl = template(path)
+		if tpl then
+			local ok, fw = pcall(function()
+				local list = {}
+				local n = #tpl.laneConfigs
+				for i = 2, n - 1 do list[#list + 1] = tpl.laneConfigs[i].forward == true end
+				return list
+			end)
+			local lh = ok and leftHandFrom(fw) or nil
+			if lh ~= nil then return lh and "left" or "right", path end
+		end
+	end
+	return "right", nil
+end
+
 --- SimpleProposal for a spec. Not player owned, no edge objects, locked only where the spec says so.
 function M.proposal(spec)
 	local nodes = {}
@@ -962,8 +1064,9 @@ function M.proposal(spec)
 		-- tree-lined entries (ot_entry, later-ideas phase; ot_proposal `decor`): "template" = the `_trees` template's own
 		-- default decorations (the base track builder's way: edgeDecorationRep.find of each default), "none" = no
 		-- decorations (a street continuing from a tree-lined dead end). A decoration that can't be resolved leaves the
-		-- edge as the plain template (same lanes), counted in M.treesFallback.
-		if sp.decor == "none" then
+		-- edge as the plain template (same lanes), counted in M.treesFallback. Any other new edge drops the decorations
+		-- of its copy source too (plain streets only, 2026-10-18: no tree rows or barriers carried over).
+		if sp.decor ~= "template" then
 			pcall(function() seg.comp.edgeDecorations = {} end)
 		elseif sp.decor == "template" then
 			local okD = pcall(function()
@@ -1231,7 +1334,11 @@ function M.bookStreetRefund(amount, cb)
 end
 
 --- Saved-state event to the game script's handleEvent (square_problem_radar's sendEvent pattern).
+--- (sentN: events sent from this Lua state; the game script's state reader watches for the change after one, ot_saved
+--- Reader:expect, 2026-10-20)
+M.sentN = 0
 function M.sendEvent(id, name, param)
+	M.sentN = M.sentN + 1
 	api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", id, name, param))
 end
 
@@ -1406,6 +1513,18 @@ end
 --- `return { ... }`), or nil and the error.
 function M.townList(path, dir)
 	local ok, list = pcall(ug_require, "::/names/" .. tostring(path) .. "/" .. tostring(dir) .. "/towns.lua")
+	if not ok then return nil, tostring(list) end
+	if type(list) ~= "table" then return nil, "type:" .. type(list) end
+	return list, nil
+end
+
+--- Another mod's town list at a full path ("<modId>::/names/<dir>/<lang>/towns.lua", ot_names.moddedTownPaths; the
+--- same plain `return { ... }` file names.script.lua requires), or nil and the error. (2026-10-17, NEXT_PHASE_BRIEF 72;
+--- that a missing file only raises a Lua error here, caught, is not verified in game yet: TESTING.md "Name lists from
+--- other mods".)
+function M.townListAt(path)
+	if type(path) ~= "string" or not path:match("^[%w_]+::/names/") then return nil, "badPath" end
+	local ok, list = pcall(ug_require, path)
 	if not ok then return nil, tostring(list) end
 	if type(list) ~= "table" then return nil, "type:" .. type(list) end
 	return list, nil

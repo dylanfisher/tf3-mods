@@ -83,8 +83,13 @@ test("head start per form: distinct shapes from day one, every piece within the 
 		ok(acc.edges >= 8, form .. ": the head start builds: " .. acc.edges)
 	end
 	local c = m.clustered
-	ok(m.linear.elong >= c.elong + 0.25, string.format("linear longer: %.2f vs %.2f", m.linear.elong, c.elong))
-	ok(m.fingers.arms >= c.arms + 1 or m.radiating.arms >= c.arms + 1, string.format("spokes: fingers %.1f / radiating %.1f vs %.1f",
+	-- (+ 0.1 since the 44 m minimum block, 2026-10-18, + 0.25 before: the clustered head start's bigger blocks stretch it a
+	-- little, elong 1.61 -> 1.70, the linear one's 2.01 -> 1.85; the arms tell them apart more than before, 3.5 vs 3.2 ->
+	-- 3.8 vs 2.2)
+	ok(m.linear.elong >= c.elong + 0.1, string.format("linear longer: %.2f vs %.2f", m.linear.elong, c.elong))
+	-- (§73, 2026-10-17: was + 1; the run rule builds the short spoke pieces small, the narrower footprints shift the
+	-- head start's geometry: fingers 4.5 -> 4.0 arms vs clustered 3.2)
+	ok(m.fingers.arms >= c.arms + 0.75 or m.radiating.arms >= c.arms + 0.75, string.format("spokes: fingers %.1f / radiating %.1f vs %.1f",
 		m.fingers.arms, m.radiating.arms, c.arms))
 	ok(m.wide.elong >= c.elong + 0.1, string.format("wide an oval: %.2f vs %.2f", m.wide.elong, c.elong))
 end)

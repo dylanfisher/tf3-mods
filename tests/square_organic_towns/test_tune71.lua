@@ -195,9 +195,10 @@ test("hook rule: the dead-end street behind the piece counts (an existing curve)
 	local st, rep = run(g, mp, { steer = true })
 	ok(st.on); ok(not st.back, "the street behind it curls: held")
 	eq(rep.hookWhy.turn, 1)
-	-- the same piece off a junction (no chain behind it): free
-	local mp2 = { junctions = { N2 = { 150, 0 }, W = { 50, 110 }, N4 = mp.junctions.N4, S = mp.junctions.S },
-		pieces = { { key = "back", a = "N2", b = "W", pts = { { 150, 0 }, { 50, 110 } }, class = "small" }, mp.pieces[2] } }
+	-- the same piece off a junction (no chain behind it): free (§75: leaving node 2 at 73 deg off its west street, a side
+	-- street; was (50, 110), 48 deg)
+	local mp2 = { junctions = { N2 = { 150, 0 }, W = { 110, 130 }, N4 = mp.junctions.N4, S = mp.junctions.S },
+		pieces = { { key = "back", a = "N2", b = "W", pts = { { 150, 0 }, { 110, 130 } }, class = "small" }, mp.pieces[2] } }
 	local st2 = run(g, mp2, { steer = true })
 	ok(st2.back)
 	-- two pieces of one increment: on from 3 east, then curling back: the second waits

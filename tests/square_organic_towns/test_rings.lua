@@ -778,7 +778,9 @@ end)
 
 test("organic rings: ring pieces wait for the houses (no ring arc beyond the ring lead)", function()
 	F.withOrganicRings(function()
-		local st = orgStyle("EU_ORGANIC")
+		-- (town 22: town 21 held 4 ring pieces, then none at the 44 m minimum block, 2026-10-18; towns 15-30 show the
+		-- wait 13 of 16 times before and after)
+		local st = orgStyle("EU_ORGANIC", nil, { town = 22 })
 		local g = F.roundCore(OG.new(), { rings = { 70, 140, 210 }, counts = { 6, 10, 14 } })
 		F.markBuilt(g, 120)
 		local held, arcs = 0, 0
