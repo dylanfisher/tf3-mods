@@ -14,7 +14,7 @@ local GRAPHICS = {
 	"shadowQuality", "geometryQuality", "terrainQuality", "grassQuality", "resolutionScale",
 }
 
-local ev, plugin, cfg, onSet, frame, saved, core, D, startEv
+local ev, plugin, cfg, onSet, frame, written, core, D, startEv
 
 local function copyCfg(c)
 	local t = {}
@@ -45,7 +45,7 @@ before_each(function()
 	ev = {}
 	onSet = nil
 	frame = 0
-	saved = nil
+	written = nil
 	cfg = copyCfg(PLAYER)
 	set_global("app", { getSupportedMSAASampleCounts = function() return { 1, 2, 4, 8 } end })
 	set_global("api", {
@@ -62,7 +62,9 @@ before_each(function()
 			},
 		},
 		engine = { config = { getModParams = function() return {} end } },
-		util = {
+		-- only getAppConfig / setAppConfig: Photo Mode never saves the game's settings itself (mod.io review);
+		-- any other api.util function is recorded as "util.<name>" and fails
+		util = setmetatable({
 			getAppConfig = function() return cfg end,
 			setAppConfig = function(c, __)
 				local kind = classify(cfg, c)
@@ -70,8 +72,10 @@ before_each(function()
 				cfg = copyCfg(c)
 				if onSet ~= nil then onSet(kind) end
 			end,
-			saveAppConfig = function() saved = copyCfg(cfg) end,
-		},
+		}, { __index = function(__, k)
+			record("util." .. tostring(k))
+			return function() error("api.util." .. tostring(k) .. " must not be called") end
+		end }),
 	})
 	local recipe
 	local react = {
@@ -229,9 +233,30 @@ test("HQ toggle: marker before stage 1, then the stages in order, each its own c
 	eq(cfg.geometryQuality, 2, "geometry raised, alone in its stage")
 	eq(cfg.terrainQuality, 2)
 	eq(cfg.grassQuality, 2)
-	ok(saved.mainMenuState["square_photo_mode"] ~= nil, "marker saved")
-	eq(saved.mainMenuState["square_photo_mode"].orig.textureQuality, 1, "saved with the player's values")
-	eq(saved.textureQuality, 1, "the boost itself never saved")
+	ok(cfg.mainMenuState["square_photo_mode"] ~= nil, "marker in the config")
+	eq(cfg.mainMenuState["square_photo_mode"].orig.textureQuality, 1, "with the player's values")
+	eq(only({ "util." }), {}, "no other api.util call (no settings save)")
+end)
+
+test("a settings write by the game at any moment carries the marker with the boost, and none after the restore", function()
+	-- the game writes settings.lua from the in-memory AppConfig (launch, normal quit, settings page, another
+	-- mod): whatever it holds when boosted, the marker is in it
+	openWindow()
+	plugin.window.onHqToggle()
+	onSet = function(kind)
+		if kind ~= "marker" and kind ~= "restore" then
+			written = copyCfg(cfg)
+			ok(written.mainMenuState["square_photo_mode"] ~= nil, "boosted (" .. kind .. ") and marked")
+		end
+	end
+	steps(D * #core.STAGES + 2)
+	ok(written ~= nil)
+	onSet = nil
+	plugin.event("openPauseMenu")
+	written = copyCfg(cfg) -- the normal quit's settings write
+	eq(written.mainMenuState["square_photo_mode"], nil, "no marker")
+	for k, v in pairs(PLAYER) do eq(written[k], v, k) end
+	eq(only({ "util." }), {}, "no other api.util call (no settings save)")
 end)
 
 test("stages with nothing to change make no call", function()
@@ -260,7 +285,6 @@ test("toggle off mid-sequence: no further stage, the staged restore with the pla
 		"useSsao,ssrQuality", "restore" }, "restore stages with nothing to change make no call")
 	for k, v in pairs(PLAYER) do eq(cfg[k], v, k) end
 	eq(cfg.mainMenuState["square_photo_mode"], nil, "marker cleared")
-	eq(saved.mainMenuState["square_photo_mode"], nil, "and saved")
 end)
 
 test("toggle off before stage 1: nothing changed, no call", function()
@@ -403,8 +427,7 @@ test("toggle off: the staged restore, stages in reverse, delay frames apart, mar
 	for i = 2, #fr do eq(fr[i] - fr[i - 1], D, "restore stage " .. i .. " " .. D .. " frames after the one before") end
 	for k, v in pairs(PLAYER) do eq(cfg[k], v, k) end
 	eq(cfg.mainMenuState["square_photo_mode"], nil, "marker cleared")
-	eq(saved.mainMenuState["square_photo_mode"], nil, "and saved")
-	eq(saved.textureQuality, 1, "saved with the player's values")
+	eq(only({ "util." }), {}, "no other api.util call (no settings save)")
 end)
 
 test("the marker stays until the last restore stage (a crash mid-restore is repaired on the next load)", function()
@@ -506,33 +529,25 @@ test("light: restored on the pause menu; its save-data marker repaired before th
 	eq(order, { "sky.start", "hud.start" })
 end)
 
-test("round 16: saved setups are written in a frame of their own, never mid-switch; saved only with the player's graphics", function()
+test("round 16: saved setups never touch the game's settings, also while switching and at the pause menu", function()
 	local G = ug_require "square_photo_mode::/photo_mode/gui/pm_setups.lua"
-	local KEY = (ug_require "square_photo_mode::/photo_mode/pm_setup.lua").KEY
+	local persisted = 0
+	G.persist = function() persisted = persisted + 1 end -- pm_window.lua's GUI save data writer
 	G.S.lib = {}
 	G.saveNew("A")
-	eq(sets(), {}, "nothing in the click")
+	eq(persisted, 1, "written in the click (GUI save data)")
 	plugin.step()
-	eq(sets(), { "" }, "one setAppConfig with no graphics change")
-	eq(saved.mainMenuState[KEY].list[1].name, "A", "saved to settings.lua")
-	eq(cfg.textureQuality, 1)
-	-- during the high graphics stages: waits; while on: in the config, not saved (it would save the boost)
+	eq(sets(), {}, "no setAppConfig for a setup")
 	ev = {}
 	openWindow()
 	plugin.window.onHqToggle()
 	G.saveNew("B")
-	plugin.step()
 	steps(D * #core.STAGES + 2)
-	local s = sets()
-	eq(s[1], "marker"); eq(s[#s], "", "written once the stages are done")
-	for i = 2, #s - 1 do ok(s[i] ~= "", "no write between the stages") end
-	eq(#saved.mainMenuState[KEY].list, 1, "not saved while the graphics are boosted")
-	eq(#cfg.mainMenuState[KEY].list, 2, "but in the config")
-	eq(saved.textureQuality, 1, "the boost never saved")
-	-- the pause menu: the restore saves the current config, the setups with it
+	eq(persisted, 2)
+	for __, x in ipairs(sets()) do ok(x ~= "", "only the switch's own calls") end
 	G.saveNew("C")
 	plugin.event("openPauseMenu")
-	eq(#saved.mainMenuState[KEY].list, 3, "saved with the restore at the pause menu")
-	eq(saved.textureQuality, 1)
-	eq(saved.mainMenuState["square_photo_mode"], nil, "the high graphics marker cleared")
+	eq(persisted, 3)
+	eq(cfg.mainMenuState["square_photo_mode"], nil, "the high graphics marker cleared")
+	eq(only({ "util." }), {}, "no settings save")
 end)

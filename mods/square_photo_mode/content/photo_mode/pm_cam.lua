@@ -158,6 +158,48 @@ function C.legSeconds(choice)
 	return C.LEG_SECONDS[choice] or C.LEG_SECONDS[C.LEG_DEFAULT]
 end
 
+-- Round 22 (user: "make it really clear for people to either be able to do a tour or aerials of interesting points
+-- on their map (or select the points they want to tour)"): the Aerials and Tour tabs each pick WHERE they go:
+-- "map" (interesting places across the whole map), "views" (the saved views, in list order) or, for the Tour,
+-- "here" (the place in the middle of the view). The Tour also picks its STYLE: "shots" (glide and hold) or
+-- "wander" (a drift with no cuts; across the map or over the saved views it moves on to the next place after the
+-- Stay). The tour mode follows from them (C.tourModeOf).
+C.TOUR_STYLES = { "shots", "wander" }
+C.TOUR_WHERES = { "map", "views", "here" }
+C.AERIAL_WHERES = { "map", "views" }
+-- The sources the Tour tab offers for "map" (the saved views have a Where of their own).
+C.MAP_SOURCES = { "shots", "random", "places" }
+-- Wander across the map / over the saved views: seconds around each place before the camera moves on.
+C.STAY_SECONDS = { 30, 60, 120, 300 }
+C.STAY_DEFAULT = 2 -- 1 min
+
+--- The tour mode (C.TOUR_MODES) of the Tour tab's style, where and "Drone flight between shots".
+function C.tourModeOf(style, where, flights)
+	if style == "wander" then return "wander" end
+	if where == "here" then return "place" end
+	if where == "map" and flights then return "mixed" end
+	return "ground"
+end
+
+--- Seconds of a Stay choice (anything else = the default).
+function C.staySeconds(choice)
+	return C.STAY_SECONDS[choice] or C.STAY_SECONDS[C.STAY_DEFAULT]
+end
+
+--- The hop sources a tour going `where` uses: "views" the saved views alone, "map" the ticked MAP_SOURCES of
+--- `sources` (the shots when none is), anything else (nil: a tour started without a Where) `sources` itself.
+function C.sourcesFor(where, sources)
+	if where == "views" then return { views = true } end
+	if where ~= "map" then return sources end
+	local out, any = {}, false
+	for __, k in ipairs(C.MAP_SOURCES) do
+		out[k] = sources ~= nil and sources[k] == true
+		any = any or out[k]
+	end
+	if not any then out.shots = true end
+	return out
+end
+
 --- Water under a sampled point: "river" when it is narrow (land on both sides along one axis at `r` m), "water"
 --- (sea, lake, coast) otherwise, nil on land. isWater(x, y) -> boolean. At most 5 calls.
 function C.waterKind(isWater, x, y, r)
@@ -285,6 +327,7 @@ end
 -- pitch rows run from eye level to drone, its distances follow the area, not the distance rows.
 -- "wander" (round 7): no cuts at all; the camera drifts around the place in the middle of the view for as long
 -- as the tour runs (pm_flight.lua "Wander"), within the pitch rows and the Area.
+-- Round 22: the Tour tab sets the mode from its style and where (C.tourModeOf), the Aerials tab sets "aerial".
 C.TOUR_MODES = { "ground", "aerial", "mixed", "place", "wander" }
 -- Round 13 (user: "Aerials should be the default mode"): the Tour tab starts in Aerials.
 C.TOUR_MODE_DEFAULT = "aerial"

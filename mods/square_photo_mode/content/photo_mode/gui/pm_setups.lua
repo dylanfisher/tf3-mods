@@ -2,21 +2,19 @@
 -- openPauseMenu event, the game start). Pure part: ../pm_setup.lua. PLAN: plans/square_photo_mode/PLAN.md "Round 16
 -- settings".
 --
---   library  named setups in AppConfig.mainMenuState[pm_setup.KEY] (settings.lua): read once per session, written
---            through the plugin's onStep (G.flush) as pm_button.script.lua writes its high graphics marker: a copy of
---            the CURRENT config, a full copy of mainMenuState with only our key changed (a partial copy would wipe
---            other mods' prefs), setAppConfig(cfg, false), then saveAppConfig. Never during a high graphics switch
---            (one setAppConfig at a time, never in a frame that opens or closes a window). While High graphics mode
---            is on the write isn't saved: settings.lua would get the boosted graphics; the high graphics restore
---            saves a copy of the current config, setups included (pm_button.script.lua restore / last restore stage).
+--   library  named setups of this savegame, in our GUI save data (field `setups`): read at every game start
+--            (G.start) from api.gui.game.getGuiSaveData(modId), written at once on every change through G.persist,
+--            set by pm_window.lua to its one writer of our save data (setGuiSaveData replaces the whole modId
+--            table, so the views, the hud / light markers, `last` and `setups` always go out together). Each save
+--            has its own setups; they are kept in the savegame the next time the player saves the game.
 --   last     captured whenever the picture changes by a click (pm_sky.noteChange: a value, a look, the freeze) and
 --            right before the pause menu or an untick put the player's own values back; kept in our GUI save data
 --            (pm_window.lua's save, field `last`), read back at the game start. "Restore last setup" applies it.
 --   apply    the look first (one environment switch; pm_weather carries the live values over), then the values
 --            (pm_sky.set: the override begins, one log line, the marker saved), the freeze both ways, High graphics
 --            mode and hidden labels only on (never off: the switch stalls the game for about a second).
--- Removing the mod: the library is in settings.lua, never in a save; `last` sits in our GUI save data next to the
--- saved views (findings: GUI save data per mod id). Every api call in pcall. Logs "[PhotoMode] setup ...".
+-- Removing the mod: the library and `last` sit in our GUI save data next to the saved views (findings: GUI save
+-- data per mod id); the game's settings are never written for them. Every api call in pcall. Logs "[PhotoMode] setup ...".
 
 local core = ug_require "square_photo_mode::/photo_mode/pm_core.lua"
 local P = ug_require "square_photo_mode::/photo_mode/pm_setup.lua"
@@ -28,10 +26,11 @@ local G = {}
 -- Set by pm_button.script.lua: whether High graphics mode is on (or switching on), and a request to switch it on.
 G.hqOn = function() return false end
 G.hqSwitchOn = function() end
+-- Set by pm_window.lua: writes our whole GUI save data (views, markers, last, setups) now.
+G.persist = function() end
 
 local S = {
-	lib = nil,       -- the library (pm_setup.readLibrary), read on first use
-	dirty = false,   -- the library changed since the last write
+	lib = nil,       -- the library (pm_setup.readLibrary) of this game, read on first use and at every game start
 	last = nil,      -- the last setup (pm_setup.valid) or nil
 	version = 0,     -- grows on every change the window shows
 	selected = nil,  -- the setup id the window's dropdown shows
@@ -97,49 +96,34 @@ function G.last() return S.last end
 function G.lastData() return S.last ~= nil and P.plain(S.last) or nil end
 
 ---------------------------------------------------------------------------
--- The library (AppConfig.mainMenuState[KEY])
+-- The library (our GUI save data, field `setups`)
+
+--- Our GUI save data's `setups` field, read with any shape tolerated (pm_setup.readLibrary keeps valid setups).
+local function readSaved()
+	local raw = nil
+	pcall(function()
+		local mine = api.gui.game.getGuiSaveData(core.MOD_ID)
+		if type(mine) == "table" then raw = mine.setups end
+	end)
+	return P.readLibrary(raw)
+end
 
 function G.library()
 	if S.lib == nil then
-		local raw = nil
-		pcall(function()
-			local mm = api.type.AppConfig.new(api.util.getAppConfig()).mainMenuState
-			if mm ~= nil then raw = mm[P.KEY] end
-		end)
-		S.lib = P.readLibrary(raw)
+		S.lib = readSaved()
 		core.log("setups loaded n=" .. #S.lib)
 	end
 	return S.lib
 end
 
+--- The library for our GUI save data (pm_window.lua's save, field `setups`).
+function G.libraryData() return P.libraryData(G.library()) end
+
 local function setLibrary(list, what)
 	S.lib = list
-	S.dirty = true
 	bump()
-	core.log("setup " .. what .. " (n=" .. #list .. ", written on the next frame)")
-end
-
---- True while the library waits to be written (the plugin's onStep calls G.flush in a frame without a switch).
-function G.pending() return S.dirty end
-
---- Writes the library into the current AppConfig; save: saveAppConfig too (false while High graphics mode is on:
---- see the header). Never retried in a loop: a failure is logged once and the write is dropped.
-function G.flush(save)
-	if not S.dirty or S.lib == nil then return end
-	S.dirty = false
-	local t0 = os.clock()
-	local ok = try("write", function()
-		local cfg = api.type.AppConfig.new(api.util.getAppConfig())
-		local mm = P.withKey(cfg.mainMenuState, P.KEY, P.libraryData(S.lib))
-		if mm == nil then error("mainMenuState unreadable, not changed", 0) end
-		cfg.mainMenuState = mm
-		api.util.setAppConfig(cfg, false)
-		if save then api.util.saveAppConfig() end
-	end)
-	if ok then
-		core.log(string.format("setups written n=%d saved=%s ms=%.1f", #S.lib, tostring(save == true),
-			(os.clock() - t0) * 1000))
-	end
+	core.log("setup " .. what .. " (n=" .. #list .. ")")
+	try("write", G.persist)
 end
 
 function G.selected()
@@ -251,10 +235,12 @@ end
 ---------------------------------------------------------------------------
 -- Game start and hooks
 
---- First frame of a game (pm_button.script.lua start): the last setup from this save's GUI save data (our data's
---- `last` field; nothing of it when it holds no look, no values and no freeze). The library stays as read: it lives
---- in settings.lua, which only this session writes.
+--- First frame of a game (pm_button.script.lua start): the library and the last setup from this save's GUI save
+--- data (our data's `setups` and `last` fields; nothing of `last` when it holds no look, no values and no freeze).
 function G.start()
+	S.lib = readSaved()
+	S.selected = nil
+	core.log("setups loaded n=" .. #S.lib)
 	local raw = nil
 	pcall(function()
 		local mine = api.gui.game.getGuiSaveData(core.MOD_ID)

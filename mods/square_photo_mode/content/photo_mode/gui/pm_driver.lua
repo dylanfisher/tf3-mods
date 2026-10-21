@@ -45,6 +45,12 @@
 --            "wander" (round 7, pm_flight "Wander"): no cuts; the camera drifts around the place in the middle of
 --            the view (the Area, the angle rows), its look wandering between nearby subjects and points of the
 --            area. Also a camera move (D.toggleWander, Camera tab next to Orbit) around the current view.
+--            Round 22 (the Aerials and Tour tabs, D.startTab; each picks where it goes, cam.tourModeOf): Aerials
+--            "Saved views" fly along the saved views' centres in list order (S.tour.route, routeWaypoint: no
+--            legs, a turning waypoint before a sharp turn); the Tour's Wander "Across the map" / "Saved views"
+--            roams (S.tour.roam): it wanders round one place for the Stay, then glides to the next (roamPlace: a
+--            subject of the map sources not shown lately, or the next saved view), the glide longer and higher
+--            the farther it goes (startWander `at`).
 --   eye      (round 7) every automated move (glides, Ken Burns, flights, wander) is planned as an eye pose with a
 --            reference ground (pm_flight "Eye space") and sent through F.solveEye: the eye no longer bobs with
 --            the terrain under the look-at point. The manual orbit turns around a fixed centre (its eye height
@@ -111,8 +117,9 @@ local S = {
 	tourSources = cam.copySet(cam.DEFAULT_SOURCES), -- ticked hop sources (cam.TOUR_SOURCES)
 	legChoice = cam.LEG_DEFAULT, -- flight leg length (cam.LEG_SECONDS)
 	flightSubjects = cam.copySet(cam.DEFAULT_FLIGHT_SUBJECTS), -- what flights head for (cam.FLIGHT_SUBJECTS)
-	tourMode = cam.TOUR_MODE_DEFAULT, -- cam.TOUR_MODES (round 13: Aerials)
-	rangeSel = cam.preset(cam.TOUR_MODE_DEFAULT), -- the range choices (cam.tourRange)
+	tourMode = cam.TOUR_MODE_DEFAULT, -- cam.TOUR_MODES (round 13: Aerials; round 22: set by the tab's Start)
+	-- the range choices (cam.tourRange; round 22: the preset of the Tour tab's default style and where)
+	rangeSel = cam.preset(cam.tourModeOf("wander", "map", false)),
 	kenBurns = true,   -- the hold drift
 	aerialLook = cam.AERIAL_LOOK_DEFAULT, -- cam.AERIAL_LOOKS: what a flight looks at (taken at each flight's start; round 15: High)
 	lookReturn = true, -- the mouse-look offset decays back to the flight's own view
@@ -120,6 +127,12 @@ local S = {
 	tourLabels = true, -- "Hide labels during tours" (pm_hud: the labels go while the tour runs; hover always does)
 	tourPause = false, -- "Pause the game during the tour" (pm_sky's freeze, restored when the tour ends)
 	areaChoice = P.AREA_DEFAULT, -- "This place" / "Wander": the area's radius (pm_place.AREAS)
+	-- round 22: the Aerials and Tour tabs (cam.tourModeOf)
+	tourStyle = "wander", -- Tour: cam.TOUR_STYLES (round 22, user: "tour style default should be wander")
+	tourWhere = "map",   -- Tour: cam.TOUR_WHERES
+	tourFlights = false, -- Tour: "Drone flight between shots" (the "mixed" mode)
+	aerialWhere = "map", -- Aerials: cam.AERIAL_WHERES
+	stayChoice = cam.STAY_DEFAULT, -- Wander across the map / over the saved views: cam.STAY_SECONDS
 	wander = nil,      -- the wander move (manual or a tour): { w (pm_flight), t0, manual, subjects, nextAt, from }
 	eye = nil,         -- the eye-space solver's state (pm_flight.newEye), per move
 	eyeLogs = 0,       -- "eye check" log lines this move (at most EYE_LOGS)
@@ -1282,6 +1295,52 @@ function D.setTourMode(mode)
 	bump()
 end
 
+--- Round 22: the Tour tab's choices set the mode its Start plays (cam.tourModeOf) and that mode's range preset; a
+--- running tour keeps its own.
+local function tourTabChanged(what)
+	S.rangeSel = cam.preset(cam.tourModeOf(S.tourStyle, S.tourWhere, S.tourFlights))
+	core.log("tour tab " .. what .. ": style=" .. S.tourStyle .. " where=" .. S.tourWhere .. " flights="
+		.. tostring(S.tourFlights))
+	bump()
+end
+
+local function oneOf(list, v)
+	for __, k in ipairs(list) do if k == v then return true end end
+	return false
+end
+
+function D.setTourStyle(style)
+	if not oneOf(cam.TOUR_STYLES, style) then return end
+	S.tourStyle = style
+	tourTabChanged("style")
+end
+
+function D.setTourWhere(where)
+	if not oneOf(cam.TOUR_WHERES, where) then return end
+	S.tourWhere = where
+	tourTabChanged("where")
+end
+
+function D.setTourFlights(on)
+	S.tourFlights = on == true
+	tourTabChanged("flights")
+end
+
+function D.setAerialWhere(where)
+	if not oneOf(cam.AERIAL_WHERES, where) then return end
+	S.aerialWhere = where
+	core.log("aerial where " .. where)
+	bump()
+end
+
+--- Wander across the map / over the saved views: seconds around each place (index into cam.STAY_SECONDS); a
+--- running tour uses it from the next place on.
+function D.setStayChoice(choice)
+	S.stayChoice = choice
+	if S.tour ~= nil and S.tour.roam then S.tour.stayMs = cam.staySeconds(choice) * 1000 end
+	bump()
+end
+
 --- One range choice (key pf / pt / df / dt, index 1..3).
 function D.setRange(key, idx)
 	if S.rangeSel[key] == nil then return end
@@ -1406,6 +1465,56 @@ local function flightView(fl, dist, t, dt, out, noLook)
 	return v
 end
 
+-- Round 22: Aerials over the saved views: the drone flies from one saved view's centre to the next in list order,
+-- looping (S.tour.route = { pts = { { x, y, id } }, i = the last one flown to }). A view closer than ROUTE_MIN_M
+-- to the last waypoint is passed over (two views of one place); one that needs a turn sharper than FLY.maxTurn
+-- gets a turning waypoint ROUTE_TURN_M ahead first, turned by maxTurn towards it (a spline through a turn back
+-- would stop the drone and reverse it). No view far enough (a single one): a waypoint of the map's candidates.
+local ROUTE_MIN_M, ROUTE_TURN_M = 400, 800
+
+--- The route's next saved view at least ROUTE_MIN_M from `last` (nil: any), its index; nil when none is. Not
+--- consumed (the caller sets route.i when it flies to it).
+local function routePeek(route, last)
+	local n = #route.pts
+	for k = 1, n do
+		local i = (route.i + k - 1) % n + 1
+		local p = route.pts[i]
+		if last == nil or (p.x - last.x) ^ 2 + (p.y - last.y) ^ 2 >= ROUTE_MIN_M * ROUTE_MIN_M then return p, i end
+	end
+	return nil, nil
+end
+
+--- The saved views as a route (their centres, list order), nil when there are none.
+local function newRoute()
+	local okL, list = pcall(D.viewsProvider)
+	if not okL or type(list) ~= "table" then return nil end
+	local pts = {}
+	for __, b in ipairs(list) do
+		if type(b) == "table" and cam.finite(b.x) and cam.finite(b.y) then pts[#pts + 1] = { x = b.x, y = b.y, id = b.id } end
+	end
+	return #pts > 0 and { pts = pts, i = 0 } or nil
+end
+
+--- The route's next waypoint after `last` (flying `heading`), inside the look's edge margin; nil: none far enough.
+local function routeWaypoint(route, last, heading, look)
+	local p, i = routePeek(route, last)
+	if p == nil then return nil end
+	local want = cam.atan2(p.y - last.y, p.x - last.x)
+	local turn = cam.angleDiff(heading, want)
+	local wp
+	if math.abs(turn) > F.FLY.maxTurn then
+		local h = heading + (turn > 0 and 1 or -1) * F.FLY.maxTurn
+		wp = { x = last.x + math.cos(h) * ROUTE_TURN_M, y = last.y + math.sin(h) * ROUTE_TURN_M,
+			why = "turning to saved view " .. tostring(p.id) }
+	else
+		route.i = i
+		wp = { x = p.x, y = p.y, why = "saved view " .. tostring(p.id) }
+	end
+	local ib = F.inner(world.mapBounds(), F.viewMargin(look))
+	if ib ~= nil then wp.x, wp.y = cam.clamp(wp.x, ib[1], ib[3]), cam.clamp(wp.y, ib[2], ib[4]) end
+	return wp
+end
+
 --- Waypoints are added while the drone flies, so the path always reaches past the look-ahead point. One
 --- candidate list per waypoint (about once a minute), never per frame.
 local function extendPath(fl, dist, maxAdd)
@@ -1418,7 +1527,8 @@ local function extendPath(fl, dist, maxAdd)
 		local heading = prev ~= nil and cam.atan2(last.y - prev.y, last.x - prev.x) or fl.heading
 		-- the leg's candidates, looked up once at its start (startFlight): no scan while flying
 		-- round 16: the look's edge margin (no view out past the map edge) and the recent areas (no repeats)
-		local wp = F.nextWaypoint(last, heading, fl.cands or {}, world.mapBounds(), world.rnd, F.viewMargin(fl.look))
+		local wp = fl.route ~= nil and routeWaypoint(fl.route, last, heading, fl.look) or nil
+		wp = wp or F.nextWaypoint(last, heading, fl.cands or {}, world.mapBounds(), world.rnd, F.viewMargin(fl.look))
 		fl.path[n + 1] = wp
 		F.rememberArea(wp.x, wp.y)
 		core.log(string.format("tour flight waypoint %.0f,%.0f (%s)", wp.x, wp.y, tostring(wp.why)))
@@ -1494,7 +1604,18 @@ local function startFlight(now, legS, elsewhere)
 	local okC, cands = pcall(world.flightCandidates, S.flightSubjects)
 	cands = okC and type(cands) == "table" and cands or {}
 	local cruise = false
-	if elsewhere then
+	local route = S.tour ~= nil and S.tour.route or nil
+	if route ~= nil then
+		-- round 22: over the saved views: the flight starts above the first one (a glide there), heading for the
+		-- next one; it has no legs (legS nil: it flies on from view to view)
+		local p, i = routePeek(route, nil)
+		route.i = i
+		start = { x = p.x, y = p.y }
+		local q = routePeek(route, p)
+		if q ~= nil then heading = cam.atan2(q.y - p.y, q.x - p.x) end
+		core.log(string.format("tour flight over the saved views (%d), from view %s at %.0f,%.0f", #route.pts,
+			tostring(p.id), p.x, p.y))
+	elseif elsewhere then
 		local prev = from.flight
 		local area = newArea(fv, cands, prev ~= nil and prev.endHeading or nil)
 		if area ~= nil then
@@ -1509,7 +1630,7 @@ local function startFlight(now, legS, elsewhere)
 		cruise = prev ~= nil
 	end
 	local fl = { path = { start }, heading = heading, phase = world.rnd(), look = S.aerialLook, cands = cands,
-		cruise = cruise }
+		cruise = cruise, route = route }
 	fl.legMs = legS and legS * 1000 or nil
 	S.look = nil -- the glide starts from the view as it is, offset included
 	-- the whole leg's waypoints now (at most 12; the glide's seconds fly too), so the frames of the flight only
@@ -1604,10 +1725,12 @@ local function tourAdvanceNow(now)
 		placeAdvance(now)
 		return
 	end
-	local flights = t.mode == "aerial" or not cam.viewsOnly(S.tourSources)
+	local sources = t.sources or S.tourSources
+	local flights = t.mode == "aerial" or not cam.viewsOnly(sources)
 	if flights and cam.hopKind(t.mode, t.n) == "flight" then
 		local t0 = perf:start()
-		startFlight(now, cam.legSeconds(S.legChoice), t.mode == "aerial" and t.n > 1)
+		-- round 22: a flight along the saved views has no legs (it flies on from view to view)
+		startFlight(now, t.route == nil and cam.legSeconds(S.legChoice) or nil, t.mode == "aerial" and t.n > 1)
 		perf:stop(SEC_FLIGHT, t0)
 		return
 	end
@@ -1616,7 +1739,7 @@ local function tourAdvanceNow(now)
 	-- the next ticked source; one with nothing this hop is skipped, the next one tried
 	local skip = {}
 	while to == nil do
-		local src = cam.tourNextSource(S.tourSources, t.src, skip)
+		local src = cam.tourNextSource(sources, t.src, skip)
 		if src == nil then break end
 		t.src = src
 		if src == "views" then
@@ -1639,7 +1762,7 @@ local function tourAdvanceNow(now)
 		if to == nil then skip[src] = true end
 	end
 	if to == nil then
-		if cam.viewsOnly(S.tourSources) then
+		if cam.viewsOnly(sources) then
 			stopTour("no saved views")
 			setStatus(_("Save a view first, or tour random subjects."))
 		else
@@ -1685,28 +1808,104 @@ local function wanderPoint(wd)
 	return x, y, ground(x, y), "point"
 end
 
+-- Round 22: Wander across the map / over the saved views: the glide to the next place is longer the farther it
+-- goes (cam.GLIDE_SECONDS for a short move, up to ROAM_GLIDE_MAX times it), and rises on the way (cam.glideBump).
+local ROAM_GLIDE_M, ROAM_GLIDE_MAX = 3000, 2.2
+-- No next place found when the Stay is over: the wander stays and tries again this much later.
+local ROAM_RETRY_MS = 15000
+-- Places tried for one not shown lately (pm_flight.nearRecent).
+local ROAM_TRIES = 4
+
 --- Starts a wander around the centre of `cur` (radius r, pitch pMin .. pMax); manual: the Camera tab's move (no
 --- tour). The eye starts where it is: a glide (cam.GLIDE_SECONDS) eases into the moving wander path.
-local function startWander(cur, r, pMin, pMax, manual)
+--- at (round 22, a wander that roams): { x, y, from (the elevation view the glide starts at), bearing (where the
+--- eye starts around the place; nil: on the side the camera comes from), stayS, why }: the wander goes round
+--- (at.x, at.y) instead, after a glide there that rises with the distance.
+local function startWander(cur, r, pMin, pMax, manual, at)
 	local off = lookOffset()
 	newMove("wander")
 	-- the wander plans eye-centre elevations; the current view's pitch is the game's: as an elevation view (the
 	-- camera model, round 9), so the glide in starts at the eye the game shows now
-	local from = F.elevView(withGround({ x = cur.x, y = cur.y, d = cur.d, a = cur.a, p = cur.p }), S.camRes)
-	local w = F.newWander(cur.x, cur.y, r, from.g, pMin, pMax, world.rnd, cam.lookOf(cur.a, off) + cam.PI)
+	local from = at ~= nil and at.from
+		or F.elevView(withGround({ x = cur.x, y = cur.y, d = cur.d, a = cur.a, p = cur.p }), S.camRes)
+	local x, y, g, bearing, glideS = cur.x, cur.y, from.g, cam.lookOf(cur.a, off) + cam.PI, cam.GLIDE_SECONDS
+	if at ~= nil then
+		x, y = at.x, at.y
+		g = ground(x, y) or from.g
+		bearing = at.bearing or cam.atan2(from.y - y, from.x - x)
+		local travel = math.sqrt((x - from.x) ^ 2 + (y - from.y) ^ 2)
+		glideS = cam.GLIDE_SECONDS * cam.clamp(1 + travel / ROAM_GLIDE_M, 1, ROAM_GLIDE_MAX)
+	end
+	local w = F.newWander(x, y, r, g, pMin, pMax, world.rnd, bearing)
 	if w == nil then return false end
+	local bumpM = 0
+	if at ~= nil then bumpM = cam.glideBump(from, F.wanderView(w, 0, 0, off, {})) end
 	local subjects = {}
 	if world.nearby ~= nil then
 		local t0 = perf:start()
-		local ok, list = pcall(world.nearby, cur.x, cur.y, r)
+		local ok, list = pcall(world.nearby, x, y, r)
 		perf:stop(SEC_PLACE, t0)
 		if ok and type(list) == "table" then subjects = list end
 	end
-	S.wander = { w = w, t0 = world.nowMs(), manual = manual, subjects = subjects, nextAt = 0, from = from }
+	local now = world.nowMs()
+	S.wander = { w = w, t0 = now, manual = manual, subjects = subjects, nextAt = 0, from = from, glideS = glideS,
+		bump = bumpM, leaveAt = at ~= nil and now + (glideS + (at.stayS or 60)) * 1000 or nil }
 	S.last = nil
-	core.log(string.format("wander on (%s) %.0f,%.0f r=%.0f pitch %.2f-%.2f subjects=%d", manual and "camera move" or "tour",
-		cur.x, cur.y, r, pMin, pMax, #subjects))
+	core.log(string.format("wander on (%s) %.0f,%.0f r=%.0f pitch %.2f-%.2f subjects=%d%s",
+		manual and "camera move" or (at ~= nil and "tour roam" or "tour"), x, y, r, pMin, pMax, #subjects,
+		at ~= nil and string.format(" glide %.1fs rise %.0fm stay %ds (%s)", glideS, bumpM, at.stayS or 60,
+		tostring(at.why)) or ""))
 	return true
+end
+
+--- Round 22: the next place a roaming wander goes round: { x, y, bearing, why }, nil when there is none. "views":
+--- the next saved view in list order (the eye starts on its side: behind its centre, as the view was framed).
+--- "map": a subject of the tour's sources in turn (as the hops pick them), one not shown lately when one of
+--- ROAM_TRIES picks is. Per place (a minute or so), never per frame.
+local function roamPlace(t)
+	if t.where == "views" then
+		local v, id = tourNextView()
+		if v == nil then return nil end
+		return { x = v.x, y = v.y, bearing = cam.lookOf(v.a, lookOffset()) + cam.PI, why = "view " .. tostring(id) }
+	end
+	local best = nil
+	local skip = {}
+	for __ = 1, ROAM_TRIES do
+		local src = cam.tourNextSource(t.sources or S.tourSources, t.src, skip)
+		if src == nil then break end
+		t.src = src
+		local kind, s = tourNextSubject(src)
+		if s == nil then
+			skip[src] = true
+		elseif cam.finite(s.x) and cam.finite(s.y) then
+			best = { x = s.x, y = s.y, why = string.format("%s %s (%s) entity=%s", src, tostring(kind), tostring(s.why),
+				tostring(s.entity)) }
+			if not F.nearRecent(s.x, s.y) then break end
+		end
+	end
+	if best ~= nil then F.rememberArea(best.x, best.y) end
+	return best
+end
+
+--- Round 22: a roaming wander moves on to its next place (from: the elevation view sent last; nil: the current
+--- view). False when there is no place to go.
+local function roamNext(from, why)
+	local t = S.tour
+	if from == nil then
+		local cur = readView()
+		if cur == nil then return false end
+		from = F.elevView(withGround({ x = cur.x, y = cur.y, d = cur.d, a = cur.a, p = cur.p }), S.camRes)
+	end
+	local pl = roamPlace(t)
+	if pl == nil then return false end
+	local range = cam.tourRange(S.rangeSel)
+	t.n = (t.n or 0) + 1
+	core.log("tour roam " .. t.n .. " (" .. why .. ") to " .. pl.why)
+	local ok = startWander(from, P.radius(S.areaChoice), range.pMin, range.pMax, false,
+		{ x = pl.x, y = pl.y, from = from, bearing = pl.bearing, stayS = t.stayMs / 1000, why = pl.why })
+	-- the camera trace for the tour's first place only (a trace per place would fill the log)
+	if t.n > 1 then S.trace = nil end
+	return ok
 end
 
 --- One frame of the wander; false when setting the view failed.
@@ -1725,7 +1924,8 @@ local function wanderStep(now, dt)
 		smoothSegment("wander")
 	end
 	local v = F.wanderView(wd.w, t, dt, lookOffset(), wanderBuf)
-	if t < cam.GLIDE_SECONDS then v = cam.lerpView(wd.from, v, t / cam.GLIDE_SECONDS, 0, setBuf) end
+	local G = wd.glideS or cam.GLIDE_SECONDS
+	if t < G then v = cam.lerpView(wd.from, v, t / G, wd.bump or 0, setBuf) end
 	local okSet, err = sendPlanned(v, dt)
 	if not okSet then
 		core.log("setCameraData ERROR " .. tostring(err) .. "; camera moves stopped")
@@ -1733,6 +1933,14 @@ local function wanderStep(now, dt)
 		stopTour("camera error")
 		stopWander("camera error")
 		return false
+	end
+	-- round 22: a roaming wander's Stay is over: on to the next place (the glide starts at the view just sent)
+	if wd.leaveAt ~= nil and now >= wd.leaveAt and S.tour ~= nil and S.tour.roam then
+		local from = { x = v.x, y = v.y, d = v.d, a = v.a, p = v.p, g = v.g }
+		if not roamNext(from, "stay over") then
+			wd.leaveAt = now + ROAM_RETRY_MS
+			core.log("tour roam: no next place; the wander stays and tries again in " .. ROAM_RETRY_MS / 1000 .. " s")
+		end
 	end
 	return true
 end
@@ -2270,14 +2478,18 @@ local function flyStep(now, dt)
 	end
 end
 
-function D.toggleTour()
+--- Starts the tour of S.tourMode, or stops the running one. where (round 22, the tab's Where; nil: a tour of the
+--- ticked sources, as before the Aerials and Tour tabs): "map" the tour's sources are the ticked map sources
+--- (cam.sourcesFor), a wander roams between places of them; "views" the saved views: the hops play them, a
+--- wander roams between them, an aerial flies along them; "here" the place in the middle of the view.
+function D.toggleTour(where)
 	if S.tour ~= nil then stopTour("button") return end
 	if S.cutscene ~= nil then return end
 	-- round 15 DEV: Aerials as a chain of cutscene flights (TESTING.md CD4); none planned: the normal tour. Round 21
 	-- (user: "aerials high mode isn't working, never goes very high"; session 2026-10-14_2332_r20-test: every Start
 	-- with the DEV mod played the cutscene flight, whose keys fly FLY.height 250 m over the anchors whatever the
 	-- look): the High look always flies the scripted High flight (pm_flight highPose, ~1 km up).
-	if S.tourMode == "aerial" and cutscene.devOn() then
+	if S.tourMode == "aerial" and where ~= "views" and cutscene.devOn() then
 		if S.aerialLook == "high" then
 			core.log("cutscene fly skipped: the High look flies the scripted flight (the cutscene flight's keys are "
 				.. cutscene.FLY.height .. " m over the ground)")
@@ -2287,7 +2499,21 @@ function D.toggleTour()
 	end
 	local place = nil
 	local wanderAt = nil
-	if S.tourMode == "wander" then
+	local sources = cam.sourcesFor(where, S.tourSources)
+	local roam = S.tourMode == "wander" and (where == "map" or where == "views")
+	local route = nil
+	if roam then
+		if where == "views" and newRoute() == nil then
+			setStatus(_("Save a view first, or pick Across the map."))
+			return
+		end
+	elseif S.tourMode == "aerial" and where == "views" then
+		route = newRoute()
+		if route == nil then
+			setStatus(_("Save a view first, or pick Across the map."))
+			return
+		end
+	elseif S.tourMode == "wander" then
 		wanderAt = readView()
 		if wanderAt == nil then
 			setStatus(_("Nothing to show on this map yet."))
@@ -2304,10 +2530,11 @@ function D.toggleTour()
 		place = { plan = plan }
 		place.subjects = placeSubjects(place)
 		core.log(string.format("tour place %.0f,%.0f r=%.0f subjects=%d", plan.x, plan.y, plan.r, #place.subjects))
-	elseif S.tourMode ~= "aerial" and cam.viewsOnly(S.tourSources) then
+	elseif S.tourMode ~= "aerial" and cam.viewsOnly(sources) then
 		local okL, list = pcall(D.viewsProvider)
 		if not okL or type(list) ~= "table" or #list == 0 then
-			setStatus(_("Save a view first, or tour random subjects."))
+			setStatus(where == "views" and _("Save a view first, or pick Across the map.")
+				or _("Save a view first, or tour random subjects."))
 			return
 		end
 	end
@@ -2316,17 +2543,27 @@ function D.toggleTour()
 	-- the look offset is measured now, in the normal camera (camera mode may hand the view to the free camera)
 	lookOffset()
 	S.tour = { idx = {}, vidx = 0, n = 0, mode = S.tourMode, src = nil, place = place,
-		every = cam.tourSeconds(S.tourChoice) * 1000, nextAt = 0 }
+		every = cam.tourSeconds(S.tourChoice) * 1000, nextAt = 0,
+		where = where, sources = where ~= nil and sources or nil, route = route, roam = roam,
+		stayMs = cam.staySeconds(S.stayChoice) * 1000 }
 	S.hop, S.flight, S.leaving = nil, nil, nil
 	S.look = nil
 	S.last = nil
 	stopWander("tour") -- a manual wander would resume (and jump) after the tour
-	if wanderAt == nil then newMove("tour") end -- a wander starts its own move (startWander)
+	if wanderAt == nil and not roam then newMove("tour") end -- a wander starts its own move (startWander)
 	if wanderAt ~= nil then
 		local range = cam.tourRange(S.rangeSel)
 		startWander(wanderAt, P.radius(S.areaChoice), range.pMin, range.pMax, false)
+	elseif roam and not roamNext(nil, "start") then
+		S.tour = nil
+		core.log("tour roam: no place to go (" .. tostring(where) .. ")")
+		setStatus(_("Nothing to show on this map yet."))
+		bump()
+		return
 	end
-	core.log("tour on mode=" .. S.tourMode .. " sources=" .. table.concat(cam.ticked(S.tourSources, cam.TOUR_SOURCES), ",")
+	core.log("tour on mode=" .. S.tourMode .. " where=" .. tostring(where) .. (roam and " (roams, stay "
+		.. cam.staySeconds(S.stayChoice) .. "s)" or "") .. (route ~= nil and (" (route of " .. #route.pts .. " views)") or "")
+		.. " sources=" .. table.concat(cam.ticked(sources, cam.TOUR_SOURCES), ",")
 		.. " every=" .. tostring(cam.tourSeconds(S.tourChoice)) .. "s leg=" .. tostring(cam.legSeconds(S.legChoice))
 		.. "s fly=" .. table.concat(cam.ticked(S.flightSubjects, cam.FLIGHT_SUBJECTS), ",")
 		.. " look=" .. S.aerialLook .. " lookReturn=" .. tostring(S.lookReturn)
@@ -2334,6 +2571,28 @@ function D.toggleTour()
 		.. " labels=" .. tostring(S.tourLabels) .. " pause=" .. tostring(S.tourPause))
 	setStatus(nil)
 	pcall(D.onTourHide, true, { hideLabels = S.tourLabels, pause = S.tourPause })
+end
+
+--- Round 22: the Start button of the Aerials ("aerial") or the Tour ("tour") tab: stops the running tour; when it
+--- was the other tab's, starts this one (the Aerials tab's Where, or the Tour tab's mode and Where).
+function D.startTab(kind)
+	if S.tour ~= nil then
+		local same = (S.tour.mode == "aerial") == (kind == "aerial")
+		stopTour("button")
+		if same then return end
+	end
+	if kind == "aerial" then
+		S.tourMode = "aerial"
+		D.toggleTour(S.aerialWhere)
+	else
+		S.tourMode = cam.tourModeOf(S.tourStyle, S.tourWhere, S.tourFlights)
+		D.toggleTour(S.tourWhere)
+	end
+end
+
+--- True while a tour of the Aerials ("aerial") or the Tour ("tour") tab runs.
+function D.tabRunning(kind)
+	return S.tour ~= nil and (S.tour.mode == "aerial") == (kind == "aerial")
 end
 
 ---------------------------------------------------------------------------

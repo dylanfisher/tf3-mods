@@ -74,7 +74,7 @@ own Settings > Graphics page, ideally set below Very High so the boost is visibl
    as the layers button and our other buttons, two-line tooltip. Click: the window opens, no hitch. Turn
    "Highest graphics" on (top of the window): the stages (F1), the picture gets sharper (anti-aliasing,
    textures; shadows, geometry, terrain and grass stay as set). Log: `hq on: player's settings ...`, `hq on:
-   marker ... saved=true`, `hq stage 1/3 ...` .. `hq stage 3/3 ...`, `hq on: 3 stages ms= now textureQuality=2
+   marker ms=... now ...` (since 2026-10-20 no `saved=` field: nothing of ours writes settings.lua), `hq stage 1/3 ...` .. `hq stage 3/3 ...`, `hq on: 3 stages ms= now textureQuality=2
    ... numMSAASamples=8 ...`. Toggle off: ~1 s hitch, your look is back, `hq off(toggle) after stage 3 of 3: 3
    restore stages` ... `restored in 3 stages` with your values.
 2. **Esc restores.** Highest graphics on, then Esc: the pause menu opens, `hq off(pause menu) ...`, ~1 s hitch.
@@ -172,7 +172,7 @@ F1. **Staged highest graphics** (the one-call switch crashed twice, `2026-10-13_
      `setAppConfig` (no `Saved settings to settings.lua` line either).
    - *Staged on*: click "Highest graphics": the toggle shows pressed at once, then the hitches come in steps
      over ~15 frames. Log, in order: `hq on: 5 stages, 3 frames apart`, `hq on: player's settings`, `hq on:
-     marker ... saved=true`, `hq stage 1/5 keys=textureQuality,terrainTextureQuality ms=`, `hq stage 2/5
+     marker ...` (`saved=true` before 2026-10-20), `hq stage 1/5 keys=textureQuality,terrainTextureQuality ms=`, `hq stage 2/5
      keys=geometryQuality,terrainQuality,grassQuality ms=`, `hq stage 3/5 keys=useSsao,ssrQuality ms=`, `hq stage
      4/5 keys=shadowQuality ms=`, `hq stage 5/5 keys=numMSAASamples,resolutionScale ms=`, `hq on: 5 stages ms=`
      (since round 3: no shadow stage, `hq stage 4/4 keys=numMSAASamples,resolutionScale`, `hq on: 4 stages`).
@@ -723,6 +723,27 @@ Z7. **Mixed after a flight leg.** Tour mode Mixed: after a flight leg the hop to
    flying (no stop before it), arrives as before. **Report** anything odd.
 Z8. **Regression.** W4 (smooth camera controls, Esc / pause key), W1f (a build menu during a Wander: `view tool:
    removed by another tool`), X3 (2x / 4x files and sizes), V10 (moves stop on a pan / Esc / Space).
+
+## Round 22: Aerials and Tour tabs, tours of interesting places or saved views (built 2026-10-19, untested; PLAN.md "Round 22")
+
+- [ ] R22-1: Open the window: it opens on Aerials; the tabs read Aerials, Tour, Subjects, Animals, Camera, Light,
+  Weather, Settings, all on one row (no wider window), also in de and ru.
+- [ ] R22-2: Aerials, Where Across the map, Start aerials: as before (log `tour on mode=aerial where=map`).
+- [ ] R22-3: Save 3-4 views far apart (Tour or Aerials tab, Where Saved views, Save view). Aerials, Where Saved
+  views, Start: the drone starts over the first view and flies over each in list order, then again from the top,
+  never stopping or reversing (log `tour flight over the saved views`, `waypoint ... (saved view N)`, `(turning to
+  saved view N)` before a turn back). **Report** how the turns look.
+- [ ] R22-4: Tour, Style Wander, Where Across the map, Stay 30 s, Start: wanders round an interesting place
+  (bridge, skyline, station, town ...), after ~30 s glides up and over to another one far away and wanders there
+  (log `tour roam N (stay over) to ...`, `wander on (tour roam) ... glide Xs rise Ym`). **Report** whether the
+  glide between places is smooth and not too fast for 5+ km.
+- [ ] R22-5: Tour, Wander, Where Saved views: round each saved view in list order, starting on the side the view
+  was saved from. No saved views: the status "Save a view first, or pick Across the map."
+- [ ] R22-6: Tour, Shots, each Where: Across the map (hops, the Sources and distance rows), Saved views (the list,
+  Hold and Ken Burns, no angle rows), Here (This place). "Drone flight between shots" ticked: Mixed (log
+  `tour on mode=mixed`).
+- [ ] R22-7: Every new row and option fits the window in de, ru and ja; tooltips on every option.
+- [ ] R22-8: Regression: Esc / a pan stops each new tour; the window comes back; Camera tab Wander unchanged.
 
 ## Round 21: Aerials High with the DEV mod, unattached flight anchors, no button style setting (built 2026-10-14, untested; PLAN.md "Round 21")
 
@@ -1490,9 +1511,9 @@ Logs: `make logs-grep PAT='\[PhotoMode\] (setup|look legacy|light .*cloudScatter
 
 - **RS1 Save and reload a setup.** Weather tab: Dramatic + Hazy morning; Light tab: Golden hour. Settings tab >
   Save new: a name field opens with "Setup 1"; type "custom golden 1", Enter. Log `setup save id=1 look=dramatic/
-  hazy_morning/- ...`, a frame later `setups written n=1 saved=true ms=` (one `Saved settings to settings.lua`). Quit
-  the game, start it, load another save: the dropdown lists "custom golden 1" (`setups loaded n=1`), its tooltip
-  names the looks, the time and the date.
+  hazy_morning/- ...`, written at once into our GUI save data (since 2026-10-20: no `setups written` line, no
+  `Saved settings to settings.lua`). Save the game, load it: the dropdown lists "custom golden 1" (`setups loaded
+  n=1`), its tooltip names the looks, the time and the date. Setups are per savegame since 2026-10-20 (RS13).
 - **RS2 Rename, Overwrite, Delete, the cap.** Rename (Enter keeps the new name, Esc in the field keeps the old one:
   check that Esc there doesn't open the pause menu), change the look and Overwrite ("Setup saved."), Delete. Save new
   stays disabled at 30 setups with the tooltip "At most 30 setups".
@@ -1522,14 +1543,24 @@ Logs: `make logs-grep PAT='\[PhotoMode\] (setup|look legacy|light .*cloudScatter
   the climate.
 - **RS9 Night lights.** 22:00, a town: Original vs Moonlit night vs Neon dusk: the lit windows and street lamps
   brighter in the two night skies (x2 / x2.5).
-- **RS10 Setups while High graphics mode is on.** High graphics on, Save new: `setups written n=... saved=false` (not
-  saved while boosted). Untick High graphics: the restore saves (`hq restore stage 3/3 ... (marker cleared,
-  saved)`); restart the game: the setup is there and Settings > Graphics shows your own values.
+- **RS10 Setups while High graphics mode is on.** High graphics on, Save new: the setup is listed at once, no
+  hitch, no `setAppConfig` of the setups (since 2026-10-20 they never touch the game's settings). Untick High
+  graphics: `hq restore stage 3/3 ... (marker cleared)`; save the game, quit normally, start it again: Settings >
+  Graphics shows your own values and the setup is in that save.
 - **RS11 Window height at 1080p.** At 1920 x 1080 with the Large text size: the Weather tab (three sliders plus the
   Foreground section) and the Settings tab (setups and options) fit on screen; the cell buttons wrap long
   translations inside their cells (de: "Letztes Setup wiederherstellen").
 - **RS12 A look only.** No override, pick Storybook, Esc, Restore last setup: the look comes back and the override
   stays off (the day cycle is not switched to Custom).
+- **RS13 Setups per savegame, no settings save of ours** (2026-10-20, after the mod.io review rejected the game
+  settings save; PLAN.md "No settings save of ours"; untested). Load save A, Save new twice ("A1", "A2"), save the
+  game as A, load it again: both setups are there (`setups loaded n=2`). Load another save B (or a new game): no
+  setups (`setups loaded n=0`); Save new "B1", save B; load A again: A1 and A2 only. Through all of it, and while
+  High graphics mode goes on and off, a look, the override and the pause menu: no `Saved settings to settings.lua`
+  line follows a Photo Mode action (`make logs-grep PAT='Saved settings to settings.lua|\[PhotoMode\] (setup|hq)'
+  ARGS='--session last'`: only the game's own at launch and right before `Normal shutdown. Bye!`). Then High
+  graphics on, quit with Cmd+Q: the pause-menu restore runs, the shutdown write follows; start again: Settings >
+  Graphics shows your own values and the next load logs no `marker found`.
 
 ## High graphics with geometry / terrain / grass (built 2026-10-14, untested)
 
@@ -1573,7 +1604,8 @@ C8. **Corrupt safety-net marker.** Quit the game. In `settings.lua` (`~/Library/
    `square_photo_mode = { boosted = true, orig = { shadowQuality = 0, grassQuality = 0, textureQuality = "x", ssrQuality = 1 } },`
    with Reflections set to High and Grass to High in Settings beforehand. Load a save: `marker found: restoring
    ssrQuality=1 | kept ...` (the broken texture value and the old marker's shadows and grass ignored; Shadows and
-   Grass unchanged), marker cleared (the next load logs no marker line). Variant: the
+   Grass unchanged), marker cleared (in memory since 2026-10-20: the next load in the same session logs no marker
+   line; after a normal quit, the next launch neither). Variant: the
    value `"junk"` instead of the table: `marker without original values, clearing`. Other mods' entries in
    `mainMenuState` (Better Minimap's) stay.
 C9. **Camera extremes.** Save a view zoomed out to the limit at a map corner, one at eye level; go back to each.
@@ -1586,5 +1618,5 @@ C11. **Languages.** German and Japanese: every tab renders (Views tab with 0, 3 
 ## Regression checklist (every release)
 
 1, 2, 3, 6, P1, P3, P10, P11, F1 (incl. the long session), F3, F5, F6, G1, G2, G3, G3h, G5, G6, G9, G10, G11,
-G12, G13, G14, G15, G16, G18, G20, G21, G22, G23, G24, L1, L6, L7, L8, K3, K4, K5, a few of S1-S12, C1, C3
-and C7.
+G12, G13, G14, G15, G16, G18, G20, G21, G22, G23, G24, L1, L6, L7, L8, K3, K4, K5, a few of S1-S12, C1, C3,
+C7 and RS13.

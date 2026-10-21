@@ -13,9 +13,9 @@
 --            High graphics mode stalls the game for about a second)
 --
 -- Two kinds:
---   library  named setups, kept in AppConfig.mainMenuState[KEY] (the game's settings.lua): the same setups in every
---            savegame, never in a save, so removing the mod can't touch a save. At most CAP, names cleaned like
---            the saved views' (at most NAME_MAX characters).
+--   library  named setups, kept in our GUI save data (field `setups`, with the saved views and `last`): the
+--            setups of this savegame (each save has its own). At most CAP, names cleaned like the saved views' (at
+--            most NAME_MAX characters).
 --   last     the most recent setup in which something of ours was on (override, look or freeze), captured at every
 --            change and right before the pause menu (Esc) or an untick put the player's own values back: "Restore
 --            last setup" undoes an accidental Esc. Kept in our GUI save data (field `last`, with the saved views),
@@ -25,9 +25,6 @@ local L = ug_require "square_photo_mode::/photo_mode/pm_light.lua"
 
 local M = {}
 
--- The AppConfig.mainMenuState key of the library. Not "square_photo_mode": pm_button.script.lua writes and clears
--- the high graphics marker there (pm_core.withMarker), which would wipe the setups.
-M.KEY = "square_photo_mode_setups"
 M.CAP = 30
 M.NAME_MAX = 40
 M.VALUE_FIELDS = { "time", "day", "sun", "cloud", "cloudBase", "cloudTop", "cloudScattering" }
@@ -111,7 +108,7 @@ function M.plain(s)
 	return out
 end
 
---- The library read back from settings.lua (any shape may come back: another version, a hand-edited file): only
+--- The library read back from our GUI save data (any shape may come back: another version, a corrupt save): only
 --- valid setups with an id and a name, no repeated ids, at most CAP.
 function M.readLibrary(raw)
 	local out, seen = {}, {}
@@ -129,7 +126,7 @@ function M.readLibrary(raw)
 	return out
 end
 
---- What goes into AppConfig.mainMenuState[KEY].
+--- What goes into our GUI save data (field `setups`).
 function M.libraryData(list)
 	local out = { v = 1, list = {} }
 	for __, s in ipairs(list or {}) do
@@ -204,19 +201,6 @@ function M.remove(list, id)
 	local out = copyList(list)
 	table.remove(out, i)
 	return out, true
-end
-
---- A copy of mainMenuState (nil or table-like, read with pairs) with `key` set to `value` (nil clears it); other
---- keys untouched. nil when it can't be copied completely: writing a partial copy back would wipe other mods'
---- prefs, so the caller must not write then (as pm_core.withMarker).
-function M.withKey(mm, key, value)
-	local t = {}
-	if mm ~= nil then
-		local ok = pcall(function() for k, v in pairs(mm) do t[k] = v end end)
-		if not ok then return nil end
-	end
-	t[key] = value
-	return t
 end
 
 --- True when something of ours shapes the picture (st: { override, look, freeze }): only then is a "last setup"

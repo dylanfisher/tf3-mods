@@ -1,6 +1,7 @@
 -- Photo Mode: the camera window (rev 2 phase 1; plans/square_photo_mode/PLAN.md "Rev 2"). Opened and closed by
--- the top-bar button (pm_button.script.lua, which wires W.onUserClose, W.hqOn and W.onHqToggle). Tabs Subjects /
--- Camera / Views / Tour / Light / Weather / Settings, shown as icons with the name as tooltip (round 11; pm_sky.lua:
+-- the top-bar button (pm_button.script.lua, which wires W.onUserClose, W.hqOn and W.onHqToggle). Tabs Aerials /
+-- Tour / Subjects / Animals / Camera / Light / Weather / Settings (round 22: Aerials and Tour first, the saved
+-- views inside them), shown as icons with the name as tooltip (round 11; pm_sky.lua:
 -- light and weather override, freeze; phase 4: looks, weather over time, time-lapse, season and sun placement,
 -- pm_weather.lua through pm_sky; Light: time, season, light angle, sun (round 15: sliders, gui/pm_slider.lua);
 -- Weather: looks (round 15: < / > beside each dropdown), clouds; round 12 Settings:
@@ -13,7 +14,7 @@
 -- Native look (plans/ui_style/PLAN.md "Window kit"): a base Window (singleton, getDefaultWindowApi), a base
 -- TabWidget, headings in font-scale-headline, base CheckBoxes for on / off settings (as Industry Flows and Problem
 -- Radar's settings), base ToggleButtonGroups for a few short one-of choices (Problem Radar's settings page), a base
--- ComboBox for one of many (the Tour mode), labelled rows in the Tour tab (a fixed-width, wrapping label column).
+-- ComboBox for one of many (the Weather looks), labelled rows in the Tour tab (a fixed-width, wrapping label column).
 -- Option sets (round 8, docs/ui-guide.md "Option sets"; user: "too cumbersome ... if they just had outlines it
 -- would be better"): every action is the base outlined button (default.css.lua Button!secondary) with compact
 -- padding; long sets of actions (subjects, shots, presets) are a grid of equal cells (sqpm-cell: a fixed, centred,
@@ -48,8 +49,8 @@
 --
 -- Bookmarks are GUI save data of this savegame: api.gui.game.getGuiSaveData / setGuiSaveData(modId, data)
 -- (api/tealdef/api/gui.d.tl:772-781; base layer_hud_filter.tl writes the base key the same way from a click).
--- Data { v = 1, views = { { id, name, x, y, d, a, p } } }, at most cam.BOOKMARK_CAP; never touches the
--- simulation.
+-- Data { v = 1, views = { { id, name, x, y, d, a, p } }, hud, light, last, setups }, views at most
+-- cam.BOOKMARK_CAP; never touches the simulation.
 
 local react = ug_require "::/gui/main/react.lua"
 local builtin = ug_require "::/gui/main/builtin.lua"
@@ -74,6 +75,33 @@ local fg = ug_require "square_photo_mode::/photo_mode/gui/pm_foreground.lua"
 local animals = ug_require "square_photo_mode::/photo_mode/gui/pm_animals.lua"
 
 local W = {}
+
+-- Base GUI modules differ by platform: the PS5 build's own copies lack functions the PC ones have (PS5 report
+-- 2026-10-19, Smart Lanes: "attempt to call field 'makeInfoHint' (a nil value)" reloaded the UI; docs/findings/gui.md
+-- "Base GUI modules differ by platform"). So the window calls no gui_react_util helper unguarded:
+-- the horizontal spacer is the base helper's own one-line body (gui_react_util.tl:367), inline, so nothing depends
+-- on the function; the name field is the base FocusTextInputField where it exists, else a plain TextInputField
+-- with the same fields (gui_react_util.tl:405-428), without the focus on mount.
+local function horizontalSpacer()
+	return builtin.Component{ meta = { class = "horizontal-spacer" } }
+end
+
+local function nameField(p)
+	local focus = gui_react_util and gui_react_util.FocusTextInputField
+	if type(focus) == "function" then return focus(p) end
+	local meta = {}
+	for k, v in pairs(p.meta or {}) do meta[k] = v end
+	meta.class = (p.class or "font-scale-body") .. ", no-clear-button"
+	return builtin.TextInputField{
+		meta = meta,
+		value = p.value,
+		onValueChange = p.onValueChange,
+		onCancel = p.onCancel,
+		acceptOnFocusLoss = true,
+		deselectOnFocusLost = false,
+		maxLength = p.maxLength,
+	}
+end
 
 -- Widths (px): the content's inner width, the width every FlowLayout row and wrapping text gets (the tab body
 -- and the TabWidget frame sit inside the content), the Tour tab's label column. FLOW_W and LABEL_W are also the
@@ -111,7 +139,7 @@ W.onHqToggle = function() end -- set by pm_button.script.lua: the toggle was cli
 local BM = { list = nil, version = 0, editing = nil } -- editing: id of the view being renamed
 local windowState = nil
 local closing = false
-local tab = "subjects"
+local tab = "aerial" -- round 22: the first tab
 
 local function try(what, fn)
 	local ok, err = pcall(fn)
@@ -140,13 +168,16 @@ local function saveBookmarks(list)
 		data.hud = hud.saveMarker() -- "Hide labels" safety net (pm_hud.lua)
 		data.light = sky.saveMarker() -- light / weather override and freeze safety net (pm_sky.lua)
 		data.last = setups.lastData() -- round 16: the last setup (gui/pm_setups.lua), "Restore last setup"
+		data.setups = setups.libraryData() -- the saved setups of this savegame (gui/pm_setups.lua)
 		api.gui.game.setGuiSaveData(core.MOD_ID, data)
 	end)
 end
 
--- pm_hud and pm_sky write our save data (their markers) through the same call, with the views.
+-- pm_hud, pm_sky and pm_setups write our save data (their markers, the setups) through the same call, with the
+-- views: setGuiSaveData replaces the whole modId table, so this is its one writer.
 hud.persist = function() saveBookmarks(bookmarks()) end
 sky.persist = function() saveBookmarks(bookmarks()) end
+setups.persist = function() saveBookmarks(bookmarks()) end
 
 local function addBookmark()
 	local v = driver.currentView()
@@ -293,6 +324,9 @@ local function heading(str)
 	return text(str, "font-scale-headline", styles().head)
 end
 
+--- A note: dim, smaller, wrapping text under a heading or atop a tab.
+local function note(str) return text(str, "font-scale-annotation, sqpm-wrap", styles().dim) end
+
 --- An action button (round 8, docs/ui-guide.md "Option sets"): the base outlined button (default.css.lua
 --- Button!secondary: the accent contour, the base hover / pressed / disabled states) with compact padding.
 --- cell = true: an equal-width cell of a grid (CELL_CLASS: fixed text width, centred, wrapping), else its
@@ -437,7 +471,7 @@ local function viewRow(b, i, n)
 	local name = b.name or core.fmt(_("View %d"), id)
 	local nameNode
 	if BM.editing == id then
-		nameNode = gui_react_util.FocusTextInputField{
+		nameNode = nameField{
 			meta = { styleSheet = styles().name },
 			value = name,
 			maxLength = cam.NAME_MAX,
@@ -461,7 +495,9 @@ local function viewRow(b, i, n)
 	})
 end
 
-local function viewsTab()
+--- The saved views (round 22: no Views tab of their own; the Aerials and Tour tabs show them when they go to the
+--- saved views): a note, Save view and the list, appended to `out`.
+local function savedViewsRows(out)
 	local list = bookmarks()
 	local full = #list >= cam.BOOKMARK_CAP
 	local rows = {}
@@ -475,23 +511,20 @@ local function viewsTab()
 	elseif #rows > 0 then
 		listNode = vbox(rows)
 	end
-	local out = {
-		heading(_("Saved views")),
-		-- round 20 (user: "saved views needs a description of what it does")
-		text(_("Save the camera views you like, then jump between them with Go, or play them one after another as a tour: tick Saved views in the Tour tab. The tour follows the list order."),
-			"font-scale-annotation, sqpm-wrap", styles().dim),
-		flow({
-			button(_("Save view"), full and core.fmt(_("At most %d views. Delete one first."), cam.BOOKMARK_CAP)
-				or _("Remember the current camera view in this savegame.\nTours with interesting shots and Anything show it too."),
-				addBookmark, not full),
-		}),
-	}
+	out[#out + 1] = heading(_("Saved views"))
+	-- round 20 (user: "saved views needs a description of what it does"); round 22: the tours' points
+	out[#out + 1] = text(_("Save a view of each place you want to see, in the order you want them. The aerials and the tour visit them in list order; Go jumps to one."),
+		"font-scale-annotation, sqpm-wrap", styles().dim)
+	out[#out + 1] = flow({
+		button(_("Save view"), full and core.fmt(_("At most %d views. Delete one first."), cam.BOOKMARK_CAP)
+			or _("Remember the current camera view in this savegame.\nTours with interesting shots and Anything show it too."),
+			addBookmark, not full),
+	})
 	if listNode ~= nil then
 		out[#out + 1] = listNode
 	else
 		out[#out + 1] = text(_("No saved views yet."), "font-scale-body", styles().dim)
 	end
-	return out
 end
 
 --- A labelled row of the Tour tab: the label in a fixed-width column (wrapping: CSS sqpm-label), then the
@@ -606,84 +639,29 @@ local function kenBurnsBox(S)
 		S.kenBurns, driver.setKenBurns)
 end
 
-local function tourTab()
-	local DIST_TIP = _("How far the camera stays from what it shows. Each shot\npicks a distance between 'Distance from' and 'Distance to'.")
-	local S = driver.S
-	local aerial = S.tourMode == "aerial"
-	local atPlace = S.tourMode == "place"
-	local wander = S.tourMode == "wander"
-	local modeIdx = 1
-	for i, m in ipairs(cam.TOUR_MODES) do if m == S.tourMode then modeIdx = i end end
-	local out = {
-		labelled(_("Mode"), dropdown({ _("Ground level"), _("Aerials"), _("Mixed"), _("This place"), _("Wander") }, {
-			_("Glide from subject to subject and hold each one,\nfrom eye level to a little above it."),
-			_("A slow drone flight high over the landscape:\ntowns, rivers, coasts and railways, without stops.\nTurn, tilt or zoom the camera to look around;\npanning the camera or Esc stops the tour."),
-			_("Subjects from eye level to drone height,\nwith a drone flight between every few of them."),
-			_("Tours the place in the middle of the view: shots from\nall around it, from eye level to drone height, including\nthe vehicles, people and buildings nearby.\nIt stays there until you stop it."),
-			_("Drifts around the place in the middle of the view without\ncuts: in and out, around, up and down, the look moving\nbetween the vehicles, people and buildings nearby.\nIt stays there until you stop it."),
-		}, modeIdx, function(i) driver.setTourMode(cam.TOUR_MODES[i]) end),
-			_("What the tour does: hops between subjects, a drone flight,\nboth, or one place (shots from all around it, or a drift).")),
-	}
-	if atPlace or wander then
-		-- "This place": the area instead of the sources and distance rows; the pitch rows and the hold stay
-		local areas, areaTips = {}, {}
-		local names = { _("Small"), _("Medium"), _("Large") }
-		for i, r in ipairs(place.AREAS) do
-			areas[i] = names[i] or tostring(r)
-			areaTips[i] = core.fmt(_("Shots within about %d m of the place."), r)
-		end
-		out[#out + 1] = labelled(_("Area"), choiceGroup(areas, areaTips, S.areaChoice,
-			function(i) driver.setAreaChoice(i) end), _("How far around the place the camera goes."))
-		if atPlace then out[#out + 1] = holdRow(S) end
-		angleRows(out, S.rangeSel)
-		if atPlace then out[#out + 1] = row(kenBurnsBox(S)) end
-	elseif not aerial then
-		-- sources: checkboxes, several at once (the tour takes the ticked ones in turn; one stays ticked)
-		local src = S.tourSources
-		out[#out + 1] = labelled(_("Sources"), flow({
-			checkBox(_("Random subjects"), _("Trains, towns, stations, ships, industries\nand people, at random."),
-				src.random, function(on) driver.setTourSource("random", on) end),
-			checkBox(_("Random places"), _("Random places anywhere on the map."),
-				src.places, function(on) driver.setTourSource("places", on) end),
-			checkBox(_("Saved views"),
-				_("Your saved views in list order, then again from the top.\nReorder them in the Views tab."),
-				src.views, function(on) driver.setTourSource("views", on) end),
-			checkBox(_("Interesting shots"),
-				_("The photographer's shots of the Subjects tab:\nbridges, skylines, viewpoints, busy streets and more,\nand now and then one of your saved views."),
-				src.shots, function(on) driver.setTourSource("shots", on) end),
-		}, styles().choiceBox, CHECKS_CLASS))
-		out[#out + 1] = holdRow(S)
-		local sel = S.rangeSel
-		angleRows(out, sel)
-		local fromTips, toTips = {}, {}
-		for i, m in ipairs(cam.RANGE.distFrom) do fromTips[i] = core.fmt(_("Shots from at least %d m away."), m) end
-		for i, m in ipairs(cam.RANGE.distTo) do toTips[i] = core.fmt(_("Shots from at most %d m away."), m) end
-		out[#out + 1] = labelled(_("Distance from"), choiceGroup(metres(cam.RANGE.distFrom), fromTips, sel.df,
-			function(i) driver.setRange("df", i) end), DIST_TIP)
-		out[#out + 1] = labelled(_("Distance to"), choiceGroup(metres(cam.RANGE.distTo), toTips, sel.dt,
-			function(i) driver.setRange("dt", i) end), DIST_TIP)
-		out[#out + 1] = row(kenBurnsBox(S))
-	end
-	if aerial or S.tourMode == "mixed" then
-		-- the flights' options (Aerials, and the flight legs of Mixed)
-		local legs, legTips = {}, {}
+--- The flights' rows (the Aerials tab; Flight leg and Look also for the Tour's drone flights between shots).
+local function flightRows(out, S, legs, subjects)
+	if legs then
+		local legs_, legTips = {}, {}
 		local legTip = _("How long the drone flies over one area\nbefore it moves on to a new one.")
 		for i, sec in ipairs(cam.LEG_SECONDS) do
-			legs[i] = sec < 60 and core.fmt(_("%d s"), sec) or core.fmt(_("%d min"), math.floor(sec / 60))
+			legs_[i] = sec < 60 and core.fmt(_("%d s"), sec) or core.fmt(_("%d min"), math.floor(sec / 60))
 			legTips[i] = legTip
 		end
-		out[#out + 1] = labelled(_("Flight leg"), choiceGroup(legs, legTips, S.legChoice,
+		out[#out + 1] = labelled(_("Flight leg"), choiceGroup(legs_, legTips, S.legChoice,
 			function(i) driver.setLegChoice(i) end))
-		local lookIdx = 1
-		for i, k in ipairs(cam.AERIAL_LOOKS) do if k == S.aerialLook then lookIdx = i end end
-		out[#out + 1] = labelled(_("Look"), choiceGroup({ _("Down"), _("Horizon"), _("High") }, {
-			_("The drone looks down at the path ahead of it."),
-			_("The drone looks far ahead, nearly level,\nacross the landscape to the horizon."),
-			_("The drone flies about 1 km up and looks down\nat the land ahead. The smoothest flight: this far\nout, nothing on the ground can jolt the camera."),
-		}, lookIdx, function(i) driver.setAerialLook(cam.AERIAL_LOOKS[i]) end))
-		out[#out + 1] = row(checkBox(_("Look returns to the path"),
-			_("Turn, tilt or zoom the camera during a flight to look around.\nTicked: the view drifts back to the flight's own view\na few seconds after you let go. Unticked: it stays."),
-			S.lookReturn, driver.setLookReturn))
+	end
+	local lookIdx = 1
+	for i, k in ipairs(cam.AERIAL_LOOKS) do if k == S.aerialLook then lookIdx = i end end
+	out[#out + 1] = labelled(_("Look"), choiceGroup({ _("Down"), _("Horizon"), _("High") }, {
+		_("The drone looks down at the path ahead of it."),
+		_("The drone looks far ahead, nearly level,\nacross the landscape to the horizon."),
+		_("The drone flies about 1 km up and looks down\nat the land ahead. The smoothest flight: this far\nout, nothing on the ground can jolt the camera."),
+	}, lookIdx, function(i) driver.setAerialLook(cam.AERIAL_LOOKS[i]) end))
+	out[#out + 1] = row(checkBox(_("Look returns to the path"),
+		_("Turn, tilt or zoom the camera during a flight to look around.\nTicked: the view drifts back to the flight's own view\na few seconds after you let go. Unticked: it stays."),
+		S.lookReturn, driver.setLookReturn))
+	if subjects then
 		local fs = S.flightSubjects
 		local function subject(key, label, tip)
 			return checkBox(label, tip, fs[key], function(on) driver.setFlightSubject(key, on) end)
@@ -698,26 +676,144 @@ local function tourTab()
 			subject("poi", _("Points of interest"), _("Stations, airports, harbours and industries.")),
 		}, styles().choiceBox, CHECKS_CLASS))
 	end
-	-- how the tour shows: the interface hidden (round 9: always; the map's hover is off for every automated
-	-- move, pm_hud "hover"); labels; pause
+end
+
+--- The rows every tour ends with: how it shows (the interface is always hidden: round 9; the map's hover is off
+--- for every automated move, pm_hud "hover"), then the tab's Start button.
+--- The primary action: a base Button with the base "primary" class (default.css.lua Button!primary: the
+--- accent background), body text, no inline styleSheet on the Button (the first build's inline size and a
+--- title font rendered as bold plain text with no frame, user screenshot 2026-10-13). A spacer adds a few px
+--- to the column's gap above it. kind: "aerial" or "tour" (driver.startTab).
+local function tourEnd(out, S, kind)
 	out[#out + 1] = row(checkBox(_("Hide labels during tours"),
 		_("Hides the map's labels while the tour runs; the game\nalso has fewer labels to draw. They come back when\nthe tour ends."),
 		S.tourLabels, driver.setTourLabels))
 	out[#out + 1] = row(checkBox(_("Pause the game during the tour"),
 		_("Pauses the game while the tour runs (trains, cars and\npeople stand still) and lets it run again when it ends."),
 		S.tourPause, driver.setTourPause))
-	-- The primary action: a base Button with the base "primary" class (default.css.lua Button!primary: the
-	-- accent background), body text, no inline styleSheet on the Button (the first build's inline size and a
-	-- title font rendered as bold plain text with no frame, user screenshot 2026-10-13). A spacer adds a few px
-	-- to the column's gap above it.
+	local running = driver.tabRunning(kind)
+	local label
+	if kind == "aerial" then
+		label = running and _("Stop aerials") or _("Start aerials")
+	else
+		label = running and _("Stop tour") or _("Start tour")
+	end
 	out[#out + 1] = spacer()
 	out[#out + 1] = builtin.Button{
 		meta = { class = "primary",
 			tooltip = _("This window hides while the tour runs.\nMove the camera or press Esc to stop it.") },
-		content = text(S.tour ~= nil and _("Stop tour") or _("Start tour")),
-		onClick = function() try("click tour", driver.toggleTour) end,
+		content = text(label),
+		onClick = function() try("click " .. kind, function() driver.startTab(kind) end) end,
 	}
 	return out
+end
+
+local function indexOf(list, v)
+	for i, k in ipairs(list) do if k == v then return i end end
+	return 1
+end
+
+--- Round 22 (user: "make it really clear for people to either be able to do a tour or aerials of interesting
+--- points on their map (or select the points they want to tour)"; "make it so aerials and tours are first and
+--- second tabs"): the Aerials tab, the first one. Where: across the map (areas of the Fly over subjects, a new one
+--- every flight leg) or along the saved views (list order, no legs).
+local function aerialsTab()
+	local S = driver.S
+	local views = S.aerialWhere == "views"
+	local out = {
+		note(_("A slow drone flight high over your map, without stops. Turn, tilt or zoom the camera to look around; panning the camera or Esc ends it.")),
+		labelled(_("Where"), choiceGroup({ _("Across the map"), _("Saved views") }, {
+			_("Flies over the interesting places of your whole map:\ntowns, rivers, coasts, rail lines, stations and industries,\na new area every flight leg."),
+			_("Flies from one of your saved views to the next\nin list order, then again from the top."),
+		}, indexOf(cam.AERIAL_WHERES, S.aerialWhere), function(i) driver.setAerialWhere(cam.AERIAL_WHERES[i]) end),
+			_("Where the drone flies.")),
+	}
+	flightRows(out, S, not views, not views)
+	if views then savedViewsRows(out) end
+	return tourEnd(out, S, "aerial")
+end
+
+--- Round 22: the Tour tab, the second one. Style: Shots (glide and hold) or Wander (a drift, no cuts). Where:
+--- across the map (the map sources: interesting shots, random subjects, random places), the saved views (list
+--- order) or here (the place in the middle of the view). A Wander across the map or over the saved views stays
+--- at each place for the Stay, then glides on to the next.
+local function tourTab()
+	local DIST_TIP = _("How far the camera stays from what it shows. Each shot\npicks a distance between 'Distance from' and 'Distance to'.")
+	local S = driver.S
+	local wander = S.tourStyle == "wander"
+	local where = S.tourWhere
+	local out = {
+		note(_("Shows interesting places one after another: across your whole map, the saved views you pick, or the place you are looking at.")),
+		labelled(_("Style"), choiceGroup({ _("Shots"), _("Wander") }, {
+			_("Glides from one place to the next and holds each one."),
+			_("Drifts slowly around each place without cuts: in and out,\naround, up and down, the look moving between\nthe vehicles, people and buildings nearby."),
+		}, indexOf(cam.TOUR_STYLES, S.tourStyle), function(i) driver.setTourStyle(cam.TOUR_STYLES[i]) end),
+			_("How the camera moves.")),
+		labelled(_("Where"), choiceGroup({ _("Across the map"), _("Saved views"), _("Here") }, {
+			_("Interesting places across your whole map: bridges,\nskylines, viewpoints, stations, towns and more."),
+			_("Your saved views in list order, then again from the top."),
+			_("The place in the middle of the view and what is around it.\nIt stays there until you stop it."),
+		}, indexOf(cam.TOUR_WHERES, where), function(i) driver.setTourWhere(cam.TOUR_WHERES[i]) end),
+			_("Where the tour goes.")),
+	}
+	if where == "map" then
+		-- the map sources: checkboxes, several at once (the tour takes the ticked ones in turn; one stays ticked)
+		local src = S.tourSources
+		out[#out + 1] = labelled(_("Sources"), flow({
+			checkBox(_("Interesting shots"),
+				_("The photographer's shots of the Subjects tab:\nbridges, skylines, viewpoints, busy streets and more,\nand now and then one of your saved views."),
+				src.shots, function(on) driver.setTourSource("shots", on) end),
+			checkBox(_("Random subjects"), _("Trains, towns, stations, ships, industries\nand people, at random."),
+				src.random, function(on) driver.setTourSource("random", on) end),
+			checkBox(_("Random places"), _("Random places anywhere on the map."),
+				src.places, function(on) driver.setTourSource("places", on) end),
+		}, styles().choiceBox, CHECKS_CLASS))
+	end
+	if wander or where == "here" then
+		-- the area around each place (Wander, This place)
+		local areas, areaTips = {}, {}
+		local names = { _("Small"), _("Medium"), _("Large") }
+		for i, r in ipairs(place.AREAS) do
+			areas[i] = names[i] or tostring(r)
+			areaTips[i] = core.fmt(_("Shots within about %d m of the place."), r)
+		end
+		out[#out + 1] = labelled(_("Area"), choiceGroup(areas, areaTips, S.areaChoice,
+			function(i) driver.setAreaChoice(i) end), _("How far around the place the camera goes."))
+	end
+	if wander then
+		if where ~= "here" then
+			local stays, stayTip = {}, _("How long the camera wanders around each place\nbefore it moves on to the next one.")
+			for i, sec in ipairs(cam.STAY_SECONDS) do
+				stays[i] = sec < 60 and core.fmt(_("%d s"), sec) or core.fmt(_("%d min"), math.floor(sec / 60))
+			end
+			out[#out + 1] = labelled(_("Stay"), choiceGroup(stays, stayTip, S.stayChoice,
+				function(i) driver.setStayChoice(i) end), stayTip)
+		end
+		angleRows(out, S.rangeSel)
+	else
+		out[#out + 1] = holdRow(S)
+		-- a saved view keeps its own framing: no angle or distance rows
+		if where ~= "views" then angleRows(out, S.rangeSel) end
+		if where == "map" then
+			local sel = S.rangeSel
+			local fromTips, toTips = {}, {}
+			for i, m in ipairs(cam.RANGE.distFrom) do fromTips[i] = core.fmt(_("Shots from at least %d m away."), m) end
+			for i, m in ipairs(cam.RANGE.distTo) do toTips[i] = core.fmt(_("Shots from at most %d m away."), m) end
+			out[#out + 1] = labelled(_("Distance from"), choiceGroup(metres(cam.RANGE.distFrom), fromTips, sel.df,
+				function(i) driver.setRange("df", i) end), DIST_TIP)
+			out[#out + 1] = labelled(_("Distance to"), choiceGroup(metres(cam.RANGE.distTo), toTips, sel.dt,
+				function(i) driver.setRange("dt", i) end), DIST_TIP)
+		end
+		out[#out + 1] = row(kenBurnsBox(S))
+		if where == "map" then
+			out[#out + 1] = row(checkBox(_("Drone flight between shots"),
+				_("Every few shots, the camera rises and flies over the land\nfor a while before the next one, as in the Aerials tab."),
+				S.tourFlights, driver.setTourFlights))
+			if S.tourFlights then flightRows(out, S, true, false) end
+		end
+	end
+	if where == "views" then savedViewsRows(out) end
+	return tourEnd(out, S, "tour")
 end
 
 --- A step button of the Light tab (a small base Button with an arrow; the gap inside it as every row item).
@@ -1067,7 +1163,7 @@ local function setupsSection()
 	local out = { heading(_("Saved setups")) }
 	local editingSetup = editing ~= nil and setupdefs.find(list, editing) or nil
 	if editingSetup ~= nil then
-		out[#out + 1] = labelled(_("Name"), gui_react_util.FocusTextInputField{
+		out[#out + 1] = labelled(_("Name"), nameField{
 			meta = { styleSheet = styles().choiceBox },
 			value = editingSetup.name,
 			maxLength = setupdefs.NAME_MAX,
@@ -1105,7 +1201,7 @@ local function setupsSection()
 		button(_("Delete"), _("Deletes the picked setup."), function() setups.remove(sel) end, has, true),
 		button(_("Restore last setup"), lastTip, function() setups.restoreLast() end, last ~= nil, true),
 	})
-	out[#out + 1] = text(_("Setups are kept with the game's settings, not in a savegame: every savegame has them, and removing the mod changes no save. Esc and the menu put your own light and weather back; Restore last setup brings the picture back."),
+	out[#out + 1] = text(_("Setups are kept in this savegame, with your saved views: save the game to keep them. Each savegame has its own. Esc and the menu put your own light and weather back; Restore last setup brings the picture back."),
 		"font-scale-annotation, sqpm-wrap", styles().dim)
 	return out
 end
@@ -1140,7 +1236,6 @@ local function settingsTab()
 end
 
 -- Round 16b: other modules' rows (pm_lens, pm_foreground, pm_animals) appended to a tab, built with these helpers.
-local function note(str) return text(str, "font-scale-annotation, sqpm-wrap", styles().dim) end
 local UI = { heading = heading, labelled = labelled, dropdown = dropdown, choiceGroup = choiceGroup, grid = grid,
 	button = button, checkBox = checkBox, row = row, note = note }
 local function redraw() driver.S.version = driver.S.version + 1 end
@@ -1167,13 +1262,16 @@ end
 -- Round 20 (user: "add a new tab for animals"): eight tabs, the icons at 16 px: 8 x (16 + 36) = 416 px (an inline
 -- StyleSheet has no margin to trim the base indicator's 18 + 18 px padding, and a class rule would cost one of the
 -- ~200 rules); the Animals tab has the construction menu's animal category paw (category_landscaping_animals).
+-- Round 22 (user: "make it so aerials and tours are first and second tabs"): Aerials (the game bar's airplane) and
+-- Tour first; a ninth tab doesn't fit (9 x 52 = 468 px), so the Views tab is gone: the saved views show in the
+-- Aerials and Tour tabs when they go to them (savedViewsRows).
 local function animalsTab() return {} end
 local TABS = {
+	{ key = "aerial", icon = "::/gui/game_bar/icons/vehicle_airplane_30.tga", label = function() return _("Aerials") end, build = aerialsTab },
+	{ key = "tour", icon = "::/gui/game_bar/icons/playback_play.tga", label = function() return _("Tour") end, build = tourTab },
 	{ key = "subjects", icon = "::/gui/menu/icons/symbol_star.tga", label = function() return _("Subjects") end, build = subjectsTab },
 	{ key = "animals", icon = "::/gui/construction/menu/menu_categories/category_landscaping_animals.tga", label = function() return _("Animals") end, build = extend(animalsTab, animals) },
 	{ key = "camera", icon = "::/gui/game_bar/icons/symbol_camera.tga", label = function() return _("Camera") end, build = extend(cameraTab, lens) },
-	{ key = "views", icon = "::/gui/game_bar/icons/symbol_eye.tga", label = function() return _("Views") end, build = viewsTab },
-	{ key = "tour", icon = "::/gui/game_bar/icons/playback_play.tga", label = function() return _("Tour") end, build = tourTab },
 	{ key = "light", icon = "::/gui/game_bar/icons/day_clouds_0.tga", label = function() return _("Light") end, build = lightTab },
 	{ key = "weather", icon = "::/gui/game_bar/icons/clouds_4.tga", label = function() return _("Weather") end, build = extend(weatherTab, fg) },
 	{ key = "settings", icon = "::/gui/menu/icons/settings.tga", label = function() return _("Settings") end, build = settingsTab },
@@ -1286,7 +1384,7 @@ local function footer()
 						_("The game's free camera without the interface,\nfor framing a picture. Press Esc to come back."),
 						function() hud.cameraMode() end),
 				}, styles().footLeft),
-				gui_react_util.makeHorizontalSpacer(),
+				horizontalSpacer(),
 				shutterGroup(),
 			}) },
 		}

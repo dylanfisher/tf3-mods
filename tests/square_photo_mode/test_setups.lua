@@ -1,5 +1,5 @@
 -- Round 16: saved setups and the last setup (pm_setup.lua pure; gui/pm_setups.lua through gui/pm_sky.lua and
--- gui/pm_weather.lua on a fake api: the library in AppConfig.mainMenuState, the last setup in GUI save data, apply,
+-- gui/pm_weather.lua on a fake api: the library and the last setup in our GUI save data, apply,
 -- the pause menu, the untick, a game start), the Legacy whole look and the cloud sliders' scales.
 -- plans/square_photo_mode/PLAN.md "Round 16 settings".
 
@@ -33,7 +33,7 @@ test("setup records: names cleaned, junk dropped, values validated, only boolean
 	eq(empty.look, nil); eq(empty.values, nil)
 end)
 
-test("library: read back from settings.lua keeps valid named setups with unique ids, at most CAP", function()
+test("library: read back from the save data keeps valid named setups with unique ids, at most CAP", function()
 	local raw = { v = 1, list = {
 		{ id = 1, name = "a" }, { id = 1, name = "repeat" }, { name = "no id" }, { id = 2 }, "junk",
 		{ id = 5, name = "b", look = { sky = "legacy" } },
@@ -71,16 +71,6 @@ test("library: add, overwrite, rename, delete; full and empty names refused", fu
 	for i = 1, P.CAP do full[i] = { id = i, name = "x" } end
 	local f2, nid = P.add(full, {}, "more")
 	eq(nid, nil); eq(#f2, P.CAP)
-end)
-
-test("mainMenuState: only our key changes; an unreadable one is never written", function()
-	local mm = { square_photo_mode = { boosted = true }, other_mod = { x = 1 } }
-	local out = P.withKey(mm, P.KEY, { v = 1, list = {} })
-	eq(out.square_photo_mode.boosted, true, "the high graphics marker kept"); eq(out.other_mod.x, 1)
-	ok(out[P.KEY] ~= nil); eq(mm[P.KEY], nil, "a copy")
-	ok(P.KEY ~= "square_photo_mode", "not the high graphics marker's key (it is cleared as a whole)")
-	local bad = setmetatable({}, { __pairs = function() error("userdata") end })
-	eq(P.withKey(bad, P.KEY, {}), nil)
 end)
 
 test("capture: the last setup keeps values only under the override; a named setup always", function()
@@ -140,8 +130,7 @@ end
 local function newFake()
 	local f = {
 		time = 30000, speed = 2, save = {}, now = 0, gs = { timeOfDayMode = "Dynamic", weatherMode = "Dynamic" },
-		gameRes = "::/climates/dry/dry.env", appSaves = 0, appSets = 0,
-		config = { mainMenuState = { square_photo_mode = nil, other_mod = { keep = true } } },
+		gameRes = "::/climates/dry/dry.env", appCalls = 0, saveWrites = 0,
 	}
 	f.byId, f.ids = {}, {}
 	local function add(res, name)
@@ -166,13 +155,12 @@ local function newFake()
 		type = {
 			ComponentType = { GAME_TIME = "GAME_TIME", GAME_SPEED = "GAME_SPEED", GAME_SCRIPT = "GAME_SCRIPT" },
 			Clock = { new = function() return { getTime = function() return f.now * 1000 end } end },
-			AppConfig = { new = function(c) return copy(c) end },
+			AppConfig = { new = function() f.appCalls = f.appCalls + 1; error("setups never touch the AppConfig") end },
 		},
-		util = {
-			getAppConfig = function() return f.config end,
-			setAppConfig = function(c) f.config = copy(c); f.appSets = f.appSets + 1 end,
-			saveAppConfig = function() f.appSaves = f.appSaves + 1; f.saved = copy(f.config) end,
-		},
+		-- the setups never read or write the game's settings (mod.io review): any AppConfig call is counted
+		util = setmetatable({}, { __index = function(__, k)
+			return function() f.appCalls = f.appCalls + 1; error("api.util." .. tostring(k) .. " called") end
+		end }),
 		engine = {
 			util = { getWorld = function() return 1 end },
 			system = { gameScriptSystem = { getEntityForGameScript = function() return 9 end } },
@@ -211,7 +199,7 @@ local function newFake()
 				getEnvironment = function() return f.gameRes end,
 				setEnvironment = function() error("game.setEnvironment must never be called") end,
 				getGuiSaveData = function(k) return f.save[k] end,
-				setGuiSaveData = function(k, d) f.save[k] = d end,
+				setGuiSaveData = function(k, d) f.save[k] = d; f.saveWrites = f.saveWrites + 1 end,
 			},
 			camera = {
 				getEye = function() return { x = 0, y = 0 } end,
@@ -239,9 +227,15 @@ local function start(keepFake)
 	G.hq = false
 	G.hqOn = function() return G.hq end
 	G.hqSwitchOn = function() G.hq = true end
-	sky.persist = function()
-		fake.save["square_photo_mode"] = { v = 1, views = {}, light = sky.saveMarker(), last = G.lastData() }
+	-- pm_window.lua's one writer: setGuiSaveData replaces the whole table, so every part goes out together
+	local function persist()
+		local old = fake.save["square_photo_mode"]
+		local views = type(old) == "table" and type(old.views) == "table" and old.views or {}
+		fake.save["square_photo_mode"] = { v = 1, views = views, light = sky.saveMarker(), last = G.lastData(),
+			setups = G.libraryData() }
 	end
+	sky.persist = persist
+	G.persist = persist
 	G.start()
 	sky.start()
 end
@@ -253,40 +247,72 @@ local function pauseMenu()
 	return kept
 end
 
-test("named setups: saved into settings.lua next to other mods' prefs, read back in the next session", function()
-	start()
+test("named setups: written at once into our GUI save data with the views and markers, read back at the game start", function()
+	fake = newFake()
+	fake.save["square_photo_mode"] = { v = 1, views = { { id = 1, name = "View" } } }
+	start(true)
 	sky.look("dramatic", "misty_valley")
 	sky.set({ time = 64800, day = 300 }, "test")
 	local id = G.saveNew("Golden 1")
 	eq(id, 1); eq(G.editing(), 1, "the name field opens for the new setup"); eq(G.selected(), 1)
-	ok(G.pending(), "written on the next frame, not in the click")
-	eq(fake.appSets, 0)
-	G.flush(false) -- High graphics mode on: in the config, not saved
-	eq(fake.appSets, 1); eq(fake.appSaves, 0)
+	local mine = fake.save["square_photo_mode"]
+	eq(#mine.setups.list, 1, "written in the click (GUI save data: no frame rule)")
+	eq(mine.views[1].name, "View", "the views kept"); ok(mine.light ~= nil, "the light marker kept")
+	ok(mine.last ~= nil, "the last setup kept")
 	G.saveNew("Two")
-	G.flush(true)
-	eq(fake.appSaves, 1)
-	local stored = fake.saved.mainMenuState[P.KEY]
+	local stored = fake.save["square_photo_mode"].setups
 	eq(#stored.list, 2); eq(stored.list[1].name, "Golden 1"); eq(stored.list[1].look.sky, "dramatic")
 	eq(stored.list[1].look.haze, "misty_valley"); eq(stored.list[1].values.time, 64800); eq(stored.list[1].values.day, 300)
-	eq(fake.saved.mainMenuState.other_mod.keep, true, "other mods' prefs kept")
-	ok(not G.pending())
-	G.flush(true)
-	eq(fake.appSaves, 1, "nothing to write")
-	-- the next session: the same settings, a fresh Lua state
+	-- a light change rewrites the save data: the setups go with it
+	sky.set({ time = 1000 }, "test")
+	sky.pauseMenu()
+	eq(#fake.save["square_photo_mode"].setups.list, 2, "a marker write keeps the setups")
+	-- the same savegame loaded again: a fresh Lua state
 	start(true)
 	eq(#G.library(), 2); eq(G.library()[2].name, "Two")
-	ok(G.rename(2, "My dark night")); ok(G.remove(1)); G.flush(true)
-	eq(#fake.saved.mainMenuState[P.KEY].list, 1); eq(fake.saved.mainMenuState[P.KEY].list[1].name, "My dark night")
+	ok(G.rename(2, "My dark night")); ok(G.remove(1))
+	eq(#fake.save["square_photo_mode"].setups.list, 1)
+	eq(fake.save["square_photo_mode"].setups.list[1].name, "My dark night")
+	eq(fake.save["square_photo_mode"].views[1].name, "View")
+	eq(fake.appCalls, 0, "the game's settings never touched")
 end)
 
-test("named setups: an unreadable mainMenuState is never written; the write isn't retried every frame", function()
+test("named setups: per savegame; another save loaded in the same session has its own (none)", function()
 	start()
-	fake.config.mainMenuState = setmetatable({}, { __pairs = function() error("userdata") end })
-	G.saveNew("x")
-	G.flush(true)
-	eq(fake.appSets, 0); eq(fake.appSaves, 0)
-	ok(not G.pending(), "dropped, logged once")
+	G.saveNew("Mine")
+	eq(#G.library(), 1)
+	local first = fake.save["square_photo_mode"]
+	fake.save = {} -- another savegame, same Lua state (pm_button calls G.start at every game start)
+	G.select(1)
+	G.start()
+	eq(#G.library(), 0, "no setups in the other save"); eq(G.selected(), nil)
+	fake.save = { square_photo_mode = first }
+	G.start()
+	eq(#G.library(), 1, "the first save's setups again"); eq(G.library()[1].name, "Mine")
+end)
+
+test("named setups: malformed save data tolerated, the cap kept", function()
+	for __, bad in ipairs({ "junk", 7, { setups = "x" }, { setups = { list = 5 } },
+		{ setups = { list = { "junk", { id = 2, name = "ok" }, { id = 2, name = "repeat" } } } } }) do
+		fake = newFake()
+		fake.save["square_photo_mode"] = bad
+		start(true)
+		local n = (type(bad) == "table" and type(bad.setups) == "table" and type(bad.setups.list) == "table") and 1 or 0
+		eq(#G.library(), n, "malformed: " .. tostring(bad))
+	end
+	fake = newFake()
+	local big = { list = {} }
+	for i = 1, 40 do big.list[i] = { id = i, name = "s" .. i } end
+	fake.save["square_photo_mode"] = { setups = big }
+	start(true)
+	eq(#G.library(), P.CAP)
+	eq(G.saveNew("more"), nil, "full: nothing added")
+	ok(G.remove(1))
+	eq(#fake.save["square_photo_mode"].setups.list, P.CAP - 1, "the next write keeps at most CAP")
+	-- a failing write is logged, never retried in a loop
+	local writes = fake.saveWrites
+	fake.api.gui.game.setGuiSaveData = function() error("no save") end
+	ok(G.remove(2)); eq(#G.library(), P.CAP - 2); eq(fake.saveWrites, writes)
 end)
 
 test("load: the look, the values, the freeze; High graphics mode and labels only switched on", function()

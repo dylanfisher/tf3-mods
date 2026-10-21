@@ -15,7 +15,8 @@ end
 local function fakeBuiltin()
 	local b = { type = { Orientation = { Vertical = 1, Horizontal = 0 }, TabOrientation = { North = 0 } } }
 	for __, k in ipairs({ "BoxLayout", "FlowLayout", "Component", "TextView", "Button", "ToggleButton", "CheckBox",
-		"ToggleButtonGroup", "ImageView", "ScrollArea", "TabWidgetChild", "Window", "ComboBox", "ComboBoxItem", "Slider" }) do
+		"ToggleButtonGroup", "ImageView", "ScrollArea", "TabWidgetChild", "Window", "ComboBox", "ComboBoxItem", "Slider",
+		"TextInputField" }) do
 		b[k] = function(p) return newNode(k, p) end
 	end
 	b.TabWidget = function(p) tabChange = p.onValueChange return newNode("TabWidget", p) end
@@ -53,16 +54,16 @@ before_each(function()
 	stub_module("::/gui/main/builtin.lua", fakeBuiltin())
 	stub_module("::/gui/main/game_react_globals.tl", { getDefaultWindowApi = function() return nil end })
 	stub_module("::/gui/main/styleutil.tl", { makeStyle = function(t) return { style = t } end })
-	stub_module("::/gui/main/gui_react_util.tl", { FocusTextInputField = function(p) return newNode("Field", p) end,
-		-- the base helper (gui_react_util.tl:367): a Component of class "horizontal-spacer"
-		makeHorizontalSpacer = function() return newNode("Component", { meta = { class = "horizontal-spacer" } }) end })
+	-- (the horizontal spacer is built inline, never through gui_react_util.makeHorizontalSpacer: PS5, last test)
+	stub_module("::/gui/main/gui_react_util.tl", { FocusTextInputField = function(p) return newNode("Field", p) end })
 	local timer = { start = function() return 0 end, stop = function() end, wrap = function(__, __, fn) return fn end }
 	stub_module("square_photo_mode::/photo_mode/gui/pm_perf.lua", { perf = timer, perfStep = timer })
 	local cam = ug_require "square_photo_mode::/photo_mode/pm_cam.lua"
 	D = {
 		S = { version = 0, tourMode = "ground", tourSources = cam.copySet(cam.DEFAULT_SOURCES), rangeSel = cam.preset("ground"),
 			tourChoice = 2, legChoice = 2, flightSubjects = cam.copySet(cam.DEFAULT_FLIGHT_SUBJECTS), kenBurns = true,
-			aerialLook = "high", lookReturn = true, tourLabels = true, tourPause = false, areaChoice = 2 },
+			aerialLook = "high", lookReturn = true, tourLabels = true, tourPause = false, areaChoice = 2,
+			tourStyle = "shots", tourWhere = "map", tourFlights = false, aerialWhere = "map", stayChoice = 2 },
 	}
 	setmetatable(D, { __index = function() return function() end end })
 	stub_module("square_photo_mode::/photo_mode/gui/pm_driver.lua", D)
@@ -115,7 +116,7 @@ end
 
 test("every tab and the footer render; no layout carries an inline styleSheet", function()
 	render() -- the first render mounts the TabWidget
-	for __, tab in ipairs({ "subjects", "animals", "camera", "views", "tour", "light", "weather", "settings" }) do
+	for __, tab in ipairs({ "aerial", "tour", "subjects", "animals", "camera", "light", "weather", "settings" }) do
 		local ns = render(tab)
 		local tabs = 0
 		for __, n in ipairs(ns) do
@@ -136,7 +137,7 @@ test("spacing: columns, rows and flows carry a spacing class that has its rule; 
 	for __, r in ipairs(rules) do sel[#sel + 1] = r.sel end
 	local all = table.concat(sel, "\n")
 	render()
-	for __, tab in ipairs({ "subjects", "animals", "tour", "light", "weather", "views", "settings" }) do
+	for __, tab in ipairs({ "aerial", "tour", "subjects", "animals", "light", "weather", "settings" }) do
 		for __, n in ipairs(render(tab)) do
 			local kids = n.p.children
 			if (n.kind == "BoxLayout" or n.kind == "FlowLayout") and kids ~= nil and #kids > 1 then
@@ -197,7 +198,7 @@ test("round 8: every action button is outlined and compact; option sets are grid
 	ok(small.padding[1] < 8, "compact: less than the base 8 px")
 	render()
 	local cells = {}
-	for __, tab in ipairs({ "subjects", "animals", "camera", "views", "tour", "light", "weather", "settings" }) do
+	for __, tab in ipairs({ "aerial", "tour", "subjects", "animals", "camera", "light", "weather", "settings" }) do
 		cells[tab] = 0
 		for __, n in ipairs(render(tab)) do
 			if n.kind == "Button" then
@@ -222,24 +223,33 @@ test("round 8: every action button is outlined and compact; option sets are grid
 	eq(cells.camera, 10, "6 shots + 4 moves (round 17: the Lens buttons are natural width, one line)")
 	eq(cells.light, 4 + 3 + 3 + 3, "4 time presets, 3 time-lapse, 3 seasons, 3 light angles")
 	eq(cells.weather, 3 + 3, "3 cloud presets, 3 weather over time (the looks are dropdowns)")
-	-- the Tour mode: a dropdown of the five modes, each item with its tooltip
-	local combo
-	for __, n in ipairs(render("tour")) do if n.kind == "ComboBox" then combo = n end end
-	ok(combo ~= nil, "the Tour mode is a dropdown")
-	eq(#combo.p.items, 5)
-	eq(combo.p.value, "1")
-	for i, it in ipairs(combo.p.items) do
-		eq(it.p.value, tostring(i))
-		ok(type(it.p.content.p.meta.tooltip) == "string", "item " .. i .. " has a tooltip")
+	-- round 22: the Tour tab's Style and Where, the Aerials tab's Where: option groups (no mode dropdown)
+	local groups = {}
+	for __, n in ipairs(render("tour")) do
+		ok(n.kind ~= "ComboBox", "round 22: no Tour mode dropdown")
+		if n.kind == "ToggleButtonGroup" then groups[#groups + 1] = n end
 	end
+	eq(#groups[1].p.buttons, 2, "Style: Shots, Wander")
+	eq(#groups[2].p.buttons, 3, "Where: Across the map, Saved views, Here")
 	local picked
-	D.setTourMode = function(m) picked = m end
-	combo.p.onValueChange("4")
-	eq(picked, "place")
+	D.setTourWhere = function(m) picked = m end
+	groups[2].p.onValueChange(3)
+	eq(picked, "here")
 	picked = nil
-	combo.p.onValueChange("9")
+	groups[2].p.onValueChange(9)
 	eq(picked, nil, "an unknown value is ignored")
-	D.setTourMode = nil
+	D.setTourWhere = nil
+	D.setTourStyle = function(m) picked = m end
+	groups[1].p.onValueChange(2)
+	eq(picked, "wander")
+	D.setTourStyle = nil
+	local aerialGroups = {}
+	for __, n in ipairs(render("aerial")) do if n.kind == "ToggleButtonGroup" then aerialGroups[#aerialGroups + 1] = n end end
+	eq(#aerialGroups[1].p.buttons, 2, "Aerials Where: Across the map, Saved views")
+	D.setAerialWhere = function(m) picked = m end
+	aerialGroups[1].p.onValueChange(2)
+	eq(picked, "views")
+	D.setAerialWhere = nil
 end)
 
 test("round 12: the Settings tab holds High graphics mode and Hide labels (round 18 name); the footer the camera buttons", function()
@@ -296,7 +306,7 @@ test("round 13: Camera tab: no Smooth camera section any more", function()
 	ok(all:find("Camera moves", 1, true), all)
 end)
 
-test("Tour tab: This place shows the area row, not the sources or distance rows; the tour options", function()
+test("Tour tab: each style and where shows its rows; Aerials: the flight rows or the saved views", function()
 	render()
 	local function texts(ns)
 		local t = {}
@@ -313,19 +323,61 @@ test("Tour tab: This place shows the area row, not the sources or distance rows;
 	ok(not ground:find("camera mode", 1, true), "round 9: no camera mode option for tours")
 	ok(ground:find("Hide labels during tours", 1, true))
 	ok(ground:find("Pause the game during the tour", 1, true))
-	ok(ground:find("This place", 1, true), "the fourth mode")
-	D.S.tourMode = "place"
-	D.S.rangeSel = ug_require("square_photo_mode::/photo_mode/pm_cam.lua").preset("place")
-	D.S.version = D.S.version + 1
+	ok(ground:find("Across the map", 1, true) and ground:find("Here", 1, true), "round 22: the Where options")
+	ok(ground:find("Drone flight between shots", 1, true), "round 22: Mixed is a checkbox")
+	ok(not ground:find("Flight leg", 1, true) and not ground:find("Save view|", 1, true), "no flight rows, no list")
+	local function set(k, v)
+		D.S[k] = v
+		D.S.version = D.S.version + 1
+	end
+	set("tourFlights", true)
+	local mixed = texts(render())
+	ok(mixed:find("Flight leg", 1, true) and mixed:find("Look", 1, true), mixed)
+	ok(not mixed:find("Fly over", 1, true), "the Aerials tab's Fly over")
+	set("tourFlights", false)
+	set("tourWhere", "here")
 	local placeTab = texts(render())
 	ok(placeTab:find("Area", 1, true) and placeTab:find("Medium", 1, true), placeTab)
 	ok(not placeTab:find("Sources", 1, true) and not placeTab:find("Distance from", 1, true))
-	ok(placeTab:find("Angle from", 1, true) and placeTab:find("Angle to", 1, true))
-	D.S.tourMode = "wander"
-	D.S.version = D.S.version + 1
+	ok(placeTab:find("Angle from", 1, true) and placeTab:find("Angle to", 1, true) and placeTab:find("Hold", 1, true))
+	ok(not placeTab:find("Stay", 1, true), "This place never moves on")
+	set("tourStyle", "wander")
 	local wanderTab = texts(render())
 	ok(wanderTab:find("Area", 1, true) and wanderTab:find("Angle from", 1, true), wanderTab)
 	ok(not wanderTab:find("Hold", 1, true) and not wanderTab:find("Ken Burns", 1, true), "continuous: no hold, no drift")
+	ok(not wanderTab:find("Stay", 1, true), "Wander here stays")
+	set("tourWhere", "map")
+	local roam = texts(render())
+	ok(roam:find("Stay", 1, true) and roam:find("Sources", 1, true) and roam:find("1 min", 1, true), roam)
+	set("tourWhere", "views")
+	local roamViews = texts(render())
+	ok(roamViews:find("Stay", 1, true) and roamViews:find("Save view", 1, true), roamViews)
+	ok(not roamViews:find("Sources", 1, true))
+	set("tourStyle", "shots")
+	local views = texts(render())
+	ok(views:find("Hold", 1, true) and views:find("Save view", 1, true) and not views:find("Angle from", 1, true), views)
+	set("tourWhere", "map")
+	local aerial = texts(render("aerial"))
+	ok(aerial:find("Flight leg", 1, true) and aerial:find("Fly over", 1, true) and aerial:find("Start aerials", 1, true),
+		aerial)
+	ok(not aerial:find("Save view", 1, true))
+	set("aerialWhere", "views")
+	local aerialViews = texts(render())
+	ok(aerialViews:find("Save view", 1, true) and aerialViews:find("Look", 1, true), aerialViews)
+	ok(not aerialViews:find("Flight leg", 1, true) and not aerialViews:find("Fly over", 1, true), "no legs along the views")
+	set("aerialWhere", "map")
+	-- the Start buttons start their own tab's tour
+	local started
+	D.startTab = function(kind) started = kind end
+	for __, n in ipairs(render()) do
+		if n.kind == "Button" and n.p.meta.class == "primary" then n.p.onClick() end
+	end
+	eq(started, "aerial")
+	for __, n in ipairs(render("tour")) do
+		if n.kind == "Button" and n.p.meta.class == "primary" then n.p.onClick() end
+	end
+	eq(started, "tour")
+	D.startTab = nil
 end)
 
 test("every control has a tooltip: buttons, toggles, checkboxes, every choice option, step buttons, row actions", function()
@@ -362,16 +414,28 @@ test("every control has a tooltip: buttons, toggles, checkboxes, every choice op
 	end
 	for __, tab in ipairs({ "subjects", "animals", "camera", "views", "light", "weather", "settings" }) do audit(render(tab), tab) end
 	render("tour")
-	for __, mode in ipairs({ "ground", "aerial", "mixed", "place", "wander" }) do
-		D.S.tourMode = mode
-		D.S.version = D.S.version + 1
-		audit(render(), "tour/" .. mode)
+	for __, style in ipairs({ "shots", "wander" }) do
+		for __, where in ipairs({ "map", "views", "here" }) do
+			for __, flights in ipairs({ false, true }) do
+				D.S.tourStyle, D.S.tourWhere, D.S.tourFlights = style, where, flights
+				D.S.version = D.S.version + 1
+				audit(render(), "tour/" .. style .. "/" .. where .. (flights and "/flights" or ""))
+			end
+		end
 	end
+	D.S.tourStyle, D.S.tourWhere, D.S.tourFlights = "shots", "map", false
+	render("aerial")
+	for __, where in ipairs({ "map", "views" }) do
+		D.S.aerialWhere = where
+		D.S.version = D.S.version + 1
+		audit(render(), "aerial/" .. where)
+	end
+	D.S.aerialWhere = "map"
 	ok(seen.Button > 20 and seen.ToggleButton >= 4 and seen.CheckBox > 8 and seen.option > 30, "the audit saw the controls")
 	eq(seen.Slider, 6, "round 15: the Light tab's three sliders; round 16: the Weather tab's three cloud sliders")
 end)
 
-test("round 11 / 12 / 20: eight tabs as icons with their name as tooltip; they fit the window", function()
+test("round 11 / 12 / 20 / 22: eight tabs as icons with their name as tooltip; they fit the window", function()
 	local ns = render()
 	local tabs, keys = {}, {}
 	for __, n in ipairs(ns) do
@@ -385,7 +449,8 @@ test("round 11 / 12 / 20: eight tabs as icons with their name as tooltip; they f
 			eq(ind.p.meta.styleSheet.style.size, { 16, 16 })
 		end
 	end
-	eq(table.concat(keys, ","), "subjects,animals,camera,views,tour,light,weather,settings")
+	-- round 22: Aerials and Tour first; the saved views moved into them (a ninth tab would not fit)
+	eq(table.concat(keys, ","), "aerial,tour,subjects,animals,camera,light,weather,settings")
 	-- base TabWidget::Indicator padding 18 left + 18 right (builtin.css.lua) around each icon (round 20: 16 px for
 	-- eight tabs), within the 440 px content less the root's 8 px padding on each side
 	ok(#tabs * (16 + 36) <= 440 - 2 * 8, "the indicators fit the 424 px inside the content's padding")
@@ -733,4 +798,63 @@ test("round 16: the Settings tab's saved setups: dropdown, actions, the rename f
 	heads, buttons = scan(render())
 	eq(buttons["Save new"].p.meta.enabled, false); ok(buttons["Save new"].p.meta.tooltip:find("At most", 1, true))
 	G.S.lib, G.S.last, G.S.selected, D.setStatus = nil, nil, nil, nil
+end)
+
+test("our GUI save data: one writer; a setup change writes the views, the markers, last and the setups together", function()
+	local store = { square_photo_mode = { v = 1, views = { { id = 1, name = "Home", x = 0, y = 0, d = 500, a = 0, p = 0.5 } } } }
+	api.gui.game.getGuiSaveData = function(k) return store[k] end
+	api.gui.game.setGuiSaveData = function(k, d) store[k] = d end
+	render()
+	local G = ug_require "square_photo_mode::/photo_mode/gui/pm_setups.lua"
+	G.start()
+	eq(#G.library(), 0)
+	G.saveNew("Golden 1")
+	local mine = store.square_photo_mode
+	eq(#mine.views, 1, "the saved views kept"); eq(mine.views[1].name, "Home")
+	eq(#mine.setups.list, 1); eq(mine.setups.list[1].name, "Golden 1")
+	ok(mine.light ~= nil, "the light marker written with them")
+	-- a later write of another part keeps the setups
+	G.S.lib = nil
+	G.persist()
+	eq(store.square_photo_mode.setups.list[1].name, "Golden 1", "read back from the save data, then written again")
+end)
+
+test("a platform whose base gui_react_util lacks FocusTextInputField / makeHorizontalSpacer (PS5 report 2026-10-19): no error, no direct call", function()
+	-- docs/findings/gui.md "Base GUI modules differ by platform": the console build's own base GUI scripts lack
+	-- functions the PC copies have; the window must render without them
+	stub_module("::/gui/main/gui_react_util.tl", {})
+	reset_modules()
+	ug_require "square_photo_mode::/photo_mode/gui/pm_window.lua"
+	local G = ug_require "square_photo_mode::/photo_mode/gui/pm_setups.lua"
+	local SP = ug_require "square_photo_mode::/photo_mode/pm_setup.lua"
+	render()
+	local spacer = false
+	for __, tab in ipairs({ "aerial", "tour", "subjects", "animals", "camera", "light", "weather", "settings" }) do
+		for __, n in ipairs(render(tab)) do
+			if n.kind == "TextView" and n.p.text == "Nothing found." then ok(false, tab .. " failed to render") end
+			if n.kind == "Component" and n.p.meta and n.p.meta.class == "horizontal-spacer" then spacer = true end
+		end
+	end
+	ok(spacer, "the footer keeps the base spacer (inline, not the helper)")
+	-- the setup rename field: a plain TextInputField with the base field's values
+	G.S.lib = { SP.valid({ id = 1, name = "Setup 1" }) }
+	G.S.editing = 1
+	G.S.version = G.S.version + 1
+	local field
+	for __, n in ipairs(render()) do if n.kind == "TextInputField" then field = n end end
+	ok(field ~= nil, "the fallback field")
+	eq(field.p.value, "Setup 1"); eq(field.p.maxLength, SP.NAME_MAX)
+	eq(field.p.meta.class, "font-scale-body, no-clear-button")
+	ok(field.p.meta.styleSheet ~= nil, "the caller's sheet kept")
+	local renamed
+	G.rename = function(id, name) renamed = name end
+	field.p.onValueChange("my dark night")
+	eq(renamed, "my dark night")
+	G.S.lib, G.S.editing = nil, nil
+	-- no unguarded call left in the source
+	local fh = assert(io.open("mods/square_photo_mode/content/photo_mode/gui/pm_window.lua", "r"))
+	local code = fh:read("a"):gsub("%-%-[^\n]*", "")
+	fh:close()
+	ok(not code:find("gui_react_util.makeHorizontalSpacer(", 1, true), "no makeHorizontalSpacer call")
+	ok(not code:find("gui_react_util.FocusTextInputField{", 1, true), "FocusTextInputField only through nameField")
 end)

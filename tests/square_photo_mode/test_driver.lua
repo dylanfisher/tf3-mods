@@ -864,7 +864,8 @@ test("round 13: Aerials is the default tour mode (its preset ranges too)", funct
 	local d = ug_require "square_photo_mode::/photo_mode/gui/pm_driver.lua"
 	eq(c.TOUR_MODE_DEFAULT, "aerial")
 	eq(d.S.tourMode, "aerial")
-	eq(d.S.rangeSel, c.preset("aerial"))
+	eq(d.S.rangeSel, c.preset("wander"), "round 22: the ranges are the Tour tab's (Wander across the map)")
+	eq(d.S.tourStyle, "wander", "round 22: Wander is the Tour tab's default style")
 	eq(d.S.aerialLook, "high", "round 15: High is the default look")
 end)
 

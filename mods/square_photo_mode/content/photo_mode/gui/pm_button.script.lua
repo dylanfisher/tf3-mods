@@ -7,9 +7,8 @@
 --
 -- Everything runs on the GUI Main Thread (plugin onStep, button callbacks, onEvent; docs/findings.md "Timers and
 -- threads in GUI contexts"), every api call in pcall. Nothing goes into the simulation; the savegame only gets
--- GUI save data: the window's saved views (pm_window.lua) and, while "Hide labels" is on, the base HUD filter
--- (pm_hud.lua). One setAppConfig call at a time (pm_core gate,
--- "switch" below); crash guards: plans/square_photo_mode/PLAN.md "Crash safety".
+-- GUI save data: the window's saved views and setups (pm_window.lua) and, while "Hide labels" is on, the base
+-- HUD filter (pm_hud.lua). One setAppConfig call at a time (pm_core gate, "switch" below); crash guards: plans/square_photo_mode/PLAN.md "Crash safety".
 --
 --   button  click = open / close the window (pressed while open). No graphics change. The open / close itself
 --           runs in the next onStep, in a frame with no setAppConfig.
@@ -17,22 +16,29 @@
 --           are on, the button shows it (green contour, tooltip line).
 --   HQ on   the window's checkbox (footer): S.hq = "staging"; pm_core.STAGE_DELAY_FRAMES frames later the onStep runs
 --           stage 1 (before it: 1. snapshot of the graphics keys, 2. the marker { boosted = true, orig =
---           snapshot } into AppConfig.mainMenuState[modId], saved while the graphics are still the player's own),
---           then stage 2 .. 3, each its own setAppConfig(cfg, false), never saved, each logged "hq stage N",
---           STAGE_DELAY_FRAMES frames apart. Then S.hq = "on".
+--           snapshot } into AppConfig.mainMenuState[modId], its own setAppConfig while the graphics are still the
+--           player's own), then stage 2 .. 3, each its own setAppConfig(cfg, false), each logged "hq stage N",
+--           STAGE_DELAY_FRAMES frames apart. Then S.hq = "on". Photo Mode never writes settings.lua itself (the
+--           mod.io review: no game settings save from a mod); see "marker" below.
 --   HQ off  the toggle: further stages dropped, then the staged restore (S.hq = "unstaging"): the stages in
 --           reverse (pm_core.RESTORE_STAGES: anti-aliasing and resolution scale first, textures last), one
 --           setAppConfig each, STAGE_DELAY_FRAMES apart, the first in the next onStep; the last one also clears
---           the marker and saves. Each logged "hq restore stage N". Why: spread the renderer's work, as on.
+--           the marker. Each logged "hq restore stage N". Why: spread the renderer's work, as on.
 --           The pause menu (at once) and a new game ("stale") keep the one-call restore: the snapshot's keys on
 --           a copy of the CURRENT config (never the whole old AppConfig: it holds other mods' mainMenuState
---           prefs, audio, keys), marker cleared, one setAppConfig + saveAppConfig. Toggled on again during
+--           prefs, audio, keys), marker cleared, one setAppConfig. Toggled on again during
 --           the staged restore: the stages run again from stage 1 (keys already high are skipped).
 --   Esc     quitting runs no react.onUnmount (docs/findings/gui.md "Quitting runs no react.onUnmount"), but
 --           every quit opens the pause menu first: react event "openPauseMenu" stops the camera moves and turns
 --           the highest graphics off; the toggle shows off afterwards.
+--   marker  lives only in the in-memory AppConfig, set with the same kind of setAppConfig as the stages, before
+--           the first boost, and cleared in the restore's last setAppConfig. The game writes settings.lua with
+--           whatever the AppConfig holds (at launch, at a normal quit, from the settings page or another mod's
+--           settings save), so whenever the boosted values reach the file the marker goes with them; a normal
+--           quit after the pause-menu restore writes the player's values with no marker.
 --   load    first frame of a game: a marker left by a session that ended boosted (crash, kill) restores the
---           keys still at their boosted value (pm_core.recoverKeys) and is cleared.
+--           keys still at their boosted value (pm_core.recoverKeys) and is cleared (in memory; the game's next
+--           settings write, at the latest the normal quit, puts the repaired values in settings.lua).
 --   frames  no window opens or closes in a frame with a setAppConfig of ours (a stage or a toggle restore): the
 --           onStep does one or the other, and a stage waits a frame after any window open / close (S.windowTouched).
 --           Why: kept as a precaution from before the crash causes were found (docs/findings/map-camera.md
@@ -125,19 +131,16 @@ local function configWithMarker(marker)
 	return cfg
 end
 
---- setAppConfig (+ saveAppConfig); returns the setAppConfig time in ms.
-local function set(cfg, save)
+--- setAppConfig (in memory only: Photo Mode never writes settings.lua); returns its time in ms.
+local function set(cfg)
 	local t0 = nowMs()
 	api.util.setAppConfig(cfg, false)
-	local ms = nowMs() - t0
-	if save then api.util.saveAppConfig() end
-	return ms
+	return nowMs() - t0
 end
 
-local function apply(cfg, why, save)
-	local ms = set(cfg, save)
-	core.log(string.format("%s ms=%.1f saved=%s now %s", why, ms, tostring(save == true),
-		core.text(graphicsOf(api.util.getAppConfig()))))
+local function apply(cfg, why)
+	local ms = set(cfg)
+	core.log(string.format("%s ms=%.1f now %s", why, ms, core.text(graphicsOf(api.util.getAppConfig()))))
 end
 
 local function maxMsaa()
@@ -145,11 +148,11 @@ local function maxMsaa()
 	return core.maxOf(ok and list or nil, core.MSAA_FALLBACK)
 end
 
---- Puts the original values on the current config, clears the marker and saves.
+--- Puts the original values on the current config and clears the marker (one setAppConfig).
 local function restore(orig, why)
 	local cfg = configWithMarker(nil)
 	for key, value in pairs(orig) do cfg[key] = value end
-	apply(cfg, why, true)
+	apply(cfg, why)
 end
 
 --- The window shows the toggle from S.hq: tell it to render again.
@@ -178,8 +181,8 @@ local function runStage()
 	if S.stage == 1 and S.snapshot == nil then
 		local snap = graphicsOf(api.util.getAppConfig())
 		core.log("hq on: player's settings " .. core.text(snap))
-		-- the marker, saved while the graphics are still the player's own
-		apply(configWithMarker({ boosted = true, orig = snap }), "hq on: marker", true)
+		-- the marker, set while the graphics are still the player's own: any later settings write carries it
+		apply(configWithMarker({ boosted = true, orig = snap }), "hq on: marker")
 		S.snapshot = snap
 		S.boost = core.boostValues(maxMsaa())
 		S.hqMs = 0
@@ -191,7 +194,7 @@ local function runStage()
 		S.stage = i + 1
 		if #names > 0 then
 			for key, value in pairs(changes) do cfg[key] = value end
-			local ms = set(cfg, false)
+			local ms = set(cfg)
 			S.hqMs = S.hqMs + ms
 			core.log(string.format("hq stage %d/%d keys=%s ms=%.1f", i, NSTAGES, table.concat(names, ","), ms))
 			break
@@ -255,8 +258,8 @@ local function beginUnstage(why)
 	windowChanged()
 end
 
---- Restore stage S.stage: the stage's keys back to the player's values; the last one also clears the marker and
---- saves. A stage with nothing to change makes no call (the next follows in the same frame); the last always
+--- Restore stage S.stage: the stage's keys back to the player's values; the last one also clears the marker.
+--- A stage with nothing to change makes no call (the next follows in the same frame); the last always
 --- runs (the marker).
 local function runRestoreStage()
 	local snap = S.snapshot
@@ -268,10 +271,10 @@ local function runRestoreStage()
 		local changes, names = core.restoreChanges(i, graphicsOf(cfg), snap)
 		if #names > 0 or last then
 			for key, value in pairs(changes) do cfg[key] = value end
-			local ms = set(cfg, last)
+			local ms = set(cfg)
 			S.hqMs = S.hqMs + ms
 			core.log(string.format("hq restore stage %d/%d keys=%s ms=%.1f%s", i, NSTAGES,
-				#names > 0 and table.concat(names, ",") or "-", ms, last and " (marker cleared, saved)" or ""))
+				#names > 0 and table.concat(names, ",") or "-", ms, last and " (marker cleared)" or ""))
 			if not last then break end
 		else
 			core.log(string.format("hq restore stage %d/%d keys=- (already the player's)", i, NSTAGES))
@@ -429,7 +432,7 @@ local function recoverMarker()
 	local orig = core.markerOrig(marker)
 	if orig == nil then
 		core.log("marker without original values, clearing")
-		apply(configWithMarker(nil), "marker clear", true)
+		apply(configWithMarker(nil), "marker clear")
 		return
 	end
 	local put, kept = core.recoverKeys(orig, graphicsOf(api.util.getAppConfig()), core.boostValues(maxMsaa()))
@@ -511,13 +514,6 @@ local PhotoModePlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModB
 			if not startedRef:hasExpired() then startedRef:set(true) end
 			try("start", start)
 		end
-		-- round 16: the saved setups go into the AppConfig in a frame with no switch and no window open / close
-		-- (one setAppConfig at a time, as the stages); saved to settings.lua only while the graphics are the
-		-- player's own (High graphics mode's restore saves them otherwise)
-		if setups.pending() and S.offRequest == nil and (S.hq == "off" or S.hq == "on") and not S.gate.busy
-			and not S.windowTouched and S.windowWanted == S.windowOpen then
-			try("setups write", function() setups.flush(S.hq == "off") end)
-		end
 		if S.offRequest ~= nil or S.hq == "staging" or S.hq == "unstaging" or S.windowWanted ~= S.windowOpen
 			or S.windowTouched then
 			try("frame", frameStep)
@@ -543,10 +539,6 @@ local PhotoModePlugin = react.RegisterPluginRecipe(main_mod_button_area.MainModB
 		if S.hq ~= "off" then hqOff("pause menu") end
 		try("hud pause menu", hud.pauseMenu)
 		try("light pause menu", sky.pauseMenu)
-		-- a setup change still waiting is written now (a quit may follow); saved once the graphics are back
-		if setups.pending() and not S.gate.busy then
-			try("setups write", function() setups.flush(S.hq == "off") end)
-		end
 		if kept then
 			try("setups status", function()
 				driver.setStatus(_("The menu put your own light, weather and look back. Settings > Restore last setup brings this picture back."))
