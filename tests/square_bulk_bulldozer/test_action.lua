@@ -363,3 +363,56 @@ test("debug log: mouse events are logged with the performance log On", function(
 	eq(mouse, 2, "press + release")
 	ok(sqperf >= 1, "level 1 / level 3 SQPERF lines while On")
 end)
+
+test("a platform whose base react / construction_react_util lack the focus, ESC and tooltip helpers (PS5 report 2026-10-19): renders, no error", function()
+	-- docs/findings/gui.md "Base GUI modules differ by platform" (Smart Lanes player report): the console build's base
+	-- GUI scripts lack functions the PC copies have. Without them the tool keeps working: no focus pins, no ESC hook
+	-- (onBack still clears), no cursor tooltip; with the base tooltip recipe the ring carries it.
+	local function run(withTooltip)
+		reset_modules()
+		h = fakeReact()
+		reg = {}
+		h.react.RegisterRecipe = function(name, fn)
+			reg[name] = fn
+			return setmetatable({ name = name }, { __call = function(_s, p) return { recipe = name, param = p } end })
+		end
+		h.react.setForceFocusable, h.react.setRestrictMouseFocus = nil, nil
+		h.react.useInputAction, h.react.iaHandler = nil, nil
+		stub_module("::/gui/main/react.lua", h.react)
+		stub_module("::/gui/main/builtin.lua", {
+			BoxLayout = node("BoxLayout"), TextView = node("TextView"), Selector = node("Selector"),
+			ActionDescriptor = node("ActionDescriptor"), ActionTooltip = node("ActionTooltip"),
+			EdgeRenderable = node("EdgeRenderable"),
+			type = { Orientation = { Horizontal = "Horizontal", Vertical = "Vertical" },
+				EdgeRenderable = { Edge = { new = function(g) return { geometry = g } end } } },
+		})
+		stub_module("::/gui/construction/construction_react_util.tl",
+			withTooltip and { SimpleTooltipRecipe = function(p) return p end } or {})
+		api.type.Vec2f = { new = function(x, y) return { x = x, y = y } end }
+		api.type.EdgeGeometry = setmetatable({ Arc = { new = function() return {} end } },
+			{ __index = function() return nil end })
+		api.type.EdgeGeometry.new = function() return {} end
+		api.engine.terrain = { getHeightAt = function() return 0 end }
+		script = ug_require "square_bulk_bulldozer::/bulk_bulldozer/bulk_bulldozer.script.tl"
+		sel = ug_require "square_bulk_bulldozer::/bulk_bulldozer/bb_select.tl"
+		local p = render(newParam(true))
+		local onMouse = mouseHandler(p)
+		paintOne(onMouse)
+		h.states[3]:set({ x = 10, y = 10, z = 0 }) -- cursorState: the ring and its tooltip at the cursor
+		-- the same instance re-rendered (old refs and states, by call order) with a waiting selection: the ESC branch
+		local refs, states = h.refs, h.states
+		local i, j = 0, 0
+		h.react.useRef = function() i = i + 1; return refs[i] end
+		h.react.useState = function() j = j + 1; return states[j] end
+		reg["BulkBulldozerAction"](p)
+		eq(next(h.inputs), nil, "no ESC hook where the platform has none")
+		local tree = p.actionFn()
+		local tips = 0
+		for _, c in ipairs(tree.param.children) do if c.builtin == "ActionTooltip" then tips = tips + 1 end end
+		eq(tips, withTooltip and 1 or 0)
+		tree.param.onBack()
+		eq(selection(), nil, "onBack still clears")
+	end
+	run(false)
+	run(true)
+end)

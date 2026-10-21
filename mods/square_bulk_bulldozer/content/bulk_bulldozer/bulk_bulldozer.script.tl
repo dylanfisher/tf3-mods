@@ -1213,10 +1213,15 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 				color = api.type.Vec4f.new(1, 0.7, 0.1, 0.8)
 			end
 			for _, v in ipairs(ringEdges(cur.x, cur.y, r, color)) do bag[#bag + 1] = v end
-			children[#children + 1] = builtin.ActionTooltip{
-				recipe = constructionUi.SimpleTooltipRecipe,
-				param = { message = { message = tooltipText(s, r) } },
-			}
+			-- the base tooltip recipe, where this platform has it (PS5 report 2026-10-19, Smart Lanes;
+			-- docs/findings/gui.md "Base GUI modules differ by platform"); else no tooltip (the status chip
+			-- shows the same counts)
+			if type((constructionUi as {string : any}).SimpleTooltipRecipe) == "function" then
+				children[#children + 1] = builtin.ActionTooltip{
+					recipe = constructionUi.SimpleTooltipRecipe,
+					param = { message = { message = tooltipText(s, r) } },
+				}
+			end
 		end
 		-- Only ONE EdgeRenderable per recipe: the engine asserts on more (overpass_probe.script.tl:4517-4519),
 		-- so the ring and the selection overlay share it.
@@ -1243,15 +1248,19 @@ local BulkBulldozerAction = react.RegisterRecipe("BulkBulldozerAction",
 	end
 
 	-- Keep focus on the tool, as the base selector-based tools do (construction_react_util.tl:1325-1327).
-	react.setForceFocusable(true)
-	react.setRestrictMouseFocus(true)
+	-- These and the ESC hooks below only where this platform's react has them (PS5 report 2026-10-19,
+	-- Smart Lanes; docs/findings/gui.md "Base GUI modules differ by platform"); a platform check is
+	-- constant, so the hooks are the same every render.
+	local reactAny = react as {string : any}
+	if type(reactAny.setForceFocusable) == "function" then react.setForceFocusable(true) end
+	if type(reactAny.setRestrictMouseFocus) == "function" then react.setRestrictMouseFocus(true) end
 
 	if not param.isActive then return nil end
 	param.setActionFn(actionFn, "BulkBulldozerAction")
 	-- ESC: while something is selected it clears the selection (nothing removed). Otherwise, in mouse
 	-- mode, it falls through and closes the construction window (construction_react_util.tl:1437-1441;
 	-- useInputAction may be conditional, as the base does there).
-	if hasPending() then
+	if hasPending() and type(reactAny.useInputAction) == "function" and type(reactAny.iaHandler) == "function" then
 		react.useInputAction("IA_MENU_BACK", react.iaHandler(function() cancelPending("Esc") end))
 	end
 	return nil
