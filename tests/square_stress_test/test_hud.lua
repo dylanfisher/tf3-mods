@@ -134,10 +134,18 @@ local function findButton(tree, tooltipStart)
 	return found
 end
 
-local function renderWithDialogs(prepApi)
+local function logsWith(text)
+	local n = 0
+	for _, e in ipairs(log_entries()) do if e.msg:find(text, 1, true) then n = n + 1 end end
+	return n
+end
+
+--- platform: optional, edits the base module fakes after stubs() (a console build that lacks functions).
+local function renderWithDialogs(prepApi, platform)
 	reset_modules()
 	clear_logs()
 	stubs()
+	if platform then platform() end
 	local wa = { windows = {}, removed = 0 }
 	function wa.addSingletonWindow(recipe, params) wa.windows[#wa.windows + 1] = { recipe = recipe, params = params } end
 	function wa.removeAllWindows(_recipe) wa.removed = wa.removed + 1 end
@@ -178,6 +186,40 @@ test("Remove all roads asks first: Cancel does nothing, Remove runs it once", fu
 	eq(calls.removeAll, 1)
 	d.params.onClose()
 	eq(wa.removed, 1)
+end)
+
+-- PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI modules differ by platform": the console
+-- build's base GUI scripts lack functions the PC copies have.
+test("platform without dialog_react_util.DialogWindow: our own plain dialog window, same choices", function()
+	local tree, wa, calls = renderWithDialogs(nil, function()
+		stub_module("::/gui/menu/dialog_react_util.tl", {})
+	end)
+	findButton(tree, "Remove every street").onClick()
+	eq(#wa.windows, 1)
+	local d = wa.windows[1]
+	ok(d.recipe ~= nil and d.recipe == recipes.SquareStressDialog, "the fallback recipe")
+	eq(logsWith("no base DialogWindow"), 1, "logged once")
+	local win = d.recipe(d.params)
+	eq(win._w, "Window")
+	eq(win.title, "Remove all roads")
+	local buttons = {}
+	local function walk(n)
+		if type(n) ~= "table" then return end
+		if rawget(n, "_w") == "Button" then buttons[#buttons + 1] = n return end
+		for _, c in pairs(n) do walk(c) end
+	end
+	walk(win.content)
+	eq(#buttons, 2, "Remove and Cancel")
+	buttons[2].onClick()
+	eq(calls.removeAll, 0, "Cancel does nothing")
+	eq(wa.removed, 1, "and closes")
+	buttons[1].onClick()
+	eq(calls.removeAll, 1)
+	eq(wa.removed, 2)
+	-- a second dialog: still the fallback, no second log line
+	findButton(tree, "Remove every street").onClick()
+	eq(wa.windows[2].recipe, recipes.SquareStressDialog)
+	eq(logsWith("no base DialogWindow"), 1)
 end)
 
 test("warnings: rt.warn opens one OK dialog; more wait and are shown together after it closes", function()

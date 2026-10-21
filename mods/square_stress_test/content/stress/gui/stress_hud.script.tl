@@ -211,6 +211,21 @@ local function head(title : string, buttons : {TreeNodeId}) : TreeNodeId
 	return vbox({ text(" "), builtin.FlowLayout{ children = children } })
 end
 
+-- The dialog recipe: the base DialogWindow, or our own plain Window (SquareStressDialog, below
+-- platformWindow) where this platform's dialog_react_util has none (PS5 report 2026-10-19, Smart Lanes;
+-- docs/findings/gui.md "Base GUI modules differ by platform"). Logged once.
+local SquareStressDialog : Recipe<DialogReactUtil.DialogWindowParam> -- set below
+local dialogFallbackLogged = false
+local function dialogRecipe() : Recipe<DialogReactUtil.DialogWindowParam>
+	local base = (dialog_react_util as {string : any}).DialogWindow
+	if base ~= nil then return base as Recipe<DialogReactUtil.DialogWindowParam> end
+	if not dialogFallbackLogged then
+		dialogFallbackLogged = true
+		log.warning("[SQST] no base DialogWindow on this platform; using a plain window for dialogs")
+	end
+	return SquareStressDialog
+end
+
 --- The base confirm dialog (gui/menu/dialog_react_util.tl, used by the pause menu's Quit Game,
 --- pause_menu.tl:15-45) in the default window container: the action button and Cancel (focused,
 --- also on Esc and a click outside). onOk runs only after the confirm button.
@@ -220,8 +235,9 @@ local function confirm(title : string, body : string, okText : string, onOk : fu
 		rt.log("[SQST] " .. title .. ": no window container for the confirm dialog; nothing done")
 		return
 	end
-	wa.addSingletonWindow(dialog_react_util.DialogWindow, {
-		onClose = function() wa.removeAllWindows(dialog_react_util.DialogWindow) end,
+	local recipe = dialogRecipe()
+	wa.addSingletonWindow(recipe, {
+		onClose = function() wa.removeAllWindows(recipe) end,
 		x = 0.5,
 		y = 0.5,
 		windowTitle = title,
@@ -255,11 +271,12 @@ local function showWarnings()
 		parts[#parts + 1] = title == w.title and w.body or (w.title .. ": " .. w.body)
 	end
 	alertOpen = true
+	local recipe = dialogRecipe()
 	local function close()
 		alertOpen = false
-		wa.removeAllWindows(dialog_react_util.DialogWindow)
+		wa.removeAllWindows(recipe)
 	end
-	wa.addSingletonWindow(dialog_react_util.DialogWindow, {
+	wa.addSingletonWindow(recipe, {
 		onClose = close,
 		x = 0.5,
 		y = 0.5,
@@ -874,6 +891,30 @@ local function platformWindow<T>(p : T) : T
 	end
 	return p
 end
+
+-- The dialog where the base DialogWindow is missing (dialogRecipe): the base one's shape (dialog_react_util.tl:
+-- 60-140: the text, then one button per choice; a click closes, then runs the choice) from builtin widgets only.
+SquareStressDialog = react.RegisterWrapperRecipe("SquareStressDialog", builtin.Window, function(params : DialogReactUtil.DialogWindowParam) : TreeNodeId
+	local buttons : {TreeNodeId} = {}
+	for _, choice in ipairs(params.choices or {}) do
+		buttons[#buttons + 1] = builtin.Button{
+			content = text(choice.text),
+			onClick = function()
+				params.onClose()
+				if choice.onClick ~= nil then choice.onClick() end
+			end,
+		}
+	end
+	return builtin.Window(platformWindow{
+		title = params.windowTitle,
+		closable = true,
+		movable = false,
+		initialX = params.x,
+		initialY = params.y,
+		onClose = params.onClose,
+		content = vbox({ text(params.displayText or ""), builtin.FlowLayout{ children = buttons } }),
+	})
+end)
 
 local SquareStressWindow = react.RegisterWrapperRecipe("SquareStressWindow", builtin.Window, function(params : SquareStressWindowParam) : TreeNodeId
 	-- WindowParam: builtin.d.tl:1186-1210
