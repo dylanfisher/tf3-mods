@@ -1,6 +1,6 @@
 {
     "modId": "square_industry_production_label",
-    "revision": 7,
+    "revision": 9,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -12,7 +12,7 @@
         {
             "key": "showProduction",
             "name": "Show production",
-            "tooltip": "Show each industry's production on its map label: the pill with the industry icon.",
+            "tooltip": "Show each industry's production on its map label: the pill\nwith the industry icon.",
             "uiType": "Button",
             "values": [
                 "On",
@@ -23,7 +23,7 @@
         {
             "key": "showPickup",
             "name": "Show line pickup rate",
-            "tooltip": "Show the summed rate of your lines that pick up each industry's output: the pill with the Line Manager icon.",
+            "tooltip": "Show the summed rate of your lines that pick up each\nindustry's output: the pill with the Line Manager icon.",
             "uiType": "Button",
             "values": [
                 "On",
@@ -34,7 +34,18 @@
         {
             "key": "showWarehouse",
             "name": "Show warehouse rates",
-            "tooltip": "Show each warehouse's incoming and outgoing cargo per year on its map label: one pill pair per cargo (box with down arrow = incoming, box with up arrow = outgoing).",
+            "tooltip": "Show each warehouse's incoming and outgoing cargo per year\non its map label: one pill pair per cargo (box with down\narrow = incoming, box with up arrow = outgoing).",
+            "uiType": "Button",
+            "values": [
+                "On",
+                "Off"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "holdShift",
+            "name": "Show only while holding Shift",
+            "tooltip": "On: this mod's pills show only while you hold Shift on the\nmap, and on the industry or warehouse whose window is open,\nso busy areas stay readable. Off: they show on every label\nall the time.",
             "uiType": "Button",
             "values": [
                 "On",
@@ -45,7 +56,7 @@
         {
             "key": "sqperf_log",
             "name": "Debug: performance log",
-            "tooltip": "Off: normal play. On: every 30 s, Industry Production Label writes how long its map labels took to read the industries, warehouses and lines and to draw to the game's log file (stdout.txt, lines starting with [SQPERF]). Only for tracking down slowdowns; leave it Off otherwise. Slow calls are always logged briefly, whatever this setting.",
+            "tooltip": "Off: normal play. On: every 30 s, Industry Production Label\nwrites how long its map labels took to read the industries,\nwarehouses and lines and to draw to the game's log file\n(stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.",
             "uiType": "Button",
             "values": [
                 "Off",

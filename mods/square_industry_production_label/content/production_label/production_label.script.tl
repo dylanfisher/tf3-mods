@@ -32,6 +32,13 @@
 -- ProductionLabelWarehouseHudIcon instead: per refresh, two getCargoLogValueDiffPerYear reads per cargo
 -- type (incoming "itemsUnloaded", outgoing "itemsLoaded"), the same calls the base stock pill makes per
 -- stored cargo (cargo_util.tl:238-239). Industries are unchanged.
+--
+-- Show only while holding Shift (PLAN "Show only while holding Shift (2026-10-19)", setting holdShift,
+-- default On): hudIconFn mounts ProductionLabelShiftGate instead, which checks every SHIFT_INTERVAL s
+-- whether the pills are on (production_label_shift.tl: Shift held, written every frame by
+-- production_label_entry.script.tl, or this label's industry / warehouse window open) and mounts the
+-- industry / warehouse recipe only then, so while Shift is up only selected labels do engine reads. No entry point in this Lua state (shift.installed false): always shown,
+-- as with the setting Off.
 
 -- SQPERF (plans/sqperf/README.md): load time of this HUD Lua state, the first industry read (it
 -- includes the first pickup-cache rebuild), slow calls (> 16 ms, at most one line per section per
@@ -57,6 +64,7 @@ local lang_util = ug_require "::/scripts/lang_util.tl" as LangUtil
 local model = ug_require "square_industry_production_label::/production_label/production_label_model.tl" as SquareProductionLabelModel
 local pickup = ug_require "square_industry_production_label::/production_label/production_label_pickup.tl" as SquareProductionLabelPickup
 local readcache = ug_require "square_industry_production_label::/production_label/production_label_readcache.tl" as SquareProductionLabelReadCache
+local shift = ug_require "square_industry_production_label::/production_label/production_label_shift.tl" as SquareProductionLabelShift
 pickup.perf = perf -- SQPERF section "pickup_rebuild", counter "pickup_built"
 
 -- Millisecond wall clock for the read cache and the sliced pickup rebuild: api.type.Clock (safe on the
@@ -143,6 +151,88 @@ local function readIndustry(entity : Engine.Entity, showPickup : boolean) : Squa
 	return view
 end
 
+-- The base pill builder, when this platform has it. Console builds ship their own base GUI scripts, which
+-- can lack functions the PC copy has (PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI
+-- modules differ by platform"). Resolved on the first pill: the base function's first call runs in pcall;
+-- when it works it is called directly from then on (no per-pill pcall), else fallbackPill for the session.
+-- fallbackPill is the base HUD-mode tree (gui_react_util.tl:113-140, 277-310) for the params makePill
+-- passes (icon path or paths, label, labelFontColor, labelMode "HudIconMain", shippingState), with the
+-- same classes and nesting, so base styling and production_label.css.lua apply where they exist.
+local SHIPPING_CLASS <const> : {string : string} = {
+	Warehouse = "warehouse", WaitingPassenger = "waiting-passenger", Vehicle = "vehicle",
+	IndustryInput = "industry-input", IndustryOutput = "industry-output",
+}
+local pillFn : function(GuiReactUtil.IconLabelIndicatorParams) : TreeNodeId = nil
+
+local function fallbackPill(p : GuiReactUtil.IconLabelIndicatorParams) : TreeNodeId
+	local setStyleClasses = (react as {string : any}).setStyleClasses
+	if setStyleClasses is function(string) then setStyleClasses("hud-icon-main") end
+	local hud = p.labelMode == "HudIconMain" or p.labelMode == "HudIconLayer"
+	local iconClass = "iconlabelindicator-icon-size" .. (hud and ",hud-icon" or "")
+	local paths : {string} = {}
+	local ip = p.iconPath
+	local single = false
+	if ip is string then
+		paths, single = { ip }, true
+	elseif ip is {string} then
+		paths = ip
+	end
+	local icons : {TreeNodeId} = {}
+	for i, path in ipairs(paths) do
+		icons[i] = builtin.ImageView{
+			meta = { tooltip = p.tooltip, class = iconClass },
+			path = path,
+			scaling = builtin.type.ImageViewScaling.AutoFit,
+		}
+	end
+	local inner : {TreeNodeId} = {}
+	if single then
+		inner[1] = icons[1]
+	elseif #icons > 0 then
+		inner[1] = builtin.BoxLayout{ orientation = builtin.type.Orientation.Horizontal, children = icons }
+	end
+	if p.label ~= nil then
+		inner[#inner + 1] = builtin.TextView{
+			meta = { class = "iconlabelindicator-label, font-scale-annotation", tooltip = p.tooltip },
+			text = p.label,
+		}
+	end
+	local bg = "hud-icon-background, " .. (p.labelFontColor as string or "Default")
+	local ship = p.shippingState ~= nil and SHIPPING_CLASS[p.shippingState as string] or nil
+	if ship ~= nil then bg = bg .. ", " .. ship end
+	return builtin.BoxLayout{
+		orientation = builtin.type.Orientation.Vertical,
+		children = {
+			builtin.Component{
+				meta = { class = bg },
+				layout = builtin.BoxLayout{
+					meta = { class = "iconlabelindicator-layout" },
+					orientation = builtin.type.Orientation.Horizontal,
+					children = { builtin.BoxLayout{ orientation = builtin.type.Orientation.Horizontal, children = inner } },
+				},
+			},
+		},
+	}
+end
+
+local function pill(p : GuiReactUtil.IconLabelIndicatorParams) : TreeNodeId
+	local f = pillFn
+	if f ~= nil then return f(p) end
+	local base = (gui_react_util as {string : any}).makeContentLabelIndictator
+	if base is function(GuiReactUtil.IconLabelIndicatorParams) : TreeNodeId then
+		local ok, node = pcall(base, p)
+		if ok and node ~= nil then
+			pillFn = base
+			return node as TreeNodeId
+		end
+		log.warning("square_industry_production_label: base makeContentLabelIndictator failed, own pills: " .. tostring(node))
+	else
+		log.warning("square_industry_production_label: base makeContentLabelIndictator " .. type(base) .. ", own pills")
+	end
+	pillFn = fallbackPill
+	return fallbackPill(p)
+end
+
 --- One pill, built like the stock pill: makeContentLabelIndictator with labelMode "HudIconMain"
 --- (hud_icon_toolbox.tl:78-84), wrapped in a BoxLayout that only carries our class for the scoped CSS.
 --- A single icon path is passed as a string so the pill has the same ImageView structure as the stock
@@ -156,7 +246,7 @@ local function makePill(style : SquareProductionLabelStyle, paths : {string}, va
 		meta = { class = style.entryClass },
 		orientation = builtin.type.Orientation.Horizontal,
 		children = {
-			gui_react_util.makeContentLabelIndictator({
+			pill({
 				iconPath = iconPath,
 				label = model.formatLabel(value, lang_util.formatInt),
 				labelFontColor = style.labelFontColor as GuiReactUtil.LabelFontColor,
@@ -367,21 +457,72 @@ local function emptyLayout() : TreeNodeId
 	}
 end
 
+-- "Show only while holding Shift" (PLAN "Show only while holding Shift (2026-10-19)"): seconds between
+-- checks of the shared state (two table reads per label); the label recipe (and its engine reads) is
+-- mounted only while it shows. The label's construction is looked up once (shift.toConstruction).
+local SHIFT_INTERVAL <const> = 0.1
+
+local record ShiftGateParam
+	entity : Engine.Entity
+	label : function() : TreeNodeId
+end
+
+-- SQPERF section "shift_render".
+local ProductionLabelShiftGate = react.RegisterRecipe("ProductionLabelShiftGate", perf:wrap("shift_render", function(param : ShiftGateParam) : TreeNodeId
+	local conRef : ReactRefT<integer> = react.useRef(nil)
+	local state = engine_react_util.useStepStateTimer(function() : boolean
+		if shift.active or not shift.installed then
+			return true
+		end
+		local con = conRef:get()
+		if con == nil then
+			local ok, res = pcall(shift.toConstruction, param.entity as integer)
+			con = ok and res as integer or param.entity as integer
+			conRef:set(con)
+		end
+		return shift.isShown(con)
+	end, SHIFT_INTERVAL)
+
+	react.setMouseTransparent(true)
+
+	local children : {TreeNodeId} = {}
+	if state:old() then
+		children[1] = param.label()
+	end
+	return builtin.BoxLayout{
+		meta = { class = "production-label-layout" },
+		orientation = builtin.type.Orientation.Vertical,
+		children = children,
+	}
+end))
+
 perf:phase("init", perfInit)
 
 return {
 	-- SQPERF section "hud_icon_fn" (once per HUD icon mount; includes the settings read).
 	hudIconFn = perf:wrap("hud_icon_fn", function(captureParams : any, params : Builtin.HudIconParam, _userParam : HudIconToolbox.HudIconMasterUserParam) : TreeNodeId
 		local options = readSettings()
+		local label : function() : TreeNodeId
 		if model.kind(captureParams) == model.WAREHOUSE_KIND then
 			if not options.showWarehouse then
 				return emptyLayout()
 			end
-			return ProductionLabelWarehouseHudIcon{ entity = params.entity }
+			label = function() : TreeNodeId
+				return ProductionLabelWarehouseHudIcon{ entity = params.entity }
+			end
+		else
+			if not options.showProduction and not options.showPickup then
+				return emptyLayout()
+			end
+			label = function() : TreeNodeId
+				return ProductionLabelHudIcon{ entity = params.entity, showProduction = options.showProduction, showPickup = options.showPickup }
+			end
 		end
-		if not options.showProduction and not options.showPickup then
-			return emptyLayout()
+		if options.holdShift then
+			return ProductionLabelShiftGate{ entity = params.entity, label = label }
 		end
-		return ProductionLabelHudIcon{ entity = params.entity, showProduction = options.showProduction, showPickup = options.showPickup }
+		return label()
 	end),
+	-- tests: resolve the pill builder anew on the next pill
+	resetPill = function() pillFn = nil end,
 }

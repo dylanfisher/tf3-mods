@@ -14,6 +14,8 @@ Shows each industry's headline production number from its industry window ("Curr
 - **Build phases** (scaffold, review, in-game test) are done; detail in `HISTORY.md`.
 - **Open work:** the unticked checks in `TESTING.md` (settings toggles in an existing save, warehouse labels,
   idle/producing style, far-LOD hiding) and the in-game check lists in `PERF_REVIEW.md` (2026-10-10 and 2026-10-08).
+- **Revision 8 (2026-10-19), ready for Hub upload: "Show only while holding Shift"** (default On), see the
+  section below. Shift and selected verified in game; the rest of TESTING §10 is open.
 - **Possible v2:** per-cargo split of mixed-cargo line rates (`getLineCapacityUsages`), see "Pickup rate pill".
 - **Next step:** one SQPERF session (DEV "SQPERF: all mods", `make perf ARGS=--last`) over industry clusters and
   warehouses to close the `PERF_REVIEW.md` 2026-10-10 list, ticking the TESTING §8/§9 toggles in the same session.
@@ -162,3 +164,43 @@ The bug report and its suspected cause (settings baked into the construction res
 - `model.options(modParams)`: the mod's own `getModParams()` entry (`{showProduction, showPickup, showWarehouse}`, 1-based value index) → three booleans, 2 = off, anything else (missing, malformed) = on.
 
 **Risk:** `getModParams` is not marked GUI-thread only (`api/tealdef/api/engine.d.tl:1806-1807`), and better_minimap calls it from its HUD script, but HUD icon recipes do not run on the GUI thread (`getApplicationTime` hard-crashed there). If it crashes or errors in `hudIconFn`, that shows up on the first load with an industry on screen (crash) or as the warning above (all pills on). TESTING §8.
+
+## Show only while holding Shift (2026-10-19)
+
+User request: with many industries and warehouses on screen the pills clutter the map (screenshot of a port
+area with ~10 labels). New mod setting **Show only while holding Shift** (`holdShift`, values On / Off,
+default On): our pills show on every label while Shift is held on the map, and always on the industry /
+warehouse whose window is open (selected). The base stock pill is untouched.
+
+**History.** The first version showed the pills on the hovered industry, through a proxy around
+`selector_react_util.makeDefaultSelector`'s `onHover` (as Passenger Destinations' Shift hover). In game
+(2026-10-20 04:22Z) it raised on every hover when chained with Passenger Destinations' proxy (fixed:
+`docs/findings/gui.md`), and then the pills never went off until another building was selected: the
+selector reports the next entity, not "nothing", when the mouse leaves a building. Replaced by Shift on
+user request; the selector hook is gone.
+
+**Shift.** `production_label_entry.script.tl` (`::ModEntryPointExtension`, `production_label_entry.res.lua`):
+when the setting is On, its `onStep` (main thread, every frame) reads `IA_PRECISION_MODE` (as Passenger
+Destinations and Line Manager Plus) and, while it is down, the default tool stack's top tool name. Shown only
+in `EntityDetailsTool` (the map and entity windows) and `SquarePassengerDestinations` (pushed while its Shift
+arrows show, so the pills don't vanish then). Not while building or in the line manager, layers, statistics.
+Shift is shared with Passenger Destinations (Shift hover arrows) and Line Manager Plus (Shift-click): both
+still work, the pills simply show at the same time.
+
+**Selected.** Plugins in every industry / warehouse window (`::IndustryEowExtensionPoint`,
+`::WarehouseEowExtensionPoint`, `production_label_{industry,warehouse}_eow.res.lua`) draw nothing and report
+the window's construction open / closed (counted per window). Window entity and label entity differ, so both
+go through `shift.toConstruction` (CONSTRUCTION component, else
+`streetConnectorSystem.getConstructionEntityForSubconstruction`, as `view_manager_util.wouldCreateView`).
+
+**HUD.** `hudIconFn` mounts `ProductionLabelShiftGate` around the industry / warehouse recipe; its step timer
+(0.1 s, two table reads) mounts the label recipe only while it shows, so hidden labels do no engine reads.
+Entry point, window plugins and HUD scripts share one Lua state (seen in game 2026-10-20: `hover hook in the
+HUD state: true`); a label whose state lacks the entry point (`shift.installed` false) shows always.
+
+**Open risks (TESTING §10):**
+
+- Window entity -> construction: logged once (`window entity X -> construction Y`); if the selected
+  industry's pills don't show, the two sides map to different entities.
+- The empty plugin BoxLayout in the windows may leave a small gap (Line Manager Plus does the same in the
+  line window).

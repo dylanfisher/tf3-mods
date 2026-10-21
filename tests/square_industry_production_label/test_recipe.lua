@@ -7,6 +7,10 @@
 -- means all on (one warning).
 -- Warehouses (PLAN "Warehouse rates (2026-10-07)"): captureParams {kind = "warehouse"} mounts the
 -- warehouse recipe (incoming row, outgoing row) and never touches the industry reads or the pickup cache.
+-- Show only while holding Shift (PLAN "Show only while holding Shift (2026-10-19)", default On): hudIconFn
+-- mounts the gate, which mounts the label only while Shift is held or its construction's window is open,
+-- and always when the entry point is not in this Lua state (shift.installed false, as in most tests here:
+-- render() unwraps the gate).
 
 local ENTITY = 42
 local FISH, GRAIN = 7, 3
@@ -33,11 +37,14 @@ stub_module("::/gui/main/engine_react_util.tl", {
 })
 stub_module("::/gui/main/builtin.lua", {
 	BoxLayout = function(t) t.kind = "BoxLayout"; return t end,
-	type = { Orientation = { Horizontal = "Horizontal", Vertical = "Vertical" } },
+	Component = function(t) t.kind = "Component"; return t end,
+	ImageView = function(t) t.kind = "ImageView"; return t end,
+	TextView = function(t) t.kind = "TextView"; return t end,
+	type = { Orientation = { Horizontal = "Horizontal", Vertical = "Vertical" }, ImageViewScaling = { AutoFit = "AutoFit" } },
 })
-stub_module("::/gui/main/gui_react_util.tl", {
-	makeContentLabelIndictator = function(t) return { kind = "Pill", label = t.label, iconPath = t.iconPath } end,
-})
+local function basePill(t) return { kind = "Pill", label = t.label, iconPath = t.iconPath } end
+local gru = { makeContentLabelIndictator = basePill }
+stub_module("::/gui/main/gui_react_util.tl", gru)
 stub_module("::/gui/main/cargo_util.tl", {
 	getCargoIconById = function(id) return "cargo_" .. tostring(id) .. ".tga" end,
 })
@@ -74,7 +81,7 @@ local clockUs = 1e9
 
 set_global("api", {
 	type = {
-		ComponentType = { STOCK_LIST = 1 },
+		ComponentType = { STOCK_LIST = 1, CONSTRUCTION = 2 },
 		Clock = { new = function() return { getTime = function() return clockUs end } end },
 	},
 	res = {
@@ -113,6 +120,7 @@ set_global("api", {
 
 local pickup = ug_require "square_industry_production_label::/production_label/production_label_pickup.tl"
 local readcache = ug_require "square_industry_production_label::/production_label/production_label_readcache.tl"
+local shift = ug_require "square_industry_production_label::/production_label/production_label_shift.tl"
 local script = ug_require "square_industry_production_label::/production_label/production_label.script.tl"
 local realRatesFor = pickup.ratesFor
 
@@ -136,6 +144,7 @@ before_each(function()
 	}
 	pickup.cache = pickup.newCache()
 	readcache.reset() -- every test reads afresh (the fake clock does not move between tests)
+	shift.reset()
 	pickup.ratesFor = function(entity)
 		calls.ratesFor = calls.ratesFor + 1
 		eq(entity, ENTITY)
@@ -145,8 +154,20 @@ end)
 
 local INDUSTRY = { kind = "industry" }
 
+-- The Shift gate's layout: class "production-label-layout" alone (the label's own layouts add
+-- "production-label-spaced").
+local function isGate(layout)
+	return layout.meta ~= nil and layout.meta.class == "production-label-layout"
+end
+
+-- The label as hudIconFn mounts it; a Shift gate around it is unwrapped (the tests below are about the label).
 local function render(captureParams)
-	return script.hudIconFn(captureParams, { entity = ENTITY }, {})
+	local layout = script.hudIconFn(captureParams, { entity = ENTITY }, {})
+	if isGate(layout) then
+		eq(#layout.children, 1, "hook not installed: the gate shows the label")
+		return layout.children[1]
+	end
+	return layout
 end
 
 -- The mod settings as getModParams gives them: 1 = On, 2 = Off (nil = key missing = On).
@@ -314,7 +335,7 @@ test("warehouse: reads both logs per cargo type, skips passengers, never the ind
 	end
 	eq(calls.ratesFor, 0)
 	eq(calls.engineReads, 2) -- entityExists + STOCK_LIST only, no industry_util
-	eq(calls.timers, 1)
+	eq(calls.timers, 2) -- the Shift gate's and the warehouse label's
 end)
 
 test("warehouse setting off: empty layout, no recipe, no timer, no read", function()
@@ -354,6 +375,57 @@ test("industry captureParams still render the industry label", function()
 	eq(#calls.logReads, 0)
 end)
 
+-- show only while holding Shift (PLAN "Show only while holding Shift (2026-10-19)") ---------------------
+
+local function hudIcon(captureParams)
+	return script.hudIconFn(captureParams, { entity = ENTITY }, {})
+end
+
+test("hold Shift on by default: the gate wraps the label; Off (2): the label alone", function()
+	ok(isGate(hudIcon(INDUSTRY)), "gate by default")
+	ok(isGate(hudIcon(WAREHOUSE)), "gate by default (warehouse)")
+	allModParams = { [MOD_ID] = { holdShift = 2 } }
+	local layout = hudIcon(INDUSTRY)
+	ok(not isGate(layout), "no gate when Off")
+	eq(rowLabels(layout), { { "34", "20" }, { "112" } })
+	eq(calls.timers, 5) -- two gates with their labels (entry point not installed: shown), then the label alone
+end)
+
+test("installed, Shift up, nothing selected: the gate is empty, no label recipe, no engine read, no pickup lookup", function()
+	shift.installed = true
+	local layout = hudIcon(INDUSTRY)
+	ok(isGate(layout))
+	eq(layout.children, {})
+	eq(calls.timers, 1) -- the gate's only
+	eq(calls.engineReads, 1) -- shift.toConstruction's CONSTRUCTION read, nothing of the label
+	eq(calls.ratesFor, 0)
+	layout = hudIcon(WAREHOUSE)
+	eq(layout.children, {})
+	eq(#calls.logReads, 0)
+end)
+
+test("installed, Shift held: every label shows", function()
+	shift.installed = true
+	shift.update(true, "EntityDetailsTool")
+	eq(rowLabels(hudIcon(INDUSTRY).children[1]), { { "34", "20" }, { "112" } })
+	eq(rowLabels(hudIcon(WAREHOUSE).children[1]), { { "120", "40" }, { "90", "0" } })
+	shift.update(false, nil)
+	eq(hudIcon(INDUSTRY).children, {})
+end)
+
+test("installed, Shift up, this construction's window open: its label shows; another's window: hidden", function()
+	shift.installed = true
+	shift.opened(ENTITY) -- the stub's getComponent finds a CONSTRUCTION on ENTITY: its own construction
+	eq(rowLabels(hudIcon(INDUSTRY).children[1]), { { "34", "20" }, { "112" } })
+	shift.closed(ENTITY)
+	shift.opened(ENTITY + 1)
+	eq(hudIcon(INDUSTRY).children, {})
+end)
+
+test("entry point not installed: every label shows (as Off)", function()
+	eq(rowLabels(hudIcon(INDUSTRY).children[1]), { { "34", "20" }, { "112" } })
+end)
+
 local function sqperfLines(pattern)
 	local out = {}
 	for _, e in ipairs(log_entries()) do
@@ -390,4 +462,66 @@ test("SQPERF: Debug log On gives a 30 s summary of the HUD sections; Off logs no
 	clockUs = clockUs + 31e6
 	render(INDUSTRY)
 	eq(#sqperfLines("win_ms="), 2)
+end)
+
+-- The own pill (fallbackPill): BoxLayout > Component!hud-icon-background > BoxLayout!iconlabelindicator-layout
+-- > BoxLayout > {icon or BoxLayout of icons, TextView}. Returns the background class, the icon part, the label.
+local function fallbackParts(wrapper)
+	local p = wrapper.children[1]
+	eq(p.kind, "BoxLayout")
+	local bg = p.children[1]
+	eq(bg.kind, "Component")
+	eq(bg.layout.meta.class, "iconlabelindicator-layout")
+	local inner = bg.layout.children[1].children
+	return bg.meta.class, inner[1], inner[2]
+end
+
+test("base gui_react_util without makeContentLabelIndictator (PS5 report 2026-10-19, Smart Lanes): own pills, one warning", function()
+	gru.makeContentLabelIndictator = nil
+	script.resetPill()
+	local layout = render(INDUSTRY)
+	render(INDUSTRY)
+	gru.makeContentLabelIndictator = basePill
+	script.resetPill()
+	local production = layout.children[1]
+	eq(#production.children, 2)
+	local cls, icon, label = fallbackParts(production.children[1])
+	ok(cls:find("hud-icon-background", 1, true) == 1, cls)
+	eq(label.kind, "TextView")
+	eq(label.text, "34")
+	eq(label.meta.class, "iconlabelindicator-label, font-scale-annotation")
+	if icon.kind == "ImageView" then
+		eq(icon.meta.class, "iconlabelindicator-icon-size,hud-icon")
+	else
+		eq(icon.kind, "BoxLayout") -- several icons: nested as base does (production_label.css.lua spacing rule)
+		eq(icon.children[1].kind, "ImageView")
+	end
+	eq(warningsMatching("base makeContentLabelIndictator nil, own pills"), 1)
+	eq(rowLabels(render(INDUSTRY)), { { "34", "20" }, { "112" } }, "base pills again after reset")
+end)
+
+test("a raising base makeContentLabelIndictator: tried once, own pills from then on", function()
+	local tries = 0
+	gru.makeContentLabelIndictator = function() tries = tries + 1; error("ps5") end
+	script.resetPill()
+	local layout = render(INDUSTRY)
+	render(INDUSTRY)
+	gru.makeContentLabelIndictator = basePill
+	script.resetPill()
+	eq(tries, 1)
+	local _, _, label = fallbackParts(layout.children[1].children[2])
+	eq(label.text, "20")
+	eq(warningsMatching("base makeContentLabelIndictator failed, own pills"), 1)
+end)
+
+test("warehouse pills (two icons each) on the own pill: icons nested in one BoxLayout", function()
+	gru.makeContentLabelIndictator = nil
+	script.resetPill()
+	local layout = render({ kind = "warehouse" })
+	gru.makeContentLabelIndictator = basePill
+	script.resetPill()
+	local _, icons, label = fallbackParts(layout.children[1].children[1])
+	eq(icons.kind, "BoxLayout")
+	eq(#icons.children, 2)
+	ok(label.text ~= nil)
 end)

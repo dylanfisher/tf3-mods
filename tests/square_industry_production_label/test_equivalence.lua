@@ -5,6 +5,8 @@
 -- scenarios; regenerate by running this file against that revision with PRINT_GOLDEN = true).
 -- Also: one engine read per entity per TTL for any number of labels, re-read after the TTL, errors
 -- never cached, per-label pickup on a shared read.
+-- "Show only while holding Shift" is Off here (holdShift = 2): these tests compare the label itself; the gate
+-- around it is covered in test_recipe.lua and test_shift.lua.
 
 local PRINT_GOLDEN = false
 
@@ -16,7 +18,8 @@ local FISH, GRAIN, CEMENT, COAL, GOODS, IRON, STEEL, SAND, OIL, WOOD = 7, 3, 9, 
 local world
 local reads -- engine reads per entity (getStockListInputOutputData / getCargoLogValueDiffPerYear batches)
 local clockUs = 5e9
-local allModParams = {}
+local NO_HOVER = { square_industry_production_label = { holdShift = 2 } }
+local allModParams = NO_HOVER
 
 stub_module("::/gui/main/react.lua", {
 	RegisterRecipe = function(_name, fn) return fn end,
@@ -171,7 +174,7 @@ end
 local INDUSTRY, WAREHOUSE = { kind = "industry" }, { kind = "warehouse" }
 
 local function settings(production, pickupOpt, warehouse)
-	allModParams = { square_industry_production_label = { showProduction = production, showPickup = pickupOpt, showWarehouse = warehouse } }
+	allModParams = { square_industry_production_label = { showProduction = production, showPickup = pickupOpt, showWarehouse = warehouse, holdShift = 2 } }
 end
 
 local function render(captureParams, entity)
@@ -214,7 +217,7 @@ local GOLDEN = {
 before_each(function()
 	world = baseWorld()
 	reads = {}
-	allModParams = {}
+	allModParams = NO_HOVER
 	clockUs = clockUs + 60e6 -- fresh caches (well past the TTL)
 	if readcache then readcache.reset() end
 end)

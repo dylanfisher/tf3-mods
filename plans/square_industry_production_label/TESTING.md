@@ -108,3 +108,24 @@ Mod settings now show a third option, **Show warehouse rates** (default On). Log
 - [ ] **Existing save:** add the mod (or update from revision 2) to an existing save with warehouses: loads without warnings beyond the normal notice, warehouse labels appear. Save, remove the mod, reload: no errors, labels gone.
 - [ ] **Performance:** a save with several busy warehouses: no stutter compared with the mod disabled.
 - [ ] Log: no `no warehouse label for entity` warnings.
+
+## 10. Show only while holding Shift (2026-10-19, PLAN "Show only while holding Shift (2026-10-19)")
+
+Mod settings show a fourth option, **Show only while holding Shift** (default On). Log after loading:
+`show only while holding Shift: on`.
+
+- [x] **Default On:** a busy area shows only the vanilla stock pills. Holding Shift on the map shows every
+  label's pills at once (within ~0.1 s); releasing hides them.
+- [x] **Selected:** click an industry: its window opens and its pills stay while the window is open, Shift or
+  not; closing the window hides them. Same for a warehouse. Log `window entity X -> construction Y` once.
+- [ ] Two windows open (industry + warehouse): both keep their pills; closing one leaves the other's.
+- [ ] **Other tools:** Shift while building (road / track / construction menu), in the line manager or with a
+  layer open: no pills.
+- [ ] **Passenger Destinations / Line Manager Plus active:** Shift hover arrows and Shift-click still work;
+  the pills show at the same time and don't vanish while the arrows show.
+- [ ] No gap or empty card in the industry / warehouse window from our invisible plugin.
+- [ ] **Off:** every label shows its pills all the time, as before.
+- [x] No Lua errors in the log (the hover version's `hasExpired` error is gone with the selector hook).
+  Verified 2026-10-20 (live session ~04:30Z, user: "looks good"): Shift and selected work, no Lua errors,
+  `window entity 193532 -> construction 142962`.
+- [ ] **Performance:** with Shift up, SQPERF `read_industry` / `read_warehouse` only for open windows.

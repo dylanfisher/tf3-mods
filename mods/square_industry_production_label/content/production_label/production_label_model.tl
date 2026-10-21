@@ -191,13 +191,14 @@ end
 
 function model.options(modParams : any) : SquareProductionLabelOptions
 	if type(modParams) ~= "table" then
-		return { showProduction = true, showPickup = true, showWarehouse = true }
+		return { showProduction = true, showPickup = true, showWarehouse = true, holdShift = true }
 	end
 	local t = modParams as {string : any}
 	return {
 		showProduction = optionOn(t.showProduction),
 		showPickup = optionOn(t.showPickup),
 		showWarehouse = optionOn(t.showWarehouse),
+		holdShift = optionOn(t.holdShift),
 	}
 end
 

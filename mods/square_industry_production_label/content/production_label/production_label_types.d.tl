@@ -28,6 +28,8 @@ global record SquareProductionLabelOptions
 	showProduction : boolean
 	showPickup : boolean
 	showWarehouse : boolean
+	--- "Show only while holding Shift": our pills only while Shift is held on the map.
+	holdShift : boolean
 end
 
 --- One cargo of a warehouse label (PLAN "Warehouse rates (2026-10-07)"): per-year incoming
@@ -95,7 +97,7 @@ global record SquareProductionLabelModel
 	--- (shared, never changed) when pickupRates is nil. model.view(pds, cd, rates) equals
 	--- model.withPickup(model.view(pds, cd, nil), rates).
 	withPickup : function(view : SquareProductionLabelView, pickupRates : any) : SquareProductionLabelView
-	--- Options from the mod's own getModParams() entry ({showProduction, showPickup, showWarehouse},
+	--- Options from the mod's own getModParams() entry ({showProduction, showPickup, showWarehouse, holdShift},
 	--- 1-based value index): 2 = off, anything else (incl. a missing or malformed table) = on.
 	--- Always a fresh table.
 	options : function(modParams : any) : SquareProductionLabelOptions
@@ -294,6 +296,32 @@ global record SquareProductionLabelReadCache
 	warehouse : SquareProductionLabelReadCacheInst
 	--- Fresh empty industry and warehouse caches (tests).
 	reset : function()
+end
+
+--- ======================================================================
+--- from production_label_shift.tl (pills shown while Shift is held, and on the selected industry / warehouse)
+-- Module: ug_require "square_industry_production_label::/production_label/production_label_shift.tl" as SquareProductionLabelShift
+
+global record SquareProductionLabelShift
+	--- Top tool names in which holding Shift shows the pills.
+	TOOLS : {string : boolean}
+	--- True once the entry point runs in this Lua state.
+	installed : boolean
+	--- True while Shift shows the pills on every label.
+	active : boolean
+	--- Construction -> number of its windows open.
+	selected : {integer : integer}
+	--- One frame's input (Shift held, top tool name or nil); returns the new `active`.
+	update : function(held : boolean, toolName : string) : boolean
+	--- A window of `construction` opened / closed (counted).
+	opened : function(construction : integer)
+	closed : function(construction : integer)
+	--- True when the label of `construction` shows its pills (Shift, its window open, or not installed).
+	isShown : function(construction : integer) : boolean
+	--- Fresh state (tests).
+	reset : function()
+	--- The construction entity of `entity` (itself when it is one), else `entity`; -1 for nil / negative.
+	toConstruction : function(entity : integer) : integer
 end
 
 recordDef = false

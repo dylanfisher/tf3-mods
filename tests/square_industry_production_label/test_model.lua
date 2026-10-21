@@ -303,16 +303,18 @@ end)
 -- options (PLAN "Options") ------------------------------------------------------------
 
 test("options: the mod's getModParams entry, 2 = off; missing / malformed = all on", function()
-	local on = { showProduction = true, showPickup = true, showWarehouse = true }
+	local on = { showProduction = true, showPickup = true, showWarehouse = true, holdShift = true }
 	eq(model.options(nil), on)
 	eq(model.options("x"), on)
 	eq(model.options(5), on)
 	eq(model.options({}), on)
 	eq(model.options({ showProduction = 1, showPickup = 1, showWarehouse = 1 }), on)
-	eq(model.options({ showProduction = 2, showPickup = 1, showWarehouse = 1 }), { showProduction = false, showPickup = true, showWarehouse = true })
-	eq(model.options({ showProduction = 1, showPickup = 2, showWarehouse = 1 }), { showProduction = true, showPickup = false, showWarehouse = true })
-	eq(model.options({ showProduction = 1, showPickup = 1, showWarehouse = 2 }), { showProduction = true, showPickup = true, showWarehouse = false })
-	eq(model.options({ showProduction = 2, showPickup = 2, showWarehouse = 2 }), { showProduction = false, showPickup = false, showWarehouse = false })
+	eq(model.options({ showProduction = 2, showPickup = 1, showWarehouse = 1 }), { showProduction = false, showPickup = true, showWarehouse = true, holdShift = true })
+	eq(model.options({ showProduction = 1, showPickup = 2, showWarehouse = 1 }), { showProduction = true, showPickup = false, showWarehouse = true, holdShift = true })
+	eq(model.options({ showProduction = 1, showPickup = 1, showWarehouse = 2 }), { showProduction = true, showPickup = true, showWarehouse = false, holdShift = true })
+	eq(model.options({ showProduction = 2, showPickup = 2, showWarehouse = 2 }), { showProduction = false, showPickup = false, showWarehouse = false, holdShift = true })
+	eq(model.options({ holdShift = 2 }).holdShift, false)
+	eq(model.options({ holdShift = 1 }).holdShift, true)
 	-- a float 2.0 (engine number) is still Off; other values and types are On
 	eq(model.options({ showProduction = 2.0 }).showProduction, false)
 	eq(model.options({ showProduction = "2", showPickup = false, showWarehouse = 0 }), on)
