@@ -134,7 +134,7 @@ every language too (`make tooltips MOD=mods/<id> ARGS=--fix` does mod.json param
 
 ## Releasing updates
 
-The user runs every `make modio*` command (1Password prompt); Claude asks for the pasted output. A Hub changelog one-liner always starts with "Revision N: " (the new revision). Checklist (modio-status, Hub upload, Changelog line, sync): the `release-mods` skill.
+The user runs every `make modio*` command (1Password prompt); Claude asks for the pasted output. A Hub changelog one-liner always starts with "Revision N: " (the new revision). Checklist (modio-status, Changelog entry, "More from square" refresh, Hub upload, Changelog line, sync): the `release-mods` skill.
 
 ## Forks of other authors' mods (SQ Opt)
 

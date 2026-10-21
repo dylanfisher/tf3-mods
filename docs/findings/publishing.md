@@ -16,6 +16,18 @@ In-game verified facts; index and rules for adding entries: `docs/findings.md`.
 - The same Hub upload sent the new `description.html` (rev 3 changelog entry) to mod.io. Earlier Hub updates
   seemed to leave the description old; the cause is unknown (maybe a description edited while the game was
   running, or mod.io's scan delay). Check with `make modio ARGS=--diff` after an upload.
+- **A description edited while the game runs is picked up; the Hub upload still left it old (2026-10-21, inferred).**
+  Line Manager Plus rev 13: `description.html` (new Changelog entry) and `mod.json` were edited at 07:03:35 UTC in a
+  game started at 06:59; the game logged `Staging Mod at .../square_line_manager_plus/ has modified files` that same
+  second, and the Hub upload at 07:04:06 shipped rev 13, yet mod.io kept the rev 12 description (user report). So
+  "edited while the game was running" is not the cause. Every Hub upload in the archive (17 from 2026-10-18 to
+  2026-10-21, e.g. `2026-10-20_1947_sqot-sqfn`, `2026-10-21_0659_sqot-sqrl` line ~2104) logs one
+  `[Error][Http] Non 200-204 response received: {"error":{"code":500,...,"message":"Unexpected server error..."}}`
+  about 3 s after `Updating mod <id> on backend mod.io`, right after the modfile uploads start, then
+  `changed status: Undefined error: 0`, and the modfile and gallery still go through. Likely (not proven: the log
+  doesn't name the request) the 500 is the Hub's profile edit (name, summary, description), which it neither retries
+  nor reports. Until that's settled: after every Hub upload, run `make modio MOD=mods/<id> ARGS='--only text --diff'`
+  and `--apply` when the description differs.
 - The Hub's gallery strip sorts `_metadata` slides by file name as text: with 22 slides it showed 1, 10, 11 … 19,
   2, 20 (Roundabouts, screenshot 2026-10-10). `make shots` now zero-pads the number when a mod has 10 or more
   slides (`01-<hash>.png`), and `make modio` uploads under those same names.

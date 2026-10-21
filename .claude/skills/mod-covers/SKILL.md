@@ -1,6 +1,7 @@
 ---
 name: mod-covers
-description: Square house-style mod covers (_metadata/0.png) and gallery slides: branding/mods.js entries, pictograms, make covers, make shots. Use when creating a new mod's cover, renaming a mod, changing the cover look, or adding gallery screenshots.
+description: >-
+  Square house-style mod covers (_metadata/0.png) and gallery slides: branding/mods.js entries, pictograms, make covers, make shots. Use when creating a new mod's cover, renaming a mod, changing the cover look, or adding gallery screenshots.
 ---
 
 # Mod covers (square house style)

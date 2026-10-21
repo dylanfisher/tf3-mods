@@ -1,6 +1,7 @@
 ---
 name: sq-opt-forks
-description: Local "SQ Opt" forks of other authors' mods (mods/square_opt_*): make fork-new, FORK.md checklist, fork-status/merge, the private backup repo (.forks-git, forks-save/forks-push), measuring changes. Use when creating, updating, merging or backing up a fork.
+description: >-
+  Local "SQ Opt" forks of other authors' mods (mods/square_opt_*): make fork-new, FORK.md checklist, fork-status/merge, the private backup repo (.forks-git, forks-save/forks-push), measuring changes. Use when creating, updating, merging or backing up a fork.
 ---
 
 # Forks of other authors' mods (SQ Opt)

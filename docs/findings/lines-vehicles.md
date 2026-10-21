@@ -463,6 +463,14 @@ vehicles: every bus stop `[0]` (passengers), the loading stop of a one-way cargo
 stops give a line's cargo without any vehicles (`SQSTOPLOAD` lines). Used by: Line Manager Plus buy_line_filter.lua
 (store cargo filter, stops first, vehicle capacity as the fallback).
 
+## Line finance history reaches back at least 2 years (in game 2026-10-20, screenshot)
+
+`api.engine.util.finance.calculateBalance({line}, max(now - N * getDefaultYearDuration(), 0), now, true)` on an
+airline (AP Passengers-PorSug-FisLan-IC-1, DC-3s) gave $4,554,357 for 1 year, $8,999,392 for 2 years and
+$20,463,719 for 5 years: each window sums more, so the journal keeps line entries older than 2 years (roughly linear
+growth, so likely all of the line's history). Whether it ever prunes entries beyond 5 years is untested. Seen in the
+Line Manager Plus Balance tooltip (capture `plans/square_line_manager_plus/shots/26-balance-tooltip.jpg`).
+
 ## Reversing a line vehicle: `makeVehicleReverseCmd` (console 2026-10-20, live session of 2026-10-20 05:39Z)
 
 - **The base Reverse button's command flips the next stop on a 2-stop line:** ship 130260 (carrier 4 = WATER, line

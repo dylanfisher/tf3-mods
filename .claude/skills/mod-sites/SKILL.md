@@ -1,6 +1,7 @@
 ---
 name: mod-sites
-description: Mod microsites on tf3.dylanfisher.com (site/, Astro + React + Tailwind v4 + shadcn on Base UI): adding a mod's landing and research pages, section kinds (run-compare, image-grid, data-explorer, story, mod-specific), the WebP media build, builders that emit data, deploy. Use when creating or changing a mod's demo/showcase page, porting a generated HTML page into the site, or deploying the site.
+description: >-
+  Mod microsites on tf3.dylanfisher.com (site/, Astro + React + Tailwind v4 + shadcn on Base UI): adding a mod's landing and research pages, section kinds (run-compare, image-grid, data-explorer, story, mod-specific), the WebP media build, builders that emit data, deploy. Use when creating or changing a mod's demo/showcase page, porting a generated HTML page into the site, or deploying the site.
 ---
 
 # Mod microsites (square)

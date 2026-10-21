@@ -129,6 +129,16 @@ Probe `square_sqperf_probe` (log lines `[SQPERF-PROBE]`, game stdout.txt), "New 
   `onStepTimer` and HUD icon scripts ran on worker threads. GUI-thread-only calls (`api.gui.*`,
   `getApplicationTime`) belong in onStep or render, or behind `react.enqueueJoin` from onStepTimer.
   The earlier square_supply_gaps crash ("Main Pool 10") is consistent with a worker-thread callback.
+- **`api.gui.game.getGuiSaveData` / `setGuiSaveData` raise "API is currently restricted" in `onStepTimer`**
+  (verified from the game log 2026-10-21, sessions `2026-10-21_0513_sqot-sqrl` and `2026-10-21_0641_sqot-sqrl`):
+  Line Manager Plus rev 12's first build read its save data from the utilization sampler's `onStepTimer` tick and
+  logged `WARNING - Main Pool 9 ... lmp_save.lua:23: API is currently restricted` (a Lua error, catchable with pcall,
+  not a crash). Its read failure was latched for the load, so the history was never restored or written, and the
+  player's average utilization restarted from 0 months at every load. Square Better Minimap's `readCamView` failed
+  the same way from a worker-thread callback (`2026-10-07_0702_session-crash`). Rule: every save-data read and write
+  goes in `react.onStep` (Main Thread), a recipe render or a click handler. A worker-thread sampler sets a flag
+  and an `onStep` callback does the I/O (LMP `lmp_util_avg.lua` `M.ioStep`). Never cache an error from a call made
+  on the wrong thread as "this save is unreadable".
 
 ## ImageView raw pixel data (2026-10-09)
 

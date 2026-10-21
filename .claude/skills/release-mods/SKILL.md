@@ -20,6 +20,12 @@ entry. Without that output, ask for it; don't guess.
    REVISION is the **live** one. A "newer upload not live: rev N ... rejected / waiting" line under a row means rev N
    was uploaded but never went live (e.g. rejected by the review): re-upload as rev N with the fix and its entry
    amended, don't bump past it and don't treat rev N as published.
+   **Then refresh "More from square"** in every mod about to be uploaded, after its Changelog entry is written and
+   before the upload, every release: `uv run tools/more_from.py --refresh mods/<id> [mods/<id2> ...]` (re-reads our
+   mod.io profile: newly published mods, changed logos; the Hub sends this description). A mod the refresh lists
+   in no group must go into `branding/more_from.json` first. Then `make more-from ARGS='--published --check'`: if
+   other published mods show `stale`, tell the user and offer `make more-from ARGS=--published` plus their
+   `make modio ARGS='--only text --diff'` / `--apply` (profile text, no revision bump).
 2. **Upload** (restart the game first if `make shots` ran since it started: the Hub uploads the slide list it read at
    start and fails "File not found" on renamed slides): those mods in game: Mod Hub → My Mods. The upload dialog has a one-line **Changelog** field: for every
    mod about to be uploaded, give the user a ready-to-paste line (plain text, about 150 characters at most, no
@@ -27,7 +33,8 @@ entry. Without that output, ask for it; don't guess.
    shows it). The line always starts with "Revision N: " (the new revision; several entries: the newest), e.g.
    "Revision 3: the vehicle list shows each vehicle's current cargo and load."
 3. **After:** `make modio ARGS=--diff` should say "in sync" (`--verify` also compares the slide bytes). The Hub
-   sends the description and keeps slides named `N-<hash>.png` intact (at most 9: a 10-slide gallery came out of
+   often leaves the description old (one mod.io HTTP 500 in every Hub upload, `docs/findings/publishing.md`): when the
+   diff shows the description, `make modio MOD=mods/<id> ARGS='--only text --apply'`. The Hub otherwise sends the description and keeps slides named `N-<hash>.png` intact (at most 9: a 10-slide gallery came out of
    order, which `make modio MOD=mods/<id> ARGS='--apply --only gallery'` repairs), but an older stale description or
    `N.png` slides need `make modio ARGS=--apply`. `make modio-status` should now say "Up to date". A fresh upload shows as
    "Uploaded, waiting for mod.io" until mod.io's scan makes it live. See `docs/findings.md` "Mod Hub uploads and the
