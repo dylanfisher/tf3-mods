@@ -31,11 +31,20 @@ and the option-set pattern in round 8) plus the existing kit. Exact numbers mark
 - Base `builtin.Window` through `platformWindow` (console rejects fields such as `closable`;
   `docs/findings/gui.md`). A Window wrapper's render returns the Window and calls no react hooks
   (`react.setMouseTransparent` in one crashed the game, `docs/findings/map-camera.md` "Full-screen overlay").
-- **Controller (console players):** the Window gets `autoFocusOnBecomingVisible = true` and its content
-  `meta = { forceFocusable = true }`; the content recipe handles `IA_MENU_BACK` (close), focuses itself on mount and
-  puts its layout in a `gui_react_util.FocusTraversalScope` (inside a BoxLayout: the recipe root stays a layout).
-  Reference: LMP `rate_matcher_window.tl` `RateMatcherContent` (rev 8; other windows follow once a PS5 player
-  confirms it). `docs/findings/gui.md` "Window fields differ by platform".
+- **Controller (console players), the preferred pattern:** the Window gets `autoFocusOnBecomingVisible = true` and
+  its content `meta = { forceFocusable = true }`; the content recipe handles `IA_MENU_BACK` (close or "Not now"),
+  focuses itself on mount (`useSelfRef():get():focus()` in a pcall) and puts its layout in a
+  `gui_react_util.FocusTraversalScope` (inside a BoxLayout: the recipe root stays a layout). Every piece only where
+  the platform has it: `type(react.useInputAction) == "function"`, `type(gui_react_util.FocusTraversalScope) ==
+  "function"`, and so on (a constant check, so the hooks still run the same every render). The window must close
+  without the X too (a button, the back action). Reference, confirmed on PS5: Smart Lanes `sl_bg.script.lua`
+  `SmartLanesWelcome` (rev 10, 2026-10-20). Teal: LMP `rate_matcher_window.tl` `RateMatcherContent`.
+  `docs/findings/gui.md` "Window fields differ by platform" and "Base GUI modules differ by platform".
+- **Base GUI helpers may be missing on console** (PS5 has no `content_card.makeInfoHint`: "attempt to call field
+  'makeInfoHint' (a nil value)" reloaded the UI). Inline a helper whose base body is a one-liner of `builtin.*`
+  widgets (`makeHorizontalSpacer`, `cargo_react_util.makeIcon`); guard every other one with a type check and a
+  `builtin.*` fallback, or leave the piece out (`infoHint` in Smart Lanes / Organic Towns / Problem Radar). Add a
+  test that renders with the function missing.
 - **Narrow:** content 440 px inner width (~460 px with the frame; Photo Mode `CONTENT_W`) *(tune: not yet seen
   in game)*. Rows wrap; nothing may stretch the window across the screen. Size from the longest translated label
   (de/ru ~40% longer, CJK wide); wrap rather than clip.
@@ -55,6 +64,8 @@ and the option-set pattern in round 8) plus the existing kit. Exact numbers mark
   window (Photo Mode round 11, six tabs: 360 px; round 12, seven: 420 of the 424 px inside the content's padding,
   the most 24 px icons hold). Eight tabs: 16 px icons, 8 x (16 + 36) = 416 px (Photo Mode round 20: the Animals
   tab; an inline StyleSheet has no margin to trim the indicator's padding, and a class rule costs one of the ~200).
+  Eight is the most: a ninth (9 x 52 = 468 px) means folding a tab into another (Photo Mode round 22: the saved
+  views moved into the Aerials and Tour tabs).
 - Window-wide switches that outlive the window (Photo Mode's High graphics mode, Hide labels) go on a
   **Settings** tab, the last one, with the base gear icon (`::/gui/menu/icons/settings.tga`, the mod settings'
   icon in `mod_selector_page.tl`), not in the footer (user, Photo Mode round 12). Saved presets of the window's
@@ -116,8 +127,8 @@ and the option-set pattern in round 8) plus the existing kit. Exact numbers mark
   - **Links to another entity:** a plain `builtin.Button` (no `secondary`, no inline padding: "R::EntityWindowContent
     Button" styles it) holding the entity's icon + a body TextView, `onClick` `react.fireEvent(nil, "selectEntity",
     { entity = id, stack = true })` (`sim_person_eow.script.tl:115-131`); a row of them in a FlowLayout.
-- Remember the window position where the player expects it (`AppConfig.mainMenuState[modId]`, see Better
-  Minimap / Problem Radar).
+- Remember the window position where the player expects it (`api.gui.game.setGuiSaveData(modId, ...)`, per
+  savegame, see Better Minimap / Problem Radar; never `api.util.saveAppConfig`: rejected at upload).
 
 ## Lists, empty states, settings pages
 
@@ -345,6 +356,24 @@ better pattern for many options").
   filled (accent while on), the same size as the action cells.
 - **One of many** settings: a ComboBox (Controls). A heading above each group; a dim one-line hint below at most.
 - **The primary action** stays the base `primary` button (Controls), never a cell.
+
+## Popover menus (a list of actions under a toolbar button)
+
+Line Manager Plus "Line actions" (user, 2026-10-20: "Auto-Rename rows"). A popover menu next to a base popover
+looks like that base popover; in the Line Manager: the Auto-Rename popover (base `AutoRenameDialog`,
+manager_window.tl:3085-3305). Its rules are scoped to its recipe, so copy the look, not the classes:
+
+- Window classes `"configure-lines, management"` (vanilla popover: no title bar, height capped).
+- **Header card** with the title (font-scale-headline), all inline: card_surface + card_contour nine-patches,
+  BaseVeryLight at transparency Low, border BaseVeryLight, size -1 x 36, padding 2/8/2/8. The base margin
+  8/8/1/8 is the inline padding of a wrapper Component; header and wrapper get the base class `horizontal-spacer`
+  to fill the width.
+- **Rows:** one full-width `builtin.Button` per action, its content a `horizontal-spacer` Component (icon, a 4 px
+  inline spacer, font-scale-body text: left-aligned); rows in a Component with inline padding 3/6/10/6. The colours
+  need 3 rules under the menu's recipe (inline sheets have no states, margin or gravity): base AccentMedium at High,
+  invisible border, margin 2/4/2/4, padding 4/8/4/8; `:hover` AccentLight; `:active` getActiveFromRaw(AccentMedium),
+  both with an invisible border. A disabled row: an inline NeutralMedium wash at VeryHigh, the reason in its tooltip.
+- Code: `mods/square_line_manager_plus/content/line_manager_plus/lmp_actions.lua` (row, header), `lmp.css.lua`.
 
 ## Text
 

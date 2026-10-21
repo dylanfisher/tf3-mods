@@ -50,7 +50,7 @@ every square mod window uses on PC.
 - **Confirmed on PS5 (player report 2026-10-17, LMP rev 7, no log):** the guard works: the window opens without the
   UI error. But it took no controller input at all and couldn't be closed (stuck): a window without focus gets no
   gamepad input, and without `closable` there is no X. Still open: whether `movable` was accepted.
-- **Gamepad windows, the base pattern** (not yet confirmed on console; LMP rev 8 is the test): base windows close on
+- **Gamepad windows, the base pattern** (confirmed on PS5 in the Smart Lanes rev 10 welcome, 2026-10-20, below): base windows close on
   the input action `IA_MENU_BACK` and take the focus themselves. The popover (`gui/main/popover_react_util.tl:8-15`,
   `:33-43`) builds its content with `meta = { forceFocusable = true }`, and the content recipe calls
   `react.useInputAction("IA_MENU_BACK", react.iaHandler(onClose))` and `react.onMount(function()
@@ -60,6 +60,49 @@ every square mod window uses on PC.
   `gui_react_util.tl:457-473`). Gamepad mode: `app_util.isGamepadInputMode()` (`api.util.getInputMode() ==
   InputMode.Gamepad`, GUI thread only). The wiki says nothing about gamepads. Timetables isn't a reference here:
   no back handler, no `forceFocusable`, and its `closeable = true` is a misspelt field.
+
+## Base GUI modules differ by platform: PS5 `content_card` has no `makeInfoHint` (player report 2026-10-19)
+
+Player report from PlayStation 5 against `square_smart_lanes` rev 9 (no other mod active, no log; text copied from the
+error screen): the first-load welcome window reloaded the UI with `attempt to call field 'makeInfoHint' (a nil value)`
+in `react::recipeFn SmartLanesWelcome`, stack `=[C] (-1): makeInfoHint` / `sl_bg.script.lua (168)`. On PC
+`content_card.makeInfoHint` is at `gui/main/content_card.tl:479` and works in a mod window (2026-10-14, above).
+
+- **The console build ships its own base GUI scripts, and they lack functions the PC ones have.** With the
+  `closable` report above it is the second PC-only GUI API seen. The extracted `.cache/game` files are the PC build;
+  any base module function (`content_card.*`, `gui_react_util.*`, `react.*` hooks) may be missing on console.
+- **Guard every base GUI module function a mod window calls:** `type(mod.fn) == "function"` (Teal: a local, then
+  `is function`) and a fallback built from `builtin.*` widgets. `infoHint(text)` in Smart Lanes `sl_bg.script.lua`,
+  Organic Towns `ot_card.script.tl` and Problem Radar `radar_hud.script.tl` builds the base hint's own tree
+  (`info-hint-comp` Component, `info-hint-text` TextView) without the icon image; Organic Towns shows no card when
+  `ContentCard` / `makeRecipeAndParam` are missing; the Smart Lanes welcome's gamepad pieces (`useInputAction`,
+  `useSelfRef`, `FocusTraversalScope`, `pcall(ug_require, gui_react_util)`) are skipped where absent.
+- **Confirmed on PS5 (player report 2026-10-20, Smart Lanes rev 10, no log):** the guarded welcome window works.
+  Since the console window has no X (`closable` is left out), answering it (Apply / Not now) means the gamepad
+  pattern below took controller input: `autoFocusOnBecomingVisible` on the Window, `forceFocusable` content,
+  focus on mount, `IA_MENU_BACK`, `FocusTraversalScope`, each hook only where the platform's `react` has it.
+  Which branch ran (base `makeInfoHint` or our fallback, hooks present or skipped) isn't known.
+- **The rule for every square mod since 2026-10-20:** a render-time call into a base `::/gui/...` widget helper is
+  either inlined, when the base body is a one-liner of `builtin.*` widgets (`gui_react_util.makeHorizontalSpacer`,
+  `cargo_react_util.makeIcon`), or guarded with a `builtin.*` fallback or a skip (`content_card.makeInfoHint` /
+  `ContentCard` / `makeRecipeAndParam`, `gui_react_util.FocusTraversalScope` / `FocusTextInputField` /
+  `makeContentLabelIndictator`, `dialog_react_util.DialogWindow`, `construction_react_util.SimpleTooltipRecipe`,
+  the `selector_react_util` / `hud_react_util` / `hud_icon_toolbox` pieces of a tool action, the `react` gamepad
+  hooks `useInputAction` / `iaHandler` / `useSelfRef` focus / `setForceFocusable` / `setRestrictMouseFocus`).
+  Where each lands: Smart Lanes and Better Auto Vehicle Renamer welcomes; Organic Towns and Passenger Destinations
+  cards (no card when `ContentCard` is missing; Passenger Destinations' action keeps only its own LayerConfig);
+  Problem Radar `infoHint`; LMP Rate Matcher, Better Minimap window, Bulk Bulldozer tool (gamepad hooks; no cursor
+  tooltip without `SimpleTooltipRecipe`); Photo Mode name fields (plain `builtin.TextInputField`); Industry Flows
+  action (no HUD icons / selector when missing); Stress Test (own `platformWindow` dialog without `DialogWindow`);
+  Supply Gaps, Industry Production Label, Better Bus Overlay HUD pills (the function is resolved once, its first
+  call pcall-tried, then an own tree with the base classes). Out of scope: the core `react` API (`RegisterRecipe`,
+  `useState`, `onStep`, `setMouseTransparent`...), `engine_react_util.useStepState*`, `builtin.*`, `styleutil`,
+  `game_react_globals`, extension points (nothing works without them), data helpers (`cargo_util`, `line_util`,
+  `color_util`) and install code that patches a base function, which already checks its type and logs. Tests: each
+  mod has one rendering with the functions missing (search the tests for "PS5 report 2026-10-19").
+- Still unknown: which of `content_card`'s other functions exist on console, and whether the base `info-hint-*`
+  classes are styled there. Tests: `tests/square_smart_lanes/test_tool.lua` "all lights (welcome)" (R6: no
+  `makeInfoHint`, gamepad).
 
 ## Timers and threads in GUI contexts (2026-10-10)
 
@@ -143,6 +186,9 @@ The pin sits in its own notch outside the title tab.
   `↑ → × ● · – …` but **not** `⇧ ▲ ⬆ △`; Noto Sans CJK has all of them. That matches the HUD showing `▲` as `?`.
   **Verified in game (2026-10-10):** `↑` renders in the radar window's row buttons. Use `↑` for an "upgrade"
   button; pending: whether window text falls back to Noto for `⇧`/`▲`.
+  Hourglass (fontTools, 2026-10-20): `⌛` (U+231B) and `⏳` are **not in Lato** Regular / Bold, but are in Noto Sans
+  CJK; Lato has `*`, `†`, `×` and `⁺`. Pending (Better Auto Vehicle Renamer TESTING.md I): whether a vehicle name
+  with `⌛` shows the glyph or `?` in an English game.
   Check marks (fontTools again, 2026-10-17, build 40422): Lato Regular / Bold have **`√` (U+221A) but not `✓` (U+2713),
   `✔` (U+2714) or `☑` (U+2611)**; Noto Sans CJK has all four. No base game text uses a check glyph (search of
   `base/content` and `api` for ✓ ✔ ☑ ✅: none). Smart Lanes' lane status badge uses `√` for "applied": **renders correctly in game** (user screenshot 2026-10-16, "√ Smart lanes | √ Smart lights" in the Smart Lanes tool's info block, English).
@@ -159,6 +205,12 @@ The pin sits in its own notch outside the title tab.
   therefore over-state the Age shown by the game when the calendar runs slower than default. Problem Radar converts
   with `api.util.getYearDuration(GAME_SPEED.millisPerDay)` instead (`radar_checks.calendarYearMs`). Pending: confirm
   in game that the numbers now match the vehicle window.
+- Past its lifespan (code reading 2026-10-20, Better Auto Vehicle Renamer's old-vehicle mark): the base vehicle
+  window takes the part bought first (ties: the shorter lifespan) and its model's `metadata.maintenance.lifespan *
+  1000` as game ms (`vehicle_util.tl:31-51` `getLifespan` / `getMinPurchaseTimeAndLifespan`), and shows a "time
+  remaining" only while `GAME_TIME.gameTime < purchaseTime + lifespan` (`vehicle_util.tl:297-313` `getAge`). That
+  compares game ms directly, no calendar conversion. A model without `maintenance.lifespan` has 0 (wiki `mdl.md:291`).
+  Pending: confirm in game that the mark appears when the vehicle window's time remaining runs out.
 
 ## Expired react states print a traceback on `:old()` (verified from the game log 2026-10-11)
 
@@ -270,8 +322,9 @@ should be ~48 px (36 px clipped "Map" to "Man"). Measured: content 92 -> ~120 px
   top-right` before the player moves it (measured dx 0, dy -0.0404 at 2560x1440).
 - Place windows with CSS `anchorPoint` + `initialX/Y` (entity-window pattern). A CSS `gravity` on the window
   prevents initialX/Y from being applied.
-- Persist UI prefs across loads in `AppConfig.mainMenuState[modId]` (getAppConfig -> AppConfig.new copy ->
-  setAppConfig + saveAppConfig); works from in-game GUI onStep.
+- Persist UI prefs with `api.gui.game.setGuiSaveData(modId, table)` / `getGuiSaveData(modId)` (per savegame).
+  The first version kept them in `AppConfig.mainMenuState[modId]` + `api.util.saveAppConfig()`; it worked in game,
+  but the upload review rejects `saveAppConfig` (2026-10-20, `findings/publishing.md`).
 
 ## HUD icon recipes run off the GUI thread (crash 2026-10-07)
 
@@ -684,6 +737,10 @@ one "added by", one "skipped in") and the user's full mod set loading a new game
 
 ## `AppConfig.mainMenuState` holds nested plain tables; the base copies the whole table to change a key (read from the game files 2026-10-14)
 
+**Superseded for mod data (2026-10-20):** writing a mod key here needs `api.util.saveAppConfig()`, which the upload
+review rejects; mods store data with `api.gui.game.setGuiSaveData` instead (`findings/publishing.md`). The
+observations below still describe the base game.
+
 - `mainMenuState : table` (`api/tealdef/api/type.d.tl:2886`). The base keeps nested tables there (`newGameState`,
   `mapGenParamsState`, `activeModsState`, `activeModsParamsState`: `gui/menu/new_game_react_util.tl` ~85-175) and
   writes by copying the whole table, changing its key and setting it back (`gui/menu/new_game_or_map_settings_page.tl`
@@ -893,3 +950,65 @@ Organic Towns' town card, first native pass (user screenshots 2026-10-17, collap
   the menu renders only the active definition's bound fn (`propagateActionFn`, 4489-4501). Track it with
   `react.onMount` / `onUnmount` inside that fn (the base does the same, `construction_react_util.tl:1355-1366`)
   and gate per-frame work in the recipe's `onStep` on it (Bulk Bulldozer `refLayerUp`).
+
+## Decorating a cell inside a file-local base recipe; GUI hosts keep ticking while paused (verified in game 2026-10-18)
+
+DEV probe `square_lmp_util_probe` (`plans/square_line_manager_plus/UTIL_PROBE.md`), live session 2026-10-18 (the game
+was still running when this was written, so the log was not yet archived; it starts after `2026-10-18_1848_session`;
+lines `[LMPUTILPROBE]`), build 40422, a save with 49 player lines, Line Manager Plus active. Target: the Utilization
+cell of the Line Manager's bottom statistics row (`LineStatisticDetails`, base `manager_window.tl:3830`, a
+file-local recipe that isn't exported).
+
+- **No `debug` library in the GUI Lua state**: `debug.getupvalue` is missing (`Q1 env debug=false`), so a function's
+  upvalues (e.g. react.lua's local `recipeFnToRecipeName`, a getter's `params`) can't be read.
+- **The global `_react` exposes `recipes`, `recipeReplace` and `originalRecipeFn`** (tables keyed by recipe id; the id
+  of the rendering recipe from `react.getCurrentRecipeId()`, 321 here). Wrapping `_react.recipes[id]` (the render
+  function) and setting `_react.recipeReplace[id]` both took effect late, after GUI start (`Q1 install T1 render-wrap
+  OK via late:T3`, `T2 replace (late, _react.recipeReplace) OK`; renders and creates counted). Both rely on react
+  internals: not used in a published mod.
+- **`api.util.toStringPercentPrecision` is a table, not a Lua function** (`toStringPercentPrecision is table`), so it
+  can't be wrapped by type check; the base calls it, so it is callable. Line Manager Plus calls it through `pcall` and
+  falls back to its own `%d%%` format.
+- **A one-shot `builtin.TextView` swap armed from a wrapped `engine_react_util.useStepStateTimer` decorates the
+  cell.** The module field is looked up at call time. Inside `LineStatisticDetails` (`react.getCurrentRecipeName()`)
+  the swap, armed at one call and dropped at the next, catches the value TextView built between the coverage getter
+  and the frequency getter (`Q1 MARKER rendered by T3`; `T3miss=0`, `swapMatch` = renders: 17-98 per 10 s with the
+  window open, one line and multi-select). Returning a horizontal `BoxLayout { value, extra }` in place of the
+  TextView renders. Without `debug` the getter's line can't be read (`line nil`): Line Manager Plus calls each getter
+  once while `statistics_react_util.calculateCargoColumnDataForLine` (wrapped) records its argument; only the
+  coverage getter calls it. In "loose" mode (arm on every call) the swap stayed in place after the last call of a
+  render (`builtinTextViewSwappedNow=true` at every report): arm only for the getter wanted and also restore from a
+  host tick.
+- **Both always-mounted hosts tick with the Line Manager closed**: empty plugins at `::MainModButtonAreaExtension`
+  and `::ModEntryPointExtension` both got `onStep` (~280-890 calls per 10 s) and `onStepTimer(fn, 1.0)` (10-12 per
+  10 s) with the window closed for over a minute (`Q2 beat ... lmSeenAgoS=64`).
+- **They keep ticking while paused**: with `GAME_SPEED.speedup` 0, `GAME_TIME.gameTime` stood at 49651000 for
+  minutes while both hosts' `onStep` (349-891 per 10 s) and `onStepTimer` (10-11 per 10 s) ran at their usual rate
+  (log lines ~2756-2794). A sampler that should stop on pause must gate on the game time having advanced.
+- **Line capacity sampling cost**: `api.engine.util.line.getLineCapacityUsages(line, false)` summed per line (an array
+  indexed by cargo type id + 1, as `cargo_util.tl:894`) for all 49 lines: 470-772 us per pass from `onStepTimer`
+  (9.5-15.7 us per line, max 106 us for one line, `getLinesForPlayer` 1-5 us) and 449 / 724 us from `onStep` (Main
+  Thread), 12 passes at speed 4, no errors.
+
+## HUD icon scripts share the GUI Lua state; chained makeDefaultSelector proxies (game log 2026-10-20 04:22Z, live session)
+
+Industry Production Label "Show only on hover": a `::ModEntryPointExtension` script wrapped
+`selector_react_util.makeDefaultSelector` and set `hover.installed = true` on a module table; the first
+`hudIconScript` recipe (thread "Main Pool 1") read the same table: `hover hook in the HUD state: true`. So module
+tables written from a mod's GUI entry point are visible to its HUD icon scripts (same Lua state, other threads).
+
+Install order that session: Line Manager Plus, Industry Production Label, Passenger Destinations (outermost).
+Each wrapper hands the base (or the next wrapper in) a proxy ref, and Passenger Destinations' proxy has only
+`set` / `get`: ours called `inner:hasExpired()` and raised on every hover ("attempt to call method 'hasExpired'",
+~100 errors in seconds). A proxy must not assume the ref it got is a real react ref: call `hasExpired` only when
+present, and give its own proxy `set`, `get` and `hasExpired`.
+
+Same session, user report: the hovered industry stayed "hovered" until the mouse went over another building;
+moving onto terrain or roads never cleared it. So the selector's `onHover` does not report `-1` / nothing
+when the mouse leaves an entity (at least not to a proxy ref), and a "hovered" state built on it needs its own
+timeout or another signal. Industry Production Label dropped hover for Shift + open windows.
+
+Industry window plugin (`::IndustryEowExtensionPoint`) `params.entityId` is not the construction (game log
+2026-10-20 ~04:32Z: `window entity 193532 -> construction 142962`);
+`streetConnectorSystem.getConstructionEntityForSubconstruction` maps it, and the HUD label's STOCK_LIST entity
+maps to the same construction (the selected industry's pills showed).

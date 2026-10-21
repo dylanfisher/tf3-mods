@@ -516,6 +516,10 @@ Probe `square_terraform_probe` (DEV, since deleted; plans/square_terraform/FEASI
   (most likely its midpoint), not by its bounding box. Not probed directly.
 - To find a node or the edges at a point, query with a radius that covers half the longest edge there (or around a
   wider centre, e.g. the town's), then filter by distance; or test `BASE_NODE` (unverified).
+- Second case (2026-10-20, session `2026-10-20_0228_sqot-sqrl` + live log 02:32Z): Organic Towns' console lookup
+  searched 40 m around the cursor, which was on a street, and found no street edge (`[SQOT] WHO no street within 40 m
+  of -408,-4743`). Its circle is now 300 m with the nearest by curve within 40 m (ot_prov `SEARCH_R`; the re-run is
+  pending).
 
 ## A construction's street end inside a neighbouring junction collides with its node (in-game run 2026-10-12, inferred)
 
@@ -703,3 +707,23 @@ writes (RETIME_PLAN.md open question 5, square_smart_lanes).
   the game's own greens are fractional), Light phases not Smart Lanes. The tool's Smart lights (2026-10-16) tells
   its own re-timed phases from a hand edit by a saved signature of the durations it last wrote (sl_auto.lua
   `durSig`, the 8th field of its last-measured records), not by the flag.
+
+## Left-hand traffic is a street-template flip; script node configs must mirror (code reading 2026-10-20; detection verified in game)
+
+- The Left Hand Traffic mod (`left_hand_traffic_1`, rev 3, `.cache/subscribed/left_hand_traffic_1/content/lht/core.lua`
+  `adaptTemplate`) hooks `loadStreetTemplate` and reverses `forward` of every road lane of each **two-way** street
+  template (and sets `busAndTramRight = false`). One-way templates keep their direction (only the kerb-side lane modes
+  move). Its post-load audit reads `api.res.streetTemplateRep.get(...)` and asserts the first road lane forward and the
+  last backward, so the loaded resource shows the side: base right-hand templates list the backward lanes first.
+- The game then lays its own junctions left-hand, but a script that writes `nodeConfigsToAdd` lane connections in the
+  right-hand pattern (incoming lanes = left half looking from the node) misaligns every junction it touches (user
+  report 2026-10-20, Organic Towns). Left-hand pattern: incoming kerb lane `m + 1 - i` -> outgoing kerb lane `i`
+  (m road lanes per segment, sidewalks excluded), the mirror of the engine's right-hand `i -> m + 1 - i`.
+- Detect the side from a base two-way town template's road lanes (`ot_proposal.leftHandFrom`, the majority rule of
+  `base/.../traffic_light/trafficlightutil.lua` `leftHandTraffic`). Organic Towns mirrors its node configs and keeps
+  its counter-clockwise one-way rings off then.
+- **In game (session `2026-10-20_2051_lht-seed-a`, seed "a", Left Hand Traffic rev 3 + Organic Towns):** the loaded
+  `town_new_small` template read left-hand (`[SQOT] DRIVE side=left from=...town_new_small.street_template`), every
+  town's rings stayed off (`RB ... why=noRoundabouts:leftHand`), and all 190 builds with mirrored node configs were
+  accepted (`BUILT ok=true`, none refused, no lane-index assert, no Lua error). The user checked the junctions visually.
+  Not done: a node dump comparing a mirrored node entry by entry with a game-made left-hand junction.

@@ -744,7 +744,8 @@ x1-x3.3 for 400 people): that outcome is not yet measured (TESTING.md 6V step 2)
   mod that set it is removed); not local to a core.
 - **Used by:** Organic Towns later-ideas phase (`ot_entry`: the mod's new entry streets along a country road's first stretch
   out of town take the `_trees` variant with `edgeDecorations` from the template's defaults; `ENTRY` lines; a refused
-  pre-check is re-sent without them). The level weights: since 2026-10-14 late (NEXT_PHASE_BRIEF 39) Organic Towns sets them on a new map's towns under 4.5 persons per building (`LEVELS` lines, ot_upward.levelDecide), never on a town with a player's own weights; still unverified in game (until then: not used, save impact). Run `2026-10-14_0302_sqot-sqrl`: the command was accepted and the weighted target followed the weights, but no level 3-4 building can exist before 1950 (entry "Town buildings of levels 3-4 exist only from 1950 / 1990" below); since NEXT_PHASE_BRIEF 40 only grown towns get them. In-game check: the final
+  pre-check is re-sent without them; off since 2026-10-18 at the user's request: the mod builds plain streets only and
+  maps a joined tram / bus / barrier / trees dead end to its plain template, `ot_proposal.plainPath`). The level weights: since 2026-10-14 late (NEXT_PHASE_BRIEF 39) Organic Towns sets them on a new map's towns under 4.5 persons per building (`LEVELS` lines, ot_upward.levelDecide), never on a town with a player's own weights; still unverified in game (until then: not used, save impact). Run `2026-10-14_0302_sqot-sqrl`: the command was accepted and the weighted target followed the weights, but no level 3-4 building can exist before 1950 (entry "Town buildings of levels 3-4 exist only from 1950 / 1990" below); since NEXT_PHASE_BRIEF 40 only grown towns get them. In-game check: the final
   all-phases test built none (the map had no country roads, "`makeInitialStreets = false` also drops the roads between
   towns" below); next:
   plans/square_organic_towns/TESTING.md "Final-test round test" (entries along virtual roads).
@@ -1110,3 +1111,66 @@ Organic Towns with the dev toggle "Build as player" off (session `2026-10-17_184
 - **Console: `api.engine.forEachEntityWithComponent(fn, CT.BASE_EDGE)` is refused** ("cannot loop over component
   type"); list a node's streets with `getNodeStreetSegments` instead. Clicking a town street logs only `Selected
   entity 2`, not the edge.
+
+## A script street joined to the middle node of a town street builds (game log 2026-10-18)
+
+Organic Towns' "Close the gap" (§74) joins a dead end to a node of the street ahead, rewriting that node's
+`BASE_NODE_CONFIG` over all its segments (`nodeConfigsToRemove` + `nodeConfigsToAdd`, as at a dead end). Session
+`2026-10-18_2222_sqot` (seed `a`, EU, 1900, dev Quick 40 years, no player in the context):
+
+- **It builds.** 20 joins in 17 proposals: 19 at a 2-street node in the middle of a town street (`tee`: it becomes a
+  3-way) and 1 at a small 3-way junction (`cross`: it becomes a 4-way), gaps 19-68 m. Every one `BUILT ok=true`, no
+  `REFUSED` / Construction Not Possible, no `Collision`, no assert or crash in the ~3 min of fast simulated growth after
+  the first one (22:23:11Z to the normal shutdown at 22:26:23Z, about 28 simulated years).
+- **No houses lost:** the town's buildings from the CHECK before to the CHECK after a join build fell in 6 of 17
+  (11 buildings in all), the same rate as the other 145 builds (44 fell, 155 in all); pre-check costs alike (median
+  38306 vs 32156 per build, 5768 vs 9281 per edge).
+- **Not seen:** vehicles through the rewritten node (no lines or cars in this run), and the node's lane connections
+  afterwards (console check in TESTING.md "Close the gap").
+- **Confirmed at a larger count (session `2026-10-19_0024_sqot`, same seed and setup, looser rules):** 34 joins in 32
+  proposals: 23 `tee` (2-street node -> 3-way), 10 `cross` (3-way -> 4-way) and 1 `pair` (two dead ends joined by one
+  new street, both configs rewritten), gaps 26-95 m. Every one `BUILT ok=true`, no `REFUSED` / Construction Not
+  Possible / assert / crash; buildings after a join build fell no more than after the other builds (-18 over 30 join
+  builds once one drop timed with a level change is left out, vs -186 over 129).
+- **Lane connections after a join, on a played save (console 2026-10-19, live session after 2026-10-19_0024_sqot):**
+  Caribouport Woods' `tee:21` join (Subarctic save, player lines present, built 00:45Z) left its three rewritten nodes
+  with `#BASE_NODE_CONFIG.laneConnections` 6 at the T (3 small-street arms x 2 turns each: every movement) and 2 at
+  each 2-street node (straight through both ways): complete configs, no dead lane. Vehicles actually driving through
+  were not watched.
+- **Corners and retired stubs build too (session `2026-10-19_1949_sqot`, same seed and setup, §75 rules):** 39 joins
+  in game: 27 `tee`, 8 `cross`, 4 `pair`, among them 2 corners (two straight legs meeting at a new 2-street node with
+  a 45-100 deg turn: Watersmeet `pair:64c`, Seachurch Cove `pair:54cr`) and 5 that closed a retired dead end (the
+  mod's own stub empty for 4+ snapshots, `r`). Every join build `BUILT ok=true`; the session's 2 REFUSED (pre-check
+  Collision) and 1 FAILED (Collision) were 1-edge plain pieces without a join.
+- **Again with the row rule (session `2026-10-20_0205_sqot`, same seed and setup):** 47 joins (34 `tee`, 8 `cross`, 5
+  `pair`, 1 corner, 1 closing a retired stub), every join build `BUILT ok=true`, 0 REFUSED, no Construction Not
+  Possible.
+
+## A built proposal's edges come back at the spec's end points, one for one (game log 2026-10-20)
+
+Session `2026-10-20_0205_sqot` (seed `a`, EU, dev Quick 40 years): Organic Towns finds each street it just built by
+listing the streets near the build and matching both end points of every spec edge within 1.5 m (`D.MATCH_M`,
+`ot_driver`). Over 216 successful builds of 1-24 edges, all 994 spec edges were found (the BUILT `edges=` sum equals
+the PROV lines, one per matched edge), none twice: the engine neither split nor merged a new script street at build
+time, and the new edges keep the proposal's end positions. Entity ids of the new edges are not in creation order
+(Monkton's 1936 build: 117413 / 117430 next to 166303-167046), as noted above. What happens to them later (the
+game's own growth splitting an edge at a new junction, giving it a new id) is what `ot_prov.who` reports as
+`ours=likely`; not yet seen in game.
+
+## Industry closure: no undo, but the countdown can be held (console 2026-10-20, live session from 07:44:53Z)
+
+- **A closed industry is gone:** no command restores it. Reloading a save brings it back, but it closes again
+  seconds later because its countdown is already near its end: the Minimap's industry count read 116 at each load
+  (07:42:50, 07:44:53) and 115 thirty seconds after the first (07:43:20).
+- **`INDUSTRY.closureTimeStamp` is the closure time in `GAME_TIME.gameTime` milliseconds**: after the reload,
+  4 of 116 industries (`getEntitiesWithComponent(INDUSTRY)`) had a timestamp ahead of now, closing in 20, 1400, 2220
+  and 2740 s (`SQIND closing 46556 in_s 20 level 1`); the 20 s one matches the closure ~30 s after each load.
+- **`makeIndustrySetManualDevelopmentCmd(industryEntity, true)` is accepted** on the INDUSTRY entity (`SQIND hold
+  46556 true`, 4 of 4). Per its doc comment it stops the closure countdown and level changes; false restores
+  automatic development.
+- **Held ~5 min, then released with `false` (all `ok true`, `manual false`):** no industry closed (the Minimap count
+  stayed 116, no `changed: industries` line after the load). The three far ones kept their old timestamps (each
+  `in_s` 291 s lower: 2740 → 2449, 2220 → 1929, 1400 → 1109): holding doesn't move `closureTimeStamp`, it only
+  blocks closure and the countdown resumes on release. 46556, whose time ran out while held, read `in_s -199873` =
+  timestamp 0 (no closure scheduled): it survived and its countdown was cleared, so it starts a fresh one like any
+  unused industry.

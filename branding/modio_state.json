@@ -4,7 +4,7 @@
     "logo": {
       "file": "0.png",
       "sha": "ad761149072d5b73",
-      "remote": "0.7.png"
+      "remote": "0.9.png"
     },
     "images": [
       {
@@ -48,7 +48,7 @@
         "remote": "8-a0195697.png"
       }
     ],
-    "synced": "2026-10-16",
+    "synced": "2026-10-18",
     "text": {
       "name": [
         "7f6d218fe90879c1",
@@ -59,8 +59,8 @@
         "1809477493ef2e41"
       ],
       "description": [
-        "a7e07818a49b82e1",
-        "a7e07818a49b82e1"
+        "a5c2c2ed77dfc963",
+        "a5c2c2ed77dfc963"
       ]
     }
   },
@@ -375,11 +375,63 @@
         "110370ff6bb61aed"
       ],
       "description": [
-        "84de7fa3cdea09e4",
-        "84de7fa3cdea09e4"
+        "3323e252974c6b80",
+        "3323e252974c6b80"
       ]
     },
-    "synced": "2026-10-16"
+    "synced": "2026-10-18",
+    "logo": {
+      "file": "0.png",
+      "sha": "b6b09c19c15cc5f3",
+      "remote": "0.7.png"
+    },
+    "images": [
+      {
+        "file": "1.png",
+        "sha": "9e40621cd17e0fd9",
+        "remote": "1-9e40621c.png"
+      },
+      {
+        "file": "2.png",
+        "sha": "f3890baef44ea1c2",
+        "remote": "2-f3890bae.png"
+      },
+      {
+        "file": "3.png",
+        "sha": "36f1b10f30724c75",
+        "remote": "3-36f1b10f.png"
+      },
+      {
+        "file": "4.png",
+        "sha": "a495f1c13c3a5e69",
+        "remote": "4-a495f1c1.png"
+      },
+      {
+        "file": "5.png",
+        "sha": "28d75aa07fa25883",
+        "remote": "5-28d75aa0.png"
+      },
+      {
+        "file": "6.png",
+        "sha": "873c7de2cc4e0a97",
+        "remote": "6-873c7de2.png"
+      },
+      {
+        "file": "7.png",
+        "sha": "a1adc82e4e08a59e",
+        "remote": "7-a1adc82e.png"
+      },
+      {
+        "file": "8.png",
+        "sha": "38d76b7f28163e47",
+        "remote": "8-38d76b7f.png"
+      },
+      {
+        "file": "9.png",
+        "sha": "c574142130558495",
+        "remote": "9-c5741421.png"
+      }
+    ]
   },
   "square_line_revert": {
     "modioId": 6436003,
@@ -1161,7 +1213,7 @@
         "remote": "9-bea91124.png"
       }
     ],
-    "synced": "2026-10-16",
+    "synced": "2026-10-19",
     "text": {
       "name": [
         "8ae4381c77fda96c",
@@ -1172,8 +1224,8 @@
         "9b60f82286b60efe"
       ],
       "description": [
-        "1a5e1103906e5fea",
-        "1a5e1103906e5fea"
+        "1aee17e1d44b7b73",
+        "1aee17e1d44b7b73"
       ]
     }
   },

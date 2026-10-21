@@ -104,9 +104,10 @@ Found with the DEV probe `mods/square_photo_quality_probe` (steps and open runs:
   `findings/gui.md` "Quitting runs no react.onUnmount"), so the boost stayed on in the main menu (user report,
   `2026-10-13_0040_sqpq`). Restoring on the `openPauseMenu` event works (Esc, menu button, Cmd+Q; `2026-10-13_0053_session`), and the player
   found their own values in the main menu afterwards.
-- **Every settings save is logged** as `Saved settings to settings.lua` (Save Pool thread): once at every game start
-  and on every `api.util.saveAppConfig()`, from the settings page or any mod (Better Minimap saves its window prefs
-  this way). So while a boost is on, another mod can save it at any moment; a next-load safety net is needed
+- **Every settings save is logged** as `Saved settings to settings.lua` (Save Pool thread): once at app launch, once right
+  before `Normal shutdown. Bye!` (8 of 8 archived normal quits, e.g. `2026-10-20_0812_sqot-sqfn`; checked 2026-10-20),
+  and on every `api.util.saveAppConfig()`, from the settings page or any mod (Better Minimap saved its window prefs
+  this way until 2026-10-20; mods may no longer call it, `findings/publishing.md`). So while a boost is on, another mod can save it at any moment; a next-load safety net is needed
   besides the pause-menu restore (probe: marker in `AppConfig.mainMenuState`, run C2 in TESTING.md).
 - **Changing render-buffer settings at runtime crashes (from the game logs 2026-10-13, cause inferred,
   strong).** A mod may change at runtime only the settings that reload images or screen effects: `textureQuality`,

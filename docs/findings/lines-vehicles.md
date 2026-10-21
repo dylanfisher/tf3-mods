@@ -231,6 +231,16 @@ Probe `mods/square_lmp_probe` (log `plans/square_line_manager_plus/probe_run1.lo
   stop is not settled; either way a bus can't be moved forward into a gap this way.
 - **A ship on a 2-stop line took the index:** heading to stop 1, sent to 0 → `stopIndex=0` at once, and its track
   curved round (distance to stop 0: 899 → 993 → 700 over 22 s), i.e. it turned around. Arrival not observed.
+- **A train ignored the stop index too (console 2026-10-18, live session of 2026-10-18_1920):** `Train 1` (123940,
+  3-stop line, next stop 2, state 2) sent with `makeVehicleSetLineCmd(v, sameLine, 1)`: callback `ok=true`, but
+  `stopIndex` right after was still 2 (`SQSEND direct Train 1 123940 ok= true was 2 target 1 now 2 state 2`), as with
+  the buses. Whether it then drove on to stop 2 was not watched.
+- **Sending it to a depot first doesn't help (console 2026-10-19 00:30Z, live log):** vehicle 97147 on 4-stop line
+  115108, next stop 2: `makeVehicleSendToDepotCmd(v, false)` (ok) and, from its callback, `makeVehicleSetLineCmd(v,
+  line, 0)` (ok) left it on the line with `stopIndex` 2 and state 1 (`SQSEND relink ok= true target 0 now 2 state 1
+  line 115108`): the index didn't stick. Not tried: `jumpToDepotEntity` (teleport into a depot) before the relink.
+  So a running vehicle can't be sent to a chosen stop of its line (buses, train, depot route); only the ship on a
+  2-stop line took it.
 - **Cargo stays on board:** 8/8, 8/8 and 7/8 passengers and 20/20 Logs were still aboard after the command; the buses
   unloaded normally at their next stop (`Passengers#0=8/8` → `3/8` → `0/8` at stop 3). A bus sent while
   `AT_TERMINAL`/`Loading` (0/8, just unloaded) **left at once without loading**.
@@ -357,3 +367,106 @@ Session `2026-10-13_0610_session` (Stress Test bench sheets 1 and 2, seeds 95448
   zone-samples, 52117 by position vs 51709 by path (+0.8 %; per junction 0.99-1.08); sheet 2 5226 zone-samples, 62503
   vs 62431 (+0.1 %; per junction 0.99-1.03). So at 10 game s per sample the positional count is a full count, and it
   needs no path reads (the sampler's heaviest part, ~16 us per driver with them).
+
+## Line "Rate" is carried volume, not capacity; no utilization history (console 2026-10-18, live session)
+
+`api.engine.util.line.calcLineStationThroughput(line)` (the Line Manager's Rate cell) compared with
+`api.engine.util.logbook.getLogValuePerYear(line, "itemsTransported")` and the live
+`getLineCapacityUsages(line, false)` (used / capacity) over 27 lines of one save:
+
+- One-way cargo lines: transported/year ~= Rate (WC Fish 220 vs 221, 173 vs 168; RC Fish 60 vs 59, 50 vs 47).
+- Bus passenger lines: transported/year ~= 1.1-2x Rate (130 vs 69, 54 vs 28, 80 vs 74), passengers both ways.
+- New or changed lines differ either way (20 vs 46, 45 vs 97).
+
+So Rate measures what the line carries per year, not what it offers: `transported / Rate` is no utilization. The
+Utilization cell is a live snapshot (sum of `used` / sum of `capacity` over cargo types, via
+`statistics_react_util.calculateCargoColumnDataForLine(line).coverage`). The only line logbook series the base reads is
+`itemsTransported` (yearly); no load or capacity history exists, so an average utilization must be sampled by the mod.
+
+## Listing depots and stations with their construction and cargo / passenger flags (console 2026-10-18, live session)
+
+- `api.engine.getEntitiesWithComponent(api.type.ComponentType.VEHICLE_DEPOT)` lists every depot and maintenance station
+  (18 on the test map). `streetConnectorSystem.getConstructionEntityForDepot(depot)` returned the construction for all
+  of them; its `CONSTRUCTION.fileName` is `::/depots/road/road_depot/road_depot.con`, `::/depots/road/road_maint_station.con`,
+  `::/depots/rail/rail_depot.con`, `::/depots/water/water_depot.con`, `::/depots/water/water_maint_station.con`.
+- `getEntitiesWithComponent(STATION)` (238) includes curbside stops (no construction) and every industry's own station
+  (`::/industries/<name>/<name>.con`). `getConstructionEntityForStation` gives the construction.
+- `api.engine.util.station.isStationOfType(st, true / false)` (cargo / passenger; console: `api.engine.util.station`,
+  not `require "util"`, which errors there): cargo rail `stations/rail/modular_station/modular_station.con` cargo true /
+  passenger false; a cargo truck terminal `stations/street/modular_street_station/modular_terminal.con` true / false, a
+  passenger one false / true, a mixed one true / true; `stations/water/harbor_modular.con` true / true; **industry
+  stations report true / true** (passenger true although they take no passengers): filter them by path, not by the
+  flags. No airport on the map (stations/air unverified).
+- Used by: Organic Towns `ot_engine.facilities` / `ot_industry.classifyFacility` (away from player facilities).
+
+## Default vehicle names and the NAME component (console 2026-10-20, live session of 2026-10-20 02:1xZ)
+
+Read-only console probe for `plans/square_better_auto_vehicle_renamer/PLAN.md` (English game, one vehicle per carrier,
+`SQFN veh` / `SQFN names` lines in stdout.txt).
+- **Default names are "<carrier word> <number>"**: `Road Vehicle 263`, `Train 13`, `Ship 76`, `Aircraft 2`. The tram word is
+  not seen yet (the save had no trams). The words are presumably localized in other game languages (not checked).
+- **A default-named vehicle already has a NAME component** (`getComponent(v, NAME)` returned userdata for all four), so
+  "no NAME component" does not mark a default name.
+- **`api.type.enum.Carrier` values**: ROAD 0, RAIL 1, TRAM 2, AIR 3, WATER 4.
+- **`transportVehicleSystem.getVehicleNames(carrier)`** returns the current names of the player's vehicles of that carrier
+  (268 road, 14 train, 0 tram, 79 ship, 2 aircraft), unordered.
+- `transportVehicleConfig.vehicles[1].purchaseTime` is game-time ms (168703000); a steam train reported 2 parts
+  (`2-6-0 Mogul` first); the model display name is `api.res.modelRep.get(part.modelId).metadata.description.name`.
+- **Renaming a vehicle works (console 2026-10-20, live session of 04:2xZ)**: `api.cmd.makeEntitySetNameCmd(212817, "Test B-0412")`
+  from the console: callback `ok=true`, and `getEntityName` inside the callback already read the new name. The name
+  survives a save and reload ("Organic Towns - Subarctic", reloaded 04:29Z: `getEntityName` read `Test B-0412`).
+- **Helicopter vs plane**: same carrier (AIR 3). Base planes live under `::/vehicle/plane/`, helicopters under
+  `::/vehicle/helicopter/` (`api.res.modelRep.getName(modelId)`); the model's metadata says so too
+  (`airVehicle.isHelicopter = true` in `agusta_westland_aw101.mdl`, tealdef `type.d.tl` AirVehicle). Reading it
+  from a script works: `api.res.modelRep.get(find(".../agusta_westland_aw101.mdl")).metadata.airVehicle.isHelicopter`
+  printed `true` (console 2026-10-20).
+
+## Line Rate formula; driving vs straight-line distance per carrier (console 2026-10-20, live session)
+
+Console read over the save's lines (`SQRMCAL` / `SQRMCAL2` lines in the live log): per line the first vehicle's
+capacity for the loaded cargo, `getLineCargoInfo` Σ`sectionTimes` / Σ`driveSectionTimes`, the stops' straight-line
+distances (station construction `transf:getTransl()`, cyclic), model top speed and `calcLineStationThroughput`.
+
+- **Rate = Σ over the line's vehicles of capacity × 1460 / Σ`sectionTimes` (s)**, 1460 = the default year (365 × 4 s,
+  `api.util.getDefaultYearDuration`), not the calendar year at the current speed (5844 here, millisPerDay 16000).
+  Exact on 11 single-model lines (2 bus, 8 ship, 1 air: 115 vs 114.8, 85 vs 85.1, 29 vs 29, 198 vs 198, ...); two
+  lines off by 0.92 / 1.25 are most likely mixed fleets (only the first vehicle's capacity was used).
+- **Σ driveSectionTimes / (straight round-trip distance / top speed):** ships 1.19-2.07 (median ~1.5, 12 lines),
+  buses 1.83 / 2.04, one air line 2.63 (taxi, approach, acceleration).
+- **Time at stops (Σ section - Σ drive) per stop:** 9-53 s for ships (13-30 s on single-ship lines), 7-10 s for the two
+  bus lines, 21 s air; not explained by capacity / loadSpeed (1-4 s). It includes waiting for other vehicles.
+- With no vehicles on a line, `getLineCargoInfo` is nil and `getMaxFrequency` is 0 (Rate Matcher timing log
+  2026-10-18_1920 line 59985 before its first vehicle), so an estimate for an empty line must come from geometry.
+- Used by: Line Manager Plus Rate Matcher, no-vehicles estimate.
+
+## Vehicle top speed scale: `makeVehicleSetModifiersCmd` (console 2026-10-20, live session of 2026-10-20 05:39Z)
+
+- **`api.cmd.makeVehicleSetModifiersCmd(v, m)` with `m = getComponent(v, TRANSPORT_VEHICLE).modifiers` and
+  `m.topSpeedScale = 0.5` is accepted on a running line vehicle** (`ok=true`), and the new value reads back in the
+  callback (`SQMOD set 195774 true 0.5`, `SQMOD toggle 105105 ... was 1 ok true now 0.5`). Defaults read
+  `topSpeedScale noiseScale pollutionScale comfortScale` = `1 1 1 1`. Setting 1 again restores it (`SQMOD undo 195774
+  true 1`, twice). It is not on the game's undo: put the old value back with the same command.
+- **The vehicle slowed down visibly** at 0.5 (the user watching road vehicle 105105, model top speed 9.72 m/s); not
+  measured. Untested: values above 1, whether the scale is saved with the game, how it meets traffic and speed limits.
+- **Reading a vehicle's speed:** the TRANSPORT_VEHICLE entity has no MOVE_PATH (`noMovePath`). Carriage-level
+  MOVE_PATH and a position/time measurement (first carriage's `MODEL_INSTANCE_LIST.fatInstances[1].transf`) are untried.
+- **A click selects a carriage, not the vehicle** (`Selected entity 199966` had no TRANSPORT_VEHICLE): map it back
+  through the vehicles' `CARRIAGE_LIST.carriages`. The console has no "selected entity" call (the selection lives in
+  the entity window's `view_manager.tl` state); pick the line vehicle whose first carriage is nearest the camera
+  center (`getCameraData().x/y`) instead.
+
+## A line's stop load settings name its cargo exactly (console 2026-10-20, live session)
+
+`LINE.stops[i].stopConfig.load` (37 entries here, index = cargo type id + 1, true = load it) over 15 lines with
+vehicles: every bus stop `[0]` (passengers), the loading stop of a one-way cargo line its one cargo (`[6]` fish,
+`[7]` meat, `[3]` fertilizer, `[31]` furniture), unload-only stops `[]`; a stone line `[24]` at 6 of 8 stops. So the
+stops give a line's cargo without any vehicles (`SQSTOPLOAD` lines). Used by: Line Manager Plus buy_line_filter.lua
+(store cargo filter, stops first, vehicle capacity as the fallback).
+
+## Reversing a line vehicle: `makeVehicleReverseCmd` (console 2026-10-20, live session of 2026-10-20 05:39Z)
+
+- **The base Reverse button's command flips the next stop on a 2-stop line:** ship 130260 (carrier 4 = WATER, line
+  66530, 2 stops, state 1 = en route) `next 0` → reverse → `ok true next 1`; reversed again → `next 0`. The new
+  `stopIndex` reads back in the callback. Reversing twice undoes it (time lost on the way aside).
+- Open: what it does on a line with 3+ stops (reversed stop order, or a turn back to the same next stop) and for road
+  / rail vehicles. On a 2-stop line "next stop flipped" can't tell the two apart.

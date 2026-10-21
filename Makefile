@@ -1,7 +1,7 @@
 # TF3 mod hub. All tools are stdlib/PEP 723 scripts run through uv.
 UV := uv run --quiet
 
-.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal covers shots state-towns state-mod state-mods names-browser flags gate test-tools probe-report probe-split hx-dump fork-new fork-status fork-merge fork-finish fork-abort forks-save forks-push sqperf-sync perf audit flow bench logs logs-list logs-grep modio modio-status more-from i18n tooltips css-rules site-install site-dev site-media site-build site-deploy
+.PHONY: help docs docs-wiki docs-game subscribed new-mod link unlink validate check test teal covers shots state-towns state-mod state-mods names-browser flags gate gate-full test-tools probe-report probe-split hx-dump fork-new fork-status fork-merge fork-finish fork-abort forks-save forks-push sqperf-sync perf audit flow bench logs logs-list logs-grep modio modio-status more-from i18n tooltips css-rules site-install site-dev site-media site-build site-deploy
 
 help:
 	@echo "make docs        Re-sync all local docs (wiki + game files)"
@@ -21,7 +21,8 @@ help:
 	@echo "make validate    Check all mods (or MOD=mods/<id>) against wiki rules"
 	@echo "make check       Teal type-check + Lua syntax-check all mods (or MOD=mods/<id>, PATHS='file/dir ...', ARGS=--allow-lua53)"
 	@echo "make test MOD=mods/<id>  Offline unit tests in tests/<modId>/, quick mode, cached per file (ARGS="-f FILE -k TEXT --full --no-cache")"
-	@echo "make gate MOD=mods/<id> [MOD2=mods/<id>]  check + validate + test --full, one summary line each (end-of-phase gate)"
+	@echo "make gate MOD=mods/<id> [MOD2=mods/<id>]  check + validate + quick test, one summary line each (end-of-phase gate)"
+	@echo "make gate-full MOD=mods/<id> [MOD2=mods/<id>]  the same with test --full (before a Hub upload)"
 	@echo "make covers      Render square-style covers -> mods/<id>/_metadata/0.png (all, or MOD=mods/<id>; ARGS=--no-text)"
 	@echo "make shots       Render gallery slides from plans/<id>/shots/ -> mods/<id>/_metadata/1-<hash>.png... (all, or MOD=mods/<id>)"
 	@echo "make modio [MOD=mods/<id>] [ARGS='--diff --apply --only gallery --force --prune-tags']  Dry-run/sync mod.io text, tags, logo, gallery"
@@ -123,11 +124,11 @@ check:
 test:
 	$(UV) tests/run_tests.py $(ARGS) $(MOD)
 
-gate:
+gate gate-full:
 	@for m in $(MOD) $(MOD2); do echo "== $$m"; \
 		$(UV) tools/tl_check.py $$m 2>&1 | tail -1; \
 		$(UV) tools/validate_mod.py $$m 2>&1 | tail -1; \
-		$(UV) tests/run_tests.py --full $$m 2>&1 | grep -E "^ *FAIL|passed" || exit 1; \
+		$(UV) tests/run_tests.py $(if $(filter gate-full,$@),--full) $$m 2>&1 | grep -E "^ *FAIL|^  note:|^[0-9]+ passed" || exit 1; \
 	done
 
 teal:

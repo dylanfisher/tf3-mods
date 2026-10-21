@@ -79,3 +79,37 @@ and mod.io's own JS/CSS bundles.
   (`api.mod.io/v1/swagger`) is not what the upload enforces. Characters, not bytes, are counted (assumed: mod.io's
   validator works on the string; the failing file was mostly ASCII, so both counts were over).
 - `make validate` errors above 50,000 characters and warns above 40,000 (`tools/validate_mod.py` `check_description`).
+
+## Upload validator runs script chunks without `api.engine` (2026-10-20, Mod Hub upload)
+
+- **The Hub's upload validator executes a GUI script's top-level chunk in a state where `api.engine` is nil.**
+  Industry Production Label rev 8 failed the upload with "Lua Content ERROR … Failed to parse Lua … attempt to
+  index field 'engine' (a nil value)" at `production_label_entry.script.tl:28`, a module-level
+  `pcall(api.engine.config.getModParams)`: the field access is evaluated before `pcall` runs. The same file loaded
+  fine in game. Fix: put every load-time api read inside the protected function
+  (`pcall(function() return api.engine.config.getModParams() end)`) or read lazily at mount. Related: the
+  validator also checks `<modId>::` paths (roads.md, 2026-10-08). `make validate` doesn't catch this.
+
+## Server-side validation rejects `api.util.saveAppConfig` (2026-10-20, mod.io / Urban Games review)
+
+- **Uploads that call `api.util.saveAppConfig()` are rejected after upload.** Line Manager Plus and Photo Mode
+  updates "did not pass the server sided validation as it uses an api function that is not intended to be used by
+  mods. Instead of using api.util.saveAppConfig(), please use api.gui.game.setGuiSaveData("modId", { x = 1 }) to
+  store data." (message to the user, 2026-10-20). Both wrote mod prefs into `AppConfig.mainMenuState[key]` (the
+  game's settings.lua) with getAppConfig -> setAppConfig -> saveAppConfig; Better Minimap and Problem Radar did the
+  same and were changed with them before their next upload.
+- **Store mod data with `api.gui.game.setGuiSaveData(modId, table)`** and read it with `getGuiSaveData(modId)`
+  (`api/tealdef/api/gui.d.tl:773-781`). It is GUI data of the savegame: kept when the player saves, empty in a
+  new game, so prefs are per save, not shared by every game. The call replaces the modId's whole table: one writer
+  merges every part (Photo Mode: views, markers, setups in one table). Removing the mod leaves the save loadable
+  without a warning (Photo Mode TESTING P11).
+- **No official doc states the rule** (searched 2026-10-20: wiki mirror, tealdef, base content, official mods). The
+  only hints: `getGuiSaveData` / `setGuiSaveData` take a `modId` ("the mod to get the user data for",
+  `gui.d.tl:773-781`), i.e. built for per-mod data; `util.d.tl` documents `saveAppConfig` just as "Saves the game
+  settings"; `AppConfig.mainMenuState` is "filled by the UI scripts" (`type.d.tl:2886`), meaning the base menu. The
+  base game itself uses only `setGuiSaveData("")` (its HUD filter, `layer_hud_filter.tl`). The review message is the
+  only source; the likely reason (inferred) is that settings.lua is shared by every game and outlives the mod.
+- `api.util.setAppConfig` (Photo Mode's graphics switch) was not named in the rejection. Settings written to
+  `mainMenuState` without `saveAppConfig` reach settings.lua only when the game itself saves its settings.
+- `make validate` errors on `saveAppConfig` anywhere in a mod's `.lua` / `.tl` (comments included) and warns on a
+  `mainMenuState` write.

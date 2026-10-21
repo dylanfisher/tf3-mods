@@ -161,6 +161,25 @@ class PlanTest(unittest.TestCase):
         self.assertIn("2 of 5 mod(s) need a Hub update.", out)
         self.assertNotIn("\033[", out)
 
+    def test_render_release_newer_upload_not_live(self):
+        row = ms.ReleaseRow("square_f", "2026-10-18", ms.compare_release({"x": "1"}, {"x": "2"}, 9, 11),
+                            newer="rev 11 (2026-10-20) rejected by mod.io review")
+        out = "\n".join(ms.render_release([row], verbose=False, color=False))
+        self.assertIn("square_f  9 -> 11", out)
+        self.assertIn("newer upload not live: rev 11 (2026-10-20) rejected by mod.io review; live is still rev 9", out)
+
+    def test_newer_note_same_revision_is_another_platform_copy(self):
+        self.assertEqual(ms.newer_note(8, 8, "2026-10-18", {"platforms": [{"platform": "ps5", "status": 1}]}), "")
+        self.assertEqual(ms.newer_note(9, 11, "2026-10-20", {"platforms": [{"platform": "windows", "status": 2}]}),
+                         "rev 11 (2026-10-20) rejected by mod.io review")
+
+    def test_modfile_state(self):
+        self.assertEqual(ms.modfile_state({"platforms": [{"platform": "ps5", "status": 0},
+                                                         {"platform": "windows", "status": 2}]}),
+                         "rejected by mod.io review")
+        self.assertEqual(ms.modfile_state({"platforms": [{"platform": "mac", "status": 0}]}), "waiting for mod.io review")
+        self.assertEqual(ms.modfile_state({}), "not live")
+
     def test_live_modfile_id(self):
         self.assertEqual(ms.live_modfile_id({"modfile": None, "platforms": [
             {"platform": "ps5", "modfile_live": 7}, {"platform": "windows", "modfile_live": 8},

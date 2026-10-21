@@ -128,9 +128,11 @@
       }).join('');
     },
     // A text table card (no capture), vertically centred in the box: head = [col1, col2], rows = [[a, b], ...].
-    // top (optional): its top edge in slide pixels instead of centring.
+    // top (optional): its top edge in slide pixels instead of centring. col1 (optional): the first column's width
+    // in % (default 52, the stylesheet's), for a table whose second column holds the long entries.
     table(md) {
-      const row = cells => `<tr>${cells.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`;
+      const w1 = md.col1 != null ? ` style="width:${md.col1}%"` : '';
+      const row = cells => `<tr>${cells.map((c, i) => `<td${i === 0 ? w1 : ''}>${esc(c)}</td>`).join('')}</tr>`;
       const pos = md.top != null ? `top:${md.top}px` : 'top:50%;transform:translateY(-50%)';
       return `<div class="table" style="left:${BOX.x + 40}px;${pos};width:${BOX.w - 40}px">
         <table><tr>${md.head.map(c => `<th>${esc(c)}</th>`).join('')}</tr>${md.rows.map(row).join('')}</table></div>`;

@@ -19,8 +19,12 @@ TEALRT_LUA) is not run again: it counts as passed and shows on the mod's "cached
 records a pass (only some tests ran), but skips files whose recorded names have no match.
 
 Quick and full: sweeps over every parameter combination sample by default (e.g. every 7th case)
-and check every case when TEST_FULL is set: `--full` (make gate) sets it. Tests read
+and check every case when TEST_FULL is set: `--full` (make gate-full) sets it. Tests read
 `os.getenv("TEST_FULL")`. A pass recorded with --full also stands for a later quick run.
+Quick mode also defers slow tests to --full: a test whose recorded CPU time (the faster of its
+quick and full records) is SLOW_S or more doesn't run ("defer N slow tests" under its file); a
+no-split file is deferred whole once its tests add up to SLOW_FILE_S. -k runs what it names.
+A file re-run only because another mod's files changed gets a "note:" line (CLAUDE.md "Tests").
 SQRB_FULL=1 (the exhaustive roundabouts sweep) implies TEST_FULL.
 
 Test files run in a fresh sandbox each (globals the test or mod code sets stay
@@ -230,8 +234,9 @@ end
 
 -- Runs one test file's code. Returns {load_error=?, results={{idx, name, ok, err, printed, secs}}}.
 -- only / known (names joined by "\n", or nil) pick a shard of the file: run the tests named in
--- only, plus any test not named in known (new since the timings were recorded).
-function runner.run_file(code, chunkname, filter, only, known)
+-- only, plus any test not named in known (new since the timings were recorded). Tests named in
+-- skip (quick mode's slow tests, deferred to --full) don't run.
+function runner.run_file(code, chunkname, filter, only, known, skip)
   local sb, tests, hooks = runner.new_sandbox()
   local out = { results = {} }
   local chunk, err = load(code, "@" .. chunkname, "t", sb)
@@ -241,9 +246,9 @@ function runner.run_file(code, chunkname, filter, only, known)
   if not okl then out.load_error = lerr return out end
   out.names = {}
   for i, t in ipairs(tests) do out.names[i] = t.name end
-  local onlySet, knownSet = name_set(only), name_set(known)
+  local onlySet, knownSet, skipSet = name_set(only), name_set(known), name_set(skip) or {}
   for idx, t in ipairs(tests) do
-    local picked = not onlySet or onlySet[t.name] or (knownSet and not knownSet[t.name])
+    local picked = (not onlySet or onlySet[t.name] or (knownSet and not knownSet[t.name])) and not skipSet[t.name]
     if picked and (not filter or t.name:find(filter, 1, true)) then
       local t0 = os.clock()
       local okt, terr = xpcall(function()
@@ -374,7 +379,7 @@ class ModRunner:
         self.runner = self.teal.lua.eval("load")(HARNESS, "=run_tests")(compile_module, self.mod_id, note)
 
     def run_file(self, tf: Path, filter_text: str | None, only: list[str] | None = None,
-                 known: list[str] | None = None) -> dict:
+                 known: list[str] | None = None, skip: list[str] | None = None) -> dict:
         """Runs one test file (or the shard picked by only/known); returns plain data for the parent."""
         name = display(tf)
         started = time.perf_counter()
@@ -387,7 +392,7 @@ class ModRunner:
                 return {"compile_errors": [str(d) for d in diags], "results": [], "took": 0.0}
             src = code
         join = (lambda names: "\n".join(names) if names is not None else None)
-        out = self.runner.run_file(src, name, filter_text, join(only), join(known))
+        out = self.runner.run_file(src, name, filter_text, join(only), join(known), join(skip or None))
         results = [] if out.results is None else [
             {"idx": int(r.idx), "name": str(r.name), "ok": bool(r.ok), "err": str(r.err),
              "printed": str(r.printed or ""), "secs": float(r.secs)} for r in out.results.values()]
@@ -398,7 +403,7 @@ class ModRunner:
                 "deps": self.deps.files, "env": self.deps.env, "writes": self.deps.writes}
 
 
-def format_file(name: str, shards: list[dict]) -> tuple[int, int, str]:
+def format_file(name: str, shards: list[dict], deferred: dict[str, float]) -> tuple[int, int, str]:
     """Merges a file's shard outputs (in test order); returns (passed, failed, report text)."""
 
     def indent(text: str, prefix: str) -> str:
@@ -429,6 +434,9 @@ def format_file(name: str, shards: list[dict]) -> tuple[int, int, str]:
                 lines.append(indent(trim_traceback(r["err"]), "      "))
             if r["printed"]:
                 lines.append(indent(r["printed"], "      "))
+        ran = {r["name"] for s in shards for r in s["results"]}
+        if late := [n for n in deferred if n not in ran and n in (first.get("names") or [])]:
+            lines.append(f"    defer {len(late)} slow tests ({sum(deferred[n] for n in late):.0f} s) to --full")
     split = f", {len(shards)} shards" if len(shards) > 1 else ""
     header = f"  {name}" + (f"  ({took:.1f} s{split})" if took >= 1 else "")
     return passed, failed, "\n".join([header, *lines])
@@ -437,11 +445,11 @@ def format_file(name: str, shards: list[dict]) -> tuple[int, int, str]:
 _RUNNERS: dict[Path, ModRunner] = {}
 
 
-def run_file(mod: Path, tf: Path, filter_text: str | None, only=None, known=None) -> dict:
+def run_file(mod: Path, tf: Path, filter_text: str | None, only=None, known=None, skip=None) -> dict:
     """Worker entry: one test file or shard, reusing this process's runner for the mod."""
     if mod not in _RUNNERS:
         _RUNNERS[mod] = ModRunner(mod)
-    return _RUNNERS[mod].run_file(tf, filter_text, only, known)
+    return _RUNNERS[mod].run_file(tf, filter_text, only, known, skip)
 
 
 def test_files(mod: Path) -> list[Path]:
@@ -455,6 +463,12 @@ NO_SPLIT = "run_tests: no-split"  # put this in a test file whose tests depend o
 # passed (gitignored). A file whose last pass still holds is reported as cached instead of run.
 RESULTS = CACHE_DIR / "test_results.json"
 FULL_ENV = "TEST_FULL"  # set by --full: sweeps that sample in the default quick mode check every case
+# Quick mode defers a test whose recorded CPU time (the faster of its quick and full records) is at
+# least this many seconds to --full, so a whole-mod quick run stays a few seconds of wall time.
+# -k runs the tests it names however slow; new tests (no record yet) always run once. A no-split
+# file's tests depend on each other, so it is deferred whole, once its tests add up to SLOW_FILE_S.
+SLOW_S = 8.0
+SLOW_FILE_S = 30.0
 
 
 def load_json(path: Path) -> dict:
@@ -516,25 +530,40 @@ def recorded_times(timings: dict, tf: Path) -> dict | None:
     return timings.get(timing_key(tf)) or timings.get(display(tf)) or timings.get(display(tf) + FULL_TAG)
 
 
-def estimate(jobs: list[tuple[Path, Path]], timings: dict, filter_text: str | None) -> float:
+def deferred_tests(timings: dict, tf: Path) -> dict[str, float]:
+    """Quick mode (no -k): the file's tests deferred to --full, name -> recorded CPU seconds."""
+    if os.environ.get(FULL_ENV):
+        return {}
+    quick, full = timings.get(display(tf)) or {}, timings.get(display(tf) + FULL_TAG) or {}
+    times = {n: min(t for t in (quick.get(n), full.get(n)) if t is not None) for n in {*quick, *full}}
+    if NO_SPLIT in tf.read_text(encoding="utf-8-sig"):
+        return times if sum(times.values()) >= SLOW_FILE_S else {}
+    return {n: secs for n, secs in times.items() if secs >= SLOW_S}
+
+
+def estimate(jobs: list[tuple[Path, Path]], timings: dict, filter_text: str | None, skip: dict) -> float:
     """Recorded CPU seconds of the jobs (1 s for a file with no record)."""
     total = 0.0
     for _, tf in jobs:
         times = recorded_times(timings, tf) or {}
         if filter_text:
             times = {n: t for n, t in times.items() if filter_text in n}
+        times = {n: t for n, t in times.items() if n not in skip.get(tf, {})}
         total += sum(times.values()) or 1.0
     return total
 
 
-def plan(jobs: list[tuple[Path, Path]], timings: dict, workers: int, filter_text: str | None):
+def plan(jobs: list[tuple[Path, Path]], timings: dict, workers: int, filter_text: str | None, skip: dict):
     """Returns [(mod, tf, only, known, estimate)], slow files split by recorded per-test times
-    into shards no bigger than the slowest single test or half the even share per worker."""
+    into shards no bigger than the slowest single test or half the even share per worker
+    (deferred tests left out)."""
     known = {}
     for _, tf in jobs:
         times = recorded_times(timings, tf)
         if times and filter_text:
             times = {n: t for n, t in times.items() if filter_text in n}
+        if times:
+            times = {n: t for n, t in times.items() if n not in skip.get(tf, {})}
         known[display(tf)] = times or None
     totals = [sum(t.values()) for t in known.values() if t]
     singles = [max(t.values()) for t in known.values() if t]
@@ -598,6 +627,7 @@ def main() -> None:
     bases = {mod: base_stamp(mod) for mod in mods}
     inputs = InputCheck()
     cached: dict[Path, int] = {}  # test file -> tests passed (matching -k)
+    stale: dict[Path, list[str]] = {}  # test file -> changed inputs, when all of them are another mod's files
     run_jobs = []
     for mod, tf in jobs:
         rec = results.get(display(tf))
@@ -606,26 +636,34 @@ def main() -> None:
         if not args.no_cache and rec and rec.get("pass") and not rec.get("writes") \
                 and inputs.same(rec, bases[mod], exact_env=False):
             if matching:
-                cached[tf] = len(matching)
+                cached[tf] = len(matching) if args.filter else rec.get("passed", len(matching))
             continue
         if args.filter and matching == [] and inputs.same(rec, bases[mod], exact_env=True):
             continue  # -k: no test of this file matches, and its names can't have changed
         run_jobs.append((mod, tf))
+        if not args.no_cache and rec and rec.get("pass") and rec.get("base") == bases[mod]:
+            changed = [n for n, h in rec.get("deps", {}).items() if inputs.current(n) != h]
+            own = (f"mods/{mod.name}/", f"tests/{mod.name}/")
+            if changed and not any(n.startswith(own) for n in changed):
+                stale[tf] = changed
 
+    skip = {} if args.filter else {tf: d for _, tf in run_jobs if (d := deferred_tests(timings, tf))}
     # each worker spends ~0.8 s starting Teal, so small runs get few workers
-    workers = args.jobs or max(1, min(os.cpu_count() or 1, math.ceil(estimate(run_jobs, timings, args.filter) / 2.0)))
-    planned = plan(run_jobs, timings, workers, args.filter)
+    workers = args.jobs or max(1, min(os.cpu_count() or 1,
+                                      math.ceil(estimate(run_jobs, timings, args.filter, skip) / 2.0)))
+    planned = plan(run_jobs, timings, workers, args.filter, skip)
     if workers <= 1 or len(planned) <= 1:
-        outputs = {tf: [run_file(mod, tf, args.filter)] for mod, tf in run_jobs}
+        outputs = {tf: [run_file(mod, tf, args.filter, skip=list(skip.get(tf, {})))] for mod, tf in run_jobs}
     else:
         with ProcessPoolExecutor(max_workers=min(workers, len(planned))) as pool:
             # slowest first, so the long shards don't start last
-            futures = [(tf, pool.submit(run_file, mod, tf, args.filter, only, known))
+            futures = [(tf, pool.submit(run_file, mod, tf, args.filter, only, known, list(skip.get(tf, {}))))
                        for mod, tf, only, known, _ in sorted(planned, key=lambda p: -p[4])]
             outputs = {tf: [] for _, tf in run_jobs}
             for tf, fut in futures:
                 outputs[tf].append(fut.result())
 
+    n_deferred = 0
     timing_updates: dict[str, dict] = {}
     result_updates: dict[str, dict] = {}
     current = None
@@ -635,7 +673,11 @@ def main() -> None:
             if m != mod:
                 continue
             shards = outputs[tf]
-            p, f, text = format_file(display(tf), shards)
+            deferred = skip.get(tf, {})
+            p, f, text = format_file(display(tf), shards, deferred)
+            late = [n for n in deferred if n in (shards[0].get("names") or [])
+                    and not any(r["name"] == n for s in shards for r in s["results"])]
+            n_deferred += len(late)
             passed += p
             failed += f
             if not (args.filter and not p + f):  # -k: files with no matching test stay quiet
@@ -647,6 +689,8 @@ def main() -> None:
             if not broken:
                 # a full run replaces the file's record (drops renamed tests); a -k run updates it
                 rec = dict(timings.get(timing_key(tf), {})) if args.filter else {}
+                old = timings.get(timing_key(tf), {})
+                rec.update({n: old[n] for n in late if n in old})  # deferred tests keep their times
                 for r in (r for s in shards for r in s["results"]):
                     rec[r["name"]] = round(r["secs"], 3)
                 timing_updates[timing_key(tf)] = rec
@@ -655,10 +699,12 @@ def main() -> None:
                 for s in shards:
                     deps.update(s["deps"])
                     env.update(s["env"])
+                if late:
+                    env[FULL_ENV] = None  # a quick pass with deferred tests never stands for a --full run
                 result_updates[display(tf)] = {
                     "base": bases[mod], "deps": deps, "env": env, "names": shards[0]["names"],
                     "writes": any(s["writes"] for s in shards), "passed": p,
-                    "pass": not args.filter and not broken and f == 0 and p > 0}
+                    "pass": not args.filter and not broken and f == 0 and p + len(late) > 0}
         if mod_cached:
             if mod != current:
                 print(f"[{mod.name}]")
@@ -667,13 +713,19 @@ def main() -> None:
             passed += n
             print(f"  cached: {len(mod_cached)} files, {n} tests passed earlier and read nothing that changed since"
                   " (--no-cache runs them)")
+        if mod_stale := [tf for m, tf in run_jobs if m == mod and tf in stale]:
+            others = sorted({n.split("/")[1] for tf in mod_stale for n in stale[tf] if n.startswith("mods/")})
+            print(f"  note: {len(mod_stale)} files re-ran although none of {mod.name}'s own files changed"
+                  f" (inputs from {', '.join(others) or 'shared files'}); CLAUDE.md \"Tests\": run another"
+                  " mod's tests only when its own files were edited")
     gone = {k for k in {*timings, *results} if not (ROOT / k.removesuffix(FULL_TAG)).exists()}  # deleted / renamed test files
     save_json(TIMINGS, timing_updates, gone)
     save_json(RESULTS, result_updates, gone)
     n_cached = sum(cached.values())
-    print(f"{passed} passed{f' ({n_cached} cached)' if n_cached else ''}, {failed} failed"
+    defer = f", {n_deferred} slow deferred to --full" if n_deferred else ""
+    print(f"{passed} passed{f' ({n_cached} cached)' if n_cached else ''}, {failed} failed{defer}"
           f" ({time.perf_counter() - started:.1f} s)")
-    sys.exit(1 if failed or not passed else 0)
+    sys.exit(1 if failed or not (passed or n_deferred) else 0)
 
 
 if __name__ == "__main__":

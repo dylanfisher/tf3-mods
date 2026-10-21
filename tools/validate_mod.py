@@ -286,6 +286,32 @@ def check_files(mod: Path, report: Report) -> None:
         report.error(f"mod is {total / 1e6:.0f} MB unpacked; limit is 500 MB")
 
 
+# API calls the upload review rejects (docs/findings/publishing.md). Text match, comments included: the server
+# check may match text too.
+FORBIDDEN_API = {
+    "saveAppConfig": "api.util.saveAppConfig is rejected by the upload review; store mod data with "
+                     "api.gui.game.setGuiSaveData(modId, table)",
+}
+
+
+def check_forbidden_api(mod: Path, report: Report) -> None:
+    # DEV/probe mods are never uploaded: a warning there
+    dev = (mod / "NOT_FOR_UPLOAD.txt").exists() or mod.name.endswith(("_probe", "_dev"))
+    flag = report.warn if dev else report.error
+    for path in sorted(mod.rglob("*")):
+        if path.suffix not in (".lua", ".tl") or not path.is_file():
+            continue
+        rel = path.relative_to(mod).as_posix()
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for name, why in FORBIDDEN_API.items():
+            for n, line in enumerate(text.splitlines(), 1):
+                if name in line:
+                    flag(f"{rel}:{n}: {why}")
+        for n, line in enumerate(text.splitlines(), 1):
+            if "mainMenuState" in line and "=" in line.split("mainMenuState", 1)[1][:4]:
+                report.warn(f"{rel}:{n}: writes AppConfig.mainMenuState; mod data belongs in setGuiSaveData")
+
+
 def validate(mod: Path, tags: set[str] | None) -> Report:
     report = Report(mod)
     check_mod_json(mod, report)
@@ -295,6 +321,7 @@ def validate(mod: Path, tags: set[str] | None) -> Report:
     if strings.exists():
         load_json(strings, report)
     check_files(mod, report)
+    check_forbidden_api(mod, report)
     translations = translation_summary(mod)  # strings.json coverage (tools/i18n.py); skips DEV/probe/fork mods
     if translations:
         report.warn(translations)

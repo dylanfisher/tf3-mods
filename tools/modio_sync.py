@@ -525,6 +525,7 @@ class ReleaseRow:
     rel: Release | None = None
     error: str = ""
     pending: bool = False  # a newer upload matches the local folder but mod.io hasn't made it live yet
+    newer: str = ""  # a newer upload than the live one that isn't live (rejected, in review): "rev 11 (2026-10-20) ..."
 
     @property
     def status(self) -> str:
@@ -554,10 +555,34 @@ def release_check(api: Api, loc: Local) -> ReleaseRow:
             npath, nmf = live_modfile(api, remote, newest)
             nfiles, n_mod_json = zip_files(npath)
             nrel = compare_release(files, nfiles, n_mod_json.get("revision"), local_rev)
+            ndate = datetime.date.fromtimestamp(nmf.get("date_added", 0)).isoformat()
             if not (nrel.changed or nrel.added):
                 row.pending = True
-                row.uploaded = datetime.date.fromtimestamp(nmf.get("date_added", 0)).isoformat()
+                row.uploaded = ndate
+            else:
+                row.newer = newer_note(rel.live_rev, n_mod_json.get("revision"), ndate, nmf)
     return row
+
+
+def newer_note(live_rev, newest_rev, newest_date: str, newest_mf: dict) -> str:
+    """The note on a newer upload that isn't live, or "" when it has the live revision: the Hub uploads one
+    modfile per platform, so the newest file is often just another platform's copy of the live one."""
+    if newest_rev == live_rev:
+        return ""
+    return f"rev {newest_rev} ({newest_date}) {modfile_state(newest_mf)}"
+
+
+# mod.io modfile platform status (Modfile Platform Object): 0 pending, 1 approved, 2 denied.
+PLATFORM_STATUS = {0: "waiting for mod.io review", 1: "approved but not live", 2: "rejected by mod.io review"}
+
+
+def modfile_state(mf: dict) -> str:
+    """Why an upload isn't live, from its per-platform status (desktop platforms first)."""
+    states = {p.get("platform"): p.get("status") for p in mf.get("platforms") or []}
+    for platform in PLATFORM_PREFERENCE + tuple(sorted(k for k in states if k)):
+        if platform in states:
+            return PLATFORM_STATUS.get(states[platform], f"not live (status {states[platform]})")
+    return "not live"
 
 
 def render_release(rows: list[ReleaseRow], verbose: bool, color: bool) -> list[str]:
@@ -595,6 +620,10 @@ def render_release(rows: list[ReleaseRow], verbose: bool, color: bool) -> list[s
                 f"{len(rel.changed)} changed" if rel.changed else "",
                 f"{len(rel.added)} new" if rel.added else "") if x) or "-"
             out.append(f"  {r.mod_id.ljust(width)}  {revision:<10} {r.uploaded:<11} {changes}")
+            if r.newer:
+                # The REVISION column is the live one: a newer upload that never went live (a rejected
+                # Line Manager Plus 11, 2026-10-20) otherwise reads as if the local revision were unpublished.
+                out.append(c("33", f"  {'':{width}}    newer upload not live: {r.newer}; live is still rev {rel.live_rev}"))
             if verbose:
                 for label, items in (("changed", rel.changed), ("new", rel.added), ("profile", rel.profile),
                                      ("only in upload", rel.removed)):

@@ -18,6 +18,57 @@ save at 1x, camera panning, ~60 fps.
   twice although the period was stored in the shared state), so a "once per interval" guard in a module local or even
   in the state can fire more than once.
 
+## Game-script `update` runs in ~11 Lua states, each with its own module locals (game log 2026-10-20)
+
+- In a running game a mod's game-script `update` ran in about 11 Lua states, logged from the `Sim Pool 1` .. `Sim Pool
+  11` threads (the thread is not the state: below) (Better Auto Vehicle Renamer, `[SQFN]` lines; session
+  `2026-10-20_0539_sqot-sqfn`: sweep and `pass progress` lines from all 11). Each keeps its own module locals: every
+  state kept its own sweep runtime and logged its own `pass progress` line from them (11 states, 11 different counts
+  in the same seconds, 05:40:53-05:41:45Z). In the 07:53Z session (live log of 2026-10-20, 14 `pass progress 410/410`
+  lines at load) Sim Pool 2, 6 and 7 each logged the line twice, and one engine logs it once per value: so a thread
+  can host more than one such Lua state (or a module was loaded again on it); count on 11 or more.
+- `state:get()` / `state:set()` behaved as one serialized store across those states for that mod: 11 states
+  re-rendering 399 shared records sent 398 renames for 398 vehicles, `dup=0 race=0`, none twice (with stale or
+  concurrent copies every state would have renamed the same vehicles; the offline model of that sends 3300 renames
+  for 300 vehicles: `tests/square_better_auto_vehicle_renamer/test_lease.lua` with the lease taken out). Not a
+  guarantee: a get / set pair is still not atomic, and a "once per period" guard stored in the state fired twice
+  (above). A budget or other once-only work shared by those states needs a single owner (a lease in the state:
+  Better Auto Vehicle Renamer's PLAN.md "Rename lease (2026-10-20)") or tolerance for a lost write.
+- Every module-local timer, cache or "once" flag therefore exists ~11 times; a log line per state per event is ~11
+  lines (the `[SQFN] pass progress` noise).
+- **The thread name is not the Lua state, and each state runs `update` in only part of the ticks** (2026-10-20, the
+  08:12Z session: live log at the time of writing, archived at the next game start as `2026-10-20_0812_*`; a
+  483-vehicle re-render, 08:15:14-08:16:29Z). Each Lua state's first `[SQFN] sweep` line carries `listNew=483` (its
+  first cycle, summed until a line is logged): `Sim Pool 11` logged two such lines (08:15:14 and 08:15:25), so it
+  hosted two states; `Sim Pool 3` logged a line with `listNew=0` at 08:15:19 although no earlier line came from that
+  thread, so a state's lines come from several threads (the update of one Lua state is run by whichever pool thread is
+  free). ~11 is still the count to plan for (8 states logged in that run). The same state logged lines at 08:15:14 and
+  08:15:19 (at least `LOG_MS` = 10 s game time apart), so the game ran at 2x or faster; sweep lines of the renaming
+  state show `cycles=2` per 10+ s game time, a cycle being at least 4 of its updates: one Lua state ran `update` about
+  once per 1-1.5 s game time, i.e. in roughly 1/6-1/11 of the ~200 ms sim steps. Work that one state owns (a lease)
+  must survive gaps of several seconds between that state's updates, and a "one step per update" pipeline in one state
+  is that many times slower than the tick rate suggests (Better Auto Vehicle Renamer PLAN.md "Rename lease
+  (2026-10-20)", sticky lease).
+- **A Lua state's first `update` can come long after the others' in the same load** (2026-10-20, 19:20Z session:
+  live log at the time of writing, archived at the next game start as `2026-10-20_1920_*`). One load ("Loading game
+  from file" once) logged Better Auto Vehicle Renamer's "first init of a load" line twice: 19:20:29Z (Sim Pool 6) and
+  19:21:53Z (Sim Pool 5), the second 84 s game time after the first. So "first update of a load" can't be told by
+  game time alone (a reload also starts at or past a game time stored in the save); per-load once-only work keyed to
+  game time needs a wide margin or a wall clock (`os.time`: SQPERF's untimed windows call it in game scripts, no error
+  seen; guard it with pcall) and must not reset shared state that a running state still owns (Better Auto Vehicle
+  Renamer PLAN.md "One init per load").
+
+## GUI-side `state_native:find` per frame from guiUpdate is safe and cheap (verified in game 2026-10-20)
+
+- Organic Towns' game script reads one key per frame in `guiUpdate` through
+  `api.engine.system.gameScriptSystem.getEntityForGameScript(name)` -> `api.engine.getComponent(e, GAME_SCRIPT)
+  .state_native:find("rev")`, and calls `state:get()` (a full copy) only when that change number moves.
+- Session `2026-10-20_0424_sqot-sqrl` (54 min, an existing save loaded twice): no `gamescript_util.cpp` assert (unlike
+  `state:get_native()` inside the game script, see above), no fallback; full copies fell to ~1.5 % of frames
+  (`getN` 250-397 per ~20,000 ticks) and the per-frame read averaged 13-14 us (`getAvgUs`), the whole tick 103-128 us
+  vs 214-236 us with a `state:get()` every frame on the same save (`2026-10-20_0001_sqot-sqrl`). `revMiss=0`: the
+  native value and the copy never disagreed.
+
 ## Game-script `get_native` asserts (2026-10-10)
 
 - **`state:get_native():findPath({...})` in a game script's `handleEvent` throws a fatal assertion in game**:

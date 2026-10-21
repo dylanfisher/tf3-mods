@@ -75,6 +75,21 @@ api.cmd.sendCommand(api.cmd.makeJournalBookAssetCmd(api.engine.util.getPlayer(),
 Keep one booking at or below 1,000,000,000 (Stress Test's `MAX_BOOKING`, a guard against a possible 32-bit amount;
 the limit itself is untested). No "unlimited money" / no-costs setting was found.
 
+## Console: return values are echoed, errors stay in the console window, mod modules load (2026-10-20, game log)
+
+Session `2026-10-20_0228_sqot-sqrl` (archived) and the live log after it (02:32Z), Organic Towns' provenance lookup:
+
+- **A bare global that doesn't exist only errors in the console window**: the user typed `who()`; the console showed
+  "attempt to call global 'who' (a nil value)" and `stdout.txt` got nothing. `console-history.lua` (Steam userdata
+  `local/`, newest entry last; the log says "Saved console history to console-history.lua") listed `who()` twice and
+  no `ug_require` line. Nothing of a mod is global in the console.
+- **`ug_require("square_organic_towns::/organic_towns/ot_prov.lua").who()` loads and runs**: `stdout.txt` got the
+  `print` line bare (`[SQOT] WHO no street within 40 m of -408,-4743`) and then the call's return value as a
+  timestamped Main Thread line in quotes (`"[SQOT] WHO no street ..."`). So the console echoes a returned value into
+  the log too.
+- The miss itself was the octree (`findEntitiesInCircle` by edge middle, roads.md "Octree edge search"): the cursor
+  was on a street but no edge middle lay within 40 m. Fixed with a 300 m circle (not yet re-run).
+
 ## Spawning an animal from the console: `makeAnimalSpawnAtCmd` works (2026-10-14, game log)
 
 Typed into the in-game console prompt (live `stdout.txt` 2026-10-14 08:01-08:02Z, archived with the next session):
