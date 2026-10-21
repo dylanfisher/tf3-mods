@@ -5,10 +5,9 @@
 -- stop, 6879 move stop, 6963 add waypoint), always through the module table field, which
 -- line_util.tl:495 defines and :2098 returns. autoLoadConfig turns passengers on at every
 -- passenger-capable stop (addPassengerByDefault, line_util.tl:454-461). This wrapper calls the
--- original, then clears the passenger flag at stops whose station group reaches an industry and
--- no town buildings, and, on such a line, at stops that reach no town buildings either (a dock or
--- other cargo transfer point). The editor then commits the result itself, so no command is sent here
--- and the mod keeps no state.
+-- original, then, on a line that can load cargo at any stop (a cargo station with an industry or
+-- warehouse in reach), clears the passenger flag at every stop; towns in reach do not matter. The
+-- editor then commits the result itself, so no command is sent here and the mod keeps no state.
 --
 -- Same module table as manager_window: ug_require caches by the resolved path
 -- (base/init.lua:62-91, _ug_loadedModules[resolved]). manager_window (a base file) asks for
@@ -44,72 +43,92 @@ local function warnOnce(key, msg)
 	end
 end
 
--- Entity classification by the catchable's own components. No fallback scans: this runs on the GUI
--- thread on every line edit, and a forEachEntityWithComponent over every town building is a
--- visible hitch on a large map.
--- Industry: cargo catchables are STOCK_LIST holders, and industries hold their own stock list
--- (industry_util.tl:634-635 reads STOCK_LIST from INDUSTRY entities).
-local function isIndustry(entity)
+-- Classification by the entity's own components. No fallback scans: this runs on the GUI thread on
+-- every line edit, and a forEachEntityWithComponent over every town building is a visible hitch on a
+-- large map.
+-- Cargo station: a station that handles cargo (passenger-only stations such as bus stops never load
+-- cargo, whatever is in reach).
+local function isCargoStation(station)
+	return api.engine.util.station.isStationOfType(station, true) == true
+end
+
+-- Cargo source: cargo catchables are stock list owners (cargo_util.tl:565-582: town building,
+-- industry, warehouse). Industries and warehouses supply or take cargo; town buildings only take
+-- goods, so a town in reach does not make a cargo stop.
+local function isCargoSource(entity)
 	return api.engine.getComponent(entity, api.type.ComponentType.INDUSTRY) ~= nil
+		or api.engine.getComponent(entity, api.type.ComponentType.WAREHOUSE) ~= nil
 end
 
--- Home: passenger catchables are PERSON_CAPACITY holders, which town buildings hold themselves
--- (town.tl:441-444); the base game tells industry workplaces apart by the missing TOWN_BUILDING
--- (industry_workers.script.tl:38-39).
-local function isHome(entity)
-	return api.engine.getComponent(entity, api.type.ComponentType.TOWN_BUILDING) ~= nil
+-- The stations a stop loads at: its own station (stop.station1, 1-based into STATION_GROUP.stations,
+-- set by the base autoLoadConfig, line_util.tl:520-530) so a bus stop grouped with a truck station
+-- stays a passenger stop; the whole group when no station is assigned (as autoLoadConfig,
+-- line_util.tl:551-552).
+local function stopStations(stop)
+	local stgr = api.engine.getComponent(stop.stationGroup, api.type.ComponentType.STATION_GROUP)
+	local stations = stgr and stgr.stations or {}
+	local own = stop.station1 and stop.station1 > 0 and stations[stop.station1]
+	if own then
+		return { own }, tostring(stop.stationGroup) .. ":" .. tostring(stop.station1)
+	end
+	return stations, tostring(stop.stationGroup)
 end
 
--- Applies the rule to a Line.ReactLine after the base autoLoadConfig ran. Station loop as
--- autoLoadConfig (line_util.tl:551-552: STATION_GROUP.stations); one decision per station group,
--- taken for the whole line at once (logic.decideLine: a dock on a factory line is cleared too).
+-- Applies the rule to a Line.ReactLine after the base autoLoadConfig ran (logic.findCargoStop):
+-- when any stop can load cargo, passengers off at every stop of the line.
 local function fixLine(line)
 	if line.customFilters then
 		return
 	end
 	local paxIndex = cargo_util.getPassengerCargoTypeId() + 1
-	local catchables = api.engine.system.catchmentAreaSystem.getStationCatchables
-	-- passenger stops in path order, and their distinct station groups
-	local stops, groups, groupIndex = {}, {}, {}
+	-- every stop in path order (a cargo stop with passengers already off still makes a cargo line),
+	-- each distinct stop station once
+	local stops, keyIndex, stopInfo = {}, {}, {}
 	local stopNumber = 0
 	for __, via in ipairs(line.path or {}) do
 		local stop = via.stop
 		if stop then
 			stopNumber = stopNumber + 1
-			local cfg = stop.passThroughStopData and stop.passThroughStopData.stopConfig
-			-- the load table read from the StopConfig is a copy: read, change, assign back
-			-- (as keepCargo does, line_util.tl:501-512)
-			local load = cfg and cfg.load
-			if load and load[paxIndex] == true then
-				local group = stop.stationGroup
-				if not groupIndex[group] then
-					local stgr = api.engine.getComponent(group, api.type.ComponentType.STATION_GROUP)
-					groups[#groups + 1] = stgr and stgr.stations or {}
-					groupIndex[group] = #groups
-				end
-				stops[#stops + 1] = { number = stopNumber, group = group, cfg = cfg, load = load }
+			local stations, key = stopStations(stop)
+			if not keyIndex[key] then
+				stops[#stops + 1] = stations
+				keyIndex[key] = #stops
 			end
+			stopInfo[#stopInfo + 1] = { number = stopNumber, stop = stop, index = keyIndex[key] }
 		end
 	end
 	if #stops == 0 then
 		return
 	end
-	local clear, industry = logic.decideLine(groups, catchables, isIndustry, isHome)
+	local cargoStop = logic.findCargoStop(stops, api.engine.system.catchmentAreaSystem.getStationCatchables,
+		isCargoStation, isCargoSource)
+	if not cargoStop then
+		return
+	end
+	local cargoNumber = nil
+	for __, s in ipairs(stopInfo) do
+		if s.index == cargoStop then
+			cargoNumber = s.number
+			break
+		end
+	end
 	-- Per-stop log lines only with the "Debug: performance log" setting On (read once per edit, and
 	-- only when a stop is cleared).
 	local verbose = nil
-	for __, s in ipairs(stops) do
-		local i = groupIndex[s.group]
-		if clear[i] then
-			s.load[paxIndex] = false
-			s.cfg.load = s.load
+	for __, s in ipairs(stopInfo) do
+		local cfg = s.stop.passThroughStopData and s.stop.passThroughStopData.stopConfig
+		-- the load table read from the StopConfig is a copy: read, change, assign back
+		-- (as keepCargo does, line_util.tl:501-512)
+		local load = cfg and cfg.load
+		if load and load[paxIndex] == true then
+			load[paxIndex] = false
+			cfg.load = load
 			if verbose == nil then
 				verbose = sqperf.readParam(MOD_ID, "sqperf_log")
 			end
 			if verbose then
-				log.message(PREFIX .. "stop " .. tostring(s.number) .. " group " .. tostring(s.group) .. ": "
-					.. (industry[i] and "industry in reach, no town buildings"
-						or "no town buildings, line serves an industry-only stop")
+				log.message(PREFIX .. "stop " .. tostring(s.number) .. " group " .. tostring(s.stop.stationGroup)
+					.. ": cargo line (stop " .. tostring(cargoNumber) .. " reaches an industry or warehouse)"
 					.. " -> passengers OFF")
 			end
 		end

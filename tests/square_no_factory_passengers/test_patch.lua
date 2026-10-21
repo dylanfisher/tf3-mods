@@ -1,23 +1,25 @@
 -- gui/nfp_patch.script.lua: the autoLoadConfig wrapper on a fake line_util and Line.ReactLine.
 
 local PAX_ID = 0   -- load index 1
-local CT = { STATION_GROUP = "STATION_GROUP", INDUSTRY = "INDUSTRY", TOWN_BUILDING = "TOWN_BUILDING" }
+local CT = { STATION_GROUP = "STATION_GROUP", INDUSTRY = "INDUSTRY", WAREHOUSE = "WAREHOUSE" }
 
--- groups: 100 factory only (station 1000: industry 500, no homes)
---         200 town only (station 2000: town building 601)
---         300 town + factory (station 3000: industry 500, town buildings 601 and 602)
---         400 factory whose catchable is a separate stock list 811 (not an industry: no fallback scan)
---         700 dock: no industry, no town buildings (only another station's workplace 900 in reach)
--- As in game, the factory's own workplaces are passenger catchables too (500 at 1000/3000); only
--- town buildings count as homes. Town buildings and industries hold their own stock list and
--- person capacity.
+-- groups: 100 factory (cargo station 1000: industry 500)
+--         200 town, cargo station (2000: town buildings 601, 602 only)
+--         300 town + factory (cargo station 3000: town building 601, industry 500)
+--         400 bus stop 4000 (passenger station) next to a factory
+--         500 warehouse (cargo station 5000: warehouse 700)
+--         600 bus stop 6000 grouped with truck station 6001 at the factory
+--         800 town bus stop 8000
+-- Catchables are the stock list owners themselves (no fallback scan).
 local world = {
 	groups = { [100] = { stations = { 1000 } }, [200] = { stations = { 2000 } }, [300] = { stations = { 3000 } },
-		[400] = { stations = { 4000 } }, [700] = { stations = { 7000 } } },
-	cargo = { [1000] = { 500 }, [2000] = { 601 }, [3000] = { 601, 500 }, [4000] = { 811 }, [7000] = {} },
-	pax = { [1000] = { 500 }, [2000] = { 601 }, [3000] = { 500, 602 }, [4000] = { 810 }, [7000] = { 900 } },
-	industries = { [500] = { stockList = 500 }, [810] = { stockList = 811 } },
-	townBuildings = { [601] = { personCapacity = 601 }, [602] = { personCapacity = 602 } },
+		[400] = { stations = { 4000 } }, [500] = { stations = { 5000 } }, [600] = { stations = { 6000, 6001 } },
+		[800] = { stations = { 8000 } } },
+	cargo = { [1000] = { 500 }, [2000] = { 601, 602 }, [3000] = { 601, 500 }, [4000] = { 500 },
+		[5000] = { 700 }, [6000] = { 500 }, [6001] = { 500 }, [8000] = { 601 } },
+	cargoStations = { [1000] = true, [2000] = true, [3000] = true, [5000] = true, [6001] = true },
+	industries = { [500] = {} },
+	warehouses = { [700] = {} },
 }
 
 -- StopConfig.load behaves like the engine userdata: reads return a copy, writes replace.
@@ -38,8 +40,9 @@ local function stopConfig(load)
 	})
 end
 
-local function via(group, load)
-	return { stop = { stationGroup = group, passThroughStopData = { stopConfig = stopConfig(load) } } }
+local function via(group, load, station1)
+	return { stop = { stationGroup = group, station1 = station1,
+		passThroughStopData = { stopConfig = stopConfig(load) } } }
 end
 
 local function loads(line)
@@ -50,7 +53,7 @@ local function loads(line)
 	return out
 end
 
-local fakeLineUtil, patch, baseCalls, paxFetches, cargoFetches, componentReads
+local fakeLineUtil, patch, baseCalls, cargoFetches
 -- What the faked getModParams returns for this mod (sqperf_log: 1 = Off, 2 = On), and the fake
 -- SQPERF Clock (microseconds; moves only when a test moves it).
 local MOD_ID = "square_no_factory_passengers"
@@ -60,40 +63,38 @@ before_each(function()
 	reset_modules()
 	clear_logs()
 	baseCalls = 0
-	paxFetches = 0
 	cargoFetches = 0
-	componentReads = 0
 	myParams, clockUs = {}, 1e9
 	set_global("api", {
 		type = { ComponentType = CT, Clock = { new = function() return { getTime = function() return clockUs end } end } },
 		engine = {
 			config = { getModParams = function() return { [MOD_ID] = myParams } end },
 			getComponent = function(e, t)
-				componentReads = componentReads + 1
 				if t == CT.STATION_GROUP then return world.groups[e] end
 				if t == CT.INDUSTRY then return world.industries[e] end
-				if t == CT.TOWN_BUILDING then return world.townBuildings[e] end
+				if t == CT.WAREHOUSE then return world.warehouses[e] end
 			end,
+			util = { station = { isStationOfType = function(st, cargo)
+				assert(cargo == true)
+				return world.cargoStations[st] == true
+			end } },
 			forEachEntityWithComponent = function()
 				error("full entity scan on the GUI thread")
 			end,
 			system = { catchmentAreaSystem = { getStationCatchables = function(st, cargo)
-				if cargo then
-					cargoFetches = cargoFetches + 1
-					return world.cargo[st] or {}
-				end
-				paxFetches = paxFetches + 1
-				return world.pax[st] or {}
+				assert(cargo == true, "passenger catchables are never fetched")
+				cargoFetches = cargoFetches + 1
+				return world.cargo[st] or {}
 			end } },
 		},
 	})
-	-- the base autoLoadConfig: passengers on at every stop (as addPassengerByDefault)
+	-- the base autoLoadConfig: passengers on at every stop (as addPassengerByDefault) but noPax ones
 	fakeLineUtil = {
 		autoLoadConfig = function(line)
 			baseCalls = baseCalls + 1
 			if line.customFilters then return end
 			for _i, v in ipairs(line.path) do
-				if v.stop then
+				if v.stop and not v.stop.noPax then
 					local cfg = v.stop.passThroughStopData.stopConfig
 					local l = cfg.load
 					l[PAX_ID + 1] = true
@@ -121,17 +122,17 @@ test("doReplace wraps line_util.autoLoadConfig and logs once", function()
 	eq(messages(), { "[NoFactoryPassengers] installed (line_util.autoLoadConfig wrapped)" })
 end)
 
-test("factory-only stop cleared, town stop kept, other cargo flags untouched", function()
+test("factory -> town line: passengers off at both stops, other cargo flags untouched", function()
 	local line = { path = { via(100, { false, false, true }), { waypoint = {} }, via(200, { false, true, false }) } }
 	fakeLineUtil.autoLoadConfig(line)
 	eq(baseCalls, 1, "original called")
-	eq(loads(line), { { false, false, true }, { true, true, false } })
+	eq(loads(line), { { false, false, true }, { false, true, false } })
 end)
 
-test("town station that also reaches the factory keeps passengers", function()
-	local line = { path = { via(300, { false, false }), via(100, { false, false }) } }
+test("town station that also reaches a factory makes a cargo line", function()
+	local line = { path = { via(300, { false }), via(800, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
-	eq(loads(line), { { true, false }, { false, false } })
+	eq(loads(line), { { false }, { false } })
 end)
 
 test("a 1-stop line at a factory: passengers off right away", function()
@@ -140,47 +141,49 @@ test("a 1-stop line at a factory: passengers off right away", function()
 	eq(loads(line), { { false, true } })
 end)
 
-test("a catchable that is not itself an industry keeps passengers (no fallback scan)", function()
-	local line = { path = { via(400, { false }) } }
+test("warehouse stop makes a cargo line", function()
+	local line = { path = { via(800, { false }), via(500, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
-	eq(loads(line), { { true } })
+	eq(loads(line), { { false }, { false } })
 end)
 
-test("factory -> dock: both stops cleared", function()
-	local line = { path = { via(100, { false, true }), via(700, { false, false }) } }
-	fakeLineUtil.autoLoadConfig(line)
-	eq(loads(line), { { false, true }, { false, false } })
-end)
-
-test("dock -> town without a factory keeps passengers", function()
-	local line = { path = { via(700, { false }), via(200, { false }) } }
+test("cargo station in town (only town buildings in reach) keeps passengers", function()
+	local line = { path = { via(200, { false }), via(800, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
 	eq(loads(line), { { true }, { true } })
-	eq(cargoFetches, 1, "only the dock (no homes) is tested for an industry")
 end)
 
-test("town line: one passenger fetch and one home test per group, no cargo scan", function()
-	local line = { path = { via(200, { false }), via(300, { false }), via(200, { false }) } }
+test("bus line: a passenger-only stop next to a factory keeps passengers, no cargo fetch", function()
+	local line = { path = { via(400, { false }), via(800, { false }), via(400, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
 	eq(loads(line), { { true }, { true }, { true } })
-	eq(paxFetches, 2)
 	eq(cargoFetches, 0)
-	-- 2 STATION_GROUP reads + 601 (home) at 2000 + 500 (workplace), 602 (home) at 3000
-	eq(componentReads, 5)
 end)
 
-test("factory -> dock -> town: town stop keeps passengers", function()
-	local line = { path = { via(100, { false }), via(700, { false }), via(200, { false }) } }
+test("mixed group: the stop's own station decides", function()
+	local line = { path = { via(600, { false }, 1), via(800, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
-	eq(loads(line), { { false }, { false }, { true } })
+	eq(loads(line), { { true }, { true } }, "bus stop of the group")
+	line = { path = { via(600, { false }, 2), via(800, { false }) } }
+	fakeLineUtil.autoLoadConfig(line)
+	eq(loads(line), { { false }, { false } }, "truck station of the group")
+	line = { path = { via(600, { false }), via(800, { false }) } }
+	fakeLineUtil.autoLoadConfig(line)
+	eq(loads(line), { { false }, { false } }, "no station assigned: the whole group")
 end)
 
-test("passenger catchables fetched once per group", function()
-	local line = { path = { via(200, { false }), via(100, { false }), via(200, { false }), via(100, { false }) } }
+test("a cargo stop with passengers already off still clears the others", function()
+	local line = { path = { via(800, { false }), via(100, { false }) } }
+	line.path[2].stop.noPax = true -- base: no passenger terminal at the factory stop
 	fakeLineUtil.autoLoadConfig(line)
-	eq(paxFetches, 2, "once per distinct group, not per stop")
-	eq(cargoFetches, 1, "only group 100 reaches no homes")
-	eq(loads(line), { { true }, { false }, { true }, { false } })
+	eq(loads(line), { { false }, { false } })
+end)
+
+test("each distinct stop fetched once, scan stops at the first cargo stop", function()
+	local line = { path = { via(200, { false }), via(200, { false }), via(100, { false }), via(300, { false }) } }
+	fakeLineUtil.autoLoadConfig(line)
+	eq(loads(line), { { false }, { false }, { false }, { false } })
+	eq(cargoFetches, 2)
 end)
 
 test("customFilters lines are skipped", function()
@@ -192,20 +195,21 @@ end)
 
 test("Debug log Off (default): no per-stop log lines", function()
 	clear_logs()
-	local line = { path = { via(100, { false }), via(200, { false }), via(300, { false }), via(700, { false }) } }
+	local line = { path = { via(100, { false }), via(800, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
-	eq(loads(line), { { false }, { true }, { true }, { false } })
+	eq(loads(line), { { false }, { false } })
 	eq(messages(), {})
 end)
 
-test("Debug log On: one log line per cleared stop, none for kept stops", function()
+test("Debug log On: one log line per cleared stop, none on passenger lines", function()
 	myParams = { sqperf_log = 2 }
 	clear_logs()
-	local line = { path = { via(100, { false }), via(200, { false }), via(300, { false }), via(700, { false }) } }
-	fakeLineUtil.autoLoadConfig(line)
+	fakeLineUtil.autoLoadConfig({ path = { via(800, { false }), via(400, { false }) } })
+	eq(messages(), {})
+	fakeLineUtil.autoLoadConfig({ path = { via(800, { false }), via(100, { false }) } })
 	eq(messages(), {
-		"[NoFactoryPassengers] stop 1 group 100: industry in reach, no town buildings -> passengers OFF",
-		"[NoFactoryPassengers] stop 4 group 700: no town buildings, line serves an industry-only stop -> passengers OFF",
+		"[NoFactoryPassengers] stop 1 group 800: cargo line (stop 2 reaches an industry or warehouse) -> passengers OFF",
+		"[NoFactoryPassengers] stop 2 group 100: cargo line (stop 2 reaches an industry or warehouse) -> passengers OFF",
 	})
 end)
 
@@ -214,7 +218,7 @@ test("wrapping is idempotent", function()
 	patch.doReplace({})
 	ok(not patch.install(fakeLineUtil), "second install is a no-op")
 	ok(fakeLineUtil.autoLoadConfig == wrapped)
-	fakeLineUtil.autoLoadConfig({ path = { via(200, { false }) } })
+	fakeLineUtil.autoLoadConfig({ path = { via(800, { false }) } })
 	eq(baseCalls, 1, "original runs once per call")
 end)
 
@@ -242,7 +246,7 @@ end
 test("SQPERF: Debug log On gives a 30 s summary of auto_load_config and fix_line", function()
 	myParams = { sqperf_log = 2 }
 	clear_logs()
-	local line = { path = { via(100, { false }), via(200, { false }) } }
+	local line = { path = { via(100, { false }), via(800, { false }) } }
 	fakeLineUtil.autoLoadConfig(line) -- first stop opens the window (gate read: On)
 	fakeLineUtil.autoLoadConfig({ customFilters = true, path = {} })
 	clockUs = clockUs + 31e6
@@ -256,12 +260,12 @@ end)
 
 test("SQPERF: Debug log Off: no SQPERF lines from edits; a slow edit (> 16 ms) is logged", function()
 	clear_logs()
-	local line = { path = { via(200, { false }) } }
+	local line = { path = { via(200, { false }), via(300, { false }) } }
 	fakeLineUtil.autoLoadConfig(line)
 	clockUs = clockUs + 31e6
 	fakeLineUtil.autoLoadConfig(line)
 	eq(#sqperfLines(), 0)
-	-- 20 ms per catchables fetch: a passenger fetch, then (no homes) a cargo fetch = 40 ms
+	-- 20 ms per catchables fetch: two cargo stations, nothing in reach = 40 ms
 	api.engine.system.catchmentAreaSystem.getStationCatchables = function()
 		clockUs = clockUs + 20000
 		return {}

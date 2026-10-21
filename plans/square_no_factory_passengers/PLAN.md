@@ -1,8 +1,8 @@
 # square_no_factory_passengers: plan
 
 ## Goal
-In the line editor, don't turn passenger loading on at stops whose station only serves an
-industry. The base GUI turns it on at every passenger-capable stop
+In the line editor, don't turn passenger loading on for lines that can carry cargo. Passengers stay
+on only on passenger-only lines (two bus stops, a passenger train line). The base GUI turns it on at every passenger-capable stop
 (`.cache/game/base/content/gui/line_vehicle_mgmt/line_util.tl:454` `addPassengerByDefault`, called
 from `autoLoadConfig` at `:495`).
 
@@ -25,26 +25,25 @@ kept passengers, and it could never act on the first stop, because the editor ke
   manager_window's `"/gui/line_vehicle_mgmt/line_util.tl"` (`manager_window.tl:13`) is "absolute in
   the current mod" = base (`docs/wiki/modding/general/resourcetypes.md:84-88`), i.e. `"::/gui/..."`.
   From the mod, `"/gui/..."` would resolve into the mod, so `"::/"` is required.
-- Wrapper: call the original, then, unless `line.customFilters`, for each `via.stop` whose
-  `passThroughStopData.stopConfig.load[paxId + 1]` is on: clear it when the station group reaches
-  an industry and no town buildings. `load` is read, changed and assigned back (the
-  read is a copy; as keepCargo, `line_util.tl:501-512`). Works for a 1-stop line.
-- Line rule (rev 2, `logic.decideLine`): once the line has an industry-only stop, every other
-  passenger stop whose group reaches no town buildings is cleared too (factory → dock: the dock
-  reaches no homes, only transfers). The line pass reuses each group's home result (no
-  extra fetch); lines without an industry-only stop are unchanged from rev 1.
-- Industry test per catchable from `getStationCatchables(station, true)`: the entity has an
-  INDUSTRY component (industries hold their own STOCK_LIST, `industry_util.tl:634-635`, `719-720`).
-- Homes test: a catchable from `getStationCatchables(station, false)` has a TOWN_BUILDING
-  component (town buildings hold their own PERSON_CAPACITY, `town.tl:441-444`; the base tells
-  industry workplaces apart the same way, `industry_workers.script.tl:38-39`). Not the base
-  "non-empty" check (`line_util.tl:569-572`): the factory's own workplaces are passenger catchables.
-- Performance (runs on the GUI thread per edit): no `forEachEntityWithComponent` fallback scans
-  for separate stock list / person capacity entities; homes are tested first (rev 3), so a town
-  stop stops at its first town building and cargo catchables are fetched only for groups with no
-  homes; every lookup short-circuits; one decision per station group. See PERF_REVIEW.md.
-- Station loop as autoLoadConfig (`line_util.tl:551-552`, STATION_GROUP.stations).
-- Pure decision in `nfp_logic.lua` (unit-tested); one `log.message` line per cleared stop.
+- Wrapper: call the original, then, unless `line.customFilters`: when any stop of the line is a
+  cargo stop, clear `passThroughStopData.stopConfig.load[paxId + 1]` at every stop. `load` is read,
+  changed and assigned back (the read is a copy; as keepCargo, `line_util.tl:501-512`). Works for a
+  1-stop line.
+- Cargo-line rule (rev 5, `logic.findCargoStop`, user request 2026-10-17): a stop is a cargo stop
+  when its own station (`stop.station1` into STATION_GROUP.stations; the whole group when no
+  station is assigned) is a cargo station (`api.engine.util.station.isStationOfType(st, true)`)
+  with an INDUSTRY or WAREHOUSE entity among `getStationCatchables(st, true)` (stock list owners,
+  `cargo_util.tl:565-582`). Town buildings are cargo catchables too (goods) but don't count.
+  Homes in reach no longer matter. Replaces the rev 1-4 rule (clear at stops reaching an industry
+  and no TOWN_BUILDING; on such a line, also at stops reaching no homes).
+- The own station, not the group: a bus stop grouped with a truck station at a factory stays a
+  passenger stop on a bus line.
+- Performance (runs on the GUI thread per edit): passenger catchables are never fetched; cargo
+  catchables only for cargo stations, once per distinct stop station; the scan stops at the first
+  cargo source of the first cargo stop. No `forEachEntityWithComponent` fallback scans. Worst case:
+  a line of town cargo stations with no industry (each town building tested, 2 component reads).
+  See PERF_REVIEW.md (written for rev 3).
+- Pure decision in `nfp_logic.lua` (unit-tested); one `log.message` line per cleared stop (Debug log On).
 
 ## Save safety
 No game script, no saved state, no base-file overrides (an in-memory wrap only). Lines change only
