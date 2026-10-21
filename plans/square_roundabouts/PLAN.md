@@ -130,9 +130,9 @@ geometry=ok ... mids=4`). Players get mid nodes from Smart Lanes (above).
 From `PHASE7_RUNBOOK.md`, still valid:
 - `make test MOD=mods/square_roundabouts ARGS="-f <file> -k <text>"` while iterating. Three tiers:
   quick (default, ~15 s): sweeps check a sample (`checks.sampled`: every n-th case, every param value,
-  the defaults; golden tests a sample of groups); `ARGS=--full` (TEST_FULL, what `make gate` runs,
+  the defaults; golden tests a sample of groups); `ARGS=--full` (TEST_FULL, what `make gate-full` runs,
   ~60 s): every case; `SQRB_FULL=1`: also the exhaustive test_finite / negative_zero sweeps. Once at the
-  end: `make gate MOD=mods/square_roundabouts` (check, validate, full test; add
+  end: `make gate MOD=mods/square_roundabouts` (check, validate, quick test; `make gate-full` before a release; add
   `MOD2=mods/square_roundabouts_probe` when the probe changed).
 - `make hx-dump KEY='...'` (one highway build's edges), `make probe-report LOGS=...`,
   `make probe-split LOG=...` (refusal patterns of a probe run).

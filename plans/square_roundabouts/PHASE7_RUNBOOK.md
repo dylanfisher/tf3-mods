@@ -42,7 +42,7 @@ Short, practical tips. Later phase reviews update this file. Last review: after 
   overall and per level. `ARGS=--uncap` for runs before the 7e2 cap; `--near xmax` lists the borderline keys.
 - `make test MOD=mods/square_roundabouts ARGS="-f highway"` (3 s quick, 12 s `--full`). `-f` picks files
   (repeatable), `-k TEXT` a test-name substring. Quick (default) samples every sweep (`checks.sampled`) and
-  golden group; `ARGS=--full` checks every case (make gate does). Cheap (< 3 s): ramps, base_interchanges,
+  golden group; `ARGS=--full` checks every case (make gate-full does). Cheap (< 3 s): ramps, base_interchanges,
   tuning, script, dev, replay_report. `-f short_edges` 3 s quick, 33 s full. Label / tooltip edits:
   `-f entries -f highway`.
 - **Refused highway combo:** `make hx-dump KEY='<refused> <placed neighbour>'` (0.7 s; `DEV='sqrb_dev_x=1'`):
@@ -94,5 +94,5 @@ Short, practical tips. Later phase reviews update this file. Last review: after 
 - A parallel agent may edit the probe / tests: end with a `grep` for removed names.
 
 ## Gate (run once, at the end)
-- `make gate MOD=mods/square_roundabouts MOD2=mods/square_roundabouts_probe` (~70 s): check, validate and
-  `--full` test per mod, one line each plus any FAIL. 7c3 end state: 206 + 61 passed (2026-10-13: 320). Drop MOD2 if the probe is untouched.
+- `make gate MOD=mods/square_roundabouts MOD2=mods/square_roundabouts_probe`: check, validate and
+  quick test per mod (tests of 8 s or more deferred; `make gate-full`, ~70 s, runs `--full` before a release), one line each plus any FAIL. 7c3 end state: 206 + 61 passed (2026-10-13: 320). Drop MOD2 if the probe is untouched.
