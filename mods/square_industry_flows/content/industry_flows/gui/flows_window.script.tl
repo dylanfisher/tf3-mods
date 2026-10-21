@@ -37,7 +37,6 @@ local perfInit = perf:start()
 
 local react = ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
-local cargo_react_util = ug_require "::/gui/main/cargo_react_util.tl" as CargoReactUtil
 local color_util = ug_require "::/gui/main/color_util.tl" as ColorUtil
 local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 local lang_util = ug_require "::/scripts/lang_util.tl" as LangUtil
@@ -194,6 +193,18 @@ local record HudPreFilter
 	showIncome : boolean
 end
 
+-- Base GUI modules differ by platform (PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI
+-- modules differ by platform"): every selector / HUD helper below is read through these, and a missing one
+-- leaves its part out (no HUD icons, no map selector) instead of reloading the UI.
+local selectorBase = selector_react_util as {string : any}
+local hudBase = hud_react_util as {string : any}
+
+--- A base default filter list, or an empty one where this platform's selector_react_util has none.
+local function baseList<T>(name : string) : {T}
+	local v = selectorBase[name]
+	return v is table and v as {T} or {}
+end
+
 local function hudPreFilter() : HudPreFilter
 	local ok, saved = pcall(api.gui.game.getGuiSaveData, "")
 	local filters : BaseGUISaveData.HUDFilter = nil
@@ -202,13 +213,13 @@ local function hudPreFilter() : HudPreFilter
 	end
 	if filters == nil or filters.preFilters == nil then
 		-- makePreFilter's default branch (selector_react_util.tl:71-78)
-		return { preFilter = selector_react_util.defaultHudIconFilter, preFilterTvCarriers = nil, showCosts = true, showIncome = true }
+		return { preFilter = baseList("defaultHudIconFilter") as {Engine.ComponentType}, preFilterTvCarriers = nil, showCosts = true, showIncome = true }
 	end
 	local preFilters = filters.preFilters
 	local carriers : {Carrier} = nil
 	if filters.preFilterTvCarriers ~= nil then
 		carriers = {}
-		for __, carrier in ipairs(selector_react_util.defaultHudIconFilterTvCarrier) do
+		for __, carrier in ipairs(baseList("defaultHudIconFilterTvCarrier") as {Carrier}) do
 			if filters.preFilterTvCarriers[carrier] ~= "Hidden" then
 				carriers[#carriers + 1] = carrier
 			end
@@ -222,7 +233,7 @@ local function hudPreFilter() : HudPreFilter
 		end
 	end
 	local preFilter : {Engine.ComponentType} = {}
-	for __, componentType in ipairs(selector_react_util.defaultHudIconFilter) do
+	for __, componentType in ipairs(baseList("defaultHudIconFilter") as {Engine.ComponentType}) do
 		if preFilters[componentType] ~= "Hidden" then
 			preFilter[#preFilter + 1] = componentType
 		end
@@ -247,8 +258,13 @@ local function samePreFilter(a : HudPreFilter, b : HudPreFilter) : boolean
 		and a.showCosts == b.showCosts and a.showIncome == b.showIncome
 end
 
+--- Nil where this platform lacks a base piece of it (see selectorBase).
 local function makeHudIconManagerConfig(pre : HudPreFilter) : TreeNodeId
 	-- src: selector_react_util.tl:327-345
+	local thresholds, offsets = hudBase.makeDefaultVisibilityThresholds, hudBase.makeVehicleIconOffsets
+	if not (thresholds is function and offsets is function) or (hud_icon_toolbox as {string : any}).HudIconMasterGame == nil then
+		return nil
+	end
 	local hudGuiConfig = gres("::/gui/hud/hud_gui_config.gres") as HudGuiConfig
 	local sfxFinance = gres("::/game_mechanics/finance/sound/finance_sfx.gres") as FinanceSFX
 	return builtin.HudIconManagerConfig{
@@ -368,7 +384,10 @@ end
 -- assumption as gather.cargoName), so each cargo is looked up once.
 local cargoIconCache : {integer : CargoIconInfo} = {}
 
---- Same node as cargo_react_util.makeCargoIcon(c, class): makeIcon(class, cargoType.icon, cargoType.name).
+--- Same node as cargo_react_util.makeCargoIcon(c, class): makeIcon(class, cargoType.icon, cargoType.name),
+--- built here (makeIcon's own tree, cargo_react_util.tl:15-24) so nothing depends on a base function that
+--- may be missing on another platform (PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI
+--- modules differ by platform").
 local function cargoIcon(c : integer) : TreeNodeId
 	local info = cargoIconCache[c]
 	if info == nil then
@@ -376,7 +395,7 @@ local function cargoIcon(c : integer) : TreeNodeId
 		info = { path = cargoType.icon, tooltip = cargoType.name }
 		cargoIconCache[c] = info
 	end
-	return cargo_react_util.makeIcon("text-icon-size-hack, flows-cargo", info.path, info.tooltip)
+	return builtin.ImageView{ path = info.path, meta = { tooltip = info.tooltip, class = "text-icon-size-hack, flows-cargo" } }
 end
 
 local function cargoIcons(row : IndustryFlowsTypeRow) : TreeNodeId
@@ -578,17 +597,22 @@ local IndustryFlowsContent = react.RegisterRecipe("IndustryFlowsContent", perf:w
 		local layerConfig = cache.config
 		cache.actionFn = function() : TreeNodeId
 			local selectedEntityRef : ReactRefT<Engine.Entity> = react.useRef(-1)
+			-- each base part only where this platform has it (selectorBase)
+			local children : {TreeNodeId} = {}
+			local hudConfig = makeHudIconManagerConfig(pre)
+			if hudConfig ~= nil then children[#children + 1] = hudConfig end
+			local sSelector, sTips = selectorBase.makeDefaultSelector, selectorBase.makeDefaultSelectorTooltips
+			if sSelector is function and sTips is function then
+				children[#children + 1] = selector_react_util.makeDefaultSelector(rendererComponent, selectedEntityRef, true)
+				children[#children + 1] = selector_react_util.makeDefaultSelectorTooltips(selectedEntityRef)
+			end
+			children[#children + 1] = builtin.LayerConfig{
+				config = layerConfig,
+			}
 			return builtin.ActionDescriptor{
 				horizontalPromptList = true,
 				terrainCirclePolicy = "Never",
-				children = {
-					makeHudIconManagerConfig(pre),
-					selector_react_util.makeDefaultSelector(rendererComponent, selectedEntityRef, true),
-					selector_react_util.makeDefaultSelectorTooltips(selectedEntityRef),
-					builtin.LayerConfig{
-						config = layerConfig,
-					},
-				},
+				children = children,
 			}
 		end
 	end

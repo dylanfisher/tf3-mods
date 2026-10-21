@@ -8,6 +8,7 @@
 
 local MOD = "square_industry_flows"
 local PATH = MOD .. "::/industry_flows/gui/flows_window.script.tl"
+local here = debug.getinfo(1, "S").source:match("^@(.*/)") or "tests/square_industry_flows/"
 
 -- Fake GUI tree: every widget is { w = name, p = param }.
 local function widget(name)
@@ -98,7 +99,6 @@ local function stubs()
 			ScrollBarPolicy = { AlwaysOff = 0, AsNeeded = 1 },
 		},
 	})
-	stub_module("::/gui/main/cargo_react_util.tl", { makeIcon = function(c, p, t) return { w = "Icon", p = { meta = { class = c } } } end })
 	-- inline styles (ridge button padding, cargo chevron size): record what the script sets
 	stub_module("::/gui/main/styleutil.tl", { makeStyle = function(t) local st = {}; for k, v in pairs(t) do st[k] = v end; return st end })
 	stub_module("::/gui/main/color_util.tl", { toArray4 = function(c) return c end, toArray4WithTransparency = function(c) return c end })
@@ -191,11 +191,13 @@ local function fakeApi(sqperfLog, hudButtonStyle)
 	})
 end
 
-local function load(sqperfLog, hudButtonStyle)
+--- platform: optional, edits the base module fakes after stubs() (a console build that lacks functions).
+local function load(sqperfLog, hudButtonStyle, platform)
 	F = { states = {}, hooks = {}, hookIdx = 0, pushes = 0, pops = 0, clockUs = 1e9, tool = { tool = true }, mapEditor = false,
 		visible = true, reads = 0, guiCalls = {}, timerGuiCalls = {}, inTimer = false }
 	clear_logs()
 	stubs()
+	if platform then platform() end
 	fakeApi(sqperfLog or 1, hudButtonStyle)
 	reset_modules()
 	return ug_require(PATH)
@@ -436,4 +438,40 @@ test("Debug log Off: a visibility change logs nothing", function()
 	for _, e in ipairs(log_entries()) do
 		ok(not e.msg:find("panel visible=", 1, true), e.msg)
 	end
+end)
+
+-- PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI modules differ by platform": the console
+-- build's base GUI scripts lack functions the PC copies have.
+test("platform without the base selector / HUD helpers: the panel and its action still build (arrows only)", function()
+	load(nil, nil, function()
+		stub_module("::/gui/main/selector_react_util.tl", {})
+		stub_module("::/gui/hud/hud_react_util.tl", {})
+	end)
+	local p = payload()
+	eq(render(p).w, "BoxLayout")
+	F.owner, F.hookIdx = nil, 0
+	local action = p.actions[1].fn()
+	eq(action.w, "ActionDescriptor")
+	eq(#action.p.children, 1, "no HUD icon config, no map selector")
+	eq(action.p.children[1].w, "LayerConfig")
+	-- with the base selector helpers: selector, tooltips, arrows (the HUD helpers stay faked out)
+	load(nil, nil, function()
+		stub_module("::/gui/main/selector_react_util.tl", {
+			defaultHudIconFilter = { 1, 2 }, defaultHudIconFilterTvCarrier = {},
+			makeDefaultSelector = widget("Selector"), makeDefaultSelectorTooltips = widget("SelectorTooltips"),
+		})
+	end)
+	p = payload()
+	render(p)
+	F.owner = nil
+	local names = {}
+	for i, c in ipairs(p.actions[1].fn().p.children) do names[i] = c.w end
+	eq(table.concat(names, ","), "Selector,SelectorTooltips,LayerConfig")
+end)
+
+test("cargo icons: built from builtin.ImageView, not cargo_react_util (may be missing on a platform)", function()
+	local fh = assert(io.open(here .. "../../mods/square_industry_flows/content/industry_flows/gui/flows_window.script.tl", "r"))
+	local code = fh:read("a"):gsub("%-%-[^\n]*", "")
+	fh:close()
+	ok(not code:find("cargo_react_util", 1, true), "no cargo_react_util call")
 end)
