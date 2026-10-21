@@ -75,10 +75,76 @@ end
 local react, builtin, gui_react_util, engine_react_util
 local AreaLabel
 
+-- The base HUD pill builder, when this platform has it. Console builds ship their own base GUI scripts, which
+-- can lack functions the PC copy has (PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI
+-- modules differ by platform"). Resolved on the first pill: the base function's first call runs in pcall;
+-- when it works it is called directly from then on (no per-label pcall), else fallbackPill for the session.
+-- install() resets it. fallbackPill is the base HUD-mode tree (gui_react_util.tl:113-140, 277-310) for the
+-- params our chips pass (one icon path, label, labelFontColor, labelMode "HudIconMain", shippingState),
+-- with the same classes, so base styling applies where the stylesheet has them.
+local SHIPPING_CLASS = {
+	Warehouse = "warehouse", WaitingPassenger = "waiting-passenger", Vehicle = "vehicle",
+	IndustryInput = "industry-input", IndustryOutput = "industry-output",
+}
+local pillFn = nil
+
+local function fallbackPill(p)
+	if type(react.setStyleClasses) == "function" then react.setStyleClasses("hud-icon-main") end
+	local hud = p.labelMode == "HudIconMain" or p.labelMode == "HudIconLayer"
+	local inner = {}
+	if p.iconPath ~= nil then
+		inner[#inner + 1] = builtin.ImageView{
+			meta = { tooltip = p.tooltip, class = "iconlabelindicator-icon-size" .. (hud and ",hud-icon" or "") },
+			path = p.iconPath,
+			scaling = builtin.type.ImageViewScaling.AutoFit,
+		}
+	end
+	if p.label ~= nil then
+		inner[#inner + 1] = builtin.TextView{
+			meta = { class = "iconlabelindicator-label, font-scale-annotation", tooltip = p.tooltip },
+			text = p.label,
+		}
+	end
+	local bg = "hud-icon-background, " .. (p.labelFontColor or "Default")
+	local ship = p.shippingState and SHIPPING_CLASS[p.shippingState]
+	if ship then bg = bg .. ", " .. ship end
+	return builtin.BoxLayout{
+		orientation = builtin.type.Orientation.Vertical,
+		children = {
+			builtin.Component{
+				meta = { class = bg },
+				layout = builtin.BoxLayout{
+					meta = { class = "iconlabelindicator-layout" },
+					orientation = builtin.type.Orientation.Horizontal,
+					children = { builtin.BoxLayout{ orientation = builtin.type.Orientation.Horizontal, children = inner } },
+				},
+			},
+		},
+	}
+end
+
+local function pill(p)
+	local f = pillFn
+	if f ~= nil then return f(p) end
+	local base = gui_react_util.makeContentLabelIndictator
+	if type(base) == "function" then
+		local ok, node = pcall(base, p)
+		if ok and node ~= nil then
+			pillFn = base
+			return node
+		end
+		err("pill", node)
+	else
+		log.message(LOG_PREFIX .. "label pill: base makeContentLabelIndictator " .. type(base) .. ", own pill")
+	end
+	pillFn = fallbackPill
+	return fallbackPill(p)
+end
+
 local function chipNode(ch)
 	-- The stock HUD pill (icon + label), as HudIconMasterGame's StockHudIcon (hud_icon_toolbox.tl:60-84)
 	-- and square_industry_production_label's makePill.
-	return gui_react_util.makeContentLabelIndictator({
+	return pill({
 		iconPath = ch.icon,
 		label = ch.text,
 		labelFontColor = ch.tone,
@@ -191,6 +257,7 @@ function labels.install()
 		builtin = ug_require("::/gui/main/builtin.lua")
 		gui_react_util = ug_require("::/gui/main/gui_react_util.tl")
 		engine_react_util = ug_require("::/gui/main/engine_react_util.tl")
+		pillFn = nil
 		makeRecipes()
 		return "ok"
 	end)

@@ -29,7 +29,6 @@ local perfInit = perf:start()
 
 local react = ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
-local cargo_react_util = ug_require "::/gui/main/cargo_react_util.tl" as CargoReactUtil
 local engine_react_util = ug_require "::/gui/main/engine_react_util.tl" as EngineReactUtil
 local main_mod_button_area = ug_require "::/gui/main/main_mod_button_area.tl" as MainModButtonArea
 local game_react_globals = ug_require "::/gui/main/game_react_globals.tl" as GameReactGlobals
@@ -217,7 +216,10 @@ local function cargoIcon(c : integer) : TreeNodeId
 		cargoIconPath[c] = path
 	end
 	if path == "" then return nil end
-	return cargo_react_util.makeIcon("text-icon-size-hack, sqsg-cargo-icon", path, nil)
+	-- cargo_react_util.makeIcon(class, path, nil) inlined (cargo_react_util.tl:15-24): console builds ship
+	-- their own base GUI scripts that can lack helpers (PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md
+	-- "Base GUI modules differ by platform").
+	return builtin.ImageView{ path = path, meta = { class = "text-icon-size-hack, sqsg-cargo-icon" } }
 end
 
 local function cargoRow(label : string, count : string, selected : boolean, onClick : function(), cargo : integer, tooltip : string) : TreeNodeId

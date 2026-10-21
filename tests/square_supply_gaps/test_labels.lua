@@ -1,6 +1,8 @@
 -- sg_labels: the area-label HUD wrappers with stubbed base modules (react renders eagerly here).
 -- Checks: wrappers installed once, base recipe always rendered, rows under the town icon and the Cargo
 -- Flow district icons, district sub-icons of the town recipe pass through, errors stay inside.
+-- The own pill when base gui_react_util lacks makeContentLabelIndictator or it raises (PS5 report
+-- 2026-10-19, Smart Lanes; docs/findings/gui.md "Base GUI modules differ by platform").
 
 local nodes = {}
 local react = {
@@ -10,9 +12,11 @@ local react = {
 	setMouseTransparent = function() end,
 }
 local builtin = {
-	type = { Orientation = { Horizontal = "H", Vertical = "V" } },
+	type = { Orientation = { Horizontal = "H", Vertical = "V" }, ImageViewScaling = { AutoFit = "fit" } },
 	BoxLayout = function(p) return { kind = "BoxLayout", class = p.meta and p.meta.class, children = p.children or {} } end,
-	Component = function(p) return { kind = "Component", class = p.meta and p.meta.class } end,
+	Component = function(p) return { kind = "Component", class = p.meta and p.meta.class, layout = p.layout } end,
+	ImageView = function(p) return { kind = "ImageView", class = p.meta and p.meta.class, path = p.path } end,
+	TextView = function(p) return { kind = "TextView", class = p.meta and p.meta.class, text = p.text } end,
 }
 local gru = {
 	makeContentLabelIndictator = function(p) return { kind = "pill", icon = p.iconPath, label = p.label, tone = p.labelFontColor, mode = p.labelMode } end,
@@ -147,11 +151,73 @@ test("cargo flow master: base first; district sub-icons get their row, the town 
 	eq(#t.children, 1)
 end)
 
-test("a raising pill builder never escapes: empty label, base icon kept", function()
+-- install() again: the pill builder is resolved anew on the next pill (install resets it)
+local function reinstall()
+	labels.installed = false
+	labels.install()
+	wrappedTown, wrappedCF = thru.TownHudIcon, lcf.HudIconMaster
+end
+
+-- the fallback pill's tree: BoxLayout > Component!hud-icon-background > BoxLayout > BoxLayout > {icon, label}
+local function fallbackParts(p)
+	eq(p.kind, "BoxLayout")
+	local bg = p.children[1]
+	eq(bg.kind, "Component")
+	local layout = bg.layout
+	eq(layout.class, "iconlabelindicator-layout")
+	local inner = layout.children[1].children
+	return bg.class, inner[1], inner[2]
+end
+
+test("a raising base pill builder: logged once, own pills from then on, base icon kept", function()
 	local orig = gru.makeContentLabelIndictator
-	gru.makeContentLabelIndictator = function() error("pill") end
+	local calls = 0
+	gru.makeContentLabelIndictator = function() calls = calls + 1; error("pill") end
+	reinstall()
 	local n = thru.TownHudIcon(townParams(100), true, true)
+	thru.TownHudIcon(townParams(100), true, true)
 	gru.makeContentLabelIndictator = orig
+	eq(calls, 1, "base tried once")
+	eq(n.children[1].kind, "town")
+	local row = areaOf(n).children[2]
+	local cls, icon, label = fallbackParts(row.children[2])
+	eq(cls, "hud-icon-background, Poor, industry-input")
+	eq(icon.class, "iconlabelindicator-icon-size,hud-icon")
+	eq(icon.path, "i7")
+	eq(label.text, "73%")
+	ok(logged("[SQSG] ERR label pill"))
+	reinstall()
+	eq(areaOf(thru.TownHudIcon(townParams(100), true, true)).children[2].children[2].kind, "pill", "base again after install")
+end)
+
+test("base gui_react_util without makeContentLabelIndictator (PS5 report 2026-10-19, Smart Lanes): own pills", function()
+	local orig = gru.makeContentLabelIndictator
+	gru.makeContentLabelIndictator = nil
+	reinstall()
+	local n = thru.TownHudIcon(townParams(100), true, true)
+	local cf = lcf.HudIconMaster(districtParams(100, 0), {})
+	gru.makeContentLabelIndictator = orig
+	eq(n.children[1].kind, "town")
+	local row = areaOf(n).children[2]
+	eq(#row.children, 3)
+	local cls, icon, label = fallbackParts(row.children[3])
+	eq(cls, "hud-icon-background, Poor, industry-input")
+	eq(icon.path, "i4")
+	eq(label.text, "90%")
+	local _, _, cfLabel = fallbackParts(cf.children[2].children[1].children[1])
+	eq(cfLabel.text, "20%")
+	ok(logged("base makeContentLabelIndictator nil, own pill"))
+	reinstall()
+end)
+
+test("a raising row builder never escapes: empty label, base icon kept", function()
+	local orig = builtin.BoxLayout
+	builtin.BoxLayout = function(p)
+		if p.meta and p.meta.class == "sqsg-area-row" then error("row") end
+		return orig(p)
+	end
+	local n = thru.TownHudIcon(townParams(100), true, true)
+	builtin.BoxLayout = orig
 	eq(n.children[1].kind, "town")
 	eq(#n.children[2].children, 0)
 	ok(logged("[SQSG] ERR label hud"))
