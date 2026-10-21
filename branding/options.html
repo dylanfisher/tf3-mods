@@ -16,6 +16,82 @@
   <p>Candidate pictograms for a mod, drawn with the shared classes. Preview only: a cover keeps the glyph in <code>mods.js</code> until one is copied there.</p>
 </main>
 <script>
+  // Better Auto Vehicle Renamer cover candidates (2026-10-20). Each has its own accent (none used by another
+  // mod; README "Accent palette in use"). A-E carry the fleet number as text (Overpass Mono / Overpass 800),
+  // an exception to the README's "no text" pictogram rule, since the number is the whole idea; F is a real
+  // capture card like Better Minimap's cover. Not in mods.js as the final cover until one is picked.
+  const BAVR_NAME = 'Better Auto Vehicle Renamer';
+  const mono = (x, y, size, text, cls = 'cutf', anchor = 'middle') =>
+    `<text class="m ${cls}" x="${x}" y="${y}" font-size="${size}" font-weight="700" text-anchor="${anchor}">${text}</text>`;
+  const bold = (x, y, size, text, cls = 'cutf') =>
+    `<text class="t ${cls}" x="${x}" y="${y}" font-size="${size}" font-weight="800" text-anchor="middle">${text}</text>`;
+  // A bus side: ink body, knocked-out windows, wheels; band = markup drawn on the body below the windows.
+  const busSide = (band = '') => `
+    <rect class="ink" x="20" y="170" width="760" height="400" rx="64"/>
+    ${[60, 200, 340, 480, 620].map(x => `<rect class="cut" x="${x}" y="215" width="${x === 620 ? 120 : 116}" height="130" rx="22"/>`).join('')}
+    ${band}
+    <circle class="ink sep" cx="190" cy="572" r="88"/><circle class="cut" cx="190" cy="572" r="34"/>
+    <circle class="ink sep" cx="610" cy="572" r="88"/><circle class="cut" cx="610" cy="572" r="34"/>
+    <rect class="ink" x="0" y="690" width="800" height="24" rx="12"/>`;
+  // Real capture card(s): a crop of a Line Manager window capture (not 5120 wide: w/h = the file's size).
+  const BAVR_SHOTS = '../plans/square_better_auto_vehicle_renamer/shots/';
+  const realCard = (id, file, fw, fh, [cx, cy, cw, ch], x, y, w, rot = 0) => {
+    const h = w * ch / cw;
+    return `<g transform="rotate(${rot} ${x + w / 2} ${y + h / 2})">
+      <defs><clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="22"/></clipPath>
+        <filter id="${id}Sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="14" stdDeviation="20" flood-color="#000" flood-opacity=".5"/></filter></defs>
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="22" fill="#18202a" filter="url(#${id}Sh)"/>
+      <g clip-path="url(#${id})"><svg x="${x}" y="${y}" width="${w}" height="${h}" viewBox="${cx} ${cy} ${cw} ${ch}" preserveAspectRatio="xMidYMid slice">
+        <image href="${BAVR_SHOTS}${file}" width="${fw}" height="${fh}"/></svg></g></g>`;
+  };
+  const BAVR_OPTIONS = [
+    { label: 'A. Fleet number plate', accent: '#A8A15A', tagline: 'Fleet numbers for every vehicle',
+      note: 'Olive #A8A15A. An enamel plate reading B-0205, with the model and year as two ink bars below it.',
+      glyph: () => `
+        <rect class="acc" x="20" y="190" width="760" height="320" rx="52"/>
+        <rect class="scut" x="50" y="220" width="700" height="260" rx="32" stroke-width="12"/>
+        ${mono(400, 415, 176, 'B-0205')}
+        <rect class="ink" x="20" y="580" width="500" height="64" rx="32"/>
+        <rect class="ink" x="560" y="580" width="220" height="64" rx="32"/>` },
+    { label: 'B. Bus with its fleet number', accent: '#C58B5C', tagline: 'Every vehicle gets its number',
+      note: 'Copper #C58B5C. A bus seen from the side, its fleet number painted on the body.',
+      glyph: () => `<g transform="translate(0 50)">${busSide(`<rect class="acc" x="60" y="385" width="470" height="120" rx="26"/>${mono(295, 475, 104, 'B-0205')}`)}</g>` },
+    { label: 'C. Fleet register card', accent: '#9CC5A1', tagline: 'Your fleet register,\nkept for you',
+      note: 'Sage #9CC5A1. A register card: a letter badge and number per vehicle, one sold number struck out and never reused.',
+      glyph: () => `
+        <rect class="ink" x="70" y="20" width="660" height="760" rx="44"/>
+        ${[['B', '0205', 1], ['S', '0040', 1], ['L', '0045', 0], ['A', '0014', 1]].map(([l, n, live], i) => {
+          const y = 70 + i * 172;
+          return `<g opacity="${live ? 1 : .4}">
+            <rect class="acc" x="120" y="${y}" width="128" height="128" rx="26"/>${bold(184, y + 98, 92, l)}
+            ${mono(290, y + 98, 104, n, 'cutf', 'start')}
+            <rect class="cut" x="560" y="${y + 50}" width="120" height="30" rx="15"/></g>
+            ${live ? '' : `<rect class="acc" x="270" y="${y + 52}" width="420" height="24" rx="12"/>`}`;
+        }).join('')}` },
+    { label: 'D. Name tag', accent: '#A3A8F0', tagline: 'A name for every vehicle',
+      note: 'Periwinkle #A3A8F0. A luggage-style name tag reading B-0205 tied to a small bus.',
+      glyph: () => `
+        <g transform="translate(0 250) scale(.72)">${busSide()}</g>
+        <path class="sink" d="M330 380 C 340 290, 370 240, 400 215" stroke-width="14" stroke-linecap="round"/>
+        <g transform="rotate(-12 560 170)">
+          <path class="acc sep" d="M350 170 L420 75 H730 A30 30 0 0 1 760 105 V235 A30 30 0 0 1 730 265 H420 Z"/>
+          <circle class="cut" cx="404" cy="170" r="22"/>
+          ${mono(600, 198, 80, 'B-0205')}
+        </g>` },
+    { label: 'E. One letter per type', accent: '#F2A7A0', tagline: 'Fleet numbers per type,\nnever reused',
+      note: 'Rose #F2A7A0. Seven keycap badges B T R L S A H (B in accent) over a plate reading B-0205.',
+      glyph: () => `
+        ${['B', 'T', 'R', 'L'].map((l, i) => `<rect class="${i ? 'ink' : 'acc'}" x="${15 + i * 200}" y="60" width="170" height="170" rx="36"/>${bold(100 + i * 200, 192, 124, l)}`).join('')}
+        ${['S', 'A', 'H'].map((l, i) => `<rect class="ink" x="${115 + i * 200}" y="260" width="170" height="170" rx="36"/>${bold(200 + i * 200, 392, 124, l)}`).join('')}
+        <rect class="acc" x="15" y="500" width="770" height="220" rx="44"/>
+        ${mono(400, 660, 168, 'B-0205')}` },
+    { label: 'F. Real vehicle lists', accent: '#E3C46B', tagline: 'Fleet number, model\nand year',
+      note: 'Straw #E3C46B (the game\'s line yellow; with no flat glyph the accent only enters the palette). Three real Line Manager vehicle lists, buses, ships and aircraft, as fanned cards across the diagonal, like Better Minimap\'s real-card cover.',
+      glyph: () => `
+        ${realCard('bavrF1', '04-aircraft.jpg', 1628, 2600, [150, 963, 800, 278], -150, 520, 940, 2)}
+        ${realCard('bavrF2', '03-ships-hay.jpg', 1572, 2592, [135, 955, 780, 272], -110, 170, 940, -2)}
+        ${realCard('bavrF3', '01-buses.jpg', 1568, 2540, [128, 930, 830, 278], -170, -190, 940, 1.5)}` },
+  ];
   // Line Manager Plus logo candidates (800x800 glyph box, classes from cover.js).
   const stops = (y = 680, xs = [160, 400, 640]) => `
     <rect class="ink" x="${xs[0] - 60}" y="${y - 20}" width="${xs[xs.length - 1] - xs[0] + 120}" height="40" rx="20"/>
@@ -135,6 +211,10 @@
   const ot = Square.MODS.find(m => m.id === 'square_organic_towns');
   const lmp = Square.MODS.find(m => m.id === 'square_line_manager_plus');
   Gallery.page({ current: 'options.html', sections: [
+    { title: 'Better Auto Vehicle Renamer', intro: 'Cover candidates A-F, each with its own accent and tagline. Pick one for <code>mods.js</code> (the entry there is provisional, candidate A, until then).',
+      items: BAVR_OPTIONS.map(o => ({
+        mod: { id: 'square_better_auto_vehicle_renamer', name: BAVR_NAME, tagline: o.tagline, accent: o.accent, glyph: o.glyph },
+        title: o.label, note: o.note })) },
     { title: 'Organic Towns: Cities that Grow', items: OT_OPTIONS.map(o => ({
       mod: { ...ot, glyph: o.glyph || ot.glyph }, title: o.label, note: o.note })) },
     { title: 'Line Manager Plus', items: LMP_OPTIONS.map(o => ({

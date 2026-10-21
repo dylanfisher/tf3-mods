@@ -1,0 +1,66 @@
+{
+    "name": "Better Auto Vehicle Renamer",
+    "summary": "Every vehicle gets a permanent fleet number, model and year, like B-0067 | Postbus ET 13 (1916).",
+    "description": "Every vehicle gets a permanent fleet number, its model name and the year it was bought, like a real operator's fleet register (B-0205 | Daimler Deck Seat Car (1934)). Sold vehicles retire their number, Replace keeps it, and names you typed yourself are left alone.",
+    "localization": {
+        "ru": {
+            "name": "Автопереименование транспорта",
+            "summary": "Постоянный номер в парке, модель и год покупки для всего транспорта: B-0067 | Postbus ET 13 (1916)."
+        },
+        "de": {
+            "name": "Bessere Fahrzeug-Umbenennung",
+            "summary": "Jedes Fahrzeug bekommt feste Flottennummer, Modell und Kaufjahr: B-0067 | Postbus ET 13 (1916)."
+        },
+        "fr": {
+            "name": "Renommage auto des véhicules",
+            "summary": "Numéro de flotte fixe, modèle et année d'achat pour chaque véhicule : B-0067 | Postbus ET 13 (1916)."
+        },
+        "es": {
+            "name": "Renombrado auto de vehículos",
+            "summary": "Número de flota fijo, modelo y año de compra para cada vehículo: B-0067 | Postbus ET 13 (1916)."
+        },
+        "it": {
+            "name": "Rinomina auto dei veicoli",
+            "summary": "Numero di flotta fisso, modello e anno di acquisto per ogni veicolo: B-0067 | Postbus ET 13 (1916)."
+        },
+        "nl": {
+            "name": "Voertuigen auto-hernoemen",
+            "summary": "Elk voertuig krijgt een vast vlootnummer, model en aankoopjaar: B-0067 | Postbus ET 13 (1916)."
+        },
+        "pl": {
+            "name": "Automatyczne nazwy pojazdów",
+            "summary": "Każdy pojazd dostaje stały numer taborowy, model i rok zakupu, np. B-0067 | Postbus ET 13 (1916)."
+        },
+        "pt_BR": {
+            "name": "Nomes automáticos de veículos",
+            "summary": "Número de frota fixo, modelo e ano de compra para cada veículo: B-0067 | Postbus ET 13 (1916)."
+        },
+        "ja": {
+            "name": "車両名の自動変更",
+            "summary": "すべての車両に固定の保有番号、モデル名、購入年を付けます（例：B-0067 | Postbus ET 13 (1916)）。"
+        },
+        "ko": {
+            "name": "차량 이름 자동 변경",
+            "summary": "모든 차량에 고정 번호, 모델 이름, 구매 연도를 붙입니다. 예: B-0067 | Postbus ET 13 (1916)"
+        },
+        "zh_CN": {
+            "name": "车辆自动命名",
+            "summary": "为每辆车赋予固定的车队编号、车型名称和购买年份，例如 B-0067 | Postbus ET 13 (1916)。"
+        },
+        "zh_TW": {
+            "name": "車輛自動命名",
+            "summary": "為每輛車賦予固定的車隊編號、車型名稱和購買年份，例如 B-0067 | Postbus ET 13 (1916)。"
+        }
+    },
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

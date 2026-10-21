@@ -246,6 +246,40 @@ Square.slides('square_line_manager_plus', [
                      { src: '08-redo-tooltip.jpg', crop: [208, 1540, 2760, 680] }] } },
 ]);
 
+Square.slides('square_better_auto_vehicle_renamer', [
+  // Captures 2026-10-20 (rev 1): window crops of the base Line Manager (not 5120 wide, hence srcW), default
+  // settings. The vehicle list (checkbox column to the vehicle pictures) sits at y ~930-1210 in each; the
+  // toolbar above it at y ~830-925. 01 buses, 02 ships (line CarWoo-FisLan-IC-1), 03 ships (Hay-FisLan-IC-1),
+  // 04 aircraft.
+  { title: 'Every vehicle numbered', sub: 'Fleet number, model and purchase year, in the base Line Manager',
+    // Only the vehicle list (toolbar to the last row), large: the slide reads as vehicle names, not line names
+    // (user 2026-10-20; an inset of the line list covered the names).
+    media: { src: '01-buses.jpg', srcW: 1568, crop: [110, 828, 1345, 382] } },
+  { title: 'One letter per type', sub: 'B buses, S ships, A aircraft; each type counts on its own',
+    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Buses: B', 'Ships: S', 'Aircraft: A'],
+             items: [{ src: '01-buses.jpg', srcW: 1568, crop: [128, 930, 1152, 278] },
+                     { src: '02-ships-ic.jpg', srcW: 1556, crop: [62, 915, 1152, 345] },
+                     { src: '04-aircraft.jpg', srcW: 1628, crop: [150, 963, 1152, 278] }] } },
+  { title: 'One count across all lines', sub: 'Ships on two lines share one S series; sold numbers are never reused',
+    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Ship line CarWoo-FisLan-IC-1', 'Ship line Hay-FisLan-IC-1'],
+             items: [{ src: '02-ships-ic.jpg', srcW: 1556, crop: [62, 915, 1152, 345] },
+                     { src: '03-ships-hay.jpg', srcW: 1572, crop: [135, 953, 1152, 276] }] } },
+  // Examples rendered by the mod's own Text.render / modelName / lineName (2026-10-20); update them when the
+  // naming code changes.
+  { title: 'Name it your way', sub: 'Format, prefix, separators, digits, counting, year and more in the mod settings',
+    media: { layout: 'table', col1: 36, head: ['Setting', 'Name'], rows: [
+      ['Default', 'B-0067 | Postbus ET 13 (1916)'],
+      ['Model + number', 'Postbus ET 13 | B-0067 (1916)'],
+      ['Line + number', 'Bus 12 | B-0067 (1916)'],
+      ['Counting per line', 'Bus 12 #03 | Postbus ET 13 (1916)'],
+      ['Short prefix, dot', 'Shp-0032 · Sternwheeler (1916)'],
+      ['Year first', '1918-0040 | Dunara Castle'],
+      ['3 digits, short model', 'B-205 | Deck Seat Car (1934)'],
+      ['Train length', 'L-0045 | 2-6-0 Mogul +4 (1911)'],
+      ['Mark past its lifespan', 'B-0067 | Postbus ET 13 (1916) *'],
+    ] } },
+]);
+
 Square.slides('square_names_us_washington', [
   { title: 'Real city streets', sub: 'Seattle stops get Pike, Pine & Union Street',
     media: { layout: 'inset', at: 'bl', insetW: 760,

@@ -397,6 +397,20 @@ Square.stateCover({
   id: 'square_names_us_hawaii', state: 'Hawaii', flag: 'us_hawaii.svg', flagAspect: 2.0, accent: '#D63384',
 });
 
+Square.register({
+  id: 'square_better_auto_vehicle_renamer', name: 'Better Auto Vehicle Renamer', tagline: 'Every vehicle gets its number', accent: '#C58B5C',
+  // Candidate B of options.html (user pick 2026-10-20): a bus seen from the side, its fleet number B-0205 painted on
+  // the body in a copper band (text: an exception to the "no text" rule, the number is the idea; README).
+  glyph: S => `<g transform="translate(0 50)">
+    <rect class="ink" x="20" y="170" width="760" height="400" rx="64"/>
+    ${[60, 200, 340, 480, 620].map(x => `<rect class="cut" x="${x}" y="215" width="${x === 620 ? 120 : 116}" height="130" rx="22"/>`).join('')}
+    <rect class="acc" x="60" y="368" width="470" height="104" rx="24"/>
+    <text class="m cutf" x="295" y="450" font-size="96" font-weight="700" text-anchor="middle">B-0205</text>
+    <circle class="ink sep" cx="190" cy="572" r="88"/><circle class="cut" cx="190" cy="572" r="34"/>
+    <circle class="ink sep" cx="610" cy="572" r="88"/><circle class="cut" cx="610" cy="572" r="34"/>
+    <rect class="ink" x="0" y="690" width="800" height="24" rx="12"/></g>`,
+});
+
 // Local SQ Opt forks (gitignored, never uploaded): fork-orange field instead of the teal. README "Local forks".
 Square.forkCover({
   id: 'square_opt_zhenya_auto_assign_terminals', name: 'SQ Opt: Auto Assign Terminals',

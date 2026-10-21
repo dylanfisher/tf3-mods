@@ -1,0 +1,290 @@
+{
+    "modId": "square_better_auto_vehicle_renamer",
+    "revision": 1,
+    "severityAdd": "None",
+    "severityRemove": "None",
+    "visible": true,
+    "cosmetic": false,
+    "params": [
+        {
+            "key": "bavr.format",
+            "name": "Name format",
+            "tooltip": "How a vehicle's name is put together. Line formats use the\nmodel instead for a vehicle without a line. Names are cut to\n50 characters by shortening the model, then the line, never\nthe number.",
+            "uiType": "ComboBox",
+            "values": [
+                "Model + number: Citaro B-0412",
+                "Number + model: B-0412 Citaro",
+                "Number only: B-0412",
+                "Model (number): Citaro (B-0412)",
+                "Line + number: Bus 12 · B-0412",
+                "Number + line: B-0412 · Bus 12",
+                "Model + line + number: Citaro · Bus 12 · B-0412"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "bavr.model",
+            "name": "Model name",
+            "tooltip": "Which part of the model name goes into the name. Short drops\nthe first word (often the maker) when there are two or more.",
+            "uiType": "ComboBox",
+            "values": [
+                "Full: Mercedes-Benz Citaro",
+                "Short: Citaro",
+                "First word: Mercedes-Benz",
+                "Up to 12 characters: Mercedes-Ben"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.prefix",
+            "name": "Type prefix",
+            "tooltip": "What stands before the fleet number. Letters: B bus, T\ntruck, R tram, L train, S ship, A aircraft, H helicopter.",
+            "uiType": "ComboBox",
+            "values": [
+                "Letter: B",
+                "Short word: Bus, Trk, Trn",
+                "Full word: Bus, Truck, Train",
+                "None: 0412"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.numSep",
+            "name": "Between prefix and number",
+            "tooltip": "The character between the type prefix and the fleet number.",
+            "uiType": "ComboBox",
+            "values": [
+                "Dash: B-0412",
+                "None: B0412",
+                "Space: B 0412",
+                "Dot: B.0412",
+                "Slash: B/0412"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.partSep",
+            "name": "Between name parts",
+            "tooltip": "What separates the model, the line and the number.\nAutomatic: a space after the model, a middle dot around a\nline name.",
+            "uiType": "ComboBox",
+            "values": [
+                "Automatic: Citaro B-0412, Bus 12 · B-0412",
+                "Middle dot: Citaro · B-0412",
+                "Dash: Citaro - B-0412",
+                "Bar: Citaro | B-0412",
+                "Comma: Citaro, B-0412"
+            ],
+            "defaultIndex": 3
+        },
+        {
+            "key": "bavr.digits",
+            "name": "Number digits",
+            "tooltip": "Numbers get leading zeros up to this many digits. Larger\nnumbers show all their digits.",
+            "uiType": "Button",
+            "values": [
+                "1: 7",
+                "2: 07",
+                "3: 007",
+                "4: 0007",
+                "5: 00007"
+            ],
+            "defaultIndex": 3
+        },
+        {
+            "key": "bavr.start",
+            "name": "First number",
+            "tooltip": "Where the counters start. Raising it later moves the\ncounters up; numbers already given stay as they are.",
+            "uiType": "Button",
+            "values": [
+                "1",
+                "100",
+                "1000"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.counter",
+            "name": "Counting",
+            "tooltip": "Per type: each type has its own counter. One for all: one\ncounter for every vehicle. Per model: each model counts on\nits own, and a replaced vehicle takes the next number of its\nnew model. Per line: after the line name, the vehicles of a\nline count 1, 2, 3 in the order they joined it; when one\nleaves, the ones behind it move up. Every vehicle keeps its\nfleet numbers, so switching never mixes them up.",
+            "uiType": "ComboBox",
+            "values": [
+                "Per type: B-0001, T-0001",
+                "One for all: B-0001, T-0002",
+                "Per model: Citaro 01, Urbino 01",
+                "Per line: Bus 12 #03"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.year",
+            "name": "Purchase year",
+            "tooltip": "Adds the year the vehicle was bought. Before the number, the\nyear takes the place of the type prefix.",
+            "uiType": "ComboBox",
+            "values": [
+                "Off",
+                "After the name: Citaro B-0412 (1925)",
+                "Before the number: Citaro 1925-0412"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "bavr.old",
+            "name": "Mark vehicles past their lifespan",
+            "tooltip": "Adds a mark at the end of the name of a vehicle that is\nolder than its model's lifespan. The mark goes away when the\nvehicle is replaced. The hourglass may show as a question\nmark in some game fonts: then pick the star or the word.",
+            "uiType": "ComboBox",
+            "values": [
+                "Off",
+                "Hourglass: B-0412 | Citaro ⌛",
+                "Star: B-0412 | Citaro *",
+                "Word: B-0412 | Citaro (old)"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.trainLen",
+            "name": "Train length",
+            "tooltip": "For trains: the number of wagons after the model name (parts\nwithout power; locomotives, power cars and powered cars of\nmultiple units are not counted), or the number of all units\nof the train.",
+            "uiType": "ComboBox",
+            "values": [
+                "Off",
+                "Wagons: L-0045 | Class 101 +8",
+                "All units: L-0045 | Class 101 ×9"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.lineName",
+            "name": "Line name in names",
+            "tooltip": "For the formats with a line: the whole line name, its first\n12 characters, or the first number in it (the whole name\nwhen it has none).",
+            "uiType": "ComboBox",
+            "values": [
+                "Full",
+                "Up to 12 characters",
+                "Line number only"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.takeOver",
+            "name": "Hand-typed names",
+            "tooltip": "Keep them: a name you typed yourself is never changed, and\nthe vehicle keeps its fleet number in the background. Clear\nthe name and it gets its fleet name again. Rename them too:\ntyped names are replaced as well.",
+            "uiType": "Button",
+            "values": [
+                "Keep them",
+                "Rename them too"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.renumberNext",
+            "name": "Number existing vehicles on next load",
+            "tooltip": "For a save where you chose Not now: Yes shows the welcome\nwindow again on the next load, so you can number the\nexisting vehicles, oldest first. Save your game first.\nOn a save where you chose Apply it does nothing: every\nvehicle is numbered already.",
+            "uiType": "Button",
+            "values": [
+                "No",
+                "Yes"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "bavr.speed",
+            "name": "Renaming speed",
+            "tooltip": "How many vehicles are renamed at most every 2 seconds of\ngame time. A large fleet is numbered over a few minutes.",
+            "uiType": "ComboBox",
+            "values": [
+                "Slow: 5 every 2 s",
+                "Normal: 10 every 2 s",
+                "Fast: 25 every 2 s"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "bavr.type.bus",
+            "name": "Buses",
+            "tooltip": "On: vehicles of this type get fleet numbers. Off: they keep\ntheir names.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "bavr.type.truck",
+            "name": "Trucks",
+            "tooltip": "On: vehicles of this type get fleet numbers. Off: they keep\ntheir names.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "bavr.type.tram",
+            "name": "Trams",
+            "tooltip": "On: vehicles of this type get fleet numbers. Off: they keep\ntheir names.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "bavr.type.train",
+            "name": "Trains",
+            "tooltip": "On: vehicles of this type get fleet numbers. Off: they keep\ntheir names.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "bavr.type.ship",
+            "name": "Ships",
+            "tooltip": "On: vehicles of this type get fleet numbers. Off: they keep\ntheir names.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "bavr.type.air",
+            "name": "Airplanes",
+            "tooltip": "On: vehicles of this type get fleet numbers. Off: they keep\ntheir names.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "bavr.type.heli",
+            "name": "Helicopters",
+            "tooltip": "On: vehicles of this type get fleet numbers. Off: they keep\ntheir names.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "sqperf_log",
+            "name": "Debug: performance log",
+            "tooltip": "Off: normal play. On: every 30 s, Better Auto Vehicle\nRenamer writes how long its renaming took to the game's log\nfile (stdout.txt, lines starting with [SQPERF]). Only for\ntracking down slowdowns; leave it Off otherwise. Slow calls\nare always logged briefly, whatever this setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        }
+    ]
+}

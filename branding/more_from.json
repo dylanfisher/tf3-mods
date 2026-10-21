@@ -13,7 +13,7 @@
       "title": "Lines and passengers",
       "style": "tiles",
       "mods": ["square_passenger_destinations", "square_line_manager_plus", "square_better_bus_overlay",
-               "square_bigger_line_dots", "square_no_factory_passengers"]
+               "square_bigger_line_dots", "square_no_factory_passengers", "square_better_auto_vehicle_renamer"]
     },
     {
       "title": "Industry and supply",
