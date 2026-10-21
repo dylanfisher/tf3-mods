@@ -40,7 +40,7 @@ Changelog: `mods/square_problem_radar/_metadata/description.html`.
   in fixed-width boxes (spin boxes in one line), the range on one line in a 190 px box, short labels with the full
   explanation in a wrapped tooltip (`hud_model.wrapTooltip`). Still 21 rules. Check round 2 (TESTING.md §0c).
   Revert both rounds: `git apply -R plans/square_problem_radar/main_window_native.patch`.
-- **Unreleased:** window position saved in `AppConfig.mainMenuState` (CSS `gravity` dropped so `initialX/Y` applies).
+- **Unreleased:** window position saved in the savegame's GUI save data (`api.gui.game.setGuiSaveData("square_problem_radar", { x, y })`, per savegame; first stored in the game settings, which mod.io's upload check rejects) (CSS `gravity` dropped so `initialX/Y` applies).
 
 ## Open work
 

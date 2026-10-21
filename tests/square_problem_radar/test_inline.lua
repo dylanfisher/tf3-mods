@@ -218,3 +218,12 @@ test("main window: settings cards, spin box, footer", function()
 	eq(line.size, { 1056, 1 })
 	eq(line.backgroundColor, { "BaseLight" })
 end)
+
+test("empty state on a platform whose base content_card lacks makeInfoHint (PS5 report 2026-10-19): guarded, no direct call", function()
+	local here = debug.getinfo(1, "S").source:match("^@(.*/)") or "tests/square_problem_radar/"
+	local fh = assert(io.open(here .. "../../mods/square_problem_radar/content/radar/gui/radar_hud.script.tl", "r"))
+	local code = fh:read("a"):gsub("%-%-[^\n]*", "")
+	fh:close()
+	ok(not code:find("content_card.makeInfoHint(", 1, true), "makeInfoHint only through infoHint")
+	ok(code:find("make is function", 1, true) and code:find("info-hint-comp", 1, true), "infoHint falls back to the base tree")
+end)

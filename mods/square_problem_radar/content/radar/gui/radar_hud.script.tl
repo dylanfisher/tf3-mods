@@ -238,6 +238,22 @@ local function vbox(children : {TreeNodeId}, class? : string) : TreeNodeId
 	}
 end
 
+-- The base info hint, when this platform has it. The PS5 build's content_card has no makeInfoHint (Smart Lanes player
+-- report 2026-10-19: "attempt to call field 'makeInfoHint' (a nil value)" reloaded the UI; docs/findings/gui.md
+-- "Base GUI modules differ by platform"): then the base hint's own tree (content_card.tl:479-497) without the icon
+-- image. Its base classes style it where they exist; plain text otherwise.
+local function infoHint(str : string) : TreeNodeId
+	local make = (content_card as {string : any}).makeInfoHint
+	if make is function(string, boolean) : TreeNodeId then
+		local ok, node = pcall(make, str, true)
+		if ok and node ~= nil then return node end
+	end
+	return builtin.Component{
+		meta = { class = "info-hint-comp" },
+		layout = hbox({ text(str, "font-scale-body, info-hint-text, no-icon") }),
+	}
+end
+
 --- "●" coloured by tier (radar_hud.css.lua: !radar-tier-0..3; 0 = no alerts, green).
 local function dot(tier : integer) : TreeNodeId
 	return text("●", "font-scale-body, radar-dot, radar-tier-" .. tostring(tier))
@@ -530,10 +546,10 @@ local function alertList(view : ProblemRadarHudView, tab : string) : TreeNodeId
 	fleetLabelText = "↑ " .. _("Upg") -- short for "Upgrade" (the fleet window)
 
 	if #rows == 0 and more == 0 then
-		-- Empty state: the base info hint (content_card.makeInfoHint: card surface tinted Info, wraps; base
+		-- Empty state: the base info hint (infoHint: content_card.makeInfoHint, card surface tinted Info, wraps; base
 		-- rules, none of ours) at the top of the tab.
 		local empty = tab == hud_model.SNOOZED_TAB and _("Nothing snoozed. Zz on a row hides it for a while.") or _("No problems detected")
-		return listArea({ content_card.makeInfoHint(empty, true) })
+		return listArea({ infoHint(empty) })
 	end
 	local children : {TreeNodeId} = {}
 	for i, row in ipairs(rows) do children[i] = alertRow(row, i % 2 == 1) end
@@ -921,13 +937,15 @@ local function snoozedFooter(count : integer) : TreeNodeId
 end
 
 ---------------------------------------------------------------------------
--- WINDOW POSITION: the window reopens where the player left it, also after a game restart.
+-- WINDOW POSITION: the window reopens where the player left it, also after loading the save.
 -- Same approach as Better Minimap's window (verified in game, docs/findings.md): getPosition() on the
 -- Window wrapper returns 0,0, so the content root's rect is read instead, and the window anchor
 -- (CSS anchorPoint {0.5, 0.55}, radar_hud.css.lua) = content top-left + a frame offset. The offset is
 -- measured once per window, before any move: then the anchor is still the initialX/Y we passed.
--- Stored in the game settings, not the save: AppConfig.mainMenuState is "filled by the UI scripts to
--- persist things" (type.d.tl); read-copy-write + saveAppConfig as Better Minimap's loadPrefs/writePrefs.
+-- Stored in the savegame's GUI save data (api.gui.game.getGuiSaveData / setGuiSaveData(modId, table),
+-- gui.d.tl:773-781), so it is per savegame and kept when the player saves; mod.io's upload check
+-- rejects mods writing the game settings save. setGuiSaveData replaces the mod's whole table, which holds
+-- only { x, y }. Same as Better Minimap's loadPrefs/writePrefs.
 -- Main thread (react.onStep); written once a moved position held still for one poll.
 
 local PREFS_KEY <const> = "square_problem_radar"
@@ -956,8 +974,7 @@ local function loadPos()
 	if posLoaded then return end
 	posLoaded = true
 	local ok, rawOrErr = pcall(function() : any
-		local mm = api.type.AppConfig.new(api.util.getAppConfig()).mainMenuState as {string : any}
-		return mm ~= nil and mm[PREFS_KEY] or nil
+		return api.gui.game.getGuiSaveData(PREFS_KEY) as any
 	end)
 	if not ok then posWarn("load", rawOrErr) return end
 	posX, posY = hud_model.readWindowPos(rawOrErr)
@@ -968,13 +985,7 @@ local function savePos(x : number, y : number)
 	-- Marked saved even on failure, so a broken API is warned about once, not retried every poll.
 	savedX, savedY = x, y
 	local ok, err = pcall(function() : any
-		local cfg = api.type.AppConfig.new(api.util.getAppConfig())
-		local t : {string : any} = {}
-		for k, v in pairs((cfg.mainMenuState or {}) as {string : any}) do t[k] = v end
-		t[PREFS_KEY] = { x = x, y = y }
-		cfg.mainMenuState = t
-		api.util.setAppConfig(cfg, false)
-		api.util.saveAppConfig()
+		api.gui.game.setGuiSaveData(PREFS_KEY, { x = x, y = y })
 		return nil
 	end)
 	if not ok then posWarn("save", err) end
