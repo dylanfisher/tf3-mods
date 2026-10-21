@@ -1,0 +1,16 @@
+{
+    "name": "DEV LMP Utilization Probe",
+    "summary": "DEV ONLY - NOT FOR UPLOAD. Tests hooks and sampling for an average Utilization cell.",
+    "description": "DEV ONLY - NOT FOR UPLOAD. Never publish this mod. Read-only probe for Line Manager Plus: tries several ways to add a marker to the Line Manager's Utilization cell, an always-mounted sampler host, and times a utilization pass over every line. Logs [LMPUTILPROBE] lines to stdout.txt. See plans/square_line_manager_plus/UTIL_PROBE.md.",
+    "authors": [
+        {
+            "name": "square",
+            "role": "CREATOR"
+        }
+    ],
+    "tags": [
+        "Script Mod"
+    ],
+    "dependencies": [],
+    "url": ""
+}

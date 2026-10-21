@@ -194,6 +194,14 @@ Square.slides('square_line_manager_plus', [
   // strip (y < 150) and top centre (x 1400-1660, y < 140): crops stay clear of both.
   { title: 'Every line, one hover away', sub: 'Hover a line on the map; Shift-click to manage it',
     media: { src: '01-map-hover-bus.jpg', crop: [2300, 880, 1960, 1260] } },
+  // 17-19 (rev 6, 2026-10-18): 1418/1414/1452 x ~2470 window captures (not 5120 wide, hence srcW), same UI scale as
+  // the 5K ones; the Line Manager's bottom stats row (cells y ~2300-2415), cropped to Capacity, Utilization and
+  // Frequency so the light-blue "avg ~51%" stays legible. Train below its 12-month average, ship above, bus below.
+  { title: 'Utilization, now and on average', sub: 'The past 12 months beside the live value',
+    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Train: quieter than usual', 'Ship: busier than usual', 'Bus: quieter than usual'],
+             items: [{ src: '17-utilization-avg-train.jpg', srcW: 1418, crop: [52, 2294, 845, 128] },
+                     { src: '18-utilization-avg-ship.jpg', srcW: 1414, crop: [42, 2292, 845, 128] },
+                     { src: '19-utilization-avg-bus.jpg', srcW: 1452, crop: [58, 2300, 845, 128] }] } },
   // 16 (rev 5, 2026-10-11): 5120x2880, a furniture truck line's vehicle list with the adaptive columns: a long
   // vehicle name runs up to the load, the picture column only as wide as the pictures. Line Manager x 205-1575; from
   // the line list to the line's stops (y 640-2150), both ends faded. Replaces 15 (rev 4's fixed columns).
@@ -206,25 +214,30 @@ Square.slides('square_line_manager_plus', [
     media: { layout: 'stack', gap: 28, labels: ['Hover its picture', 'Vehicle info'],
              items: [{ src: '14-vehicle-hover.jpg', crop: [205, 1080, 1360, 215] },
                      { src: '14-vehicle-hover.jpg', crop: [1595, 1222, 1165, 310] }] } },
-  // 10-13 (rev 3, 2026-10-11): 5120x2880, one Line Manager vehicle list per vehicle type; rows from y 1075, 68 px
-  // each, list x 225-1225 (names, cargo, the vehicle picture; the locate pins left out).
-  { title: 'Trucks, planes, trains', sub: 'Every carrier, every cargo, mixed loads too',
-    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Trucks', 'Planes', 'Train, two cargos', 'Log trucks'],
-             items: [{ src: '10-cargo-trucks.jpg', crop: [225, 1211, 1000, 340] },
-                     { src: '11-cargo-planes.jpg', crop: [225, 1075, 1000, 340] },
-                     { src: '12-cargo-train.jpg', crop: [225, 1075, 1000, 72] },
-                     { src: '13-cargo-logs.jpg', crop: [225, 1075, 1000, 205] }] } },
+  // 20/21 (rev 10, 2026-10-19): 5120x2880, the line panel's Buy Vehicles button and the store it opens, cargo filter
+  // already set: a bus line (passenger toggle) and a furniture truck line (furniture toggle). The store's cargo
+  // filter bar and the top of its vehicle list (x 1613-2944, y 512-1140).
+  // Replaces the rev 3 "Trucks, planes, trains" slide (10-13) to stay within the 9-slide cap.
+  { title: 'Buy the right vehicles', sub: "Buy Vehicles opens the store filtered to the line's cargo",
+    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Bus line: passengers', 'Truck line: furniture'],
+             items: [{ src: '20-buy-filter-bus.jpg', crop: [1613, 512, 1331, 628] },
+                     { src: '21-buy-filter-cargo.jpg', crop: [1613, 512, 1331, 628] }] } },
   { title: 'Hover any line in the list', sub: 'Its fleet and stats, right beside the Line Manager',
     media: { src: '02-list-row-hover.jpg', crop: [200, 200, 2580, 750] } },
-  { title: 'Know where you send', sub: 'Capacity, frequency and rate, before and after',
-    media: { src: '03-send-list-estimate.jpg', crop: [300, 1052, 2190, 830] } },
-  { title: 'Preview every send', sub: 'Hover the target line on the map: before and after',
-    media: { src: '04-send-map-estimate.jpg', crop: [1680, 820, 1980, 1280] } },
-  // 05: a 1538x616 close-up (current build: Match line rate first, Reverse greyed out on a 2-stop line).
-  { title: 'Duplicate, reverse, match', sub: 'One menu, next to Undo and Redo',
-    media: { src: '05-line-actions-menu.jpg', srcW: 1538, crop: [72, 36, 1346, 468] } },
-  { title: 'Match line rate', sub: 'Fleet sized to the cargo in reach, cheapest model marked',
-    media: { src: '06-rate-matcher.jpg', crop: [2156, 536, 2036, 1512] } },
+  // 03/04 merged (rev 6, 2026-10-18, gallery cap 9): the Send to Line list's estimate tooltip, then the same
+  // estimate hovering the target line on the map (04: tooltip x 2580-3550, y 1296-1566; Line Manager left of x 1600).
+  { title: 'Know where you send', sub: 'In the list or on the map: capacity, frequency and rate, before and after',
+    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Hover a line in the list', 'Or the line on the map'],
+             items: [{ src: '03-send-list-estimate.jpg', crop: [300, 1052, 2190, 830] },
+                     { src: '04-send-map-estimate.jpg', crop: [1640, 1060, 2190, 600] }] } },
+  // 05/06 merged (rev 6, 2026-10-18, gallery cap 9): the rate matcher window (06, cut below the current model's
+  // table, before Compare models), then the line menu it opens from (05: a 1310x670 close-up of the Auto-Rename-style
+  // menu, rev 10 2026-10-20: header card, Match line rate, Duplicate, Reverse, Duplicate + reverse). The stack aligns
+  // on the first item's width, so the wider window goes first.
+  { title: 'Match, duplicate, reverse', sub: 'Fleet sized to the cargo in reach, from one line menu',
+    media: { layout: 'stack', gap: 28, chips: 'after', labels: ['Match line rate', 'One menu, next to Undo and Redo'],
+             items: [{ src: '06-rate-matcher.jpg', crop: [2156, 536, 2036, 850] },
+                     { src: '05-line-actions-menu.jpg', srcW: 1310, crop: [0, 0, 1310, 670] }] } },
   // 07/08: same camera, 5 stops (Undo tooltip) and 3 stops after two Undos (Redo tooltip). Line editor panel
   // x 208-1576 from y 1620; the Undo tooltip runs to x 2140; stops 3 and 5 on the map at x 2730-2830, y 1580-1700.
   { title: 'Undo any stop edit', sub: 'Shift+click Undo reverts it all; Redo brings it back',

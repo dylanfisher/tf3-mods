@@ -108,6 +108,12 @@ local fakeEngine = {
 		calls.timing = { line, cargo }
 		return { cargo = cargo, section = 100, drive = 80, sections = 2, loadShare = 0.2 }
 	end,
+	emptyLineInput = function(line, cargo)
+		calls.emptyInput = { line, cargo }
+		local d = lineData[line]
+		if d and d.empty then return d.empty end
+		return nil, d and d.emptyWhy or "not_a_line"
+	end,
 	currentFor = function(info, pv) return info and { model = info.model, capacity = info.capacity, speed = info.speed, perVehicle = pv } end,
 	candidatesOf = function(cat)
 		local out = {}
@@ -129,6 +135,10 @@ local fakeCommands = {
 	end,
 	switchModel = function(plan, line, template, onDone)
 		calls[#calls + 1] = { "switch", plan.model, line, template, plan.count }
+		calls.onDone = onDone
+	end,
+	buyOntoLine = function(modelId, count, line, depot, onDone)
+		calls[#calls + 1] = { "buy", modelId, count, line, depot }
 		calls.onDone = onDone
 	end,
 	replaceViaWindow = function(ids, onClose)
@@ -153,7 +163,7 @@ local function fakeApi()
 			Vec4f = { new = function(...) return { ... } end },
 		},
 		engine = {
-			util = { getEntityName = function(e) return ({ [1] = "WC Logs", [3] = "Harbour Ferry" })[e] or "?" end },
+			util = { getEntityName = function(e) return ({ [1] = "WC Logs", [3] = "Harbour Ferry", [5] = "Fish Ferry" })[e] or "?" end },
 			entityExists = function(e) return lineData[e] ~= nil end,
 			config = { getModParams = function() return {} end },
 		},
@@ -518,6 +528,36 @@ test("gamepad (PS5): focusable content takes the focus on mount, d-pad scope, th
 	eq(#wa.windows, 0)
 end)
 
+test("a platform whose base react / gui_react_util lack the gamepad helpers (PS5 report 2026-10-19): renders, no error", function()
+	-- docs/findings/gui.md "Base GUI modules differ by platform" (Smart Lanes player report): the console build's base
+	-- GUI scripts lack functions the PC copies have. Without them: no back-button handler, no focus on mount, the
+	-- layout without the d-pad scope; the window still renders and Close still closes.
+	local saved = {}
+	for _, k in ipairs({ "useInputAction", "iaHandler", "useSelfRef", "onMount" }) do
+		saved[k] = fakeReact[k]
+		fakeReact[k] = nil
+	end
+	stub_module("::/gui/main/gui_react_util.tl", {})
+	reset_modules()
+	stub_module("::/gui/main/react.lua", fakeReact)
+	local okT, e = pcall(function()
+		rm = ug_require "square_line_manager_plus::/line_manager_plus/rate_matcher.lua"
+		actions = ug_require "square_line_manager_plus::/line_manager_plus/lmp_actions.lua"
+		window = ug_require "square_line_manager_plus::/line_manager_plus/rate_matcher_window.tl"
+		ok(rm.install({}, {}), "installed")
+		openWindow()
+		local tree = content().tree.p.children[1]
+		ok(tree.kind ~= "FocusTraversalScope", "no scope")
+		ok(buttonLabelled(tree, "Close") ~= nil, "the buttons render")
+		eq(next(inputActions), nil, "no back-button handler")
+		eq(#mounts, 0, "no focus on mount")
+		buttonLabelled(tree, "Close").p.onClick()
+		eq(window.isOpenFor(1), false)
+	end)
+	for k, v in pairs(saved) do fakeReact[k] = v end
+	if not okT then error(e, 0) end
+end)
+
 test("rows select by click anywhere or by their box; a re-render gives fresh row keys", function()
 	openWindow()
 	local plans, rows = tableWith(content(), "+1")
@@ -745,4 +785,127 @@ test("an expired lineState of a closed manager window is never read", function()
 	eq(wa.windows[1].params.title, "WC Logs")
 	eq(actions.menuView().hidden, true, "no menu for a closed manager")
 	eq(reads, 0)
+end)
+
+-- A fish ship line with no vehicles (2026-10-19): the estimate table instead of "no vehicles to copy", Apply buys the
+-- selected model onto the line, the check line once the line has a Rate. Route 6 km, line 124996's times: a 20-fish
+-- ship ≈ 29.2/yr, a 50-fish ship ≈ 72.9/yr; the fish farm makes 32/yr.
+local function fishLine()
+	lineData[5] = {
+		rate = 0,
+		vehicles = {},
+		supply = {
+			line = 5, passengerCargo = PASSENGER,
+			stops = {
+				{ stationGroup = 50, loads = set(LOGS), producers = { { stockList = 600, cargo = LOGS, maxPerYear = 32 } } },
+				{ stationGroup = 51, loads = set(), producers = {} },
+			},
+			otherLines = {},
+		},
+		empty = { line = 5, depot = 300, cargo = LOGS, distance = 6072, stops = 2, yearSeconds = 1460,
+			times = { carrier = "water", detour = 955.2 / (6072 / 8.3333), dwell = 22.9, n = 4, fallback = false },
+			catalogue = {
+				{ model = 7, name = "Small Ship", capacity = 20, speed = 8.3333, price = 1000, running = 600, capital = 100 },
+				{ model = 9, name = "Big Ship", capacity = 50, speed = 8.3333, price = 3000, running = 800, capital = 300 },
+			} },
+	}
+end
+
+test("empty line: estimate table, note, Apply buys the selected model onto the line, then the check log", function()
+	fishLine()
+	openWindow(managerParams(5))
+	eq(calls.emptyInput, { 5, LOGS }, "the estimate input is read for the line's cargo")
+	local c = content()
+	ok(not hasText(c, "This line has no vehicles to copy."))
+	ok(hasText(c, "Suggested vehicles (estimate)"))
+	ok(hasText(c, "Estimated from the route: 6.1 km round trip, 2 stops. Times from 4 other ship lines."))
+	eq(input(c).p.value, "32")
+	local dt, rows = tableWith(c, "Big Ship")
+	ok(dt ~= nil, "the estimate table")
+	eq(headersOf(dt), { " ", "Model", "Vehicles", "≈ Rate", "Price", "Cost/yr", "Cost per unit", " " })
+	eq(#rows, 2)
+	-- Small Ship 1 ≈ 29 (diff 2.8) before Big Ship 1 ≈ 73; per unit Small 700 / 29.2 = 24 vs Big 1100 / 72.9 = 15
+	eq({ cellText(rows[1], 2), cellText(rows[1], 3), cellText(rows[1], 4) }, { "Small Ship", "1", "≈ 29" })
+	eq({ cellText(rows[2], 2), cellText(rows[2], 3), cellText(rows[2], 4), cellText(rows[2], 5), cellText(rows[2], 8) },
+		{ "Big Ship", "1", "≈ 73", "$3000", "best" })
+	eq(selectedRow(rows), 2, "the lowest cost per unit is preselected")
+	ok(hasText(c, "Buys 1 new vehicle (Big Ship) for this line."))
+	eq(buttonLabelled(c, "Replace window"), nil, "nothing to replace")
+	eq(buttonLabelled(c, "Apply").p.meta.enabled, true)
+	-- pick the small ship
+	clickRow(rows[1])
+	c = content()
+	__, rows = tableWith(c, "Big Ship")
+	eq(selectedRow(rows), 1)
+	ok(hasText(c, "Buys 1 new vehicle (Small Ship) for this line."))
+	-- a higher target: more of them
+	input(c).p.onTyping("60")
+	c = content()
+	__, rows = tableWith(c, "Big Ship")
+	eq(cellText(rows[1], 3), "2")
+	ok(hasText(c, "Buys 2 new vehicles (Small Ship) for this line."))
+
+	buttonLabelled(c, "Apply").p.onClick()
+	eq(calls[1], { "buy", 7, 2, 5, 300 })
+	-- the vehicles arrive on the line
+	lineData[5].vehicles = { { id = 201, model = 7, capacities = { [LOGS] = 20 }, purchaseTime = 1, running = 600 },
+		{ id = 202, model = 7, capacities = { [LOGS] = 20 }, purchaseTime = 1, running = 600 } }
+	lineData[5].rate = 55
+	calls.onDone({ status = "ok", requested = 2, done = { 201, 202 }, bought = { 201, 202 }, replaced = {}, sold = {},
+		unassigned = {}, reasons = {} })
+	c = content()
+	ok(hasText(c, "Bought 2 vehicles for this line."))
+	eq(listCalls, { { 201, false }, { 202, false } }, "the Line Manager's list gets them")
+	T = T + 1100000
+	c = content()
+	ok(hasText(c, "55/yr"))
+	ok(tableWith(c, "+1") ~= nil, "now the fleet's own plans")
+	local checks = 0
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("empty estimate check line 5: predicted 58.34 (2 x model 7", 1, true) and e.msg:find("rate 55.00", 1, true) then
+			checks = checks + 1
+		end
+	end
+	eq(checks, 1, "one check line")
+	T = T + 2100000
+	content()
+	checks = 0
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("empty estimate check", 1, true) then checks = checks + 1 end
+	end
+	eq(checks, 1, "only once")
+	local estimateLogs = 0
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("empty estimate line 5 carrier water: 6072.00 m, 2 stops", 1, true) then estimateLogs = estimateLogs + 1 end
+	end
+	eq(estimateLogs, 1, "the estimate is logged once per read of the empty line")
+	eq(warnings(), 0)
+end)
+
+test("empty line without an estimate: the reason; target 0; a vehicle bought elsewhere switches the path", function()
+	fishLine()
+	lineData[5].empty, lineData[5].emptyWhy = nil, "no_depot"
+	openWindow(managerParams(5))
+	local c = content()
+	ok(hasText(c, "No estimate: no depot reaches this line."))
+	eq(buttonLabelled(c, "Apply").p.meta.enabled, false)
+
+	fishLine()
+	lineData[5].supply.stops[1].producers = {}
+	window.close()
+	openWindow(managerParams(5))
+	c = content()
+	eq(input(c).p.value, "0")
+	ok(hasText(c, "Type a target above 0 for a suggestion."))
+	ok(hasText(c, "Estimated from the route: 6.1 km round trip, 2 stops. Times from 4 other ship lines."))
+	eq(buttonLabelled(c, "Apply").p.meta.enabled, false)
+	-- the player buys a ship in the store: the live refresh reads the line fully (fleet path)
+	calls.emptyInput = nil
+	lineData[5].vehicles = { { id = 201, model = 7, capacities = { [LOGS] = 20 }, purchaseTime = 1, running = 600 } }
+	lineData[5].rate = 29
+	T = T + 2100000
+	c = content()
+	eq(calls.emptyInput, nil, "no estimate for a line with vehicles")
+	ok(hasText(c, "29/yr"))
+	ok(not hasText(c, "Suggested vehicles (estimate)"))
 end)

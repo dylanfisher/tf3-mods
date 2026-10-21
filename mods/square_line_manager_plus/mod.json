@@ -1,6 +1,6 @@
 {
     "modId": "square_line_manager_plus",
-    "revision": 8,
+    "revision": 11,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -127,6 +127,17 @@
             "key": "vehicle_list_hover_info",
             "name": "Vehicle list: vehicle info on hover",
             "tooltip": "On: in the Line Manager's vehicle list, hovering a vehicle's\npicture shows a panel next to the Line Manager with the\nvehicle's line, its parts (every locomotive and wagon of a\ntrain), top speed, power, weight, age, condition, running\ncosts, value and last year's balance. Off: the game's list\nonly.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "buy_vehicles_line_filter",
+            "name": "Buy Vehicles: filter by the line's cargo",
+            "tooltip": "On: Buy Vehicles for a selected line opens the vehicle store\nwith the line's cargo already ticked in its cargo filter\n(passengers for a bus line), when the line carries one cargo\ntype. Replace and Modify for vehicles of one line do the same.\nOff: the store opens unfiltered.",
             "uiType": "Button",
             "values": [
                 "Off",

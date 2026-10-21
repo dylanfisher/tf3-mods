@@ -169,6 +169,8 @@ end
 --- lifespans, per year; costYear = running + capital (the yearly cost of owning the fleet); perRate = costYear / rate
 --- (yearly cost per 1 of Rate per year). Each nil when unknown. suggested = the closest to the target (tie: fewer
 --- vehicles).
+--- fresh = true: an estimate for a line with no vehicles (model.estimatePlans): buy `count` new vehicles of `model`
+--- onto the line (commands.buyOntoLine); perVehicle / roundTrip = the estimate per vehicle (Rate per year, seconds).
 global record SquareRateMatcherPlan
 	model : integer
 	switch : boolean
@@ -187,6 +189,49 @@ global record SquareRateMatcherPlan
 	costYear : number
 	perRate : number
 	suggested : boolean
+	fresh : boolean
+	perVehicle : number
+	roundTrip : number
+end
+
+-- ======================================================================
+-- Empty line estimate (model.calibrate / model.estimatePlans; findings lines-vehicles.md "Line Rate formula")
+
+--- One other line of the same carrier with vehicles, for the calibration: distance = straight cyclic round trip
+--- through its stops (m), stops = their count, speed = top speed of its first vehicle's model (m/s), drive / section =
+--- sums of its LineCargoInfo driveSectionTimes / sectionTimes (s).
+global record SquareRateMatcherTimingSample
+	line : integer
+	distance : number
+	stops : integer
+	speed : number
+	drive : number
+	section : number
+end
+
+--- How a carrier's vehicles run: detour = driving time / (straight distance / top speed), dwell = seconds at each
+--- stop; n = the samples used (fallback = true: too few, the carrier's typical values). carrier = "water" | "road" |
+--- "tram" | "air" | "other".
+global record SquareRateMatcherTimes
+	carrier : string
+	detour : number
+	dwell : number
+	n : integer
+	fallback : boolean
+end
+
+--- What the estimate of an empty line needs (engine.emptyLineInput): the route (distance m, stops), the carrier's
+--- times, the buyable models (catalogue, for the cargo) and the default year in seconds (1460); depot = where they
+--- would be bought.
+global record SquareRateMatcherEmptyInput
+	line : integer
+	depot : integer
+	cargo : integer
+	distance : number
+	stops : integer
+	times : SquareRateMatcherTimes
+	catalogue : {SquareRateMatcherModelInfo}
+	yearSeconds : number
 end
 
 -- ======================================================================
@@ -235,6 +280,29 @@ global record SquareRateMatcherModel
 	switchPlans : function(modelId : integer, perVehicle : number, target : number, vehicles : {SquareRateMatcherVehicle}, costs : SquareRateMatcherModelCosts) : {SquareRateMatcherPlan}, string
 	--- Running cost per year of the vehicles on the line (not selling); nil when none is known.
 	fleetRunning : function(vehicles : {SquareRateMatcherVehicle}) : number
+
+	--- Empty line estimate: fallback times per carrier ("water", "road", "tram", "air", "other").
+	FALLBACK_TIMES : {string : SquareRateMatcherTimes}
+	--- Fewer valid samples than this: the carrier's fallback times.
+	MIN_SAMPLES : integer
+	DETOUR_MIN : number
+	DETOUR_MAX : number
+	DWELL_MAX : number
+	--- Median of the finite numbers in a list; nil when there are none.
+	median : function(list : {number}) : number
+	--- Straight cyclic round trip through the points ({x, y}, m); nil with fewer than 2 points or a bad one.
+	routeDistance : function(points : {{number}}) : number
+	--- The carrier's times from samples of other lines: medians of each sample's detour and dwell, clamped; the
+	--- fallback for fewer than MIN_SAMPLES valid samples.
+	calibrate : function(samples : {SquareRateMatcherTimingSample}, carrier : string) : SquareRateMatcherTimes
+	--- Round trip (s) = distance x detour / speed + stops x dwell; nil when it can't be estimated.
+	estimateRoundTrip : function(distance : number, stops : integer, speed : number, times : SquareRateMatcherTimes) : number
+	--- Rate per year of one vehicle = capacity x yearSeconds / roundTrip; nil when unknown.
+	estimatePerVehicle : function(capacity : number, roundTrip : number, yearSeconds : number) : number
+	--- Plans for an empty line: per buyable model the count nearest the target (floor / ceil, 1 .. MAX_MODEL_COUNT),
+	--- all bought new and costed; the TOP_MODELS closest to the target, then by cost per unit. suggested = the lowest
+	--- cost per unit (tie: closer to the target). Empty for a target <= 0 or nothing estimable.
+	estimatePlans : function(input : SquareRateMatcherEmptyInput, target : number, topN? : integer) : {SquareRateMatcherPlan}
 end
 
 -- ======================================================================
@@ -318,6 +386,32 @@ global record SquareRateMatcherEngine
 	lineTiming : function(line : integer, cargo : integer) : SquareRateMatcherLineTiming, string
 	currentFor : function(info : SquareRateMatcherModelInfo, perVehicle : number) : SquareRateMatcherCurrent
 	candidatesOf : function(catalogue : {SquareRateMatcherModelInfo}) : {SquareRateMatcherCandidate}
+
+	--- Empty line estimate. Lines scanned per calibration, samples that end the scan, stops read per line,
+	--- calibration cache life (game ms).
+	MAX_SCAN_LINES : integer
+	MAX_SAMPLES : integer
+	MAX_STOPS : integer
+	CALIBRATION_TTL_MS : integer
+	--- Model catalogue keys kept (carrier, modes, tags, cargo, year, year length, mission filter); all dropped when full.
+	MAX_CATALOGUE_KEYS : integer
+	--- Drops the catalogue and calibration caches (tests).
+	clearCaches : function()
+	clearCalibration : function()
+	--- "water" | "road" | "tram" | "air" | "rail" | "other" for a Carrier.
+	carrierKey : function(carrier : Carrier) : string
+	--- The default year in seconds (api.util.getDefaultYearDuration / 1000; 1460 when unknown).
+	yearSeconds : function() : number
+	--- {x, y} of each stop (at most MAX_STOPS): the station's construction position, else the station's bounding
+	--- box center; nil + "no_positions" when a stop has neither.
+	stopPositions : function(line : integer) : {{number}}, string
+	--- The carrier's times from up to MAX_SCAN_LINES other lines with single-part vehicles, at most MAX_SAMPLES
+	--- samples (cached per carrier for CALIBRATION_TTL_MS of game time).
+	calibration : function(carrier : Carrier, exceptLine? : integer) : SquareRateMatcherTimes
+	--- Everything the estimate of an empty line needs (the depot the line's Buy Vehicles button would use, its
+	--- carrier, modes and filter tags, the stops, the calibration, the catalogue); nil + "rail" | "no_depot" |
+	--- "no_positions" | "few_stops" | "no_cargo" | "no_models" | "read: ...".
+	emptyLineInput : function(line : integer, cargo : integer, opts? : SquareRateMatcherCatalogueOptions) : SquareRateMatcherEmptyInput, string
 end
 
 -- ======================================================================
@@ -358,6 +452,9 @@ global record SquareRateMatcherCommands
 	--- line (depot of `template`), sell plan.remove. All or nothing on money: nothing is sent unless the balance
 	--- covers the net cost (new price x (replaced + bought) - resale of the replaced).
 	switchModel : function(plan : SquareRateMatcherPlan, line : integer, template : integer, onDone? : function(SquareRateMatcherCommandResult), protected? : {integer : any}) : SquareRateMatcherCommandResult
+	--- Buys `count` new vehicles of `model` at `depot` (nil: line_util.getBestDepotForLine) and puts them on the line
+	--- (an empty line's estimate). All or nothing on money; result.bought / done = the new vehicles.
+	buyOntoLine : function(model : integer, count : integer, line : integer, depot : integer, onDone? : function(SquareRateMatcherCommandResult)) : SquareRateMatcherCommandResult
 	--- Opens the game's Replace Vehicles window (radar_fleet.tl replaceVehicles). false + reason when it fell
 	--- back to opening the vehicle manager with the vehicles selected (or nothing to do).
 	replaceViaWindow : function(vehicleIds : {integer}, onClose? : function()) : boolean, string
@@ -410,12 +507,18 @@ global record SquareRateMatcherBuildInput
 	catalogueWhy : string
 	infoOf : function(model : integer) : SquareRateMatcherModelInfo
 	clonePrice : integer
+	--- A line with no vehicles: the estimate's input (engine.emptyLineInput), or why there is none.
+	empty : SquareRateMatcherEmptyInput
+	emptyWhy : string
 end
 
 --- The popup for one target. status = the model's suggest status ("ok" fills the rest). models = the comparison
 --- table (fleet model first); modelsWhy = why no other model is listed (engine.modelCatalogue's reason, "protected",
 --- "none"; nil when some are); selectedModel = the active model row, plans = its plans, selected = the plan Apply
 --- runs. fleetRunning = the line's running cost per year now.
+--- A line with no vehicles: status "estimate" (models = the estimate's rows, one plan each, fresh), "estimate_target"
+--- (target 0), "estimate_none" (no model within MAX_MODEL_COUNT), or "no_vehicles" with emptyWhy (no estimate);
+--- empty = the estimate's input (route, times) for the note.
 global record SquareRateMatcherViewState
 	status : string
 	rate : number
@@ -433,6 +536,8 @@ global record SquareRateMatcherViewState
 	selectedModel : SquareRateMatcherModelRow
 	plans : {SquareRateMatcherPlan}
 	selected : SquareRateMatcherPlan
+	empty : SquareRateMatcherEmptyInput
+	emptyWhy : string
 end
 
 --- One cell of the window's stats row (as the Line Manager's Capacity / Utilization / ... row).
@@ -459,6 +564,8 @@ global record SquareRateMatcherView
 	--- The target box's text as a target: its digits only (nil when it has none), clamped.
 	parseTarget : function(text : string) : integer
 	build : function(data : SquareRateMatcherLineData, supply : SquareRateMatcherSupplyView, target : number, input : SquareRateMatcherBuildInput) : SquareRateMatcherViewState
+	--- build's part for a line with no vehicles (v already has rate, count, fleetRunning).
+	buildEmpty : function(v : SquareRateMatcherViewState, cargo : integer, target : number, input : SquareRateMatcherBuildInput) : SquareRateMatcherViewState
 	--- A model's plans: the one with `count`, else the suggested one, else the first.
 	pickPlan : function(plans : {SquareRateMatcherPlan}, count : integer) : SquareRateMatcherPlan
 	--- One line: "Rate 66/yr · 2 vehicles · 33 each · running $12,000/yr".
@@ -478,7 +585,9 @@ global record SquareRateMatcherView
 	planActionText : function(p : SquareRateMatcherPlan, modelName : string) : string
 	--- No-models hint for engine.modelCatalogue's reason ("multi_part", ...), "protected", or an empty ranking.
 	modelsHint : function(reason : string) : string
-	--- Message after Apply (kind "clone" | "sell" | "switch"), and whether it is an error.
+	--- The note under an empty line's estimate: route length, stops and where the times come from.
+	estimateNote : function(e : SquareRateMatcherEmptyInput) : string
+	--- Message after Apply (kind "clone" | "sell" | "switch" | "buy"), and whether it is an error.
 	resultText : function(kind : string, r : SquareRateMatcherCommandResult, modelName? : string) : string, boolean
 end
 

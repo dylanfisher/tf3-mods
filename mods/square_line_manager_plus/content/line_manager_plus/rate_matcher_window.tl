@@ -44,6 +44,14 @@
 -- its onBuy (vehicleManagerApi.addVehiclesToVehicleListAndSelect, manager_window.tl:5108-5117), Buy Vehicles in its
 -- buyCallback (:7154-7163). We do the same through commonParams.addOrRemoveVehicleToVehicleList (:7000-7017, the
 -- context's listAdd / listRemove) once the command callbacks are in, and again at the 1 s / 3 s re-reads.
+--
+-- A line with no vehicles (2026-10-19): fullLoad asks engine.emptyLineInput (depot, stops, calibration from the
+-- save's other lines, cached per carrier; catalogue) once per read (open, the re-reads after Apply, the line gaining or
+-- losing its last vehicle), never per render; the view then estimates per target (pure maths). The plan group shows
+-- the estimate table (the comparison's columns, "≈" rates) and a dim note on the route and where the times come from;
+-- Apply buys the selected row's vehicles onto the line (commands.buyOntoLine). Logs: "empty estimate line ..." per
+-- read, and "empty estimate check ..." once the bought vehicles give the line a Rate (the estimate's error, for
+-- the next in-game test).
 
 local react = ug_require "::/gui/main/react.lua" as React
 local builtin = ug_require "::/gui/main/builtin.lua" as Builtin
@@ -153,6 +161,14 @@ local record ListSync
 	remove : {integer}
 end
 
+-- what Apply bought onto an empty line, for the "empty estimate check" log line
+local record Prediction
+	rate : number
+	roundTrip : number
+	model : integer
+	count : integer
+end
+
 local record Session
 	line : integer
 	title : string
@@ -176,6 +192,9 @@ local record Session
 	refreshAt : {integer}
 	liveAt : integer
 	timingLogged : string
+	empty : SquareRateMatcherEmptyInput
+	emptyWhy : string
+	predicted : Prediction
 	tableEpoch : integer
 	gen : integer
 	mounted : boolean
@@ -198,6 +217,45 @@ local function setTarget(s : Session, t : integer, text? : string)
 	s.selectedCount = nil
 end
 
+local function f2(x : number) : string
+	if type(x) ~= "number" then return tostring(x) end
+	return string.format("%.2f", x)
+end
+
+-- one log line per read of an empty line: the route, the times and what the current target gives
+local function logEstimate(s : Session)
+	if s.empty == nil then
+		say("empty estimate line " .. tostring(s.line) .. ": none (" .. tostring(s.emptyWhy) .. ")")
+		return
+	end
+	local e = s.empty
+	local t = e.times or {} as SquareRateMatcherTimes
+	local msg = "empty estimate line " .. tostring(s.line) .. " carrier " .. tostring(t.carrier) .. ": " .. f2(e.distance)
+		.. " m, " .. tostring(e.stops) .. " stops, detour " .. f2(t.detour)
+		.. (t.fallback and (" (fallback, " .. tostring(t.n) .. " samples)") or (" (" .. tostring(t.n) .. " samples)"))
+		.. ", dwell " .. f2(t.dwell) .. " s; " .. tostring(#(e.catalogue or {})) .. " models, depot " .. tostring(e.depot)
+		.. ", target " .. tostring(s.target)
+	for __, p in ipairs(model.estimatePlans(e, s.target)) do
+		if p.suggested then
+			msg = msg .. "; model " .. tostring(p.model) .. " pv " .. f2(p.perVehicle) .. " count " .. tostring(p.count)
+				.. " rate " .. f2(p.rate) .. " round trip " .. f2(p.roundTrip) .. " s"
+		end
+	end
+	say(msg)
+end
+
+-- after Apply on an empty line: once the line has vehicles and a Rate, compare with the estimate (one line)
+local function checkPrediction(s : Session)
+	local pr = s.predicted
+	if pr == nil or s.data == nil or #activeIds(s.data) == 0 or (s.data.rate or 0) <= 0 then return end
+	s.predicted = nil
+	local timing = engine.lineTiming(s.line, s.supply ~= nil and s.supply.cargo or nil)
+	say("empty estimate check line " .. tostring(s.line) .. ": predicted " .. f2(pr.rate) .. " (" .. tostring(pr.count)
+		.. " x model " .. tostring(pr.model) .. ", round trip " .. f2(pr.roundTrip) .. " s), rate " .. f2(s.data.rate)
+		.. " with " .. tostring(#activeIds(s.data)) .. " vehicles, section times " .. tostring(timing ~= nil and timing.section or nil)
+		.. ", drive times " .. tostring(timing ~= nil and timing.drive or nil))
+end
+
 local function fullLoad(s : Session)
 	local ctx = context()
 	local data, err = engine.readLine(s.line, ctx ~= nil and ctx.protected or nil)
@@ -217,9 +275,18 @@ local function fullLoad(s : Session)
 				.. ", drive times " .. tostring(timing.drive) .. ", at stops " .. tostring(timing.loadShare)
 				.. ", maxFrequency " .. tostring(timing.maxFrequency)) or (": " .. tostring(terr))))
 		end
-		local cat, why = engine.modelCatalogue(activeIds(data), s.supply.cargo,
-			{ vehicleFilter = ctx ~= nil and ctx.vehicleFilter or nil })
-		s.catalogue, s.catalogueWhy = cat, why
+		local opts : SquareRateMatcherCatalogueOptions = { vehicleFilter = ctx ~= nil and ctx.vehicleFilter or nil }
+		if #activeIds(data) == 0 then
+			-- no vehicles: the estimate's input instead of the fleet's catalogue (see the header)
+			s.catalogue, s.catalogueWhy = nil, "no_vehicles"
+			s.empty, s.emptyWhy = engine.emptyLineInput(s.line, s.supply.cargo, opts)
+			logEstimate(s)
+		else
+			s.empty, s.emptyWhy = nil, nil
+			local cat, why = engine.modelCatalogue(activeIds(data), s.supply.cargo, opts)
+			s.catalogue, s.catalogueWhy = cat, why
+			checkPrediction(s)
+		end
 		s.priceCache = {}
 	else
 		if err ~= "not_a_line" then warnOnce("read", err) end
@@ -246,7 +313,13 @@ local function liveRefresh(s : Session)
 		return
 	end
 	if math.abs(rate - (s.data.rate or 0)) > 0.01 or not sameVehicles(vehicles, s.data.vehicles) then
+		local wasEmpty = #activeIds(s.data) == 0
 		s.data.rate, s.data.vehicles = rate, vehicles
+		if wasEmpty ~= (#activeIds(s.data) == 0) then
+			fullLoad(s) -- first vehicle bought or last one gone: the other path (estimate / fleet catalogue)
+			return
+		end
+		checkPrediction(s)
 		s.gen = s.gen + 1
 	end
 end
@@ -275,6 +348,8 @@ local function listChanges(kind : string, r : SquareRateMatcherCommandResult) : 
 	if r == nil then return out end
 	if kind == "clone" then
 		for __, v in ipairs(r.done or {}) do out.add[#out.add + 1] = v end
+	elseif kind == "buy" then
+		for __, v in ipairs(r.bought or {}) do out.add[#out.add + 1] = v end
 	elseif kind == "sell" then
 		for __, v in ipairs(r.done or {}) do out.remove[#out.remove + 1] = v end
 	elseif kind == "switch" then
@@ -688,13 +763,20 @@ end
 local function apply(s : Session, v : SquareRateMatcherViewState)
 	local p = v.selected
 	if p == nil or s.busy then return end
-	if not p.switch and p.delta == 0 then return end
+	if not p.switch and not p.fresh and p.delta == 0 then return end
 	local ctx = context()
 	s.busy = true
 	s.message, s.messageError = _("Working..."), false
 	s.gen = s.gen + 1
 	local name = v.selectedModel ~= nil and v.selectedModel.name or nil
-	if p.switch then
+	if p.fresh then
+		say("apply: buy " .. tostring(p.count) .. " of model " .. tostring(p.model) .. " onto empty line " .. tostring(s.line)
+			.. " (estimate rate " .. f2(p.rate) .. ")")
+		s.predicted = { rate = p.rate, roundTrip = p.roundTrip, model = p.model, count = p.count }
+		commands.buyOntoLine(p.model, p.count, s.line, s.empty ~= nil and s.empty.depot or nil, function(r : SquareRateMatcherCommandResult)
+			s.pending = { kind = "buy", result = r, modelName = name }
+		end)
+	elseif p.switch then
 		say("apply: switch line " .. tostring(s.line) .. " to model " .. tostring(p.model) .. ": replace "
 			.. tostring(#p.replace) .. ", buy " .. tostring(p.buy) .. ", sell " .. tostring(#p.remove))
 		commands.switchModel(p, s.line, v.templateVehicle, function(r : SquareRateMatcherCommandResult)
@@ -794,8 +876,41 @@ local function costCells(row : TableRow, first : integer, p : SquareRateMatcherP
 	row.tips[first + 2] = view.costTip(p, money)
 end
 
+-- An empty line: the estimate's rows (one per model, bought new) with the comparison's columns, and the note.
+local function estimateSection(s : Session, v : SquareRateMatcherViewState) : {TreeNodeId}
+	local out : {TreeNodeId} = { head(_("Suggested vehicles (estimate)")), vgap(GAP_S) }
+	if v.status == "estimate" then
+		local rows : {TableRow} = {}
+		for __, mrow in ipairs(v.models) do
+			local p = mrow.plan
+			local row : TableRow = {
+				cells = { [2] = view.modelName(mrow), [3] = tostring(p.count), [8] = mrow.best and _("best") or "" },
+				tips = { [8] = mrow.best and _("The lowest cost per unit\nin this comparison.") or nil },
+				tag = { [8] = true },
+				selected = v.selectedModel == mrow,
+				select = function()
+					if session == s then
+						s.selectedModel = mrow.model
+						s.gen = s.gen + 1
+					end
+				end,
+			}
+			costCells(row, 4, p)
+			row.cells[4] = "≈ " .. view.fmt(p.rate)
+			rows[#rows + 1] = row
+		end
+		out[#out + 1] = dataTable(s, "estimate", tableColumns(_("Model")), rows)
+	else
+		out[#out + 1] = text(view.statusText(v), st().dim)
+	end
+	out[#out + 1] = vgap(GAP_S)
+	out[#out + 1] = text(view.estimateNote(v.empty), st().dim)
+	return out
+end
+
 local function plansSection(s : Session, v : SquareRateMatcherViewState) : {TreeNodeId}
 	local out : {TreeNodeId} = {}
+	if v.empty ~= nil then return estimateSection(s, v) end
 	local status = view.statusText(v)
 	if v.status ~= "ok" then
 		out[#out + 1] = text(status, st().dim)
@@ -938,6 +1053,8 @@ local function renderSession(s : Session) : TreeNodeId
 		catalogue = s.catalogue,
 		catalogueWhy = s.catalogueWhy,
 		infoOf = function(m : integer) : SquareRateMatcherModelInfo return modelInfoFor(s, m, s.supply ~= nil and s.supply.cargo or nil) end,
+		empty = s.empty,
+		emptyWhy = s.emptyWhy,
 	}
 	-- The clone price belongs to the template vehicle, which only the build picks (independent of the price). Build
 	-- with the last template's cached price and build again only when the template's price differs (rarely), so a
@@ -982,7 +1099,8 @@ local function renderSession(s : Session) : TreeNodeId
 		children[#children + 1] = text(s.message, s.messageError and st().err or st().ok)
 	end
 	local p = v.selected
-	local canApply = not s.busy and v.status == "ok" and p ~= nil and (p.switch or p.delta ~= 0)
+	local canApply = not s.busy and p ~= nil and ((v.status == "ok" and (p.switch or p.delta ~= 0))
+		or (v.status == "estimate" and p.fresh and p.count > 0))
 	local action = view.planActionText(canApply and p or nil, selectedName(v))
 	if canApply then children[#children + 1] = text(action, st().dim) end
 	children[#children + 1] = vgap(GAP_S)
@@ -1021,13 +1139,20 @@ local RateMatcherContent = react.RegisterRecipe("SquareRateMatcherContent", func
 	liveState = state
 	-- Gamepad (PS5 report 2026-10-17: the window opened but took no input and couldn't be closed): as the base
 	-- popover (gui/main/popover_react_util.tl:8-15), the content is focusable (meta.forceFocusable, set by the
-	-- window), takes the focus when it mounts and closes on the back button (IA_MENU_BACK, Circle / B / Esc)
-	react.useInputAction("IA_MENU_BACK", react.iaHandler(function() M.close() end))
-	local selfRef = react.useSelfRef()
-	react.onMount(function()
-		local okFocus, err : boolean, any = pcall(function() selfRef:get():focus() end)
-		if not okFocus then warnOnce("focus", err) end
-	end)
+	-- window), takes the focus when it mounts and closes on the back button (IA_MENU_BACK, Circle / B / Esc).
+	-- Each piece only where this platform's react has it (PS5 report 2026-10-19, Smart Lanes; docs/findings/gui.md
+	-- "Base GUI modules differ by platform"); a platform check is constant, so the hooks are the same every render.
+	local r = react as {string : any}
+	if type(r.useInputAction) == "function" and type(r.iaHandler) == "function" then
+		react.useInputAction("IA_MENU_BACK", react.iaHandler(function() M.close() end))
+	end
+	if type(r.useSelfRef) == "function" and type(r.onMount) == "function" then
+		local selfRef = react.useSelfRef()
+		react.onMount(function()
+			local okFocus, err : boolean, any = pcall(function() selfRef:get():focus() end)
+			if not okFocus then warnOnce("focus", err) end
+		end)
+	end
 	local s = session
 	if s ~= nil then s.mounted = true end
 	local ok, root = pcall(function() : TreeNodeId
@@ -1044,8 +1169,12 @@ local RateMatcherContent = react.RegisterRecipe("SquareRateMatcherContent", func
 	end
 	-- d-pad moves the focus between the target box, the table's boxes and the buttons, as the base mission end
 	-- window (mission/mission_framework/mission_framework_react.tl:823-826); a child, since the recipe's root
-	-- must stay a layout (docs/findings/gui.md "Recipe child must be a layout")
-	return vbox({ gui_react_util.FocusTraversalScope{ horizontal = true, vertical = true, layout = root } })
+	-- must stay a layout (docs/findings/gui.md "Recipe child must be a layout"). Without the base scope (a platform
+	-- that lacks it, as above) the layout alone.
+	if type((gui_react_util as {string : any}).FocusTraversalScope) == "function" then
+		return vbox({ gui_react_util.FocusTraversalScope{ horizontal = true, vertical = true, layout = root } })
+	end
+	return vbox({ root })
 end)
 
 local record WindowParam

@@ -81,7 +81,7 @@ function M.install(_replacementApi, params)
 	end
 	if not actions.install() then return false end
 	window.setContextFn(context)
-	-- order 50: first in the menu, above Duplicate (100) and Reverse (200)
+	-- order 50: first in the menu, above Duplicate (100), Reverse (200) and Duplicate + reverse (300)
 	actions.register({
 		id = "rate_matcher", order = 50, label = "Match line rate", icon = window.ICON, -- i18n: keys label
 		view = function(_ctx)

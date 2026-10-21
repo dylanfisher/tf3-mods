@@ -1,5 +1,5 @@
 -- Line Manager Plus, feature "Line actions: Duplicate and Reverse line" (PLAN.md feature 4, setting line_actions):
--- two entries in the "Line actions" menu (lmp_actions.lua, the toolbar button right of A+). Installed by
+-- three entries in the "Line actions" menu (lmp_actions.lua, the toolbar button right of A+). Installed by
 -- lmp.script.lua (doReplace) through install() below. GUI code only; the result is ordinary vanilla line data.
 --
 -- Duplicate line: one makeLineCreateCmd (api/tealdef/api/cmd.d.tl:760-767), as the editor creates a line
@@ -19,9 +19,14 @@
 -- edit, so the reverse is one Undo step ("stops reordered") with no extra code here; with the undo feature Off the
 -- reverse still works. The editor's mode is reset first (lmp_capture.resetEditorMode), as undo does.
 --
+-- Duplicate + reverse line (orders: Match line rate 50, Duplicate 100, Reverse 200, this 300): one makeLineCreateCmd
+-- with the reversed stops (M.reversed on the snapshot: stop 1 first, waypoints moved, engine terminals for the new
+-- direction asked of the original line), named and coloured as Duplicate, selected on success. Guards of both
+-- (blockReason + the 3-stop reason; a mirror-image route sends nothing). The original line is untouched.
+--
 -- Guards (each entry's view, shown as a disabled entry with the reason as tooltip): fewer than 2 stops, a stop whose
 -- station is gone, a command of ours still in flight (max BUSY_US). lmp_actions shows the menu only for exactly one
--- selected, edited, unprotected line. Both commands are atomic: the game applies the whole line or refuses it
+-- selected, edited, unprotected line. Every command is atomic: the game applies the whole line or refuses it
 -- (callback success false → a translated feedback line), so a line is never half edited.
 --
 -- Save safety: nothing of ours is stored. A duplicated or reversed line is plain vanilla data that stays valid without
@@ -219,6 +224,47 @@ function M.reverse(ctx)
 	end)
 end
 
+-- Duplicate + reverse ---------------------------------------------------------------------------------------------
+
+--- A reversed copy in one makeLineCreateCmd: the reverse's stops and terminals (M.reversed, asked of the original
+--- line) with the duplicate's name, new colour and selection. Nothing changes on the original line, so the editor's
+--- mode stays. The same guards as both: blockReason, the 3-stop reason, and a mirror-image route gives the reverse's
+--- feedback and no command (the "reversed" copy would be a plain copy).
+function M.duplicateReversed(ctx)
+	local comp = checkedLine(ctx)
+	if not comp then return end
+	local params, line = ctx.params, ctx.line
+	local reason = reverseReason(comp)
+	if reason then
+		actions.feedback(params, _(reason), false) -- i18n: ignore
+		return
+	end
+	local rev, snap = M.reversed(line, comp)
+	if undo_core.equal(rev, snap) then
+		actions.feedback(params, _("Line Manager Plus: this line visits the same stops in both directions, so reversing doesn't change it."), false)
+		return
+	end
+	local player = api.engine.util.getPlayer()
+	local name = M.copyName(line, player)
+	local color = line_util.makeLineColor(player)
+	local built = undo_core.build(rev, api.type)
+	busy = { since = now(), kind = "duplicate reversed" }
+	api.cmd.sendCommand(api.cmd.makeLineCreateCmd(name, color, player, built), function(_result, success, resultEntities)
+		local ok, err = pcall(function()
+			busy = nil
+			if success then
+				local newLine = resultEntities and resultEntities[1] and resultEntities[1][1]
+				say("duplicated line " .. tostring(line) .. " reversed as " .. tostring(newLine) .. " (" .. #rev.stops
+					.. " stops)")
+				selectNewLine(params, newLine)
+			else
+				actions.feedback(params, _("Line Manager Plus: the game refused the new line."), true)
+			end
+		end)
+		if not ok then warnOnce("duplicate reversed callback", err) end
+	end)
+end
+
 -- Install ----------------------------------------------------------------------------------------------------------
 local installed = false
 
@@ -242,6 +288,15 @@ function M.install(_replacementApi, _params)
 				reverseReason)
 		end,
 		run = M.reverse,
+	})
+	actions.register({
+		id = "duplicate_reversed", order = 300, label = "Duplicate + reverse line", icon = ICON_DUPLICATE, -- i18n: keys label
+		view = function(ctx)
+			return entryView(ctx,
+				_("A new line with the stops in the opposite order (stop 1 first),\na new color and no vehicles."),
+				reverseReason)
+		end,
+		run = M.duplicateReversed,
 	})
 	installed = true
 	say("installed")

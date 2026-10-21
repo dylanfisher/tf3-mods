@@ -18,6 +18,12 @@
 --     (icon, fill/capacity) between its name and its picture.
 --   * "vehicle_list_hover_info" (vehicle_hover.lua): hovering a vehicle's picture in the vehicle list shows the
 --     vehicle's info block outside the window (line, parts by model, speed, power, age, condition, costs).
+--   * "buy_vehicles_line_filter" (buy_line_filter.lua): Buy Vehicles for a selected line that carries one cargo type
+--     opens the vehicle store with that cargo ticked in its cargo filter.
+-- Always on, no setting: the vehicle list's name column width (vehicle_columns.lua) and the Line Manager's "Show Only
+-- Visible Lines" remembered with the savegame, followed by the Send to Line popover (lmp_visible.lua), and the line's
+-- average utilization over the last 12 game months beside the Utilization value (lmp_util_avg.lua, sampled by the
+-- always-mounted lmp_util_host.res.lua plugin).
 -- Each feature has its own mod setting (values {"Off", "On"}, default On) and its own module, required and
 -- installed in its own pcall: a feature that fails to load or install is logged once and never stops the others.
 -- Features that need the manager's commonParams or a button next to A+ use the shared groundwork instead of wrapping
@@ -93,6 +99,8 @@ local FEATURES = {
 		module = "square_line_manager_plus::/line_manager_plus/vehicle_cargo.lua" },
 	{ key = "vehicle_list_hover_info", name = "vehicle hover",
 		module = "square_line_manager_plus::/line_manager_plus/vehicle_hover.lua" },
+	{ key = "buy_vehicles_line_filter", name = "buy filter",
+		module = "square_line_manager_plus::/line_manager_plus/buy_line_filter.lua" },
 }
 
 -- per feature key: "installed" | "off" | "stood down" | "not installed" | "failed"
@@ -136,6 +144,19 @@ local function doReplace(replacementApi)
 		ug_require("square_line_manager_plus::/line_manager_plus/vehicle_columns.lua").install(replacementApi)
 	end)
 	if not okCols then warnOnce("vehicle columns", errCols) end
+	-- no setting: the Line Manager's "Show Only Visible Lines" remembered with the savegame, followed by the Send to
+	-- Line popover (lmp_visible.lua). After the features, so its popover wrapper is outside stl_list.lua's and hands
+	-- it the adjusted params.
+	local okVis, errVis = pcall(function()
+		ug_require("square_line_manager_plus::/line_manager_plus/lmp_visible.lua").install(replacementApi)
+	end)
+	if not okVis then warnOnce("visible lines", errVis) end
+	-- no setting: the Utilization cell of the bottom statistics row also shows the line's 12-month average
+	-- (lmp_util_avg.lua; sampled by the lmp_util_host.res.lua plugin). Wraps module fields no feature wraps.
+	local okAvg, errAvg = pcall(function()
+		ug_require("square_line_manager_plus::/line_manager_plus/lmp_util_avg.lua").install(replacementApi)
+	end)
+	if not okAvg then warnOnce("average utilization", errAvg) end
 	perf:phase("install", t0)
 end
 

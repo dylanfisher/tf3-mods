@@ -4,8 +4,8 @@ Status: rev 5 (2026-10-11). Phases 1-5 and Shift-click: user "looks good" 2026-1
 sections stay as the regression checklist. Record results under "Results" (date, build, language) and move confirmed
 game facts to `docs/findings.md`. Passed one-off checks and old results: HISTORY.md.
 
-Open checks (not yet run in game): "Phase 2: line list, line info on hover" (rework), "Expired line state", "Line Rate
-Matcher", "Map: line info on hover". The vehicle list features of revs 3-5 have no section yet (PLAN.md "Open work").
+Open checks (not yet run in game): "Line actions menu: Auto-Rename look, Duplicate + reverse" (2026-10-20), "Phase 2: line list, line info on hover" (rework), "Expired line state", "Line Rate
+Matcher", "Match line rate: a line with no vehicles", "Map: line info on hover". The vehicle list features of revs 3-5 have no section yet (PLAN.md "Open work").
 
 ## Setup
 
@@ -237,6 +237,28 @@ mouse-transparent. Unverified in game: that the overlay draws above the popover 
       translated.
 - [ ] No `[LineManagerPlus] list info:` warnings during the session.
 
+## Line actions menu: Auto-Rename look, Duplicate + reverse (2026-10-20, not yet run)
+
+Code: `lmp_actions.lua` (header), `lmp.css.lua` (3 menu rules), `line_ops.lua` (duplicateReversed). Mod rules 25 -> 27.
+
+- [ ] **Side by side with Auto-Rename:** open A+'s popover, then ours (same anchor): the same header card (rounded
+      lighter panel, title in the headline font, same height and inset), the same row look (blue tint, no outline,
+      same insets between rows and to the popover edge), icon left and text left-aligned like A+'s rows. Note any
+      difference (screenshot both).
+- [ ] The header card spans the menu's width (base class `horizontal-spacer`). If it stays as narrow as its title,
+      or the row content is centred instead of left-aligned, the spacer class lost to a base rule: note it (fallback:
+      a rule `R::SquareLmpLineActionsMenu Button > *` gravity 0/-1 as the base, 28 rules).
+- [ ] Hover a row: brighter blue (AccentLight), no outline. Press and hold: the darker pressed blue, no outline.
+- [ ] Disabled rows (a 2-stop line: Reverse and Duplicate + reverse; a command in flight: all): text and icon grey, a
+      grey wash instead of the blue; the tooltip still gives the reason. Hover a disabled row: note whether it lights
+      up (a hover on a disabled Button may still match the `:hover` rule).
+- [ ] Order: Match line rate, Duplicate line, Reverse line, Duplicate + reverse line. German / Russian: the longest
+      label fits on one line and every row is equally wide.
+- [ ] **Duplicate + reverse** a bus line of 4+ stops: a new line "<name> (copy)" with a new color, stop 1 first and the
+      rest backwards, terminals on the other side of the street where the engine picks them; the Line Manager selects
+      it; the original line is unchanged (stops, terminals, vehicles). Log `[LineManagerPlus] line ops: duplicated line
+      N reversed as M (K stops)`. A mirror route (A, B, C, B): the "same stops" message, no new line.
+
 ## Phase 5: Line actions, Duplicate and Reverse line (2026-10-10; 2026-10-11 user: looks good)
 
 Setting **Line editor: Line actions button** (`line_actions`, default On). Expect at GUI start
@@ -351,6 +373,38 @@ class handling; the two right-aligned rules; `getLineCargoInfo` section vs drive
 `makeVehicleReplaceCmd` switches and money checks (a 2026-10-11 switch of 3 replaced + 3 bought logged `failed 0/6`,
 probably the all-or-nothing money check).
 
+## Match line rate: a line with no vehicles (2026-10-19, not yet run)
+
+Apply buys vehicles: use a test save. Log filter `LineManagerPlus`: `empty estimate line L carrier C: D m, S stops,
+detour X (n samples), dwell Y s; ... model M pv P count K rate R round trip T s` on every read of an empty line, then
+`apply: buy K of model M onto empty line L`, `buy charged: ...`, and once the line has a Rate
+`empty estimate check line L: predicted R (...), rate Y with K vehicles, section times ..., drive times ...`.
+
+- [ ] Create a ship line (e.g. a fish farm to a food plant) without vehicles, Match line rate: target = the supply
+      ("Fish in reach: up to 32/yr"); instead of "This line has no vehicles to copy." a table "Suggested vehicles
+      (estimate)" with ship models, the vehicles each needs, "≈ N" rates, Price, Cost/yr, Cost per unit, one row
+      checked and "best"; below it "Estimated from the route: X km round trip, 2 stops. Times from N other ship
+      lines." (or "Typical ship times." with fewer than 3 ship lines). Apply line: "Buys K new vehicles (Model) for
+      this line." Same widths as the Compare models table; nothing cut off in de / ru.
+- [ ] Click another row, type another target: counts and the Apply line follow.
+- [ ] Apply: the ships are bought at the depot the line's Buy Vehicles button would use and drive the line; "Bought K
+      vehicles for this line."; they appear in the Line Manager's vehicle list; after 1-3 s the window shows the
+      normal fleet view (Rate, options table, Compare models). `buy charged` = K x the store price.
+- [ ] **Accuracy**: paste the `empty estimate line` and `empty estimate check` lines (the check may come a few seconds
+      later, while the window stays open). Predicted vs real Rate within ~20 % is the aim; also compare after a few
+      game months (the real Rate settles once the ships have run the route).
+- [ ] The same for a bus or truck line (road times; curbside stops: the estimate still appears) and, if you have one,
+      an air line.
+- [ ] A train line without trains: "No estimate for a train line without trains: ...", Apply disabled. A line whose
+      depot is unreachable: "No estimate: no depot reaches this line." Target 0 (e.g. a passenger line): "Type a
+      target above 0 for a suggestion."
+- [ ] Not enough money: "Not enough money for these vehicles.", nothing bought.
+- [ ] Performance: opening the window on an empty line in a save with many lines does not stutter (SQPERF
+      `rate_matcher_click`; inside it `rate_matcher_empty`, and on a cache miss `rate_matcher_catalogue` (the walk
+      over every vehicle model) and `rate_matcher_calibration` (the scan of up to 200 lines, ending at 40 samples));
+      typing a target stays smooth. Re-opening the same line or the 1 s / 3 s re-reads after Apply add no new
+      `rate_matcher_catalogue` / `rate_matcher_calibration` calls (cached; calibration for 3 game minutes).
+
 ## Map: Shift-click a line (moved from Passenger Destinations, 2026-10-11; 2026-10-11 user: ready after two games)
 
 Ported from plans/square_passenger_destinations/TESTING.md F.8 and F.11 (passed there 2026-10-11). Expect at GUI start
@@ -393,6 +447,28 @@ Send to Line), hover lines on the map.
       `[LineManagerPlus] map hover: off (mod setting)`. With **Send to Line: target line info** Off and this On, the
       map hover still shows the block.
 - [ ] A long translated text (de/ru) and CJK: the block wraps within the tooltip's max width.
+
+## Buy Vehicles: line's cargo filter (2026-10-19; user: bus and truck lines look good)
+
+Expect at GUI start `[LineManagerPlus] buy filter: installed`. Select one line in the Line Manager, click
+**Buy Vehicles** (bottom right of the line panel).
+
+- [x] Bus line with passengers only: the store opens with the passenger toggle pressed and only passenger buses
+      listed. Unticking it shows everything.
+- [x] Truck line with one cargo (e.g. coal): that cargo's toggle pressed (furniture, 2026-10-19). A universal-truck line whose cargo icons
+      show several types: unfiltered.
+- [ ] Train line with one cargo: Locomotive tab unfiltered (no cargo bar), Wagon and Multiple Unit tabs have the
+      cargo ticked; untick on Wagon, switch to Multiple Unit: stays unticked.
+- [ ] Buy Vehicles on a line with no vehicles that loads one cargo (e.g. a fish ship line): the store opens with that
+      cargo ticked. Several lines selected (button opens a depot): unfiltered.
+- [ ] Replace (Line Manager toolbar, all or some vehicles of a one-cargo line, e.g. fish ships): the store opens with
+      that cargo ticked; the same from a vehicle's own window (Replace, Modify). Vehicles of two lines selected:
+      unfiltered.
+- [ ] Clicking Buy Vehicles twice (closes the store), then opening a store from a depot's own window or the depot
+      list cart button: unfiltered.
+- [ ] Replace / Modify from a vehicle window: unfiltered.
+- [ ] Setting **Buy Vehicles: filter by the line's cargo** Off (on load): store unfiltered; log
+      `[LineManagerPlus] buy filter: off (mod setting)`.
 
 ## Results
 

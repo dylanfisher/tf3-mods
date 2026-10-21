@@ -780,3 +780,254 @@ test("stale ids: no findBest on a gone template, no set line for a vanished clon
 	eq(kinds(), { "replace" }); eq(r.replaced, { 100 }); eq(r.reasons, { gone = 1 })
 	api.cmd.sendCommand = send
 end)
+
+-- empty line estimate ---------------------------------------------------------------------------
+-- Empty ship line 54 (groups 64 / 65, stations 74 / 75): station 74 has a construction at (0, 0); station 75 is a
+-- curbside-like station without one, bounding box centred on (3000, 4000). Round trip 10 km.
+local function emptyScene()
+	W.player = 2
+	comp(54, "LINE", { stops = {
+		{ stationGroup = 64, station = 0, terminal = 0, stopConfig = { load = idvec({ [LOGS] = true }) } },
+		{ stationGroup = 65, station = 0, terminal = 0, stopConfig = { load = idvec({}) } },
+	} })
+	comp(64, "STATION_GROUP", { stations = { 74 } })
+	comp(65, "STATION_GROUP", { stations = { 75 } })
+	comp(74, "STATION", {})
+	comp(75, "STATION", {})
+	comp(75, "BOUNDING_VOLUME", { bbox = { min = { x = 2990, y = 3990 }, max = { x = 3010, y = 4010 } } })
+	W.construction[74] = 94
+	comp(94, "CONSTRUCTION", { transf = { getTransl = function() return { x = 0, y = 0, z = 5 } end } })
+	comp(300, "VEHICLE_DEPOT", {})
+	W.depotForLine = { [54] = 300 }
+	W.depotCarrier = { [300] = WATER }
+	W.depotModes = { [300] = { [SHIP] = true } }
+	W.depotTags = { [300] = { "default" } }
+	W.playerLines = { 50, 54 }
+	W.lineModes = {}
+	-- line 50 (two log ships, model 1, 10 m/s): stops at groups 60 / 61 / 60 (stations 70 / 71): give them positions
+	comp(70, "STATION", {}); comp(71, "STATION", {})
+	comp(70, "BOUNDING_VOLUME", { bbox = { min = { x = 0, y = 0 }, max = { x = 0, y = 0 } } })
+	comp(71, "BOUNDING_VOLUME", { bbox = { min = { x = 0, y = 1000 }, max = { x = 0, y = 1000 } } })
+	W.construction[71] = -1
+	stub_module("::/gui/line_vehicle_mgmt/line_util.tl", {
+		getBestDepotForLine = function(l) return W.depotForLine[l] or -1 end,
+	})
+	stub_module("::/gui/line_vehicle_mgmt/vehicle_store_util.tl", {
+		getDepotFilterTags = function(d) return W.depotTags[d] or {} end,
+	})
+	fakeVehicleUtil.getDepotCarrier = function(d) return W.depotCarrier[d] end
+	fakeVehicleUtil.getDepotTransportModes = function(d) return W.depotModes[d] or {} end
+	api.engine.system.lineSystem.getLinesForPlayer = function(p)
+		W.linesAskedFor = p
+		return W.playerLines
+	end
+	api.engine.util.line.getLineTransportModesUnion = function(l) return W.lineModes[l] or {} end
+	api.type.enum.TransportMode = { TRAIN = "TRAIN", ELECTRIC_TRAIN = "ELECTRIC_TRAIN" }
+	api.type.ComponentType = names()
+end
+
+test("stopPositions: construction position, else the station's bounding box; missing stations refuse", function()
+	emptyScene()
+	local pts = engine.stopPositions(54)
+	eq(pts, { { 0, 0 }, { 3000, 4000 } })
+	eq(model.routeDistance(pts), 10000)
+	-- a station with neither: no positions
+	W.comps[75].BOUNDING_VOLUME = nil
+	eq({ engine.stopPositions(54) }, { nil, "no_positions" })
+	W.comps[75] = nil
+	eq({ engine.stopPositions(54) }, { nil, "no_positions" }, "a gone station is never asked about")
+	eq({ engine.stopPositions(4040) }, { nil, "not_a_line" })
+	comp(55, "LINE", { stops = { { stationGroup = 64, station = 0 } } })
+	eq({ engine.stopPositions(55) }, { nil, "few_stops" })
+end)
+
+test("calibration: samples of the carrier's other lines, single-part only, cached for a while; fallback", function()
+	emptyScene()
+	-- line 50: 3 stops at (0,0), (0,1000), (0,0): 2 km; its ships at 10 m/s; Σ drive 300 s, Σ section 360 s
+	W.cargoInfo = { sectionTimes = { 180, 180 }, driveSectionTimes = { 150, 150 } }
+	local t = engine.calibration(WATER, 54)
+	eq({ t.fallback, t.n, t.carrier, t.detour, t.dwell }, { true, 1, "water", 1.5, 25 }, "one sample: fallback")
+	eq(W.linesAskedFor, 2)
+	eq(W.cargoInfoAsked, { 50, LOGS }, "the cargo the line's vehicle carries and loads")
+	-- three lines like line 50: their medians (detour 300 / (2000 / 10) = 1.5, dwell 60 / 3 = 20)
+	for _, l in ipairs({ 56, 57 }) do
+		comp(l, "LINE", W.comps[50].LINE)
+		W.lineVehicles[l] = { 100 }
+	end
+	W.playerLines = { 50, 54, 56, 57 }
+	eq(engine.calibration(WATER, 54).fallback, true, "cached")
+	W.comps[1].GAME_TIME.gameTime = W.gameTime + engine.CALIBRATION_TTL_MS
+	t = engine.calibration(WATER, 54)
+	eq({ t.fallback, t.n }, { false, 3 })
+	near(t.detour, 1.5, 1e-9); near(t.dwell, 20, 1e-9)
+	-- another carrier: no road lines in the save
+	t = engine.calibration(ROAD, 54)
+	eq({ t.fallback, t.n, t.carrier, t.detour }, { true, 0, "road", 1.9 })
+	-- multi-part vehicles and failing reads are skipped
+	W.comps[1].GAME_TIME.gameTime = W.gameTime + 3 * engine.CALIBRATION_TTL_MS
+	W.comps[100].TRANSPORT_VEHICLE.transportVehicleConfig.vehicles[2] = W.comps[100].TRANSPORT_VEHICLE.transportVehicleConfig.vehicles[1]
+	eq(engine.calibration(WATER, 54).n, 0)
+	W.comps[100].TRANSPORT_VEHICLE.transportVehicleConfig.vehicles[2] = nil
+	W.cargoInfo = "error"
+	W.comps[1].GAME_TIME.gameTime = W.gameTime + 5 * engine.CALIBRATION_TTL_MS
+	eq(engine.calibration(WATER, 54).n, 0)
+end)
+
+test("calibration scans at most MAX_SCAN_LINES lines and stops at MAX_SAMPLES samples", function()
+	emptyScene()
+	W.cargoInfo = { sectionTimes = { 180, 180 }, driveSectionTimes = { 150, 150 } }
+	local lines = {}
+	for i = 1, engine.MAX_SCAN_LINES + 50 do lines[i] = 50 end
+	W.playerLines = lines
+	local asked = 0
+	local getLineVehicles = api.engine.system.transportVehicleSystem.getLineVehicles
+	api.engine.system.transportVehicleSystem.getLineVehicles = function(l) asked = asked + 1; return getLineVehicles(l) end
+	-- every line a sample: the scan ends at MAX_SAMPLES
+	eq(engine.calibration(WATER, 54).n, engine.MAX_SAMPLES)
+	eq(asked, engine.MAX_SAMPLES)
+	-- road lines in a water calibration give no sample: the line cap ends the scan
+	engine.clearCalibration()
+	asked = 0
+	eq(engine.calibration(ROAD, 54).n, 0)
+	eq(asked, engine.MAX_SCAN_LINES)
+	-- the cache: a second call within the TTL scans nothing
+	asked = 0
+	engine.calibration(ROAD, 54)
+	eq(asked, 0)
+end)
+
+test("model catalogue: one walk per carrier / modes / tags / cargo / year / year length / filter", function()
+	local walks = 0
+	local each = api.res.modelRep.forEachModelWithMetadata
+	api.res.modelRep.forEachModelWithMetadata = function(kind, fn) walks = walks + 1; return each(kind, fn) end
+	local a = assert(engine.modelCatalogue({ 100, 101 }, LOGS))
+	eq(walks, 1)
+	eq(engine.modelCatalogue({ 100, 101 }, LOGS), a, "same key: the cached list")
+	eq(engine.modelCatalogue({ 100 }, LOGS), a, "the same kind from fewer vehicles")
+	eq(walks, 1)
+	engine.modelCatalogue({ 100 }, GRAIN)
+	eq(walks, 2, "another cargo")
+	engine.modelCatalogue({ 100 }, LOGS, { year = 1960 })
+	eq(walks, 3, "another year")
+	comp(1, "GAME_SPEED", { millisPerDay = 8000 })
+	engine.modelCatalogue({ 100 }, LOGS)
+	eq(walks, 4, "another calendar speed (capital per year)")
+	local vf = { enabledVehicles = {}, disabledVehicles = { "ship/log2.mdl" } }
+	eq(ids(assert(engine.modelCatalogue({ 100 }, LOGS, { vehicleFilter = vf }))), { 1 })
+	eq(walks, 5, "a mission filter")
+	engine.modelCatalogue({ 100 }, LOGS, { vehicleFilter = vf })
+	eq(walks, 5)
+	-- bounded: a full cache starts over
+	for y = 1, engine.MAX_CATALOGUE_KEYS do engine.modelCatalogue({ 100 }, LOGS, { year = 2000 + y }) end
+	walks = 0
+	engine.modelCatalogue({ 100 }, LOGS, { vehicleFilter = vf })
+	eq(walks, 1, "dropped with the rest")
+	engine.clearCaches()
+	engine.modelCatalogue({ 100 }, LOGS, { vehicleFilter = vf })
+	eq(walks, 2)
+	api.res.modelRep.forEachModelWithMetadata = each
+end)
+
+test("emptyLineInput: the Buy Vehicles depot's carrier, modes and tags; route, times, catalogue; reasons", function()
+	emptyScene()
+	W.cargoInfo = { sectionTimes = { 180, 180 }, driveSectionTimes = { 150, 150 } }
+	local e, why = engine.emptyLineInput(54, LOGS)
+	eq(why, nil)
+	eq({ e.line, e.depot, e.cargo, e.distance, e.stops, e.yearSeconds }, { 54, 300, LOGS, 10000, 2, 1460 })
+	eq(e.times.carrier, "water")
+	local ids = {}
+	for i, m in ipairs(e.catalogue) do ids[i] = m.model end
+	eq(ids, { 1, 2 }, "log ships of the depot's SHIP mode with its tags (as for the fleet)")
+	-- a small-ship depot
+	W.depotModes[300] = { [SMALL_SHIP] = true }
+	e = engine.emptyLineInput(54, LOGS)
+	ids = {}
+	for i, m in ipairs(e.catalogue) do ids[i] = m.model end
+	eq(ids, { 8 })
+	W.depotModes[300] = { [SHIP] = true }
+
+	eq({ engine.emptyLineInput(54, PASSENGER) }, { nil, "no_models" })
+	eq({ engine.emptyLineInput(54, nil) }, { nil, "no_cargo" })
+	W.depotCarrier[300] = RAIL
+	eq({ engine.emptyLineInput(54, LOGS) }, { nil, "rail" })
+	W.depotCarrier[300] = WATER
+	W.depotForLine[54] = nil
+	eq({ engine.emptyLineInput(54, LOGS) }, { nil, "no_depot" })
+	W.lineModes[54] = { ELECTRIC_TRAIN = true }
+	eq({ engine.emptyLineInput(54, LOGS) }, { nil, "rail" }, "no depot for a train line: still a train line")
+	W.depotForLine[54] = 300
+	W.comps[75].BOUNDING_VOLUME = nil
+	eq({ engine.emptyLineInput(54, LOGS) }, { nil, "no_positions" })
+	eq({ engine.emptyLineInput(4040, LOGS) }, { nil, "not_a_line" })
+	W.lineModes[54] = nil
+	W.depotForLine[54] = 4041 -- a depot entity that no longer exists
+	eq({ engine.emptyLineInput(54, LOGS) }, { nil, "no_depot" })
+end)
+
+test("emptyLineInput: re-reads reuse the catalogue and calibration; the depot read arms no store filter", function()
+	emptyScene()
+	W.cargoInfo = { sectionTimes = { 180, 180 }, driveSectionTimes = { 150, 150 } }
+	local walks, scans = 0, 0
+	local each = api.res.modelRep.forEachModelWithMetadata
+	api.res.modelRep.forEachModelWithMetadata = function(kind, fn) walks = walks + 1; return each(kind, fn) end
+	local getLines = api.engine.system.lineSystem.getLinesForPlayer
+	api.engine.system.lineSystem.getLinesForPlayer = function(p) scans = scans + 1; return getLines(p) end
+	local quiet = 0
+	stub_module("square_line_manager_plus::/line_manager_plus/buy_line_filter.lua", {
+		bestDepotQuiet = function(lu, l) quiet = quiet + 1; return lu.getBestDepotForLine(l) end,
+	})
+	local a = assert(engine.emptyLineInput(54, LOGS))
+	local b = assert(engine.emptyLineInput(54, LOGS))
+	eq({ walks, scans, quiet }, { 1, 1, 2 })
+	eq(b.catalogue, a.catalogue)
+	eq(b.depot, 300)
+end)
+
+test("yearSeconds and carrierKey", function()
+	eq(engine.yearSeconds(), 1460)
+	api.util.getDefaultYearDuration = function() return 0 / 0 end
+	eq(engine.yearSeconds(), 1460)
+	api.util.getDefaultYearDuration = function() return 2920000 end
+	eq(engine.yearSeconds(), 2920)
+	eq({ engine.carrierKey(WATER), engine.carrierKey(ROAD), engine.carrierKey(RAIL), engine.carrierKey("AIR"),
+		engine.carrierKey("TRAM"), engine.carrierKey(nil) }, { "water", "road", "rail", "air", "tram", "other" })
+end)
+
+test("buyOntoLine: new vehicles of the model at the estimate's depot, onto the line; all or nothing", function()
+	emptyScene()
+	W.models[2].md.cost.price = 1000
+	local got
+	local r = commands.buyOntoLine(2, 3, 54, 300, function(res) got = res end)
+	eq(got, r)
+	eq(r.status, "ok"); eq(r.requested, 3); eq(r.depot, 300); eq(r.depotFrom, "estimate")
+	eq(#r.bought, 3); eq(r.done, r.bought)
+	eq(kinds(), { "buy", "setLine", "buy", "setLine", "buy", "setLine" })
+	eq(W.sent[1].config.vehicles[1].part.modelId, 2)
+	eq(W.sent[1].config.vehicleGroups, { 1 })
+	eq(W.sent[2].line, 54); eq(W.sent[2].stop, 0)
+	eq(W.events[1].param, { modelId2quantity = { [2] = 3 }, actuallyBuy = true })
+	local charged = false
+	for _, e in ipairs(log_entries()) do
+		if e.msg:find("buy charged", 1, true) then charged = true end
+	end
+	ok(charged, "logs what the buy cost")
+
+	-- the depot is gone: the line's best depot
+	W.sent = {}
+	r = commands.buyOntoLine(2, 1, 54, 4041)
+	eq(r.status, "ok"); eq(r.depot, 300); eq(r.depotFrom, "line_util.getBestDepotForLine")
+	-- money: nothing unless all are covered
+	W.sent = {}
+	W.comps[2].ACCOUNT.balance = 2999
+	r = commands.buyOntoLine(2, 3, 54, 300)
+	eq(r.status, "failed"); eq(r.reasons, { not_enough_money = 3 }); eq(#W.sent, 0)
+	W.comps[2].ACCOUNT.balance = 1000000
+	W.missionError = "No ships"
+	r = commands.buyOntoLine(2, 1, 54, 300)
+	eq(r.reasons, { mission = 1 }); eq(r.message, "No ships")
+	W.missionError = nil
+	eq(commands.buyOntoLine(2, 0, 54, 300).status, "invalid")
+	eq(commands.buyOntoLine(nil, 1, 54, 300).reasons, { invalid_model = 1 })
+	eq(commands.buyOntoLine(2, 1, 4040, 300).reasons, { invalid_line = 1 })
+	eq(commands.buyOntoLine(2, 500, 54, 300).requested, commands.MAX_CLONES)
+end)

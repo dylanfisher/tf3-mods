@@ -8,7 +8,10 @@
 -- "map_click" (map_shift_click.lua: the Shift-click check on a map click), "map_hover" (line_hover.lua: one render
 -- of the Line Manager's map hover text of a line, the vanilla node included) and "rate_matcher_step" /
 -- "rate_matcher_render" / "rate_matcher_click" (rate_matcher_window.tl: the Rate Matcher window's step getter, one
--- render of its content, and Apply / Replace window / open), "vehicle_cargo" / "vehicle_cargo_read" /
+-- render of its content, and Apply / Replace window / open), "rate_matcher_catalogue" / "rate_matcher_calibration" /
+-- "rate_matcher_empty" (rate_matcher_engine.tl: one model walk and one scan of the other lines, both on a cache miss
+-- only, and one empty-line estimate input), "buy_filter" (buy_line_filter.lua: one Buy Vehicles / Replace / Modify
+-- click's cargo lookup), "vehicle_cargo" / "vehicle_cargo_read" /
 -- "vehicle_cargo_cell" (vehicle_cargo.lua: one badge render, one load read, one cell with its width).
 -- Calls over 16 ms are always logged briefly; the 30 s summary needs the "Debug: performance log" setting
 -- (sqperf_log) On.

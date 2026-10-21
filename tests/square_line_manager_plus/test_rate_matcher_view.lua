@@ -376,3 +376,116 @@ test("result messages after Apply", function()
 	eq({ view.resultText("switch", res("failed", {}, 2, { replace_failed = 2 })) },
 		{ "Could not switch the model (see the game log).", true })
 end)
+
+-- a line with no vehicles ---------------------------------------------------------------------------
+-- Route 6072 m, 2 stops, line 124996's times (docs/findings/lines-vehicles.md): a 20-log ship at 8.33 m/s makes
+-- 29.2/yr, a 50-log one 72.9/yr.
+local function emptyEstimate(o)
+	o = o or {}
+	return { line = 1, depot = 300, cargo = LOGS, distance = 6072, stops = 2, yearSeconds = 1460,
+		times = o.times or { carrier = "water", detour = 955.2 / (6072 / 8.3333), dwell = (1001 - 955.2) / 2, n = 5, fallback = false },
+		catalogue = o.catalogue or {
+			{ model = 3, name = "Small Ship", capacity = 20, speed = 8.3333, price = 1000, running = 500, capital = 100 },
+			{ model = 4, name = "Big Ship", capacity = 50, speed = 8.3333, price = 1000, running = 600, capital = 100 },
+		} }
+end
+
+local function emptyLine()
+	local data = wcLogs(0)
+	data.vehicles = {}
+	return data
+end
+
+test("no vehicles: the estimate's rows, the cheapest per unit preselected and best; a selection by model", function()
+	local data = emptyLine()
+	local supply = view.supplyView(data)
+	local inp = input({ catalogue = false })
+	inp.empty = emptyEstimate()
+	local v = view.build(data, supply, 101, inp)
+	eq(v.status, "estimate")
+	eq(v.count, 0)
+	eq(#v.models, 2)
+	-- closest first: 3 x 29.2 = 87.5 (diff 13.5) before 1 x 72.9 (diff 28.1)
+	eq({ v.models[1].name, v.models[1].plan.count, v.models[2].name, v.models[2].plan.count }, { "Small Ship", 3, "Big Ship", 1 })
+	-- per unit: Small 3 x 600 / 87.5 = 20.6, Big 700 / 72.9 = 9.6: Big is preselected and best
+	local cheapest = v.models[2]
+	eq(v.selectedModel, cheapest)
+	eq({ v.models[1].best, cheapest.best }, { nil, true })
+	eq(v.selected, cheapest.plan)
+	eq(v.selected.fresh, true)
+	eq(view.statusText(v), nil)
+	-- the other row by model
+	local other = v.models[1]
+	inp.selectedModel = other.model
+	v = view.build(data, supply, 101, inp)
+	eq(v.selectedModel.model, other.model)
+	eq(v.selected.model, other.model)
+	eq(view.planActionText(v.selected, "Small Ship"), "Buys " .. v.selected.count .. " new vehicles (Small Ship) for this line.")
+	eq(view.planActionText({ fresh = true, count = 1, delta = 1 }, "Big Ship"), "Buys 1 new vehicle (Big Ship) for this line.")
+end)
+
+test("no vehicles: target 0, nothing within reach, and why there is no estimate", function()
+	local data = emptyLine()
+	local supply = view.supplyView(data)
+	local inp = input({ catalogue = false })
+	inp.empty = emptyEstimate()
+	local v = view.build(data, supply, 0, inp)
+	eq(v.status, "estimate_target")
+	eq(view.statusText(v), "Type a target above 0 for a suggestion.")
+	eq(v.empty, inp.empty, "the note still shows the route")
+	inp.empty = emptyEstimate({ catalogue = { { model = 3, name = "Tiny", capacity = 1, speed = 1, price = 1 } } })
+	v = view.build(data, supply, 5000, inp)
+	eq(v.status, "estimate_none")
+	eq(view.statusText(v), "No model reaches the target with at most 100 vehicles.")
+	inp.empty = nil
+	local reasons = {
+		[false] = "This line has no vehicles to copy.",
+		rail = "No estimate for a train line without trains: buy its first train in the vehicle store.",
+		no_depot = "No estimate: no depot reaches this line.",
+		no_positions = "No estimate: the positions of this line's stops could not be read.",
+		few_stops = "No estimate: the line needs at least 2 stops in different places.",
+		too_many_stops = "No estimate: this line has too many stops.",
+		no_cargo = "No estimate: this line loads nothing yet.",
+		no_models = "No estimate: no buyable model carries this line's cargo.",
+		["read: boom"] = "No estimate for this line (see the game log).",
+	}
+	for why, text in pairs(reasons) do
+		inp.emptyWhy = why or nil
+		v = view.build(data, supply, 101, inp)
+		eq(v.status, "no_vehicles")
+		eq(view.statusText(v), text, tostring(why))
+	end
+end)
+
+test("estimate note: route and where the times come from", function()
+	local e = emptyEstimate()
+	eq(view.estimateNote(e), "Estimated from the route: 6.1 km round trip, 2 stops. Times from 5 other ship lines.")
+	e.distance = 23456
+	e.times = { carrier = "water", detour = 1.5, dwell = 25, n = 1, fallback = true }
+	eq(view.estimateNote(e), "Estimated from the route: 23 km round trip, 2 stops. Typical ship times.")
+	local cases = {
+		{ "road", false, "Times from 5 other road vehicle lines." }, { "road", true, "Typical road vehicle times." },
+		{ "tram", false, "Times from 5 other tram lines." }, { "tram", true, "Typical tram times." },
+		{ "air", false, "Times from 5 other aircraft lines." }, { "air", true, "Typical aircraft times." },
+		{ "other", true, "Typical road vehicle times." },
+	}
+	for _, c in ipairs(cases) do
+		e.times = { carrier = c[1], n = 5, fallback = c[2] }
+		eq(view.estimateNote(e), "Estimated from the route: 23 km round trip, 2 stops. " .. c[3])
+	end
+	e.times = nil
+	eq(view.estimateNote(e), "Estimated from the route: 23 km round trip, 2 stops.")
+	eq(view.estimateNote(nil), nil)
+end)
+
+test("result messages after buying onto an empty line", function()
+	local function res(status, done, requested, reasons)
+		return { status = status, done = done, requested = requested, reasons = reasons or {}, bought = done }
+	end
+	eq({ view.resultText("buy", res("ok", { 1, 2 }, 2)) }, { "Bought 2 vehicles for this line.", false })
+	eq({ view.resultText("buy", res("ok", { 1 }, 1)) }, { "Bought 1 vehicle for this line.", false })
+	eq({ view.resultText("buy", res("failed", {}, 3, { not_enough_money = 3 })) }, { "Not enough money for these vehicles.", true })
+	eq({ view.resultText("buy", res("failed", {}, 3, { no_depot = 3 })) }, { "No depot found for this line.", true })
+	eq({ view.resultText("buy", res("partial", { 1 }, 2, { set_line_failed = 1 })) },
+		{ "Bought 1 of 2 vehicles; the others could not join the line and wait in the depot.", true })
+end)

@@ -12,7 +12,7 @@ table below; PLAN.md "Open work").
 | Line editor: Undo and Redo buttons | `line_undo` | `square_line_revert` "Line Editor Undo" (published, rev 4) | `content/line_manager_plus/undo.lua` + `undo_core.lua` + `lmp.css.lua` |
 | Line list: line info on hover | `line_list_hover_info` | new (PLAN.md feature 3; replaced the colour dot tooltip `line_dot_tooltip`, user request 2026-10-11) | `content/line_manager_plus/line_list_hover.lua` (+ `lmp_callout.lua`, `lmp_stats.lua`, `lmp.css.lua`) |
 | Send to Line list: line info panel | `send_to_line_list_info` | new (PLAN.md feature 1, phase 4) | `content/line_manager_plus/stl_list.lua` (+ `lmp_callout.lua`, `lmp_stats.lua`, `lmp.css.lua`) |
-| Line editor: Line actions button (Duplicate / Reverse line) | `line_actions` | new (PLAN.md feature 4, phase 5) | `content/line_manager_plus/line_ops.lua` + `line_ops_core.lua` (+ `lmp_actions.lua`, `lmp.css.lua`) |
+| Line editor: Line actions button (Duplicate / Reverse / Duplicate + reverse line) | `line_actions` | new (PLAN.md feature 4, phase 5) | `content/line_manager_plus/line_ops.lua` + `line_ops_core.lua` (+ `lmp_actions.lua`, `lmp.css.lua`) |
 | Line actions: Match line rate | `line_rate_matcher` | `square_line_rate_matcher` "Line Rate Matcher" (never published, retired; merged 2026-10-11, MERGE_RM_PLAN.md) | `content/line_manager_plus/rate_matcher.lua` + `rate_matcher_*.tl` (+ `lmp_actions.lua`, `lmp.css.lua`) |
 | Map: Shift-click a line opens the Line Manager | `map_shift_click` | `square_passenger_destinations` rev 5 (moved before upload, 2026-10-11) | `content/line_manager_plus/map_shift_click.lua` (+ `lmp_line.script.lua` / `lmp_line.res.lua`) |
 | Map: line info on hover | `line_map_hover_info` | new (user request 2026-10-11) | `content/line_manager_plus/line_hover.lua` (+ `lmp_stats.lua`, `lmp.css.lua`) |
@@ -42,7 +42,7 @@ Nothing is saved: GUI only, `severityAdd`/`severityRemove` None, `cosmetic` true
     build in its own pcall; nothing added → the base node unchanged. Undo is injector `undo`, order -100.
   - `lmp_actions.lua`: the "Line actions" toggle button right of A+ (an `lmp_rows` injector, order 100) and its
     popover menu. Menu entries: `actions.register{ id, order, label, icon, view(ctx) -> {enabled, tooltip}, run(ctx) }`
-    (ctx = `{ params, line }`), each view/run in its own pcall. Duplicate / Reverse (line_ops.lua) and Match line
+    (ctx = `{ params, line }`), each view/run in its own pcall. Duplicate / Reverse / Duplicate + reverse (line_ops.lua) and Match line
     rate (rate_matcher.lua, order 50, first in the menu; it needs `line_actions` On and reports "not installed" otherwise). Balance
     vehicles was dropped, PLAN.md D8. `lmp_capture.resetEditorMode` is shared by
     undo and Reverse.
@@ -54,10 +54,26 @@ Nothing is saved: GUI only, `severityAdd`/`severityRemove` None, `cosmetic` true
 - `lmp_perf.lua`: the one SQPERF instrument of the GUI state, shared by every feature (sections `view`,
   `button_render`, `click`, `descriptor`, `toggle_button` for undo; `tooltip` for Send to Line; `list_hover` for the
   line list's hover block; `stl_list` for the Send to Line list block; `line_actions` for the Line actions menu and its clicks; `map_click` for Shift-click; `vehicle_cargo` / `vehicle_cargo_read` / `vehicle_cargo_cell` for the vehicle list's cargo badge; `rate_matcher_step`,
-  `rate_matcher_render`, `rate_matcher_click` for the Rate Matcher window). Module copy:
+  `rate_matcher_render`, `rate_matcher_click` for the Rate Matcher window; `rate_matcher_catalogue`,
+  `rate_matcher_calibration` (cache misses only) and `rate_matcher_empty` for its engine; `buy_filter` for the Buy
+  Vehicles cargo filter's clicks). Module copy:
   `content/sqperf/square_line_manager_plus.lua` (`make sqperf-sync`).
 - Log prefix `[LineManagerPlus] `; the features add `send to line: ` / `estimate: ` / `undo: ` / `list hover: ` /
   `list info: ` / `line ops: ` / `rate matcher: ` / `map shift click: ` / `vehicle cargo: ` (and `line actions: ` for the menu host).
+- Match line rate: empty lines (2026-10-19). A line with no vehicles has no Rate and no LineCargoInfo, so the window
+  estimates from geometry (docs/findings/lines-vehicles.md "Line Rate formula"): Rate per vehicle = capacity x 1460 /
+  round trip (s), round trip = D x detour / top speed + S x dwell, D = the straight cyclic round trip through the S stops
+  (station construction position, else the station's bounding box centre for curbside stops). detour / dwell = medians
+  over up to 200 of the player's other lines of the same carrier with single-part vehicles (clamped 1-4 and 0-120 s),
+  typical values below 3 samples (water 1.5 / 25 s, road and tram 1.9 / 9 s, air 2.6 / 21 s); cached per carrier for
+  3 game minutes. Depot, carrier, transport modes and filter tags come from `line_util.getBestDepotForLine` (as the
+  line editor's Buy Vehicles button), so the catalogue is what that store would list. The window shows one table
+  (the comparison's columns: per model the count nearest the target, ≈ Rate, Price, Cost/yr, Cost per unit; the
+  lowest cost per unit preselected and "best") and a note on the route and where the times come from; Apply buys them
+  at that depot onto the line (`commands.buyOntoLine`: the switch's buy step, money all or nothing). Train lines, no
+  depot, unreadable stop positions, < 2 stops, no cargo or no buyable model: a reason text instead. Code:
+  `rate_matcher_model.tl` (calibrate, estimatePlans), `rate_matcher_engine.tl` (emptyLineInput, calibration,
+  stopPositions), `rate_matcher_view.tl` (buildEmpty, estimateNote), `rate_matcher_window.tl` (estimateSection).
 - Teal: the Rate Matcher modules are Teal (`rate_matcher_*.tl`) with their types in
   `content/line_manager_plus/rate_matcher_types.d.tl` (loaded as a def module by make check / make test). `tealdef/`
   is the editor-only copy for `make teal`: `tealdef/line_manager_plus/rate_matcher_types.d.tl` (byte copy; make check
@@ -162,8 +178,8 @@ no panel. Design and evidence: header of `stl_list.lua`. In short:
 
 ## Line actions: Duplicate and Reverse line (PLAN.md feature 4)
 
-A "Line actions" button right of A+ opens a small popover menu with **Duplicate line** and **Reverse line** (decision
-D1). Design and evidence: headers of `lmp_actions.lua` (button and menu) and `line_ops.lua` (the two actions). In short:
+A "Line actions" button right of A+ opens a small popover menu with **Duplicate line**, **Reverse line** and
+**Duplicate + reverse line** (decision D1; the third added 2026-10-20), after Match line rate. Design and evidence: headers of `lmp_actions.lua` (button and menu) and `line_ops.lua` (the two actions). In short:
 
 - Button: a copy of the A+ button (base manager_window.tl:3518-3572): `ToggleButton` with A+'s classes
   `"vehicle-button, secondary"` (same look, no stylesheet rules), icon `line_vehicle_mgmt/icons/symbol_burger_menu.tga`
@@ -172,9 +188,18 @@ D1). Design and evidence: headers of `lmp_actions.lua` (button and menu) and `li
   only our window (`removeWindow`). A+'s press/release "locked" handling is copied. The menu's unmount tells the button
   it closed (a generation counter keeps an older window's unmount from clearing a newer one). Shown only for exactly
   one selected, edited, unprotected line (as undo); otherwise an empty BoxLayout, and an open menu closes.
-- Menu: `SquareLmpLineActionsMenu`, vertical BoxLayout of `button_react_util.makeIconTextButton("secondary", icon,
-  label, ...)`; the entries' views are polled per step (`useStepState`). **One new stylesheet rule**
-  (`R::SquareLmpLineActionsMenu Button`: gravity -1/0.5, margin 4/8/4/8) so the buttons share one width.
+- Menu (`SquareLmpLineActionsMenu`, restyled 2026-10-20, user choice "Auto-Rename rows"): looks like the base
+  Auto-Rename popover beside it (AutoRenameDialog, manager_window.tl:3085-3305; its rules are scoped
+  `R::AutoRenameDialog`, so not reusable). A header card "Line actions" (font-scale-headline) built **inline**
+  (card_surface + card_contour nine-patches, BaseVeryLight at Low, border BaseVeryLight, size -1 x 36, padding
+  2/8/2/8; the base margin 8/8/1/8 as the inline padding of a wrapper Component; both of base class
+  `horizontal-spacer` to fill the width). Rows: one `builtin.Button` per entry, content = a `horizontal-spacer`
+  Component (fills the button, so icon + text sit left) with icon, a 4 px inline spacer and the label
+  (font-scale-body); the rows in a Component with inline padding 3/6/10/6 (the base ScrollArea's margin + padding).
+  **3 stylesheet rules** (`R::SquareLmpLineActionsMenu Button` base state: AccentMedium at High, invisible border,
+  gravity -1/0.5, margin 2/4/2/4, padding 4/8/4/8; `:hover` AccentLight; `:active` getActiveFromRaw(AccentMedium)):
+  inline sheets have no states, margin or gravity. Disabled rows: an inline NeutralMedium wash at VeryHigh plus the
+  base disabled text grey; the reason stays in the tooltip. The entries' views are polled per step (`useStepState`).
 - Duplicate: `makeLineCreateCmd(name, line_util.makeLineColor(player), player, undo_core.build(snapshot))`; name
   `"{name} (copy)"`, or `"{name} (copy {n})"` with the smallest free n ≥ 2 among `getLinesForPlayer` names
   (`line_ops_core.copyName`). Vehicles untouched. Success: `commonParams.selectLine({ entity = new }, true, nil)` (the
@@ -186,6 +211,10 @@ D1). Design and evidence: headers of `lmp_actions.lua` (button and menu) and `li
   with the old main one); a failing query keeps all terminals (logged once). Unchanged result → message, no command.
   Else `resetEditorMode` and `makeLineUpdateCmd`. Undo needs no code: its per-step poll records the change as one edit
   ("stops reordered"), so one Undo restores the original.
+- Duplicate + reverse (order 300): one `makeLineCreateCmd` with `M.reversed(line, comp)` (the reverse's stops and the
+  engine's terminals for the new direction, asked of the original line), named and coloured as Duplicate, selected on
+  success; the original line and the editor mode are untouched. Guards of both (blockReason + the 3-stop reason); a
+  mirror-image route gives the reverse's "same stops" message and sends nothing. Log `duplicated line N reversed as M`.
 - Guards: < 2 stops or a stop whose station is gone → entry disabled, the reason as tooltip (re-checked on click); a
   command in flight → both disabled (cleared by the callback or after 10 s, logged). Failures in a view/run are
   isolated per entry. No noPath check after the reverse (the path is computed later by the engine; not reliable from
@@ -292,11 +321,12 @@ warns at activation. If the player keeps both, exactly one set of buttons must a
 button-row injectors), `test_line_list_hover.lua` (line list hover block: ColumnDesc wrap, pass-through, cell function, callout open/close/placement, fallbacks), `test_stl_list.lua` (Send to Line
 list panel: install, detection, swap, list and panel recipes, estimate setting, fallbacks), `test_line_ops_core.lua`
 (reverse order, waypoint moves, terminal re-pick, copy names, guards), `test_line_ops.lua` (Line actions button and
-menu, Duplicate / Reverse commands and callbacks, busy guard, undo integration), `test_map_shift_click.lua` (Shift-click:
+menu (structure and inline styles), Duplicate / Reverse / Duplicate + reverse commands and callbacks, busy guard, undo integration), `test_map_shift_click.lua` (Shift-click:
 install and guard, line / empty map / open line windows, allowed tools, `builtin.Selector` restore, chain with a
 Passenger Destinations style wrapper in both orders), `test_line_hover.lua` (map hover text: install, SelectLine
 wrap, block without estimate, 1 s cache, fallbacks), and from the former Line Rate Matcher
 `test_rate_matcher_model.lua`, `test_rate_matcher_view.lua`, `test_rate_matcher_engine.lua` and
-`test_rate_matcher_gui.lua` (the Match line rate menu entry, the window, Apply, an expired closed-manager state).
+`test_rate_matcher_gui.lua` (the Match line rate menu entry, the window, Apply, an expired closed-manager state, the
+empty-line estimate and its Apply).
 `tests/square_line_revert/` keeps the old mod's tests plus `test_detect.lua` (copy identity) and the stand-down
 tests at the end of `test_script.lua`.

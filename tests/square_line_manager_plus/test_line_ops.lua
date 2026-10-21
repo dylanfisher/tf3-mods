@@ -1,4 +1,4 @@
--- Line actions button (lmp_actions.lua) and Duplicate / Reverse line (line_ops.lua) with fake react / builtin /
+-- Line actions button (lmp_actions.lua) and Duplicate / Reverse / Duplicate + reverse line (line_ops.lua) with fake react / builtin /
 -- popover / button utils and a fake api: the injector right of A+, visibility (one unprotected line), the menu's
 -- entries and disabled states, the commands built (create with copy name and new colour, update with the reversed
 -- stops and re-picked terminals), callbacks (success selects the copy, failure gives feedback), the busy guard, menu
@@ -138,6 +138,8 @@ before_each(function()
 		ToggleButton = function(p) return { kind = "ToggleButton", meta = p.meta, content = p.content, value = p.value,
 			onValueChange = p.onValueChange } end,
 		Button = function(p) return { kind = "Button", meta = p.meta, onClick = p.onClick, content = p.content } end,
+		Component = function(p) return { kind = "Component", meta = p.meta, layout = p.layout } end,
+		TextView = function(p) return { kind = "TextView", meta = p.meta, text = p.text } end,
 		ImageView = function(p)
 			for k in pairs(p) do
 				if k ~= "path" and k ~= "scaling" then error("unexpected ImageView field " .. tostring(k)) end
@@ -192,11 +194,24 @@ local function renderToolbar()
 	end
 end
 
+-- the menu's rows as { text, path, tooltip, enabled, onClick, node } (header card first, then the rows' Component)
+local function rowOf(btn)
+	local kids = btn.content.layout.children
+	return { text = kids[3].text, path = kids[1].path, tooltip = btn.meta.tooltip, enabled = btn.meta.enabled,
+		onClick = btn.onClick, node = btn }
+end
+
 local function items()
 	local m = actions.Menu({})
-	local out = {}
-	for _i, it in ipairs(m.children) do out[it.text] = it end
-	return out, m
+	local out, list = {}, {}
+	if #m.children > 0 then
+		for _i, btn in ipairs(m.children[2].layout.children) do
+			local r = rowOf(btn)
+			out[r.text] = r
+			list[#list + 1] = r
+		end
+	end
+	return out, m, list
 end
 
 local function warnings(text)
@@ -220,7 +235,7 @@ test("the Line actions button sits right of A+ with A+'s look, only for one sele
 	eq(toggle.meta.tooltip, "Line actions")
 	eq(toggle.content.path, actions.ICON)
 	eq(toggle.value, 0)
-	eq(actions.ids(), { "duplicate", "reverse" })
+	eq(actions.ids(), { "duplicate", "reverse", "duplicate_reversed" })
 
 	manager(2)
 	btn = renderToolbar()
@@ -301,19 +316,67 @@ end)
 
 -- menu ---------------------------------------------------------------------------------------------------------------
 
-test("menu: Duplicate and Reverse, enabled, with their icons, tooltips and the secondary class", function()
+test("menu: header card, then Duplicate, Reverse and Duplicate + reverse, enabled, with icons and tooltips", function()
 	manager()
-	local it, m = items()
+	local it, m, list = items()
 	eq(m.orientation, "V")
 	eq(#m.children, 2)
-	eq(m.children[1].text, "Duplicate line")
-	eq(m.children[2].text, "Reverse line")
+	-- Auto-Rename look: a filling header wrapper with the title card, then the filling rows wrapper
+	local headerWrap = m.children[1]
+	eq(headerWrap.meta.class, "horizontal-spacer")
+	local card = headerWrap.layout.children[1]
+	eq(card.meta.class, "horizontal-spacer")
+	eq(card.layout.children[1].meta.class, "font-scale-headline")
+	eq(card.layout.children[1].text, "Line actions")
+	eq(m.children[2].meta.class, "horizontal-spacer")
+	eq(#list, 3)
+	eq(list[1].text, "Duplicate line")
+	eq(list[2].text, "Reverse line")
+	eq(list[3].text, "Duplicate + reverse line")
 	ok(it["Duplicate line"].enabled)
 	ok(it["Reverse line"].enabled)
-	eq(it["Duplicate line"].class, "secondary")
+	ok(it["Duplicate + reverse line"].enabled)
+	-- rows: no class (lmp.css.lua styles every Button in the menu), content fills the button, text in body font
+	local btn = it["Duplicate line"].node
+	eq(btn.meta.class, nil)
+	eq(btn.content.meta.class, "horizontal-spacer")
+	eq(btn.content.layout.orientation, "H")
+	eq(btn.content.layout.children[3].meta.class, "font-scale-body")
 	eq(it["Duplicate line"].path, "::/gui/line_vehicle_mgmt/icons/symbol_square_copy.tga")
 	eq(it["Reverse line"].path, "::/gui/line_vehicle_mgmt/icons/symbol_arrow_reverse.tga")
+	eq(it["Duplicate + reverse line"].path, "::/gui/line_vehicle_mgmt/icons/symbol_square_copy.tga")
 	ok(it["Reverse line"].tooltip:find("Stop 1 stays first", 1, true))
+	ok(it["Duplicate + reverse line"].tooltip:find("opposite order", 1, true))
+end)
+
+test("menu: inline styles: header card (nine-patches, 36 px), wrapper paddings, grey wash on disabled rows only", function()
+	manager(1, { stop(1), stop(2) })
+	local function obj() return {} end
+	api.gui.StyleSheet = { new = obj }
+	api.gui.NinePatch = { new = obj }
+	api.type.Vec4f = { new = function(a, b, c, d) return { a, b, c, d } end }
+	api.type.Vec2f = { new = function(a, b) return { a, b } end }
+	local res = {
+		colors = { BaseVeryLight = { 0.3, 0.3, 0.4, 1 }, NeutralMedium = { 0.5, 0.5, 0.5, 1 } },
+		transparency = { Low = 0.75, VeryHigh = 0.1 },
+	}
+	api.gui.genericRep = {
+		find = function(name) return name:find("transparency", 1, true) and "transparency" or "colors" end,
+		get = function(id) return { data = res[id] } end,
+	}
+	local it, m = items()
+	local wrap = m.children[1].meta.styleSheet
+	eq(wrap.padding, { 8, 8, 1, 8 })
+	local card = m.children[1].layout.children[1].meta.styleSheet
+	eq(card.size, { -1, 36 })
+	eq(card.padding, { 2, 8, 2, 8 })
+	eq(card.backgroundColor1, { 0.3, 0.3, 0.4, 0.75 })
+	eq(card.backgroundImage1.fileName, "::/gui/entity_window/design/card_surface.tga")
+	eq(card.borderImage.fileName, "::/gui/entity_window/design/card_contour.tga")
+	eq(m.children[2].meta.styleSheet.padding, { 3, 6, 10, 6 })
+	eq(it["Duplicate line"].node.meta.styleSheet, nil)
+	eq(it["Reverse line"].node.meta.styleSheet.backgroundColor1, { 0.5, 0.5, 0.5, 0.1 })
+	eq(warnings(), 0)
 end)
 
 test("menu: a line with 1 stop or a gone station disables both with the reason", function()
@@ -327,6 +390,8 @@ test("menu: a line with 1 stop or a gone station disables both with the reason",
 	it = items()
 	eq(it["Reverse line"].enabled, false)
 	eq(it["Reverse line"].tooltip, "A station of this line no longer exists.")
+	eq(it["Duplicate + reverse line"].enabled, false)
+	eq(it["Duplicate + reverse line"].tooltip, "A station of this line no longer exists.")
 end)
 
 test("menu: empty when the context is gone (several lines selected)", function()
@@ -497,6 +562,55 @@ test("reverse: a station gone between render and click -> feedback, no command",
 	eq(feedbacks[1], { "A station of this line no longer exists.", "Error" })
 end)
 
+-- duplicate + reverse -------------------------------------------------------------------------------------------------
+
+test("duplicate + reverse: one create command with the reversed stops and terminals, copy name, new colour", function()
+	manager(1, { stop(1, 0, { 10 }), stop(2, 0, { 20 }), stop(3, 0, { 30, 31 }) })
+	world.assignment = { { station = 0, terminal = 0 }, { station = 0, terminal = 4 }, { station = -1, terminal = -1 } }
+	items()["Duplicate + reverse line"].onClick()
+	eq(#sent, 1)
+	local c = sent[1].cmd
+	eq(c.kind, "create")
+	eq(c.name, "Bus 1 (copy)")
+	eq(c.color, { x = 0.1, y = 0.2, z = 0.3 })
+	eq(c.player, 99)
+	local g, t = {}, {}
+	for i, st in ipairs(c.comp.stops) do g[i] = st.stationGroup; t[i] = st.terminal end
+	eq(g, { 1, 3, 2 })
+	eq(t, { 0, 4, 0 })
+	eq(c.comp.stops[1].waypoints[1].tag, 31)
+	eq(c.comp.stops[3].waypoints[1].tag, 10)
+	eq(world.assignCall.line, 7, "terminals asked of the original line")
+	eq(#world.modes, 0, "the original line and the editor mode stay")
+	sent[1].cb({}, true, { { 42, 1 } })
+	eq(selects, { { 42, true, nil } })
+	local logged = false
+	for _i, e in ipairs(log_entries()) do
+		if e.msg:find("duplicated line 7 reversed as 42 (3 stops)", 1, true) then logged = true end
+	end
+	ok(logged, "log line")
+end)
+
+test("duplicate + reverse: 2 stops disabled with the 3-stop reason; mirror route and refusal give feedback", function()
+	manager(1, { stop(1), stop(2) })
+	local it = items()
+	eq(it["Duplicate + reverse line"].enabled, false)
+	eq(it["Duplicate + reverse line"].tooltip,
+		"Reversing needs at least 3 stops: with 2, the line already runs both ways.")
+	it["Duplicate + reverse line"].onClick()
+	eq(#sent, 0)
+	manager(1, { stop(1), stop(2), stop(3), stop(2) })
+	items()["Duplicate + reverse line"].onClick()
+	eq(#sent, 0)
+	eq(feedbacks[2], { "Line Manager Plus: this line visits the same stops in both directions, so reversing doesn't change it.", nil })
+	manager()
+	items()["Duplicate + reverse line"].onClick()
+	eq(items()["Duplicate line"].enabled, false, "busy while in flight")
+	sent[1].cb({}, false, {})
+	eq(feedbacks[3], { "Line Manager Plus: the game refused the new line.", "Error" })
+	eq(#selects, 0)
+end)
+
 -- busy ---------------------------------------------------------------------------------------------------------------
 
 test("busy: entries disabled while a command is in flight, free again after the callback or 10 s", function()
@@ -520,7 +634,7 @@ end)
 
 test("install twice registers once", function()
 	ok(ops.install({}, {}))
-	eq(actions.ids(), { "duplicate", "reverse" })
+	eq(actions.ids(), { "duplicate", "reverse", "duplicate_reversed" })
 	eq(actions.build({ params = {} }) ~= nil, true)
 end)
 

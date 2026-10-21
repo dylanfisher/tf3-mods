@@ -589,3 +589,171 @@ test("switchPlans: floor / ceil counts, rankModels' pick, newest sold first, buy
 	plans = model.switchPlans(9, 50, 100, selling, {})
 	eq(plans[1].count, 2); eq(plans[1].replace, { 102, 101 })
 end)
+
+-- empty line estimate ---------------------------------------------------------------------------
+-- Ship lines of the 2026-10-20 console read (docs/findings/lines-vehicles.md "Line Rate formula", live log SQRMCAL2):
+-- straight round trip (m), stops, top speed (m/s), Σ section / Σ drive (s).
+local SHIP_LINES = {
+	{ line = 160549, distance = 10348, stops = 2, speed = 9.7222, section = 1679.33, drive = 1602.60 },
+	{ line = 124996, distance = 6072, stops = 2, speed = 8.3333, section = 1001.00, drive = 955.20 },
+	{ line = 101809, distance = 5209, stops = 2, speed = 11.1111, section = 1076.00, drive = 970.15 },
+	{ line = 127772, distance = 16004, stops = 2, speed = 8.3333, section = 2468.44, drive = 2364.72 },
+	{ line = 126307, distance = 6072, stops = 2, speed = 8.3333, section = 1000.40, drive = 899.73 },
+}
+
+test("median and routeDistance", function()
+	eq(model.median({ 3, 1, 2 }), 2)
+	eq(model.median({ 4, 1, 3, 2 }), 2.5)
+	eq(model.median({ 0 / 0, 5, math.huge }), 5, "NaN and inf skipped")
+	eq(model.median({}), nil)
+	eq(model.median(nil), nil)
+	eq(model.routeDistance({ { 0, 0 }, { 300, 400 } }), 1000, "there and back")
+	eq(model.routeDistance({ { 0, 0 }, { 300, 0 }, { 300, 400 } }), 1200, "cyclic: back to the first stop")
+	eq(model.routeDistance({ { 0, 0 }, { 0, 0 } }), 0)
+	eq(model.routeDistance({ { 0, 0 } }), nil)
+	eq(model.routeDistance({ { 0, 0 }, { 0 / 0, 1 } }), nil)
+	eq(model.routeDistance(nil), nil)
+end)
+
+test("calibrate: medians of the other lines' detour and dwell; clamps; fallback below 3 samples", function()
+	local t = model.calibrate(SHIP_LINES, "water")
+	eq(t.carrier, "water"); eq(t.n, 5); eq(t.fallback, false)
+	near(t.detour, 955.2 / (6072 / 8.3333), 1e-6, "median detour = line 124996's 1.31")
+	near(t.dwell, (1000.40 - 899.73) / 2, 1e-6, "median dwell = line 126307's 50.3 s")
+
+	-- too few valid samples: the carrier's typical times
+	local few = model.calibrate({ SHIP_LINES[1], SHIP_LINES[2], { distance = 0, stops = 2, speed = 8, drive = 9, section = 10 } }, "water")
+	eq({ few.detour, few.dwell, few.n, few.fallback, few.carrier }, { 1.5, 25, 2, true, "water" })
+	eq({ model.calibrate({}, "road").detour, model.calibrate({}, "road").dwell }, { 1.9, 9 })
+	eq({ model.calibrate(nil, "air").detour, model.calibrate(nil, "air").dwell }, { 2.6, 21 })
+	eq(model.calibrate({}, "tram").dwell, 9)
+	eq(model.calibrate({}, "hovercraft").carrier, "other")
+	ok(model.FALLBACK_TIMES.water.n == 0, "the table itself is not changed")
+	model.calibrate({ SHIP_LINES[1] }, "water")
+	eq(model.FALLBACK_TIMES.water.n, 0)
+
+	-- clamps: a straight drive faster than the line (detour < 1), a long wait, drive > section (dwell 0)
+	local odd = {
+		{ distance = 1000, stops = 2, speed = 10, drive = 50, section = 1000 },
+		{ distance = 1000, stops = 2, speed = 10, drive = 60, section = 900 },
+		{ distance = 1000, stops = 2, speed = 10, drive = 70, section = 800 },
+	}
+	t = model.calibrate(odd, "road")
+	eq({ t.detour, t.dwell }, { 1.0, 120 })
+	local slow = {
+		{ distance = 1000, stops = 2, speed = 10, drive = 900, section = 800 },
+		{ distance = 1000, stops = 2, speed = 10, drive = 950, section = 900 },
+		{ distance = 1000, stops = 2, speed = 10, drive = 990, section = 900 },
+	}
+	t = model.calibrate(slow, "road")
+	eq({ t.detour, t.dwell }, { 4.0, 0 })
+	-- bad samples are skipped, never raise
+	local bad = { { distance = 1000 }, { distance = 1000, stops = 0, speed = 10, drive = 1, section = 2 },
+		{ distance = 1000, stops = 2, speed = 0 / 0, drive = 1, section = 2 }, { distance = -5, stops = 2, speed = 1, drive = 1, section = 2 } }
+	eq(model.calibrate(bad, "water").fallback, true)
+end)
+
+test("estimateRoundTrip / estimatePerVehicle: capacity x 1460 / round trip; guards", function()
+	-- bus line 88976 of the console read: 12 seats, Σ section 152.6 s -> Rate 114.8 (the game: 115)
+	near(model.estimatePerVehicle(12, 152.6, 1460), 114.8, 0.05)
+	local times = { detour = 1.5, dwell = 25 }
+	eq(model.estimateRoundTrip(1000, 2, 10, times), 1000 * 1.5 / 10 + 2 * 25)
+	eq(model.estimateRoundTrip(0, 2, 10, times), nil, "zero distance")
+	eq(model.estimateRoundTrip(1000, 2, 0, times), nil, "zero speed")
+	eq(model.estimateRoundTrip(1000, 2, 0 / 0, times), nil, "NaN speed")
+	eq(model.estimateRoundTrip(1000, 0, 10, times), nil, "no stops")
+	eq(model.estimateRoundTrip(1000, 2, 10, nil), nil)
+	eq(model.estimateRoundTrip(1000, 2, 10, { detour = 0, dwell = 5 }), nil)
+	eq(model.estimateRoundTrip(1000, 2, 10, { detour = 1, dwell = -1 }), nil)
+	eq(model.estimatePerVehicle(0, 100, 1460), nil, "zero capacity")
+	eq(model.estimatePerVehicle(10, 0, 1460), nil)
+	eq(model.estimatePerVehicle(10, 100, 0 / 0), nil)
+end)
+
+local function emptyInput(catalogue, o)
+	o = o or {}
+	return { line = 1, depot = 300, cargo = LOGS, distance = o.distance or 6072, stops = o.stops or 2,
+		times = o.times or { carrier = "water", detour = 955.2 / (6072 / 8.3333), dwell = (1001 - 955.2) / 2, n = 5 },
+		catalogue = catalogue, yearSeconds = o.yearSeconds or 1460 }
+end
+
+local function shipModel(id, cap, speed, price, running, capital)
+	return { model = id, name = "Ship " .. id, capacity = cap, speed = speed or 8.3333, price = price or 1000,
+		running = running or 500, capital = capital or 100 }
+end
+
+test("estimatePlans: line 124996's own times give its measured Rate 29; counts, costs, the cheapest suggested", function()
+	local plans = model.estimatePlans(emptyInput({ shipModel(3, 20) }), 29)
+	eq(#plans, 1)
+	local p = plans[1]
+	near(p.roundTrip, 1001, 1e-6, "the line's own Σ section")
+	near(p.perVehicle, 20 * 1460 / 1001, 1e-9)
+	eq({ p.count, p.delta, p.buy, p.fresh, p.switch, p.suggested, p.model }, { 1, 1, 1, true, false, true, 3 })
+	eq(p.remove, {}); eq(p.replace, {})
+	-- all bought new: price, running and capital per vehicle x count
+	plans = model.estimatePlans(emptyInput({ shipModel(3, 20, nil, 1000, 500, 100) }), 101)
+	p = plans[1]
+	eq(p.count, 3, "101 / 29.2 = 3.46: 3 (87.5) is closer than 4 (116.7)")
+	eq({ p.price, p.net, p.refund, p.running, p.capital, p.costYear }, { 3000, 3000, 0, 1500, 300, 1800 })
+	near(p.perRate, 1800 / p.rate, 1e-9)
+
+	-- several models: closest to the target first, the cheapest per unit suggested
+	local cat = {
+		shipModel(3, 20, nil, 1000, 500, 100),  -- 29.2 each: 3 = 87.5 (diff 13.5)
+		shipModel(4, 50, nil, 1000, 2000, 200), -- 72.9 each: 1 = 72.9 (diff 28.1)
+		shipModel(5, 35, nil, 1000, 600, 100),  -- 51.0 each: 2 = 102.1 (diff 1.1), cheapest per unit
+		shipModel(6, 0),                        -- no capacity: skipped
+		shipModel(7, 20, 0),                    -- no speed: skipped
+	}
+	plans = model.estimatePlans(emptyInput(cat), 101)
+	local order = {}
+	for i, x in ipairs(plans) do order[i] = x.model end
+	eq(order, { 5, 3, 4 })
+	eq({ plans[1].suggested, plans[2].suggested, plans[3].suggested }, { true, false, false })
+	-- the suggestion follows the cost per unit, not the closeness
+	cat[3].running = 20000
+	plans = model.estimatePlans(emptyInput(cat), 101)
+	eq(plans[1].model, 5); eq(plans[1].suggested, false)
+	eq(plans[2].model, 3); eq(plans[2].suggested, true)
+	-- unknown costs: the closest row
+	for _, m in ipairs(cat) do m.running = nil end
+	plans = model.estimatePlans(emptyInput(cat), 101)
+	eq(plans[1].suggested, true); eq(plans[1].perRate, nil)
+	-- topN
+	eq(#model.estimatePlans(emptyInput(cat), 101, 2), 2)
+end)
+
+test("estimatePlans: per-unit tie goes to the closer row; caps and edge cases", function()
+	-- identical cost per unit (cost scales with capacity): the closer one is suggested
+	local cat = { { model = 3, capacity = 20, speed = 8.3333, price = 1000, running = 400, capital = 0 },
+		{ model = 4, capacity = 40, speed = 8.3333, price = 2000, running = 800, capital = 0 } }
+	local plans = model.estimatePlans(emptyInput(cat), 80)
+	eq({ plans[1].model, plans[1].count, plans[2].model, plans[2].count }, { 3, 3, 4, 1 }, "87.5 is closer to 80 than 58.3")
+	near(plans[1].perRate, plans[2].perRate, 1e-9)
+	eq({ plans[1].suggested, plans[2].suggested }, { true, false }, "a per-unit tie: the closer row")
+	-- the same distance: fewer vehicles first (2 x 29.2 and 1 x 58.3 for 58)
+	plans = model.estimatePlans(emptyInput(cat), 58)
+	eq({ plans[1].model, plans[1].count }, { 4, 1 })
+	-- a model needing more than MAX_MODEL_COUNT is dropped
+	plans = model.estimatePlans(emptyInput({ shipModel(3, 1) }), 1000)
+	eq(#plans, 0, "1000 / 1.46 > 100 vehicles")
+	plans = model.estimatePlans(emptyInput({ shipModel(3, 1), shipModel(4, 50) }), 1000)
+	eq(#plans, 1); eq(plans[1].model, 4); eq(plans[1].count, 14)
+	-- a tiny target still buys one
+	plans = model.estimatePlans(emptyInput({ shipModel(4, 50) }), 1)
+	eq(plans[1].count, 1)
+	-- nothing to estimate
+	eq(model.estimatePlans(emptyInput({ shipModel(3, 20) }), 0), {})
+	eq(model.estimatePlans(emptyInput({ shipModel(3, 20) }), 0 / 0), {})
+	eq(model.estimatePlans(emptyInput({ shipModel(3, 20) }, { distance = 0 }), 50), {}, "zero distance")
+	eq(model.estimatePlans(emptyInput({}), 50), {})
+	eq(model.estimatePlans(nil, 50), {})
+	-- no year given: the default 1460
+	plans = model.estimatePlans(emptyInput({ shipModel(3, 20) }, { yearSeconds = 0 / 0 }), 29)
+	near(plans[1].perVehicle, 20 * 1460 / 1001, 1e-9)
+	-- a model listed twice counts once; a store price of -1 is unknown
+	cat = { shipModel(3, 20), shipModel(3, 20) }
+	cat[1].price = -1
+	plans = model.estimatePlans(emptyInput(cat), 29)
+	eq(#plans, 1); eq(plans[1].price, nil)
+end)

@@ -1,8 +1,8 @@
 # Line Manager Plus: plan
 
-Status: rev 5 (2026-10-11) in the working tree, not committed yet (git HEAD has rev 1). Uploaded through the Mod Hub
-at least once (`_metadata/mod.io_fileid.txt` exists); `make modio-status` tells which revision is live. The Line Rate
-Matcher merge is done (code, tests, retirement); its in-game checks are still open.
+Status: rev 9 (2026-10-18) in the working tree, not committed yet (git HEAD has rev 8). The Mod Hub uploaded this mod
+on 2026-10-18 20:38Z (log session 2026-10-18_1920), probably rev 9; `make modio-status` tells which revision is live.
+The Line Rate Matcher merge is done (code, tests, retirement); its in-game checks are still open.
 
 GUI-only Line Manager features, each behind its own mod setting (`severity None`, `cosmetic`, nothing saved).
 Current design per feature, the install path, Line Editor Undo coexistence and the test files: [README.md](README.md).
@@ -22,7 +22,8 @@ In-game checks: [TESTING.md](TESTING.md). Finished phases, the 2026-10-10 featur
   compact load column; settings tooltips wrapped.
 - Rev 5: vehicle list columns fit the vehicles (`vehicle_columns.lua`); 25 stylesheet rules instead of 33.
 - Dropped: Balance vehicles (feature 5, decision D8, after the probe: [history/PROBE_RESULTS.md](history/PROBE_RESULTS.md));
-  the Buy vehicle button (former feature 6).
+  the Buy vehicle button (former feature 6); Send a vehicle to a chosen stop (2026-10-19, user cancelled after console
+  tests: running buses and trains keep their next stop, also via a depot re-send; docs/findings/lines-vehicles.md).
 - Line Rate Matcher merged 2026-10-11 as `line_rate_matcher` ([MERGE_RM_PLAN.md](MERGE_RM_PLAN.md);
   its design history [RATE_MATCHER.md](RATE_MATCHER.md)). Done: the code and tests moved into LMP,
   `mods/square_line_rate_matcher`, `tests/square_line_rate_matcher`, `plans/square_line_rate_matcher` and its
@@ -31,6 +32,35 @@ In-game checks: [TESTING.md](TESTING.md). Finished phases, the 2026-10-10 featur
 ## Open work
 
 1. In-game checks not yet run: TESTING.md "Open checks".
+   Plus (2026-10-19, not yet uploaded, no revision bump yet): Match line rate on a line with **no vehicles** suggests
+   the model and count for the target from the route (straight round trip between the stops x the carrier's detour /
+   top speed + stops x dwell; detour and dwell from the save's other lines of that carrier, else typical values) and
+   Apply buys them onto the line (README.md "Match line rate: empty lines"). Open: the estimate's accuracy in game
+   (`empty estimate check` log lines, TESTING.md "Match line rate: a line with no vehicles").
+   Plus (2026-10-17, revision 9, not yet uploaded): the Line Manager's "Show Only Visible Lines" remembered with the
+   savegame (GUI save data, `api.gui.game.setGuiSaveData("square_line_manager_plus", { lineManager = bool })`; the
+   first version kept it in the game settings, which mod.io's upload check rejected 2026-10-20) and followed by the
+   Send to Line popover (`lmp_visible.lua`, always on). The popover's own eye is not recorded (would need a builtin.ToggleButton wrapper
+   for every toggle: user declined 2026-10-17). Check: turn the Line Manager's eye on (log `[LineManagerPlus] visible
+   lines: saved lineManager = true`), open Send to Line: filtered; save, load that save: Line Manager and Send to Line
+   still filtered; a new game starts with the eye Off.
+   Plus (revision 10, 2026-10-19, user in game: looks good, bus and furniture truck lines): Buy Vehicles opens the
+   store with the line's cargo ticked when the line carries one cargo type (`buy_vehicles_line_filter`,
+   `buy_line_filter.lua`); remaining checks (trains, settings Off): TESTING.md "Buy Vehicles: line's cargo filter".
+   Also (2026-10-18, revision 9, not yet uploaded): the Utilization cell of the Line Manager's bottom statistics row
+   shows the line's average utilization over the last 12 game months right of the live value, "avg 87%" in the base
+   light blue (`positive`, annotation size), "avg ~87%" until 12 months were sampled since load (`lmp_util_avg.lua`,
+   always on; sampler host `lmp_util_host.res.lua` at `::ModEntryPointExtension`, 4 samples per game month, game
+   time driven; hook: probe technique T3, UTIL_PROBE.md). GUI only, history starts empty at every load. Check: open
+   the Line Manager on a line after a quarter game month (log `[LineManagerPlus] average utilization: installed`):
+   "avg ~NN%" beside the value, tooltip "(0 of 12 months so far)"; the text stays inside the cell at the Large font
+   setting (cell ~94 px; if not, drop the left padding or use a shorter label); multi-select: one value per row;
+   paused: the months count does not move. Seen in game 2026-10-18 (captures `shots/17-19-utilization-avg-*.jpg`,
+   default font: "26% avg ~51%" train, "48% avg ~40%" ship, "43% avg ~55%" bus, inside the cell); the tooltip,
+   Large font, multi-select and paused checks are still open.
+   Gallery (2026-10-18): slide 2 "Utilization, now and on average" (17-19). To stay at the 9-slide cap, "Know where
+   you send" + "Preview every send" became one stack, and "Duplicate, reverse, match" + "Match line rate" another
+   ("Match, duplicate, reverse"); `make shots` rendered 9.
 2. Docs gap: README.md and TESTING.md have no section for the vehicle list features of revs 3-5 (`vehicle_cargo.lua`,
    `vehicle_hover.lua`, `vehicle_columns.lua`; tests `test_vehicle_*.lua`). Until then their module headers are the
    design reference.
@@ -46,8 +76,9 @@ In-game checks: [TESTING.md](TESTING.md). Finished phases, the 2026-10-10 featur
 
 ## Next step
 
-Run TESTING.md's open checks in game (Rate Matcher first: Apply buys and sells, use a test save), then commit and
-release rev 5.
+Confirm the live revision (`make modio-status MOD=mods/square_line_manager_plus`, user runs it), sync the new
+gallery (`make modio MOD=mods/square_line_manager_plus ARGS='--only gallery'`), commit rev 9, then run TESTING.md's
+open checks and the rev 9 checks above in game.
 
 ## User decisions (2026-10-10)
 

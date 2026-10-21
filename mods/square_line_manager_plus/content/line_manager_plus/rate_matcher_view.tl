@@ -21,6 +21,10 @@
 --     the lifespan, model.planCost) and Per rate (Cost/yr / ≈ Rate); the comparison marks the lowest Per rate "best"
 --     (model.bestByPerRate). Other models' Rate estimate uses the line's time at stops (data.timing.loadShare) and
 --     each model's load speed (rate_matcher_model.tl header).
+--   * A line with no vehicles (2026-10-19): with an estimate input (engine.emptyLineInput) the comparison lists the
+--     buyable models with the count each needs (model.estimatePlans: all bought new, Rate from the route), status
+--     "estimate"; the lowest cost per unit is preselected and tagged "best". Without one, statusText says why
+--     (emptyWhy: train line, no depot, stop positions, no cargo, no model).
 
 local model = ug_require "square_line_manager_plus::/line_manager_plus/rate_matcher_model.tl" as SquareRateMatcherModel
 
@@ -162,6 +166,7 @@ function view.build(data : SquareRateMatcherLineData, supply : SquareRateMatcher
 	v.count = active
 	v.fleetRunning = model.fleetRunning(data.vehicles)
 	local cargo = supply ~= nil and supply.cargo or nil
+	if active == 0 then return view.buildEmpty(v, cargo, target, inp) end
 	local s = model.suggest(data.rate, data.vehicles, cargo, target)
 	if s.status == "no_capacity" and cargo ~= nil and (supply == nil or supply.kind ~= "cargo") then
 		-- the vehicles don't carry the guessed cargo (no supply target): fall back to equal shares
@@ -226,6 +231,47 @@ function view.build(data : SquareRateMatcherLineData, supply : SquareRateMatcher
 	end
 	v.plans = v.selectedModel.plans
 	v.selected = view.pickPlan(v.plans, inp.selectedCount)
+	return v
+end
+
+--- The view of a line with no vehicles (see the header): the estimate's rows, or why there are none.
+function view.buildEmpty(v : SquareRateMatcherViewState, cargo : integer, target : number, inp : SquareRateMatcherBuildInput) : SquareRateMatcherViewState
+	v.cargo = cargo
+	v.status = "no_vehicles"
+	local e = inp.empty
+	if e == nil then
+		v.emptyWhy = inp.emptyWhy
+		return v
+	end
+	v.empty = e
+	local t = num(target)
+	if t == nil or t <= 0 then
+		v.status = "estimate_target"
+		return v
+	end
+	local plans = model.estimatePlans(e, t)
+	if #plans == 0 then
+		v.status = "estimate_none"
+		return v
+	end
+	v.status = "estimate"
+	local names : {integer : string} = {}
+	for __, m in ipairs(e.catalogue or {}) do names[m.model] = m.name end
+	for __, p in ipairs(plans) do
+		v.models[#v.models + 1] = { model = p.model, name = names[p.model], current = false, plans = { p }, plan = p }
+	end
+	for i in pairs(model.bestByPerRate(plans)) do v.models[i].best = true end
+	for __, row in ipairs(v.models) do
+		if inp.selectedModel ~= nil and row.model == inp.selectedModel then v.selectedModel = row end
+	end
+	if v.selectedModel == nil then
+		for __, row in ipairs(v.models) do
+			if row.plan.suggested then v.selectedModel = row end
+		end
+	end
+	v.selectedModel = v.selectedModel or v.models[1]
+	v.plans = v.selectedModel.plans
+	v.selected = v.selectedModel.plan
 	return v
 end
 
@@ -323,7 +369,24 @@ end
 
 function view.statusText(v : SquareRateMatcherViewState) : string
 	if v == nil then return _("No line selected.") end
-	if v.status == "no_vehicles" then return _("This line has no vehicles to copy.") end
+	if v.status == "no_vehicles" then
+		local why = v.emptyWhy
+		if why == nil then return _("This line has no vehicles to copy.") end
+		if why == "rail" or why == "multi_part" then
+			return _("No estimate for a train line without trains: buy its first train in the vehicle store.")
+		end
+		if why == "no_depot" then return _("No estimate: no depot reaches this line.") end
+		if why == "no_positions" then return _("No estimate: the positions of this line's stops could not be read.") end
+		if why == "few_stops" then return _("No estimate: the line needs at least 2 stops in different places.") end
+		if why == "too_many_stops" then return _("No estimate: this line has too many stops.") end
+		if why == "no_cargo" then return _("No estimate: this line loads nothing yet.") end
+		if why == "no_models" then return _("No estimate: no buyable model carries this line's cargo.") end
+		return _("No estimate for this line (see the game log).")
+	end
+	if v.status == "estimate_target" then return _("Type a target above 0 for a suggestion.") end
+	if v.status == "estimate_none" then
+		return view.fill(_("No model reaches the target with at most {n} vehicles."), { n = model.MAX_MODEL_COUNT })
+	end
 	if v.status == "no_rate" then return _("The line's Rate is 0, so there is nothing to scale from.") end
 	if v.status == "no_capacity" then return _("The line's vehicles carry none of this cargo.") end
 	if v.status == "invalid_target" then return _("Type a target of 0 or more.") end
@@ -382,6 +445,10 @@ end
 function view.planActionText(p : SquareRateMatcherPlan, modelName : string) : string
 	if p == nil then return _("Nothing to change.") end
 	local vars : {string : any} = { n = math.abs(p.delta), model = modelName or "?", count = p.count }
+	if p.fresh then
+		if p.count == 1 then return view.fill(_("Buys 1 new vehicle ({model}) for this line."), vars) end
+		return view.fill(_("Buys {count} new vehicles ({model}) for this line."), vars)
+	end
 	if p.switch then
 		if p.delta > 0 then
 			return view.fill(_("Replaces every vehicle with {model} and buys more: {count} in total."), vars)
@@ -398,6 +465,29 @@ function view.planActionText(p : SquareRateMatcherPlan, modelName : string) : st
 		return view.fill(_("Sells the {n} newest vehicles at once."), vars)
 	end
 	return _("Nothing to change.")
+end
+
+function view.estimateNote(e : SquareRateMatcherEmptyInput) : string
+	if e == nil then return nil end
+	local km = num(e.distance) ~= nil and view.fmtPer(e.distance / 1000) or "?"
+	local route = view.fill(_("Estimated from the route: {km} km round trip, {stops} stops."), { km = km, stops = e.stops ~= nil and tostring(e.stops) or "?" })
+	local t = e.times
+	if t == nil then return route end
+	local carrier = t.carrier
+	local times : string
+	if t.fallback then
+		if carrier == "water" then times = _("Typical ship times.")
+		elseif carrier == "air" then times = _("Typical aircraft times.")
+		elseif carrier == "tram" then times = _("Typical tram times.")
+		else times = _("Typical road vehicle times.") end
+	else
+		local vars : {string : any} = { n = t.n }
+		if carrier == "water" then times = view.fill(_("Times from {n} other ship lines."), vars)
+		elseif carrier == "air" then times = view.fill(_("Times from {n} other aircraft lines."), vars)
+		elseif carrier == "tram" then times = view.fill(_("Times from {n} other tram lines."), vars)
+		else times = view.fill(_("Times from {n} other road vehicle lines."), vars) end
+	end
+	return route .. " " .. times
 end
 
 function view.modelsHint(reason : string) : string
@@ -442,7 +532,7 @@ function view.resultText(kind : string, r : SquareRateMatcherCommandResult, mode
 		end
 		return _("Could not sell the vehicles."), true
 	end
-	-- clone
+	-- clone, buy (an empty line's estimate)
 	if r.status == "ok" then
 		if done == 1 then return _("Bought 1 vehicle for this line."), false end
 		return view.fill(_("Bought {n} vehicles for this line."), vars), false
@@ -456,7 +546,10 @@ function view.resultText(kind : string, r : SquareRateMatcherCommandResult, mode
 		end
 		return view.fill(_("Bought {n} of {total} vehicles."), vars), true
 	end
-	if reasonCount(r, "not_enough_money") > 0 then return _("Not enough money to buy a vehicle."), true end
+	if reasonCount(r, "not_enough_money") > 0 then
+		if kind == "buy" then return _("Not enough money for these vehicles."), true end
+		return _("Not enough money to buy a vehicle."), true
+	end
 	if reasonCount(r, "no_depot") > 0 then return _("No depot found for this line."), true end
 	if reasonCount(r, "set_line_failed") > 0 then
 		return _("The vehicles were bought but could not join the line; they wait in the depot."), true

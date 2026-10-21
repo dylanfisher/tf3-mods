@@ -68,6 +68,16 @@
 --     (within BEST_TOLERANCE; nothing when all tie). "Price" (net) stays the cash needed today.
 --   * Which old vehicles go when a switch shrinks the fleet does not change the net (all of them are refunded):
 --     the newest are sold (pickSurplus order), the rest replaced.
+--
+-- Empty line estimate (2026-10-19; docs/findings/lines-vehicles.md "Line Rate formula; driving vs straight-line
+-- distance per carrier", console 2026-10-20): a line with no vehicles has no Rate and no LineCargoInfo, so the window
+-- estimates from geometry. Rate per vehicle = capacity x 1460 (the default year in s) / round trip (s) (exact on 11
+-- lines), round trip = D x detour / topSpeed + S x dwell, D = the straight cyclic round trip through the S stops.
+-- detour (driving vs straight line at top speed) and dwell (time at each stop) come from the save's other lines of the
+-- carrier (calibrate: medians, clamped to DETOUR_MIN..DETOUR_MAX and 0..DWELL_MAX), else FALLBACK_TIMES (the console's
+-- medians: ships 1.5 / 25 s, buses 1.9 / 9 s, one air line 2.6 / 21 s). Every vehicle is bought new: planCost with
+-- no fleet. The rows: TOP_MODELS closest to the target as rankModels, suggested = the lowest cost per unit (as
+-- bestByPerRate, within BEST_TOLERANCE: tie goes to the closer Rate, then fewer vehicles, then the model id).
 
 local model : SquareRateMatcherModel = {}
 
@@ -678,6 +688,173 @@ function model.switchPlans(modelId : integer, perVehicle : number, target : numb
 		end
 	end
 	return out, nil
+end
+
+-- empty line estimate ----------------------------------------------------------------------
+
+model.MIN_SAMPLES = 3
+model.DETOUR_MIN = 1.0
+model.DETOUR_MAX = 4.0
+model.DWELL_MAX = 120
+model.FALLBACK_TIMES = {
+	water = { carrier = "water", detour = 1.5, dwell = 25, n = 0, fallback = true },
+	road = { carrier = "road", detour = 1.9, dwell = 9, n = 0, fallback = true },
+	tram = { carrier = "tram", detour = 1.9, dwell = 9, n = 0, fallback = true },
+	air = { carrier = "air", detour = 2.6, dwell = 21, n = 0, fallback = true },
+	other = { carrier = "other", detour = 1.9, dwell = 15, n = 0, fallback = true },
+}
+
+function model.median(list : {number}) : number
+	local xs : {number} = {}
+	for __, v in ipairs(list or {}) do
+		local n = num(v)
+		if n ~= nil then xs[#xs + 1] = n end
+	end
+	if #xs == 0 then return nil end
+	table.sort(xs)
+	local mid = math.floor((#xs + 1) / 2)
+	if #xs % 2 == 1 then return xs[mid] end
+	return (xs[mid] + xs[mid + 1]) / 2
+end
+
+function model.routeDistance(points : {{number}}) : number
+	if type(points) ~= "table" or #points < 2 then return nil end
+	local total = 0.0
+	for i, p in ipairs(points) do
+		local q = points[i % #points + 1]
+		local x1, y1 = num(p ~= nil and p[1] or nil), num(p ~= nil and p[2] or nil)
+		local x2, y2 = num(q ~= nil and q[1] or nil), num(q ~= nil and q[2] or nil)
+		if x1 == nil or y1 == nil or x2 == nil or y2 == nil then return nil end
+		total = total + math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
+	end
+	return total
+end
+
+local function clamp(x : number, lo : number, hi : number) : number
+	if x < lo then return lo end
+	if x > hi then return hi end
+	return x
+end
+
+local function fallbackTimes(carrier : string) : SquareRateMatcherTimes
+	local f = model.FALLBACK_TIMES[carrier or "other"] or model.FALLBACK_TIMES.other
+	return { carrier = f.carrier, detour = f.detour, dwell = f.dwell, n = 0, fallback = true }
+end
+
+function model.calibrate(samples : {SquareRateMatcherTimingSample}, carrier : string) : SquareRateMatcherTimes
+	local detours, dwells : {number}, {number} = {}, {}
+	for __, smp in ipairs(samples or {}) do
+		local d, sp, drive, section = num(smp.distance), num(smp.speed), num(smp.drive), num(smp.section)
+		local stops = num(smp.stops)
+		if d ~= nil and d > 0 and sp ~= nil and sp > 0 and drive ~= nil and drive > 0 and section ~= nil
+			and section > 0 and stops ~= nil and stops >= 1 then
+			detours[#detours + 1] = drive / (d / sp)
+			local dw = (section - drive) / stops
+			if dw < 0 then dw = 0 end
+			dwells[#dwells + 1] = dw
+		end
+	end
+	if #detours < model.MIN_SAMPLES then
+		local f = fallbackTimes(carrier)
+		f.n = #detours
+		return f
+	end
+	return {
+		carrier = model.FALLBACK_TIMES[carrier or "other"] ~= nil and carrier or "other",
+		detour = clamp(model.median(detours), model.DETOUR_MIN, model.DETOUR_MAX),
+		dwell = clamp(model.median(dwells), 0, model.DWELL_MAX),
+		n = #detours,
+		fallback = false,
+	}
+end
+
+function model.estimateRoundTrip(distance : number, stops : integer, speed : number, times : SquareRateMatcherTimes) : number
+	local d, sp, st = num(distance), num(speed), num(stops)
+	if d == nil or d <= 0 or sp == nil or sp <= 0 or st == nil or st < 1 or times == nil then return nil end
+	local detour, dwell = num(times.detour), num(times.dwell)
+	if detour == nil or detour <= 0 or dwell == nil or dwell < 0 then return nil end
+	local rt = d * detour / sp + st * dwell
+	if rt <= 0 or num(rt) == nil then return nil end
+	return rt
+end
+
+function model.estimatePerVehicle(capacity : number, roundTrip : number, yearSeconds : number) : number
+	local c, rt, y = num(capacity), num(roundTrip), num(yearSeconds)
+	if c == nil or c <= 0 or rt == nil or rt <= 0 or y == nil or y <= 0 then return nil end
+	return c * y / rt
+end
+
+-- the count nearest the target (floor / ceil, at least 1), as rankModels and switchPlans pick it
+local function nearestCount(t : number, pv : number) : integer
+	local lo = math.max(1, math.floor(t / pv))
+	local hi = math.max(1, math.ceil(t / pv))
+	if math.abs(hi * pv - t) < math.abs(lo * pv - t) - model.EPS then return hi end
+	return lo
+end
+
+function model.estimatePlans(input : SquareRateMatcherEmptyInput, target : number, topN? : integer) : {SquareRateMatcherPlan}
+	local out : {SquareRateMatcherPlan} = {}
+	local t = num(target)
+	if type(input) ~= "table" or t == nil or t <= 0 then return out end
+	local year = num(input.yearSeconds)
+	if year == nil or year <= 0 then year = 1460 end
+	local seen : {integer : boolean} = {}
+	for __, m in ipairs(input.catalogue or {}) do
+		if m ~= nil and m.model ~= nil and not seen[m.model] then
+			seen[m.model] = true
+			local rt = model.estimateRoundTrip(input.distance, input.stops, m.speed, input.times)
+			local pv = model.estimatePerVehicle(m.capacity, rt, year)
+			if pv ~= nil and pv > 0 then
+				local count = nearestCount(t, pv)
+				if count <= model.MAX_MODEL_COUNT then
+					local p : SquareRateMatcherPlan = {
+						model = m.model,
+						switch = false,
+						fresh = true,
+						count = count,
+						delta = count,
+						rate = count * pv,
+						diff = count * pv - t,
+						buy = count,
+						remove = {},
+						replace = {},
+						perVehicle = pv,
+						roundTrip = rt,
+						suggested = false,
+					}
+					out[#out + 1] = model.planCost(p, {}, { price = m.price ~= nil and m.price > 0 and m.price or nil,
+						running = m.running, capital = m.capital })
+				end
+			end
+		end
+	end
+	table.sort(out, function(a : SquareRateMatcherPlan, b : SquareRateMatcherPlan) : boolean
+		local da, db = math.abs(a.diff), math.abs(b.diff)
+		if math.abs(da - db) > model.EPS then return da < db end
+		if a.count ~= b.count then return a.count < b.count end
+		return a.model < b.model
+	end)
+	local limit = topN or model.TOP_MODELS
+	while #out > limit do table.remove(out) end
+	-- suggested: the lowest cost per unit (within BEST_TOLERANCE); rows are in closeness order, so the first such
+	-- row is also the closest to the target among the cheapest. Unknown costs: the closest row.
+	local best : number = nil
+	for __, p in ipairs(out) do
+		local r = num(p.perRate)
+		if r ~= nil and r >= 0 and (best == nil or r < best) then best = r end
+	end
+	local pick : SquareRateMatcherPlan = out[1]
+	if best ~= nil then
+		for __, p in ipairs(out) do
+			local r = num(p.perRate)
+			if r ~= nil and r <= best * (1 + model.BEST_TOLERANCE) + model.EPS then
+				pick = p
+				break
+			end
+		end
+	end
+	if pick ~= nil then pick.suggested = true end
+	return out
 end
 
 return model

@@ -73,13 +73,32 @@ function data()
 		})
 	end
 
-	-- Line actions menu (lmp_actions.lua, recipe SquareLmpLineActionsMenu): its "secondary" icon+text buttons stretch
-	-- to the menu's width (gravity -1 = fill horizontally, centred vertically) with a little air between them and to
-	-- the popover's edge (margin top, right, bottom, left). One rule; the toolbar button itself uses A+'s classes.
-	a("R::SquareLmpLineActionsMenu Button", {
-		gravity = { -1, 0.5 },
-		margin = { 4, 8, 4, 8 },
-	})
+	-- Line actions menu (lmp_actions.lua, recipe SquareLmpLineActionsMenu): rows like the base Auto-Rename popover's
+	-- "R::AutoRenameDialog Button!auto-rename" (line_vehicle_mgmt.css.lua:1162-1177, scoped to that recipe, so not
+	-- reusable): AccentMedium at transparency High, invisible border, hover AccentLight, active
+	-- getActiveFromRaw(AccentMedium). Gravity: fill the width, centred vertically (the base -1 -1 fills a
+	-- FloatingLayout cell; ours sit in a BoxLayout). 3 rules: an inline sheet has no states, margin or gravity. The
+	-- header card, the left-aligned content and the disabled wash are inline (lmp_actions.lua); the toolbar button
+	-- itself uses A+'s classes.
+	do
+		local transparency = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/transparency.gres")).data
+		local MENU_BUTTON = "R::SquareLmpLineActionsMenu Button"
+		a(MENU_BUTTON, {
+			backgroundColor1 = color_util.withTransparencyRaw(colorDefault.AccentMedium, transparency.High),
+			borderColor = colorDefault.Invisible,
+			gravity = { -1, 0.5 },
+			margin = { 2, 4, 2, 4 },
+			padding = { 4, 8, 4, 8 },
+		})
+		a(MENU_BUTTON .. ":hover", {
+			backgroundColor1 = colorDefault.AccentLight,
+			borderColor = colorDefault.Invisible,
+		})
+		a(MENU_BUTTON .. ":active", {
+			backgroundColor1 = color_util.getActiveFromRaw(colorDefault.AccentMedium),
+			borderColor = colorDefault.Invisible,
+		})
+	end
 
 	-- Vehicle list columns (rev 5, player request 2026-10-11: use the room short pictures leave for the name). The
 	-- picture column sizes to its content (vanilla: 240 px fixed, picture at most 180, line_vehicle_mgmt.css.lua

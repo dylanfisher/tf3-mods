@@ -23,6 +23,10 @@
 --     vehicle makeVehicleReplaceCmd(entity, config) (the vehicle keeps its entity and line), extra ones bought at the
 --     line's depot and set on the line, surplus old ones sold. Money as the store's
 --     hasEnoughMoney (:2992-3003): net = price x new vehicles - resale (getDepreciatedValue) of the replaced ones.
+--   * buy onto an empty line (buyOntoLine, 2026-10-19) = the switch's "extra vehicles" step alone: the same fresh
+--     single-part config of the model (newModelConfig), bought at the depot the estimate's catalogue came from
+--     (line_util.getBestDepotForLine, as the line editor's Buy Vehicles button), then set on the line at stop 0; money
+--     all or nothing, mission.buyVehicle once, "[LineManagerPlus] rate matcher: buy charged" after.
 --   * prices = the store's: metadata cost.price per part (buy mode totalPrice, vehicle_store_window.tl:3765-3771,
 --     4038-4040). getPartPrice ("vehicle part value", util.d.tl:469-472) is only the fallback: for a part already
 --     bought it may be a depreciated value (the store uses it only in Modify mode for existing parts).
@@ -410,8 +414,9 @@ local function depreciated(v : integer) : number
 	return 0
 end
 
-function commands.switchModel(plan : SquareRateMatcherPlan, line : integer, template : integer, onDone? : function(SquareRateMatcherCommandResult), protected? : {integer : any}) : SquareRateMatcherCommandResult
-	if plan == nil or not plan.switch or plan.model == nil then return invalid("invalid_model", 0, onDone) end
+-- The switch / buy order: replace plan.replace in place, buy plan.buy at the depot (`depotHint`, else resolveDepot of
+-- the template) onto the line, sell plan.remove. `label` names it in the charged log line.
+local function runPlan(plan : SquareRateMatcherPlan, line : integer, template : integer, depotHint : integer, label : string, onDone : function(SquareRateMatcherCommandResult), protected : {integer : any}) : SquareRateMatcherCommandResult
 	local replace, remove = plan.replace or {}, plan.remove or {}
 	local buy = math.max(0, math.floor(plan.buy or 0))
 	local total = #replace + buy + #remove
@@ -439,7 +444,14 @@ function commands.switchModel(plan : SquareRateMatcherPlan, line : integer, temp
 	end
 	local depot : integer = nil
 	if buy > 0 then
-		depot, r.depotFrom = commands.resolveDepot(template, line)
+		local okD, hintAlive = pcall(function() : boolean
+			return type(depotHint) == "number" and depotHint >= 0 and api.engine.entityExists(depotHint)
+		end)
+		if okD and hintAlive then
+			depot, r.depotFrom = depotHint, "estimate"
+		else
+			depot, r.depotFrom = commands.resolveDepot(template, line)
+		end
 		r.depot = depot
 		if depot == nil then return failAll("no_depot") end
 	end
@@ -469,12 +481,13 @@ function commands.switchModel(plan : SquareRateMatcherPlan, line : integer, temp
 			finish(r)
 			local after = balance()
 			if bal ~= nil and after ~= nil then
-				log.message("[LineManagerPlus] rate matcher: switch charged: balance " .. tostring(bal) .. " -> " .. tostring(after)
-					.. " = " .. tostring(bal - after) .. " (plan net " .. tostring(plan.net) .. ")")
+				log.message("[LineManagerPlus] rate matcher: " .. label .. " charged: balance " .. tostring(bal) .. " -> " .. tostring(after)
+					.. " = " .. tostring(bal - after) .. " (plan net " .. tostring(plan.net) .. ", store price each "
+					.. tostring(price) .. ")")
 			end
 			if onDone ~= nil then
 				local ok, err : boolean, any = pcall(onDone, r)
-				if not ok then warn("switch onDone failed: " .. tostring(err)) end
+				if not ok then warn(label .. " onDone failed: " .. tostring(err)) end
 			end
 		end
 	end
@@ -560,6 +573,25 @@ function commands.switchModel(plan : SquareRateMatcherPlan, line : integer, temp
 	sending = false
 	settle()
 	return r
+end
+
+function commands.switchModel(plan : SquareRateMatcherPlan, line : integer, template : integer, onDone? : function(SquareRateMatcherCommandResult), protected? : {integer : any}) : SquareRateMatcherCommandResult
+	if plan == nil or not plan.switch or plan.model == nil then return invalid("invalid_model", 0, onDone) end
+	return runPlan(plan, line, template, nil, "switch", onDone, protected)
+end
+
+-- buy onto an empty line -------------------------------------------------------------------
+
+--- The empty line's estimate: `count` new vehicles of `modelId` (the store's buy-immediately config, as a switch's
+--- extra vehicles), bought at `depot` (the one the estimate's catalogue came from; resolveDepot when it is gone) and
+--- set on the line. Money all or nothing, mission.buyVehicle once; logs "buy charged".
+function commands.buyOntoLine(modelId : integer, count : integer, line : integer, depot : integer, onDone? : function(SquareRateMatcherCommandResult)) : SquareRateMatcherCommandResult
+	if modelId == nil then return invalid("invalid_model", 0, onDone) end
+	if type(count) ~= "number" or count < 1 then return invalid("invalid_count", 0, onDone) end
+	local n = math.min(math.floor(count), commands.MAX_CLONES)
+	local plan : SquareRateMatcherPlan = { model = modelId, switch = true, fresh = true, count = n, delta = n, buy = n,
+		replace = {}, remove = {} }
+	return runPlan(plan, line, nil, depot, "buy", onDone, nil)
 end
 
 -- replace ----------------------------------------------------------------------------------

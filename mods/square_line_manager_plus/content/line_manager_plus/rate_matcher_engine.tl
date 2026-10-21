@@ -43,11 +43,35 @@
 --     ("scheduled times for each section") vs driveSectionTimes ("drive times"), type.d.tl:4185-4199. Not used by
 --     the base GUI, so its units / meaning are NOT verified in game: the window logs it ("[LineManagerPlus] rate matcher: timing").
 --
+-- Empty line estimate (2026-10-19; rate_matcher_model.tl header, docs/findings/lines-vehicles.md "Line Rate formula"):
+--   * depot, carrier, transport modes and filter tags as the line editor's Buy Vehicles button opens the store
+--     (manager_window.tl:7395-7410 line_util.getBestDepotForLine, then :7141-7143 vehicle_util.getDepotCarrier /
+--     getDepotTransportModes, vehicle_store_util.getDepotFilterTags); the catalogue then filters as for a fleet. Rail
+--     stays out (a train is a consist, not one model).
+--   * stop positions: STATION_GROUP.stations[stop.station + 1] -> streetConnectorSystem.getConstructionEntityForStation
+--     -> CONSTRUCTION.transf:getTransl() (the console read of the findings); a station without a construction
+--     (curbside stops) -> the station's BOUNDING_VOLUME center, as base entity_util.getPosition, which
+--     line_util.getBestDepotForLine uses for the same station entity (line_util.tl:1800).
+--   * calibration: up to MAX_SCAN_LINES of the player's lines (stopping at MAX_SAMPLES samples); those whose first
+--     vehicle is of the carrier and single-part give a sample (straight round trip, stops, the model's top speed, LineCargoInfo drive / section sums
+--     for the cargo the vehicle carries); model.calibrate takes the medians. Cached per carrier for CALIBRATION_TTL_MS
+--     of game time (a paused game keeps it), so it runs when the window opens on an empty line, not per frame.
+--   * the model catalogue (fleet and empty line alike) is cached per carrier / modes / tags / cargo / year / year
+--     length / mission filter (catalogueFor), so the window's re-reads don't walk every vehicle model again.
+--
 -- Threads: plain engine reads (no api.gui), safe from a click handler or react.onStep; phase 3 decides.
 
 local model = ug_require "square_line_manager_plus::/line_manager_plus/rate_matcher_model.tl" as SquareRateMatcherModel
 
 local engine : SquareRateMatcherEngine = {}
+
+-- Line Manager Plus's one SQPERF instrument (lmp_perf.lua; a local record as in rate_matcher_window.tl). Sections here:
+-- "rate_matcher_catalogue" (one model walk, a cache miss), "rate_matcher_calibration" (one scan of the other lines, a
+-- cache miss), "rate_matcher_empty" (one emptyLineInput: depot, stops, the two above when they miss).
+local record LmpPerfModule
+	perf : SquareLineManagerPlusSqPerfInst
+end
+local perf = (ug_require "square_line_manager_plus::/line_manager_plus/lmp_perf.lua" as LmpPerfModule).perf
 
 local function optional(path : string) : any
 	local ok, m = pcall(ug_require, path)
@@ -596,11 +620,93 @@ local function kindOf(vehicleIds : {integer}) : LineVehicleKind, string
 	return { carrier = carrier, modes = modes, tags = tags, multiPart = multiPart }, nil
 end
 
-local function contains(list : {string}, s : string) : boolean
-	for __, x in ipairs(list or {}) do
-		if x == s then return true end
+-- Buyable models of a carrier / modes / tags that carry `cargo` (the shared part of the fleet and the empty-line
+-- catalogue), sorted by model id. The walk visits every vehicle model of the game, so its result is cached by
+-- everything it depends on (catalogueKey): the model set and metadata never change in a running game, availability
+-- only with the year, capital with the calendar speed. The window's re-reads (open, 1 s / 3 s after Apply, the line
+-- gaining or losing its last vehicle) then walk once per key. Callers only read the returned list.
+engine.MAX_CATALOGUE_KEYS = 16
+
+local catalogueCache : {string : {SquareRateMatcherModelInfo}} = {}
+local catalogueKeys = 0
+
+function engine.clearCaches()
+	catalogueCache, catalogueKeys = {}, 0
+	engine.clearCalibration()
+end
+
+local function sortedKeys(set : {any : boolean}) : string
+	local out : {string} = {}
+	for k, b in pairs(set or {}) do
+		if b then out[#out + 1] = tostring(k) end
 	end
-	return false
+	table.sort(out)
+	return table.concat(out, ",")
+end
+
+local function catalogueKey(kind : LineVehicleKind, cargo : integer, year : integer, yearMs : integer, vf : GameContext.Filters.VehicleFilter) : string
+	local tags : {string} = {}
+	for i, t in ipairs(kind.tags or {}) do tags[i] = t end
+	table.sort(tags)
+	local filter = "-"
+	if vf ~= nil then
+		filter = tostring(vf) .. "#" .. tostring(vf.enabledVehicles ~= nil and #vf.enabledVehicles or -1) .. "#"
+			.. tostring(vf.disabledVehicles ~= nil and #vf.disabledVehicles or -1)
+	end
+	return tostring(kind.carrier) .. "|" .. (kind.modes ~= nil and sortedKeys(kind.modes as {any : boolean}) or "*") .. "|"
+		.. (kind.tags ~= nil and table.concat(tags, ",") or "*") .. "|" .. tostring(cargo) .. "|" .. tostring(year) .. "|"
+		.. tostring(yearMs) .. "|" .. filter
+end
+
+local function setOf(list : {string}) : {string : boolean}
+	if list == nil or #list == 0 then return nil end
+	local out : {string : boolean} = {}
+	for __, x in ipairs(list) do out[x] = true end
+	return out
+end
+
+local function walkCatalogue(kind : LineVehicleKind, cargo : integer, year : integer, yearMs : integer, vf : GameContext.Filters.VehicleFilter) : {SquareRateMatcherModelInfo}
+	local enabled = vf ~= nil and setOf(vf.enabledVehicles) or nil
+	local disabled = vf ~= nil and setOf(vf.disabledVehicles) or nil
+	local out : {SquareRateMatcherModelInfo} = {}
+	api.res.modelRep.forEachModelWithMetadata("transportVehicle", function(path : string)
+		local okOne, err : boolean, any = pcall(function()
+			if enabled ~= nil and not enabled[path] then return end
+			if disabled ~= nil and disabled[path] then return end
+			local id = api.res.modelRep.find(path) as integer
+			if id == nil or id < 0 then return end
+			local md = modelMetadata(id)
+			local tv = md ~= nil and md["transportVehicle"] as ModelMetadata.TransportVehicle or nil
+			if tv == nil or tv.carrier ~= kind.carrier then return end
+			if not engine.matchesTransportModes(tv.transportModes, kind.modes) then return end
+			if not engine.matchesFilterTags(tv.filterTags, kind.tags) then return end
+			local info = infoOf(id, path, md, cargo, year, yearMs)
+			if info ~= nil and info.available and info.capacity > 0 and info.speed > 0 then
+				out[#out + 1] = info
+			end
+		end)
+		if not okOne then log.warning("[LineManagerPlus] rate matcher: model " .. tostring(path) .. " skipped: " .. tostring(err)) end
+	end)
+	table.sort(out, function(a : SquareRateMatcherModelInfo, b : SquareRateMatcherModelInfo) : boolean
+		return a.model < b.model
+	end)
+	return out
+end
+
+local function catalogueFor(kind : LineVehicleKind, cargo : integer, opts : SquareRateMatcherCatalogueOptions) : {SquareRateMatcherModelInfo}
+	local year = opts ~= nil and opts.year or engine.currentYear()
+	local yearMs = engine.yearMs()
+	local vf = opts ~= nil and opts.vehicleFilter or nil
+	local key = catalogueKey(kind, cargo, year, yearMs, vf)
+	local hit = catalogueCache[key]
+	if hit ~= nil then return hit end
+	local t0 = perf:start()
+	local out = walkCatalogue(kind, cargo, year, yearMs, vf)
+	perf:stop("rate_matcher_catalogue", t0)
+	if catalogueKeys >= engine.MAX_CATALOGUE_KEYS then catalogueCache, catalogueKeys = {}, 0 end
+	catalogueCache[key] = out
+	catalogueKeys = catalogueKeys + 1
+	return out
 end
 
 --- Buyable models (this year) of the line vehicles' carrier and transport modes that carry `cargo`
@@ -612,35 +718,255 @@ function engine.modelCatalogue(vehicleIds : {integer}, cargo : integer, opts? : 
 		local kind, why = kindOf(vehicleIds)
 		if kind == nil then return nil, why end
 		if kind.multiPart or kind.carrier == api.type["enum"].Carrier.RAIL then return nil, "multi_part" end
-		local year = opts ~= nil and opts.year or engine.currentYear()
-		local yearMs = engine.yearMs()
-		local vf = opts ~= nil and opts.vehicleFilter or nil
-		local out : {SquareRateMatcherModelInfo} = {}
-		api.res.modelRep.forEachModelWithMetadata("transportVehicle", function(path : string)
-			local okOne, err : boolean, any = pcall(function()
-				if vf ~= nil then
-					if vf.enabledVehicles ~= nil and #vf.enabledVehicles > 0 and not contains(vf.enabledVehicles, path) then return end
-					if vf.disabledVehicles ~= nil and #vf.disabledVehicles > 0 and contains(vf.disabledVehicles, path) then return end
-				end
-				local id = api.res.modelRep.find(path) as integer
-				if id == nil or id < 0 then return end
-				local md = modelMetadata(id)
-				local tv = md ~= nil and md["transportVehicle"] as ModelMetadata.TransportVehicle or nil
-				if tv == nil or tv.carrier ~= kind.carrier then return end
-				if not engine.matchesTransportModes(tv.transportModes, kind.modes) then return end
-				if not engine.matchesFilterTags(tv.filterTags, kind.tags) then return end
-				local info = infoOf(id, path, md, cargo, year, yearMs)
-				if info ~= nil and info.available and info.capacity > 0 and info.speed > 0 then
-					out[#out + 1] = info
-				end
-			end)
-			if not okOne then log.warning("[LineManagerPlus] rate matcher: model " .. tostring(path) .. " skipped: " .. tostring(err)) end
-		end)
-		table.sort(out, function(a : SquareRateMatcherModelInfo, b : SquareRateMatcherModelInfo) : boolean
-			return a.model < b.model
-		end)
-		return out, nil
+		return catalogueFor(kind, cargo, opts), nil
 	end)
+	if not ok then return nil, fail(res) end
+	return res, reason
+end
+
+-- empty line estimate ----------------------------------------------------------------------
+
+engine.MAX_SCAN_LINES = 200
+engine.MAX_SAMPLES = 40 -- enough for stable medians: the scan stops here
+engine.MAX_STOPS = 200
+engine.CALIBRATION_TTL_MS = 180000 -- 3 game minutes
+
+function engine.carrierKey(carrier : Carrier) : string
+	local C = api.type["enum"].Carrier
+	if carrier == nil then return "other" end
+	if carrier == C.WATER then return "water" end
+	if carrier == C.ROAD then return "road" end
+	if carrier == C.TRAM then return "tram" end
+	if carrier == C.AIR then return "air" end
+	if carrier == C.RAIL then return "rail" end
+	return "other"
+end
+
+function engine.yearSeconds() : number
+	local util = api.util
+	if util ~= nil and util.getDefaultYearDuration ~= nil then
+		local ok, def = pcall(util.getDefaultYearDuration)
+		local ms = ok and finite(def) or nil
+		if ms ~= nil and ms > 0 then return ms / 1000 end
+	end
+	return DEFAULT_YEAR_MS / 1000
+end
+
+-- x, y of one station: its construction's position, else its bounding box center (curbside stops)
+local function stationXY(station : integer) : number, number
+	if type(station) ~= "number" or station < 0 or not api.engine.entityExists(station) then return nil, nil end
+	local CT = api.type.ComponentType
+	local con = api.engine.system.streetConnectorSystem.getConstructionEntityForStation(station)
+	if con ~= nil and con >= 0 and api.engine.entityExists(con) then
+		local c = api.engine.getComponent(con, CT.CONSTRUCTION) as Engine.Component.Construction
+		if c ~= nil and c.transf ~= nil then
+			local v = c.transf:getTransl()
+			if v ~= nil and finite(v.x) ~= nil and finite(v.y) ~= nil then return v.x, v.y end
+		end
+	end
+	local bv = api.engine.getComponent(station, CT.BOUNDING_VOLUME) as Engine.Component.BoundingVolume
+	if bv ~= nil and bv.bbox ~= nil and bv.bbox.min ~= nil and bv.bbox.max ~= nil then
+		local x = (bv.bbox.min.x + bv.bbox.max.x) / 2
+		local y = (bv.bbox.min.y + bv.bbox.max.y) / 2
+		if finite(x) ~= nil and finite(y) ~= nil then return x, y end
+	end
+	return nil, nil
+end
+
+-- the stops of a LINE component as {x, y}; nil + reason
+local function positionsOf(comp : Engine.Component.Line) : {{number}}, string
+	local stops = comp ~= nil and comp.stops or nil
+	if stops == nil or #stops < 2 then return nil, "few_stops" end
+	if #stops > engine.MAX_STOPS then return nil, "too_many_stops" end
+	local out : {{number}} = {}
+	local groups : {integer : Engine.Component.StationGroup} = {}
+	for __, s in ipairs(stops) do
+		local g = s.stationGroup
+		if g == nil or g < 0 or not api.engine.entityExists(g) then return nil, "no_positions" end
+		local sg = groups[g]
+		if sg == nil then
+			sg = api.engine.getComponent(g, api.type.ComponentType.STATION_GROUP) as Engine.Component.StationGroup
+			groups[g] = sg
+		end
+		local station = sg ~= nil and sg.stations ~= nil and s.station ~= nil and sg.stations[s.station + 1] or nil
+		local x, y = stationXY(station)
+		if x == nil then return nil, "no_positions" end
+		out[#out + 1] = { x, y }
+	end
+	return out, nil
+end
+
+function engine.stopPositions(line : integer) : {{number}}, string
+	local ok, res, why = pcall(function() : {{number}}, string
+		if not isLine(line) then return nil, "not_a_line" end
+		return positionsOf(api.engine.getComponent(line, api.type.ComponentType.LINE) as Engine.Component.Line)
+	end)
+	if not ok then return nil, fail(res) end
+	return res, why
+end
+
+local function gameTimeMs() : number
+	local ok, t = pcall(function() : number
+		local gt = api.engine.getComponent(api.engine.util.getWorld(), api.type.ComponentType.GAME_TIME) as Engine.Component.GameTime
+		return gt ~= nil and gt.gameTime or nil
+	end)
+	return ok and finite(t) or nil
+end
+
+-- the cargo a sample line's first vehicle carries: the lowest one it loads somewhere with capacity, else its first
+local function sampleCargo(comp : Engine.Component.Line, tv : Engine.Component.TransportVehicle) : integer
+	local loaded : {integer : boolean} = {}
+	for __, s in ipairs(comp.stops or {}) do
+		for c, __ in pairs(loadsOf(s)) do loaded[c] = true end
+	end
+	local first : integer = nil
+	if tv.config ~= nil and tv.config.capacities ~= nil then
+		for k, c in ipairs(tv.config.capacities as {number}) do
+			if c ~= nil and c > 0 then
+				if loaded[k - 1] then return k - 1 end
+				if first == nil then first = k - 1 end
+			end
+		end
+	end
+	return first
+end
+
+local function sampleOf(l : integer, carrier : Carrier) : SquareRateMatcherTimingSample
+	local vehicles = api.engine.system.transportVehicleSystem.getLineVehicles(l)
+	if vehicles == nil or #vehicles == 0 then return nil end
+	local v = vehicles[1]
+	if not api.engine.entityExists(v) then return nil end
+	local tv = api.engine.getComponent(v, api.type.ComponentType.TRANSPORT_VEHICLE) as Engine.Component.TransportVehicle
+	if tv == nil or tv.carrier ~= carrier then return nil end
+	local parts = tv.transportVehicleConfig ~= nil and tv.transportVehicleConfig.vehicles or nil
+	if parts == nil or #parts ~= 1 then return nil end
+	local md = modelMetadata(parts[1].part.modelId)
+	local speed = md ~= nil and topSpeed(md) or 0
+	if speed <= 0 then return nil end
+	local comp = api.engine.getComponent(l, api.type.ComponentType.LINE) as Engine.Component.Line
+	if comp == nil then return nil end
+	local cargo = sampleCargo(comp, tv)
+	if cargo == nil then return nil end
+	local info = api.engine.system.transportVehicleSystem.getLineCargoInfo(l, cargo)
+	if info == nil then return nil end
+	local sections : {number} = {}
+	local drives : {number} = {}
+	for __, t in ipairs(info.sectionTimes or {}) do sections[#sections + 1] = t end
+	for __, t in ipairs(info.driveSectionTimes or {}) do drives[#drives + 1] = t end
+	local pts = positionsOf(comp)
+	local d = model.routeDistance(pts)
+	if d == nil or d <= 0 then return nil end
+	return { line = l, distance = d, stops = #pts, speed = speed, drive = (sumOf(drives)), section = (sumOf(sections)) }
+end
+
+local record CalibrationEntry
+	at : number
+	times : SquareRateMatcherTimes
+end
+local calibrationCache : {string : CalibrationEntry} = {}
+
+function engine.clearCalibration()
+	calibrationCache = {}
+end
+
+-- the scan below: at most MAX_SCAN_LINES lines (not counting exceptLine), stops at MAX_SAMPLES samples
+local function scanCalibration(carrier : Carrier, key : string, exceptLine : integer) : SquareRateMatcherTimes
+	local samples : {SquareRateMatcherTimingSample} = {}
+	local okLines, lines = pcall(function() : {integer}
+		local ls = api.engine.system.lineSystem
+		if ls.getLinesForPlayer ~= nil then return ls.getLinesForPlayer(api.engine.util.getPlayer()) end
+		return ls.getLines()
+	end)
+	local scanned = 0
+	for __, l in ipairs(okLines and lines or {}) do
+		if scanned >= engine.MAX_SCAN_LINES or #samples >= engine.MAX_SAMPLES then break end
+		if l ~= exceptLine then
+			scanned = scanned + 1
+			local ok, smp = pcall(sampleOf, l, carrier)
+			if ok and smp ~= nil then samples[#samples + 1] = smp end
+		end
+	end
+	return model.calibrate(samples, key)
+end
+
+function engine.calibration(carrier : Carrier, exceptLine? : integer) : SquareRateMatcherTimes
+	local key = engine.carrierKey(carrier)
+	local now = gameTimeMs()
+	local hit = calibrationCache[key]
+	if hit ~= nil and now ~= nil and now >= hit.at and now - hit.at < engine.CALIBRATION_TTL_MS then return hit.times end
+	local t0 = perf:start()
+	local times = scanCalibration(carrier, key, exceptLine)
+	perf:stop("rate_matcher_calibration", t0)
+	if now ~= nil then calibrationCache[key] = { at = now, times = times } end
+	return times
+end
+
+local function plainModes(m : {TransportMode : boolean}) : {TransportMode : boolean}
+	local out : {TransportMode : boolean} = {}
+	for k, b in pairs(m or {}) do
+		if b then out[k] = true end
+	end
+	return out
+end
+
+local function lineIsRail(line : integer) : boolean
+	local ok, modes = pcall(api.engine.util.line.getLineTransportModesUnion, line)
+	if not ok or modes == nil then return false end
+	local TM = api.type["enum"].TransportMode
+	return (modes[TM.TRAIN] or modes[TM.ELECTRIC_TRAIN]) == true
+end
+
+-- line_util.getBestDepotForLine without arming the Buy Vehicles cargo filter (buy_line_filter.lua wraps it: this
+-- is a read, not the player's Buy Vehicles click)
+local record BuyFilterModule
+	bestDepotQuiet : function(lu : LineUtil, line : integer) : integer
+end
+local function bestDepot(lu : LineUtil, line : integer) : integer
+	local bf = optional("square_line_manager_plus::/line_manager_plus/buy_line_filter.lua") as BuyFilterModule
+	if bf ~= nil and bf.bestDepotQuiet ~= nil then return bf.bestDepotQuiet(lu, line) end
+	return lu.getBestDepotForLine(line)
+end
+
+function engine.emptyLineInput(line : integer, cargo : integer, opts? : SquareRateMatcherCatalogueOptions) : SquareRateMatcherEmptyInput, string
+	local t0 = perf:start()
+	local ok, res, reason = pcall(function() : SquareRateMatcherEmptyInput, string
+		if not isLine(line) then return nil, "not_a_line" end
+		local lu = lineUtil()
+		local vu = optional("::/gui/line_vehicle_mgmt/vehicle_util.tl") as VehicleUtil
+		local su = optional("::/gui/line_vehicle_mgmt/vehicle_store_util.tl") as VehicleStoreUtil
+		if lu == nil or vu == nil or su == nil then return nil, "no_depot" end
+		local depot = bestDepot(lu, line)
+		if depot == nil or depot < 0 or not api.engine.entityExists(depot) then
+			return nil, lineIsRail(line) and "rail" or "no_depot"
+		end
+		local carrier = vu.getDepotCarrier(depot)
+		if carrier == nil then return nil, "no_depot" end
+		if carrier == api.type["enum"].Carrier.RAIL then return nil, "rail" end
+		if cargo == nil then return nil, "no_cargo" end
+		local comp = api.engine.getComponent(line, api.type.ComponentType.LINE) as Engine.Component.Line
+		local pts, why = positionsOf(comp)
+		if pts == nil then return nil, why end
+		local distance = model.routeDistance(pts)
+		if distance == nil or distance <= 0 then return nil, "few_stops" end
+		local tags : {string} = {}
+		for __, t in ipairs(su.getDepotFilterTags(depot) or {}) do tags[#tags + 1] = t end
+		local kind : LineVehicleKind = { carrier = carrier, modes = plainModes(vu.getDepotTransportModes(depot)), tags = tags,
+			multiPart = false }
+		if next(kind.modes) == nil then kind.modes = nil end
+		local catalogue = catalogueFor(kind, cargo, opts)
+		if #catalogue == 0 then return nil, "no_models" end
+		return {
+			line = line,
+			depot = depot,
+			cargo = cargo,
+			distance = distance,
+			stops = #pts,
+			times = engine.calibration(carrier, line),
+			catalogue = catalogue,
+			yearSeconds = engine.yearSeconds(),
+		}, nil
+	end)
+	perf:stop("rate_matcher_empty", t0)
 	if not ok then return nil, fail(res) end
 	return res, reason
 end

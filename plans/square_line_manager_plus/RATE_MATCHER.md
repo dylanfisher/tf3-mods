@@ -228,3 +228,14 @@ Tests: 75.
 - Disabled Apply: rendered "secondary" while disabled (the base disabled primary is NeutralVeryDark text on NeutralDark,
   default.css.lua:91-100; disabled secondary only dims its border, :116-119).
 - Stylesheet: still 4 rules. Tests: 75.
+
+## Empty lines: estimate from the route (2026-10-19, written, not yet run in game)
+
+A line with no vehicles showed only "This line has no vehicles to copy.". Now the window suggests a model and count
+from geometry and Apply buys them onto the line. Formula and calibration: docs/findings/lines-vehicles.md "Line Rate
+formula" (console 2026-10-20) and README.md "Match line rate: empty lines". Choices where the brief left room:
+curbside stops (no station construction) use the station entity's bounding box centre (the base's own
+`entity_util.getPosition`, which `line_util.getBestDepotForLine` uses for the same entity); a fresh vehicle's config is
+the switch path's `newModelConfig` (`vehicle_util.makePart`, the store's buy-immediately config); carrier, modes, tags
+and depot from `line_util.getBestDepotForLine` + the depot (the Buy Vehicles button's store). One row per model (the
+count nearest the target), not the fleet path's below / above pair. Stylesheet: no new rules.
