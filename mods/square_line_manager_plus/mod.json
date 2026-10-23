@@ -1,6 +1,6 @@
 {
     "modId": "square_line_manager_plus",
-    "revision": 13,
+    "revision": 14,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -83,6 +83,17 @@
             "key": "line_rate_matcher",
             "name": "Line actions: Match line rate",
             "tooltip": "On: Match line rate in the Line actions menu opens a window\nthat compares the line's Rate with the supply it serves,\nsuggests how many vehicles to add or remove and which model\ncosts least, and on Apply buys, sells or replaces vehicles.\nNeeds \"Line editor: Line actions button\" On. Off: no entry.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "line_dot_border",
+            "name": "Line editor: active border on line dot",
+            "tooltip": "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.",
             "uiType": "Button",
             "values": [
                 "Off",

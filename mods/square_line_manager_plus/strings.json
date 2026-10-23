@@ -236,7 +236,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "Ни у одной остановки нет терминала и зоны охвата для производимого груза.",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus: на остановках уже выбран этот груз.",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus: игра отклонила изменение груза.",
-        "A change to this line is still in progress.": "Изменение этого маршрута ещё выполняется."
+        "A change to this line is still in progress.": "Изменение этого маршрута ещё выполняется.",
+        "Line editor: active border on line dot": "Редактор маршрута: рамка активной точки маршрута",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "Вкл.: в редакторе маршрута цветные точки над остановкой (по одной\nна каждый маршрут, который там останавливается) выделяют рамкой\nредактируемый маршрут. Выкл.: только точки игры."
     },
     "de": {
         "Line no longer exists": "Linie existiert nicht mehr",
@@ -474,7 +476,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "Keine Haltestelle hat ein Terminal und Einzugsgebiet für eine produzierte Fracht.",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus: Die Haltestellen haben diese Frachtauswahl bereits.",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus: Das Spiel hat die Frachtänderung abgelehnt.",
-        "A change to this line is still in progress.": "Eine Änderung an dieser Linie läuft noch."
+        "A change to this line is still in progress.": "Eine Änderung an dieser Linie läuft noch.",
+        "Line editor: active border on line dot": "Linieneditor: Rahmen um aktiven Linienpunkt",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "An: im Linieneditor zeigen die farbigen Punkte über einer\nHaltestelle (einer pro Linie, die dort hält) einen Rahmen um die\nLinie, die du bearbeitest. Aus: nur die Punkte des Spiels."
     },
     "fr": {
         "Line no longer exists": "La ligne n'existe plus",
@@ -712,7 +716,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "Aucun arrêt n'a de terminal ni de zone de chalandise pour une cargaison produite.",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus : les arrêts ont déjà cette sélection de cargaison.",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus : le jeu a refusé le changement de cargaison.",
-        "A change to this line is still in progress.": "Une modification de cette ligne est encore en cours."
+        "A change to this line is still in progress.": "Une modification de cette ligne est encore en cours.",
+        "Line editor: active border on line dot": "Éditeur de ligne : bordure du point actif",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "Activé : dans l'éditeur de ligne, les points colorés au-dessus d'un\narrêt (un par ligne qui s'y arrête) entourent d'une bordure la ligne\nque vous modifiez. Désactivé : les points du jeu seulement."
     },
     "es": {
         "Line no longer exists": "La línea ya no existe",
@@ -950,7 +956,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "Ninguna parada tiene una terminal y área de captación para una carga producida.",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus: las paradas ya tienen esta selección de carga.",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus: el juego rechazó el cambio de carga.",
-        "A change to this line is still in progress.": "Un cambio en esta línea aún está en curso."
+        "A change to this line is still in progress.": "Un cambio en esta línea aún está en curso.",
+        "Line editor: active border on line dot": "Editor de líneas: borde en el punto activo",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "Activado: en el editor de líneas, los puntos de color sobre una\nparada (uno por cada línea que para allí) muestran un borde en la\nlínea que estás editando. Desactivado: solo los puntos del juego."
     },
     "it": {
         "Line no longer exists": "La linea non esiste più",
@@ -1188,7 +1196,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "Nessuna fermata ha un terminal e un bacino d'utenza per una merce prodotta.",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus: le fermate hanno già questa selezione di merce.",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus: il gioco ha rifiutato la modifica della merce.",
-        "A change to this line is still in progress.": "Una modifica a questa linea è ancora in corso."
+        "A change to this line is still in progress.": "Una modifica a questa linea è ancora in corso.",
+        "Line editor: active border on line dot": "Editor linee: bordo sul punto attivo",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "Attivato: nell'editor linee, i punti colorati sopra una fermata\n(uno per ogni linea che vi ferma) mostrano un bordo sulla linea\nche stai modificando. Disattivato: solo i punti del gioco."
     },
     "nl": {
         "Line no longer exists": "Lijn bestaat niet meer",
@@ -1426,7 +1436,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "Geen halte heeft een terminal en verzorgingsgebied voor een geproduceerde vracht.",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus: de haltes hebben deze vrachtselectie al.",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus: het spel heeft de vrachtwijziging geweigerd.",
-        "A change to this line is still in progress.": "Een wijziging aan deze lijn is nog bezig."
+        "A change to this line is still in progress.": "Een wijziging aan deze lijn is nog bezig.",
+        "Line editor: active border on line dot": "Lijneditor: rand om actieve lijnstip",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "Aan: in de lijneditor tonen de gekleurde stippen boven een halte\n(één per lijn die daar stopt) een rand om de lijn die je bewerkt.\nUit: alleen de stippen van het spel."
     },
     "pl": {
         "Line no longer exists": "Linia już nie istnieje",
@@ -1664,7 +1676,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "Żaden przystanek nie ma terminalu i obszaru zasięgu dla produkowanego ładunku.",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus: przystanki mają już ten wybór ładunku.",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus: gra odrzuciła zmianę ładunku.",
-        "A change to this line is still in progress.": "Zmiana tej linii wciąż trwa."
+        "A change to this line is still in progress.": "Zmiana tej linii wciąż trwa.",
+        "Line editor: active border on line dot": "Edytor linii: obramowanie aktywnej kropki",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "Wł.: w edytorze linii kolorowe kropki nad przystankiem (po jednej\nna każdą linię, która się tam zatrzymuje) mają obramowanie przy\nedytowanej linii. Wył.: tylko kropki gry."
     },
     "pt_BR": {
         "Line no longer exists": "A linha não existe mais",
@@ -1902,7 +1916,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "Nenhuma parada tem um terminal e área de captação para uma carga produzida.",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus: as paradas já têm esta seleção de carga.",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus: o jogo recusou a mudança de carga.",
-        "A change to this line is still in progress.": "Uma mudança nesta linha ainda está em andamento."
+        "A change to this line is still in progress.": "Uma mudança nesta linha ainda está em andamento.",
+        "Line editor: active border on line dot": "Editor de linhas: borda no ponto ativo",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "Ligado: no editor de linhas, os pontos coloridos sobre uma parada\n(um por linha que para ali) mostram uma borda na linha que você\nestá editando. Desligado: só os pontos do jogo."
     },
     "ja": {
         "Line no longer exists": "路線はもう存在しません",
@@ -2140,7 +2156,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "生産中の貨物に対応するターミナルと集客範囲を持つ停留所がありません。",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus：停留所はすでにこの貨物選択です。",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus：ゲームが貨物の変更を拒否しました。",
-        "A change to this line is still in progress.": "この路線の変更はまだ処理中です。"
+        "A change to this line is still in progress.": "この路線の変更はまだ処理中です。",
+        "Line editor: active border on line dot": "路線エディター：アクティブな路線ドットに枠",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "オン：路線エディターで、停留所の上の色付きドット\n（そこに停まる路線ごとに1つ）のうち、編集中の路線に\n枠を付けます。オフ：ゲームのドットのみ。"
     },
     "ko": {
         "Line no longer exists": "노선이 더 이상 존재하지 않음",
@@ -2378,7 +2396,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "생산 중인 화물에 맞는 터미널과 집객 범위를 가진 정류장이 없습니다.",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus: 정류장에 이미 이 화물 선택이 되어 있습니다.",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus: 게임이 화물 변경을 거부했습니다.",
-        "A change to this line is still in progress.": "이 노선의 변경이 아직 진행 중입니다."
+        "A change to this line is still in progress.": "이 노선의 변경이 아직 진행 중입니다.",
+        "Line editor: active border on line dot": "노선 편집기: 활성 노선 점 테두리",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "켜기: 노선 편집기에서 정류장 위의 색 점(그곳에 서는 노선마다\n하나) 중 편집 중인 노선에 테두리를 표시합니다.\n끄기: 게임의 점만 표시."
     },
     "zh_CN": {
         "Line no longer exists": "线路已不存在",
@@ -2616,7 +2636,9 @@
         "No stop has a terminal and catchment for a produced cargo.": "没有站点拥有适合在产货物的终端和覆盖范围。",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus：这些站点已是此货物选择。",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus：游戏拒绝了货物更改。",
-        "A change to this line is still in progress.": "此线路的更改仍在进行中。"
+        "A change to this line is still in progress.": "此线路的更改仍在进行中。",
+        "Line editor: active border on line dot": "线路编辑器：当前线路圆点加边框",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "开启：在线路编辑器中，站点上方的彩色圆点\n（每条停靠该站的线路一个）中，正在编辑的线路\n显示边框。关闭：仅显示游戏的圆点。"
     },
     "zh_TW": {
         "Line no longer exists": "路線已不存在",
@@ -2854,6 +2876,8 @@
         "No stop has a terminal and catchment for a produced cargo.": "沒有站點擁有適合生產中貨物的終端和覆蓋範圍。",
         "Line Manager Plus: the stops already have this cargo selection.": "Line Manager Plus：這些站點已是此貨物選擇。",
         "Line Manager Plus: the game refused the cargo change.": "Line Manager Plus：遊戲拒絕了貨物變更。",
-        "A change to this line is still in progress.": "此路線的變更仍在進行中。"
+        "A change to this line is still in progress.": "此路線的變更仍在進行中。",
+        "Line editor: active border on line dot": "路線編輯器：目前路線圓點加邊框",
+        "On: in the line editor, the colored dots above a stop (one\nper line that stops there) show a border on the line you are\nediting. Off: the game's dots only.": "開啟：在路線編輯器中，站點上方的彩色圓點\n（每條停靠該站的路線一個）中，正在編輯的路線\n顯示邊框。關閉：僅顯示遊戲的圓點。"
     }
 }

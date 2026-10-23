@@ -81,6 +81,10 @@
 <li><strong>Tooltips</strong> name the edit the next click undoes or redoes and how many changes you made since opening the line. Up to 50 steps are kept; Shift+click always reaches the start.</li>
 <li>The history starts each time you open a line, and is cleared when you switch to another line or close the line manager.</li>
 </ul>
+<h4>Line editor: the line's stop dot</h4>
+<ul>
+<li>In the line editor, the small colored dots above a stop (one per line that stops there) give the <strong>line you are editing a border</strong>: dark on a light color, light on a dark one. Lines of similar colors no longer look alike there.</li>
+</ul>
 <h4>Settings</h4>
 <ul>
 <li><strong>Send to Line: target line info</strong> (On by default).</li>
@@ -90,9 +94,12 @@
 <li><strong>Send to Line list: line info panel</strong> (On by default).</li>
 <li><strong>Line editor: Line actions button</strong> (On by default).</li>
 <li><strong>Line actions: Match line rate</strong> (On by default; needs the Line actions button On).</li>
+<li><strong>Line editor: active border on line dot</strong> (On by default).</li>
 <li><strong>Map: Shift-click a line opens the Line Manager</strong> (On by default).</li>
 <li><strong>Map: line info on hover</strong> (On by default).</li>
 <li><strong>Vehicle list: current cargo</strong> (On by default).</li>
+<li><strong>Vehicle list: vehicle info on hover</strong> (On by default).</li>
+<li><strong>Buy Vehicles: filter by the line's cargo</strong> (On by default).</li>
 <li><strong>Debug: performance log</strong> (Off by default): only for tracking down slowdowns.</li>
 </ul>
 <h4>Notes</h4>
@@ -121,6 +128,10 @@
 <p><strong>Towns &amp; Streets</strong>: <a href="https://mod.io/g/transportfever3/m/new-york-towns-streets">New York</a> · <a href="https://mod.io/g/transportfever3/m/oregon-towns-streets">Oregon</a> · <a href="https://mod.io/g/transportfever3/m/california-towns-streets">California</a> · <a href="https://mod.io/g/transportfever3/m/texas-towns-streets">Texas</a> · <a href="https://mod.io/g/transportfever3/m/pennsylvania-towns-streets">Pennsylvania</a> · <a href="https://mod.io/g/transportfever3/m/alaska-towns-streets">Alaska</a> · <a href="https://mod.io/g/transportfever3/m/washington-towns-streets">Washington</a> · <a href="https://mod.io/g/transportfever3/m/arizona-towns-streets">Arizona</a> · <a href="https://mod.io/g/transportfever3/m/minnesota-towns-streets">Minnesota</a> · <a href="https://mod.io/g/transportfever3/m/florida-towns-streets">Florida</a> · <a href="https://mod.io/g/transportfever3/m/colorado-towns-streets">Colorado</a> · <a href="https://mod.io/g/transportfever3/m/hawaii-towns-streets">Hawaii</a> · <a href="https://mod.io/g/transportfever3/m/new-mexico-towns-streets">New Mexico</a></p>
 <hr>
 <h2>Changelog</h2>
+<h4>Revision 14 (2026-10-22)</h4>
+<ul>
+<li>New: in the line editor, the line you are editing gets a border on its dot in the row of line dots above a stop, so lines of similar colors no longer look alike there. Setting "Line editor: active border on line dot" (On by default).</li>
+</ul>
 <h4>Revision 13 (2026-10-21)</h4>
 <ul>
 <li>Fix: the average utilization history is now actually saved with your savegame. Before, it started from 0 months at every load.</li>

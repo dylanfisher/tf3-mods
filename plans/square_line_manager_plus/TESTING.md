@@ -469,6 +469,19 @@ detour X (n samples), dwell Y s; ... model M pv P count K rate R round trip T s`
       typing a target stays smooth. Re-opening the same line or the 1 s / 3 s re-reads after Apply add no new
       `rate_matcher_catalogue` / `rate_matcher_calibration` calls (cached; calibration for 3 game minutes).
 
+## Line editor: active border on line dot (2026-10-22, not yet run)
+
+`hud_line_dot.lua`, param `line_dot_border` (default On). Wraps `manager_tooltips_util.makeSelectLineTooltip` and
+`builtin.Button`; inline `borderColor` on the edited line's `Button!line-dot` (0 stylesheet rules).
+
+- [ ] Open a line in the line editor at a stop served by several lines: only the edited line's dot has a border
+      (dark on a light color, light on a dark one); the other dots look as before. With and without Bigger Line Dots.
+- [ ] Switch to another line: the border moves to that line's dot. Close the editor: no border anywhere.
+- [ ] Hover the bordered dot: tooltip "Select <line>." as before; click still selects the line.
+- [ ] The border is visible enough at the base 7 px dot (else: thicker contour or another color).
+- [ ] Setting Off: dots exactly as the base game, log `[LineManagerPlus] line dot: off (mod setting)`.
+- [ ] No `[LineManagerPlus] line dot:` warning in the log.
+
 ## Map: Shift-click a line (moved from Passenger Destinations, 2026-10-11; 2026-10-11 user: ready after two games)
 
 Ported from plans/square_passenger_destinations/TESTING.md F.8 and F.11 (passed there 2026-10-11). Expect at GUI start

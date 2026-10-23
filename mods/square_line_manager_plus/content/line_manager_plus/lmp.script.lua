@@ -93,6 +93,8 @@ local FEATURES = {
 	-- an entry in the Line actions menu; needs line_actions On (rate_matcher.lua checks it)
 	{ key = "line_rate_matcher", name = "rate matcher",
 		module = "square_line_manager_plus::/line_manager_plus/rate_matcher.lua" },
+	{ key = "line_dot_border", name = "line dot",
+		module = "square_line_manager_plus::/line_manager_plus/hud_line_dot.lua" },
 	{ key = "map_shift_click", name = "map shift click",
 		module = "square_line_manager_plus::/line_manager_plus/map_shift_click.lua" },
 	{ key = "line_map_hover_info", name = "map hover",
