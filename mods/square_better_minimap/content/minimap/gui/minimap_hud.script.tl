@@ -43,7 +43,8 @@
 -- IA_MENU_BACK handler, closed the pinned minimap in the phase 2 test. Here: unpinned = ESC closes
 -- (hides) it; pinned = closable is false (no X, nothing for close-topmost to close) and our
 -- IA_MENU_BACK handler is Disabled, so ESC reaches the pause menu; a close request that still
--- arrives while pinned is ignored, and the ridge plugin re-shows a pinned window something else hid.
+-- arrives while pinned is ignored. Nothing re-shows a pinned window something else hid: rev 12's re-show never
+-- caught an Esc in the logs and fought the follow / cockpit cameras, which hide every Window by stylesheet.
 -- Closing = hiding by id (api.gui.byId.setVisible, as view_manager.tl shelves entity windows), so
 -- the window keeps its position, size and state; it is only re-created after an unmount.
 --
@@ -94,12 +95,25 @@ local styleutil = ug_require "::/gui/main/styleutil.tl" as StyleUtil
 -- Base colour table (default_colors.gres.lua), read on first use in a render like statistics.tl:202.
 -- Fixed colours of single widgets go inline (meta.styleSheet) instead of into minimap_hud.css.lua:
 -- the game crashes on load above ~200 mod stylesheet rules (docs/findings.md), so the sheet stays small.
-local colorTable : {string : {number}} = nil
+-- Module-level caches, one table instead of ten top-level locals (the main chunk's local count:
+-- see K below). Each filled lazily by the function next to its old place.
+local memo = {
+	colorTable = nil as {string : {number}},
+	debugLogCache = nil as boolean,
+	settingCache = {} as {string : boolean},
+	stationKindsCache = nil as {string : boolean},
+	cargoIconCache = {} as {integer : string},
+	cargoNameCache = {} as {integer : string}, -- filter search; "" when unknown
+	typeNameCache = {} as {string : string},
+	typeNameMissing = {} as {string : boolean},
+	keepModeCache = nil as any,
+	showArrowCache = nil as boolean,
+}
 local function colors() : {string : {number}}
-	if colorTable == nil then
-		colorTable = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data as {string : {number}}
+	if memo.colorTable == nil then
+		memo.colorTable = api.gui.genericRep.get(api.gui.genericRep.find("::/gui/main/default_colors.gres")).data as {string : {number}}
 	end
-	return colorTable
+	return memo.colorTable
 end
 
 --- 24 px white icon on a button (HUD "Icon" style, size toggle): map@2x.tga and zoom@2x.tga are 48x48, 1:1.
@@ -136,90 +150,108 @@ local geom = ug_require "square_better_minimap::/minimap/minimap_geom.tl" as Squ
 local net = ug_require "square_better_minimap::/minimap/minimap_net.tl" as SquareMinimapNet
 local netscan = ug_require "square_better_minimap::/minimap/minimap_netscan.tl" as SquareMinimapNetScan
 local filter = ug_require "square_better_minimap::/minimap/minimap_filter.tl" as SquareMinimapFilter
+local stations = ug_require "square_better_minimap::/minimap/minimap_stations.tl" as SquareMinimapStations
 
-local WINDOW_ID <const> = "squareminimap.window"
-local REV_CHECK_SECONDS <const> = 2.0    -- terrain/town/industry change check while the window is open
-local CAM_POLL_SECONDS <const> = 0.1     -- camera box refresh (~10 Hz)
-local POS_POLL_SECONDS <const> = 0.5     -- window position read (remembered for re-creation and the next load)
-local FIT_POLL_SECONDS <const> = 1.0     -- picture vs window width check (log only)
-local CAM_BOX_MIN_PX <const> = 12      -- keeps the 2 px outline visible as a box when zoomed all the way in
-local CAM_MAX_DIST_FACTOR <const> = 4    -- footprint corners at most 4x the camera distance from the centre
--- View direction arrow in the camera box: a slim white triangle with a faint dark halo (own icon,
--- rendered by tools/render_icon_square_better_minimap.py; the game loads cam_arrow@2x.tga, 32x32),
--- turned with ImageView.rotation (degrees, builtin.d.tl:816; base turns its construction brush icon
--- by any angle with it: construction_react_util.tl:884). It replaced the base block arrow with a
--- shaft (too heavy) and before that the combobox triangle (too wide and flat: rotated, it read as
--- a shapeless wedge with no clear tip).
-local ARROW_ICON <const> = "square_better_minimap::/minimap/gui/cam_arrow.tga"
-local ARROW_PX <const> = 16
--- Sign of ImageView.rotation: 1 if positive turns clockwise on screen. Not documented and the base
--- game only uses symmetric turns (180), so this is the one value to flip if the arrow turns mirrored.
-local ARROW_ROT_SIGN <const> = 1
--- Lowest top edge a remembered window may have (screen fraction). 0: the game lets the player drag
--- the window to the very top, and 0.06 moved such a window ~45 px down on every restore.
-local WINDOW_MIN_TOP <const> = 0
--- Where a window without a remembered position opens: its top-right anchor (CSS anchorPoint {1, 0})
--- in screen fractions, right edge, below the top bar. Always passed as initialX/Y, like entity
--- windows (view_manager.tl:310-311); no CSS gravity (that is the dialogs' alternative to initialX/Y,
--- popover_react_util.css.lua:14-22, and kept the remembered position from being applied).
-local DEFAULT_ANCHOR_X <const> = 1.0
-local DEFAULT_ANCHOR_Y <const> = 0.12
+-- Constants live in K (and the network layer's in NK), not in top-level locals: Lua allows 200
+-- locals per function, the game's own transpile adds some, and this file once failed to load in
+-- game with "too many local variables" (2026-10-22; tools/tl_check.py MAIN_LOCAL_HEADROOM).
+local K = {
+	WINDOW_ID = "squareminimap.window",
+	REV_CHECK_SECONDS = 2.0,    -- terrain/town/industry change check while the window is open
+	CAM_POLL_SECONDS = 0.1,     -- camera box refresh (~10 Hz)
+	POS_POLL_SECONDS = 0.5,     -- window position read (remembered for re-creation and the next load)
+	FIT_POLL_SECONDS = 1.0,     -- picture vs window width check (log only)
+	CAM_BOX_MIN_PX = 12,      -- keeps the 2 px outline visible as a box when zoomed all the way in
+	CAM_MAX_DIST_FACTOR = 4,    -- footprint corners at most 4x the camera distance from the centre
+	-- View direction arrow in the camera box: a slim white triangle with a faint dark halo (own icon,
+	-- rendered by tools/render_icon_square_better_minimap.py; the game loads cam_arrow@2x.tga, 32x32),
+	-- turned with ImageView.rotation (degrees, builtin.d.tl:816; base turns its construction brush icon
+	-- by any angle with it: construction_react_util.tl:884). It replaced the base block arrow with a
+	-- shaft (too heavy) and before that the combobox triangle (too wide and flat: rotated, it read as
+	-- a shapeless wedge with no clear tip).
+	ARROW_ICON = "square_better_minimap::/minimap/gui/cam_arrow.tga",
+	ARROW_PX = 16,
+	-- Sign of ImageView.rotation: 1 if positive turns clockwise on screen. Not documented and the base
+	-- game only uses symmetric turns (180), so this is the one value to flip if the arrow turns mirrored.
+	ARROW_ROT_SIGN = 1,
+	-- Lowest top edge a remembered window may have (screen fraction). 0: the game lets the player drag
+	-- the window to the very top, and 0.06 moved such a window ~45 px down on every restore.
+	WINDOW_MIN_TOP = 0,
+	-- Where a window without a remembered position opens: its top-right anchor (CSS anchorPoint {1, 0})
+	-- in screen fractions, right edge, below the top bar. Always passed as initialX/Y, like entity
+	-- windows (view_manager.tl:310-311); no CSS gravity (that is the dialogs' alternative to initialX/Y,
+	-- popover_react_util.css.lua:14-22, and kept the remembered position from being applied).
+	DEFAULT_ANCHOR_X = 1.0,
+	DEFAULT_ANCHOR_Y = 0.12,
 
--- Picture long side in UI px per size step (the short side keeps the map's aspect) ...
-local SIZES : {integer} = { 200, 560 }
--- ... but never narrower than the window's minimum content width (title bar with pin + close, and
--- the control row), per step so S < L also for portrait maps ...
--- Estimated from builtin.css.lua:2000-2050 (title bar) + the control row; see TESTING.md "fit".
-local MIN_WIDTHS : {integer} = { 180, 360 }
--- ... and the long side never above the cap (wins over MIN_WIDTHS, so a 1:5 strip stays on screen;
--- it gets a narrow band instead). Per step so strips still grow S < L; 1:2 maps fill exactly.
-local MAX_LONG : {integer} = { 360, 720 }
--- ... except that the picture is never narrower than the window itself can get. With one control
--- row that was ~171 px (a 121 px picture clipped "Hi-vis", 2026-10-10); narrow pictures now get two
--- rows (geom.controlRows), so the floor is the window frame + header alone (estimate: check
--- the `fit:` log for EMPTY BAND). It wins over MAX_LONG up to ABS_MAX_LONG (two thirds of a
--- 1080 UI px screen): a 1:3 strip at S stays 121x360; only strips that would pass 720 px get a band.
-local FLOOR_W <const> = 120
--- Control row packing (geom.controlRows): estimated UI px per checkbox from its translated label
--- (geom.controlWidth: one row "Ind Net Viz" measured ~155 px in the 2026-10-10 screenshot -> ~47 px per
--- 3-letter label, "Filter" ~68 px), the row's spacing and its left + right padding (minimap-controls).
--- Estimates: TESTING.md P7.
-local CONTROL_SPACING <const> = 6
-local CONTROL_PAD <const> = 8
-local ABS_MAX_LONG <const> = 720
-local SIZE_LABELS : {string} = { "S", "L" } -- log only; the button shows SIZE_ICON
--- Size toggle icon: our own tight white magnifier mask (zoom@2x.tga, 48x48, rendered by
--- tools/render_icon_square_better_minimap.py; loaded by the plain name like cam_arrow). The base
--- magnifier (gui/line_vehicle_mgmt/icons/inspector@2x.tga) has its glyph in only the middle 40% of
--- the image and read as a ~9 px dot at 22 UI px in game (2026-10-10). Tinted and sized inline
--- (icon24Style).
-local SIZE_ICON <const> = "square_better_minimap::/minimap/gui/zoom.tga"
--- Top-bar button in the "Icon" style (mod.json hudButtonStyle): folded-map mask, map@2x.tga 48x48
--- (tools/render_icon_square_better_minimap.py), shown at 24 UI px like the base layers icon.
-local HUD_ICON <const> = "square_better_minimap::/minimap/gui/map.tga"
--- Where the size button sits: true = the window header (builtin.Window `header`, builtin.d.tl:1209;
--- base use: the industry window's tab row, make_entity_window.tl:236), next to the pin; false = the
--- control row under the map. In game (2026-10-10) the 14 px icon in the control row was too small
--- to read, so it moved to the header (left end; no title) and grew (stylesheet R::MinimapSizeButton).
-local SIZE_BUTTON_IN_HEADER <const> = true
-local DEFAULT_SIZE <const> = 1 -- S: the minimap opens small
+	-- Picture long side in UI px per size step (the short side keeps the map's aspect) ...
+	SIZES = { 200, 560 },
+	-- ... but never narrower than the window's minimum content width (title bar with pin + close, and
+	-- the control row), per step so S < L also for portrait maps ...
+	-- Estimated from builtin.css.lua:2000-2050 (title bar) + the control row; see TESTING.md "fit".
+	MIN_WIDTHS = { 180, 360 },
+	-- ... and the long side never above the cap (wins over MIN_WIDTHS, so a 1:5 strip stays on screen;
+	-- it gets a narrow band instead). Per step so strips still grow S < L; 1:2 maps fill exactly.
+	MAX_LONG = { 360, 720 },
+	-- ... except that the picture is never narrower than the window itself can get. With one control
+	-- row that was ~171 px (a 121 px picture clipped "Hi-vis", 2026-10-10); narrow pictures now get two
+	-- rows (geom.controlRows), so the floor is the window frame + header alone (estimate: check
+	-- the `fit:` log for EMPTY BAND). It wins over MAX_LONG up to ABS_MAX_LONG (two thirds of a
+	-- 1080 UI px screen): a 1:3 strip at S stays 121x360; only strips that would pass 720 px get a band.
+	FLOOR_W = 120,
+	-- Control row packing (geom.controlRows): estimated UI px per checkbox from its translated label
+	-- (geom.controlWidth: one row "Ind Net Viz" measured ~155 px in the 2026-10-10 screenshot -> ~47 px per
+	-- 3-letter label, "Filter" ~68 px), the row's spacing and its left + right padding (minimap-controls).
+	-- Estimates: TESTING.md P7.
+	CONTROL_SPACING = 6,
+	CONTROL_PAD = 8,
+	ABS_MAX_LONG = 720,
+	SIZE_LABELS = { "S", "L" }, -- log only; the button shows SIZE_ICON
+	-- Size toggle icon: our own tight white magnifier mask (zoom@2x.tga, 48x48, rendered by
+	-- tools/render_icon_square_better_minimap.py; loaded by the plain name like cam_arrow). The base
+	-- magnifier (gui/line_vehicle_mgmt/icons/inspector@2x.tga) has its glyph in only the middle 40% of
+	-- the image and read as a ~9 px dot at 22 UI px in game (2026-10-10). Tinted and sized inline
+	-- (icon24Style).
+	SIZE_ICON = "square_better_minimap::/minimap/gui/zoom.tga",
+	-- Top-bar button in the "Icon" style (mod.json hudButtonStyle): folded-map mask, map@2x.tga 48x48
+	-- (tools/render_icon_square_better_minimap.py), shown at 24 UI px like the base layers icon.
+	HUD_ICON = "square_better_minimap::/minimap/gui/map.tga",
+	-- Where the size button sits: true = the window header (builtin.Window `header`, builtin.d.tl:1209;
+	-- base use: the industry window's tab row, make_entity_window.tl:236), next to the pin; false = the
+	-- control row under the map. In game (2026-10-10) the 14 px icon in the control row was too small
+	-- to read, so it moved to the header (left end; no title) and grew (stylesheet R::MinimapSizeButton).
+	SIZE_BUTTON_IN_HEADER = true,
+	DEFAULT_SIZE = 1, -- S: the minimap opens small
 
-local ORIENT : SquareMinimapOrient = geom.DEFAULT_ORIENT
+	ORIENT = geom.DEFAULT_ORIENT,
 
--- Industry marker edge in UI px per size step (S/L).
-local MARKER_PX : {integer} = { 12, 18 }
--- Generic industry icon (base: industry_react_util.tl:715), for industries without a cargo icon.
-local FALLBACK_ICON <const> = "::/gui/entity_window/icons/building_industry.tga"
--- Hit test tolerance around a marker (UI px) for the Shift hover / Shift+click (phase 7).
-local HIT_TOL_PX <const> = 2
+	-- Industry marker edge in UI px per size step (S/L).
+	MARKER_PX = { 12, 18 },
+	-- Generic industry icon (base: industry_react_util.tl:715), for industries without a cargo icon.
+	FALLBACK_ICON = "::/gui/entity_window/icons/building_industry.tga",
+	-- Hit test tolerance around a marker (UI px) for the Shift hover / Shift+click (phase 7).
+	HIT_TOL_PX = 2,
 
--- Industry filter window (phase 7): its own small window (builtin.Window, id below), next to the
--- minimap. Chevron between input and output cargo icons, as Industry Flows' type rows
--- (flows_window.script.tl CARGO_ARROW_ICON).
-local FILTER_WINDOW_ID <const> = "squareminimap.filter"
-local FILTER_SCROLL_ROWS <const> = 8   -- more matching types than this: the list scrolls (as Industry Flows)
-local FILTER_WINDOW_FRAC_W <const> = 0.17 -- estimated filter window width (screen fraction) for placing it
-local CARGO_ARROW_ICON <const> = "::/gui/builtin/combobox/arrow_right.tga"
+	-- Industry filter window (phase 7): its own small window (builtin.Window, id below), next to the
+	-- minimap. Chevron between input and output cargo icons, as Industry Flows' type rows
+	-- (flows_window.script.tl CARGO_ARROW_ICON).
+	FILTER_WINDOW_ID = "squareminimap.filter",
+	FILTER_SCROLL_ROWS = 8,   -- more matching types than this: the list scrolls (as Industry Flows)
+	FILTER_WINDOW_FRAC_W = 0.17, -- estimated filter window width (screen fraction) for placing it
+	CARGO_ARROW_ICON = "::/gui/builtin/combobox/arrow_right.tga",
+
+	-- Moved up from their sections (the main chunk's local count, see the note above K):
+	MOD_ID = "square_better_minimap",
+	PREFS_KEY = "square_better_minimap",
+	PREFS_STABLE_TICKS = 4, -- x GUARD_SECONDS (0.25 s) = 1 s without changes
+	HEIGHT_GRID = 9, -- 81 getBaseHeightAt calls per check
+	FILTER_ROW_PX = 274 - 22 - 2 * 6,
+	FILTER_ICON_PX = 20,
+	FILTER_ARROW_PX = 12,
+	FILTER_DIGIT_PX = 8,
+	GUARD_SECONDS = 0.25,
+	REOPEN_MAX_TRIES = 40, -- x GUARD_SECONDS: wait up to 10 s for the window container after a load
+}
 
 ---------------------------------------------------------------------------
 -- Logging
@@ -237,6 +269,79 @@ local function warnOnce(key : string, msg : string)
 	log.warning("[Minimap] " .. key .. " failed: " .. msg .. " (further failures not logged)")
 end
 
+-- (MOD_ID: in the constants table K at the top)
+
+--- This mod's raw mod.json param value (1-based option index), nil if missing or unreadable.
+local function modParam(key : string) : number
+	local ok, allOrErr = pcall(api.engine.config.getModParams)
+	if not ok then
+		warnOnce("mod params", tostring(allOrErr))
+		return nil
+	end
+	local all = allOrErr as {string : table}
+	local mine = all ~= nil and all[K.MOD_ID] as {string : number} or nil
+	return mine ~= nil and mine[key] or nil
+end
+
+
+--- mod.json debug_log: values { "Off", "On" } -> 2 = on. Missing/unreadable = off. Read once (params
+--- only change on a game load).
+local function debugLog() : boolean
+	if memo.debugLogCache == nil then
+		memo.debugLogCache = modParam("debug_log") == 2
+		if memo.debugLogCache then logm("setting: debug_log=true") end
+	end
+	return memo.debugLogCache
+end
+
+--- Diagnostics (map builds, camera box, network layer, window position): only with debug_log On.
+--- Warnings, settings read at load and the player's own actions always go through logm.
+local function logd(msg : string)
+	if debugLog() then logm(msg) end
+end
+
+
+--- A mod.json Off/On param (values { "Off", "On" }): true when On; missing or unreadable = dflt.
+--- Read once (params only change on a game load), logged once.
+local function onOffSetting(key : string, dflt : boolean) : boolean
+	local c = memo.settingCache[key]
+	if c ~= nil then return c end
+	local v = modParam(key)
+	local on = dflt
+	if v == 1 then on = false elseif v == 2 then on = true end
+	memo.settingCache[key] = on
+	logm(string.format("setting: %s=%s (raw %s)", key, tostring(on), tostring(v)))
+	return on
+end
+
+
+--- Station kinds the Stn checkbox shows (phase 8; mod.json stnTrainStations / stnAirports /
+--- stnHarbors, default On). Kind -> shown.
+local function stationKinds() : {string : boolean}
+	if memo.stationKindsCache == nil then
+		memo.stationKindsCache = {
+			rail = onOffSetting("stnTrainStations", true),
+			air = onOffSetting("stnAirports", true),
+			water = onOffSetting("stnHarbors", true),
+		}
+	end
+	return memo.stationKindsCache
+end
+
+--- Whether a window checkbox is shown (mod.json showIndBox / showFilterBox / showNetBox /
+--- showVizBox / showStnBox, default On). A hidden checkbox's feature is off (Viz: the hiVisNet
+--- setting decides); its remembered pref is kept. Filter needs Ind's checkbox, Viz Net's; Stn needs
+--- at least one station kind On.
+local function controlShown(id : string) : boolean
+	if id == "ind" then return onOffSetting("showIndBox", true) end
+	if id == "filter" then return onOffSetting("showIndBox", true) and onOffSetting("showFilterBox", true) end
+	if id == "net" then return onOffSetting("showNetBox", true) end
+	if id == "viz" then return onOffSetting("showNetBox", true) and onOffSetting("showVizBox", true) end
+	if id == "stn" then return onOffSetting("showStnBox", true) and stations.anyEnabled(stationKinds()) end
+	return false
+end
+
+
 local clock : function() : number = (os ~= nil and os.clock ~= nil) and os.clock or function() : number return 0 end
 
 local perfStep = sqperf.new({ mod = "square_better_minimap", ctx = "step", paramKey = "sqperf_log",
@@ -253,7 +358,8 @@ local record Session
 	withAssets : boolean
 	showIndustries : boolean
 	showNet : boolean  -- network layer (phase 6); default off
-	hiVis : boolean    -- network layer in the high-visibility palette; default off
+	showStations : boolean -- station icons (phase 8, Stn); default off
+	hiVis : boolean    -- Viz: network layer in the high-visibility palette; nil = not chosen (hiVisOn)
 	sizeIdx : integer
 	pinned : boolean
 	posX : number      -- window anchor (top-right, CSS anchorPoint {1, 0}) in screen fractions
@@ -266,10 +372,9 @@ end
 -- Window lifecycle. The window is added once and then only hidden/shown by id (like the base
 -- game's shelved entity windows, view_manager.tl:333-336, 410-414), so it keeps its position.
 local windowMounted = false  -- MinimapWindow is in the window container
-local hiddenByUs = false     -- we hid it (Map button, X); anything else hiding it while pinned is undone
 
 local function isShown() : boolean
-	local ok, vOrErr = pcall(api.gui.byId.isVisible, WINDOW_ID)
+	local ok, vOrErr = pcall(api.gui.byId.isVisible, K.WINDOW_ID)
 	if not ok then return true end -- unknown: behave as visible (polls keep running)
 	return vOrErr == true
 end
@@ -278,13 +383,20 @@ local session : Session = {
 	withAssets = false,
 	showIndustries = true,
 	showNet = false,
-	hiVis = false,
-	sizeIdx = DEFAULT_SIZE,
+	showStations = false,
+	sizeIdx = K.DEFAULT_SIZE,
 	pinned = false,
 	open = false,
 	filter = {},
 	filterQuery = "",
 }
+
+--- The network palette in use: with the Viz checkbox shown, the player's choice (remembered per
+--- save; rev 5-13 saves have one) or, never chosen, the mod setting hiVisNet; Viz hidden: the setting.
+local function hiVisOn() : boolean
+	if controlShown("viz") and session.hiVis ~= nil then return session.hiVis end
+	return onOffSetting("hiVisNet", false)
+end
 
 ---------------------------------------------------------------------------
 -- Remembered settings: position, pin, size, industry toggle and whether a pinned window was open
@@ -296,8 +408,7 @@ local session : Session = {
 -- values have been stable for PREFS_STABLE_TICKS guard ticks (a drag produces many positions; only
 -- the final one is written).
 
-local PREFS_KEY <const> = "square_better_minimap"
-local PREFS_STABLE_TICKS <const> = 4 -- x GUARD_SECONDS (0.25 s) = 1 s without changes
+-- (PREFS_KEY: in the constants table K at the top)
 
 local prefsLoaded = false
 local savedPrefs : SquareMinimapPrefs = nil   -- what the settings hold (as last read or written)
@@ -312,6 +423,7 @@ local function currentPrefs() : SquareMinimapPrefs
 		sizeIdx = session.sizeIdx,
 		showIndustries = session.showIndustries,
 		showNet = session.showNet,
+		showStations = session.showStations,
 		hiVis = session.hiVis,
 		open = session.open and session.pinned,
 		filterTypes = filter.toPrefs(session.filter),
@@ -319,9 +431,9 @@ local function currentPrefs() : SquareMinimapPrefs
 end
 
 local function prefsText(p : SquareMinimapPrefs) : string
-	return string.format("pos %s, pinned=%s, size=%s, industries=%s, net=%s, hivis=%s, open=%s, filter=%s",
+	return string.format("pos %s, pinned=%s, size=%s, industries=%s, net=%s, hivis=%s, stations=%s, open=%s, filter=%s",
 		p.posX ~= nil and string.format("%.4f,%.4f", p.posX, p.posY) or "(none)",
-		tostring(p.pinned), tostring(p.sizeIdx), tostring(p.showIndustries), tostring(p.showNet), tostring(p.hiVis), tostring(p.open),
+		tostring(p.pinned), tostring(p.sizeIdx), tostring(p.showIndustries), tostring(p.showNet), tostring(p.hiVis), tostring(p.showStations), tostring(p.open),
 		(p.filterTypes == nil or p.filterTypes == "") and "all" or p.filterTypes)
 end
 
@@ -330,7 +442,7 @@ local function loadPrefs()
 	if prefsLoaded then return end
 	prefsLoaded = true
 	local ok, rawOrErr = pcall(function() : any
-		local data = api.gui.game.getGuiSaveData(PREFS_KEY) as any
+		local data = api.gui.game.getGuiSaveData(K.PREFS_KEY) as any
 		if type(data) ~= "table" or next(data as {any : any}) == nil then return nil end
 		return data
 	end)
@@ -339,12 +451,13 @@ local function loadPrefs()
 		savedPrefs = currentPrefs()
 		return
 	end
-	local p = geom.readPrefs(rawOrErr, #SIZES, WINDOW_MIN_TOP)
+	local p = geom.readPrefs(rawOrErr, #K.SIZES, K.WINDOW_MIN_TOP)
 	if p.posX ~= nil then session.posX, session.posY = p.posX, p.posY end
 	if p.pinned ~= nil then session.pinned = p.pinned end
 	if p.sizeIdx ~= nil then session.sizeIdx = p.sizeIdx end
 	if p.showIndustries ~= nil then session.showIndustries = p.showIndustries end
 	if p.showNet ~= nil then session.showNet = p.showNet end
+	if p.showStations ~= nil then session.showStations = p.showStations end
 	if p.hiVis ~= nil then session.hiVis = p.hiVis end
 	if p.filterTypes ~= nil then session.filter = filter.fromPrefs(p.filterTypes) end
 	session.open = p.open == true and session.pinned
@@ -354,9 +467,9 @@ end
 
 local function writePrefs(p : SquareMinimapPrefs)
 	local ok, err = pcall(function() : any
-		api.gui.game.setGuiSaveData(PREFS_KEY, {
+		api.gui.game.setGuiSaveData(K.PREFS_KEY, {
 			posX = p.posX, posY = p.posY, pinned = p.pinned, sizeIdx = p.sizeIdx,
-			showIndustries = p.showIndustries, showNet = p.showNet, hiVis = p.hiVis, open = p.open,
+			showIndustries = p.showIndustries, showNet = p.showNet, showStations = p.showStations, hiVis = p.hiVis, open = p.open,
 			filterTypes = p.filterTypes,
 		})
 		return nil
@@ -364,7 +477,7 @@ local function writePrefs(p : SquareMinimapPrefs)
 	-- Marked saved even on failure, so a broken API is warned about once, not retried every second.
 	savedPrefs = p
 	if ok then
-		logm("settings: saved " .. prefsText(p))
+		logd("settings: saved " .. prefsText(p))
 	else
 		warnOnce("save settings", tostring(err))
 	end
@@ -383,7 +496,7 @@ local function maintainPrefs()
 	else
 		pendingPrefs, pendingTicks = cur, 0
 	end
-	if pendingTicks >= PREFS_STABLE_TICKS then
+	if pendingTicks >= K.PREFS_STABLE_TICKS then
 		pendingPrefs, pendingTicks = nil, 0
 		writePrefs(cur)
 	end
@@ -400,7 +513,7 @@ local record RevState
 	heights : {number} -- base height on a HEIGHT_GRID x HEIGHT_GRID grid
 end
 
-local HEIGHT_GRID <const> = 9 -- 81 getBaseHeightAt calls per check
+-- (HEIGHT_GRID: in the constants table K at the top)
 
 --- map_editor.tl:308-323 (terrain entity revisions + town revisions), plus the set of industries
 --- (INDUSTRY component: mission_savegame_util.tl:39). Industry revisions are not used: they change
@@ -427,9 +540,9 @@ local function readRevState() : RevState
 	local bounds = { bb.min.x, bb.min.y, bb.max.x, bb.max.y }
 	local heights : {number} = {}
 	local w, h = bb.max.x - bb.min.x, bb.max.y - bb.min.y
-	for i = 0, HEIGHT_GRID - 1 do
-		for j = 0, HEIGHT_GRID - 1 do
-			local p = api.type.Vec2f.new(bb.min.x + w * (i + 0.5) / HEIGHT_GRID, bb.min.y + h * (j + 0.5) / HEIGHT_GRID)
+	for i = 0, K.HEIGHT_GRID - 1 do
+		for j = 0, K.HEIGHT_GRID - 1 do
+			local p = api.type.Vec2f.new(bb.min.x + w * (i + 0.5) / K.HEIGHT_GRID, bb.min.y + h * (j + 0.5) / K.HEIGHT_GRID)
 			heights[#heights + 1] = api.engine.terrain.getBaseHeightAt(p)
 		end
 	end
@@ -457,13 +570,11 @@ end
 ---------------------------------------------------------------------------
 -- Industries (main thread; read once per map build)
 
-local cargoIconCache : {integer : string} = {}
-local cargoNameCache : {integer : string} = {} -- filter search; "" when unknown
 
 --- CargoType.icon (cargo_util.tl:436-439) and .name (the base game shows it as is: cargo icon
 --- tooltips, cargo_react_util.tl:27-28); "" when unknown. Cached: cargo resources don't change.
 local function cargoIcon(cargoTypeId : integer) : string
-	local cached = cargoIconCache[cargoTypeId]
+	local cached = memo.cargoIconCache[cargoTypeId]
 	if cached ~= nil then return cached end
 	local ok, ctOrErr = pcall(function() : CargoType
 		return api.res.cargoTypeRep.get(cargoTypeId as CargoTypeId)
@@ -476,8 +587,8 @@ local function cargoIcon(cargoTypeId : integer) : string
 	elseif not ok then
 		warnOnce("cargo icon", tostring(ctOrErr))
 	end
-	cargoIconCache[cargoTypeId] = path
-	cargoNameCache[cargoTypeId] = name
+	memo.cargoIconCache[cargoTypeId] = path
+	memo.cargoNameCache[cargoTypeId] = name
 	return path
 end
 
@@ -509,13 +620,11 @@ local function industryTypeOf(e : Engine.Entity) : string
 end
 
 -- typeKey -> localized construction description.name (gather.typeName); misses cached too.
-local typeNameCache : {string : string} = {}
-local typeNameMissing : {string : boolean} = {}
 
 --- constructionRep.find + get (construction.tl:1236-1240), as Industry Flows' gather.typeName. nil when unknown.
 local function industryTypeName(typeKey : string) : string
 	if typeKey == nil or typeKey == "" then return nil end
-	if typeNameCache[typeKey] ~= nil or typeNameMissing[typeKey] then return typeNameCache[typeKey] end
+	if memo.typeNameCache[typeKey] ~= nil or memo.typeNameMissing[typeKey] then return memo.typeNameCache[typeKey] end
 	local ok, name = pcall(function() : string
 		local id = api.res.constructionRep.find(typeKey)
 		if id == nil or id < 0 then return nil end
@@ -524,11 +633,11 @@ local function industryTypeName(typeKey : string) : string
 		return desc.description.name
 	end)
 	if ok and type(name) == "string" and name ~= "" then
-		typeNameCache[typeKey] = name as string
+		memo.typeNameCache[typeKey] = name as string
 	else
-		typeNameMissing[typeKey] = true
+		memo.typeNameMissing[typeKey] = true
 	end
-	return typeNameCache[typeKey]
+	return memo.typeNameCache[typeKey]
 end
 
 local record IndustryRead
@@ -568,7 +677,7 @@ local function readIndustry(e : Engine.Entity) : SquareMinimapIndustry, string
 	else
 		warnOnce("industry type", tostring(typeOrErr))
 	end
-	local icon, source = geom.pickIcon(outputs, inputs, FALLBACK_ICON)
+	local icon, source = geom.pickIcon(outputs, inputs, K.FALLBACK_ICON)
 	local okName, nameOrErr = pcall(api.engine.util.getEntityName, e)
 	local name : string = nil
 	if okName and type(nameOrErr) == "string" and nameOrErr ~= "" then name = nameOrErr as string end
@@ -653,8 +762,8 @@ local function buildMapData(reason : string) : MapData
 	local t3 = clock()
 	local text = string.format("%d towns, %d industries, built in %s",
 		countList(map.towns), #ind.list, ms(t0, t1))
-	logm(string.format("map gen %d (%s, assets=%s): %s", genCounter, reason, tostring(session.withAssets), text))
-	logm(string.format("industries gen %d: %d markers, icons %d from product + %d from input, %d fallback; %d without position, %d failed; read in %s",
+	logd(string.format("map gen %d (%s, assets=%s): %s", genCounter, reason, tostring(session.withAssets), text))
+	logd(string.format("industries gen %d: %d markers, icons %d from product + %d from input, %d fallback; %d without position, %d failed; read in %s",
 		genCounter, #ind.list, ind.byOutput, ind.byInput, ind.fallback, ind.noPos, ind.failed, ms(t2, t3)))
 	return { gen = genCounter, map = map, box = box, industries = ind.list, builtAt = t1, buildText = text }
 end
@@ -686,12 +795,11 @@ local function previewEnv(map : GameMap) : PreviewEnv
 	return previewEnvCache
 end
 
-local keepModeCache : any = nil
 
 --- map_editor.tl:546-553 with everything kept and nothing generated (phase 1: shows the save as-is).
 --- One object for the session (a fresh userdata each render could make the component regenerate).
 local function keepMode() : any
-	if keepModeCache ~= nil then return keepModeCache end
+	if memo.keepModeCache ~= nil then return memo.keepModeCache end
 	local ok, modeOrErr = pcall(function() : any
 		local m = api.type.HeighmapGenerationMode.new()
 		m.generateTowns = false
@@ -705,8 +813,8 @@ local function keepMode() : any
 		warnOnce("previewMode", tostring(modeOrErr))
 		return nil
 	end
-	keepModeCache = modeOrErr
-	return keepModeCache
+	memo.keepModeCache = modeOrErr
+	return memo.keepModeCache
 end
 
 ---------------------------------------------------------------------------
@@ -751,7 +859,7 @@ local function cameraFootprint(box : SquareMinimapBox, d : Vec5f) : SquareMinima
 	else
 		planeZ = cam.getCenter().z
 	end
-	local maxDist = CAM_MAX_DIST_FACTOR * math.max(d.z, 50)
+	local maxDist = K.CAM_MAX_DIST_FACTOR * math.max(d.z, 50)
 	local corners : {{number, number}} = { { 0, 0 }, { size.x, 0 }, { size.x, size.y }, { 0, size.y } }
 	local pts : {number} = {}
 	local logLines : {string} = {}
@@ -768,7 +876,7 @@ local function cameraFootprint(box : SquareMinimapBox, d : Vec5f) : SquareMinima
 		else
 			gx, gy, hit = geom.groundPoint(nearP.x, nearP.y, nearP.z, farP.x, farP.y, farP.z, planeZ, d.x, d.y, maxDist)
 		end
-		local fx, fy = geom.worldToFrac(gx, gy, box, ORIENT)
+		local fx, fy = geom.worldToFrac(gx, gy, box, K.ORIENT)
 		pts[#pts + 1] = fx
 		pts[#pts + 1] = fy
 		if not loggedFootprint then
@@ -779,10 +887,10 @@ local function cameraFootprint(box : SquareMinimapBox, d : Vec5f) : SquareMinima
 	local rect = geom.rectFromPoints(pts)
 	if not loggedFootprint then
 		loggedFootprint = true
-		local cx, cy = geom.worldToFrac(d.x, d.y, box, ORIENT)
-		logm(string.format("first camera footprint: viewport %dx%d, eye %s, centre (%.0f,%.0f) frac (%.3f,%.3f), distance %.0f, plane z %.1f, cap %.0f m; rect x %.3f..%.3f y %.3f..%.3f",
+		local cx, cy = geom.worldToFrac(d.x, d.y, box, K.ORIENT)
+		logd(string.format("first camera footprint: viewport %dx%d, eye %s, centre (%.0f,%.0f) frac (%.3f,%.3f), distance %.0f, plane z %.1f, cap %.0f m; rect x %.3f..%.3f y %.3f..%.3f",
 			size.x, size.y, v3(eye), d.x, d.y, cx, cy, d.z, planeZ, maxDist, rect.x0, rect.x1, rect.y0, rect.y1))
-		for __, line in ipairs(logLines) do logm(line) end
+		for __, line in ipairs(logLines) do logd(line) end
 	end
 	-- corners 1, 2: top of the screen; 3, 4: bottom (see `corners`)
 	local hx = (pts[1] + pts[3] - pts[5] - pts[7]) / 2
@@ -792,7 +900,7 @@ end
 
 local function readCamView(box : SquareMinimapBox) : CamView
 	local d = api.gui.camera.getCameraData()
-	local cx, cy = geom.worldToFrac(d.x, d.y, box, ORIENT)
+	local cx, cy = geom.worldToFrac(d.x, d.y, box, K.ORIENT)
 	local ok, rOrErr, hx, hy = pcall(cameraFootprint, box, d)
 	local rect : SquareMinimapRect = nil
 	if ok then
@@ -802,7 +910,7 @@ local function readCamView(box : SquareMinimapBox) : CamView
 		warnOnce("camera footprint", tostring(rOrErr))
 	end
 	if rect == nil then
-		rect = geom.rectAround(d.x, d.y, math.max(d.z, 50), box, ORIENT)
+		rect = geom.rectAround(d.x, d.y, math.max(d.z, 50), box, K.ORIENT)
 	end
 	return { cx = cx, cy = cy, rect = rect, hx = hx as number, hy = hy as number }
 end
@@ -835,7 +943,7 @@ local typesCacheGen = -1
 local function typesFor(data : MapData) : {SquareMinimapFilterType}
 	if data == nil then return {} end
 	if typesCacheGen ~= data.gen or typesCache == nil then
-		local ok, tOrErr = pcall(filter.groupTypes, data.industries, cargoNameCache, _("Other"))
+		local ok, tOrErr = pcall(filter.groupTypes, data.industries, memo.cargoNameCache, _("Other"))
 		if ok then
 			typesCache = tOrErr as {SquareMinimapFilterType}
 		else
@@ -986,7 +1094,7 @@ local MinimapPreview = react.RegisterRecipe("MinimapPreview", perf:wrap("preview
 			locationsConfig = env.locations,
 			onReady = function(_map : GameMap, _feedback : {string})
 				local now = clock()
-				logm(string.format("preview ready gen %d (%dx%d px): %s after mount, %s after build",
+				logd(string.format("preview ready gen %d (%dx%d px): %s after mount, %s after build",
 					data.gen, params.w, params.h, ms(mountedAt, now), ms(data.builtAt, now)))
 			end,
 			onTownConnectionsChanged = function(_c : {{integer, integer}})
@@ -1039,6 +1147,7 @@ local record MarkerIconsParam
 	h : integer
 	size : integer
 	hover : string                      -- Shift hover type: every other type's icons are faded; nil = none
+	all : boolean                       -- draw every marker (station icons, phase 8): no industry filter
 end
 
 -- One layer of industry icons. While its key is unchanged the old node is returned
@@ -1059,7 +1168,7 @@ local MinimapMarkerIcons = react.RegisterRecipe("MinimapMarkerIcons", perf:wrap(
 	local sel = session.filter
 	local children : {TreeNodeId} = {}
 	for __, m in ipairs(params.layout) do
-		if filter.isVisible(m.typeKey, sel) then
+		if params.all or filter.isVisible(m.typeKey, sel) then
 			local muted = params.hover ~= nil and m.typeKey ~= params.hover
 			children[#children + 1] = layerAt(m.key, m.left, m.top, size, size, params.w, params.h, builtin.ImageView{
 				meta = {
@@ -1118,7 +1227,7 @@ local MinimapMarkers = react.RegisterRecipe("MinimapMarkers", perf:wrap("markers
 	end)
 	local key = string.format("%d_%d_%d_%d", params.data.gen, params.w, params.h, params.size)
 	if layoutKeyRef:get() ~= key then
-		local ok, lOrErr = pcall(geom.markerLayout, params.data.industries, params.data.box, ORIENT, params.w, params.h, params.size)
+		local ok, lOrErr = pcall(geom.markerLayout, params.data.industries, params.data.box, K.ORIENT, params.w, params.h, params.size)
 		if ok then
 			layoutRef:set(lOrErr as {SquareMinimapMarkerPx})
 		else
@@ -1126,7 +1235,7 @@ local MinimapMarkers = react.RegisterRecipe("MinimapMarkers", perf:wrap("markers
 			layoutRef:set({})
 		end
 		layoutKeyRef:set(key)
-		logm(string.format("industry markers gen %d: %d drawn (%dx%d px picture, %d px icons)",
+		logd(string.format("industry markers gen %d: %d drawn (%dx%d px picture, %d px icons)",
 			params.data.gen, #layoutRef:get(), params.w, params.h, params.size))
 	end
 	shownMarkers, shownMarkerSize = layoutRef:get(), params.size
@@ -1159,8 +1268,8 @@ end))
 -- buildings drawn into one RGBA image (builtin.ImageView{ data, size }, builtin.d.tl:799-816)
 -- laid over the preview, under the industry icons. Toggled with the "Net" checkbox; default off.
 --
--- OFF = NO COST: the layer recipe (MinimapNetLayer) is only mounted while the toggle is on, so
--- off means no onStep, no timer, no engine read, no ImageView. Toggling off PARKS the finished
+-- OFF = NO COST: the layer recipe (MinimapNetLayer) is only mounted while the toggle is on, and the
+-- canvas's layersStep calls netStep only then, so off means no timer, no engine read, no ImageView. Toggling off PARKS the finished
 -- image, grid and entity caches (netPark; the Lua encode buffers are dropped) for NET_OFF_KEEP_SECONDS:
 -- toggling on again within that time shows the cached image at once and runs only an incremental
 -- rescan (no grid allocation, no first build, no burst of garbage). The release check piggybacks on
@@ -1168,8 +1277,9 @@ end))
 -- hidden, nothing is read (checked once a second), and after NET_HIDDEN_RELEASE_SECONDS hidden the
 -- caches are dropped (re-opening rebuilds). Unmounting the window or an error drops them at once.
 --
--- HI-VIS: a second palette (net.COLORS_HIVIS). The grid stores layer counts, not colours, so a
--- switch only re-encodes (time-sliced like any encode, net.recolorAction); nothing is re-read.
+-- HI-VIS: a second palette (net.COLORS_HIVIS), chosen by hiVisOn (the Viz checkbox, its default the
+-- mod setting hiVisNet). The grid stores layer counts, not colors, so a switch only re-encodes
+-- (time-sliced like any encode, net.recolorAction); nothing is re-read.
 --
 -- STRIPS: the image is shown as horizontal strips of 64 rows (net STRIPS, net.STRIP_BANDS), each
 -- its own ImageView with its own buffer and params userdata. The one Lua -> C++ copy of a whole
@@ -1229,22 +1339,40 @@ local record NetLayerParam
 	h : integer
 end
 local MinimapNetLayer : Recipe<NetLayerParam> -- assigned in the block
+local record StationLayerParam
+	box : SquareMinimapBox
+	w : integer
+	h : integer
+	size : integer -- icon size (MARKER_PX)
+end
+local MinimapStations : Recipe<StationLayerParam> -- station icons (phase 8), assigned in the block
+local stPark : function(why : string)          -- Stn unticked: keep the station caches for a while
+local stCheckParked : function()               -- guard tick: release them after NET_OFF_KEEP_SECONDS
+local stRelease : function(why : string)
+-- The canvas's per-frame driver of both layers (main thread): the network scan, then the station
+-- scan only in a frame without network scan work (one engine list call per frame at most).
+local layersStep : function(box : SquareMinimapBox, netOn : boolean, stnOn : boolean)
 do
 -- Long side of the network image in pixels (S picture 200-360, L 560-720 UI px).
-local NET_LONG <const> = 512
-local NET_BUDGET_MS <const> = 2.0          -- work per frame (list calls and the hand-off: one per frame)
-local NET_HIDDEN_RELEASE_SECONDS <const> = 60.0
-local NET_OFF_KEEP_SECONDS <const> = 60.0  -- caches kept after the toggle goes off (instant re-enable)
-local NET_RESUME_DELAY_MS <const> = 500.0  -- re-enabled from the kept caches: rescan starts after this
--- Byte order of a pixel ("RGBA", "BGRA", "ARGB" or "ABGR") and whether the first row is the
--- bottom one. Undocumented: NET_CALIBRATE paints red, green, blue and 50% white squares (left to
--- right) at the top-left corner of the map. Red and blue swapped -> "BGRA"; squares at the
--- bottom-left -> NET_FLIP_ROWS = true; wrong colours everywhere -> try "ARGB" / "ABGR".
-local NET_ORDER <const> = "RGBA"
-local NET_FLIP_ROWS <const> = true -- in game 2026-10-09: the first row is drawn at the bottom
-local NET_CALIBRATE <const> = false -- in game 2026-10-09: RGBA confirmed, transparency works
-local NET_LOG_UPDATES <const> = 5  -- update passes logged in full per state
--- Colours per layer: net.COLORS_NORMAL / net.COLORS_HIVIS (minimap_net.tl), picked by session.hiVis.
+local NK = {
+	NET_LONG = 512,
+	NET_BUDGET_MS = 2.0,          -- work per frame (list calls and the hand-off: one per frame)
+	NET_HIDDEN_RELEASE_SECONDS = 60.0,
+	NET_OFF_KEEP_SECONDS = 60.0,  -- caches kept after the toggle goes off (instant re-enable)
+	NET_RESUME_DELAY_MS = 500.0,  -- re-enabled from the kept caches: rescan starts after this
+	-- Byte order of a pixel ("RGBA", "BGRA", "ARGB" or "ABGR") and whether the first row is the
+	-- bottom one. Undocumented: NET_CALIBRATE paints red, green, blue and 50% white squares (left to
+	-- right) at the top-left corner of the map. Red and blue swapped -> "BGRA"; squares at the
+	-- bottom-left -> NET_FLIP_ROWS = true; wrong colours everywhere -> try "ARGB" / "ABGR".
+	NET_ORDER = "RGBA",
+	NET_FLIP_ROWS = true, -- in game 2026-10-09: the first row is drawn at the bottom
+	NET_CALIBRATE = false, -- in game 2026-10-09: RGBA confirmed, transparency works
+	NET_LOG_UPDATES = 5,  -- update passes logged in full per state
+	-- station icons (phase 8)
+	ST_BUDGET_MS = 1.0,
+	ST_LOG_PASSES = 5,     -- passes logged in full (debug_log)
+}
+-- Colours per layer: net.COLORS_NORMAL / net.COLORS_HIVIS (minimap_net.tl), picked by hiVisOn().
 
 -- Wall clock in ms for the frame budget (api.type.Clock, microseconds: type.d.tl:1860-1866; safe
 -- on the main thread, docs/findings.md "Timers and threads in GUI contexts").
@@ -1282,9 +1410,197 @@ local netRenderSeq = 0              -- bumped on every image change; the layer's
 
 local netHandoff : string = nil      -- image hand-off: nil = not tried yet, "params" (userdata) or "table"
 
+---------------------------------------------------------------------------
+-- Station icons (phase 8, PLAN.md): airports, train stations and harbors as icons on the map, with
+-- or without the network image. Toggled with the "Stn" checkbox (session.showStations, default
+-- off, remembered); the mod settings stnTrainStations / stnAirports / stnHarbors (default On) pick
+-- the kinds (all Off, or showStnBox Off: no Stn checkbox). OFF = NO COST: the icon layer
+-- (MinimapStations) is mounted and the scan runs only while Stn is ticked; the canvas's layersStep
+-- then calls stationStep, only in frames without network scan work (netWorked), so there is at most
+-- one engine list call per frame, under its own ST_BUDGET_MS. Same lifecycle as the network layer:
+-- unticking parks the caches (station id -> construction, construction -> kind/position/icon) for
+-- NET_OFF_KEEP_SECONDS (re-ticking shows them at once, rescan after NET_RESUME_DELAY_MS); hidden
+-- window: no reads, released after NET_HIDDEN_RELEASE_SECONDS; window unmount or an error: released.
+-- The scheduler is minimap_stations.tl (pure; see its header).
+
+local stState : SquareMinimapStationState = nil
+local stFailed = false              -- a Lua error in the station step: stopped until Stn is toggled off and on
+local stRenderSeq = 0               -- bumped when the shown icons change; MinimapStations' re-render trigger
+local netWorked = false             -- netStep ran network scan work this frame
+
+stRelease = function(why : string)
+	if stState == nil then return end
+	logd(string.format("stations: released (%s): %d stations cached", why, stState.stationCount))
+	stState = nil
+	stRenderSeq = stRenderSeq + 1
+end
+
+-- The station io (engine reads, all pcall'd) in a block of its own: the main chunk's local count
+-- (Lua's limit is 200; this file passed it once, PLAN.md phase 7 round 2).
+local stIo : SquareMinimapStationIo
+do
+local function stListStations() : {integer}
+	local ok, listOrErr = pcall(api.engine.getEntitiesWithComponent, api.type.ComponentType.STATION)
+	if not ok or type(listOrErr) ~= "table" then
+		warnOnce("station list", tostring(listOrErr))
+		return nil
+	end
+	return listOrErr as {integer}
+end
+
+local function stConOf(station : integer) : integer
+	local ok, conOrErr = pcall(api.engine.system.streetConnectorSystem.getConstructionEntityForStation, station as Engine.Entity)
+	if not ok then
+		warnOnce("station construction", tostring(conOrErr))
+		return nil
+	end
+	if type(conOrErr) ~= "number" then return -1 end
+	return math.floor(conOrErr as number)
+end
+
+local function stPathOf(con : integer) : string
+	local ok, pathOrErr = pcall(function() : string
+		local c = api.engine.getComponent(con as Engine.Entity, api.type.ComponentType.CONSTRUCTION) as Engine.Component.Construction
+		if c == nil or c.fileName == nil then return nil end
+		return tostring(c.fileName)
+	end)
+	if not ok then
+		warnOnce("station construction path", tostring(pathOrErr))
+		return nil
+	end
+	return pathOrErr as string
+end
+
+local function stIsPassenger(station : integer) : boolean
+	local ok, vOrErr = pcall(api.engine.util.station.isStationOfType, station as Engine.Entity, false)
+	if not ok then
+		warnOnce("station type", tostring(vOrErr))
+		return true -- unreadable: the passenger icon (as Organic Towns' facilities)
+	end
+	return vOrErr == true
+end
+
+--- Construction center: its BOUNDING_VOLUME box center (as readIndustry), else CONSTRUCTION.transf's
+--- translation (as square_stress_test bl.depotPos). nil when neither reads.
+local function stPosOf(con : integer) : number, number
+	local okB, x, y = pcall(function() : number, number
+		local bv = api.engine.getComponent(con as Engine.Entity, api.type.ComponentType.BOUNDING_VOLUME) as Engine.Component.BoundingVolume
+		if bv == nil or bv.bbox == nil then return nil, nil end
+		local mn, mx = bv.bbox.min, bv.bbox.max
+		return mn.x + 0.5 * (mx.x - mn.x), mn.y + 0.5 * (mx.y - mn.y)
+	end)
+	if okB and x ~= nil then return x, y end
+	if not okB then warnOnce("station position", tostring(x)) end
+	local okT, tx, ty = pcall(function() : number, number
+		local c = api.engine.getComponent(con as Engine.Entity, api.type.ComponentType.CONSTRUCTION) as Engine.Component.Construction
+		if c == nil or c.transf == nil then return nil, nil end
+		local m = c.transf as {number}
+		return m[13], m[14]
+	end)
+	if okT and tx ~= nil then return tx, ty end
+	if not okT then warnOnce("station transform", tostring(tx)) end
+	return nil, nil
+end
+
+local function stLogPass(st : SquareMinimapStationState)
+	if st.passes > NK.ST_LOG_PASSES then return end
+	local s = st.stats
+	local per, pax = stations.counts(st)
+	logd(string.format("stations: pass %d: %d listed (+%d -%d, %d read failures, %d without position); shown %d train, %d air, %d harbor (%d with passengers), v%d; list %.1f ms, read %.1f ms, %d frames, next scan in %.0f s%s",
+		st.passes, s.listed, s.added, s.removed, s.readFailed, s.noPos, per.rail, per.air, per.water, pax, st.version,
+		s.listMs, s.readMs, s.frames, st.scanSeconds, st.passes == NK.ST_LOG_PASSES and " (further passes not logged)" or ""))
+end
+
+stIo = {
+	now = nowMs,
+	listStations = stListStations,
+	conOf = stConOf,
+	pathOf = stPathOf,
+	isPassenger = stIsPassenger,
+	posOf = stPosOf,
+	passDone = stLogPass,
+	perf = perfStep as SquareMinimapNetPerf,
+}
+end
+
+--- One station frame (from layersStep, main thread, only when netStep did no scan work this frame).
+--- Idle: a comparison per frame. True when the shown icons changed.
+local function stationStep() : boolean
+	if stFailed then return false end
+	local kinds = stationKinds()
+	if not stations.anyEnabled(kinds) then return false end
+	local now = nowMs()
+	local st = stState
+	if st ~= nil and st.parkedSinceMs ~= nil then
+		-- Ticked again with the caches kept: the layer already shows them; rescan after a moment.
+		perfStep:count("st_on_cached")
+		logd(string.format("stations: on (cached, off for %.1f s): %d stations kept; rescan in %.1f s",
+			(now - st.parkedSinceMs) / 1000, st.stationCount, NK.NET_RESUME_DELAY_MS / 1000))
+		st.parkedSinceMs, st.hiddenSinceMs = nil, nil
+		st.scanSeconds = stations.SCAN_SECONDS
+		st.waitUntilMs = now + NK.NET_RESUME_DELAY_MS
+		return false
+	end
+	if st ~= nil and st.phase == "idle" and now < st.waitUntilMs then return false end
+	if not isShown() then
+		-- Paused: no engine reads. A long-hidden window frees the caches.
+		if st ~= nil then
+			if st.phase ~= "idle" then stations.endScan(st, now) end
+			st.waitUntilMs = now + 1000
+			if st.hiddenSinceMs == nil then st.hiddenSinceMs = now end
+			if now - st.hiddenSinceMs >= NK.NET_HIDDEN_RELEASE_SECONDS * 1000 then
+				stRelease(string.format("window hidden for %.0f s", NK.NET_HIDDEN_RELEASE_SECONDS))
+				return true
+			end
+		end
+		return false
+	end
+	if st == nil then
+		st = stations.newState(kinds)
+		stState = st
+		perfStep:count("st_on")
+		logd(string.format("stations: on: train=%s air=%s harbor=%s; budget %.1f ms/frame, scan every %.0f s (up to %.0f s while nothing changes)",
+			tostring(kinds.rail == true), tostring(kinds.air == true), tostring(kinds.water == true), NK.ST_BUDGET_MS,
+			stations.SCAN_SECONDS, stations.BACKOFF_MAX_SECONDS))
+	end
+	if st.hiddenSinceMs ~= nil then
+		st.hiddenSinceMs = nil
+		st.scanSeconds = stations.SCAN_SECONDS
+		st.waitUntilMs = 0
+	end
+	if st.phase == "idle" then
+		if now < st.waitUntilMs then return false end
+		stations.startScan(st, now)
+	end
+	if stations.run(st, stIo, NK.ST_BUDGET_MS) then
+		stRenderSeq = stRenderSeq + 1
+		return true
+	end
+	return false
+end
+
+--- Stn unticked: abort a running pass, keep the caches for NET_OFF_KEEP_SECONDS (stCheckParked).
+stPark = function(why : string)
+	stFailed = false -- unticking and ticking again retries a failed station step
+	local st = stState
+	if st == nil then return end
+	local now = nowMs()
+	if st.phase ~= "idle" then stations.endScan(st, now) end
+	st.parkedSinceMs = now
+	logd(string.format("stations: off (%s): %d stations kept for %.0f s", why, st.stationCount, NK.NET_OFF_KEEP_SECONDS))
+end
+
+stCheckParked = function()
+	local st = stState
+	if st == nil or st.parkedSinceMs == nil then return end
+	if net.parkExpired(st.parkedSinceMs, nowMs(), NK.NET_OFF_KEEP_SECONDS) then
+		stRelease(string.format("off for %.0f s", NK.NET_OFF_KEEP_SECONDS))
+	end
+end
+
 netRelease = function(why : string)
 	if netState == nil then return end
-	logm(string.format("net: released (%s): %d edges, %d buildings cached", why, netState.edgeCount, netState.buildingCount))
+	logd(string.format("net: released (%s): %d edges, %d buildings cached", why, netState.edgeCount, netState.buildingCount))
 	netState = nil
 	netRenderSeq = netRenderSeq + 1
 end
@@ -1392,24 +1708,24 @@ local function netLogPass(st : NetState, published : boolean)
 	local s = st.stats
 	local wall = nowMs() - s.startMs
 	if st.recolor then
-		logm(string.format("net: palette %s drawn: encode %.1f ms (%d bands), hand-off %.1f ms (%d strips) over %d frames (%.0f ms wall), no re-read",
+		logd(string.format("net: palette %s drawn: encode %.1f ms (%d bands), hand-off %.1f ms (%d strips) over %d frames (%.0f ms wall), no re-read",
 			st.hiVis and "hi-vis" or "normal", s.encodeMs, s.bands, s.handoffMs, s.stripsHanded, s.frames, wall))
 		return
 	end
 	if st.passes == 1 and published then
-		logm(string.format("net: first build: %d edges (%d streets, %d tracks, %d tunnels, %d without geometry) via %s, %d town buildings (%d without box), %d read failures",
+		logd(string.format("net: first build: %d edges (%d streets, %d tracks, %d tunnels, %d without geometry) via %s, %d town buildings (%d without box), %d read failures",
 			st.edgeCount, s.streets, s.tracks, s.tunnels, s.noGeom, tostring(netEdgeMode), st.buildingCount, s.noBox, s.readFailed))
-		logm(string.format("net: first build took list %.1f ms, flatten %.1f ms, sweep %.1f ms, read %.1f ms, raster %.1f ms, encode %.1f ms (%d bands), hand-off %.1f ms (%s, %d strips) over %d frames (%.0f ms wall); image %dx%d %s%s%s, next scan in %.0f s",
-			s.listMs, s.flattenMs, s.sweepMs, s.readMs, s.rasterMs, s.encodeMs, s.bands, s.handoffMs, tostring(netHandoff), s.stripsHanded, s.frames, wall, st.w, st.h, NET_ORDER,
-			NET_FLIP_ROWS and " rows flipped" or "", NET_CALIBRATE and ", CALIBRATION patch on" or "", st.scanSeconds))
+		logd(string.format("net: first build took list %.1f ms, flatten %.1f ms, sweep %.1f ms, read %.1f ms, raster %.1f ms, encode %.1f ms (%d bands), hand-off %.1f ms (%s, %d strips) over %d frames (%.0f ms wall); image %dx%d %s%s%s, next scan in %.0f s",
+			s.listMs, s.flattenMs, s.sweepMs, s.readMs, s.rasterMs, s.encodeMs, s.bands, s.handoffMs, tostring(netHandoff), s.stripsHanded, s.frames, wall, st.w, st.h, NK.NET_ORDER,
+			NK.NET_FLIP_ROWS and " rows flipped" or "", NK.NET_CALIBRATE and ", CALIBRATION patch on" or "", st.scanSeconds))
 		return
 	end
-	if st.updatesLogged >= NET_LOG_UPDATES then return end
+	if st.updatesLogged >= NK.NET_LOG_UPDATES then return end
 	st.updatesLogged = st.updatesLogged + 1
-	logm(string.format("net: update %d%s: edges +%d -%d, buildings +%d -%d (now %d / %d); list %.1f ms, flatten %.1f ms, sweep %.1f ms, read %.1f ms, raster %.1f ms, encode %.1f ms (%d bands), hand-off %.1f ms (%d strips), %d frames, next scan in %.0f s%s",
+	logd(string.format("net: update %d%s: edges +%d -%d, buildings +%d -%d (now %d / %d); list %.1f ms, flatten %.1f ms, sweep %.1f ms, read %.1f ms, raster %.1f ms, encode %.1f ms (%d bands), hand-off %.1f ms (%d strips), %d frames, next scan in %.0f s%s",
 		st.updatesLogged, published and "" or " (no visible change)", #(st.addE or {}), #(st.remE or {}), #(st.addB or {}), #(st.remB or {}), st.edgeCount, st.buildingCount,
 		s.listMs, s.flattenMs, s.sweepMs, s.readMs, s.rasterMs, s.encodeMs, s.bands, s.handoffMs, s.stripsHanded, s.frames, st.scanSeconds,
-		st.updatesLogged == NET_LOG_UPDATES and " (further updates not logged)" or ""))
+		st.updatesLogged == NK.NET_LOG_UPDATES and " (further updates not logged)" or ""))
 end
 
 local function netParamsClass() : NetParamsClass
@@ -1449,7 +1765,7 @@ local function netMakeParams(st : NetState, s : integer, out : {integer}, rows :
 	end)
 	if not ok then
 		netHandoff = "table"
-		logm("net: image hand-off: Lua table, copied on every new image node (params userdata not usable: " .. tostring(udOrErr) .. ")")
+		logd("net: image hand-off: Lua table, copied on every new image node (params userdata not usable: " .. tostring(udOrErr) .. ")")
 		return nil
 	end
 	if first then netHandoff = "params" end
@@ -1485,7 +1801,7 @@ local function netHandoffStrip(st : NetState, s : integer) : boolean
 	local dt = nowMs() - t0
 	st.stats.handoffMs = st.stats.handoffMs + dt
 	if first and netHandoff == "params" then
-		logm(string.format("net: image hand-off: params userdata, checked (one Lua -> C++ copy per changed strip of %d rows: %.1f ms for strip %d incl. the check; new nodes copy it in C++)",
+		logd(string.format("net: image hand-off: params userdata, checked (one Lua -> C++ copy per changed strip of %d rows: %.1f ms for strip %d incl. the check; new nodes copy it in C++)",
 			r1 - r0, dt, s))
 	end
 	return true
@@ -1525,20 +1841,20 @@ local netIo : SquareMinimapNetIo = {
 	publish = netPublish,
 	passDone = netLogPass,
 	perf = perfStep as SquareMinimapNetPerf,
-	flipRows = NET_FLIP_ROWS,
-	calibrate = NET_CALIBRATE and function(st : NetState)
+	flipRows = NK.NET_FLIP_ROWS,
+	calibrate = NK.NET_CALIBRATE and function(st : NetState)
 		-- Into the top strip (always fully encoded while calibrating), squares sized from the picture.
 		local r0, r1 = net.stripRange(st.h, 1)
 		if st.bufs[1] ~= nil then
-			net.paintCalibration(st.bufs[1], st.w, r1 - r0, NET_ORDER, NET_FLIP_ROWS, math.min(st.w, st.h))
+			net.paintCalibration(st.bufs[1], st.w, r1 - r0, NK.NET_ORDER, NK.NET_FLIP_ROWS, math.min(st.w, st.h))
 		end
 	end or nil,
 }
 
---- Applies session.hiVis to a state: new palette, then re-encode only (net.recolorAction).
+--- Applies hiVisOn() to a state: new palette, then re-encode only (net.recolorAction).
 local function netApplyPalette(st : NetState, now : number)
-	st.hiVis = session.hiVis
-	st.palette = net.paletteFor(st.hiVis, NET_ORDER)
+	st.hiVis = hiVisOn()
+	st.palette = net.paletteFor(st.hiVis, NK.NET_ORDER)
 	local action = net.recolorAction(st.phase, st.image ~= nil)
 	if action == "encode" then
 		st.stats = netscan.newStats(now)
@@ -1550,7 +1866,7 @@ local function netApplyPalette(st : NetState, now : number)
 		st.dirty = true -- the pass's encode sees the palette change (startEncode: bufHiVis) and does every band
 	end
 	perfStep:count("net_recolor")
-	logm(string.format("net: palette %s (%s; re-encode only, nothing re-read)", st.hiVis and "hi-vis" or "normal", action))
+	logd(string.format("net: palette %s (%s; re-encode only, nothing re-read)", st.hiVis and "hi-vis" or "normal", action))
 end
 
 --- Net toggled off: keep image, grid and entity caches for NET_OFF_KEEP_SECONDS (released by
@@ -1575,16 +1891,16 @@ netPark = function(why : string)
 	-- instead of 6.7, and a 10.1 ms net_encode step (PERF_REVIEW.md "Run 2").
 	st.recolor = false
 	st.parkedSinceMs = now
-	logm(string.format("net: off (%s): image v%d + %d edges, %d buildings kept for %.0f s (encode buffers kept; %s hand-off)",
-		why, st.image.version, st.edgeCount, st.buildingCount, NET_OFF_KEEP_SECONDS, tostring(netHandoff)))
+	logd(string.format("net: off (%s): image v%d + %d edges, %d buildings kept for %.0f s (encode buffers kept; %s hand-off)",
+		why, st.image.version, st.edgeCount, st.buildingCount, NK.NET_OFF_KEEP_SECONDS, tostring(netHandoff)))
 end
 
 --- From the plugin's guard tick: frees parked caches once NET_OFF_KEEP_SECONDS have passed.
 netCheckParked = function()
 	local st = netState
 	if st == nil or st.parkedSinceMs == nil then return end
-	if net.parkExpired(st.parkedSinceMs, nowMs(), NET_OFF_KEEP_SECONDS) then
-		netRelease(string.format("off for %.0f s", NET_OFF_KEEP_SECONDS))
+	if net.parkExpired(st.parkedSinceMs, nowMs(), NK.NET_OFF_KEEP_SECONDS) then
+		netRelease(string.format("off for %.0f s", NK.NET_OFF_KEEP_SECONDS))
 	end
 end
 
@@ -1598,15 +1914,15 @@ local function netStep(box : SquareMinimapBox) : boolean
 		-- Toggled on again with the caches kept: the layer already rendered the cached image; only an
 		-- incremental rescan runs (a pending palette change is drawn by that pass's encode).
 		perfStep:count("net_on_cached")
-		logm(string.format("net: on (cached image v%d, %.0f s old, off for %.1f s): %d edges, %d buildings kept; incremental rescan in %.1f s, no first build",
+		logd(string.format("net: on (cached image v%d, %.0f s old, off for %.1f s): %d edges, %d buildings kept; incremental rescan in %.1f s, no first build",
 			st.image.version, (now - st.image.atMs) / 1000, (now - st.parkedSinceMs) / 1000, st.edgeCount, st.buildingCount,
-			NET_RESUME_DELAY_MS / 1000))
+			NK.NET_RESUME_DELAY_MS / 1000))
 		st.parkedSinceMs = nil
 		st.hiddenSinceMs = nil
 		st.scanSeconds = st.baseSeconds -- back-off reset on toggle-on
 		netscan.startScan(st, now)
 		-- Not in the frames right after the toggle (render + mount): the list calls wait a moment.
-		st.waitUntilMs = now + NET_RESUME_DELAY_MS
+		st.waitUntilMs = now + NK.NET_RESUME_DELAY_MS
 		return false
 	end
 	if st == nil then
@@ -1620,8 +1936,8 @@ local function netStep(box : SquareMinimapBox) : boolean
 		if st ~= nil then
 			st.waitUntilMs = now + 1000
 			if st.hiddenSinceMs == nil then st.hiddenSinceMs = now end
-			if now - st.hiddenSinceMs >= NET_HIDDEN_RELEASE_SECONDS * 1000 then
-				netRelease(string.format("window hidden for %.0f s", NET_HIDDEN_RELEASE_SECONDS))
+			if now - st.hiddenSinceMs >= NK.NET_HIDDEN_RELEASE_SECONDS * 1000 then
+				netRelease(string.format("window hidden for %.0f s", NK.NET_HIDDEN_RELEASE_SECONDS))
 				return true
 			end
 		end
@@ -1634,14 +1950,15 @@ local function netStep(box : SquareMinimapBox) : boolean
 	if st == nil then
 		local t0 = nowMs()
 		local tPerf = perfStep:start()
-		st = netscan.newState(box, ORIENT, NET_LONG, session.hiVis, NET_ORDER)
+		netWorked = true
+		st = netscan.newState(box, K.ORIENT, NK.NET_LONG, hiVisOn(), NK.NET_ORDER)
 		perfStep:stop("net_grid", tPerf)
 		netState = st
 		perfStep:count("net_on_cold")
-		logm(string.format("net: on (cold): image %dx%d px in %d strips (%s%s, %s), grid in %.1f ms; budget %.1f ms/frame, scan every %.0f s or more (up to %.0f s while nothing changes)%s",
-			st.w, st.h, st.strips, NET_ORDER, NET_FLIP_ROWS and ", rows flipped" or "", st.hiVis and "hi-vis" or "normal palette", nowMs() - t0, NET_BUDGET_MS,
+		logd(string.format("net: on (cold): image %dx%d px in %d strips (%s%s, %s), grid in %.1f ms; budget %.1f ms/frame, scan every %.0f s or more (up to %.0f s while nothing changes)%s",
+			st.w, st.h, st.strips, NK.NET_ORDER, NK.NET_FLIP_ROWS and ", rows flipped" or "", st.hiVis and "hi-vis" or "normal palette", nowMs() - t0, NK.NET_BUDGET_MS,
 			netscan.SCAN_SECONDS, netscan.BACKOFF_MAX_SECONDS,
-			NET_CALIBRATE and "; CALIBRATION patch on: expect red, green, blue, half-white squares at the map's top-left" or ""))
+			NK.NET_CALIBRATE and "; CALIBRATION patch on: expect red, green, blue, half-white squares at the map's top-left" or ""))
 		return false -- the grid allocation was this frame's work
 	end
 	if st.hiddenSinceMs ~= nil then
@@ -1650,9 +1967,10 @@ local function netStep(box : SquareMinimapBox) : boolean
 		st.scanSeconds = st.baseSeconds
 	end
 	st.waitUntilMs = 0
-	if st.hiVis ~= session.hiVis then netApplyPalette(st, now) end
+	if st.hiVis ~= hiVisOn() then netApplyPalette(st, now) end
 	if st.phase == "idle" then netscan.startScan(st, now) end
-	return netscan.run(st, netIo, NET_BUDGET_MS)
+	netWorked = true
+	return netscan.run(st, netIo, NK.NET_BUDGET_MS)
 end
 
 local findOldChild = (react as {string : any})["findOldChildByLocalKey"] as function(string) : TreeNodeId
@@ -1744,16 +2062,9 @@ end))
 -- Builds a few small layout nodes per render; the strips' ImageViews only when their version or
 -- the picture size changed (MinimapNetStrip).
 MinimapNetLayer = react.RegisterRecipe("MinimapNetLayer", perf:wrap("net_render", function(params : NetLayerParam) : TreeNodeId
-	local paramsRef = react.useRef(params) as ReactRefT<NetLayerParam>
-	paramsRef:set(params)
 	local seqState = react.useState(netRenderSeq) as ReactStateT<integer>
+	-- The scan itself runs in the canvas's onStep (layersStep), ahead of the station scan.
 	react.onStep(function()
-		local ok, changedOrErr = pcall(netStep, paramsRef:get().box)
-		if not ok then
-			warnOnce("net step", tostring(changedOrErr))
-			netFailed = true
-			netRelease("error")
-		end
 		if seqState:old() ~= netRenderSeq then seqState:set(netRenderSeq) end
 	end)
 	local tPerf = perf:start()
@@ -1791,6 +2102,72 @@ MinimapNetLayer = react.RegisterRecipe("MinimapNetLayer", perf:wrap("net_render"
 	perf:stop("net_render_tree", tPerf)
 	return root
 end))
+layersStep = function(box : SquareMinimapBox, netOn : boolean, stnOn : boolean)
+	netWorked = false
+	if netOn and box ~= nil then
+		local ok, changedOrErr = pcall(netStep, box)
+		if not ok then
+			warnOnce("net step", tostring(changedOrErr))
+			netFailed = true
+			netRelease("error")
+		end
+	end
+	-- Station icons: only in frames without network scan work (one list call per frame at most).
+	if stnOn and not netWorked then
+		local okS, errS = pcall(stationStep)
+		if not okS then
+			warnOnce("station step", tostring(errS))
+			stFailed = true
+			stRelease("error")
+		end
+	end
+end
+
+-- Station icons (phase 8): mounted only while Stn is ticked (MinimapCanvas).
+-- Laid out like the industry markers (geom.markerLayout: geom.worldToFrac with ORIENT) and drawn by
+-- MinimapMarkerIcons (same icon tile, minimap-industry-icon: no new stylesheet rule), whose node is
+-- reused while the station set (stRenderSeq) and the sizes are unchanged. Not hit-tested (a click
+-- jumps the camera as on the map), not filtered or muted (industry-only logic).
+MinimapStations = react.RegisterRecipe("MinimapStations", perf:wrap("station_render", function(params : StationLayerParam) : TreeNodeId
+	react.setMouseTransparent(true)
+	local seqState = react.useState(stRenderSeq) as ReactStateT<integer>
+	react.onStep(function()
+		if seqState:old() ~= stRenderSeq then seqState:set(stRenderSeq) end
+	end)
+	local layoutRef = react.useRef(nil) as ReactRefT<{SquareMinimapMarkerPx}>
+	local layoutKeyRef = react.useRef("") as ReactRefT<string>
+	local key = string.format("st_%d_%d_%d_%d", stRenderSeq, params.w, params.h, params.size)
+	if layoutKeyRef:get() ~= key then
+		local st = stState
+		local ok, lOrErr = pcall(function() : {SquareMinimapMarkerPx}
+			if st == nil then return {} end
+			return geom.markerLayout(stations.items(st), params.box, K.ORIENT, params.w, params.h, params.size)
+		end)
+		if ok then
+			layoutRef:set(lOrErr as {SquareMinimapMarkerPx})
+		else
+			warnOnce("station layout", tostring(lOrErr))
+			layoutRef:set({})
+		end
+		layoutKeyRef:set(key)
+		if st ~= nil then
+			logd(string.format("stations: %d icons drawn (v%d, %dx%d px picture, %d px icons)", #layoutRef:get(), st.version, params.w, params.h, params.size))
+		end
+	end
+	return hbox({
+		builtin.Component{
+			meta = { styleSheet = styleutil.makeStyle{ size = { params.w, params.h } } },
+			mouseTransparent = true,
+			layout = builtin.FloatingLayout{
+				children = {
+					builtin.FloatingLayoutChild{ h = -1, v = -1, localKey = "all",
+						item = MinimapMarkerIcons{ key = "mk" .. key, layout = layoutRef:get(), w = params.w, h = params.h,
+							size = params.size, all = true } },
+				},
+			},
+		},
+	})
+end))
 end -- network layer block
 
 ---------------------------------------------------------------------------
@@ -1799,28 +2176,14 @@ end -- network layer block
 -- param as the 1-based index of the chosen value (community GUI scripts read it the same way,
 -- e.g. zhenya_doubleclick_to_edit dce.script.lua:75). Params only change on a game load, so read once.
 
-local MOD_ID <const> = "square_better_minimap"
-local showArrowCache : boolean = nil
-
---- This mod's raw mod.json param value (1-based option index), nil if missing or unreadable.
-local function modParam(key : string) : number
-	local ok, allOrErr = pcall(api.engine.config.getModParams)
-	if not ok then
-		warnOnce("mod params", tostring(allOrErr))
-		return nil
-	end
-	local all = allOrErr as {string : table}
-	local mine = all ~= nil and all[MOD_ID] as {string : number} or nil
-	return mine ~= nil and mine[key] or nil
-end
 
 --- mod.json showArrow: values { "On", "Off" } -> 1 = on. Missing/unreadable (older saves, errors) = on.
 local function showArrowSetting() : boolean
-	if showArrowCache ~= nil then return showArrowCache end
+	if memo.showArrowCache ~= nil then return memo.showArrowCache end
 	local v = modParam("showArrow")
-	showArrowCache = v ~= 2
-	logm(string.format("setting: showArrow=%s (raw %s)", tostring(showArrowCache), tostring(v)))
-	return showArrowCache
+	memo.showArrowCache = v ~= 2
+	logm(string.format("setting: showArrow=%s (raw %s)", tostring(memo.showArrowCache), tostring(v)))
+	return memo.showArrowCache
 end
 
 ---------------------------------------------------------------------------
@@ -1839,13 +2202,13 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", perf:wrap("overlay
 	local paramsRef = react.useRef(params) as ReactRefT<OverlayParam>
 	paramsRef:set(params)
 	local camState = react.useState(nil) as ReactStateT<SquareMinimapCamPx>
-	local camDue = useMainThreadTick(CAM_POLL_SECONDS)
+	local camDue = useMainThreadTick(K.CAM_POLL_SECONDS)
 	local mountedRef = react.useRef(false) as ReactRefT<boolean>
 	if not mountedRef:get() then
 		mountedRef:set(true)
 		overlayUpdatesLogged = 0
 		loggedFootprint = false
-		logm(string.format("camera overlay mount (%dx%d px)", params.w, params.h))
+		logd(string.format("camera overlay mount (%dx%d px)", params.w, params.h))
 	end
 
 	react.onStep(function()
@@ -1860,7 +2223,7 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", perf:wrap("overlay
 			return
 		end
 		local v = vOrErr as CamView
-		local px = geom.camPx(v.rect, v.cx, v.cy, p.w, p.h, CAM_BOX_MIN_PX)
+		local px = geom.camPx(v.rect, v.cx, v.cy, p.w, p.h, K.CAM_BOX_MIN_PX)
 		if v.hx ~= nil and v.hy ~= nil and showArrowSetting() then
 			-- fraction -> pixel space (w, h scale the axes differently on non-square pictures)
 			px.arrowDeg = geom.headingDegrees(v.hx * p.w, v.hy * p.h)
@@ -1869,7 +2232,7 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", perf:wrap("overlay
 		if not geom.sameCamPx(px, camState:old()) then
 			if overlayUpdatesLogged < 3 then
 				overlayUpdatesLogged = overlayUpdatesLogged + 1
-				logm(string.format("camera box -> %d,%d %dx%d (map %dx%d)", px.boxCX, px.boxCY, px.boxW, px.boxH, p.w, p.h))
+				logd(string.format("camera box -> %d,%d %dx%d (map %dx%d)", px.boxCX, px.boxCY, px.boxW, px.boxH, p.w, p.h))
 			end
 			camState:set(px)
 			perfStep:count("cam_moves")
@@ -1902,21 +2265,21 @@ local MinimapOverlay = react.RegisterRecipe("MinimapOverlay", perf:wrap("overlay
 		end
 		-- View direction arrow centred on the box centre (kept inside the picture), turned to the
 		-- heading. Re-mounted per position/angle like the box (key), not updated in place.
-		if cam.arrowDeg ~= nil and params.w >= ARROW_PX and params.h >= ARROW_PX then
-			local al = math.max(0, math.min(params.w - ARROW_PX, cam.boxCX - ARROW_PX // 2))
-			local at = math.max(0, math.min(params.h - ARROW_PX, cam.boxCY - ARROW_PX // 2))
+		if cam.arrowDeg ~= nil and params.w >= K.ARROW_PX and params.h >= K.ARROW_PX then
+			local al = math.max(0, math.min(params.w - K.ARROW_PX, cam.boxCX - K.ARROW_PX // 2))
+			local at = math.max(0, math.min(params.h - K.ARROW_PX, cam.boxCY - K.ARROW_PX // 2))
 			children[#children + 1] = layerAt(string.format("minimap_cam_arrow_%d_%d_%d", al, at, cam.arrowDeg),
-				al, at, ARROW_PX, ARROW_PX, params.w, params.h, builtin.ImageView{
+				al, at, K.ARROW_PX, K.ARROW_PX, params.w, params.h, builtin.ImageView{
 				meta = {
 					class = "minimap-cam-arrow",
 					-- White, untinted (its dark halo is baked into the icon).
-					styleSheet = styleutil.makeStyle{ size = { ARROW_PX, ARROW_PX }, color = colors().NeutralLightest },
+					styleSheet = styleutil.makeStyle{ size = { K.ARROW_PX, K.ARROW_PX }, color = colors().NeutralLightest },
 				},
-				path = ARROW_ICON,
+				path = K.ARROW_ICON,
 				scaling = builtin.type.ImageViewScaling.AutoFit, -- 16 UI px icon (32 px @2x) at ARROW_PX: 1:1
 				-- no mouseTransparent: ImageView has no such field (crashes in makeUserdata); the
 				-- layerAt wrapper Component is already mouse-transparent
-				rotation = ARROW_ROT_SIGN * cam.arrowDeg,
+				rotation = K.ARROW_ROT_SIGN * cam.arrowDeg,
 			})
 		end
 	end
@@ -1943,11 +2306,11 @@ local record CanvasParam
 	markerSize : integer
 	showIndustries : boolean
 	showNet : boolean
+	showStations : boolean -- Stn (phase 8)
 	bandW : integer -- width of the band the picture is centred in (= w unless a strip is narrower than MIN_WIDTHS)
 	filterSeq : integer -- passed on to the markers (re-render on a filter change)
 end
 
-local lastWindowFracW : number = 0 -- 0 = unknown; window content width (screen fraction) from the position poll; fit log
 
 -- WINDOW POSITION. getPosition() on the Window (the wrapper recipe's self ref) returned 0,0-0,0 in
 -- game, so nothing was ever remembered. Base code reads window-relative positions from a node inside
@@ -1955,19 +2318,30 @@ local lastWindowFracW : number = 0 -- 0 = unknown; window content width (screen 
 -- root is read here, and the window anchor = content top-right + an offset (window frame and title
 -- bar). The offset is measured once per window: right after creation, before any move, the anchor
 -- is the initialX/Y we passed (requestedX/Y), so offset = requested - content top-right.
-local requestedX : number = nil -- initialX/Y of the current window
-local requestedY : number = nil
-local anchorDX : number = nil   -- window anchor minus content top-right (screen fractions); nil = not measured
-local anchorDY : number = nil
-local windowMoved = false       -- moved since creation (offset can no longer be measured)
+local winPos = {
+	lastWindowFracW = 0 as number, -- 0 = unknown; window content width (screen fraction) from the position poll; fit log
+	requestedX = nil as number, -- initialX/Y of the current window
+	requestedY = nil as number,
+	anchorDX = nil as number,   -- window anchor minus content top-right (screen fractions); nil = not measured
+	anchorDY = nil as number,
+	windowMoved = false,       -- moved since creation (offset can no longer be measured)
+}
 
 local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", perf:wrap("canvas_render", function(params : CanvasParam) : TreeNodeId
 	local selfRef = react.useSelfRef()
 	local pressedRef = react.useRef(false) as ReactRefT<boolean>
 	local paramsRef = react.useRef(params) as ReactRefT<CanvasParam>
 	paramsRef:set(params)
-	local fitDue = useMainThreadTick(FIT_POLL_SECONDS)
+	local fitDue = useMainThreadTick(K.FIT_POLL_SECONDS)
 	local fitLoggedRef = react.useRef("") as ReactRefT<string>
+
+	-- Network and station scans (main thread), in this order every frame: layersStep runs the
+	-- station scan only in a frame without network scan work. Both off: two comparisons.
+	react.onStep(function()
+		local p = paramsRef:get()
+		if p.data == nil or not (p.showNet or p.showStations) then return end
+		layersStep(p.data.box, p.showNet, p.showStations)
+	end)
 
 	-- Fit check (log only): picture width vs window width, both in screen fractions. A window
 	-- clearly wider than the picture means an empty band (MIN_WIDTHS too small).
@@ -1984,7 +2358,7 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", perf:wrap("canvas_re
 			local l, t = geom.normalizeScreenPos(p0.x, p0.y, screen.x, screen.y)
 			local r, b = geom.normalizeScreenPos(p1.x, p1.y, screen.x, screen.y)
 			local p = paramsRef:get()
-			local winW = lastWindowFracW
+			local winW = winPos.lastWindowFracW
 			if winW <= 0 then return nil end
 			local gap = winW - (r - l)
 			local key = string.format("%d_%d_%.3f", p.w, p.h, gap)
@@ -1993,7 +2367,7 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", perf:wrap("canvas_re
 			local gapPx = (r - l) > 0 and gap / (r - l) * p.w or 0
 			-- The band of a narrow strip (bandW - w) is intended, not an empty band.
 			local bandPx = (p.bandW or p.w) - p.w
-			logm(string.format("fit: picture %dx%d px = %.4f x %.4f screen, window width %.4f, extra width %.4f (~%.0f UI px, band %d)%s",
+			logd(string.format("fit: picture %dx%d px = %.4f x %.4f screen, window width %.4f, extra width %.4f (~%.0f UI px, band %d)%s",
 				p.w, p.h, r - l, b - t, winW, gap, gapPx, bandPx, gapPx - bandPx > 12 and " -> EMPTY BAND, raise MIN_WIDTHS" or ""))
 			return nil
 		end)
@@ -2016,7 +2390,7 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", perf:wrap("canvas_re
 		local p = paramsRef:get()
 		if shownMarkers == nil or not p.showIndustries then return nil end
 		local sel = session.filter
-		return geom.hitMarker(shownMarkers, fx * p.w, fy * p.h, shownMarkerSize, HIT_TOL_PX,
+		return geom.hitMarker(shownMarkers, fx * p.w, fy * p.h, shownMarkerSize, K.HIT_TOL_PX,
 			function(m : SquareMinimapMarkerPx) : boolean return filter.isVisible(m.typeKey, sel) end)
 	end
 
@@ -2045,7 +2419,7 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", perf:wrap("canvas_re
 				setFilter(sel, why)
 				return nil
 			end
-			local wx, wy = geom.fracToWorld(geom.clamp(fx, 0, 1), geom.clamp(fy, 0, 1), p.data.box, ORIENT)
+			local wx, wy = geom.fracToWorld(geom.clamp(fx, 0, 1), geom.clamp(fy, 0, 1), p.data.box, K.ORIENT)
 			jumpTo(wx, wy)
 			return nil
 		end)
@@ -2173,6 +2547,15 @@ local MinimapCanvas = react.RegisterRecipe("MinimapCanvas", perf:wrap("canvas_re
 			item = MinimapNetLayer{ box = params.data.box, w = params.w, h = params.h },
 		}
 	end
+	if params.data ~= nil and params.showStations then
+		-- Station icons (phase 8, Stn) over the network image, under the industry icons.
+		children[#children + 1] = builtin.FloatingLayoutChild{
+			h = -1,
+			v = -1,
+			localKey = "minimap_stations_" .. tostring(gen) .. "_" .. tostring(params.w) .. "_" .. tostring(params.markerSize),
+			item = MinimapStations{ box = params.data.box, w = params.w, h = params.h, size = params.markerSize },
+		}
+	end
 	if params.data ~= nil and params.data.industries ~= nil and params.showIndustries then
 		-- Between the preview and the camera overlay; re-mounted with them (same key scheme).
 		children[#children + 1] = builtin.FloatingLayoutChild{
@@ -2223,7 +2606,7 @@ local MinimapSizeButton = react.RegisterRecipe("MinimapSizeButton", function() :
 	return hbox({
 		builtin.Button{
 			meta = { class = "minimap-size-button", tooltip = _("Toggle the map size: small / large") },
-			content = builtin.ImageView{ meta = { class = "minimap-size-icon", styleSheet = icon24Style() }, path = SIZE_ICON },
+			content = builtin.ImageView{ meta = { class = "minimap-size-icon", styleSheet = icon24Style() }, path = K.SIZE_ICON },
 			onClick = function()
 				if cycleSizeFn ~= nil then cycleSizeFn() end
 			end,
@@ -2249,13 +2632,13 @@ end
 
 local function isFilterShown() : boolean
 	if not filterWindowMounted then return false end
-	local ok, vOrErr = pcall(api.gui.byId.isVisible, FILTER_WINDOW_ID)
+	local ok, vOrErr = pcall(api.gui.byId.isVisible, K.FILTER_WINDOW_ID)
 	return ok and vOrErr == true
 end
 
 local function setFilterWindowVisible(visible : boolean) : boolean, any
 	return pcall(function() : any
-		api.gui.byId.setVisible(FILTER_WINDOW_ID, visible)
+		api.gui.byId.setVisible(K.FILTER_WINDOW_ID, visible)
 		return nil
 	end)
 end
@@ -2285,14 +2668,14 @@ end
 --- there is no room on the left. Estimates (FILTER_WINDOW_FRAC_W); see TESTING.md P7.
 local function filterWindowAnchor() : number, number
 	local mx, my = session.posX, session.posY
-	if mx == nil then mx, my = DEFAULT_ANCHOR_X, DEFAULT_ANCHOR_Y end
-	local mw = lastWindowFracW > 0 and lastWindowFracW or 0.2
+	if mx == nil then mx, my = K.DEFAULT_ANCHOR_X, K.DEFAULT_ANCHOR_Y end
+	local mw = winPos.lastWindowFracW > 0 and winPos.lastWindowFracW or 0.2
 	local gap = 0.004
 	local x = mx - mw - gap
-	if x - FILTER_WINDOW_FRAC_W < 0 then
-		x = math.min(1.0, mx + FILTER_WINDOW_FRAC_W + gap)
+	if x - K.FILTER_WINDOW_FRAC_W < 0 then
+		x = math.min(1.0, mx + K.FILTER_WINDOW_FRAC_W + gap)
 	end
-	return x, math.max(WINDOW_MIN_TOP, my)
+	return x, math.max(K.WINDOW_MIN_TOP, my)
 end
 
 local function openFilterWindow()
@@ -2335,8 +2718,8 @@ end) as function(boolean)
 local function filterCargoIcon(c : integer) : TreeNodeId
 	local path = cargoIcon(c)
 	return builtin.ImageView{
-		meta = { class = "text-icon-size-hack, minimap-filter-cargo", tooltip = cargoNameCache[c] },
-		path = path ~= "" and path or FALLBACK_ICON,
+		meta = { class = "text-icon-size-hack, minimap-filter-cargo", tooltip = memo.cargoNameCache[c] },
+		path = path ~= "" and path or K.FALLBACK_ICON,
 	}
 end
 
@@ -2348,7 +2731,7 @@ local function filterCargoIcons(t : SquareMinimapFilterType) : TreeNodeId
 		-- Shares the cargo icons' class (gravity rule); its 10 px size inline.
 		icons[#icons + 1] = builtin.ImageView{
 			meta = { class = "minimap-filter-cargo, minimap-filter-cargo-arrow", styleSheet = styleutil.makeStyle{ size = { 10, 10 } } },
-			path = CARGO_ARROW_ICON,
+			path = K.CARGO_ARROW_ICON,
 		}
 	end
 	for __, c in ipairs(t.outputs) do icons[#icons + 1] = filterCargoIcon(c) end
@@ -2359,14 +2742,11 @@ end
 -- icons in Russian, 2026-10-10 screenshot). From that screenshot: list content ~274 px (284 minus the
 -- scroll bar), box + gap ~22, cargo icon ~20 with spacing, arrow ~12, count ~8 per digit, 2 x 6 row
 -- spacing, ~7.5 px per letter (31 Cyrillic letters ~225 px). Cut names get "..." and the full name as tooltip.
-local FILTER_ROW_PX <const> = 274 - 22 - 2 * 6
-local FILTER_ICON_PX <const> = 20
-local FILTER_ARROW_PX <const> = 12
-local FILTER_DIGIT_PX <const> = 8
+-- (FILTER_ROW_PX: in the constants table K at the top)
 
 local function filterNameUnits(t : SquareMinimapFilterType) : integer
-	local px = FILTER_ROW_PX - FILTER_ICON_PX * (#t.inputs + #t.outputs) - FILTER_DIGIT_PX * #tostring(t.count)
-	if #t.inputs > 0 and #t.outputs > 0 then px = px - FILTER_ARROW_PX end
+	local px = K.FILTER_ROW_PX - K.FILTER_ICON_PX * (#t.inputs + #t.outputs) - K.FILTER_DIGIT_PX * #tostring(t.count)
+	if #t.inputs > 0 and #t.outputs > 0 then px = px - K.FILTER_ARROW_PX end
 	return math.max(8, math.floor(px * 2 / 15))
 end
 
@@ -2455,7 +2835,7 @@ local MinimapFilterContent = react.RegisterRecipe("MinimapFilterContent", perf:w
 		local empty = #types == 0 and _("No industries on the map.")
 			or string.format(_("No industry type matches \"%s\"."), query)
 		rows[#rows + 1] = text(empty, "font-scale-annotation, minimap-filter-hint")
-	elseif #typeRows > FILTER_SCROLL_ROWS then
+	elseif #typeRows > K.FILTER_SCROLL_ROWS then
 		-- ScrollArea content must be a Component, not a layout (memory "ScrollArea content is a
 		-- Component"; base: entity_window_util.tl:715-721). Height inline, full width from the stylesheet.
 		rows[#rows + 1] = builtin.ScrollArea{
@@ -2518,7 +2898,7 @@ MinimapFilterWindow = react.RegisterWrapperRecipe("MinimapFilterWindow", builtin
 	end)
 	return builtin.Window(platformWindow{
 		meta = { class = "minimap-window" }, -- stylesheet Window!minimap-window (anchor)
-		id = FILTER_WINDOW_ID,
+		id = K.FILTER_WINDOW_ID,
 		title = _("Industry filter"),
 		closable = true,
 		movable = true,
@@ -2533,12 +2913,13 @@ end))
 
 local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content_render", function() : TreeNodeId
 	local selfRef = react.useSelfRef()
-	local posDue = useMainThreadTick(POS_POLL_SECONDS)
+	local posDue = useMainThreadTick(K.POS_POLL_SECONDS)
 	local lastPosRef = react.useRef("") as ReactRefT<string>
 	local dataState = react.useState(nil) as ReactStateT<MapData>
 	local industriesState = react.useState(session.showIndustries) as ReactStateT<boolean>
 	local netOnState = react.useState(session.showNet) as ReactStateT<boolean>
-	local hiVisState = react.useState(session.hiVis) as ReactStateT<boolean>
+	local stnOnState = react.useState(session.showStations) as ReactStateT<boolean>
+	local hiVisState = react.useState(hiVisOn()) as ReactStateT<boolean>
 	local sizeState = react.useState(session.sizeIdx) as ReactStateT<integer>
 	-- Industry filter (phase 7): re-render (Filter tooltip, markers) on every selection change.
 	local filterSeqState = react.useState(filterSeq) as ReactStateT<integer>
@@ -2555,7 +2936,7 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 	end)
 	local revsRef = react.useRef(nil) as ReactRefT<RevState>
 	local startedRef = react.useRef(false) as ReactRefT<boolean>
-	local revDue = useMainThreadTick(REV_CHECK_SECONDS)
+	local revDue = useMainThreadTick(K.REV_CHECK_SECONDS)
 
 	local function rebuild(reason : string)
 		local d = buildMapData(reason)
@@ -2611,27 +2992,27 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 			lastPosRef:set(raw)
 			-- Validity check of the content rect (nil for 0,0-0,0 before layout, NaN, off screen).
 			if geom.windowAnchor(l, t, r, b, -1) == nil then
-				logm("position: ignored " .. raw)
+				logd("position: ignored " .. raw)
 				return nil
 			end
-			lastWindowFracW = r - l
-			if anchorDX == nil then
-				if windowMoved or requestedX == nil then
-					logm("position: moved before the frame offset was measured; not remembered this time " .. raw)
+			winPos.lastWindowFracW = r - l
+			if winPos.anchorDX == nil then
+				if winPos.windowMoved or winPos.requestedX == nil then
+					logd("position: moved before the frame offset was measured; not remembered this time " .. raw)
 					return nil
 				end
-				anchorDX, anchorDY = requestedX - r, requestedY - t
-				logm(string.format("position: frame offset %.4f,%.4f (requested anchor %.4f,%.4f)", anchorDX, anchorDY, requestedX, requestedY))
+				winPos.anchorDX, winPos.anchorDY = winPos.requestedX - r, winPos.requestedY - t
+				logd(string.format("position: frame offset %.4f,%.4f (requested anchor %.4f,%.4f)", winPos.anchorDX, winPos.anchorDY, winPos.requestedX, winPos.requestedY))
 			end
 			-- Window edges from the content rect (side/bottom frame taken as wide as the right one).
-			local x, y = geom.windowAnchor(l - anchorDX, t + anchorDY, r + anchorDX, b + anchorDX, WINDOW_MIN_TOP)
+			local x, y = geom.windowAnchor(l - winPos.anchorDX, t + winPos.anchorDY, r + winPos.anchorDX, b + winPos.anchorDX, K.WINDOW_MIN_TOP)
 			if x == nil then
-				logm("position: ignored " .. raw)
+				logd("position: ignored " .. raw)
 				return nil
 			end
 			session.posX = x
 			session.posY = y
-			logm(string.format("position: saved %s -> anchor %.4f,%.4f", raw, x, y))
+			logd(string.format("position: saved %s -> anchor %.4f,%.4f", raw, x, y))
 			return nil
 		end)
 		perfStep:stop("pos_poll", tPerf)
@@ -2643,12 +3024,12 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 	local data = dataState:old()
 	shownData = data
 	local sizeIdx = sizeState:old()
-	local stepIdx = SIZES[sizeIdx] ~= nil and sizeIdx or DEFAULT_SIZE
-	local longSide = SIZES[stepIdx]
-	local minW = MIN_WIDTHS[stepIdx]
+	local stepIdx = K.SIZES[sizeIdx] ~= nil and sizeIdx or K.DEFAULT_SIZE
+	local longSide = K.SIZES[stepIdx]
+	local minW = K.MIN_WIDTHS[stepIdx]
 	local w, h = math.max(longSide, minW), longSide
 	if data ~= nil then
-		w, h = geom.pictureSize(data.box, longSide, minW, MAX_LONG[stepIdx], ORIENT, FLOOR_W, ABS_MAX_LONG)
+		w, h = geom.pictureSize(data.box, longSide, minW, K.MAX_LONG[stepIdx], K.ORIENT, K.FLOOR_W, K.ABS_MAX_LONG)
 	end
 
 	local function setIndustries(v : boolean)
@@ -2673,7 +3054,7 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 	end
 
 	local function setHiVis(v : boolean)
-		if v == session.hiVis then return end
+		if v == hiVisOn() then return end
 		session.hiVis = v
 		hiVisState:set(v)
 		logm("option: hivis=" .. tostring(v))
@@ -2681,24 +3062,39 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 		if netState ~= nil and netState.parkedSinceMs == nil then netState.waitUntilMs = 0 end
 	end
 
+	local function setStations(v : boolean)
+		if v == session.showStations then return end
+		session.showStations = v
+		stnOnState:set(v)
+		logm("option: stations=" .. tostring(v))
+		if not v then stPark("toggled off") end
+	end
+
 	local function cycleSize()
-		local nextIdx = sizeIdx % #SIZES + 1
+		local nextIdx = sizeIdx % #K.SIZES + 1
 		session.sizeIdx = nextIdx
 		sizeState:set(nextIdx)
 		local nw, nh = 0, 0
-		if data ~= nil then nw, nh = geom.pictureSize(data.box, SIZES[nextIdx], MIN_WIDTHS[nextIdx], MAX_LONG[nextIdx], ORIENT, FLOOR_W, ABS_MAX_LONG) end
-		logm(string.format("option: size=%s (%dx%d px)", SIZE_LABELS[nextIdx], nw, nh))
+		if data ~= nil then nw, nh = geom.pictureSize(data.box, K.SIZES[nextIdx], K.MIN_WIDTHS[nextIdx], K.MAX_LONG[nextIdx], K.ORIENT, K.FLOOR_W, K.ABS_MAX_LONG) end
+		logm(string.format("option: size=%s (%dx%d px)", K.SIZE_LABELS[nextIdx], nw, nh))
 	end
 
 	cycleSizeFn = cycleSize
 
-	-- "Filter" (phase 7): only while Ind is on; checked while the filter window is open. The
-	-- tooltip says how many types the filter shows. "Viz" only while Net is on.
+	-- Which checkboxes exist (mod settings, controlShown): a hidden one's feature is off, its
+	-- remembered pref kept. "Filter" (phase 7): only while Ind is on; checked while the filter window
+	-- is open; the tooltip says how many types the filter shows. "Viz": only while Net is on (live
+	-- palette switch). "Stn" (phase 8): independent of Net.
 	-- Translated labels (strings.json); their length sizes the control rows (geom.controlWidth).
-	local labels : {string : string} = { ind = _("Ind"), filter = _("Filter"), net = _("Net"), viz = _("Viz") }
-	local showFilter = industriesState:old()
-	local filterBox : TreeNodeId = nil
-	if showFilter then
+	local labels : {string : string} = { ind = _("Ind"), filter = _("Filter"), net = _("Net"), viz = _("Viz"), stn = _("Stn") }
+	local indOn = controlShown("ind") and industriesState:old()
+	local netOn = controlShown("net") and netOnState:old()
+	local stnOn = controlShown("stn") and stnOnState:old()
+	local controlNodes : {string : TreeNodeId} = {}
+	if controlShown("ind") then
+		controlNodes.ind = checkBox(labels.ind, _("Show industries with the icon of what they produce"), industriesState:old(), setIndustries)
+	end
+	if indOn and controlShown("filter") then
 		local tip : string
 		if filter.isEmpty(session.filter) then
 			tip = _("Filter industries: show only some types. Tip: Shift+click an icon on the map to show only its type, Shift+click again to show all.")
@@ -2710,44 +3106,45 @@ local MinimapContent = react.RegisterRecipe("MinimapContent", perf:wrap("content
 				tip = string.format(_("Filter active: showing %d of %d industry types. Shift+click the map to show all."), shown, total)
 			end
 		end
-		filterBox = checkBox(labels.filter, tip, filterOpenState:old(), setFilterWindowOpen)
+		controlNodes.filter = checkBox(labels.filter, tip, filterOpenState:old(), setFilterWindowOpen)
 	end
-	local controlNodes : {string : TreeNodeId} = {
-		ind = checkBox(labels.ind, _("Show industries with the icon of what they produce"), industriesState:old(), setIndustries),
-		filter = filterBox,
-		net = checkBox(labels.net, _("Show roads, tracks and town buildings on the map"), netOnState:old(), setNet),
-	}
-	if netOnState:old() then
-		controlNodes.viz = checkBox(labels.viz, _("High visibility: draw the network in bright, opaque colours"),
+	if controlShown("net") then
+		controlNodes.net = checkBox(labels.net, _("Show roads, tracks and town buildings on the map"), netOnState:old(), setNet)
+	end
+	if netOn and controlShown("viz") then
+		controlNodes.viz = checkBox(labels.viz, _("High visibility: draw the network in bright, opaque colors"),
 			hiVisState:old(), setHiVis)
+	end
+	if controlShown("stn") then
+		controlNodes.stn = checkBox(labels.stn, _("Show train stations, airports and harbors on the map"), stnOnState:old(), setStations)
 	end
 	local shownIds : {string} = {}
 	local controlW : {string : integer} = {}
-	for __, id in ipairs({ "ind", "filter", "net", "viz" }) do
+	for __, id in ipairs({ "ind", "filter", "net", "viz", "stn" }) do
 		if controlNodes[id] ~= nil then shownIds[#shownIds + 1] = id end
 		controlW[id] = geom.controlWidth(labels[id])
 	end
-	local rowIds = geom.controlRows(math.max(w, FLOOR_W), shownIds, controlW, CONTROL_SPACING, CONTROL_PAD)
+	local rowIds = geom.controlRows(math.max(w, K.FLOOR_W), shownIds, controlW, K.CONTROL_SPACING, K.CONTROL_PAD)
 	local rows : {TreeNodeId} = {}
 	for i, ids in ipairs(rowIds) do
 		local items : {TreeNodeId} = {}
 		for __, id in ipairs(ids) do
 			if controlNodes[id] ~= nil then items[#items + 1] = controlNodes[id] end
 		end
-		if i == 1 and not SIZE_BUTTON_IN_HEADER then items[#items + 1] = MinimapSizeButton() end
+		if i == 1 and not K.SIZE_BUTTON_IN_HEADER then items[#items + 1] = MinimapSizeButton() end
 		rows[#rows + 1] = hbox(items, i == 1 and "minimap-controls" or "minimap-controls, minimap-controls-2")
 	end
 
-	local canvas = MinimapCanvas{ data = data, w = w, h = h, markerSize = MARKER_PX[stepIdx] or MARKER_PX[DEFAULT_SIZE],
-		showIndustries = industriesState:old(), showNet = netOnState:old(), bandW = math.max(w, FLOOR_W),
+	local canvas = MinimapCanvas{ data = data, w = w, h = h, markerSize = K.MARKER_PX[stepIdx] or K.MARKER_PX[K.DEFAULT_SIZE],
+		showIndustries = indOn, showNet = netOn, showStations = stnOn, bandW = math.max(w, K.FLOOR_W),
 		filterSeq = filterSeqState:old() }
-	if w < FLOOR_W then
+	if w < K.FLOOR_W then
 		-- Only strips whose long side would pass ABS_MAX_LONG (ABS_MAX_LONG beat FLOOR_W): the window
 		-- is wider than the picture, so a FLOOR_W-wide band centres it. The padding adds to the style size (a { minW, h } size made the window 60 px too
 		-- wide in game), so size = the picture. The canvas node stays w x h: clicks map as before.
-		local left = (FLOOR_W - w) // 2
+		local left = (K.FLOOR_W - w) // 2
 		local st = styleutil.makeStyle{ size = { w, h } }
-		st.padding = api.type.Vec4f.new(0, FLOOR_W - w - left, 0, left)
+		st.padding = api.type.Vec4f.new(0, K.FLOOR_W - w - left, 0, left)
 		canvas = builtin.Component{
 			meta = { styleSheet = st },
 			layout = hbox({ canvas }),
@@ -2777,13 +3174,12 @@ local MinimapWindow : Recipe<MinimapWindowParam> -- assigned below (hideWindow's
 
 local function setWindowVisible(visible : boolean) : boolean, any
 	return pcall(function() : any
-		api.gui.byId.setVisible(WINDOW_ID, visible)
+		api.gui.byId.setVisible(K.WINDOW_ID, visible)
 		return nil
 	end)
 end
 
 local function hideWindow(why : string)
-	hiddenByUs = true
 	session.open = false
 	closeFilterWindow("minimap hidden")
 	local ok, err = setWindowVisible(false)
@@ -2802,9 +3198,8 @@ end
 local function onWindowClose()
 	if session.pinned then
 		-- Pinned windows have no X (closable = false), so this is not the player's click: ESC or
-		-- another engine close. Keep the window; the plugin's step re-shows it if it was hidden.
+		-- another engine close. Keep the window.
 		logm("close request while pinned ignored (ESC?)")
-		hiddenByUs = false
 		return
 	end
 	hideWindow("closed")
@@ -2821,6 +3216,7 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, per
 		windowMounted = false
 		logm("window unmounted")
 		netRelease("window unmounted")
+		stRelease("window unmounted")
 	end)
 
 	local function setPinned(pin : boolean)
@@ -2847,7 +3243,7 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, per
 
 	local pinned = pinnedState:old()
 	local winParams : Builtin.WindowParam = {
-		id = WINDOW_ID,
+		id = K.WINDOW_ID,
 		-- No title (2026-10-10, user): the header holds only the size button and the pin. emptyNameAllowed
 		-- defaults to true (builtin.d.tl:1207).
 		title = "",
@@ -2865,21 +3261,20 @@ MinimapWindow = react.RegisterWrapperRecipe("MinimapWindow", builtin.Window, per
 		initialY = params.initialY,
 		onClose = onWindowClose,
 		content = MinimapContent(),
-		header = SIZE_BUTTON_IN_HEADER and MinimapSizeButton() or nil,
+		header = K.SIZE_BUTTON_IN_HEADER and MinimapSizeButton() or nil,
 	}
 	-- Undocumented in builtin.d.tl but used by both base pinnable windows (view_manager.tl:318-322,
 	-- music_player.tl:278-280): a window the player moved counts as pinned.
 	local extra = winParams as {string : any}
 	extra.meta = { class = "minimap-window" } -- stylesheet Window!minimap-window (anchor)
 	extra.onMovedChange = function()
-		windowMoved = true
+		winPos.windowMoved = true
 		setPinned(true)
 	end
 	return builtin.Window(platformWindow(winParams))
 end))
 
 local function showWindow(wa : Builtin.WindowAPI)
-	hiddenByUs = false
 	session.open = true
 	local ok, err = setWindowVisible(true)
 	if not ok then warnOnce("show window", tostring(err)) end
@@ -2902,19 +3297,18 @@ local function toggleWindow()
 		end
 		return
 	end
-	hiddenByUs = false
 	session.open = true
 	-- The remembered anchor (this session or from the settings), else the default spot.
 	local x, y = session.posX, session.posY
 	if x ~= nil then
-		logm(string.format("position: restore anchor %.4f,%.4f (initialX/initialY)", x, y))
+		logd(string.format("position: restore anchor %.4f,%.4f (initialX/initialY)", x, y))
 	else
-		x, y = DEFAULT_ANCHOR_X, DEFAULT_ANCHOR_Y
-		logm(string.format("position: none saved, default anchor %.4f,%.4f", x, y))
+		x, y = K.DEFAULT_ANCHOR_X, K.DEFAULT_ANCHOR_Y
+		logd(string.format("position: none saved, default anchor %.4f,%.4f", x, y))
 	end
-	requestedX, requestedY = x, y
-	anchorDX, anchorDY = nil, nil
-	windowMoved = false
+	winPos.requestedX, winPos.requestedY = x, y
+	winPos.anchorDX, winPos.anchorDY = nil, nil
+	winPos.windowMoved = false
 	wa.addSingletonWindow(MinimapWindow, { onClose = onWindowClose, initialX = x, initialY = y })
 	windowMounted = true -- also set by onMount; set here so a quick second click hides, not re-adds
 	wa.moveSingletonWindowToFront(MinimapWindow)
@@ -2924,39 +3318,31 @@ end
 --- onStep and is timed there as part of perfStep's "guard" section.
 local toggleWindowClick = perf:wrap("click_toggle", toggleWindow)
 
-local GUARD_SECONDS <const> = 0.25
-local REOPEN_MAX_TRIES <const> = 40 -- x GUARD_SECONDS: wait up to 10 s for the window container after a load
+-- (GUARD_SECONDS: in the constants table K at the top)
 local reopenTries = 0               -- module state: re-open once per GUI load, not per plugin re-mount
 
---- The plugin's guard tick (onStep, every GUARD_SECONDS): settings load/save, re-open of a pinned
---- window after a load, re-show of a pinned window something else hid.
+--- The plugin's guard tick (onStep, every GUARD_SECONDS): settings load/save, network cache release,
+--- filter window follow-up, re-open of a pinned window after a load.
 local function guardTick()
 	loadPrefs()
 	maintainPrefs()
 	netCheckParked() -- frees a switched-off network layer's kept caches after NET_OFF_KEEP_SECONDS
+	stCheckParked()  -- the same for the station icons (Stn)
 	-- The filter window follows the minimap: closed when the minimap went away without hideWindow
 	-- (an engine close, an unmount) or industries are off. Nothing to do while it isn't mounted.
-	if filterWindowMounted and (not windowMounted or not session.showIndustries or not isShown()) then
+	if filterWindowMounted and (not windowMounted or not session.showIndustries or not controlShown("filter") or not isShown()) then
 		closeFilterWindow("minimap hidden")
 	end
 	-- Re-open a window that was pinned and open when the settings were last written (e.g.
 	-- before loading this save), once the window container exists.
-	if session.open and not windowMounted and reopenTries < REOPEN_MAX_TRIES then
+	if session.open and not windowMounted and reopenTries < K.REOPEN_MAX_TRIES then
 		reopenTries = reopenTries + 1
 		if game_react_globals.getDefaultWindowApi() ~= nil then
-			reopenTries = REOPEN_MAX_TRIES
+			reopenTries = K.REOPEN_MAX_TRIES
 			logm("settings: re-opening the pinned minimap")
 			toggleWindow()
 		end
 		return
-	end
-	if not windowMounted or hiddenByUs or not session.pinned then return end
-	if isShown() then return end
-	local ok, err = setWindowVisible(true)
-	if ok then
-		logm("pinned window was hidden by something else (ESC?); shown again")
-	else
-		warnOnce("re-show pinned window", tostring(err))
 	end
 end
 
@@ -2971,7 +3357,7 @@ local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainMod
 		logm(string.format("setting: hudButtonStyle=%s (raw %s)", v ~= 1 and "icon" or "text", tostring(v)))
 		return v ~= 1
 	end)
-	local guardDue = useMainThreadTick(GUARD_SECONDS)
+	local guardDue = useMainThreadTick(K.GUARD_SECONDS)
 	-- The "Icon" ToggleButton is pressed while the minimap is shown (read in the guard tick, main thread:
 	-- isShown calls api.gui).
 	local shownState = react.useState(false) as ReactStateT<boolean>
@@ -2979,9 +3365,8 @@ local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainMod
 		local shown = windowMounted and isShown()
 		if shown ~= shownState:old() then shownState:set(shown) end
 	end
-	-- Fallback for the pinned case: if anything but us hid the pinned window (e.g. the engine's
-	-- ESC handling hides windows itself), show it again at once. Runs here because this button is
-	-- always mounted and visible, unlike the window.
+	-- Guard tick and button state. Runs here because this button is always mounted and visible,
+	-- unlike the window.
 	react.onStep(function()
 		if not guardDue() then return end
 		local tPerf = perfStep:start()
@@ -2995,7 +3380,7 @@ local MinimapHudPlugin = react.RegisterPluginRecipe(main_mod_button_area.MainMod
 		-- "Icon" style: map icon on a base ToggleButton, pressed while the minimap is shown.
 		button = builtin.ToggleButton{
 			meta = { class = "minimap-hud-icon-button", tooltip = _("Better Minimap"), styleSheet = ridgeToggleStyle() },
-			content = builtin.ImageView{ meta = { class = "minimap-hud-icon", styleSheet = ridgeIconStyle() }, path = HUD_ICON },
+			content = builtin.ImageView{ meta = { class = "minimap-hud-icon", styleSheet = ridgeIconStyle() }, path = K.HUD_ICON },
 			value = shownState:old() and 1 or 0,
 			onValueChange = function(__ : integer)
 				toggleWindowClick()

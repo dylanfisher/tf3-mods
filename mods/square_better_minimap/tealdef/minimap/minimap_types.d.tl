@@ -78,7 +78,8 @@ global record SquareMinimapPrefs
 	sizeIdx : integer
 	showIndustries : boolean
 	showNet : boolean       -- network layer (roads, tracks, town buildings) on
-	hiVis : boolean         -- network layer in the high-visibility palette
+	showStations : boolean  -- station icons (Stn, phase 8) on
+	hiVis : boolean         -- Viz: network layer in the high-visibility palette (nil: the hiVisNet setting)
 	open : boolean          -- a pinned window was open: re-open it after the next load
 	filterTypes : string    -- industry filter (phase 7): selected type keys joined by "|" (filter.toPrefs); "" = show all
 end
@@ -509,4 +510,100 @@ global record SquareMinimapNetScan
 	work : function(st : SquareMinimapNetState, io : SquareMinimapNetIo, deadline : number) : boolean
 	--- One frame: steps until idle, a yield or budgetMs; true when a new image was published.
 	run : function(st : SquareMinimapNetState, io : SquareMinimapNetIo, budgetMs : number) : boolean
+end
+
+-- Module: ug_require "square_better_minimap::/minimap/minimap_stations.tl" as SquareMinimapStations
+-- Station icons (Stn, PLAN.md phase 8): the sliced station scan, pure (io-injected).
+
+--- One STATION entity as cached: its construction (-1 = none, e.g. a curbside stop) and whether it
+--- takes passengers (read only for a shown kind).
+global record SquareMinimapStationRec
+	con : integer
+	pax : boolean
+	stamp : integer
+end
+
+--- One station construction: kind "rail" / "air" / "water", or "" when not shown (another kind, a
+--- kind switched off, an industry, no position). refs = cached stations in it, pax = of those, how
+--- many take passengers (> 0: the passenger icon).
+global record SquareMinimapStationCon
+	kind : string
+	refs : integer
+	pax : integer
+	x : number
+	y : number
+end
+
+global record SquareMinimapStationStats
+	startMs : number
+	frames : integer
+	listMs : number
+	readMs : number
+	listed : integer
+	added : integer
+	removed : integer
+	readFailed : integer
+	noPos : integer
+end
+
+global record SquareMinimapStationState
+	enabled : {string : boolean}               -- kinds to show ("rail", "air", "water")
+	stations : {integer : SquareMinimapStationRec}
+	cons : {integer : SquareMinimapStationCon}
+	stationCount : integer
+	stamp : integer
+	phase : string                             -- idle, list, flat, sweep, remove, read
+	list : {integer}                           -- the last list call's ids (during a pass)
+	idx : integer
+	sweepKey : integer                         -- next() resume key of the sweep
+	add : {integer}
+	rem : {integer}
+	changed : boolean                          -- a shown construction changed during this pass
+	version : integer                          -- bumped by every pass that changed what is shown
+	waitUntilMs : number
+	scanSeconds : number
+	passes : integer
+	yield : boolean
+	parkedSinceMs : number                     -- Stn unticked: caches kept since (game side)
+	hiddenSinceMs : number                     -- window hidden since (game side)
+	stats : SquareMinimapStationStats
+end
+
+global record SquareMinimapStationIo
+	now : function() : number                            -- ms
+	listStations : function() : {integer}                -- every STATION entity; nil = failed (pass skipped)
+	conOf : function(station : integer) : integer        -- construction, -1 = none; nil = read failed
+	pathOf : function(con : integer) : string            -- CONSTRUCTION.fileName; nil = unknown
+	isPassenger : function(station : integer) : boolean  -- isStationOfType(station, false)
+	posOf : function(con : integer) : number, number     -- world x, y; nil = unknown
+	passDone : function(st : SquareMinimapStationState)   -- a pass ended (log)
+	perf : SquareMinimapNetPerf
+end
+
+global record SquareMinimapStations
+	SCAN_SECONDS : number          -- re-list interval after a change (or on start)
+	BACKOFF_MAX_SECONDS : number   -- doubled while nothing changes, up to this
+	FLATTEN_CHUNK : integer
+	SWEEP_CHUNK : integer
+	REMOVE_CHUNK : integer
+	READ_CHUNK : integer
+	MAX_STEPS_PER_FRAME : integer  -- hard cap of run()'s loop (a broken clock never spins)
+	ICONS : {string : {string}}    -- kind -> { passenger icon, cargo icon }
+	--- "rail" / "air" / "water" from a construction path (base "::/stations/rail/...", plain
+	--- "stations/air/...", a mod's "<mod>::/stations/water/..."); nil for anything else.
+	kindOfPath : function(path : string) : string
+	iconFor : function(kind : string, passenger : boolean) : string
+	newState : function(enabled : {string : boolean}) : SquareMinimapStationState
+	anyEnabled : function(enabled : {string : boolean}) : boolean
+	startScan : function(st : SquareMinimapStationState, now : number)
+	endScan : function(st : SquareMinimapStationState, now : number)
+	isHeavy : function(phase : string) : boolean
+	work : function(st : SquareMinimapStationState, io : SquareMinimapStationIo)
+	--- One frame: steps until idle, a yield, budgetMs or MAX_STEPS_PER_FRAME; true when the shown
+	--- set changed (st.version bumped).
+	run : function(st : SquareMinimapStationState, io : SquareMinimapStationIo, budgetMs : number) : boolean
+	--- Shown constructions as marker items (geom.markerLayout input), sorted by construction id.
+	items : function(st : SquareMinimapStationState) : {SquareMinimapIndustry}
+	--- Shown construction counts per kind, and of those the passenger ones (log).
+	counts : function(st : SquareMinimapStationState) : {string : integer}, integer
 end

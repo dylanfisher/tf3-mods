@@ -1,5 +1,70 @@
 # Better Minimap: in-game test checklist (phase 2: window polish)
 
+## P8. Stn station icons, checkbox settings, Viz default setting (2026-10-22, revision 14)
+
+Turn **Debug log** and **Debug: performance log** On for this round. Report every `[Minimap] setting:`, `option:
+stations=`, `stations:` line, any `[Minimap] station ... failed` warning or Lua error, and the SQPERF lines `st_list`,
+`st_read`, `station_render`, `net_list`.
+
+Stations (Stn):
+- [ ] Defaults (all settings untouched): the control row shows Ind, Filter (while Ind is ticked), Net, Viz (while Net
+      is ticked) and **Stn**.
+      Stn starts unticked: no station icons, no `stations:` line, no `st_` SQPERF section.
+- [ ] Tick **Stn** with Net **unticked**: within ~1 s an icon on every train station, airport, airfield and harbor on the
+      plain terrain map (one per station, not per platform). Street stations, bus/truck stops and industries get none.
+- [ ] Tick Net as well: icons stay on top of the network image; the first `net:` pass and the first `stations: pass` are
+      in different frames (no hitch).
+- [ ] Train stations show the train front icon, airports and airfields the plane, harbors the ship (no purple
+      boxes; no `Texture error` lines for `gui/hud/icons` in the log).
+- [ ] Untick Stn: icons go, `stations: off (toggled off)`. Tick again within 60 s: icons back at once,
+      `stations: on (cached ...)`, a pass about 0.5 s later. Untick for over 60 s: `stations: released (off for 60 s)`.
+- [ ] Save, reload: Stn keeps its ticked state (`settings: loaded ... stations=true`).
+- [ ] Settings **Stations: train stations** Off (others On): no train station icons. Airports Off / Harbors Off likewise.
+      All three Off: no Stn checkbox at all.
+- [ ] All on, big map: the `stations: pass 1` line (`list ... ms`, `read ... ms`, frames); no hitch when ticking Stn.
+- [ ] Build a new train station (or airport / harbor) with Stn ticked: its icon appears within one scan (10-40 s);
+      bulldoze it: the icon goes within one scan.
+- [ ] Icon position: centered on the station construction (`without position` in the pass line should be 0).
+- [ ] Click on a station icon: the camera jumps there like a click on the map. Shift-hover over it: nothing fades.
+      With an industry filter active, station icons stay.
+- [ ] S/L size switch and Ind on/off with stations shown: icons stay in place; `marker_icons_reused` grows rather than
+      `marker_icons_built` on toggles that do not change the station set.
+- [ ] Hide the minimap for over 60 s with Stn ticked: `stations: released (window hidden for 60 s)`; reopen: icons come
+      back after a pass.
+
+Checkbox settings and hi-vis:
+- [ ] Viz works as in revision 13: ticking it with Net on recolors at once (`option: hivis=true`, `net: palette hi-vis
+      (... re-encode only ...)`), and it is remembered after a save and reload.
+- [ ] A save that had Viz ticked in revision 13 loads with Viz ticked, whatever **High-visibility network colors** says.
+- [ ] A new game with **High-visibility network colors** On: Viz starts ticked and Net draws hi-vis from the first image.
+      (A save that ever had the minimap open in revision 5-13 stored Viz Off and keeps it.)
+- [ ] **Show high visibility checkbox** Off: no Viz checkbox; Net uses the setting's colors even if Viz was ticked in this save.
+- [ ] **Show industry checkbox** Off: no Ind and no Filter checkbox, no industry icons even if Ind was ticked before; Shift+click
+      jumps the camera. Back On after a reload: Ind is as it was remembered.
+- [ ] **Show filter checkbox** Off (Ind On): no Filter checkbox; a saved filter still applies; Shift+click on an icon
+      still spotlights its type and Shift+click again shows all.
+- [ ] **Show network checkbox** Off with Net remembered ticked: no Net and no Viz checkbox, no network image, no `net:` lines.
+- [ ] **Show stations checkbox** Off: no Stn checkbox, no station icons.
+- [ ] All five Off: no control row at all; the window is just the map (no empty strip, nothing clipped), at S and L.
+- [ ] Each subset of 1-4 checkboxes, at S and L and in German / Russian: rows pack without clipping (`fit:` log).
+
+## R13. Pinned window in follow / cab view, debug log (2026-10-21, player report)
+
+A player reported thousands of `pinned window was hidden by something else (ESC?); shown again` lines in a cab view
+(4 per second; our sessions `2026-10-11_0259_sqperf-rmprobe-crash` and `2026-10-13_0856_sqot-dev` show the same), then a
+hang. Cause (inferred from `game.css.lua`): the follow and cockpit cameras hide every Window by stylesheet, so the
+guard's `setVisible(true)` never won. The re-show is removed: in every archived session it never caught an Esc (no
+`close request while pinned ignored` line at all), only fired once right after the load-time re-open and fought the cameras.
+- [ ] Pin the minimap, open a vehicle, **Enter Cockpit**, stay 30 s: no `[Minimap]` line; the minimap does not flash on
+      top of the cab view.
+- [ ] Leave the cockpit with **Esc**: is the minimap back by itself? Same with the follow camera (camera icon in a vehicle
+      window) and the free camera from the game bar. If it stays gone (one click on **Map** brings it back), report the
+      `[Minimap]` lines around it (`window hidden`, `close request while pinned ignored`).
+- [ ] Pinned, press Esc in normal play: the window stays.
+- [ ] **Debug log Off** (default): a 10-minute session writes only load-time `setting:` / `settings: loaded` lines and
+      your clicks (`option:`, `filter:`, `window ...`); no `map gen`, `camera box`, `corner`, `preview ready`, `net:` or
+      `position:` lines. **On**: those lines are back (`setting: debug_log=true` at the first one).
+
 ## P7. Industry filter (phase 7, revision 5)
 
 Report every `[Minimap] filter` / `filter window` / `settings:` line, any Lua error or warning with `[Minimap]`, and
@@ -273,7 +338,7 @@ Stored in the savegame's GUI save data (`api.gui.game.getGuiSaveData("square_bet
 ## 7. Save safety
 
 - [ ] Save, quit to menu, reload: no `[Minimap]` errors; the button is back.
-- [ ] Remove the mod and load that save: it loads (mod.json `severityRemove: Warning` only warns).
+- [ ] Remove the mod and load that save: it loads (mod.json `severityRemove: None`: no warning).
 - [ ] Add the mod to an older save that never had it: works as in step 2.
 
 ## What to report back

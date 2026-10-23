@@ -85,7 +85,7 @@ Square.slides('square_better_minimap', [
   { title: 'Roads, rails and towns', sub: 'Tick Net to draw your network on the map',
     media: { layout: 'wipe', labels: ['Off', 'Net'], split: 0.5,
              before: '27-plain.jpg', after: '26-net.jpg', crop: [4116, 640, 963, 1060] } },
-  { title: 'High visibility', sub: 'Tick Viz for colours that stand out anywhere',
+  { title: 'High visibility', sub: 'Tick Viz for colors that stand out anywhere',
     media: { layout: 'wipe', labels: ['Net', 'Viz'], split: 0.5,
              before: '26-net.jpg', after: '23-ind-viz.jpg', crop: [4116, 640, 963, 1060] } },
   { title: 'Find any industry', sub: 'Search by name or cargo, tick the types you want',

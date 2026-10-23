@@ -250,6 +250,7 @@ function geom.readPrefs(raw : any, nSizes : integer, minTop : number) : SquareMi
 	p.pinned = bool(t.pinned)
 	p.showIndustries = bool(t.showIndustries)
 	p.showNet = bool(t.showNet)
+	p.showStations = bool(t.showStations)
 	p.hiVis = bool(t.hiVis)
 	p.open = bool(t.open)
 	-- Industry filter (phase 7): kept as the stored string; minimap_filter.fromPrefs parses it.

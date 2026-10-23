@@ -2,7 +2,12 @@
 
 An always-available minimap for TF3: terrain overview of the current save, a box showing the camera view, and click-to-jump. Built only on the game's own API (no code from other minimap mods).
 
-**Status (2026-10-10):** revision 5 verified in game and committed: Phase 6 network layer (Net toggle; streets, tracks and town buildings as 8 raw-pixel ImageView strips; Hi-vis palette; cached across Net off/on for 60 s), magnifier size button in the window header (no title), SQPERF instrumentation, new camera arrow. Perf runs 2-4 in PERF_REVIEW.md: every network section within budget except the three single engine list calls (max 1-4.7 ms, once per 5-30 s scan). Not yet uploaded. Earlier phases: see the history below.
+**Status (2026-10-22):** revision 14 (not uploaded): Phase 8 station icons (Stn checkbox, independent of Net; three
+station-kind settings, default On), the Viz checkbox with a new default setting "High-visibility network colors", and
+five settings that hide the Ind / Filter / Net / Viz / Stn checkboxes. Implemented on top of the revision-13 changes, offline checks green
+(`test_stations.lua`, `test_geom.lua`), **awaiting TESTING.md "P8"**.
+
+**Previous status (2026-10-10):** revision 5 verified in game and committed: Phase 6 network layer (Net toggle; streets, tracks and town buildings as 8 raw-pixel ImageView strips; Hi-vis palette; cached across Net off/on for 60 s), magnifier size button in the window header (no title), SQPERF instrumentation, new camera arrow. Perf runs 2-4 in PERF_REVIEW.md: every network section within budget except the three single engine list calls (max 1-4.7 ms, once per 5-30 s scan). Not yet uploaded. Earlier phases: see the history below.
 
 <details><summary>Previous status line</summary>
 
@@ -254,3 +259,89 @@ As designed, with these details and differences:
 - Filter window resize: skipped (user, 2026-10-10). `builtin.Window` has no resize option and no base window is
   user-resizable; a custom drag grip was not worth it.
 - **Preview reuse:** `preview_render` averaged 4.0 ms over 75 calls in the same run (0.9 ms before); `MinimapPreview` now returns its old node while map generation + size are unchanged.
+
+## Phase 8: station icons, Stn, settings for the window checkboxes (2026-10-22, revision 14)
+
+Player request (approved by the user): "a toggle to show stations on the map as well, like airports and train
+stations; it would help when managing major transportation hubs on mega maps."
+
+### Decisions (user, 2026-10-22)
+
+First round: three mod.json settings, default Off, icons only while Net is ticked. **Changed the same day (second
+round, current):**
+- **Stn checkbox** in the control row, **independent of Net**: station icons on the plain map too, with or without the
+  network image. Default unticked, remembered in the GUI save data prefs (`showStations`) like Ind / Net.
+- The three station-kind settings **default On** and filter what Stn shows: `stnTrainStations`, `stnAirports`,
+  `stnHarbors` ("Stations: train stations / airports / harbors"; Off / On, `defaultIndex` 1). All three Off: no Stn
+  checkbox.
+- **Viz** (third round, same day; the second round had moved it into a mod setting and removed the checkbox): the Viz
+  checkbox stays as in revision 13 (next to Net, only while Net is on, live palette switch through `netApplyPalette`,
+  re-encode only), remembered per save as `hiVis` like before, so current players keep their state. New setting
+  `hiVisNet` ("High-visibility network colors", default Off) is its default: `hiVisOn()` = the remembered `hiVis` when
+  the Viz checkbox is shown and the save has one, else the setting; with the Viz checkbox hidden the setting always
+  decides. Note: revisions 5-13 wrote `hiVis = false` with every prefs write, so saves that ever had the minimap open
+  keep Off whatever the setting says.
+- **Settings to show each window checkbox**: `showIndBox`, `showFilterBox`, `showNetBox`, `showVizBox`, `showStnBox`
+  (Off / On, default On). Viz needs Net's checkbox too. A hidden checkbox means its feature is off, but the remembered pref is kept. Hidden Ind also hides
+  Filter and draws no industry markers. Hidden Filter only removes the checkbox and window: a saved selection and
+  Shift+click spotlight still work. `geom.controlRows` packs any subset; with nothing shown there is no control row and
+  the map still fits (tests for all 32 subsets of Ind / Filter / Net / Viz / Stn).
+- All read once by `onOffSetting(key, default)` (`setting: <key>=... (raw ...)` line), `controlShown(id)` combines them.
+
+### Design
+
+- **Data** (game facts: docs/findings/lines-vehicles.md "Listing depots and stations", 2026-10-18 and 2026-10-22):
+  `getEntitiesWithComponent(STATION)` -> `streetConnectorSystem.getConstructionEntityForStation` -> `CONSTRUCTION.fileName`,
+  classified by the `stations/rail/`, `stations/air/`, `stations/water/` segment (leading or after any `/`, so base
+  `::/stations/...` and mod `<mod>::/stations/...` paths count; street stations, curbside stops, industries, the
+  lighthouse never show). `constructionRep` gives no station type (`type` is nil), hence the path. One icon per
+  **construction** (several STATION entities share one). Passenger icon when any of its stations is passenger
+  (`api.engine.util.station.isStationOfType(st, false)`), else the cargo icon. Position: the construction's
+  BOUNDING_VOLUME center (as `readIndustry`), else `CONSTRUCTION.transf` translation; no position = never shown.
+- **Icons**: the game's HUD vehicle glyphs `::/gui/hud/icons/vehicle_{train,airplane,ship}_front_32.tga`, one per kind
+  (the first try, `station_{train,aircraft,ship}[_cargo].tga` named in base `line_util.tl`, showed purple
+  missing-texture boxes in game 2026-10-22: those files aren't in gui.zip, and no cargo variant exists, so the
+  passenger/cargo pick above currently chooses between two identical paths), drawn by the industry markers' `MinimapMarkerIcons` recipe (same
+  `minimap-industry-icon` tile and MARKER_PX sizes, a new `all` flag skips the industry filter): **no new stylesheet
+  rule** (`make css-rules MODS='square_better_minimap'`: 25 before and after both rounds). Layer order: preview, network
+  image, station icons, industry icons, camera overlay. Station icons are not hit-tested, filtered or muted (Shift
+  hover and the Filter window stay industry-only); a click on one jumps the camera like a click on the map.
+- **Scan: a separate scheduler, not extra netscan phases** (`content/minimap/minimap_stations.tl`, pure + io-injected,
+  tests `test_stations.lua`). Why: netscan's phases drive the raster image (dirty grid, band encode, strip hand-off,
+  publish, image-based back-off); stations produce a short marker list and never touch the image, and since round 2
+  they run without the network layer at all. Kept equally light instead:
+  - list (one engine call, alone in its frame), flatten (256 ids per step), sweep (256 per step, `next()` resume),
+    remove (64 per step), read (8 new stations per step, at most 4 engine reads each: construction; its path once per
+    construction; for a shown kind the passenger flag and, once per construction, the position). Curbside stops cost
+    one read, once. Cached stations are never read again; vanished ones are swept, empty constructions dropped.
+  - **ST_BUDGET_MS = 1 ms** per frame, `MAX_STEPS_PER_FRAME = 64` hard cap (a stuck clock can't spin), every loop
+    chunk-bounded. Scan every 10 s after a change, doubling while nothing changes up to 40 s.
+- **One driver, one list call per frame**: both scans run from the canvas's onStep (`layersStep(box, netOn, stnOn)`,
+  main thread): first `netStep` (only with Net on), then `stationStep` (only with Stn on) and only in a frame where the
+  network scan did no work (`netWorked`). The order is fixed in one callback, so a station list call and a net list
+  call can never land in the same frame (two separate onSteps would run in an unknown order). Both off: the onStep
+  returns after two comparisons. The network and station layers' own onSteps only compare a render sequence.
+- **Lifecycle of the station caches** (as Net's): mounted and scanning only while Stn is effectively on and the window
+  is shown; unticking Stn parks the caches (`stPark`, pass aborted) for NET_OFF_KEEP_SECONDS = 60 s, released by the
+  guard tick (`stCheckParked`); re-ticking shows the cached icons at once and rescans after 0.5 s. Hidden window: no
+  reads, released after 60 s hidden. Window unmount or a Lua error: released (an error stops the stations until Stn is
+  unticked and ticked again, warnOnce `station step`). The network layer's park/release no longer touches stations.
+- The icon layer (`MinimapStations`) re-lays out only when the shown set changes (`stRenderSeq`) or the picture / icon
+  size changes; its icon node is reused otherwise.
+- Diagnostics with Debug log On: `stations: on`, `stations: on (cached ...)`, `stations: off (...)`, `stations: pass N:
+  ...` (first 5 passes), `stations: N icons drawn`, `stations: released (...)`; `option: stations=...` always. SQPERF
+  (step ctx): `st_list`, `st_read`, counts `st_scan`, `st_on`, `st_on_cached`; gui ctx: `station_render`, plus
+  `marker_icons_built` / `marker_icons_reused` shared with the industry icons.
+
+### Status
+
+Implemented 2026-10-22 (both rounds), `make gate` green, **awaiting the in-game checklist (TESTING.md "P8")**. Open in
+game:
+
+1. Harbors: the 2026-10-18 console read gave `harbor_modular.con` cargo true / passenger true, so every harbor may
+   show the passenger icon whatever it serves. If so, decide whether harbors need another rule (e.g. by its lines).
+2. Airfield vs airport passenger/cargo flags are unverified (no cargo airport seen yet).
+3. Whether a construction's BOUNDING_VOLUME reads (else the transform fallback; the log's `without position` count says).
+4. A modular station rebuilt in place: if the STATION entity keeps its id while its cargo/passenger role changes, the
+   icon keeps the old role until the station is removed (cached stations are never re-read).
+5. Control row with 0-5 checkboxes and the translated "Stn" labels (width estimate `geom.controlWidth`).

@@ -1,6 +1,6 @@
 {
     "modId": "square_better_minimap",
-    "revision": 12,
+    "revision": 14,
     "severityAdd": "None",
     "severityRemove": "None",
     "visible": true,
@@ -25,6 +25,116 @@
             "values": [
                 "On",
                 "Off"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "showIndBox",
+            "name": "Show industry checkbox",
+            "tooltip": "Show the Ind checkbox under the minimap. Off: no industry\nicons on the map, and no Filter checkbox.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "showFilterBox",
+            "name": "Show filter checkbox",
+            "tooltip": "Show the Filter checkbox under the minimap. Off: no filter\nwindow; a saved filter and Shift+click still work.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "showNetBox",
+            "name": "Show network checkbox",
+            "tooltip": "Show the Net checkbox under the minimap. Off: roads, tracks\nand town buildings are never drawn.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "showVizBox",
+            "name": "Show high visibility checkbox",
+            "tooltip": "Show the Viz checkbox next to Net (while Net is ticked).\nOff: no Viz checkbox; the network colors then come from\nthe \"High-visibility network colors\" setting.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "showStnBox",
+            "name": "Show stations checkbox",
+            "tooltip": "Show the Stn checkbox under the minimap. Off: stations are\nnever drawn.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "hiVisNet",
+            "name": "High-visibility network colors",
+            "tooltip": "Off: normal network colors. On: bright, opaque colors\n(yellow streets, magenta tracks, orange towns). Used as the\nViz checkbox's start in a save that never set Viz, and\nalways while the Viz checkbox is hidden.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 0
+        },
+        {
+            "key": "stnTrainStations",
+            "name": "Stations: train stations",
+            "tooltip": "Stn shows train stations on the minimap. Off: left out.\nAll three station kinds Off: no Stn checkbox.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "stnAirports",
+            "name": "Stations: airports",
+            "tooltip": "Stn shows airports and airfields on the minimap. Off: left\nout. All three station kinds Off: no Stn checkbox.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "stnHarbors",
+            "name": "Stations: harbors",
+            "tooltip": "Stn shows harbors on the minimap. Off: left out. All three\nstation kinds Off: no Stn checkbox.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
+            ],
+            "defaultIndex": 1
+        },
+        {
+            "key": "debug_log",
+            "name": "Debug log",
+            "tooltip": "Off: normal play. On: Better Minimap writes every map build,\ncamera box and network layer step to the game's log file\n(stdout.txt, lines starting with [Minimap]). Warnings and\nyour own clicks are always logged.",
+            "uiType": "Button",
+            "values": [
+                "Off",
+                "On"
             ],
             "defaultIndex": 0
         },

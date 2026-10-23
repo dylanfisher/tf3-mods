@@ -294,11 +294,16 @@ test("readPrefs keeps valid fields only", function()
 	eq(geom.readPrefs({ showNet = true }, 3, 0.06).showNet, true)
 	eq(geom.readPrefs({ showNet = 1 }, 3, 0.06).showNet, nil)
 	eq(geom.readPrefs({}, 3, 0.06).showNet, nil)
-	-- hi-vis palette toggle (revision 5): a boolean or nothing
+	-- Viz (hiVis, written since revision 5): a boolean or nothing (nothing: the hiVisNet setting decides)
 	eq(geom.readPrefs({ hiVis = true }, 3, 0.06).hiVis, true)
 	eq(geom.readPrefs({ hiVis = false, showNet = true }, 3, 0.06).hiVis, false)
 	eq(geom.readPrefs({ hiVis = "on" }, 3, 0.06).hiVis, nil)
 	eq(geom.readPrefs({}, 3, 0.06).hiVis, nil)
+	-- station icons toggle (Stn, revision 14): a boolean or nothing
+	eq(geom.readPrefs({ showStations = true }, 3, 0.06).showStations, true)
+	eq(geom.readPrefs({ showStations = false }, 3, 0.06).showStations, false)
+	eq(geom.readPrefs({ showStations = "on" }, 3, 0.06).showStations, nil)
+	eq(geom.readPrefs({}, 3, 0.06).showStations, nil)
 	local e = geom.readPrefs(nil, 3, 0.06)
 	eq(e.posX, nil); eq(e.pinned, nil); eq(e.sizeIdx, nil)
 	eq(geom.readPrefs("junk", 3, 0.06).open, nil)
@@ -365,17 +370,49 @@ test("controlRows: greedy rows by estimated width, hidden controls left out", fu
 		for _, r in ipairs(rows) do out[#out + 1] = table.concat(r, " ") end
 		return table.concat(out, " / ")
 	end
-	local W = { ind = 47, filter = 68, net = 47, viz = 47 }
-	local all = { "ind", "filter", "net", "viz" }
-	eq(ids(geom.controlRows(235, all, W, 6, 8)), "ind filter net viz")
-	eq(ids(geom.controlRows(234, all, W, 6, 8)), "ind filter net / viz")
-	eq(ids(geom.controlRows(129, all, W, 6, 8)), "ind filter / net viz")
-	eq(ids(geom.controlRows(120, all, W, 6, 8)), "ind / filter / net viz")
+	local W = { ind = 47, filter = 68, net = 47, stn = 47 }
+	local all = { "ind", "filter", "net", "stn" }
+	eq(ids(geom.controlRows(235, all, W, 6, 8)), "ind filter net stn")
+	eq(ids(geom.controlRows(234, all, W, 6, 8)), "ind filter net / stn")
+	eq(ids(geom.controlRows(129, all, W, 6, 8)), "ind filter / net stn")
+	eq(ids(geom.controlRows(120, all, W, 6, 8)), "ind / filter / net stn")
 	eq(ids(geom.controlRows(120, { "ind", "net" }, W, 6, 8)), "ind net")
-	eq(ids(geom.controlRows(161, { "ind", "net", "viz" }, W, 6, 8)), "ind net viz")
-	eq(ids(geom.controlRows(160, { "ind", "net", "viz" }, W, 6, 8)), "ind net / viz")
+	eq(ids(geom.controlRows(161, { "ind", "net", "stn" }, W, 6, 8)), "ind net stn")
+	eq(ids(geom.controlRows(160, { "ind", "net", "stn" }, W, 6, 8)), "ind net / stn")
 	eq(ids(geom.controlRows(40, { "ind", "net" }, W, 6, 8)), "ind / net")
 	eq(ids(geom.controlRows(200, {}, W, 6, 8)), "")
+	eq(#geom.controlRows(200, {}, W, 6, 8), 0, "no checkbox shown: no row at all")
+	eq(#geom.controlRows(0, {}, W, 6, 8), 0)
+end)
+
+test("controlRows: every subset of Ind / Filter / Net / Viz / Stn (mod settings hide any of them)", function()
+	local W = { ind = 47, filter = 68, net = 47, viz = 47, stn = 47 }
+	local ALL = { "ind", "filter", "net", "viz", "stn" }
+	for mask = 0, 31 do
+		local ids = {}
+		for i, id in ipairs(ALL) do
+			if mask & (1 << (i - 1)) ~= 0 then ids[#ids + 1] = id end
+		end
+		for _, w in ipairs({ 0, 40, 120, 160, 235, 400 }) do
+			local rows = geom.controlRows(w, ids, W, 6, 8)
+			local flat = {}
+			for _, r in ipairs(rows) do
+				ok(#r > 0, "no empty row")
+				for _, id in ipairs(r) do flat[#flat + 1] = id end
+			end
+			eq(table.concat(flat, " "), table.concat(ids, " "), "every shown control once, in order")
+			if #ids == 0 then eq(#rows, 0) end
+		end
+	end
+	local function ids(rows)
+		local out = {}
+		for _, r in ipairs(rows) do out[#out + 1] = table.concat(r, " ") end
+		return table.concat(out, " / ")
+	end
+	eq(ids(geom.controlRows(235, ALL, W, 6, 8)), "ind filter net viz / stn")
+	eq(ids(geom.controlRows(288, ALL, W, 6, 8)), "ind filter net viz stn")
+	eq(ids(geom.controlRows(120, { "net", "stn" }, W, 6, 8)), "net stn")
+	eq(ids(geom.controlRows(120, { "stn" }, W, 6, 8)), "stn")
 end)
 
 test("textUnits / controlWidth: UTF-8 chars, CJK twice; fits the measured English widths", function()
@@ -396,9 +433,9 @@ test("textUnits / controlWidth: UTF-8 chars, CJK twice; fits the measured Englis
 		return table.concat(out, " / ")
 	end
 	local ru = { ind = geom.controlWidth("Пром"), filter = geom.controlWidth("Фильтр"),
-		net = geom.controlWidth("Сеть"), viz = geom.controlWidth("Ярко") }
-	eq(ids(geom.controlRows(235, { "ind", "filter", "net", "viz" }, ru, 6, 8)), "ind filter net / viz")
-	eq(ids(geom.controlRows(256, { "ind", "filter", "net", "viz" }, ru, 6, 8)), "ind filter net viz")
+		net = geom.controlWidth("Сеть"), stn = geom.controlWidth("Ст") }
+	eq(ids(geom.controlRows(241, { "ind", "filter", "net", "stn" }, ru, 6, 8)), "ind filter net / stn")
+	eq(ids(geom.controlRows(242, { "ind", "filter", "net", "stn" }, ru, 6, 8)), "ind filter net stn")
 end)
 
 test("fitText: cuts at a UTF-8 boundary with '...', CJK counted twice", function()
