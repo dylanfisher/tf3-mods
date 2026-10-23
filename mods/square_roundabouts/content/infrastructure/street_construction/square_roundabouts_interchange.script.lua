@@ -10,7 +10,7 @@ local result = ug_require(DIR .. "square_roundabouts_result.lua")
 function data()
 return {
 	updateFn = function(captureParams, params)
-		return result.build(interchange.build(interchange.readParams(params)))
+		return result.build(interchange.build(interchange.readParams(params)), result.readStructure(params))
 	end,
 }
 end

@@ -13,6 +13,7 @@
 -- Pure data (no api.*); the translation function comes from the .con.lua (its `_`).
 
 local hx = ug_require "square_roundabouts::/infrastructure/street_construction/square_roundabouts_highway.lua"
+local result = ug_require "square_roundabouts::/infrastructure/street_construction/square_roundabouts_result.lua"
 
 local K = hx.PARAM_KEYS
 local menu = {}
@@ -165,6 +166,8 @@ function menu.data(id, tr)
 				values = { _("Right"), _("Left") },
 				defaultIndex = 1,
 			},
+			-- last on every entry (square_roundabouts_result.lua "Structure")
+			result.structureParam(_, result.STRUCTURE_BRIDGE),
 		},
 		updateScript = {
 			fileName = "square_roundabouts_highway.script@updateFn",

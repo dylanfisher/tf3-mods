@@ -1,6 +1,6 @@
 # square_roundabouts: in-game tests
 
-Status: open checks for revisions 6-7 at the top, then the standing regression checklist (sections 0-16). Passed one-off checks are in `HISTORY.md`.
+Status: open checks for revisions 6-8 at the top, then the standing regression checklist (sections 0-16). Passed one-off checks are in `HISTORY.md`.
 
 Setup: `make link`, enable the mod, start a free game (year 1940 or later) or load a save. Watch
 stdout.txt (`~/Library/Application Support/Steam/userdata/<id>/3493540/local/crash_dump/stdout.txt`)
@@ -23,6 +23,34 @@ roundabout's (placeholder).
    Phase 5 round); it decides whether a highway signals param is possible.
 3. **Channelized Junction Scale S-XL (12.11).** Not engine-probed.
 4. **Highway entries: editing and removal (16C)**, and the loop speeds of 16B (not measured).
+5. **Structure: Embankment / Bridge (revision 8, implemented 2026-10-22; PLAN.md "Structure: Embankment /
+   Bridge").** Every entry has a last setting Structure (Embankment / Bridge). Flat, empty map; check
+   stdout.txt for `square_roundabouts_concrete_short`, "Resource error" and "ground texture not found" after
+   loading and after each build. A crash on build: note the crash_dump json `errorInfo.message` first.
+   1. **The hidden short-span concrete is usable (risk, test first).** Year 1970 or later, Better Roundabouts
+      defaults (Scale XS, 4 arms), Structure Bridge, Height about 8 m: it places (green), builds without a crash,
+      and stdout has no model or texture error. Click a ring piece: the bridge window names "Concrete, short
+      spans". The road tool's bridge list (drag any road over a valley) does NOT offer it. If the build is
+      refused or crashes, change the bridge's availability to `yearFrom = 1970, yearTo = 0` (visible in the
+      bridge menu) and retry; record which.
+   2. **Short-span pillars.** Same build: pillars stand under the ring and arm pieces (every 12-24 m along a piece;
+      pieces under 12 m may get none) and reach the ground; note whether there is one at every node or
+      only along the pieces, and how the 4-6 m wide pillars look on a 1-lane ring. Repeat at Scale L.
+   3. **Before 1970: stone.** A game in 1950, same build: stone arches (every 12 m) under ring and arms, no crash.
+   4. **Height 0 with Bridge.** At ground level: green? The look (a deck lying on the ground, abutments, pillars of
+      zero height, z-fighting with the terrain), the cost against Embankment. No islands even if Centre island is
+      set (expected: Bridge drops them).
+   5. **Raised arm ends + dragged roads.** Bridge at 8 m: drag a road from open ground to an arm end. It snaps to
+      the end node, climbs as a ramp (its own embankment or the road tool's bridge), and joins the deck. Bulldoze
+      one arm piece: the rest stands.
+   6. **Embankment unchanged.** Structure Embankment (the default, also after loading an old save with saved
+      menu settings): the build and its cost at Height 0 and 8 m are as before the param (earth fill when raised).
+   7. **Other entries.** Bridge at 8 m once each: Magic Roundabout, Channelized Junction (no triangle islands),
+      Roundabout Interchange (its own bridges keep steel / concrete, the rest short-span concrete; On top Ring and
+      Hwy), Parclo, Diamond (highway and ramps all bridges, the ramps' 8 m climb on top of the Height). Each
+      places; note "Construction Not Possible" cases (e.g. a bridge over a bridge too close vertically).
+   Before the param (2026-10-22): the DEV entries "DEV SQRB Bridge probe" (`square_roundabouts_probe`) and the
+   `p8_bridge` sweep, `PROBE.md` "Phase 8: bridge probe" (console results in `docs/findings/roads.md`).
 
 Sections 0-10, 12-14 and 16B-16C are the standing regression checklist. Recorded results: sections
 0-5 "everything works" in the first round (2026-10-07, `HISTORY.md` "Phase 2a notes"); sections 11-15 "all

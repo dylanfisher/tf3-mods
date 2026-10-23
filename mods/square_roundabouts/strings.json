@@ -1,6 +1,7 @@
 {
     "en": {},
     "ru": {
+        "Concrete, short spans": "Бетонный, короткие пролёты",
         "Town, small": "Город, малая",
         "Town, medium": "Город, средняя",
         "Town, large": "Город, большая",
@@ -123,9 +124,14 @@
         "Mini roundabout lanes": "Полосы мини-колец",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "Полосы на каждом одностороннем мини-кольце.\n2 полосам нужен масштаб L или больше: меньшие растут до L.\nЦентральное кольцо: по одной полосе в каждую сторону.",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "Направление мини-колец. ПЧС: против часовой стрелки,\nдля правостороннего движения. ЧС: по часовой стрелке, для левостороннего.\nЦентральное кольцо двустороннее: внутренняя полоса идёт в другую сторону.",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Остров внутри центрального кольца и мини-колец.\nМини-кольца меньше 15 m получают плоский остров:\nдеревья и фонтан заменяются мощением."
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Остров внутри центрального кольца и мини-колец.\nМини-кольца меньше 15 m получают плоский остров:\nдеревья и фонтан заменяются мощением.",
+        "Structure": "Конструкция",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "Насыпь: дороги на земле. Поднятые регулятором\nвысоты, они стоят на земляной насыпи.\nМост: все дороги на мостах, для постройки, поднятой\nрегулятором высоты: рельеф остаётся как есть.\nБез островков на мостах.",
+        "Embankment": "Насыпь",
+        "Bridge": "Мост"
     },
     "de": {
+        "Concrete, short spans": "Beton, kurze Spannweiten",
         "Town, small": "Stadt, klein",
         "Town, medium": "Stadt, mittel",
         "Town, large": "Stadt, gross",
@@ -248,9 +254,14 @@
         "Mini roundabout lanes": "Spuren der Minikreisel",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "Spuren auf jedem Einbahn-Minikreisel.\n2 Spuren brauchen Massstab L oder mehr: kleinere wachsen auf L.\nDer Mittelring behält eine Spur je Richtung.",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "Richtung der Minikreisel. GUZ: gegen den Uhrzeigersinn,\nfür Rechtsverkehr. UZ: im Uhrzeigersinn, für Linksverkehr.\nDer Mittelring ist zweispurig: seine innere Spur läuft andersherum.",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Insel im Mittelring und in den Minikreiseln.\nMinikreisel unter 15 m bekommen eine flache Insel:\nBäume und Brunnen werden zu Pflaster."
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Insel im Mittelring und in den Minikreiseln.\nMinikreisel unter 15 m bekommen eine flache Insel:\nBäume und Brunnen werden zu Pflaster.",
+        "Structure": "Bauweise",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "Damm: Strassen auf dem Boden. Mit der Höhen-\nsteuerung angehoben, stehen sie auf einer Erdaufschüttung.\nBrücke: jede Strasse auf einer Brücke, für einen mit der\nHöhensteuerung angehobenen Bau: der Boden bleibt, wie er ist.\nKeine Inseln auf Brücken.",
+        "Embankment": "Damm",
+        "Bridge": "Brücke"
     },
     "fr": {
+        "Concrete, short spans": "Béton, portées courtes",
         "Town, small": "Ville, petite",
         "Town, medium": "Ville, moyenne",
         "Town, large": "Ville, grande",
@@ -373,9 +384,14 @@
         "Mini roundabout lanes": "Voies des mini-giratoires",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "Voies sur chaque mini-giratoire à sens unique.\n2 voies demandent l'échelle L ou plus : les plus petites passent à L.\nL'anneau central garde une voie par sens.",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "Sens des mini-giratoires. Antih. : sens antihoraire,\npour la circulation à droite. Hor. : sens horaire, pour la circulation à gauche.\nL'anneau central est à double sens : sa voie intérieure tourne dans l'autre sens.",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Îlot dans l'anneau central et les mini-giratoires.\nLes mini-giratoires de moins de 15 m ont un îlot plat :\narbres et fontaine deviennent un pavage."
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Îlot dans l'anneau central et les mini-giratoires.\nLes mini-giratoires de moins de 15 m ont un îlot plat :\narbres et fontaine deviennent un pavage.",
+        "Structure": "Structure",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "Remblai : routes au sol. Surélevées avec le réglage\nde hauteur, elles reposent sur un remblai de terre.\nPont : toutes les routes sur des ponts, pour une\nconstruction surélevée avec le réglage de hauteur :\nle terrain reste tel quel. Pas d'îlots sur les ponts.",
+        "Embankment": "Remblai",
+        "Bridge": "Pont"
     },
     "es": {
+        "Concrete, short spans": "Hormigón, vanos cortos",
         "Town, small": "Ciudad, pequeña",
         "Town, medium": "Ciudad, mediana",
         "Town, large": "Ciudad, grande",
@@ -498,9 +514,14 @@
         "Mini roundabout lanes": "Carriles de minirrotonda",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "Carriles en cada minirrotonda de sentido único.\n2 carriles requieren escala L o mayor: las menores crecen a L.\nEl anillo central mantiene un carril por sentido.",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "Sentido de las minirrotondas. Antih.: sentido antihorario,\npara circulación por la derecha. Hor.: sentido horario, por la izquierda.\nEl anillo central es de doble sentido: su carril interior va al revés.",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Isleta dentro del anillo central y de las minirrotondas.\nLas minirrotondas de menos de 15 m tienen isleta plana:\nárboles y fuente pasan a ser pavimento."
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Isleta dentro del anillo central y de las minirrotondas.\nLas minirrotondas de menos de 15 m tienen isleta plana:\nárboles y fuente pasan a ser pavimento.",
+        "Structure": "Estructura",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "Terraplén: vías sobre el suelo. Elevadas con el control\nde altura, se apoyan en un relleno de tierra.\nPuente: todas las vías sobre puentes, para una\nconstrucción elevada con el control de altura:\nel terreno queda como está. Sin isletas en los puentes.",
+        "Embankment": "Terraplén",
+        "Bridge": "Puente"
     },
     "it": {
+        "Concrete, short spans": "Cemento, campate corte",
         "Town, small": "Città, piccola",
         "Town, medium": "Città, media",
         "Town, large": "Città, grande",
@@ -623,9 +644,14 @@
         "Mini roundabout lanes": "Corsie minirotatorie",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "Corsie su ogni minirotatoria a senso unico.\n2 corsie richiedono scala L o più: le minori crescono a L.\nL'anello centrale mantiene una corsia per senso.",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "Senso delle minirotatorie. Antior: senso antiorario,\nper la guida a destra. Orario: senso orario, per la guida a sinistra.\nL'anello centrale è a doppio senso: la corsia interna va al contrario.",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Isola dentro l'anello centrale e le minirotatorie.\nLe minirotatorie sotto 15 m hanno un'isola piatta:\nalberi e fontana diventano pavimentazione."
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Isola dentro l'anello centrale e le minirotatorie.\nLe minirotatorie sotto 15 m hanno un'isola piatta:\nalberi e fontana diventano pavimentazione.",
+        "Structure": "Struttura",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "Terrapieno: strade sul terreno. Rialzate con il controllo\ndell'altezza, poggiano su un riporto di terra.\nPonte: tutte le strade su ponti, per una costruzione\nrialzata con il controllo dell'altezza: il terreno\nresta com'è. Niente isole sui ponti.",
+        "Embankment": "Terrapieno",
+        "Bridge": "Ponte"
     },
     "nl": {
+        "Concrete, short spans": "Beton, korte overspanningen",
         "Town, small": "Stad, klein",
         "Town, medium": "Stad, middel",
         "Town, large": "Stad, groot",
@@ -748,9 +774,14 @@
         "Mini roundabout lanes": "Stroken minirotonde",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "Rijstroken op elke eenrichtings-minirotonde.\n2 stroken vereisen schaal L of groter: kleinere groeien naar L.\nDe centrale ring houdt één strook per richting.",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "Richting van de minirotondes. TDK: tegen de klok in,\nvoor rechtsrijdend verkeer. MDK: met de klok mee, voor linksrijdend.\nDe centrale ring is tweerichting: de binnenste strook rijdt andersom.",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Eiland binnen de centrale ring en de minirotondes.\nMinirotondes onder 15 m krijgen een plat eiland:\nbomen en fontein worden bestrating."
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Eiland binnen de centrale ring en de minirotondes.\nMinirotondes onder 15 m krijgen een plat eiland:\nbomen en fontein worden bestrating.",
+        "Structure": "Constructie",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "Dijk: wegen op de grond. Verhoogd met de hoogte-\nregeling staan ze op een aarden ophoging.\nBrug: elke weg op een brug, voor een bouwwerk dat met\nde hoogteregeling is verhoogd: het terrein blijft zoals\nhet is. Geen eilanden op bruggen.",
+        "Embankment": "Dijk",
+        "Bridge": "Brug"
     },
     "pl": {
+        "Concrete, short spans": "Betonowy, krótkie przęsła",
         "Town, small": "Miejska, mała",
         "Town, medium": "Miejska, średnia",
         "Town, large": "Miejska, duża",
@@ -873,9 +904,14 @@
         "Mini roundabout lanes": "Pasy mini-rond",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "Pasy na każdym jednokierunkowym mini-rondzie.\n2 pasy wymagają skali L lub większej: mniejsze rosną do L.\nRondo centralne ma po jednym pasie w każdą stronę.",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "Kierunek mini-rond. PWZ: przeciwnie do wskazówek zegara,\ndla ruchu prawostronnego. ZWZ: zgodnie ze wskazówkami, dla lewostronnego.\nRondo centralne jest dwukierunkowe: wewnętrzny pas biegnie odwrotnie.",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Wyspa wewnątrz ronda centralnego i mini-rond.\nMini-ronda poniżej 15 m mają płaską wyspę:\ndrzewa i fontanna zamieniają się w bruk."
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Wyspa wewnątrz ronda centralnego i mini-rond.\nMini-ronda poniżej 15 m mają płaską wyspę:\ndrzewa i fontanna zamieniają się w bruk.",
+        "Structure": "Konstrukcja",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "Nasyp: drogi na ziemi. Podniesione regulacją\nwysokości stoją na ziemnym nasypie.\nMost: każda droga na moście, dla budowli podniesionej\nregulacją wysokości: teren zostaje bez zmian.\nBez wysepek na mostach.",
+        "Embankment": "Nasyp",
+        "Bridge": "Most"
     },
     "pt_BR": {
+        "Concrete, short spans": "Concreto, vãos curtos",
         "Town, small": "Cidade, pequena",
         "Town, medium": "Cidade, média",
         "Town, large": "Cidade, grande",
@@ -998,9 +1034,14 @@
         "Mini roundabout lanes": "Faixas da minirrotatória",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "Faixas em cada minirrotatória de mão única.\n2 faixas exigem escala L ou maior: as menores crescem para L.\nO anel central mantém uma faixa por sentido.",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "Sentido das minirrotatórias. Anti-h: sentido anti-horário,\npara mão direita. Horár.: sentido horário, para mão esquerda.\nO anel central é de mão dupla: sua faixa interna vai ao contrário.",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Ilha dentro do anel central e das minirrotatórias.\nMinirrotatórias abaixo de 15 m têm ilha plana:\nárvores e fonte viram pavimento."
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "Ilha dentro do anel central e das minirrotatórias.\nMinirrotatórias abaixo de 15 m têm ilha plana:\nárvores e fonte viram pavimento.",
+        "Structure": "Estrutura",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "Aterro: vias no chão. Elevadas com o controle de\naltura, ficam sobre um aterro de terra.\nPonte: todas as vias em pontes, para uma construção\nelevada com o controle de altura: o terreno fica\ncomo está. Sem ilhas nas pontes.",
+        "Embankment": "Aterro",
+        "Bridge": "Ponte"
     },
     "ja": {
+        "Concrete, short spans": "コンクリート（短支間）",
         "Town, small": "市街地・小",
         "Town, medium": "市街地・中",
         "Town, large": "市街地・大",
@@ -1123,9 +1164,14 @@
         "Mini roundabout lanes": "ミニの車線数",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "一方通行の各ミニラウンドアバウトの車線数。\n2車線にはスケールL以上が必要：小さいスケールはLになります。\n中央環道は片側1車線のままです。",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "ミニラウンドアバウトの方向。左回り：反時計回り、\n右側通行用。右回り：時計回り、左側通行用。\n中央環道は対面通行：内側の車線は逆向きに走ります。",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "中央環道とミニラウンドアバウトの内側の島。\n15 m未満のミニラウンドアバウトは平らな島になり、\n木と噴水は舗装になります。"
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "中央環道とミニラウンドアバウトの内側の島。\n15 m未満のミニラウンドアバウトは平らな島になり、\n木と噴水は舗装になります。",
+        "Structure": "構造",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "盛土：道路は地面の上。高さ調整で上げると、\n盛土の上に建ちます。\n橋：すべての道路を橋にします。高さ調整で\n上げた建設用：地面はそのままです。\n橋の上には島を作りません。",
+        "Embankment": "盛土",
+        "Bridge": "橋"
     },
     "ko": {
+        "Concrete, short spans": "콘크리트, 짧은 경간",
         "Town, small": "시가지, 소형",
         "Town, medium": "시가지, 중형",
         "Town, large": "시가지, 대형",
@@ -1248,9 +1294,14 @@
         "Mini roundabout lanes": "소형 회전교차로 차로",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "일방통행 소형 회전교차로 각각의 차로 수.\n2차로는 스케일 L 이상 필요: 작은 스케일은 L로 커집니다.\n중앙 회전로는 방향별 1차로를 유지합니다.",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "소형 회전교차로의 방향. 반시계: 반시계 방향,\n우측 통행용. 시계: 시계 방향, 좌측 통행용.\n중앙 회전로는 양방향: 안쪽 차로는 반대로 달립니다.",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "중앙 회전로와 소형 회전교차로 안의 섬.\n15 m 미만의 소형 회전교차로는 평평한 섬이 되고\n나무와 분수는 포장으로 바뀝니다."
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "중앙 회전로와 소형 회전교차로 안의 섬.\n15 m 미만의 소형 회전교차로는 평평한 섬이 되고\n나무와 분수는 포장으로 바뀝니다.",
+        "Structure": "구조",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "성토: 도로가 지면 위에 놓입니다. 높이 조절로 올리면\n흙 성토 위에 섭니다.\n다리: 모든 도로를 다리로 만듭니다. 높이 조절로\n올린 건설용: 지면은 그대로입니다.\n다리 위에는 교통섬이 없습니다.",
+        "Embankment": "성토",
+        "Bridge": "다리"
     },
     "zh_CN": {
+        "Concrete, short spans": "混凝土（短跨）",
         "Town, small": "城镇，小型",
         "Town, medium": "城镇，中型",
         "Town, large": "城镇，大型",
@@ -1373,9 +1424,14 @@
         "Mini roundabout lanes": "迷你环岛车道",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "每个单向迷你环岛的车道数。\n2 条车道需要 L 或更大规模：较小规模会增大到 L。\n中央环道保持每方向一条车道。",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "迷你环岛的方向。逆时针：逆时针方向，\n用于靠右行驶。顺时针：顺时针方向，用于靠左行驶。\n中央环道为双向：内侧车道反向行驶。",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "中央环道和迷你环岛内的中心岛。\n小于 15 m 的迷你环岛使用平坦的中心岛：\n树木和喷泉变为铺装。"
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "中央环道和迷你环岛内的中心岛。\n小于 15 m 的迷你环岛使用平坦的中心岛：\n树木和喷泉变为铺装。",
+        "Structure": "结构",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "路堤：道路位于地面上。用高度控制抬高后，\n道路建在填土路堤上。\n桥梁：所有道路都建在桥上，用于以高度控制\n抬高的建造：地面保持原样。\n桥上不设交通岛。",
+        "Embankment": "路堤",
+        "Bridge": "桥梁"
     },
     "zh_TW": {
+        "Concrete, short spans": "混凝土（短跨）",
         "Town, small": "市區，小型",
         "Town, medium": "市區，中型",
         "Town, large": "市區，大型",
@@ -1498,6 +1554,10 @@
         "Mini roundabout lanes": "迷你圓環車道",
         "Lanes on each one-way mini roundabout.\n2 lanes need Scale L or bigger: smaller scales grow to L.\nThe central ring keeps one lane each way.": "每個單向迷你圓環的車道數。\n2 條車道需要 L 或更大規模：較小規模會增大到 L。\n中央環道維持每方向一條車道。",
         "Direction of the mini roundabouts. CCW: counterclockwise,\nfor right-hand traffic. CW: clockwise, for left-hand traffic.\nThe central ring is two-way: its inner lane runs the other way.": "迷你圓環的方向。逆時針：逆時針方向，\n用於靠右行駛。順時針：順時針方向，用於靠左行駛。\n中央環道為雙向：內側車道反向行駛。",
-        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "中央環道和迷你圓環內的中央島。\n小於 15 m 的迷你圓環使用平坦的中央島：\n樹木和噴泉變為鋪面。"
+        "Island inside the central ring and the mini roundabouts.\nMini roundabouts below 15 m get a flat island:\ntrees and fountain become paving.": "中央環道和迷你圓環內的中央島。\n小於 15 m 的迷你圓環使用平坦的中央島：\n樹木和噴泉變為鋪面。",
+        "Structure": "結構",
+        "Embankment: roads on the ground. Raised with the\nHeight control, they stand on earth fill.\nBridge: every road on a bridge, for a build raised\nwith the Height control: the ground stays as it is.\nNo islands on bridges.": "路堤：道路位於地面上。用高度控制抬高後，\n道路建在填土路堤上。\n橋樑：所有道路都建在橋上，用於以高度控制\n抬高的建造：地面保持原樣。\n橋上不設交通島。",
+        "Embankment": "路堤",
+        "Bridge": "橋樑"
     }
 }

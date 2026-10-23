@@ -91,9 +91,11 @@ function engine:resolveFile(entry, file)
 	file = file or grid.ENTRIES[entry].file
 	local cacheKey = file == grid.ENTRIES[entry].file and entry or file
 	if self.files[cacheKey] ~= nil then return self.files[cacheKey] or nil end
+	-- Phase 8: the DEV Bridge probe entries live in this mod (grid.ENTRIES[entry].mod)
+	local mod = grid.ENTRIES[entry].mod or grid.TARGET_MOD
 	local candidates = {
-		grid.TARGET_MOD .. "::/" .. file,
-		grid.TARGET_MOD .. "::" .. file,
+		mod .. "::/" .. file,
+		mod .. "::" .. file,
 		file,
 	}
 	for _, name in ipairs(candidates) do
@@ -106,7 +108,7 @@ function engine:resolveFile(entry, file)
 	end
 	self.files[cacheKey] = false
 	self:error("entry " .. entry .. ": no construction found (tried " .. table.concat(candidates, ", ") ..
-		"); is square_roundabouts enabled for this game?")
+		"); is " .. mod .. " enabled for this game?")
 	return nil
 end
 
@@ -326,8 +328,9 @@ function engine:contextFor(name)
 	return nil
 end
 
---- p7_spot: transf and world origin of a place {rot, dx, dy} around the probe position (z = the
--- terrain height at the shifted origin, as the builder at Height 0).
+--- p7_spot: transf and world origin of a place {rot, dx, dy, dz?} around the probe position (z = the
+-- terrain height at the shifted origin, as the builder at Height 0; Phase 8: plus dz, as the builder's
+-- Height, which reaches the construction only through the transf: PROBE.md "Phase 8: bridge probe").
 function engine:transfFor(place)
 	local x, y = self.x + (place.dx or 0), self.y + (place.dy or 0)
 	local z = self.z
@@ -335,6 +338,7 @@ function engine:transfFor(place)
 		local h = api.engine.terrain.getHeightAt(api.type.Vec2f.new(x, y))
 		if type(h) == "number" then z = h end
 	end)
+	z = z + (tonumber(place.dz) or 0)
 	local c, s = engine.cosSin(place.rot or 0)
 	local t = api.type.Mat4f.new(
 		api.type.Vec4f.new(c, s, 0, 0),
@@ -370,6 +374,7 @@ function engine:header()
 		{ "main", self.files.main or "-" }, { "magic", self.files.magic or "-" },
 		{ "channel", self.files.channel or "-" }, { "interchange", self.files.interchange or "-" },
 		{ "highway", self.files.highway or "-" },
+		{ "bridgeMain", self.files.bridge_main or "-" }, { "bridgeIx", self.files.bridge_ix or "-" },
 		{ "geometry", self.modules.geom and "yes" or "no" },
 	}
 end
@@ -597,7 +602,7 @@ function engine:detailLine(combo, r, pd, origin, params)
 	local function n2(v) return v and string.format("%.2f", v) or nil end
 	local p = combo.place
 	return grid.line("D", {
-		{ "key", combo.key }, { "rot", p.rot }, { "ctx", p.ctx }, { "dx", p.dx }, { "dy", p.dy },
+		{ "key", combo.key }, { "rot", p.rot }, { "ctx", p.ctx }, { "dx", p.dx }, { "dy", p.dy }, { "dz", p.dz },
 		{ "ox", n2(origin and origin[1]) }, { "oy", n2(origin and origin[2]) }, { "oz", n2(origin and origin[3]) },
 		{ "ok", r.ok == true }, { "critical", r.critical }, { "msgs", r.messages or {}, "l" },
 		{ "warnings", r.warnings or {}, "l" }, { "infos", r.infos or {}, "l" },

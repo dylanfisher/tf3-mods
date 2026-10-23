@@ -257,7 +257,7 @@ test("magic: con.lua, script and params", function()
 	for _, key in pairs(magic.PARAM_KEYS) do ok(keys[key], key) end
 	local n = 0
 	for _ in pairs(keys) do n = n + 1 end
-	eq(n, 5, "only size, arm road, mini roundabout lanes, direction, island")
+	eq(n, 6, "only size, arm road, mini roundabout lanes, direction, island, structure")
 	local size
 	for _, p in ipairs(con.params) do if p.key == magic.PARAM_KEYS.size then size = p end end
 	-- Phase 7c3: a row of five buttons (was a slider), same key and indices

@@ -12,7 +12,7 @@ local result = ug_require(DIR .. "square_roundabouts_result.lua")
 function data()
 return {
 	updateFn = function(captureParams, params)
-		return result.build(highway.build(highway.specFor(captureParams, params)))
+		return result.build(highway.build(highway.specFor(captureParams, params)), result.readStructure(params))
 	end,
 }
 end

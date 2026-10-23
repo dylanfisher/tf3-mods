@@ -172,10 +172,16 @@ function geomInfo.highway(hx, params)
 	return { error = tostring(res) }
 end
 
+-- Phase 8: the DEV Bridge probe entries (probe_grid.lua bridge_main / bridge_ix) build the main mod's
+-- geometry unchanged (sqrb_probe_bridge.script.lua).
+geomInfo.GEOMETRY_OF = { bridge_main = "main", bridge_ix = "interchange" }
+
 --- p7_spot (Phase 7e fix-up): the unique edge end points {x, y, z} (construction frame) of a
--- highway / interchange build, or nil + error text. Pure.
+-- highway / interchange build (Phase 8: also the main roundabout's), or nil + error text. Pure.
 function geomInfo.nodes(entry, modules, params)
-	local mod = entry == "highway" and modules.highway or entry == "interchange" and modules.interchange or nil
+	entry = geomInfo.GEOMETRY_OF[entry] or entry
+	local mod = entry == "highway" and modules.highway or entry == "interchange" and modules.interchange
+		or entry == "main" and modules.geom or nil
 	if not mod then return nil, "no nodes for entry " .. tostring(entry) end
 	local ok, res = pcall(function()
 		local built = mod.build(entry == "highway" and geomInfo.hxSpec(mod, params) or mod.readParams(params))
@@ -206,6 +212,7 @@ function geomInfo.toWorld(origin, deg, p)
 end
 
 function geomInfo.forEntry(entry, modules, params)
+	entry = geomInfo.GEOMETRY_OF[entry] or entry
 	if entry == "magic" then return geomInfo.magic(modules.magic, params) end
 	if entry == "channel" then return geomInfo.channel(modules.channel, params) end
 	if entry == "interchange" then return geomInfo.interchange(modules.interchange, params) end

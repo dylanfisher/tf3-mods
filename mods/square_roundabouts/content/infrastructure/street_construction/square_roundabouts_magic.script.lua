@@ -9,7 +9,7 @@ local result = ug_require(DIR .. "square_roundabouts_result.lua")
 function data()
 return {
 	updateFn = function(captureParams, params)
-		return result.build(magic.build(magic.readParams(params)))
+		return result.build(magic.build(magic.readParams(params)), result.readStructure(params))
 	end,
 }
 end

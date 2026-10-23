@@ -223,7 +223,7 @@ test(".con.lua: params, script, icon, availability; script exports only updateFn
 	eq(con.availability.yearFrom, 1940)
 	eq(con.menuCategory.categories[1].category, "street_constructions")
 	local byKey, order = {}, {}
-	local shared = { [K.lanes] = true, [K.direction] = true, [K.island] = true }
+	local shared = { [K.lanes] = true, [K.direction] = true, [K.island] = true, sqrb_structure = true }
 	for _, p in ipairs(con.params) do
 		ok(byKey[p.key] == nil, "duplicate key " .. p.key)
 		byKey[p.key] = p
@@ -236,7 +236,7 @@ test(".con.lua: params, script, icon, availability; script exports only updateFn
 	-- Phase 7c3: Radius is a row of presets on ix.RADIUS_PRESET_KEY (the slider key K.radius stays the
 	-- full-range index for tests, goldens and the probe); no slider left
 	local RP = ix.RADIUS_PRESET_KEY
-	eq(order, { K.layout, K.highway, K.level, K.lanes, RP, K.cross, K.slipLength, K.armLength, K.direction, K.island }, "UI order")
+	eq(order, { K.layout, K.highway, K.level, K.lanes, RP, K.cross, K.slipLength, K.armLength, K.direction, K.island, "sqrb_structure" }, "UI order")
 	eq(#byKey[K.layout].values, 3); eq(#byKey[K.highway].values, #ix.HIGHWAYS); eq(#byKey[K.level].values, 2)
 	eq(#byKey[K.lanes].values, #geom.RING_TEMPLATES)
 	eq(byKey[RP].values, { "S", "M", "L", "XL" }); eq(byKey[RP].defaultIndex, ix.DEFAULT_RADIUS_PRESET)

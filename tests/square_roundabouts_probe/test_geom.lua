@@ -105,7 +105,9 @@ test("Phase 7e fix-up: geomInfo.nodes (unique end points) and toWorld (rotation 
 	end
 	ok(seen["0.000,-96.500,8.000"], "outer terminal node at 8 m")
 	ok(#geomInfo.nodes("interchange", m, grid.expand({ { entry = "interchange" } })[1].params) > 4)
-	local n, err = geomInfo.nodes("main", m, {})
+	-- Phase 8: the main roundabout has nodes too (p8_bridge D lines); other entries none
+	ok(#geomInfo.nodes("main", m, {}) > 4)
+	local n, err = geomInfo.nodes("magic", m, {})
 	eq(n, nil); ok(err)
 	local x, y, z = geomInfo.toWorld({ 100, 200, 5 }, 90, { 10, 0, 8 })
 	ok(math.abs(x - 100) < 1e-9 and math.abs(y - 210) < 1e-9 and z == 13)

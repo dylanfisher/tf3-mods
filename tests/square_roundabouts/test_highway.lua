@@ -316,7 +316,7 @@ test(".con.lua x 3: Parclo [A][B], Parclo two quadrants [A][B][AB], Diamond; but
 		end
 		eq(con.checkEnabledScript, nil)
 		local byKey, keys = {}, {}
-		local shared = { [K.highway] = true, [K.cross] = true, [K.direction] = true }
+		local shared = { [K.highway] = true, [K.cross] = true, [K.direction] = true, sqrb_structure = true }
 		for _, p in ipairs(con.params) do
 			ok(byKey[p.key] == nil, "duplicate key " .. p.key)
 			byKey[p.key] = p
@@ -328,8 +328,9 @@ test(".con.lua x 3: Parclo [A][B], Parclo two quadrants [A][B][AB], Diamond; but
 			ok(type(p.tooltip) == "string" and #p.tooltip > 0, p.key .. " tooltip")
 			for line in p.tooltip:gmatch("[^\n]+") do ok(#line <= 62, p.key .. " tooltip line: " .. line) end
 			-- a row of buttons, as the base interchanges (Lanes [2][3], Scale [Small][Medium][Large]);
-			-- only the six cross roads are a dropdown; no slider
-			if p.key == K.cross then
+			-- only the six cross roads and Structure ("Embankment" is too long for a toolbar button,
+			-- test_menu_labels.lua) are a dropdown; no slider
+			if p.key == K.cross or p.key == "sqrb_structure" then
 				eq(p.uiType, "ComboBox")
 			else
 				eq(p.uiType, "Button", p.key); eq(p.displayMode, "Horizontal", p.key)
@@ -340,7 +341,7 @@ test(".con.lua x 3: Parclo [A][B], Parclo two quadrants [A][B][AB], Diamond; but
 			end
 		end
 		-- no Type param; every other param in the 7c order
-		eq(keys, { K.highway, K.level, K.cross, K.size, K.rampLength, K.armLength, K.direction }, n .. ": UI order")
+		eq(keys, { K.highway, K.level, K.cross, K.size, K.rampLength, K.armLength, K.direction, "sqrb_structure" }, n .. ": UI order")
 		for _, dk in pairs(geom.DEV_KEYS) do eq(byKey[dk], nil, "dev key " .. tostring(dk)) end
 		for key in pairs(byKey) do ok(not key:find("dev") and not key:find("tmp"), key) end
 		eq(#byKey[K.highway].values, #ramps.HIGHWAYS); eq(#byKey[K.level].values, 2)

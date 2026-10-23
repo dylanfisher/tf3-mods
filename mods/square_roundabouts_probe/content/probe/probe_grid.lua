@@ -147,8 +147,39 @@ grid.ENTRIES = {
 		tag = "h",
 	},
 }
+-- Phase 8 (PROBE.md "Phase 8: bridge probe"): the probe mod's own "DEV SQRB Bridge probe" entries
+-- (sqrb_probe_bridge.con.lua / _ix.con.lua): the main roundabout / Roundabout Interchange axes, then
+-- the two probe params (sqrb_probe_bridge.lua KEYS) and two place axes. A `place` axis is not a
+-- construction param: its value goes into combo.place[axis.place] (engine:transfFor / contextFor),
+-- so every combo of such an entry is placed: dz = metres above getHeightAt at the origin (the
+-- builder's Height reaches a construction only through the transf's z, PROBE.md), context = the
+-- proposal context (none, or full: player, terrain alignment check, street graph cleanup, gathers).
+grid.BRIDGE_PROBE_AXES = {
+	{ key = "structure", param = "sqrb_probe_structure", default = 1, labels = { "embankment", "bridge", "noalign", "bridge_noalign" } },
+	{ key = "islands", param = "sqrb_probe_islands", default = 1, labels = { "keep", "drop" } },
+	{ key = "dz", place = "dz", default = 1, labels = { "0", "2", "4", "8", "12" }, values = { 0, 2, 4, 8, 12 } },
+	{ key = "context", place = "ctx", default = 1, labels = { "none", "full" }, values = { "none", "full" } },
+}
+local function concat(a, b)
+	local out = {}
+	for _, x in ipairs(a) do out[#out + 1] = x end
+	for _, x in ipairs(b) do out[#out + 1] = x end
+	return out
+end
+grid.ENTRIES.bridge_main = {
+	axes = concat(grid.MAIN_AXES, grid.BRIDGE_PROBE_AXES),
+	file = "infrastructure/street_construction/sqrb_probe_bridge.con",
+	mod = "square_roundabouts_probe",
+	tag = "bm",
+}
+grid.ENTRIES.bridge_ix = {
+	axes = concat(grid.INTERCHANGE_AXES, grid.BRIDGE_PROBE_AXES),
+	file = "infrastructure/street_construction/sqrb_probe_bridge_ix.con",
+	mod = "square_roundabouts_probe",
+	tag = "bx",
+}
 -- Order the probe resolves the entries' constructions in (START line fields).
-grid.ENTRY_ORDER = { "main", "magic", "channel", "interchange", "highway" }
+grid.ENTRY_ORDER = { "main", "magic", "channel", "interchange", "highway", "bridge_main", "bridge_ix" }
 grid.TARGET_MOD = "square_roundabouts"
 
 -- Centre values of the Phase 3-4 subsets (Road + traffic lights, Phase 5c, has the Road geometry
@@ -574,6 +605,16 @@ local PRESET_IX = { entry = "interchange", layout = "*", radius = { "15", "20", 
 local PRESET_CH = { entry = "channel", layout = "*", slips = "*", splitter = "*", dir = "*" }
 local PRESET_MAGIC = { entry = "magic", size = "*", dir = "*" }
 
+-- Phase 8 (PROBE.md "Phase 8: bridge probe"): the "DEV SQRB Bridge probe" entries, every Probe
+-- structure x Probe islands x dz {0, 2, 4, 8, 12} m above the terrain x context none / full (80 per
+-- base combo). Roundabout: Scale XS / M (10 / 20 m) x arms T / 4 x Town small / Country medium, Grass
+-- island, 2 lanes, CCW (8 base combos, 640 calls); Roundabout Interchange: two-bridge ring, ring over /
+-- highway over, Grass islands, 2020 (2 base combos, 160 calls).
+local P8_PROBE = { structure = "*", islands = "*", dz = "*", context = "*" }
+local P8_RB = sweepOf(P8_PROBE, { entry = "bridge_main", radius = { "10", "20" }, arms = { "T", "4" }, arm = { "town_s", "country_m" },
+	island = { "grass" } })
+local P8_IX = sweepOf(P8_PROBE, { entry = "bridge_ix", level = "*", island = { "grass" } })
+
 grid.SUBSETS = {
 	-- a handful of combos to check the probe itself works (about a minute)
 	smoke = {
@@ -638,6 +679,8 @@ grid.SUBSETS = {
 	p7_presets = { PRESET_MAIN, PRESET_IX, PRESET_CH, PRESET_MAGIC },
 	-- Phase 7e2: the refused p7_hx_scale combos with the reach cap, plus capped / unprobed ones
 	p7_hx_scale_verify = { HX_SV_CORE, HX_SV_RAMP, HX_SV_ARM, HX_SV_MID },
+	-- Phase 8: bridge / no-align / embankment at 0-12 m above the terrain (the DEV Bridge probe entries)
+	p8_bridge = { P8_IX, P8_RB },
 }
 -- Order of the "Subset" mod param values (mod.json sqrb_probe_subset).
 grid.SUBSET_ORDER = {
@@ -649,6 +692,7 @@ grid.SUBSET_ORDER = {
 	"p5f_all", "p5f_search", "p5g_verify",
 	"p7_hx_all", "p7_hx_search", "p7_verify", "p7_spot", "p7_spot2",
 	"p7_hx_scale", "p7_presets", "p7_hx_scale_verify",
+	"p8_bridge",
 }
 
 local function indexOf(list, v)
@@ -689,11 +733,18 @@ end
 function grid.combo(entry, indices)
 	local e = grid.ENTRIES[entry]
 	if not e then error("probe grid: unknown entry '" .. tostring(entry) .. "'") end
-	local params, labels = {}, {}
+	local params, labels, place = {}, {}, nil
 	for i, axis in ipairs(e.axes) do
 		local v = indices[i]
 		if v ~= nil then
-			params[axis.param] = axis.values and axis.values[v] or v
+			local value = axis.values and axis.values[v] or v
+			if axis.place then
+				-- Phase 8: a place axis (grid.BRIDGE_PROBE_AXES), not a construction param
+				place = place or { rot = 0, ctx = "none", dx = 0, dy = 0 }
+				place[axis.place] = value
+			else
+				params[axis.param] = value
+			end
 			labels[i] = axis.labels[v]
 		end
 	end
@@ -702,6 +753,7 @@ function grid.combo(entry, indices)
 		indices = indices,
 		params = params,
 		labels = labels,
+		place = place,
 		key = grid.key(entry, indices),
 	}
 end
@@ -750,7 +802,8 @@ end
 --- Short label of a place (grid.SPOT_PLACES): "r<rot>_<ctx>_<dx>_<dy>".
 function grid.placeLabel(p)
 	local b = grid.bare -- defined with the line format below
-	return "r" .. b(p.rot) .. "_" .. tostring(p.ctx) .. "_" .. b(p.dx or 0) .. "_" .. b(p.dy or 0)
+	return "r" .. b(p.rot) .. "_" .. tostring(p.ctx) .. "_" .. b(p.dx or 0) .. "_" .. b(p.dy or 0) ..
+		(p.dz ~= nil and ("_z" .. b(p.dz)) or "")
 end
 
 --- Short text of a dev table in DEV_ORDER, e.g. "radius=20 fork=35" ("" for none).

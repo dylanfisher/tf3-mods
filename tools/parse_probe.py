@@ -30,7 +30,8 @@ files, so it never overwrites the data the tuning generator and test_engine_verd
   sweeps    plans/square_roundabouts/probe_<subset>.md / .csv
   searches  plans/square_roundabouts/probe_<subset>.md, probe_<subset>_jobs.csv, probe_<subset>_trials.csv
 Entries: main (m:), magic (g:), channel (c:, Channelized Junction), interchange (x:, Roundabout
-Interchange), highway (h:, Highway Interchange, Phase 7d); every row carries its `entry` and `key`.
+Interchange), highway (h:, Highway Interchange, Phase 7d), bridge_main / bridge_ix (bm: / bx:, the DEV
+Bridge probe entries, Phase 8); every row carries its `entry` and `key`.
 
 Usage:
   uv run tools/parse_probe.py [--stdout PATH] [--run N] [--out-md PATH] [--out-csv PATH] [--fresh] [--summary]
@@ -67,10 +68,16 @@ AXES = {
     "interchange": ["layout", "highway", "level", "lanes", "radius", "cross", "slip", "armlen", "dir", "island", "year"],
     "highway": ["type", "highway", "level", "cross", "size", "ramp", "armlen", "dir", "year"],
 }
+# Phase 8 (PROBE.md "Phase 8: bridge probe"): the DEV Bridge probe entries = the main / interchange
+# axes + the probe params + the place axes dz (m above the terrain) and context
+P8_AXES = ["structure", "islands", "dz", "context"]
+AXES["bridge_main"] = AXES["main"] + P8_AXES
+AXES["bridge_ix"] = AXES["interchange"] + P8_AXES
 ENTRIES = list(AXES)
 GEOM = {"main": ["effR", "fork", "forced"], "magic": ["effSize", "rs"], "channel": ["setback", "cost"],
         "interchange": ["effR", "forced", "bridge", "cost"],
-        "highway": ["effSize", "xm", "term", "forced", "bridge", "edges", "cost"]}
+        "highway": ["effSize", "xm", "term", "forced", "bridge", "edges", "cost"],
+        "bridge_main": ["effR", "edges", "cost"], "bridge_ix": ["effR", "bridge", "edges", "cost"]}
 # subsets whose output goes to the historic file names (see the module doc)
 LEGACY_SWEEPS = {"splitter6", "magic", "main_cw", "main", "all"}
 MAX_ROWS_PER_GROUP = 60

@@ -20,7 +20,7 @@ local result = ug_require(DIR .. "square_roundabouts_result.lua")
 function data()
 return {
 	updateFn = function(captureParams, params)
-		return result.build(geom.build(geom.readParams(params)))
+		return result.build(geom.build(geom.readParams(params)), result.readStructure(params))
 	end,
 }
 end

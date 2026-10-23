@@ -130,9 +130,18 @@ end)
 -- "default block" / smoke tests expand omitted axes to them. Their menu default is asserted as 1.
 local SMALLEST_MENU_DEFAULT = { sqrb_radius = true, sqrb_magic_size = true, sqrb_ix_radius = true, sqrb_hx_scale = true }
 
+-- Params the probe never sweeps (no axis; combos build their default): Structure (sqrb_structure,
+-- every entry's last param, default Embankment = the result the probe always measured; the bridge
+-- probe has its own Probe structure). Appending an axis would change every recorded replay key.
+local NOT_SWEPT = { sqrb_structure = true }
+
 local function checkAxes(axes, con, keys, inOrder)
 	local byKey = {}
-	for _, p in ipairs(con.params) do byKey[p.key] = p end
+	local params = {}
+	for _, p in ipairs(con.params) do
+		if not NOT_SWEPT[p.key] then byKey[p.key] = p; params[#params + 1] = p end
+	end
+	con = { params = params }
 	local real = 0
 	for _, axis in ipairs(axes) do if not axis.pseudo then real = real + 1 end end
 	eq(real, #con.params, "axis count")
@@ -351,9 +360,10 @@ test("highway axes match the three square_roundabouts_highway_<id>.con.lua (in o
 		local params = {}
 		for _, p in ipairs(con.params) do
 			ok(p.key ~= hx.PARAM_KEYS.type, id .. ": no Type param")
-			if p.key == hx.LAYOUT_KEY then eq(#p.values, #types) else params[#params + 1] = p end
+			if p.key == hx.LAYOUT_KEY then eq(#p.values, #types)
+			elseif not NOT_SWEPT[p.key] then params[#params + 1] = p end
 		end
-		eq(#params, #con.params - (#types > 1 and 1 or 0))
+		eq(#params, #con.params - (#types > 1 and 1 or 0) - 1)
 		local view = { params = params }
 		checkAxes(axes, view, keys, true)
 		for i, p in ipairs(params) do eq(axes[i].param, p.key, id .. " highway axis " .. (i + 1)) end
@@ -378,7 +388,10 @@ test("highway axes match the three square_roundabouts_highway_<id>.con.lua (in o
 	eq(rb.ramps.bridgeType(year.values[1]), rb.ramps.bridgeType(1969))
 	ok(rb.ramps.bridgeType(year.values[1]) ~= rb.ramps.bridgeType(year.values[2]), "steel / concrete")
 	eq(grid.ENTRIES.highway.tag, "h")
-	eq(grid.ENTRY_ORDER[#grid.ENTRY_ORDER], "highway")
+	eq(grid.ENTRY_ORDER[5], "highway")
+	-- Phase 8: the DEV Bridge probe entries resolve last, in this mod
+	eq(grid.ENTRY_ORDER[6], "bridge_main"); eq(grid.ENTRY_ORDER[7], "bridge_ix")
+	eq(grid.ENTRIES.bridge_main.mod, "square_roundabouts_probe")
 end)
 
 -- Phase 7e: the large-highway parclos, highway over road (since 7c2 Scale Small / Medium = 25 / 45 m
@@ -467,9 +480,9 @@ test("Phase 7e fix-up spot run p7_spot: combos, places, labels, R line fields", 
 	local _, f = H.parseLine(grid.resultLine(1, 1, combos[1], { ok = false, messages = { "Construction Not Possible" } }))
 	eq(f.rot, "0"); eq(f.ctx, "none"); eq(f.dx, "0"); eq(f.dy, "0"); eq(f.key, "h:2,1,1,6,1,1,1,1,2")
 	-- every other subset stays without places (their R lines are unchanged); p7_hx_scale (7d2) places
-	-- only its rotation block (its own test)
+	-- only its rotation block (its own test); p8_bridge (Phase 8) places every combo (test_bridge.lua)
 	for _, name in ipairs(grid.SUBSET_ORDER) do
-		if name:sub(1, 7) ~= "p7_spot" and name ~= "p7_hx_scale" then
+		if name:sub(1, 7) ~= "p7_spot" and name ~= "p7_hx_scale" and name ~= "p8_bridge" then
 			for _, c in ipairs(grid.expand(name)) do ok(c.place == nil, name) end
 		end
 	end

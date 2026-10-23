@@ -6,6 +6,7 @@
 -- square_roundabouts_channel.script.lua.
 
 local channel = ug_require "square_roundabouts::/infrastructure/street_construction/square_roundabouts_channel.lua"
+local result = ug_require "square_roundabouts::/infrastructure/street_construction/square_roundabouts_result.lua"
 
 local K = channel.PARAM_KEYS
 
@@ -150,6 +151,8 @@ return toolbar({
 			values = { _("None"), _("Grass"), _("Paved") },
 			defaultIndex = 1,
 		},
+		-- last on every entry (square_roundabouts_result.lua "Structure")
+		result.structureParam(_),
 	},
 	updateScript = {
 		fileName = "square_roundabouts_channel.script@updateFn",

@@ -1,6 +1,6 @@
 # square_roundabouts: plan
 
-Status: revision 7 released (code 2026-10-12, b160f53; Hub upload 2026-10-14 05:29Z, session `2026-10-14_0502_sqot`; the live modfile 8324961 matches `mods/square_roundabouts/` file for file, including the dev-only ring mid override below). A Nodes between arms param was added and removed again before that upload (2026-10-14). Display name "Roundabouts & Interchanges", seven menu entries.
+Status: revision 7 released (code 2026-10-12, b160f53; Hub upload 2026-10-14 05:29Z, session `2026-10-14_0502_sqot`; the live modfile 8324961 matches `mods/square_roundabouts/` file for file, including the dev-only ring mid override below). A Nodes between arms param was added and removed again before that upload (2026-10-14). Display name "Roundabouts & Interchanges", seven menu entries. Revision 8 (menu orders 3014-3016) is live per the user (2026-10-22); mod.json is at revision 9 (the Structure param), not yet uploaded.
 
 Read this file and `TESTING.md` first. Finished phases, run logs and superseded designs are in `HISTORY.md` (moved verbatim from this file and `TESTING.md`), in the finished phase docs `PHASE5.md`, `INTERCHANGES.md`, `PHASE6.md`, `PHASE7_RUNBOOK.md` (they stay in this folder because mod code and tests cite them) and in `history/` (research, types, perf review). The DEV engine probe's manual is `PROBE.md`. Code comments that cite `PLAN.md "Phase N notes"` (Phases 1 to 4b) now mean `HISTORY.md`.
 
@@ -33,6 +33,8 @@ Changelog: `mods/square_roundabouts/_metadata/description.html`.
 - rev 7 (2026-10-12, uploaded 2026-10-14): small 1-lane ovals with wide plain arms grow until the arms fit
   (`geom.ARM_BEHIND_PLAN`, `geom.radiusSearched`, `tests/square_roundabouts/test_oval_arm_room.lua`;
   found by the Stress Test Showcase, `plans/square_stress_test/SHOWCASE.md` finding E).
+- rev 8 (live per the user, 2026-10-22): highway entries moved to menu orders 3014-3016 (2026-10-14).
+- rev 9 (2026-10-22, not uploaded): Structure: Embankment / Bridge on every entry (below).
 
 Code: `mods/square_roundabouts/content/infrastructure/street_construction/`. Each entry is a
 `.con.lua` (params), a pure geometry module and a three-line `.script.lua`; `square_roundabouts_result.lua`
@@ -47,6 +49,7 @@ maps any geometry to the construction result.
 | Parclo, Parclo two quadrants, Diamond | `_highway_{parclo,parclo2,diamond}.con.lua`, `_highway_menu.lua` / `_highway.lua`, `_ramps.lua` | test_highway, test_ramps, test_entries_unchanged_highway, test_base_interchanges | `INTERCHANGES.md` |
 
 Shared tests: test_short_edges, test_negative_zero, test_menu_labels, test_engine_verdicts (+ `verdicts.lua`),
+test_structure, test_structure_embankment (the Structure param),
 test_tuning, test_dev, `checks.lua` (junction and overlap models), goldens `golden_default.lua` /
 `golden_entries.lua`.
 
@@ -107,6 +110,48 @@ Detail and evidence in `HISTORY.md` or the named doc, under the named section.
    highway junction); SPUI and Turbo (`candidates.md`; Turbo deferred, `HISTORY.md` "Turbo: deferred");
    hover previews of the Channelized Junction and Roundabout Interchange are still the main entry's,
    the three highway previews are drawn placeholders.
+6. **"Structure: Embankment / Bridge" param: implemented 2026-10-22 (unreleased, revision 9), in-game
+   checks open** (`TESTING.md` open check 5; design in "Structure: Embankment / Bridge" below).
+
+## Structure: Embankment / Bridge (2026-10-22, user: "implement it"; in-game checks open)
+Why: raised with the game's Height control, every edge stands on an embankment (Roundabout XS at +8 m: ~78,500 m3
+of terrain, $577k; `docs/findings/roads.md` "A construction's edges as bridges"). The height reaches the construction
+only as the transf's z (base `gui/construction/construction_react_util.tl:3171-3172`: `constructionBuilder.params`
+keeps only the .con.lua's own params, `height` goes to the native builder; the 7e watcher's W lines never had a
+`height` param), so the updateFn can't tell a raised placement: a menu param picks the structure. Evidence for the
+design: console makeProposalData (every edge list BRIDGE: no terrain change, placeable at grade and at 8 m) and the
+user's builds (base concrete / steel give a roundabout no pillars at all, stone and trestle work), `PROBE.md` "Phase 8".
+- **Param** `sqrb_structure` (`result.STRUCTURE_KEY`), ComboBox Embankment / Bridge (labels too long for toolbar
+  buttons), default Embankment on the roundabouts, Magic and Channelized Junction and Bridge on the four interchanges (user decision 2026-10-22: their ramps climb to the upper level anyway; only the menu default, a saved build without the key reads as Embankment), the last param of all seven entries (`result.structureParam`, same key everywhere;
+  the highway entries via `square_roundabouts_highway_menu.lua`). Tooltip points to the Height control. Saved
+  indices keep their meaning: append values only.
+- **Embankment** (1, and any unknown value) = the result as before, byte for byte: `result.readStructure` returns
+  nil and `result.build(built, nil)` is the old code path (`test_structure_embankment.lua`: every golden group with
+  `sqrb_structure = 1` gives the recorded fingerprints).
+- **Bridge** (2): `result.build` gives every edge list without an edgeType `edgeType = "BRIDGE"` and
+  `result.structureBridgeType(params.year)`: base `stone.bridge` before 1970 (arches every 12 m), from 1970 (and
+  without a year) the mod's own `square_roundabouts::/infrastructure/bridge/square_roundabouts_concrete_short.bridge`
+  (`content/infrastructure/bridge/square_roundabouts_concrete_short.bridge.lua`: base concrete with pillars every
+  12 / 16 / 24 m, every base path `::/`, name "Concrete, short spans"). The interchanges' own bridges keep their type
+  (steel / concrete by year, `ramps.bridgeType`); the highway carriageways and ramps of the highway entries become
+  bridges too (before 1970 that is stone, `speedLimit` 90 km/h: it caps the highway entries' carriageways in
+  Bridge mode). No island subconstruction (centre, splitter, channel triangle islands: their ground faces and
+  colliders lie on the ground, below a raised deck), top-level `models` / `groundFaces` empty as without islands.
+  Geometry untouched, so the -0 normalization (`hx.positiveZeros`) still holds (edges compared exactly in
+  `test_structure.lua`).
+- **Short-span concrete hidden from the bridge menu** like base `placeholder.bridge.lua` (`yearFrom = -1`,
+  `yearTo = -1`): the bridge menu lists a type only when `yearTo == 0 or year < yearTo`
+  (`gui/main/menu_category_util.tl` getAvailableObjectsSorted, used by `construction_react_util.tl:1947`
+  makeFilterObjectsFn); the bridge entity window passes the current type as `previousId`, so a placed bridge still
+  lists it. Why plausibly usable from a construction: construction edges are not checked against a bridge's years in
+  base content (the base interchanges unlock 1960 and build `concrete.bridge`, yearFrom 1970; PHASE5.md Spike 3),
+  and the engine keeps a never-available placeholder bridge type. No base construction names a hidden bridge by
+  edgeTypeName (only concrete in `street_constructions.script.lua`), so it is unverified: `TESTING.md` open check 5.
+  Fallback if the game refuses it: `yearFrom = 1970, yearTo = 0` (it then shows in the bridge menu).
+- Not done: a Height-aware choice (the updateFn can't see the height); mixed structures (ring on bridges, arm ends on
+  embankment); the DEV probe's own Probe structure / Probe bridge params stay as they were (its entries have no
+  Structure param; `tests/square_roundabouts_probe` skip `sqrb_structure` in the axis checks: no probe axis, so
+  recorded replay keys are unchanged).
 
 ## Nodes between arms: removed again (2026-10-14)
 A menu param "Nodes between arms" (On by default, 2-lane rings) existed briefly in the unreleased rev 7: placed from the

@@ -124,7 +124,7 @@ test(".con.lua: params, script, icon, availability; script exports only updateFn
 		ok((p.defaultIndex or 1) >= 1 and (p.defaultIndex or 1) <= #p.values, p.key .. " default in range")
 		eq(p.checkEnabledScript, nil, p.key .. " has no checkEnabledScript")
 	end
-	eq(order, { K.layout, K.scale, K.main, K.side, K.slips, K.splitter, K.armLength, K.direction, K.island }, "UI order")
+	eq(order, { K.layout, K.scale, K.main, K.side, K.slips, K.splitter, K.armLength, K.direction, K.island, "sqrb_structure" }, "UI order")
 	-- revision 6: Scale, a row of size codes like the Magic Roundabout's, default XS (the only layout before)
 	eq(byKey[K.scale].name, "Scale"); eq(byKey[K.scale].uiType, "Button"); eq(byKey[K.scale].displayMode, "Horizontal")
 	eq(byKey[K.scale].values, { "XS", "S", "M", "L", "XL" }); eq(#ch.SCALES, 5)

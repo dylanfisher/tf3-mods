@@ -6,6 +6,7 @@
 -- (square_roundabouts_magic.con.lua) because none of the ring params apply to it.
 
 local geom = ug_require "square_roundabouts::/infrastructure/street_construction/square_roundabouts_geometry.lua"
+local result = ug_require "square_roundabouts::/infrastructure/street_construction/square_roundabouts_result.lua"
 
 local K = geom.PARAM_KEYS
 
@@ -191,6 +192,8 @@ return toolbar({
 			values = { _("Off"), _("On") },
 			defaultIndex = geom.SIGNALS_OFF,
 		},
+		-- last on every entry (square_roundabouts_result.lua "Structure")
+		result.structureParam(_),
 	},
 	updateScript = {
 		fileName = "square_roundabouts.script@updateFn",

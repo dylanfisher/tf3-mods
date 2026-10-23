@@ -1,6 +1,6 @@
 # square_roundabouts_probe: asking the engine which combos fail
 
-Status: current. Manual of the DEV probe `mods/square_roundabouts_probe` (never upload). The per-phase run sections are a record of past runs; "Phase 4b runs" (a) search_radius_split and (b) the final `all` sweep never ran (no logs in this folder).
+Status: current. Manual of the DEV probe `mods/square_roundabouts_probe` (never upload). The per-phase run sections are a record of past runs; "Phase 4b runs" (a) search_radius_split and (b) the final `all` sweep never ran (no logs in this folder). The Phase 7e fix-up tools (the construction tool watcher with its W / X / G / Y lines and bisect, the subsets p7_watch / p7_seed / variantsA / variantsB, the "Highway Interchange copy" construction, the `[SQRB_FP]` lines) are no longer in the code (removed after that fix-up; noticed 2026-10-22): their sections below are a record only. Open: "Phase 8: bridge probe" (the main mod's Structure param now ships; TESTING.md open check 5).
 
 **DEV ONLY. Never upload `square_roundabouts_probe`.** It lives in `mods/square_roundabouts_probe/`
 and `make link` puts it in the staging area, so Mod Hub > My Mods will list it: don't publish it.
@@ -638,13 +638,125 @@ The `[SQRB_FP]` lines come from the main mod's highway updateFn (temporary, remo
 3. Esc (close the tool), wait about 15 s for `END subset=variantsB`.
 4. `grep -E "SQRB_PROBE|SQRB_FP" ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_p7_variants.log`
 
+## Phase 8: bridge probe (embankment vs bridge, 2026-10-22)
+
+**Results so far (2026-10-22):**
+- **Console:** every structure places at 0 and 8 m. Bridge and No align make no terrain change.
+  Details: `docs/findings/roads.md`.
+- **Menu, Bridge at about 8 m with the year's concrete bridge:** a flat deck with no pillars at all. Concrete
+  puts a pillar every 60-84 m and steel every 70-90 m, while the ring and arm pieces are 15-30 m. A road
+  dragged onto an arm end built its own stone bridge, with arches every 12 m, and joined the deck.
+- **Added the param "Probe bridge":** Year (default) / Stone / Trestle / Steel / Concrete / Short concrete.
+  Short concrete is the probe's own hidden copy of base concrete with pillars every 12-24 m
+  (`content/infrastructure/bridge/sqrb_probe_concrete_short.bridge.lua`; it shows in the bridge menu as
+  "DEV SQRB short-span concrete"). It only applies to the Bridge structures. The interchange's own bridges
+  keep their type.
+- Next: Stone and Short concrete at 8 m. Do pillars appear on the ring and arms, and do they reach the
+  ground? Is there a pillar at every node or only along the pieces?
+- **The main mod now ships the param (2026-10-22, revision 8):** "Structure" (Embankment / Bridge) on every entry,
+  Bridge = stone before 1970, the mod's own hidden short-span concrete
+  (`square_roundabouts::/infrastructure/bridge/square_roundabouts_concrete_short.bridge`, same pillars as Short
+  concrete here) from 1970, islands dropped (PLAN.md "Structure: Embankment / Bridge"). The in-game checks moved to
+  `TESTING.md` open check 5; this probe stays for the questions it can answer faster (Probe bridge: the other
+  types, No align). Its entries have no main Structure param, and the sweeps never send `sqrb_structure`
+  (Embankment); the grid tests skip that param (`tests/square_roundabouts_probe/test_grid.lua` NOT_SWEPT).
+Why: raised with the game's Height control, the Roundabout / Roundabout Interchange fills earth under every
+edge (PLAN.md open work 6, TESTING.md open check 5). Questions: (1) does `edgeType = "BRIDGE"` +
+`edgeTypeName` (the year's bridge, `ramps.bridgeType`: `::/infrastructure/bridge/steel.bridge` before 1970,
+`concrete.bridge` from 1970) place at ground level, or is it refused / drawn with zero-height pillars? (2) raised
+2-12 m, do all-bridge builds place, and what happens at the arm ends where player roads snap? (3) does
+`alignTerrain = false` on an edge list (base `construction_util_serialized.d.tl:153`, as base
+`stations/air/airport.script.lua:683`) stop the fill on NORMAL edges, and with BRIDGE? (4) must the ground-level
+islands go in bridge mode?
+
+**How the Height control reaches a construction** (base `gui/construction/construction_react_util.tl`): the
+builder adds its own `height` slider (`makeConstructionBuilderParams`, :851-870, -5000..5000 m, only when the
+construction is `heightAdjustable` or has no definition) without `constructionParam = true`
+(`convertScriptParamToMenuParam` sets that flag only on the .con.lua's params, :845); at build time
+`filterToDefinitionParams` keeps only those (:3150-3164) for `constructionBuilder.params`, and the height goes to
+the native builder as `constructionBuilder.height = actionParams["height"]` (:3171-3172; field in base
+`scripts/builtin.d.tl:81`). So the updateFn never sees it: the 7e watcher's W lines (`probe_p7_*.log`) list the
+builder's params as `seed, sqrb_*, year` only, with the height in the transf's z (e.g. `transf=1/-0/0/.../250.12/-597.125/1.58846/1`,
+z = the terrain at Height 0). Inferred (no W line at a non-zero Height was logged): the native builder places
+the construction at terrain + height, the z the sweep models. A DEV mod can't read the placed transf of our
+constructions afterwards (every node is freed and the construction dissolves).
+
+**Manual probe** (deliverable A): two menu entries in the road construction menu next to the real ones:
+"DEV SQRB Bridge probe: Roundabout (NOT FOR UPLOAD)" (order 3011) and "DEV SQRB Bridge probe: Roundabout
+Interchange (NOT FOR UPLOAD)" (3012). Files `mods/square_roundabouts_probe/content/infrastructure/street_construction/`
+`sqrb_probe_bridge.con.lua`, `sqrb_probe_bridge_ix.con.lua`, `sqrb_probe_bridge.script.lua` (updateFn / updateFnIx:
+the main mod's `geometry.build` / `interchange.build` + `square_roundabouts_result.build`, unchanged) and
+`sqrb_probe_bridge.lua` (the post-processing, pure; tests `tests/square_roundabouts_probe/test_bridge.lua`).
+Params: the roundabout entry has Shape, Ring lanes, Scale, Arms, Splitter islands, Arm road, Direction, Centre
+island (nothing through the centre, no tram, no lights); the interchange entry has all its params. Centre island
+defaults to Grass on both. Two probe params last:
+- **Probe structure**: Embankment = unchanged (what ships); Bridge = every edge list without an edgeType gets
+  `edgeType = "BRIDGE"` + the year's bridge (the interchange's own bridge lists keep theirs); No align = every
+  edge list gets `alignTerrain = false`, type unchanged; Bridge + no align = both.
+- **Probe islands**: Keep / Drop (no island subconstruction: no ground faces, models, colliders; no top-level
+  models / ground faces).
+
+Steps (flat, empty map, year >= 1970 for concrete; a second game before 1970 for steel):
+1. `make link`, enable Better Roundabouts and DEV Roundabouts Probe (set "Run the probe" Off if no sweep is wanted).
+2. Open "DEV SQRB Bridge probe: Roundabout", defaults (Scale XS, 4 arms, Town small, Grass). For each Probe
+   structure, place at Height 0, then at 4 m and 8 m (the toolbar's Height, or the raise / lower keys); note per
+   placement: green / red and the message, the cost in the tooltip, the terrain preview (brown fill / cut area),
+   and after building: embankment or not, bridge deck and pillars (at 0 m: zero-height pillars? a deck in the
+   ground?), the islands (floating, buried, on the ground under a bridge).
+3. At Height 8 m with Bridge: drag a road from open ground to an arm end. Does it snap to the arm's end node,
+   climb to it as a ramp, and what fills under that new road (its own embankment)? Bulldoze one arm piece: does
+   the rest stand?
+4. No align (NORMAL edges) at 4 m: is the fill gone (roads floating in the air, bare ground), or still filled?
+   Bridge + no align: any difference to Bridge?
+5. Probe islands Drop with Bridge at 8 m: the ring alone; compare with Keep.
+6. Repeat 2-5 on "DEV SQRB Bridge probe: Roundabout Interchange" (On top Ring and Hwy).
+7. Write down for each case: placeable (yes / no + message), terrain changed (yes / no), look. Remove the test
+   builds before a save is kept (or use a throwaway game).
+
+**Console first** (faster than the menu for questions 1 and 3; read-only: builds nothing, sends no command).
+Centre the view on flat open ground and paste the whole line; it asks the engine about the DEV roundabout probe
+(4 arms, Town small, Grass, year 2020) at the camera centre for every Probe structure at 0 and 8 m above the
+terrain and prints one line each:
+```
+local fn for _,n in ipairs({"square_roundabouts_probe::/infrastructure/street_construction/sqrb_probe_bridge.con","square_roundabouts_probe::infrastructure/street_construction/sqrb_probe_bridge.con"}) do local ok,id=pcall(api.res.constructionRep.find,n) if ok and id and id>=0 then fn=n break end end if not fn then print("SQRB_BRIDGE missing: enable DEV Roundabouts Probe in this game") else local c=api.gui.camera.getCameraData() local z=api.engine.terrain.getHeightAt(api.type.Vec2f.new(c.x,c.y)) for m=1,4 do for _,dz in ipairs({0,8}) do local ce=api.type.SimpleProposal.ConstructionEntity.new() ce.fileName=fn ce.params={sqrb_probe_structure=m,sqrb_probe_islands=1,sqrb_island=2,year=2020,seed=1} ce.transf=api.type.Mat4f.new(api.type.Vec4f.new(1,0,0,0),api.type.Vec4f.new(0,1,0,0),api.type.Vec4f.new(0,0,1,0),api.type.Vec4f.new(c.x,c.y,z+dz,1)) ce.name="SQRB" ce.playerEntity=api.engine.util.getPlayer() local sp=api.type.SimpleProposal.new() sp.constructionsToAdd={ce} local pd=api.engine.util.proposal.makeProposalData(sp) local es=pd.errorState local cf=pd.terrainPreviewHeightModCutFill local cut,fill=0,0 for i=1,#cf do cut=cut+cf[i].x fill=fill+cf[i].y end print(string.format("SQRB_BRIDGE mode=%d dz=%d critical=%s nmsg=%d msg=%s hmods=%d cut=%.0f fill=%.0f cost=%s",m,dz,tostring(es.critical),#es.messages,tostring(#es.messages>0 and es.messages[1] or "-"),#cf,cut,fill,tostring(pd.costs))) end end end
+```
+Read it with `make logs-grep PAT='SQRB_BRIDGE' ARGS='--session live'`. Expected if the bridge works: mode 2 / 4
+place (`critical=false nmsg=0`) with `fill` near 0 at dz 8, mode 1 has a large `fill` at dz 8; mode 3 tells
+whether alignTerrain = false alone stops the fill. It resolves the file name with `constructionRep.find` first and
+prints `SQRB_BRIDGE missing` if the probe mod isn't active: an unknown `fileName` in `makeProposalData` crashes
+the game (2026-10-22, `docs/findings/scripting.md`). Untested in the console (record the result in `docs/findings/roads.md`). makeProposalData agreed with the
+builder on everything but one transf case (Phase 7e fix-up), so the menu steps above stay the final word.
+
+**Sweep `p8_bridge`** (deliverable B; nothing is built): the two DEV entries, every Probe structure x Probe
+islands x dz {0, 2, 4, 8, 12} m above `getHeightAt` at the origin x proposal context {none, full}. Roundabout:
+Scale XS / M (10 / 20 m) x arms T / 4 x Town small / Country medium, Grass island, 2 lanes, CCW (8 base combos,
+640 calls); Roundabout Interchange: two-bridge ring, Ring over / Hwy over, Grass islands, 2020 (2 base combos, 160
+calls). 800 calls, about 20-40 s. dz goes into the transf's z, as the builder's Height (above); the probe params
+are construction params. Entries `bridge_main` (key tag `bm:`) and `bridge_ix` (`bx:`): the main / interchange
+axes, then `structure`, `islands`, `dz`, `context` (`dz` and `context` are place axes: not sent as params).
+1. `make link`. Flat, empty map (as "Steps" above). Probe settings: Run the probe **On**, Subset **p8_bridge**,
+   Start delay 15 s, Combos per update 8, Position **X / Y** at 0 / 0 (flat, dry; move it if not), Log placeable
+   combos **On** (Proposal context is ignored: the subset sweeps none / full itself).
+2. Load, pause, wait for `[SQRB_PROBE] END subset=p8_bridge` (console or `tail -f .../stdout.txt | grep SQRB_PROBE`).
+   `INFO entry bridge_main: construction 'square_roundabouts_probe::/...sqrb_probe_bridge.con'` must be logged.
+3. `grep SQRB_PROBE ~/Library/Application\ Support/Steam/userdata/*/3493540/local/crash_dump/stdout.txt > plans/square_roundabouts/probe_p8_bridge.log`
+   (`make logs-grep PAT='SQRB_PROBE' ARGS='--session last'` if the game has restarted since), then
+   `uv run tools/parse_probe.py --stdout plans/square_roundabouts/probe_p8_bridge.log --summary` (writes
+   `probe_p8_bridge.md` / `.csv`; per-axis refusal rates include structure / islands / dz / context).
+4. What to look for: R lines `ok` by `structure` x `dz` (question 1: bridge at dz 0; question 2: bridge at 2-12 m);
+   the D line after each R line has the terrain change: `hmods` (height modification faces), `cut` / `fill`
+   (volumes), `fillMax` (the highest node above the terrain), `oz` (origin z = terrain + dz). Embankment at dz 8
+   should show a large `fill`; Bridge / No align with `fill` near 0 answer question 3. Islands keep vs drop with
+   Bridge at dz 8 (question 4). `context=full` adds the terrain alignment check.
+
 ## Log format
 One line per event, all prefixed `[SQRB_PROBE]`:
 - `INFO ...` / `ERROR ...`: setup notes (settings, resolved construction names, global params, fallbacks).
 - `START subset= total= x= y= z= pos= context= player= main= magic= geometry=`
-- `D key= rot= ctx= dx= dy= ox= oy= oz= ok= critical= msgs= warnings= infos= coll= collIds="id:kind|..." bld= bldIds= autoRm= hmods= cut= fill= cost= nodes= offMap= water= terrMin= terrMax= fillMax= cutMax= nodeErr=`
-  (p7_spot only, one per call: collisions classified, `-n:new` = an entity of the proposal itself; terrain under
-  the build's nodes relative to the origin; fillMax / cutMax = node above / below terrain, m)
+- `D key= rot= ctx= dx= dy= dz= ox= oy= oz= ok= critical= msgs= warnings= infos= coll= collIds="id:kind|..." bld= bldIds= autoRm= hmods= cut= fill= cost= nodes= offMap= water= terrMin= terrMax= fillMax= cutMax= nodeErr=`
+  (placed combos only: p7_spot*, p7_hx_scale's rotations, p8_bridge; one per call: collisions classified, `-n:new` = an
+  entity of the proposal itself; terrain under the build's nodes relative to the origin (`oz` includes p8_bridge's
+  dz); fillMax / cutMax = node above / below terrain, m; dz = p8_bridge's height above the terrain, `-` otherwise)
 - `W n= event= src= file= transf="16 values" ok= critical= msgs= warnings= infos= coll= collIds= bld= cost= addedSegs= removedSegs= addedNodes= removedNodes= frozenNodes= frozenEdges= replayUi= replayUiFull= replayCore= replayCoreFull= params="k=v,..."`
   (construction tool watcher: the UI builder's own proposal for a square_roundabouts construction, logged when it changes)
 - `X n= uiOk= cloverFile= same= same2= far3000= far600= b4small= interchange= roundabout= cloverleaf=` (watcher triage
@@ -685,8 +797,8 @@ One line per event, all prefixed `[SQRB_PROBE]`:
    seed). `EXTRA_PARAMS` in `probe_config.lua` is the place to try e.g. `{ height = 0 }`.
 
 ## Tooling notes
-- `make validate MOD=mods/square_roundabouts_probe`: passes with two expected warnings (no
-  `_metadata/0.png` cover: a dev mod gets none; `NOT_FOR_UPLOAD.txt` is upper case on purpose).
+- `make validate MOD=mods/square_roundabouts_probe`: passes with warnings only (`NOT_FOR_UPLOAD.txt` is upper
+  case on purpose; the mod.json tooltips are single long lines; 2026-10-22).
   `make validate` over all mods includes it and does not know it is dev-only. Not changed:
   validate_mod.py could turn a `NOT_FOR_UPLOAD.txt` marker into an error ("not for upload") so a
   pre-upload validate fails loudly; say if you want that.
