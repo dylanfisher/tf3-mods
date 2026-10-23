@@ -36,3 +36,13 @@ plans/square_organic_towns/names/data.js
 # so every re-render added a new set to history. They stay on disk for the Hub upload and make modio.
 mods/*/_metadata/[0-9]-*.png
 mods/*/_metadata/[0-9][0-9]-*.png
+
+# Images under plans/ (game captures for make shots, site media, Organic Towns compare renders): kept on disk,
+# not in git (they were ~600 MB of history; removed from all history on 2026-10-22). Back them up separately.
+plans/**/*.png
+plans/**/*.PNG
+plans/**/*.jpg
+plans/**/*.JPG
+plans/**/*.jpeg
+plans/**/*.webp
+plans/**/*.gif
