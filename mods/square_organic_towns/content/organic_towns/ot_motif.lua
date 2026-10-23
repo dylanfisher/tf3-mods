@@ -273,6 +273,8 @@ function MO.applyPlan(mp, style, env)
 	local n, done = 0, {}
 	for _, k in ipairs(MO.KINDS) do
 		if k.derived and k.plan then
+			-- (2026-10-22: the derived kinds' hooks ran without a pause between them, TICKCOST 133 ms in a motif plan)
+			yield()
 			k.plan(mp, style, { id = k.id, derived = true }, env)
 			done[k.id], n = true, n + 1
 		end

@@ -6,6 +6,7 @@
 local here = debug.getinfo(1, "S").source:match("^@(.*/)") or "tests/square_organic_towns/"
 local F = loadfile(here .. "fixtures.lua", "t", _ENV)()
 local CARD = ug_require(F.DIR .. "ot_card.lua")
+local RCI = ug_require(F.DIR .. "ot_rci.lua")
 local SV = ug_require(F.DIR .. "ot_saved.lua")
 local CH = ug_require(F.DIR .. "ot_character.lua")
 local FM = ug_require(F.DIR .. "ot_form.lua")
@@ -138,7 +139,7 @@ test("name origins: codes from the generator's info, sentence ids, garbage", fun
 end)
 
 local function baseInput()
-	return { town = 7, fresh = true, rciOn = true, satellitesOn = true, names = {}, offs = {},
+	return { town = 7, fresh = true, rciOn = true, satellitesOn = true, names = {}, offs = {}, rciWeight = 1,
 		init = { 300, 100, 100 }, sf = { 1, 1, 1 }, uses = { 250, 90, 60 } }
 end
 
@@ -573,4 +574,34 @@ test("card GUI rendered on a platform whose base modules lack makeInfoHint / mak
 		getCollapsibleExpanded = function() return false end })
 	ok(out ~= nil and out.kind == "BoxLayout")
 	if cardP ~= nil then ok(cardP.recipeAndParamPermanent.r ~= nil, "the card's summary recipe") end
+end)
+
+test("growth by deliveries: the card's aim is the driver's weighted aim (Delivery weighting)", function()
+	local inp = baseInput()
+	inp.rc = { e = { 0, 0, 1000 } }
+	local e = { 0, 0, 1 }
+	for _, f in ipairs({ 1, 0.75, 0.5, 0.25 }) do
+		inp.rciWeight = f
+		local sec = CARD.rciSection(inp)
+		near(sec.lines[7].mark, RCI.weightedAim(e, f)[3], 1e-9, "industrial mark at " .. f)
+		near(sec.lines[3].mark, RCI.weightedAim(e, f)[1], 1e-9, "residential mark at " .. f)
+	end
+	-- nil (a fallback read): the param's default, as the driver's rciWeight
+	inp.rciWeight = nil
+	eq(CARD.rciWeight(inp), PA.KEYS.delivery_weighting.values[PA.KEYS.delivery_weighting.default])
+	near(CARD.rciSection(inp).lines[7].mark, RCI.weightedAim(e, 0.5)[3], 1e-9)
+	local d = D.new({})
+	d.opts = PA.parse({}, {})
+	eq(CARD.rciWeight({}), d:rciWeight(), "the card and the driver default alike")
+	-- a town at its Medium aim reads "on its aim" / "already matches", and doesn't lean (46 % industrial: just above
+	-- the 45 % lean line, so the lean shows; at Light none)
+	local w = RCI.weightedAim(e, 0.5)
+	inp.init = { w[1] * 1000, w[2] * 1000, w[3] * 1000 }
+	inp.rciWeight = 0.5
+	ok(texts(CARD.rciSection(inp)):find("already matches", 1, true), texts(CARD.rciSection(inp)))
+	w = RCI.weightedAim(e, 0.25)
+	inp.init = { w[1] * 1000, w[2] * 1000, w[3] * 1000 }
+	inp.rciWeight = 0.25
+	local t = texts(CARD.rciSection(inp))
+	ok(t:find("already matches", 1, true) and not t:find("leans", 1, true), t)
 end)

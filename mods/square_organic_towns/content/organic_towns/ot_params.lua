@@ -40,6 +40,11 @@ M.KEYS = {
 	-- "Town growth" (§66, 2026-10-15, ot_rci): By deliveries (each town's R/C/I mix follows what the player delivers,
 	-- the default) / Game default (the game's evened-out split, no weighting)
 	town_growth = { values = { "deliveries", "game" }, default = 1 },
+	-- "Delivery weighting" (2026-10-21, player request: a middle ground between mill towns and the game's even mix;
+	-- ot_rci.weightedAim): how far a town's aim moves from the neutral mix toward its deliveries' aim, Full / Strong /
+	-- Medium (the default: a save without the key gets it too) / Light. Only with Town growth By deliveries. A separate
+	-- key so town_growth's saved indices keep their meaning.
+	delivery_weighting = { values = { 1.0, 0.75, 0.5, 0.25 }, default = 3 },
 }
 
 -- "Town style" value -> style region (ot_inputs.REGION); auto / na_grid: none (the name list's region)
@@ -62,7 +67,7 @@ end
 --- startAngle = "auto"|"grid"|"mixed"|"organic"|"default" (ot_angles), townLayout = 1..5 (ot_grid),
 --- townSize = "game"|"smaller"|"small" (ot_townsize), industryStreets = "off"|"game" (ot_indstreets), townNames = "landscape"|"game" (ot_names, ot_placename),
 --- satelliteTowns = "on"|"residential"|"industrial"|"off" (districts / Works), strongCharacters = bool (ot_character),
---- townGrowth = "deliveries"|"game" (ot_rci, §66),
+--- townGrowth = "deliveries"|"game" (ot_rci, §66), deliveryWeight = 1 | 0.75 | 0.5 | 0.25 (ot_rci.weightedAim),
 --- mapEditor, raw = "key=value ..."
 --- for the log }.
 function M.parse(mine, all)
@@ -105,6 +110,9 @@ function M.parse(mine, all)
 	v, r = pick(mine, "town_growth")
 	o.townGrowth = v
 	raws[#raws + 1] = "town_growth=" .. tostring(r)
+	v, r = pick(mine, "delivery_weighting")
+	o.deliveryWeight = v
+	raws[#raws + 1] = "delivery_weighting=" .. tostring(r)
 	local base = type(all) == "table" and all[""] or nil
 	o.mapEditor = type(base) == "table" and base.isMapEditor == true
 	o.raw = table.concat(raws, " ")

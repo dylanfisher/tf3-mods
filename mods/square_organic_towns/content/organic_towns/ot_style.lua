@@ -258,11 +258,19 @@ function M.resolve(inputs)
 	local drawV = (inputs.frame and inputs.frame.axis and inputs.frame.drawV ~= 2) and 1 or 2
 	-- a motif forced by the dev tools may set inputs first (ot_motif: hill road -> the shape linear)
 	MO.applyInputs(inputs)
-	-- the style: forced (setting / dev tools), saved with the town's plan frame, from the town's site (Automatic:
-	-- ot_site, the region only biases), else the region's profile
+	-- the style: forced by the dev tools, the player's pick in the town window card (ot_saved `ps`, 2026-10-21), forced
+	-- by the "Town style" setting (North American grid; inputs.forceFrom "setting"), saved with the town's plan frame,
+	-- from the town's site (Automatic: ot_site, the region only biases), else the region's profile. The player's pick
+	-- wins over the setting (the player chose this town's streets after the setting) but never over a dev style (the
+	-- showcase and comparisons force a profile per job).
 	local id, source, why
-	if inputs.forceStyle and M.PROFILES[inputs.forceStyle] then
+	local player = inputs.frame and inputs.frame.playerStyle
+	if not (player and M.PROFILES[player]) then player = nil end
+	local forced = inputs.forceStyle and M.PROFILES[inputs.forceStyle] and not (player and inputs.forceFrom == "setting")
+	if forced then
 		id, source = inputs.forceStyle, "forced"
+	elseif player then
+		id, source, why = player, "player", "player"
 	elseif inputs.frame and inputs.frame.style and M.PROFILES[inputs.frame.style] then
 		id, source, why = inputs.frame.style, "saved", "saved"
 	elseif inputs.charKind and M.PROFILES[CH.styleFor(inputs.charKind, inputs.charSite or inputs) or ""] then
@@ -331,8 +339,9 @@ function M.resolve(inputs)
 		if p.collectorEvery then p.collectorEvery = p.collectorEvery * 2 end
 	end
 
-	-- era: outer zone (suburbs, 19th-c. extension; a forced style has none unless keepOuter); templates
-	if not inputs.forceStyle or inputs.keepOuter then p.outer = M.pickOuter(id, inputs) end
+	-- era: outer zone (suburbs, 19th-c. extension; a forced style has none unless keepOuter, a player's pick over the
+	-- setting's forced grid has its own as any town); templates
+	if not (inputs.forceStyle and source ~= "player") or inputs.keepOuter then p.outer = M.pickOuter(id, inputs) end
 	if lookZone then
 		if p.outer == nil then
 			p.outer = { id = id, from = M.LOOK_FROM, look = lookZone, lookZone = true }

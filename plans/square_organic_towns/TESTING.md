@@ -10,6 +10,75 @@ Before you start:
 - The old probe mod `square_organic_towns_probe` was deleted (2026-10-12); its probes live in the main and dev mods.
 - Use throwaway saves. The mod builds real streets.
 
+## Delivery weighting (2026-10-21; PLAN.md 6.2 "Delivery weighting"; open)
+
+The new setting "Delivery weighting" (Full / Strong / Medium, the default / Light) and the slower pace at every level
+(STEP_MAX 0.02, MOVE_K 0.67, TAU 1 year). Real play (the dev Simulate makes no deliveries). Debug log On.
+- Mod settings: the new ComboBox below "Town growth", Medium preselected; its tooltip and the Town growth tooltip's
+  new line in one other language (de or ja): no line wider than the others by much.
+- INIT line: `deliveryWeight=0.5`, `params=... delivery_weighting=nil` (untouched default) or `=<index>`.
+- A new map at the default, an industry-fed town A and a passenger-only town B as in "Combined test iteration" step
+  15: A's RCI lines `aim=` about 33/20/46 (Full would be 25/12/63), B's about 59/20/20; `move=` at most 0.020. The
+  town window card's aim marks match the RCI `aim=` (same percent), "on its aim" once a town gets there.
+- The same save reloaded with Full: the RCI `aim=` jumps to the Full aim at once, the `r/c/i=` shares do not (at most
+  2 points a month, only while the town grows); reloaded with Light: A's industrial share drifts down slowly, no
+  industrial building is demolished (count A's industry before / after a few game years).
+- An older save (made before this setting, a weighted mill town): loads at Medium, its town turns back slowly (as
+  above), no building torn down, no error.
+- Console (docs/console.md "weighted aim"): `SQOT_AIM` lines with `weighted=` equal to the RCI lines' `aim=`.
+  **Passed 2026-10-22 (live session, 14 towns, default Medium):** INIT `deliveryWeight=0.50`; snippet runs without
+  error, `weighted=` matches the RCI `aim=` (Copper_Ferry_Cove 59/20/20, Port_Sugar 55/24/20 both sides; Hayfield
+  51/25/24 vs 50/25/25, one smoothing step apart). Passenger-only towns aim 59/20/20 (Full 76/12/12).
+- Lines to send: INIT, a few RCI lines per town, SQOT_AIM, the session names.
+
+## Frame cost (2026-10-21; PLAN.md 6.2 "Frame cost"; open)
+
+Session `2026-10-22_0518_sqot-sqrl` (69 min, 14 towns, debug on): TICKCOST `avgUs` 25-237 but 194 ticks over 16 ms
+and 25 over 50 ms, the slowest at `job:plan` (up to 111 ms), `job:snapshot` (108) and `job:assess` (72). The planner
+pauses more often now (same plans); the stage slices were tried and removed (2026-10-22, PLAN.md 6.2). Offline:
+test_tickcost, test_driver "TICKCOST atStep". Quit TF3 fully first; any map with 10+ towns, real play or the dev
+Simulate, at least 30 min of game running (six TICKCOST windows). Debug log On or Off (Off is the player's case).
+
+1. **TICKCOST** (`make logs-grep PAT='\[SQOT\] TICKCOST' ARGS='--session live'`), per 5-min window: `over16ms`,
+   `over50ms`, `maxUs`; `atStep=<from>><to>` and `atStepUs=` name the slowest tick's longest stretch. Send every line
+   whose `maxUs` is over 16000: its `atStep` says what to fix next (a `file:line<...>file:line` pair is a planner
+   stretch between two pauses; `chk.*` the check, `snap.*` / `style.*` the snapshot, `plan.*` the steps after the
+   planner, `terrain.*`; `tick>gameClock` / `stops` / `works` / `card` the tick's own parts; a `>end` stretch ran to
+   the tick's end).
+2. **Same growth:** towns grow as on 2026-10-20 (seed `a`: Simulate `sPerYear` about 3, rounds every year; PLAN /
+   BUILT lines as usual, no new ERROR / WARN). Any `ERROR ... err=stalled` line: send it with the session name.
+- Lines to send: TICKCOST (all), any ERROR / WARN, the session name.
+
+## Street style pick (2026-10-21; PLAN.md 6.2 "Street style pick in the town window card"; open)
+
+The town window card's "Streets" row is a dropdown: the player changes a town's street style, new streets follow it.
+Offline: test_stylepick, test_demand "street style pick in the driver". Quit TF3 fully first; a save with a few towns
+the mod already grew (they have a frame: the card shows a Character section). Debug log On helps (STYLE lines).
+
+1. **The dropdown:** open a grown town's window, expand the Organic Towns card. "Streets" shows a base dropdown (the
+   mod settings' look) with "Automatic (<its style>)" selected, the description note under it; the nine styles each
+   with their description as the tooltip; the row and the closed box show "The street style for this town's new
+   streets. / Streets already built stay as they are." Nothing touches; the card still wraps at its width (try de / ru).
+   An ungrown town (no Character section) and the map editor show no dropdown. With Act on Off the row is plain text.
+2. **Pick a style** (e.g. an EU organic town -> North American grid): one `[SQOT] STYLE event=pick town=<id> name=
+   from=EU_ORGANIC to=NA_GRID sent=true` line; the box keeps the pick (no flicker back within 2 s), the note follows.
+   `make logs-grep PAT='STYLE event=' ARGS='--session live'`.
+3. **The next growth step uses it:** the town's next build logs `[SQOT] STYLE event=apply town=<id> style=NA_GRID
+   source=player` (once), the debug STYLE line `styleSource=player`, and the new streets come as the grid (straight,
+   locked, around the old core); the old streets, axis, shape and motifs stay. No ERROR / handleEvent warning.
+4. **Saved:** paste in the console (the key below Esc)
+   `local e=api.engine.system.gameScriptSystem.getEntityForGameScript("square_organic_towns::/organic_towns/organic_towns.gs") local fr=api.engine.getComponent(e,api.type.ComponentType.GAME_SCRIPT).state_native:find("frames"):asTable() local n=0 for k,f in pairs(fr) do n=n+1 if f.ps then print("SQOT_PS town="..k.." st="..tostring(f.st).." ps="..tostring(f.ps)) end end print("SQOT_PS frames="..n)`
+   -> `SQOT_PS town=<id> st=<own> ps=<1..9>` for each picked town (`make logs-grep PAT='SQOT_PS' ARGS='--session live'`).
+   Save, quit TF3 fully, reload: the card shows the pick, the next build logs the apply line again, the town keeps
+   growing in it.
+5. **Automatic:** pick "Automatic (...)": `to=auto`, the console line no longer lists the town, the next build is in
+   its own style again (`styleSource=saved` or `forced`).
+6. **Over the setting:** set "Town style" to North American grid (new game or settings before load): Automatic shows
+   "Automatic (North American grid)"; pick Nordic: the town grows Nordic streets, the other towns stay grids.
+7. **Older save:** a save from before this build loads unchanged (no STYLE lines, same growth) until a pick.
+8. **PS5 / gamepad (when a console player can):** the dropdown opens and picks with the controller; no UI reload.
+   The ComboBox is a builtin (no base helper at render time), so the PC result should hold; unverified.
+
 ## Rev 2: pause and refunds (2026-10-17; PLAN.md 6.2 "Pause and refunds (rev 2)")
 
 A player's report on rev 1: streets built while the game was paused; a new game at $0 went into the red. A short check
@@ -888,10 +957,11 @@ sections below. Say "done" after each run; the main session reads the log.
       ask for, e.g. from a nearby factory), no passenger line. Town B: passengers only (a bus line inside the town and
       one to a neighbour), no cargo. Play about 10 game years.
     - (b) **Game default:** the same map from its first save, `town_growth=2`, the same lines, the same 10 years.
-    - Check in (a): `RCI town=<A> ... r/c/i=..->..` lines about once a game month while A grows, `aim=12/12/76` (or
-      near) for A and `aim=76/12/12`-ish for B, `sum=N->N` (the initial sum kept; above it only by the 5 % ceiling),
-      `move=` at most 0.030. `RCI summary` every 10 minutes: `weighted=` towns, `lean=` counts. After 10 years A's
-      ALLTOWN / inspector `rci=` share should read clearly industrial (60 %+ is the aim, base towns stay under ~45 %)
+    - Check in (a): `RCI town=<A> ... r/c/i=..->..` lines about once a game month while A grows, `aim=25/12/63` (or
+      near; §75 floors) for A and `aim=76/12/12`-ish for B at Delivery weighting Full (at the default Medium about
+      33/20/46 and 59/20/20, "Delivery weighting" above), `sum=N->N` (the initial sum kept; above it only by the 5 % ceiling),
+      `move=` at most 0.020 (0.030 before 2026-10-21). `RCI summary` every 10 minutes: `weighted=` towns, `lean=` counts. After 10 years A's
+      ALLTOWN / inspector `rci=` share should read clearly industrial (63 % is the Full aim, 46 % Medium; base towns stay under ~45 %)
       and B residential; (b) should stay near the base spread (findings towns.md "Measured spread").
     - The total: town sizes (ALLTOWN `capacity=`, the town window's population) in (a) vs (b) within ~5-10 %: the mix
       moves, not the speed.
@@ -1702,7 +1772,7 @@ stdout.txt`, the ALLTOWN lines and the SIMGROW year lines. Or just "done" + the 
 | `FILL effect town=… kind=… s=… near=a->b far=a->b buildings=a->b cap=… initial=a->b sizeFactors=…` | debug, the town's next check after a fill | where the growth went (60 m / 200 m around the points); `initial` should stay restored |
 | `GROW town=… sizeFactors=… to=…` | testing param on | |
 | `LEVELS town=… action=set\|clear why=sparse\|change\|dense pb=… k=… was=… weights=a/b/c/d\|default lvl=a:…,u:…,w:…,c:…` | always (a world change; skips debug, once per reason) | new maps only; k 0.25-1 by how far persons per building are below 4.5; never on a town with a player's own weights (`skip=player`); 2026-10-14 late |
-| `TICKCOST s=… ticks=… avgUs=… maxUs=… at=… getMaxUs=… getAvgUs=… over4ms=… over16ms=… over50ms=… pvB=… pvN=…` | always, every 300 real s while the mod runs (2026-10-14; getAvgUs, pvB, pvN 2026-10-20) | the GUI tick's cost (state:get() + Driver:tick); `at` = the slowest tick's stage (chars / names:<phase> / job:<stage> / idle); `getMaxUs` / `getAvgUs` = the slowest / mean saved-state copy; `pvB` / `pvN` = the provenance record's chars (cap 32768) / entries |
+| `TICKCOST s=… ticks=… avgUs=… maxUs=… at=… getMaxUs=… getAvgUs=… over4ms=… over16ms=… over50ms=… pvB=… pvN=… getN=… stateMode=… revMiss=… atStep=… atStepUs=…` | always, every 300 real s while the mod runs (2026-10-14; getAvgUs, pvB, pvN 2026-10-20; getN, stateMode, revMiss 2026-10-20; atStep, atStepUs 2026-10-21) | the GUI tick's cost (state:get() + Driver:tick); `at` = the slowest tick's stage (chars / names:<phase> / job:<stage> / idle); `getMaxUs` / `getAvgUs` = the slowest / mean saved-state read; `pvB` / `pvN` = the provenance record's chars (cap 32768) / entries; `getN` = full copies in the window, `stateMode` rev | get, `revMiss` the reader's mismatches (ot_saved Reader); `atStep` = the slowest tick's longest stretch between two step notes (`<from>><to>`: slice points such as `chk.bld`, `snap.style`, `plan.geo`, the planner's yields as `file:line`, the tick's parts `gameClock` / `stops` / `offshootCheck` / `works` / `card`, `job:<stage>` a stage's start, `end` the tick's end), `atStepUs` its length |
 | `NAMES words … towns=… assignMs=…` | always, once per new map | the names assign runs in one tick: its cost in ms (offline 40-100 ms at 30-60 towns) |
 | `ERROR stage=… err=…` | always | report every one |
 

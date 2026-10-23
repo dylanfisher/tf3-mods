@@ -203,13 +203,17 @@ end
 
 --- Junction positions as a node hash (kept on the plan, derived data): idx graph whose node id i is the
 --- junction keys[i] (keys sorted).
-function M.junctionIndex(mp)
+function M.junctionIndex(mp, yield)
 	if mp.jindex == nil then
+		-- (2026-10-21: yield, the plan slice's, between the parts: a big plan's first index took ~18 ms in one go)
 		local idx = OG.new()
 		local keys = {}
 		for k in pairs(mp.junctions) do keys[#keys + 1] = k end
+		if yield then yield() end
 		table.sort(keys)
+		if yield then yield() end
 		for i, k in ipairs(keys) do
+			if yield and i % 256 == 0 then yield() end
 			local j = mp.junctions[k]
 			OG.addNode(idx, i, j[1], j[2], 0, false)
 		end
@@ -220,11 +224,13 @@ end
 
 --- Junction keys (sorted) and their graph nodes: jnode[key] = nearest graph node id within snapR,
 --- nodeUsed[node id] = true. Looks up each graph node in the plan's junction hash.
-function M.matchJunctions(g, mp, snapR)
+function M.matchJunctions(g, mp, snapR, yield)
 	snapR = snapR or 8
-	local idx, keys = M.junctionIndex(mp)
+	local idx, keys = M.junctionIndex(mp, yield)
+	if yield then yield() end   -- (2026-10-21: the driver's plan slice may end here and every 64 nodes)
 	local jnode, nodeUsed, dist = {}, {}, {}
-	for _, n in ipairs(g.nodes) do
+	for i, n in ipairs(g.nodes) do
+		if yield and i % 64 == 0 then yield() end
 		local j, d = OG.nearestNode(idx, n.x, n.y, snapR)
 		if j then
 			local k = keys[j.id]
@@ -249,12 +255,68 @@ function M.classify(g, mp, style, opts, jnode)
 	return info
 end
 
+--- The junction keys' cells for the dead-end connectors (2026-10-21, TICKCOST round: every select call scanned all the
+--- plan's junctions for every dead end, ~a third of a big town's plan time). cells["i:j"] = { index into keys, ... }
+--- ascending; `far`: junctions off any map (or not finite), candidates everywhere. Kept on the plan with its keys.
+M.CONN_CELL = 100
+M.CONN_GRID = true   -- false: the full scan (tests compare both)
+local function connGrid(mp, keys)
+	local cg = mp._connGrid
+	if cg ~= nil and cg.keys == keys then return cg end
+	cg = { keys = keys, cell = M.CONN_CELL, cells = {}, far = {} }
+	for i, k in ipairs(keys) do
+		local j = mp.junctions[k]
+		local x, y = j and j[1], j and j[2]
+		if type(x) == "number" and type(y) == "number" and x > -1e12 and x < 1e12 and y > -1e12 and y < 1e12 then
+			local ck = (math.floor(x / cg.cell) + 0) .. ":" .. (math.floor(y / cg.cell) + 0)   -- (+ 0: never "-0")
+			local list = cg.cells[ck]
+			if list == nil then
+				list = {}
+				cg.cells[ck] = list
+			end
+			list[#list + 1] = i
+		else
+			cg.far[#cg.far + 1] = i
+		end
+	end
+	mp._connGrid = cg
+	return cg
+end
+
+--- The indices (ascending: the keys' order) of the junctions that may lie within r of (x, y) by both axes: every one
+--- the full scan's box test |dx| < r, |dy| < r could pass.
+local function connCands(cg, x, y, r)
+	local out = {}
+	if not M.CONN_GRID or not (type(x) == "number" and type(y) == "number" and type(r) == "number" and x > -1e11 and x < 1e11
+		and y > -1e11 and y < 1e11 and r >= 0 and r < 1e6) then
+		for i = 1, #cg.keys do out[i] = i end   -- (off any map, NaN or an endless radius: the full scan)
+		return out
+	end
+	for _, i in ipairs(cg.far) do out[#out + 1] = i end
+	local c = cg.cell
+	for ci = math.floor((x - r) / c) + 0, math.floor((x + r) / c) do
+		for cj = math.floor((y - r) / c) + 0, math.floor((y + r) / c) do
+			local list = cg.cells[ci .. ":" .. cj]
+			if list then
+				for _, i in ipairs(list) do out[#out + 1] = i end
+			end
+		end
+	end
+	table.sort(out)
+	return out
+end
+
 --- Junction key -> pieces touching it (derived once per plan and kept on it).
-local function adjacency(mp)
+local function adjacency(mp, yield)
 	if mp.adj == nil then
 		local adj = {}
-		for _, pc in ipairs(mp.pieces) do
-			for _, k in ipairs({ pc.a, pc.b }) do
+		-- (2026-10-21: yield, the plan slice's, every 128 pieces: a big plan's first call took ~7 ms)
+		for i, pc in ipairs(mp.pieces) do
+			if yield and i % 128 == 0 then yield() end
+			for side = 1, 2 do
+				local k
+				if side == 1 then k = pc.a else k = pc.b end
+				if k == nil then break end   -- (as ipairs over { a, b } did)
 				local list = adj[k]
 				if list == nil then list = {}; adj[k] = list end
 				list[#list + 1] = pc
@@ -621,13 +683,14 @@ end
 
 --- Area (m2) of the region where the shape's effective distance is at most `level` (grid count, 56 x 56 over a
 --- box the region fits in).
-local function envelopeArea(shape, level, terrain)
+local function envelopeArea(shape, level, terrain, yield)
 	local reach = level * 3
 	local n = 56
 	local step = 2 * reach / n
 	local cx, cy = shape.centre[1], shape.centre[2]
 	local count = 0
 	for i = 0, n - 1 do
+		if yield then yield() end   -- (2026-10-21: the driver's slice may end between the rows)
 		local x = cx - reach + (i + 0.5) * step
 		for j = 0, n - 1 do
 			if SH.distance(shape, x, cy - reach + (j + 0.5) * step, terrain) <= level then count = count + 1 end
@@ -643,7 +706,7 @@ end
 --- sparse combs in the cross / fingers previews). The level per metre of equivalent radius is measured once per
 --- town (shape._envK; the shapes scale with the level, fingers' core and the twin's distance roughly). nil for
 --- unshaped towns or an empty graph.
-function M.envelopeCap(g, style, terrain)
+function M.envelopeCap(g, style, terrain, yield)
 	local shape = style.shape
 	if shape == nil or shape.id == "compact" or #g.edges == 0 then return nil end
 	local L = 0
@@ -651,7 +714,7 @@ function M.envelopeCap(g, style, terrain)
 	local blk = math.max(style.block.len, style.block.depth)
 	local req = math.sqrt(L * blk / (2 * math.pi))
 	if shape._envK == nil then
-		local a = envelopeArea(shape, req, terrain)
+		local a = envelopeArea(shape, req, terrain, yield)
 		shape._envK = a > 0 and math.sqrt(math.pi * req * req / a) or 1
 	end
 	local g = SH.GEOM[shape.id]
@@ -1167,9 +1230,11 @@ function M.select(g, mp, style, opts)
 	local occR = occRadius(style, opts)
 
 	if cache.jnode == nil then
-		cache.jnode, cache.jkeys, cache.nodeUsed = M.matchJunctions(g, mp, snapR)
+		if opts.yield then opts.yield() end
+		cache.jnode, cache.jkeys, cache.nodeUsed = M.matchJunctions(g, mp, snapR, opts.yield)
 	end
-	local adj = adjacency(mp)
+	if opts.yield then opts.yield() end
+	local adj = adjacency(mp, opts.yield)
 	local jkeys, nodeUsed = cache.jkeys, cache.nodeUsed
 	local jnode = setmetatable({}, { __index = cache.jnode })   -- connector junctions are added per call
 	local extraAdj = {}
@@ -1213,14 +1278,19 @@ function M.select(g, mp, style, opts)
 		local joinR = opts.joinR or style.block.len * 0.75
 		if opts.connRelax then joinR = math.max(joinR * M.CONN_RELAX_R, M.CONN_RELAX_MIN) end
 		local connTurn = opts.connRelax and M.CONN_RELAX_TURN or M.CONN_TURN
+		local connYield = opts.yield
+		if connYield then connYield() end
+		local cg = connGrid(mp, jkeys)
 		for _, nid in ipairs(OG.deadEnds(g)) do
+			if connYield then connYield() end   -- (2026-10-21: the driver's slice may end between the dead ends)
 			if not nodeUsed[nid] and not (join and not P.joinable(g, g.nodeById[nid], join)) then
 				local n = g.nodeById[nid]
 				local out = nil   -- the dead end's direction (continuing its street outward)
 				local de = g.edgeById[g.adj[nid][1]]
 				if de then out = G.wrap(OG.headingFrom(g, de, nid) + math.pi) end
 				local best, bd, bscore = nil, joinR, math.huge
-				for _, k in ipairs(jkeys) do
+				for _, ji in ipairs(connCands(cg, n.x, n.y, joinR)) do
+					local k = jkeys[ji]
 					local j = mp.junctions[k]
 					if not jnode[k] and math.abs(j[1] - n.x) < joinR and math.abs(j[2] - n.y) < joinR then
 						local d = G.dist(n.x, n.y, j[1], j[2])
@@ -1293,6 +1363,7 @@ function M.select(g, mp, style, opts)
 		if best then reach(best) end
 	end
 
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	-- look rules: zig-zag corners and lassos (see M.ZIGZAG_DEG)
 	local zzOn = opts.zigzag
 	if zzOn == nil then zzOn = M.ZIGZAG end
@@ -1305,6 +1376,7 @@ function M.select(g, mp, style, opts)
 		cache.structure = stru
 		if stru.core == nil then guardOn = false end
 	end
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local uf, anchors = {}, {}
 	local function find(k)
 		while uf[k] ~= k do k = uf[k] end
@@ -1969,6 +2041,7 @@ function M.select(g, mp, style, opts)
 			if l then for i = #l, 1, -1 do if l[i][3] == tag then table.remove(l, i) end end end
 		end
 	end
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	for _, k in ipairs(jkeys) do if reached[k] then ensure(k) end end
 	for _, k in ipairs(dkeys) do ensure(k) end
 	for _, k in ipairs(adopted) do ensure(k) end
@@ -1988,6 +2061,7 @@ function M.select(g, mp, style, opts)
 	end
 	-- shaped towns: pieces in an arm corridor (ot_shape.inArm) may lead one piece further, so the arms run out
 	-- beyond the round core the game's own growth makes
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local shape = style.shape
 	local armLead = shape ~= nil and shape.id ~= "compact" and opts.armLead ~= false
 	-- lattice-first (style.lattice, Showcase v8 round): only on a plan anchored to the town's streets (a game-made core
@@ -2016,18 +2090,21 @@ function M.select(g, mp, style, opts)
 				ds = {}
 			end
 			table.sort(ds)
+			if opts.yield then opts.yield() end
 			local q = ds[math.max(1, math.floor(#ds * M.FRONT_Q + 0.5))] or 0
 			-- unshaped towns grow by the seeded sector preference and hotspots (leapfrog): a looser front
 			-- (town form, ot_form: clustered towns keep a tight front, sprawling ones leapfrog farther)
 			frontCap = q + (shaped and M.FRONT_REACH or M.FRONT_REACH_PLAIN) * math.max(style.block.len, style.block.depth)
 				* (style.form and style.form.front or 1)
 			cache.frontCap, cache.frontQ = frontCap, q
-			if shaped and opts.envelope ~= false and M.ENVELOPE then cache.envCap = M.envelopeCap(g, style, opts.terrain) end
+			if shaped and opts.envelope ~= false and M.ENVELOPE then cache.envCap = M.envelopeCap(g, style, opts.terrain, opts.yield) end
+			if opts.yield then opts.yield() end
 			-- (organic growers only: a grid's cross pieces are pruned until they close a block, so its arm tips
 			-- rarely become junctions and the front never moved: NA grid towns stalled after 3 increments)
 			if shaped and opts.armFill ~= false then
 				cache.armBuilt, cache.armHoused, cache.armBehind = M.armBuiltFronts(g, style,
 					opts.limits and opts.limits.armFillM or nil, opts.limits)
+				if opts.yield then opts.yield() end
 			end
 			if shaped and opts.armFront ~= false and M.ARM_FRONT and style.grower == "organic" then
 				-- (deep arms: one piece more, for the line tips one piece ahead of the last lane; the tips rule and
@@ -2044,6 +2121,7 @@ function M.select(g, mp, style, opts)
 	report.armTrim = cache.armBuilt and cache.armBuilt.trimmed or 0
 	-- housed front (M.HOUSED, style.housedLead): every point of a piece within the lead of a housed street
 	if cache.housedIdx == nil then cache.housedIdx = (opts.housed ~= false and M.housedIndex(g, style)) or false end
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local housedIdx = cache.housedIdx or nil
 	if M.EMPTY_LOOP and style.grower == "organic" and not style.metro then
 		if cache.emptyLoopIdx == nil then cache.emptyLoopIdx = M.housedIndexM(g, M.EMPTY_LOOP_M) or false end
@@ -2061,10 +2139,12 @@ function M.select(g, mp, style, opts)
 		local hm = opts.limits and opts.limits.housedMin
 		cache.leadIdx = (opts.leadLimit ~= false and lm and (M.housedIndexM(g, lm, hm) or (hm and M.housedIndexM(g, lm)))) or false
 	end
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local leadIdx = cache.leadIdx or nil
 	if cache.ringIdx == nil then
 		cache.ringIdx = (style.ringWobble and opts.leadLimit ~= false and M.housedIndexM(g, M.RING_LEAD_M)) or false
 	end
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local ringIdx = cache.ringIdx or nil
 	report.ringHeld = 0
 	-- sparse streets (M.SPARSE, §57): no new piece among streets that stayed nearly empty
@@ -2072,6 +2152,7 @@ function M.select(g, mp, style, opts)
 		local on = opts.sparse == true or (opts.limits ~= nil and opts.limits.sparse == true)
 		cache.sparseIdx = (on and opts.leadLimit ~= false and M.sparseIndex(g)) or false
 	end
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local sparseIdx = cache.sparseIdx or nil
 	report.sparseHeld = 0
 	-- (2026-10-15 §59: the starve relaxation below lets the held pieces back in, a few edges at most)
@@ -2086,6 +2167,7 @@ function M.select(g, mp, style, opts)
 	-- works' buffer wait while the increment can fill elsewhere (the cost alone can't steer when the fronts leave fewer
 	-- pieces than the budget: grid towns); they come back when the increment would starve (last of the relaxations
 	-- below), so a boxed-in town still grows
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local indInfo = style.industry
 	local indLevel = (indInfo ~= nil and IND.HOLD_PEN ~= nil) and IND.HOLD_PEN or nil
 	report.indHeld = 0
@@ -2202,6 +2284,7 @@ function M.select(g, mp, style, opts)
 	end
 	-- gaps between towns (ot_gap, R3): pieces in the gap before the halfway line to a neighbour (or past it, or on land
 	-- the engine gives another town) never come; twins' main roads go on to the line
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local gapInfo = style.gaps
 	report.gapHeld = 0
 	local gapHeldNow = 0
@@ -2294,6 +2377,7 @@ function M.select(g, mp, style, opts)
 		end
 		return true
 	end
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local housedHeldKeys = {}
 	report.armFill = 0   -- pieces held back by the fill rule (M.ARM_FILL)
 	local fillHeld = {}
@@ -2331,6 +2415,7 @@ function M.select(g, mp, style, opts)
 	report.envCap = envCap
 	-- green wedges (ot_wedge, 2026-10-13: style.wedges, set by the driver for armed shapes): beyond the core zone at the
 	-- (unrelaxed) envelope level and outside every arm corridor nothing is planned; never relaxed
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local wedgeR = nil
 	if style.wedges and opts.wedges ~= false and cache.envCap and WG.applies(style) then
 		wedgeR = WG.coreR(shape, cache.envCap)
@@ -2352,6 +2437,7 @@ function M.select(g, mp, style, opts)
 	end
 	-- protected meadows (ot_meadow, later-ideas phase: style.meadows, set by the driver for sprawling / unarmed character
 	-- towns): beyond the core zone in a meadow sector between the lobes nothing is planned; never relaxed
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local meadow = nil
 	if style.meadows and opts.meadows ~= false and MD.applies(style) then meadow = MD.zone(g, style, M.irregularity(style)) end
 	report.meadowR = meadow and meadow.coreR or nil
@@ -2359,6 +2445,7 @@ function M.select(g, mp, style, opts)
 	report.meadowText = meadow and MD.text(meadow) or nil
 	local meadowHeldKeys = {}
 	-- late hierarchy: the tighter front for main / medium pieces (M.WIDE_REACH fine blocks beyond the front)
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local wideCap, wideFine = nil, 0
 	if frontCap and style.hierarchy == "late" and opts.wideReach ~= false then
 		local fine = math.max(style.block.len / ((style.sub and style.sub.u) or 1), style.block.depth / ((style.sub and style.sub.v) or 1))
@@ -2596,6 +2683,7 @@ function M.select(g, mp, style, opts)
 	end
 	-- saw-tooth outskirts (showcase v3): a piece that turns a corner at a node with one street (an L step at the
 	-- frontier) costs more, one continuing it straight less (M.CORNER_PEN / M.STRAIGHT_BONUS)
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	local smoothOn = opts.smooth
 	if smoothOn == nil then smoothOn = M.SMOOTH end
 	-- joint rule (M.JOINT_TURN): may pc leave the existing dead ends at its ends at its angle now?
@@ -2783,6 +2871,7 @@ function M.select(g, mp, style, opts)
 			if db > m then depth[best.b] = m end
 		end
 	end
+	if opts.yield then opts.yield() end   -- (2026-10-21: the set-up in slices, TICKCOST round)
 	report.tips = 0
 	-- (hang fix 2026-10-13: a hard cap on the rounds of the greedy loop, and the driver's plan slice may end between them)
 	local iter, maxIter = 0, maxEdges * M.ITER_PER_EDGE + M.ITER_BASE
@@ -2793,8 +2882,9 @@ function M.select(g, mp, style, opts)
 			report.iterCap = iter - 1
 			break
 		end
-		if yieldFn and iter % 4 == 0 then yieldFn() end
-		for _, pc in ipairs(pending) do
+		if yieldFn then yieldFn() end   -- (2026-10-21: every round; was every 4th, 3+ ms apart on big towns)
+		for ip, pc in ipairs(pending) do
+			if yieldFn and ip % 16 == 0 then yieldFn() end
 			local st = getInfo(pc)
 			if st.need and not exclude[pc.key] then open[#open + 1] = pc end
 		end
@@ -2806,6 +2896,7 @@ function M.select(g, mp, style, opts)
 		gapHeldNow = 0
 		local why = opts.why   -- (debugging: the last reason each open piece waited)
 		for i, pc in ipairs(open) do
+			if yieldFn and i % 4 == 0 then yieldFn() end
 			local st = info[pc.key]
 			if why and not inSet[pc.key] then
 				why[pc.key] = (st.need > budget and "budget") or (not frontOk(pc) and "front") or (not leadOk(pc) and "lead")

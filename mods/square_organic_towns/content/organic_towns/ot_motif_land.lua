@@ -108,7 +108,7 @@ L.FV = {
 -- ~30-110 ms): ot_motif.applyPlan sets L.yieldFn while its hooks run; L.overlay calls it every OVERLAY_YIELD pieces, only
 -- inside a coroutine (a stale function outside one does nothing).
 L.yieldFn = nil
-L.OVERLAY_YIELD = 64
+L.OVERLAY_YIELD = 16   -- (64 until 2026-10-22: TICKCOST 133 ms ending at an overlay pause)
 local function sliceYield()
 	local fn = L.yieldFn
 	if fn == nil or type(coroutine) ~= "table" then return end
@@ -266,6 +266,7 @@ end
 --- crossing the line end there in a T (shared junction), as ot_crescent / ot_shore do. Returns { stops = sorted
 --- { s, key, x, y }, ix, pieces, cut }.
 function L.overlay(mp, line, o)
+	sliceYield()
 	local ix = L.index(line)
 	local len = ix.len
 	local stops = {}

@@ -163,7 +163,8 @@ M.ORIGIN_RAYS = 16
 M.ORIGIN_R = 700
 
 --- Narrow water points around (cx, cy): { {x, y, width, heading} } (heading: the ray's, from the centre). s: sampler.
-function M.narrowWater(s, cx, cy)
+--- yield: nil, or called between the rays (the driver's step note, 2026-10-21).
+function M.narrowWater(s, cx, cy, yield)
 	local out = {}
 	if s == nil then return out end
 	local origins = { { cx, cy, M.NARROW_RAYS, M.NARROW_R } }
@@ -175,6 +176,7 @@ function M.narrowWater(s, cx, cy)
 	local ox, oy, rays, maxR = org[1], org[2], org[3], org[4]
 	if oi == 1 or not wet(s, ox, oy) then
 	for k = 0, rays - 1 do
+		if yield then yield() end
 		local h = k * 2 * math.pi / rays
 		local ca, sa = math.cos(h), math.sin(h)
 		local w1, dryRun = nil, 0
@@ -281,6 +283,7 @@ function M.plan(o)
 		if np then bases[#bases + 1] = G.atan2(np[2] - de[2], np[1] - de[1]) end
 		for _, normal in ipairs(bases) do
 			for _, turn in ipairs(M.TURNS) do
+				if o.yield then o.yield() end   -- (2026-10-21: the driver's step note between the headings, TICKCOST atStep)
 				local h = G.wrap(normal + turn)
 				local c = M.crossing(s, de[1], de[2], h)
 				if c then nearest = math.min(nearest, c.w1) end

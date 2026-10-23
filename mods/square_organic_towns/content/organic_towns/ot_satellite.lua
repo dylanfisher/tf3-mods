@@ -315,6 +315,7 @@ function M.pickSite(o)
 		end
 	end
 	for _, c in ipairs(cands) do
+		if o.yield then o.yield() end   -- (2026-10-21: the driver's step note between the candidates, TICKCOST atStep)
 		local x, y, d, a = c.x, c.y, c.d, c.a
 		if d >= (o.r or 0) + c.gap then
 			-- (map edge, ot_map 2026-10-13: the core and its growth radius inside the margin)

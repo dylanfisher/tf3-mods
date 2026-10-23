@@ -1,5 +1,12 @@
 -- Organic Towns: the "Organic Towns" card in the town window (2026-10-17, rev 3; registered by ot_card.res.lua on
--- ::TownEowExtensionPoint, order 45). GUI thread, read-only: no command, nothing written.
+-- ::TownEowExtensionPoint, order 45). GUI thread. It writes one thing (2026-10-21): the player's street style pick for
+-- the town's new streets (the Character section's "Streets" row, a dropdown on towns the mod manages, ot_card.stylePick).
+-- The pick goes to the game script as an event (styleSent: api.cmd.makeScriptingSendEventCmd(ot_saved.EVENT_ID,
+-- EV_STYLE, { town, ps }), the ids mirrored in ot_card) from the dropdown's onValueChange, a GUI-thread handler, as square_problem_radar's
+-- radar_hud.script.tl sendEvent and square_supply_gaps' sg_saved.sendOn); the game script's handleEvent applies it
+-- (ot_saved.applyStyle: idempotent, only on a framed town) and the driver's next growth step for the town resolves the
+-- picked style (ot_style.resolve). One "[SQOT] STYLE event=pick" line per change. Until the poll reads the pick back the
+-- dropdown keeps it (pending, at most PENDING_S). Everything else here is read-only.
 --
 -- The base card look (content_card.ContentCard, as town_eow.script.tl TownLevelPlugin / TownChartsPlugin): a title, a
 -- one-line summary as the permanent part and the five sections as the collapsible part (collapsed by default; the
@@ -26,6 +33,9 @@
 --     (docs/ui-guide.md "Spacing"), so fixed gaps are INLINE spacers (gapSheet: a Component of size { 1, h }, the
 --     ui-guide's fixed-gap spacer), sized by ot_card.gapBefore (6 between groups, 3 inside one, 4 under a headline
 --     and around a separator);
+--   * the street style: the base builtin.ComboBox (as the base mod settings, script_param_util.tl:484-512: items
+--     builtin.ComboBoxItem{ value, content = TextView with the item's tooltip }, values as strings), in the row's value
+--     place; docs/ui-guide.md "Controls" (one of many). A builtin, so no base helper the PS5 build may lack;
 --   * explanations and empty states: content_card.makeInfoHint (content_card.tl:479; industry_eow.script.tl:357);
 --   * sections: a font-scale-headline TextView, the base `card-children-separator` line between them
 --     (content_card.css.lua:59, any Component inside the card's InfoCalloutWrapper);
@@ -65,8 +75,14 @@ local record OtCardTown
 	name : string
 end
 
+local record OtCardOption
+	value : string
+	text : string
+	tip : string
+end
+
 local record OtCardLine
-	kind : string            -- "row" | "bar" | "text" | "note" | "hint" | "towns"
+	kind : string            -- "row" | "bar" | "text" | "note" | "hint" | "towns" | "style"
 	text : string
 	key : string
 	value : any              -- row: the value text; bar: 0..1
@@ -74,6 +90,10 @@ local record OtCardLine
 	color : string           -- bar: "res" | "com" | "ind" | "growth"
 	tip : string
 	towns : {OtCardTown}
+	options : {OtCardOption}  -- style: the dropdown's options ("0" = Automatic, "1".. = ot_card.STYLE_IDS)
+	selected : string         -- style: the selected option's value
+	town : integer            -- style: the town
+	from : string             -- style: the style in effect (an id) or nil
 end
 
 local record OtCardSection
@@ -93,6 +113,7 @@ local record OtCardInput
 	mapEditor : boolean
 	fresh : boolean
 	rciOn : boolean
+	rciWeight : number       -- the "Delivery weighting" factor (ot_params deliveryWeight)
 	satellitesOn : boolean
 	frame : {string : any}
 	rc : {string : any}
@@ -104,10 +125,16 @@ local record OtCardInput
 	sf : {number}
 	uses : {number}
 	supply : {string : any}
+	stylePick : boolean      -- the player may pick the street style (the mod acts on towns)
+	forcedStyle : string     -- the "Town style" setting's forced style ("NA_GRID") or nil
+	pendingStyle : integer   -- a pick sent and not read back yet (0 = Automatic) or nil
 end
 
 local record OtCardModule
 	GAP_HEAD : integer
+	STYLE_IDS : {string}
+	EVENT_ID : string
+	EV_STYLE : string
 	view : function(input : OtCardInput) : OtCardView
 	gapBefore : function(prev : string, kind : string) : integer
 	logText : function(input : OtCardInput) : string
@@ -116,7 +143,9 @@ end
 
 local record OtParams
 	actOn : string
+	forceGrid : boolean
 	townGrowth : string
+	deliveryWeight : number
 	satelliteTowns : string
 	mapEditor : boolean
 end
@@ -128,6 +157,16 @@ end
 
 local card = ug_require "square_organic_towns::/organic_towns/ot_card.lua" as OtCardModule
 local params_mod = ug_require "square_organic_towns::/organic_towns/ot_params.lua" as OtParamsModule
+
+-- the street style picks sent and not read back yet: { [town] = { ps, at = os.time() } } (cleared when the frame shows
+-- the pick, or after PENDING_S: a pick that never arrives, e.g. the game script missing, shows the saved value again)
+local record PendingPick
+	ps : integer
+	at : number
+end
+local pending : {integer : PendingPick} = {}
+local PENDING_S <const> = 10
+local MAX_PENDING <const> = 64
 
 local logged : {integer : boolean} = {}
 local nLogged = 0
@@ -199,7 +238,8 @@ local function settings() : OtParams
 		local all = api.engine.config.getModParams() as {string : any}
 		return params_mod.parse(all and all[params_mod.MOD_ID or MOD_ID], all)
 	end)
-	opts = (ok and o) or { actOn = "new", townGrowth = "deliveries", satelliteTowns = "on", mapEditor = false }
+	opts = (ok and o) or { actOn = "new", townGrowth = "deliveries", satelliteTowns = "on", mapEditor = false,
+		forceGrid = false }
 	return opts
 end
 
@@ -207,7 +247,10 @@ local function read(t : integer, o : OtParams) : OtCardInput
 	local input : OtCardInput = { town = t, names = {}, offs = {} }
 	input.mapEditor = o.mapEditor == true
 	input.rciOn = o.townGrowth == "deliveries" and o.actOn ~= "off"
+	input.rciWeight = o.deliveryWeight
 	input.satellitesOn = o.satelliteTowns ~= "off"
+	input.stylePick = o.actOn ~= "off" and not input.mapEditor
+	input.forcedStyle = o.forceGrid == true and "NA_GRID" or nil
 	pcall(function()
 		local native = nativeOf()
 		if native == nil then return end
@@ -236,6 +279,15 @@ local function read(t : integer, o : OtParams) : OtCardInput
 		input.uses = { c[1] or 0, c[2] or 0, c[3] or 0 }
 	end)
 	if input.rciOn and input.rc == nil then input.supply = readSupply(t) end
+	local pp = pending[t]
+	if pp ~= nil then
+		local fps = input.frame and tonumber(input.frame.ps) or 0
+		if math.floor(fps) == pp.ps or os.time() - pp.at > PENDING_S then
+			pending[t] = nil
+		else
+			input.pendingStyle = pp.ps
+		end
+	end
 	return input
 end
 
@@ -329,6 +381,59 @@ local function row(key : string, value : string, tip : string) : TreeNodeId
 	}
 end
 
+-- The player's street style pick (GUI thread: the dropdown's handler): the event to the game script's handleEvent
+-- (ot_saved.applyStyle), the pick kept until the poll reads it back, one log line. ps: 0 = Automatic, else an
+-- ot_card.STYLE_IDS index.
+local function styleSent(l : OtCardLine, ps : integer)
+	local t = l.town
+	if t == nil or ps < 0 or ps > #card.STYLE_IDS then return end
+	local okS, err = pcall(function() : boolean
+		api.cmd.sendCommand(api.cmd.makeScriptingSendEventCmd("", card.EVENT_ID, card.EV_STYLE, { town = t, ps = ps }))
+		return true
+	end)
+	if okS then
+		local n = 0
+		for _k in pairs(pending) do n = n + 1 end
+		if pending[t] ~= nil or n < MAX_PENDING then pending[t] = { ps = ps, at = os.time() } end
+	end
+	local name = (tostring(townName(t) or "-"):gsub("%s", "_"))
+	log.message("[SQOT] STYLE event=pick town=" .. tostring(t) .. " name=" .. name
+		.. " from=" .. tostring(l.from or "-") .. " to=" .. (ps == 0 and "auto" or tostring(card.STYLE_IDS[ps]))
+		.. " sent=" .. tostring(okS) .. (okS and "" or (" err=" .. tostring(err))))
+end
+
+-- key left, the base dropdown right (the base mod settings' ComboBox, script_param_util.tl:484-512)
+local function styleRow(l : OtCardLine) : TreeNodeId
+	local items : {TreeNodeId} = {}
+	local values : {string : boolean} = {}
+	for _i, op in ipairs(l.options or {}) do
+		values[op.value] = true
+		items[#items + 1] = builtin.ComboBoxItem{
+			value = op.value,
+			content = builtin.TextView{ meta = { class = "font-scale-body", tooltip = op.tip }, text = op.text or "" },
+		}
+	end
+	local sel = l.selected
+	return builtin.BoxLayout{
+		orientation = builtin.type.Orientation.Horizontal,
+		children = {
+			body(l.key, l.tip),
+			horizontalSpacer(),
+			builtin.ComboBox{
+				meta = { tooltip = l.tip },
+				value = sel,
+				items = items,
+				onValueChange = function(v : integer|number|string)
+					local s = tostring(v)
+					if s == sel or not values[s] then return end
+					local n = tonumber(s)
+					if n ~= nil and n == math.floor(n) then styleSent(l, math.floor(n)) end
+				end,
+			},
+		},
+	}
+end
+
 local function townButton(tw : OtCardTown) : TreeNodeId
 	local id = tw.id
 	return builtin.Button{
@@ -361,6 +466,8 @@ local function lineWidget(l : OtCardLine) : TreeNodeId
 				},
 			},
 		}
+	elseif l.kind == "style" then
+		return styleRow(l)
 	elseif l.kind == "note" then
 		return builtin.TextView{ meta = { class = "font-scale-annotation" }, text = l.text or "" }
 	elseif l.kind == "hint" then

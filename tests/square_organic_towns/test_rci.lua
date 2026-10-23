@@ -162,7 +162,10 @@ local function simulate(o)
 		end
 		if o.on then
 			e = RCI.smooth(e, o.usage, 1 / 12)
-			local w = RCI.aim(e)
+			-- (the "Delivery weighting" factor: o.f, from month o.switchAt on o.fAfter; nil: the full aim)
+			local f = o.f
+			if o.switchAt and m >= o.switchAt then f = o.fAfter end
+			local w = RCI.weightedAim(e, f)
 			local s, St = RCI.shares(init, sf)
 			if Sprev == nil or St < Sprev then Sprev = St end
 			local r = RCI.step({ init = init, sf = sf, uses = uses, w = w, grown = St - Sprev, n0 = n0 })
@@ -173,7 +176,8 @@ local function simulate(o)
 			elseif r.why ~= "noGrowth" and r.why ~= "tiny" then
 				Sprev = St
 			end
-			hist[#hist + 1] = { s = s, w = w }
+			hist[#hist + 1] = { s = s, w = w, init = { init[1], init[2], init[3] }, sf = { sf[1], sf[2], sf[3] },
+				uses = { uses[1], uses[2], uses[3] }, move = r.why == "ok" and r.move or 0 }
 		end
 	end
 	local s, S = RCI.shares(init, sf)
@@ -373,9 +377,10 @@ end
 test("driver: By deliveries re-splits an industrial town through setInitialCaps; RCI line; saved event", function()
 	local E = fakeEngine()
 	indTown(E, 7)
-	local d = newDriver(E, { act_on = 3 })
+	local d = newDriver(E, { act_on = 3, delivery_weighting = 1 })
 	eq(d.opts.townGrowth, "deliveries", "the default")
-	run(d, E, {}, 6, 1.05)
+	eq(d.opts.deliveryWeight, 1, "Full")
+	run(d, E, {}, 9, 1.05)
 	ok(#E.writes >= 3, "writes: " .. #E.writes)
 	local c = E.caps[7].init
 	eq(c[1] + c[2] + c[3], 1000, "the initial sum kept")
@@ -391,13 +396,13 @@ test("driver: By deliveries re-splits an industrial town through setInitialCaps;
 	local s = SV.applyRci(nil, ev.param)
 	local back = SV.rci(s, 7)
 	ok(back ~= nil and back.k == ev.param.k and back.n0 == 1000)
-	eq(d:rciLean(7), "ind", "45 % industrial after five steps")
+	eq(d:rciLean(7), "ind", "46 % industrial after eight steps (STEP_MAX 0.02)")
 	ok(d:rciManaged(7))
 	ok(l[1]:find("aim=25/12/63", 1, true) and l[1]:find("sum=1000->1000", 1, true), l[1])
 	ok(d:rciText(7):find("aim=25/12/63:use=0.00/0.00/0.90", 1, true), d:rciText(7))
 	-- the dev readout (ALLTOWN rci=, the inspector): the engine's reads, then the main driver's state
 	local ro = D.rciReadout(E, 7, d)
-	ok(ro:find("33/22/45:use=0.00/0.00/0.90:aim=25/12/63:lean=ind|main:", 1, true), ro)
+	ok(ro:find(RCI.pct(d.towns[7].rci.shares) .. ":use=0.00/0.00/0.90:aim=25/12/63:lean=ind|main:", 1, true), ro)
 	eq(D.rciReadout(E, 99, nil), "-:use=-:aim=-:lean=-", "an unknown town")
 end)
 
@@ -527,4 +532,173 @@ test("saved: rc normalizes, caps entries, keeps n0 from the first event; saves f
 	local n = 0
 	for _ in pairs(SV.normalize(big).rc) do n = n + 1 end
 	eq(n, SV.RCI_CAP)
+end)
+
+---------------------------------------------------------------------------
+-- "Delivery weighting" (2026-10-21, player request: a middle ground; ot_rci.weightedAim, ot_params delivery_weighting)
+
+test("weightedAim: f = 1 is the full aim exactly, f blends toward the neutral mix, valid shares, bad inputs", function()
+	local n = RCI.neutral()
+	near(n[1], 0.25 + 0.17, 1e-12)
+	near(n[2], 0.12 + 0.17, 1e-12)
+	near(n[3], 0.12 + 0.17, 1e-12)
+	eq(RCI.lean(n), nil, "the neutral mix leans nowhere")
+	local e = { 0.1, 0.2, 0.9 }
+	eq(RCI.weightedAim(e, 1), RCI.aim(e), "Full: the old aim")
+	eq(RCI.weightedAim(e, nil), RCI.aim(e), "no factor: the full aim")
+	eq(RCI.weightedAim(e, 0 / 0), RCI.aim(e), "NaN: the full aim")
+	eq(RCI.weightedAim(e, "x"), RCI.aim(e), "garbage: the full aim")
+	eq(RCI.weightedAim(e, 7), RCI.aim(e), "above 1: clamped to Full")
+	local w0 = RCI.weightedAim(e, -3)
+	for k = 1, 3 do near(w0[k], n[k], 1e-12, "below 0: clamped to the neutral mix") end
+	eq(RCI.weightedAim({ 1, 1, 1 }, 1), RCI.aim({ 1, 1, 1 }))
+	for k = 1, 3 do near(RCI.weightedAim({ 1, 1, 1 }, 1)[k], n[k], 1e-12, "even deliveries aim at the neutral mix") end
+	eq(RCI.weightedAim({ 0, 0, 0 }, 0.5), nil, "no deliveries: no aim at any weighting")
+	eq(RCI.weightedAim(nil, 0.5), nil)
+	-- proportional: the distance to the neutral mix scales with f
+	local a = RCI.aim(e)
+	for _, f in ipairs({ 0, 0.25, 0.5, 0.75 }) do
+		local w = RCI.weightedAim(e, f)
+		for k = 1, 3 do near(w[k] - n[k], f * (a[k] - n[k]), 1e-12, "f=" .. f .. " k=" .. k) end
+	end
+	-- the setting's steps: an industrial-only town's industrial aim 63 / 54.5 / 46 / 37.5 %
+	local want = { 0.63, 0.545, 0.46, 0.375 }
+	for i, f in ipairs(PA.KEYS.delivery_weighting.values) do
+		near(RCI.weightedAim({ 0, 0, 1 }, f)[3], want[i], 1e-9, "industrial-only at " .. f)
+	end
+	-- sweep: valid shares at every weighting (sum 1, at least FLOORS, finite)
+	local STRIDE = FULL and 1 or 3
+	local vals = { 0, 0.001, 0.2, 0.5, 1, 0 / 0, -1, 2 }
+	local fs = { 0, 0.25, 0.5, 0.75, 1, 0 / 0, -1, 2, nil }
+	local i, cases = 0, 0
+	for _, a1 in ipairs(vals) do
+		for _, a2 in ipairs(vals) do
+			for _, a3 in ipairs(vals) do
+				for fi = 1, #fs + 1 do
+					i = i + 1
+					if i % STRIDE == 0 then
+						cases = cases + 1
+						local w = RCI.weightedAim({ a1, a2, a3 }, fs[fi])
+						if w ~= nil then
+							local sum = 0
+							for k = 1, 3 do
+								ok(isNum(w[k]), "finite #" .. i)
+								ok(w[k] >= RCI.FLOORS[k] - 1e-12, "floor #" .. i .. " k=" .. k)
+								sum = sum + w[k]
+							end
+							near(sum, 1, 1e-9, "sum #" .. i)
+						end
+					end
+				end
+			end
+		end
+	end
+	-- (8^3 usages x 9 weightings: #fs is 8, its trailing nil the 9th)
+	ok(cases >= (FULL and 4608 or 1500), "cases " .. cases)
+end)
+
+test("params: Delivery weighting Full / Strong / Medium / Light, default Medium (a save without the key too)", function()
+	eq(PA.KEYS.delivery_weighting.values, { 1.0, 0.75, 0.5, 0.25 })
+	eq(PA.parse(nil, nil).deliveryWeight, 0.5, "no params at all: Medium")
+	eq(PA.parse({}, {}).deliveryWeight, 0.5, "an older save's param table without the key: Medium")
+	eq(PA.parse({ delivery_weighting = 1 }, {}).deliveryWeight, 1)
+	eq(PA.parse({ delivery_weighting = 2 }, {}).deliveryWeight, 0.75)
+	eq(PA.parse({ delivery_weighting = 3 }, {}).deliveryWeight, 0.5)
+	eq(PA.parse({ delivery_weighting = 4 }, {}).deliveryWeight, 0.25)
+	for _, bad in ipairs({ 0, 5, 2.5, "x", -1 }) do
+		eq(PA.parse({ delivery_weighting = bad }, {}).deliveryWeight, 0.5, "bad " .. tostring(bad))
+	end
+	ok(PA.parse({ delivery_weighting = 2 }, {}).raw:find("delivery_weighting=2", 1, true))
+	ok(PA.parse({}, {}).raw:find("delivery_weighting=nil", 1, true))
+	-- town_growth keeps its two values (a separate key: its saved indices keep their meaning)
+	eq(PA.KEYS.town_growth.values, { "deliveries", "game" })
+end)
+
+test("driver: the default (Medium) steps toward the weighted aim; RCI line, readout and lean follow it", function()
+	local E = fakeEngine()
+	indTown(E, 7)
+	local d = newDriver(E, { act_on = 3 })
+	eq(d.opts.deliveryWeight, 0.5)
+	eq(d:rciWeight(), 0.5)
+	run(d, E, {}, 6, 1.05)
+	ok(#E.writes >= 3, "writes: " .. #E.writes)
+	local r = d.towns[7].rci
+	eq(r.w, RCI.weightedAim(r.e, 0.5), "the step's aim is the weighted aim")
+	near(r.w[3], 0.46, 1e-9, "industrial-only at Medium")
+	local l = lines(E, "RCI")
+	ok(l[1]:find("aim=" .. RCI.pct(RCI.weightedAim(r.e, 0.5)), 1, true), l[1])
+	ok(D.rciReadout(E, 7, d):find(":aim=" .. RCI.pct(RCI.weightedAim(r.e, 0.5)) .. ":", 1, true), D.rciReadout(E, 7, d))
+	ok(d.towns[7].rci.shares[3] <= 0.46 + 0.005, "never past the milder aim")
+	-- Light: the industrial aim 37.5 %, below the industrial lean (45 %): the town never leans
+	E = fakeEngine()
+	indTown(E, 7)
+	d = newDriver(E, { act_on = 3, delivery_weighting = 4 })
+	run(d, E, {}, 24, 1.05)
+	near(d.towns[7].rci.w[3], 0.375, 1e-9)
+	eq(d:rciLean(7), nil, "Light: no lean")
+	-- opts without the field (a dev pool driver's copy): the param's default
+	d.opts.deliveryWeight = nil
+	eq(d:rciWeight(), 0.5)
+end)
+
+test("a setting change: a Full town turns toward the Medium aim with its growth, by STEP_MAX at most, nothing torn down", function()
+	-- 20 years at Full (industrial only), then the save is loaded with Medium for 15 more
+	local o = { init = { 400, 300, 300 }, usage = { 0, 0, 1 }, years = 35, rate = 0.006, buildK = 0.5, on = true,
+		f = 1, switchAt = 241, fAfter = 0.5 }
+	local sim = simulate(o)
+	local before = sim.hist[240].s[3]
+	ok(before >= 0.55, string.format("a mill town at the switch: industrial %.2f", before))
+	local wM = RCI.weightedAim({ 0, 0, 1 }, 0.5)
+	local prev = before
+	for m = 241, #sim.hist do
+		local h = sim.hist[m]
+		ok(math.abs(h.s[3] - prev) <= RCI.STEP_MAX + 0.006, string.format("no jump at month %d: %.3f -> %.3f", m, prev, h.s[3]))
+		ok(h.s[3] >= wM[3] - 0.005, "never below the new aim at month " .. m)
+		ok(h.move <= RCI.STEP_MAX + 0.005, "move at month " .. m)
+		prev = h.s[3]
+	end
+	-- the built floor: a losing district's target never drops below what is built (a unit's rounding; hist[m] holds
+	-- the capacities after month m's step and the size factors / built capacities that step saw)
+	for m = 242, #sim.hist do
+		local h, h0 = sim.hist[m], sim.hist[m - 1]
+		for k = 1, 3 do
+			if h.init[k] < h0.init[k] then
+				ok(h.init[k] * h.sf[k] >= h.uses[k] - h.sf[k] - 1e-6, "built floor at month " .. m .. " k=" .. k)
+			end
+		end
+	end
+	local after = sim.s[3]
+	ok(after < before - 0.03, string.format("turned toward the milder aim: %.2f -> %.2f (aim %.2f)", before, after, wM[3]))
+	-- the other way (Light -> Full): it turns toward the stronger aim the same way
+	local up = simulate({ init = { 400, 300, 300 }, usage = { 0, 0, 1 }, years = 25, rate = 0.006, buildK = 0.5, on = true,
+		f = 0.25, switchAt = 121, fAfter = 1 })
+	-- (Light aims an industry-fed town at 37.5 % industrial; the game's own split keeps adding industry and the built
+	-- floor keeps what is built, so it settles between the two, below the Full town of the same age)
+	local full10 = simulate({ init = { 400, 300, 300 }, usage = { 0, 0, 1 }, years = 10, rate = 0.006, buildK = 0.5,
+		on = true, f = 1 })
+	ok(up.hist[120].s[3] < full10.s[3] - 0.02, string.format("Light %.3f below Full %.3f after 10 years",
+		up.hist[120].s[3], full10.s[3]))
+	ok(up.s[3] > up.hist[120].s[3] + 0.03, string.format("Full afterwards: %.2f -> %.2f", up.hist[120].s[3], up.s[3]))
+end)
+
+test("pace (2026-10-21, more gradual at every weighting): a monthly step, a short delivery swing, a 20-point turn", function()
+	eq(RCI.STEP_MAX, 0.02)
+	eq(RCI.MOVE_K, 0.67)
+	eq(RCI.TAU_YEARS, 1.0)
+	ok(RCI.MIN_MOVE < RCI.MOVE_K * 0.003, "a town growing 0.3 % a month still moves every month")
+	-- a town growing 0.6 % a month: about 0.4 share points a month, a 20-point turn in about 4 game years
+	local init, sf = { 400, 300, 300 }, { 3, 3, 3 }
+	local S = 3000
+	local r = RCI.step({ init = init, sf = sf, uses = { 0, 0, 0 }, w = { 0.25, 0.12, 0.63 }, grown = 0.006 * S })
+	eq(r.why, "ok")
+	near(r.budget, RCI.MOVE_K * 0.006, 1e-9)
+	local years = 0.2 / r.budget / 12
+	ok(years >= 3.5 and years <= 4.5, string.format("20 points in %.1f years", years))
+	-- a fast town: STEP_MAX caps it (20 points in 10 months at the fastest)
+	r = RCI.step({ init = init, sf = sf, uses = { 0, 0, 0 }, w = { 0.25, 0.12, 0.63 }, grown = 0.2 * S })
+	ok(r.move <= RCI.STEP_MAX + 1e-3, "fast town: " .. r.move)
+	-- a two-month delivery swing (usage 0 -> 1 -> back) moves the smoothed usage by about 15 %, was about 28 %
+	local e = RCI.smooth({ 0, 0, 0 }, { 0, 0, 1 }, 2 / 12)
+	near(e[3], 1 - math.exp(-2 / 12), 1e-9)
+	ok(e[3] < 0.16)
 end)

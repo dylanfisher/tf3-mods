@@ -347,11 +347,13 @@ end
 
 --- Every rail passenger station on the map: { { x, y, fx, fy (forecourt unit vector or nil), front = {x, y} or nil,
 --- box = {x0, y0, x1, y1} or nil, file, id = construction } }, one per construction; nil when the listing fails.
-function M.railStations()
+function M.railStations(step)
+	-- (step: as in M.townBuildings, after each station, 2026-10-21)
 	local ok, sts = pcall(stationList)
 	if not ok or sts == nil then return nil end
 	local out, seenCon = {}, {}
 	for _, st in ipairs(sts) do
+		if step then step() end
 		pcall(function()
 			local okC, con = pcall(api.engine.system.streetConnectorSystem.getConstructionEntityForStation, st)
 			if not okC or con == nil or con < 0 or seenCon[con] then return end
@@ -527,12 +529,14 @@ local function parcelCT()
 end
 
 --- The town's building positions { {x, y} } and built parcels per street edge { [edge] = count }.
---- town2buildings: the getTown2BuildingMap result (read once per check).
-function M.townBuildings(t, town2buildings)
+--- town2buildings: the getTown2BuildingMap result (read once per check). step: nil, or a function called after each
+--- building (the driver's step note, TICKCOST atStep, 2026-10-21).
+function M.townBuildings(t, town2buildings, step)
 	local pts, builtBy = {}, {}
 	local list = town2buildings and town2buildings[t] or {}
 	local pct = parcelCT()
 	for _, b in ipairs(list) do
+		if step then step() end
 		local x, y = M.boxCentre(b)
 		local tb = M.comp(b, CT().TOWN_BUILDING)
 		if x == nil and tb ~= nil then x, y = M.boxCentre(tb.construction) end
@@ -614,9 +618,10 @@ local function edgeTable(e)
 end
 
 --- Street edges within r of (x, y) (edgeTable records), at most MAX_STREETS (audit 2026-10-13: uncapped before; a
---- capped read sets M.streetsCapped = the octree's count for the caller's log).
+--- capped read sets M.streetsCapped = the octree's count for the caller's log). step: as in M.townBuildings, after
+--- each edge.
 M.MAX_STREETS = 6000
-function M.streets(x, y, r)
+function M.streets(x, y, r, step)
 	local out = {}
 	M.streetsCapped = nil
 	if x ~= x or y ~= y or not (r and r > 0 and r < 1e5) then return out end
@@ -624,6 +629,7 @@ function M.streets(x, y, r)
 	if not ok or list == nil then return out end
 	if #list > M.MAX_STREETS then M.streetsCapped = #list end
 	for i = 1, math.min(#list, M.MAX_STREETS) do
+		if step then step() end
 		local ed = edgeTable(list[i])
 		if ed ~= nil then out[#out + 1] = ed end
 	end
@@ -637,12 +643,14 @@ end
 --- Hermite midpoint) and the bounding boxes of constructions (industries, stations, depots) and farm FIELDs. Capped at
 --- MAX_OBSTACLES each; pcall-guarded, read-only.
 M.MAX_OBSTACLES = 6000
-function M.obstacles(x, y, r)
+function M.obstacles(x, y, r, step)
+	-- (step: as in M.townBuildings, after each entity, 2026-10-21)
 	local out = { segs = {}, boxes = {} }
 	local centre = api.type.Vec2f.new(x, y)
 	local okE, list = pcall(api.engine.util.octree.findEntitiesInCircle, centre, r, CT().BASE_EDGE)
 	if okE and list then
 		for i = 1, math.min(#list, M.MAX_OBSTACLES) do
+			if step then step() end
 			local e = list[i]
 			local be = M.comp(e, CT().BASE_EDGE)
 			if be then
@@ -664,6 +672,7 @@ function M.obstacles(x, y, r)
 		local okC, cl = pcall(api.engine.util.octree.findEntitiesInCircle, centre, r, spec[2])
 		if okC and cl then
 			for i = 1, math.min(#cl, M.MAX_OBSTACLES) do
+				if step then step() end
 				local e = cl[i]
 				local bv = M.comp(e, CT().BOUNDING_VOLUME)
 				if bv then
@@ -937,7 +946,8 @@ end
 --- the template didn't resolve), street (has BASE_EDGE_STREET) } }, stats = { edges, streets, noStreetComp, tracks,
 --- country, town, other, templates = { short = n } } }. Capped at MAX_ROAD_EDGES; pcall-guarded, read-only.
 M.MAX_ROAD_EDGES = 3000
-function M.roadEdges(x, y, r)
+function M.roadEdges(x, y, r, step)
+	-- (step: as in M.townBuildings, after each edge, 2026-10-21)
 	local out = { list = {}, stats = { edges = 0, streets = 0, noStreetComp = 0, tracks = 0, country = 0, town = 0, other = 0,
 		templates = {} } }
 	local st = out.stats
@@ -946,6 +956,7 @@ function M.roadEdges(x, y, r)
 	local trackType = nil
 	pcall(function() trackType = api.type.RoadType.TRACK end)
 	for i = 1, math.min(#list, M.MAX_ROAD_EDGES) do
+		if step then step() end
 		local e = list[i]
 		local be = M.comp(e, CT().BASE_EDGE)
 		if be then

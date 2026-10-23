@@ -2,8 +2,8 @@
 --   update       (simulation states) re-subscribes to our events once per load (subscriptions are saved
 --                with the game, findings "Game-script event subscriptions are saved"). Nothing else: no
 --                sendCommand (callbacks are disallowed there), no state:get_native (asserts).
---   handleEvent  applies the driver's events to the saved state (ot_saved; idempotent, as it may run in more
---                than one simulation state), and queues new player Road Stops for a landscape stop name
+--   handleEvent  applies the driver's events (and the town window card's street style pick, EV_STYLE) to the saved
+--                state (ot_saved; idempotent, as it may run in more than one simulation state), and queues new player Road Stops for a landscape stop name
 --                (onPostBuildProposal; the driver renames them from guiUpdate).
 --   guiUpdate    (Main Thread) ticks the driver with a read-only copy of the saved state. It runs while the game is
 --                paused too: the driver reads the game speed and starts nothing then (Driver:gameClock / pausedTick).
@@ -71,6 +71,7 @@ function script.update(_userParams, state, _dt)
 		state:subscribeToEvent(SV.EV_GLOCK)
 		state:subscribeToEvent(SV.EV_UI)
 		state:subscribeToEvent(SV.EV_PROV)
+		state:subscribeToEvent(SV.EV_STYLE)
 		state:subscribeToEvent(EV_POST)
 	end)
 	subscribed = true
@@ -131,6 +132,9 @@ function script.handleEvent(_userParams, state, _src, id, name, param)
 			s, changed = SV.applyUi(state:get(), param)
 		elseif name == SV.EV_PROV then
 			s, changed = SV.applyProv(state:get(), param)
+		elseif name == SV.EV_STYLE then
+			-- (the player's street style pick, from the town window card's GUI handler; the card logs the change)
+			s, changed = SV.applyStyle(state:get(), param)
 		end
 		if changed then state:set(SV.bumpRev(s)) end
 	end)

@@ -1533,3 +1533,45 @@ test("offshoot turns in the driver (2026-10-14): turns on a new map, a satellite
 	SP.ON = true
 	eq(turnsOld, 0, "an old map: none")
 end))
+
+test("street style pick in the driver (2026-10-21): the pick is a new style key, wins over the setting's grid, never over a dev style", function()
+	local SVS = ug_require(F.DIR .. "ot_saved.lua")
+	local last
+	-- (the setting "Town style: North American grid" forces the grid; the job and graph of a real growth step)
+	local st = simulate({ names = EU_NAMES, params = { act_on = 3, debug_log = 2, style = 2 }, cycles = 4,
+		onDriver = function(d)
+			local orig = d.styleFor
+			d.styleFor = function(self, job, g, sv)
+				last = { d = self, job = job, g = g, orig = orig }
+				return orig(self, job, g, sv)
+			end
+		end })
+	ok(last ~= nil, "a growth step resolved a style")
+	local d, job, g, orig = last.d, last.job, last.g, last.orig
+	job.styleMode = nil
+	local function savedWith(ps)
+		local s = SVS.normalize(nil)
+		s.known = {}
+		s.frames[tostring(job.town)] = { a = 0.2, x = 0, y = 0, st = 3, ps = ps }
+		return s
+	end
+	local a = orig(d, job, g, savedWith(nil))
+	eq(a.id, "NA_GRID"); eq(a.styleSource, "forced", "no pick: the setting's grid")
+	local nLogs = #st.E.logs
+	local b = orig(d, job, g, savedWith(8))
+	eq(b.id, "NORDIC"); eq(b.styleSource, "player", "the pick wins over the setting")
+	ok(b ~= a, "a new style table: ot_core plans it afresh (its plan cache is keyed by the style)")
+	near(b.axis, 0.2, 1e-9, "the saved axis")
+	local applied = 0
+	for i = nLogs + 1, #st.E.logs do
+		if st.E.logs[i]:find("[SQOT] STYLE", 1, true) and st.E.logs[i]:find("event=apply", 1, true) then applied = applied + 1 end
+	end
+	eq(applied, 1, "one STYLE apply line")
+	eq(orig(d, job, g, savedWith(8)), b, "the same pick: cached")
+	eq(orig(d, job, g, savedWith(nil)), a, "the pick cleared: the earlier style again")
+	-- a dev style (the showcase's per-job profile) wins over the pick
+	job.styleMode = "JP_DENSE"
+	local c = orig(d, job, g, savedWith(8))
+	eq(c.id, "JP_DENSE"); eq(c.styleSource, "forced")
+	job.styleMode = nil
+end)

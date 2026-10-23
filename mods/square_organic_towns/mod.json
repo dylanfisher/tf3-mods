@@ -1,6 +1,6 @@
 {
   "modId": "square_organic_towns",
-  "revision": 8,
+  "revision": 9,
   "severityAdd": "None",
   "severityRemove": "Warning",
   "visible": true,
@@ -75,13 +75,26 @@
     {
       "key": "town_growth",
       "name": "Town growth",
-      "tooltip": "By deliveries: each town's mix of residential, commercial and\nindustrial follows what you deliver, so towns can grow clearly\nlopsided: a town fed with industrial cargo grows mostly\nindustry, one served only by passenger lines mostly homes.\nIt changes the mix as the town grows, not how fast it grows.\nFollows Act on. Removing the mod keeps the towns as they are.\nGame default: the game evens each town's mix out.",
+      "tooltip": "By deliveries: each town's mix of residential, commercial and\nindustrial follows what you deliver, so towns can grow clearly\nlopsided: a town fed with industrial cargo grows mostly\nindustry, one served only by passenger lines mostly homes.\nIt changes the mix as the town grows, not how fast it grows.\nFollows Act on. Removing the mod keeps the towns as they are.\nHow strongly: the Delivery weighting setting.\nGame default: the game evens each town's mix out.",
       "uiType": "ComboBox",
       "values": [
         "By deliveries",
         "Game default"
       ],
       "defaultIndex": 0
+    },
+    {
+      "key": "delivery_weighting",
+      "name": "Delivery weighting",
+      "tooltip": "How strongly deliveries steer each town's mix when Town growth\nis By deliveries. Full: towns follow your deliveries closely\n(mill towns, commuter towns). Light: towns stay close to an\neven mix. Medium (the default): the middle ground.\nA save loaded with another weighting turns its towns slowly,\nwith their growth; nothing is torn down. Saves from before\nthis setting use Medium too.",
+      "uiType": "ComboBox",
+      "values": [
+        "Full",
+        "Strong",
+        "Medium",
+        "Light"
+      ],
+      "defaultIndex": 2
     },
     {
       "key": "satellite_towns",

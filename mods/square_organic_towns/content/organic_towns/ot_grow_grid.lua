@@ -256,7 +256,11 @@ function M.masterPlan(style, opts)
 	local function culAtRow(i, j)
 		return culIn(i, j) == "bottom" or culIn(i, j - 1) == "top"
 	end
+	-- (2026-10-21, TICKCOST round: opts.yield, the driver's plan slice, may end between the rows and columns; a big
+	-- town's lattice took ~60 ms in one go)
+	local yield = opts.yield
 	for j = -nv, nv do
+		if yield then yield() end
 		local class = classOf(j, sv, artV, collV)
 		local i = -nu
 		while i < nu do
@@ -269,14 +273,17 @@ function M.masterPlan(style, opts)
 				end
 			end
 			addPiece("h" .. i .. ":" .. j, jkey(i, j), jkey(i2, j), class, true, j, { i, j, i2, j })
+			if yield and i % 16 == 0 then yield() end
 			i = i2
 		end
 	end
 	for i = -nu, nu do
 		-- the cross axis (through the origin, across the town axis): a collector in the late hierarchy
 		-- (style.crossAxis), the main street along the axis stays the arterial
+		if yield then yield() end
 		local class = classOf(i, su, artU, collU, style.crossAxis)
 		for j = -nv, nv - 1 do
+			if yield and j % 16 == 0 then yield() end
 			-- superblock interior: a cross street only where the pattern puts one in this strip
 			if crossing(i, j) then
 				addPiece("v" .. i .. ":" .. j, jkey(i, j), jkey(i, j + 1), class, false, i, { i, j, i, j + 1 })
@@ -305,10 +312,12 @@ end
 
 --- Share of the graph's junction and dead-end nodes (degree ~= 2; split points along a street don't count)
 --- lying on a junction of the plan (within snapR). 1 for a graph without such nodes.
-function M.matchShare(g, mp, snapR)
-	local idx = S.junctionIndex(mp)
+function M.matchShare(g, mp, snapR, yield)
+	local idx = S.junctionIndex(mp, yield)
+	if yield then yield() end
 	local hit, total = 0, 0
-	for _, n in ipairs(g.nodes) do
+	for k, n in ipairs(g.nodes) do
+		if yield and k % 64 == 0 then yield() end
 		if OG.degree(g, n.id) ~= 2 then
 			total = total + 1
 			if OG.nearestNode(idx, n.x, n.y, snapR) then hit = hit + 1 end
@@ -334,14 +343,14 @@ function M.planFor(g, style, opts)
 	local water = opts.stats and opts.stats.water or nil
 	if style.frame and style.frame.origin then
 		-- saved frame (the town's first increment fixed it): same lattice every time
-		local mp = M.masterPlan(style, { extent = extent, origin = style.frame.origin })
+		local mp = M.masterPlan(style, { extent = extent, origin = style.frame.origin, yield = opts.yield })
 		mp.anchored = true
 		return mp
 	end
-	local mp = M.masterPlan(style, { extent = extent, water = water })
-	if #g.nodes > 0 and M.matchShare(g, mp, opts.snapR or 8) < 0.5 then
+	local mp = M.masterPlan(style, { extent = extent, water = water, yield = opts.yield })
+	if #g.nodes > 0 and M.matchShare(g, mp, opts.snapR or 8, opts.yield) < 0.5 then
 		local n = OG.nearestNode(g, style.centre[1], style.centre[2], math.huge)
-		mp = M.masterPlan(style, { extent = extent, origin = { n.x, n.y } })
+		mp = M.masterPlan(style, { extent = extent, origin = { n.x, n.y }, yield = opts.yield })
 		mp.anchored = true
 	end
 	return mp

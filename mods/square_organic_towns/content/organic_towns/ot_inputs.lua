@@ -180,6 +180,7 @@ end
 --- raw = { nameList, climate, year, capacity, townId, pos = {x, y}, stations = {{x, y}, ...},
 ---         terrain = ot_terrain.stats result or nil, axis = {angle = rad, strength = 0..1} or nil (existing
 ---         street axis from ot_graph.dominantAxis), radius = current town radius in m, forceStyle = style id or nil,
+---         forceFrom = "setting" when forceStyle is the "Town style" setting's (a player's per-town pick wins over it) or nil,
 ---         frame = { axis = rad, origin = {x, y} } or nil (saved plan frame, see ot_style.resolve),
 ---         keepOuter = bool (a forced style still gets its era's outer zone; dev tools),
 ---         shape = shape id (ot_shape.IDS; forced, dev tools) or nil, form = town form id (ot_form; forced, dev tools), exits = ot_shape.exits result (roads
@@ -231,6 +232,9 @@ function M.build(raw)
 		axis = raw.axis,
 		radius = tonumber(raw.radius) or 0,
 		forceStyle = raw.forceStyle,
+		-- (where forceStyle comes from: "setting" = the "Town style" setting's grid, which a player's pick in the town
+		-- window card overrides; anything else (nil) = the dev tools, which win over it; ot_style.resolve)
+		forceFrom = raw.forceFrom == "setting" and "setting" or nil,
 		keepOuter = raw.keepOuter == true,
 		frame = raw.frame,
 		shape = raw.shape,

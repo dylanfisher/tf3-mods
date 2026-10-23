@@ -156,6 +156,7 @@ function M.pickSite(o)
 		end
 		if okDir then
 			for _, d in ipairs(M.RING_D) do
+				if o.yield then o.yield() end   -- (2026-10-21: the driver's step note between the candidates, TICKCOST atStep)
 				local x, y = o.cx + math.cos(a) * d, o.cy + math.sin(a) * d
 				local apart = true
 				for _, p in ipairs(o.others or {}) do

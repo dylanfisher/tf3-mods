@@ -3,6 +3,121 @@
 Finished phases, past run logs and result tables, superseded designs, moved verbatim from the other plan docs
 (newest first, dated). Read it only to learn why something is the way it is.
 
+## 2026-10-22: stage slices removed (PLAN.md 6.2 "Frame cost: stage slices", TESTING.md "Frame cost: stage slices")
+
+Tried 2026-10-21 / 22 and removed 2026-10-22: in game the towns stalled with the slices on (sessions
+`2026-10-22_1842_lht-sqot`, `2026-10-22_1920_lht-sqot-crash`; SLICETEST in `2026-10-22_1939_lht-compatibility`:
+`pass=false why=call`, `coroutine.resume` passed in only the first value), and the frame spikes moved rather than
+shrank. Kept: the planner's pause points, the step notes / TICKCOST `atStep`, the junction cells and ot_assess.body, the
+job watchdog (PLAN.md 6.2 "Frame cost"). The PLAN.md entry and the TESTING.md steps as they were:
+
+**Frame cost: stage slices (2026-10-21; TICKCOST round; offline, in game: TESTING.md "Frame cost: stage slices";
+open).** Session `2026-10-22_0518_sqot-sqrl`: TICKCOST means fine (25-237 us) but 194 ticks over 16 ms and 25 over 50
+ms in 69 min (earlier sessions alike), the slowest at job:plan (111 ms), job:snapshot (108), job:assess (72), FRAME
+`us=41468`. Culprits: the check's reads in one tick (CHECK `parts=` bld up to 47 ms, str 39, map 11, fin 24 incl. the
+town network's 15 ms budget NET_CHECK_US); the snapshot's steps after the SNAPSHOT line (BRIDGE site search 47 ms,
+DISTRICT 24, STATIONS 20, frame plan 41) and before it (style, roads); the planner's unyielded stretches (offline
+profile, 16-block town: the grid lattice ~60 ms with no yield, the dead-end connector scan over every junction per dead
+end, ~1/3 of a plan's time, select's set-up 13 ms, a select round every 4th iteration, the junction index 18 ms, the
+look check, the steps after the planner in the same tick); debug only: CHECK `bodyUs` up to 34 ms.
+- **Stage slices (ot_driver):** every job stage runs in its own coroutine (`Driver:runStage`, D.STAGE_SLICE) and yields
+  at `Driver:slicePoint(label)` once the tick has run STAGE_SLICE_US (4 ms); the next tick resumes it. Slice points sit
+  between the steps of assess (measure parts, effects, notes, holds), terrain, snapshot (graph, style, roads, gaps,
+  forest, land, skeleton, stations, sources, each decide), the plan's tail, and inside the long loops: the engine
+  reads item by item (`ot_engine` townBuildings / streets / obstacles / roadEdges / railStations take a `step`), the
+  town network walk (NET_CHECK_US now counts its own read time, not the ticks between), the snapshot's dead ends, the
+  site searches (works / district / satellite / bridge / narrow water: `o.yield`), core.frameIncrement. Hard caps:
+  STAGE_MAX_SLICES (2000) per stage (`ERROR stage=<stage> err=stageSlices:<stage>`, the job fails like any stage
+  error), the hang guard per slice (STAGE_HANG_US, its deadline box also holds for the stage's own coroutines). A slice
+  point never yields through a C boundary (`D.yieldable`: a sort comparator, or a pcall on a Lua that can't yield across
+  one, probed once: `D.YIELD_PCALL`, INIT `slices=on:pcall | on | off`); `Driver:pcallSliced` is the sliceable pcall.
+  The legacy CHECK_SPLIT_US split stays for STAGE_SLICE off. Stale inputs across a stage's ticks (`now`, `saved`) are
+  as for the plan stage before: a few ticks old.
+- **Planner yields (same plans):** select yields every round and every 4 open pieces (was every 4th round), between
+  its set-up parts, per dead end in the connector loop; the grid lattice per row / column (and every 16 pieces), its
+  match share; the organic plan's ring arcs, lanes and emits; the junction index, adjacency, the envelope area, the look
+  check's parts (its structure of the old graph reused from select's cache), before the near-miss pass (a fresh slice:
+  `yield(reserveUs)`, PLAN_RESERVE_MIN_US). The connector scan uses a 100 m cell index of the plan's junctions
+  (`ot_select.CONN_GRID`; candidates in key order, the full scan's box test: identical picks, test_slices); `ot_assess.body`
+  numeric cell keys and unit-weight quantiles on plain numbers (identical results, test_slices).
+- **Own times:** the `us` fields of lines whose work may span ticks (BRIDGE, DISTRICT, WORKS, SATELLITE, LEADLANE, Works
+  link, FRAME, STATIONS, ROADS, TERRAIN, SNAPSHOT, CHECK `us` / `parts`) count the work's own time (`Driver:ownUs`: the
+  clock minus the time suspended); CHECK `slices` / `sliceUs` = the check's ticks / its longest tick.
+- **Main-thread calls (2026-10-22, session `2026-10-22_1811_lht-sqot`: every check failed, `log.message` threw "Value
+  is not a string, but a thread" inside the stage coroutine; findings scripting.md "Coroutines"):** `ot_main.lua`. While
+  a stage coroutine runs (`MN.guarded` around runStage's resume) `log.message` / `warning` / `error` and `debugPrint`
+  queue their lines, written in order on the main thread after the resume (also after an error); the framework's
+  string-taking globals (`ug_require`, the gettext functions, `resolve`, ...), the modules' lazy `ug_require`s and every
+  `ot_engine` call that passes a string or sends a command (`ot_engine.MAIN_ONLY`, the template find) run on the main
+  thread through `MN.call`: a request yields up to the outermost resumer (`MN.resume`; the plan coroutine and
+  `pcallSliced` pass it on), which makes the call and resumes with the results. Number-argument reads stay in place
+  (they work in coroutines). A job's `onDone` (the dev tools' callbacks) runs through `MN.call` too.
+- **No yield across a pcall (2026-10-22, session `2026-10-22_1842_lht-sqot`: no town job finished, the Simulate's
+  first build round never ended; FAC `read=-1`, the request made inside `pcall(E.facilities)` came back wrong):**
+  `ot_main.yieldable` is false under any C frame, pcalls included; the driver's protected calls are `MN.pcall` (in a
+  stage coroutine: the call in a coroutine of its own, requests and yields passed up; else a plain pcall); the street
+  template lookup in `ot_engine.roadEdges` moved out of its per-edge pcall. A slice point inside another module's pcall
+  only notes the step. INIT `slices=on:pcall` (values round-trip) / `on:pcallBad` / `on`.
+- **Kill switch, SLICETEST, watchdog (2026-10-22, session `2026-10-22_1920_lht-sqot-crash`: INIT `on:pcall`, the same
+  stall as 1842; the pcall theory disproved, cause open):** `D.SLICE_RUNTIME = false` (default) restores the runtime of
+  before the slices: no stage coroutines (`D.slicing()` false), `ot_main` off (`MN.ON`: call / pcall / resume /
+  guarded are plain call / pcall / coroutine.resume / call; no queue, no swap), the plan coroutine yields and resumes as
+  at HEAD. Kept from the round (result-identical): the planner's extra yield points (only past the budget), the
+  junction cells, ot_assess.body, TICKCOST atStep. `[SQOT] SLICETEST` once per Lua state at the first INIT, whatever the
+  switch: a probe stage through runStage with ot_main on (requests through MN.pcall / a nested MN.pcall, a queued log
+  line, a slice yield) logs `pass why version jit yieldPcall top topYieldableOld in inYieldable call nested yielded
+  resumed after served flushed resumes dead direct err topWhat inWhat switch`; slicing needs the switch and `pass=true`.
+  Candidate cause fixed behind the switch: ot_main took "main" from `coroutine.running()`'s second value; if the game's
+  script thread is a coroutine the outermost resumer forwarded requests out of the game's call; "main" is now the thread
+  that starts the guarded run (`MN.top`), and the request marker is recognised by a field. Job watchdog: a stage
+  unchanged for `JOB_STALL_S` 120 s and `JOB_STALL_TICKS` 600 advances (not wait / glockWait) ends with `ERROR stage=<s>
+  err=stalled:<s>s/<n>ticks slicing=`, the job released (stage / plan coroutine dropped, a fill's command slot freed,
+  town finished "fail").
+- **Instrumentation:** TICKCOST appends `atStep=<from>><to>` (the slowest tick's longest stretch between two step
+  notes: slice points, planner yields as `file:line`, the tick's own parts) and `atStepUs`.
+- Offline (Lua 5.4, the profile's towns): the longest planner stretch ~3 ms (was 64), rare GC-sized spikes up to ~10.
+  Expected in game: `over50ms` 0, `over16ms` single digits per window, `maxUs` mostly under 16 ms; whatever remains is
+  named by `atStep`. Open: what is left (the single engine calls: the two whole-map reads ~5 ms each, one big octree
+  list; the near-miss pass's own NEAR_MISS_US 8 ms in a fresh slice; GC steps).
+- Tests: test_slices (body and connector equivalence, yieldable, pcallSliced, capped stage, step tracker), test_driver
+  ("stage slices": same plan and lines over more, shorter ticks; the capped case; "TICKCOST atStep"; the CHECK split
+  test runs the legacy split with slices off).
+
+### Frame cost: stage slices (2026-10-21; PLAN.md 6.2 "Frame cost: stage slices"; open)
+
+Session `2026-10-22_0518_sqot-sqrl` (69 min, 14 towns, debug on): TICKCOST `avgUs` 25-237 but 194 ticks over 16 ms
+and 25 over 50 ms, the slowest at `job:plan` (up to 111 ms), `job:snapshot` (108) and `job:assess` (72). Now every
+job stage runs in slices (STAGE_SLICE_US 4 ms; the planner's PLAN_SLICE_US 4 ms as before, from the tick's start).
+Offline: test_slices, test_driver "stage slices", "TICKCOST atStep". Quit TF3 fully first; any map with 10+ towns,
+real play or the dev Simulate, at least 30 min of game running (six TICKCOST windows). Debug log On or Off (both: Off
+is the player's case; On adds the CHECK body / SNAPSHOT emptyRows measures, both now in slices of their own).
+
+00. **Kill switch / SLICETEST (2026-10-22):** slices are off by default (INIT `slices=off:default:test=<true|false>`).
+   Towns grow as on 2026-10-20 (seed `a`: Simulate `sPerYear` about 3, rounds every year). Send the `[SQOT] SLICETEST`
+   line (once, right before INIT): `pass`, `why`, `top`, `topYieldableOld`, `in`, `call`, `nested`, `after`,
+   `topWhat`, `inWhat`. `top=thread:false` with `topYieldableOld=true` would confirm the script thread is a coroutine
+   (the 1842 / 1920 stall). Any `ERROR ... err=stalled` line: send it with the session name.
+0. **No coroutine errors** (2026-10-22: the first run failed every check with `ERROR stage=assess ... Value is not a
+   string, but a thread`): no `[SQOT] ERROR` with "thread" in it; CHECK / SNAPSHOT / PLAN lines appear as usual, also
+   from the dev Simulate's pool (`make logs-grep PAT='not a string' ARGS='--session live'` finds nothing). The
+   Simulate's build rounds end (`SIMGROW round ... why=done`), `sPerYear` about 3-4 as in 2026-10-20_2051 (seed `a`);
+   FAC lines show `read=` a number, not -1.
+1. **INIT** ends `slices=on:pcall` (this Lua yields across a pcall and the values come back), `slices=on:pcallBad`
+   (it suspends, the values don't come back) or `slices=on` (no yield across a pcall); tell me which. The mod never
+   yields across a pcall either way (2026-10-22).
+2. **TICKCOST** (`make logs-grep PAT='\[SQOT\] TICKCOST' ARGS='--session live'`), per 5-min window: `over16ms` in
+   single digits (was 14-25), `over50ms=0` (was 0-6), `maxUs` under ~16000 in most windows; `atStep=<from>><to>` and
+   `atStepUs=` name the slowest tick's longest stretch. Send every line whose `maxUs` is over 16000: its `atStep`
+   says where to slice next (a `file:line>file:line` pair is a planner stretch between two yields; `chk.*` the check,
+   `snap.*` / `style.*` the snapshot, `plan.*` the steps after the planner, `terrain.*`, `job:<stage>` a stage's
+   start; `tick>gameClock` / `stops` / `works` / `card` the tick's own parts; a `>end` stretch ran to the tick's end).
+3. **Same growth:** towns grow as before (PLAN / BUILT lines as usual, no new ERROR / WARN). CHECK `slices=` is now the
+   check's ticks (often 2-6 on big towns), `sliceUs` its longest tick (was up to 72000; expect under ~8000). PLAN `us`
+   stays the planner's own time, `slices` its ticks (more of them now, each shorter). No `ERROR ... err=stageSlices`.
+4. **Big towns:** on the biggest town (1500+ buildings), the CHECK `parts=` (`bld`, `str`) may stay tens of ms in total;
+   they now spread over ticks, so `sliceUs` stays small.
+- Lines to send: TICKCOST (all), INIT, any ERROR / WARN, the session name.
+
 ## 2026-10-16: seed `a` with §71 small woods + hooks (session `2026-10-16_1846_sqot`, load 2; page `compare/2026-10-15_a-lock`, run mod-71)
 
 Same setup as 0405 (EU, 1900, Quick 40, calendar moved, `lock=steer`). Load 1 of the session was another map

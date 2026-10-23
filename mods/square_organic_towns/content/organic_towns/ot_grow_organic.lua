@@ -536,6 +536,7 @@ function M.masterPlan(style, opts)
 		rings[i] = {}
 		local i2 = i % k + 1
 		for j = 1, J do
+			if j % 2 == 0 then yield() end   -- (2026-10-21: one spoke's arcs took up to ~7 ms in one go)
 			local a, b = cross[i][j], cross[i2][j]
 			if a and b then
 				local key = "rg" .. i .. ":" .. j
@@ -664,6 +665,7 @@ function M.masterPlan(style, opts)
 				local n0 = M.laneCount(gap, bd, j == 0)
 				local nArm = M.armLaneCount(gap, bl)
 				for a = 1, #strips - 1 do
+					yield()   -- (2026-10-21, TICKCOST round: a big cell's lanes took up to ~9 ms in one go)
 					local off = ((a + i) % 2 == 0) and tOff or -tOff
 					-- between an arm spoke and its rows: cross lanes about a block length apart
 					local armPair = j > 0 and strips[a].armSpoke ~= nil and strips[a].armSpoke == strips[a + 1].armSpoke
@@ -715,14 +717,19 @@ function M.masterPlan(style, opts)
 					end
 				end
 			end
-			for s = 2, #strips - 1 do emit(mp, strips[s], strips[s].curved) end
+			for s = 2, #strips - 1 do
+				if s % 4 == 0 then yield() end
+				emit(mp, strips[s], strips[s].curved)
+			end
 		end
 	end
 	for i = 1, k do
 		for j = 0, J - 1 do
+			yield()
 			if radials[i][j] then emit(mp, radials[i][j], true) end
 		end
 		for j = 1, J do
+			yield()
 			if rings[i][j] then emit(mp, rings[i][j], true) end
 		end
 		-- beyond the last ring: the spoke runs on as a dead end toward the next ring

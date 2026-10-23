@@ -145,6 +145,21 @@ M.BODY_PTS_MAX = 4000
 --- The q quantile of a list { {d, w}, ... } (w: weight), sorted in place by d; nil when empty.
 local function quantile(list, q)
 	if #list == 0 then return nil end
+	-- (2026-10-21, TICKCOST round: unit weights, the common case, sort plain numbers; the same quantile)
+	local unit = true
+	for _, x in ipairs(list) do
+		if x[2] ~= 1 then
+			unit = false
+			break
+		end
+	end
+	if unit then
+		local nums = {}
+		for i, x in ipairs(list) do nums[i] = x[1] end
+		table.sort(nums)
+		local want = q * #nums
+		return nums[math.min(#nums, math.max(1, math.ceil(want)))]
+	end
 	table.sort(list, function(a, b) return a[1] < b[1] end)
 	local total = 0
 	for _, x in ipairs(list) do total = total + x[2] end
@@ -178,11 +193,15 @@ function M.body(points, o)
 	end
 	if n <= 0 then return nil end
 	local mx, my = sx / n, sy / n
-	-- cells: key -> { i, j, pts = { index... } }
+	-- cells: key -> { i, j, pts = { index... } } (2026-10-21: numeric keys, a string one only off any map)
+	local function cellKey(i, j)
+		if i > -1048576 and i < 1048576 and j > -1048576 and j < 1048576 then return i * 4194304 + j end
+		return i .. ":" .. j
+	end
 	local cells, keys = {}, {}
 	for k, p in ipairs(pts) do
 		local i, j = math.floor(p[1] / cell), math.floor(p[2] / cell)
-		local key = i .. ":" .. j
+		local key = cellKey(i, j)
 		local c = cells[key]
 		if c == nil then
 			c = { i = i, j = j, idx = {} }
@@ -211,7 +230,7 @@ function M.body(points, o)
 				end
 				for di = -reach, reach do
 					for dj = -reach, reach do
-						local nb = cells[(c.i + di) .. ":" .. (c.j + dj)]
+						local nb = cells[cellKey(c.i + di, c.j + dj)]
 						if nb and nb.grp == nil then
 							nb.grp = grp
 							queue[#queue + 1] = nb

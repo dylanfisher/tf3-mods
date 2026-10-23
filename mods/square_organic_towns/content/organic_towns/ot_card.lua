@@ -9,8 +9,9 @@
 --      usage until the first written step), the lean (ot_rci.lean on the target mix) and the pull (the district whose
 --      aim is furthest above its target share). Off when "Town growth" is Game default or Act on is Off.
 --   2. Character: the strong kind (`ck`, ot_character.IDS), deep forest (`fd`), a secluded character town (`ch`), a
---      coastal hugger (`cs`); the form (`f`, ot_form.IDS), the street style (`st`, ot_saved.STYLE_IDS), the motifs
---      (`mo`, ot_motif encode).
+--      coastal hugger (`cs`); the form (`f`, ot_form.IDS), the street style (the player's pick `ps`, else the setting's
+--      forced grid, else `st`; ot_saved.STYLE_IDS) as a dropdown where the player may change it (M.stylePick,
+--      2026-10-21: the card sends ot_saved.EV_STYLE), the motifs (`mo`, ot_motif encode).
 --   3. Growth phase: the driver's summary (`ui`, M.summary: phase, level maturity in twentieths) with the progress to the
 --      next phase where one follows (ot_upward LV_BLEND_MAT / LV_MATURE_MAT / EARLY_MAT).
 --   4. Family: the parent (`dk` / `wm` entries whose t is this town) and the offshoots (entries whose p is it), as town
@@ -20,12 +21,17 @@
 -- one small module; tests/square_organic_towns/test_card.lua checks they match). Plain Lua, pre-5.3; loops bounded.
 
 local RCI = ug_require "square_organic_towns::/organic_towns/ot_rci.lua"
+local PA = ug_require "square_organic_towns::/organic_towns/ot_params.lua"
 
 local M = {}
 
 M.KIND_IDS = { "deep_forest", "hilltop", "clifftop", "harbour_cove", "waterfront", "street_village", "company_town",
 	"garden_city", "island_town", "roundabout_town" }
 M.FORM_IDS = { "clustered", "radiating", "sprawling", "linear", "wide", "fingers", "shore" }
+-- the game script's event for the player's street style pick (ot_saved.EVENT_ID / EV_STYLE, mirrored: the card's state
+-- loads no ot_saved)
+M.EVENT_ID = "square_organic_towns"
+M.EV_STYLE = "square_organic_towns.style"
 M.STYLE_IDS = { "NA_GRID", "NA_SUBURB", "EU_ORGANIC", "EU_EXTENSION", "MED_HILL", "MED_ENSANCHE", "JP_DENSE", "NORDIC",
 	"SUPERBLOCK" }
 M.MOTIF_IDS = { "crescent", "hill_road", "hill_climb", "valley_fishbone", "harbour_crescent", "fishing_village",
@@ -380,8 +386,16 @@ function M.aimText(built, aim)
 	return string.format(_("%d%% → %d%%"), a, b)
 end
 
+--- The "Delivery weighting" factor of the input (ot_params deliveryWeight; nil: the param's default, as the driver's
+--- Driver:rciWeight), so the card's aim is the driver's (ot_rci.weightedAim).
+function M.rciWeight(input)
+	local f = type(input) == "table" and tonumber(input.rciWeight) or nil
+	if f == nil then f = PA.KEYS.delivery_weighting.values[PA.KEYS.delivery_weighting.default] end
+	return f
+end
+
 --- Section 1. input fields: rciOn, rc = { e = {3} x 1000 } or nil, supply = the live supply read (ot_rci.usage's sd,
---- used until the town's first written step) or nil, init, sf, uses ({3}).
+--- used until the town's first written step) or nil, init, sf, uses ({3}), rciWeight (M.rciWeight).
 function M.rciSection(input)
 	local lines = {}
 	if not input.rciOn then
@@ -391,7 +405,7 @@ function M.rciSection(input)
 	local built = shares3(input.uses)
 	local target = RCI.shares(input.init, input.sf)
 	local e = (type(input.rc) == "table" and vec3(input.rc.e, 1 / 1000)) or RCI.usage(input.supply)
-	local aim = e and RCI.aim(e) or nil
+	local aim = e and RCI.weightedAim(e, M.rciWeight(input)) or nil
 	if built == nil or aim == nil then
 		lines[1] = { kind = "hint", text = _("No deliveries yet: this town grows the game's way for now.") }
 		return { title = _("Growth by deliveries"), lines = lines }
@@ -446,6 +460,40 @@ function M.kindOf(fr)
 	return nil
 end
 
+--- The street style row's model (2026-10-21): the town's own style (`auto`: the "Town style" setting's forced grid,
+--- input.forcedStyle, else the saved site / character style `st`, else unknown), the player's pick (`ps`, or the pick
+--- just sent and not read back yet, input.pendingStyle: 0 = Automatic), the style in effect (the pick, else auto) and,
+--- when the player may pick (input.stylePick: the mod acts on this town, not in the map editor), the dropdown's options:
+--- "0" = Automatic (named after the town's own style when known: choosing it clears the pick), then "1".."9" =
+--- STYLE_IDS with their names and descriptions as the items' tooltips. selected = the pick's value, else "0".
+--- tip = the row's tooltip (wrapped with \n: the game never wraps a tooltip).
+function M.stylePick(input)
+	local fr = type(input) == "table" and input.frame or nil
+	local out = {}
+	if type(fr) ~= "table" then return out end
+	local si = num(fr.st)
+	local auto = (type(input.forcedStyle) == "string" and M.styleText(input.forcedStyle) and input.forcedStyle)
+		or (si and M.STYLE_IDS[si]) or nil
+	local pi = num(fr.ps)
+	if num(input.pendingStyle) ~= nil then pi = num(input.pendingStyle) end
+	local picked = pi and pi >= 1 and M.STYLE_IDS[math.floor(pi)] or nil
+	out.auto, out.picked = auto, picked
+	out.effective = picked or auto
+	out.desc = out.effective and select(2, M.styleText(out.effective)) or nil
+	if not input.stylePick or input.mapEditor then return out end
+	out.tip = _("The street style for this town's new streets.\nStreets already built stay as they are.")
+	local an = auto and M.styleText(auto) or nil
+	local opts = { { value = "0", text = an and M.fmt(_("Automatic ({style})"), { style = an }) or _("Automatic"),
+		tip = _("The town's own street style, from its site\nor the mod settings.") } }
+	for i, id in ipairs(M.STYLE_IDS) do
+		local n, d = M.styleText(id)
+		opts[#opts + 1] = { value = tostring(i), text = n, tip = d }
+	end
+	out.options = opts
+	out.selected = picked and tostring(math.floor(pi)) or "0"
+	return out
+end
+
 --- Section 2 from the saved frame (input.frame), or nil when there is none. The header shows the kind, or the form
 --- when there is no kind: that one has no row of its own here (its description opens the section instead). Every
 --- entry with a description shows it visibly under its row (a note) and keeps it as the row's tooltip.
@@ -467,9 +515,16 @@ function M.characterSection(input)
 	elseif fn and fd then
 		lines[#lines + 1] = { kind = "note", text = fd }
 	end
-	local si = num(fr.st)
-	local sn, sd = M.styleText(si and M.STYLE_IDS[si] or nil)
-	if sn then entry(_("Streets"), sn, sd) end
+	local pick = M.stylePick(input)
+	if pick.options then
+		-- (a town the mod manages: the street style as a dropdown, ot_card.script.tl; its description follows the selection)
+		lines[#lines + 1] = { kind = "style", key = _("Streets"), options = pick.options, selected = pick.selected,
+			tip = pick.tip, town = input.town, from = pick.effective }
+		if pick.desc then lines[#lines + 1] = { kind = "note", text = pick.desc } end
+	else
+		local sn, sd = M.styleText(pick.effective)
+		if sn then entry(_("Streets"), sn, sd) end
+	end
 	local names = {}
 	for _i, id in ipairs(M.motifs(fr.mo)) do
 		local t = M.motifText(id)
@@ -584,6 +639,9 @@ end
 --- under the headline): every bar, note, hint and town row ends its group; a row's bar sits just under it, a row's
 --- note (its description) directly under it, plain rows of a list a little apart.
 function M.gapBefore(prev, kind)
+	-- (the street style dropdown row spaces as a row)
+	if prev == "style" then prev = "row" end
+	if kind == "style" then kind = "row" end
 	if prev == nil then return M.GAP_HEAD end
 	if kind == "bar" then return M.GAP_IN end
 	if kind == "note" and prev == "row" then return 0 end
@@ -605,7 +663,8 @@ end
 --- right), { kind = "bar", value (0..1), mark (0..1, the aim: the base threshold mark) or nil, color (a DISTRICT_COLORS
 --- id or "growth"), tip }, { kind = "text", text } (body), { kind = "note", text } (a description under its row, the
 --- smaller annotation font), { kind = "hint", text } (an explanation / empty state: the base info hint),
---- { kind = "towns", towns = { { id, name } } }.
+--- { kind = "towns", towns = { { id, name } } }, { kind = "style", key, options = { { value, text, tip } }, selected =
+--- an option's value, tip, town, from = the style in effect (an id or nil) } (key left, a dropdown right; M.stylePick).
 function M.view(input)
 	if type(input) ~= "table" or input.mapEditor or not M.hasData(input) then return { hidden = true, sections = {} } end
 	local out = { hidden = false, sections = {} }

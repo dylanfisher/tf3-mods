@@ -15,6 +15,7 @@
 --                  and industrial cargo supply / demand), read through the base town_util helpers, not recomputed
 --   smoothed e   = e + (u - e) x (1 - exp(-dt / TAU_YEARS))                    (M.smooth; dt in game years)
 --   aim w        = FLOORS + (1 - ΣFLOORS) x e / Σe   (M.aim; no deliveries at all: none, the town is left alone)
+--   weighted     = n + f x (w - n)                   (M.weightedAim: "Delivery weighting" f, n = M.neutral 42/29/29)
 --   shares s     = init x sf / Σ(init x sf)          (M.shares: the town's current target mix)
 --   budget b     = min(STEP_MAX, MOVE_K x the target's growth since the last step / the target)
 --   goal q       = s + (w - s) x min(1, b / Σ max(w - s, 0))                    (never past w: no overshoot)
@@ -34,11 +35,14 @@ M.ON = true
 -- no district aims below its share (R, C, I). Residential keeps a quarter (§75, 2026-10-18: a town stays a place people
 -- live in and makes its own passengers); the most residential can aim at is 0.76, commercial / industrial 0.63
 M.FLOORS = { 0.25, 0.12, 0.12 }
-M.TAU_YEARS = 0.5       -- the usage is smoothed over about this many game years (half a year: six game months)
+-- (2026-10-21, user: "more gradual in speed" for every Delivery weighting: TAU 0.5 -> 1, MOVE_K 1 -> 0.67, STEP_MAX
+-- 0.03 -> 0.02; a 20-point turn takes about 4 game years in a town growing 0.6 % a month, was about 3; PLAN.md 6.2
+-- "Delivery weighting")
+M.TAU_YEARS = 1.0       -- the usage is smoothed over about this many game years (a short delivery swing moves it less)
 M.STEP_YEARS = 1 / 12   -- a town is stepped at most once per game month ...
 M.STEP_S = 60           -- ... (real seconds when the game date can't be read)
-M.MOVE_K = 1.0          -- the share of the target's growth since the last step that may be re-split
-M.STEP_MAX = 0.03       -- share points moved per step at most
+M.MOVE_K = 0.67         -- the share of the target's growth since the last step that may be re-split
+M.STEP_MAX = 0.02       -- share points moved per step at most
 M.MIN_MOVE = 0.002      -- smaller moves are not sent
 M.TOTAL_DEV = 0.04      -- the current total target may move by this share per step at most
 M.CEIL = 0.05           -- the initial sum may rise this far above `n0` (only when a built floor blocks the losers)
@@ -106,13 +110,38 @@ function M.smooth(e, u, dtYears)
 end
 
 --- The aimed shares from a smoothed usage (FLOORS each, the rest by usage); nil when there are no deliveries at all.
+--- (A negative or broken value counts as 0, so no share falls below its floor.)
 function M.aim(e)
 	if type(e) ~= "table" then return nil end
-	local sum = num(e[1]) + num(e[2]) + num(e[3])
+	local e1, e2, e3 = math.max(0, num(e[1])), math.max(0, num(e[2])), math.max(0, num(e[3]))
+	local sum = e1 + e2 + e3
 	if sum <= 1e-6 then return nil end
 	local f = M.FLOORS
 	local free = 1 - f[1] - f[2] - f[3]
-	return { f[1] + free * num(e[1]) / sum, f[2] + free * num(e[2]) / sum, f[3] + free * num(e[3]) / sum }
+	return { f[1] + free * e1 / sum, f[2] + free * e2 / sum, f[3] + free * e3 / sum }
+end
+
+--- The neutral mix: the aim of a town whose deliveries are even (all three districts used alike), FLOORS + a third of
+--- the rest each (42/29/29). Stateless (nothing saved), inside the base game's measured spread (findings towns.md
+--- "District split": residential 25-47 %, commercial 20-50 %, industrial 13-41 %) and below every LEAN threshold.
+function M.neutral()
+	local f = M.FLOORS
+	local free = 1 - f[1] - f[2] - f[3]
+	return { f[1] + free / 3, f[2] + free / 3, f[3] + free / 3 }
+end
+
+--- The aim under the "Delivery weighting" setting (ot_params deliveryWeight, f in 0..1): the neutral mix plus f x the
+--- way to the full aim (M.aim), aim_f = n + f (aim - n). f = 1 (or nil / not a number): the full aim itself. A blend of
+--- two share vectors that both keep FLOORS and sum to 1, so it does too. nil when there are no deliveries (as M.aim).
+function M.weightedAim(e, f)
+	local w = M.aim(e)
+	if w == nil then return nil end
+	f = tonumber(f)
+	if f == nil or not finite(f) then return w end
+	f = clamp(f, 0, 1)
+	if f >= 1 then return w end
+	local n = M.neutral()
+	return { n[1] + f * (w[1] - n[1]), n[2] + f * (w[2] - n[2]), n[3] + f * (w[3] - n[3]) }
 end
 
 --- The target per district (init x sf), its total and the shares; nil when a value is missing, zero or not finite.

@@ -694,8 +694,10 @@ test("planning is sliced over ticks when it runs long (coroutine); the result is
 	local function planned(slice)
 		local E = fakeEngine({ params = { act_on = 3, debug_log = 2 } })
 		local clock = 0
-		function E.nowUs()   -- every clock read costs 3 ms: the plan stage overruns its slice
-			clock = clock + 3000
+		-- every clock read costs 0.5 ms: the plan stage overruns its slice (2026-10-21: was 3 ms; the planner's yields,
+		-- one clock read each, are many more since the TICKCOST round and would pass PLAN_TOTAL_US in fake time)
+		function E.nowUs()
+			clock = clock + 500
 			return E.t + clock
 		end
 		D.SLICE_PLAN = slice
@@ -703,7 +705,7 @@ test("planning is sliced over ticks when it runs long (coroutine); the result is
 		d:loadConfig()
 		d.phase = "manual"
 		local job = d:startJob(TOWN, E.t, { force = true, dry = true, styleMode = "EU_EXTENSION" })
-		for _ = 1, 80 do
+		for _ = 1, 20000 do
 			if not d:advance(E.t, nil) then break end
 			E.t = E.t + 100000
 		end
@@ -1727,6 +1729,8 @@ test("R1 CHECK: slow reads split the check over two ticks (slices=2), the result
 	ok(two and two:find("slices=2", 1, true), tostring(two))
 	ok(two:find("sliceUs=", 1, true))
 	ok(two:find("needsRoom=false", 1, true) and one:find("needsRoom=false", 1, true), "same result")
+	eq(two:match("free=(%S+)"), one:match("free=(%S+)"))
+	eq(two:match("edges=(%S+)"), one:match("edges=(%S+)"))
 	eq(d.counts.checks >= 1, true)
 end)
 
@@ -2222,4 +2226,154 @@ test("left-hand traffic (2026-10-20): mirrored junctions in buildInfo, rings off
 	local de = D.new(EE)
 	de:loadConfig()
 	eq(de:buildInfo({ town = TOWN, edges = {}, style = {} }).leftHand, false, "a failing read stays right-hand")
+end)
+
+-- Tick steps (2026-10-21, TICKCOST round: 194 ticks over 16 ms in session 2026-10-22_0518, up to 110 ms at job:plan /
+-- job:snapshot / job:assess): TICKCOST names the slowest tick's longest stretch between two step notes.
+
+test("TICKCOST atStep: the slowest tick's longest stretch, named by the step notes around it", function()
+	local E = fakeEngine()
+	local d = D.new(E)
+	-- (a 30 ms street read: between the check's buildings read and the end of its reads)
+	local streets = E.streets
+	E.streets = function(...) E.t = E.t + 30000; return streets(...) end
+	local line
+	for _ = 1, 4000 do
+		local t0 = E.t
+		d:tick(E.t, nil)
+		local l = d:costNote(E.t, E.t - t0, 0, "job:assess")
+		if l then line = l break end
+		E.t = E.t + 100000
+	end
+	ok(line, "a TICKCOST line")
+	-- (the reads cross CHECK_SPLIT_US: the tick ends after them, the stretch closes at its end)
+	ok(line:find("atStep=chk.bld>end", 1, true), line)
+	ok(tonumber(line:match("atStepUs=(%d+)")) >= 30000, line)
+	-- (the old fields first, in their order; the new ones appended)
+	ok(line:find("revMiss=%S+ atStep=%S+ atStepUs=%d+$"), line)
+end)
+
+-- Logs on the main thread (2026-10-22, session 2026-10-22_1811_lht-sqot: in game log.message throws "Value is not a
+-- string, but a thread" inside a coroutine; docs/findings/scripting.md "Coroutines"). A fake game log that fails the
+-- same way: no driver path logs from inside the plan coroutine.
+local function strictLog()
+	local lines, bad = {}, 0
+	local old = { message = log.message, warning = log.warning, error = log.error }
+	local function strict(msg)
+		local _, isMain = coroutine.running()
+		if isMain ~= true then
+			bad = bad + 1
+			error("Value is not a string, but a thread (value = <unkown>)", 2)
+		end
+		lines[#lines + 1] = tostring(msg)
+	end
+	log.message, log.warning, log.error = strict, strict, strict
+	return lines, function()
+		log.message, log.warning, log.error = old.message, old.warning, old.error
+		return bad
+	end
+end
+
+test("main-thread logs: the round-robin check (tick) with the strict log builds, no ERROR", function()
+	local lines, restore = strictLog()
+	local E = fakeEngine()
+	E.log = function(l) log.message(l) end
+	local d = D.new(E)
+	run(d, E, 400, nil, function() return E.pending ~= nil end)
+	eq(restore(), 0)
+	ok(E.pending ~= nil, "a build was sent")
+	local check = false
+	for _, l in ipairs(lines) do
+		ok(not l:find("[SQOT] ERROR", 1, true), l)
+		if l:find("[SQOT] CHECK", 1, true) then check = true end
+	end
+	ok(check, "CHECK written")
+end)
+
+--- The round-robin tick path in the game's conditions (a running clock, a log.message that throws inside a coroutine,
+--- a coroutine.yield that refuses to cross a pcall), 6000 ticks with the builds applied. Returns the counts and probes.
+local function tickDrive()
+	local lines, restore = strictLog()
+	local oldYield, oldCreate = coroutine.yield, coroutine.create
+	local crossed, created = 0, {}
+	coroutine.yield = function(...)
+		for level = 2, 200 do
+			local i = debug.getinfo(level, "Sf")
+			if i == nil then break end
+			if i.func == pcall or i.func == xpcall then crossed = crossed + 1; error("yield across a pcall", 2) end
+		end
+		return oldYield(...)
+	end
+	coroutine.create = function(fn)
+		local i = debug.getinfo(2, "Sl")
+		local k = (tostring(i and i.short_src):match("([%w_]+)%.lua") or "?") .. ":" .. tostring(i and i.currentline)
+		created[k] = (created[k] or 0) + 1
+		return oldCreate(fn)
+	end
+	local E = fakeEngine()
+	E.log = function(l) log.message(l) end
+	local clock = 0
+	function E.nowUs() clock = clock + 40; return E.t + clock end
+	local d = D.new(E)
+	local builds = 0
+	for _ = 1, 6000 do
+		d:tick(E.t, nil)
+		E.t = E.t + 16000
+		if E.pending then
+			local p = E.pending
+			E.pending = nil
+			builds = builds + 1
+			applySpec(E, p.spec)   -- (the build lands: the next check sees the new streets)
+			p.cb(true, { cost = 300000, msgs = {} })
+		end
+	end
+	coroutine.yield, coroutine.create = oldYield, oldCreate
+	local out = { bad = restore(), crossed = crossed, builds = builds, created = created,
+		n = { CHECK = 0, PLAN = 0, BUILT = 0, ERROR = 0 }, lines = lines }
+	for _, l in ipairs(lines) do
+		for k in pairs(out.n) do if l:find("[SQOT] " .. k .. " ", 1, true) then out.n[k] = out.n[k] + 1 end end
+	end
+	return out
+end
+
+test("tick path: checks, plans and builds; no log inside a coroutine, no yield across a pcall", function()
+	local r = tickDrive()
+	eq(r.bad, 0); eq(r.crossed, 0)
+	ok(r.builds >= 1, "builds: " .. r.builds)
+	ok(r.n.CHECK >= 2 and r.n.PLAN >= 1 and r.n.BUILT >= 1, string.format("CHECK %d PLAN %d BUILT %d", r.n.CHECK, r.n.PLAN, r.n.BUILT))
+	eq(r.n.BUILT, r.builds, "every build reported")
+	eq(r.n.ERROR, 0)
+	-- (the only coroutine: the plan's)
+	for k, n in pairs(r.created) do
+		ok(k:find("^ot_driver:") ~= nil, "a coroutine made at " .. k .. " x" .. n)
+	end
+	local sites = 0
+	for _ in pairs(r.created) do sites = sites + 1 end
+	eq(sites, 1, "one creation site (the plan coroutine)")
+end)
+
+test("job watchdog: a stage that makes no progress ends with ERROR err=stalled and frees the town; the next check runs", function()
+	local E = fakeEngine({ params = { act_on = 3, debug_log = 2 } })
+	-- (a forest read that never ends: the forest stage would hold the job for good)
+	E.forestReader = function() return { step = function() return false end, stats = {} } end
+	local d = D.new(E)
+	local stalled = nil
+	for _ = 1, 6000 do
+		d:tick(E.t, nil)
+		E.t = E.t + 100000
+		local e = logsWith(E, "ERROR")[1]
+		if e then stalled = e break end
+	end
+	ok(stalled and stalled:find("stage=forest", 1, true) and stalled:find("err=stalled:", 1, true), tostring(stalled))
+	ok(d.job == nil or d.job.stage ~= "forest" or d.job.wdTicks == 0, "the job is released")
+	eq(d.inflight, false)
+	eq(d.counts.fails, 1)
+	-- (the town is cooled down like any failure; the scheduler goes on: another check starts later)
+	local checks = d.counts.checks
+	for _ = 1, 2000 do
+		d:tick(E.t, nil)
+		E.t = E.t + 100000
+		if d.counts.checks > checks then break end
+	end
+	ok(d.counts.checks > checks, "a later check ran")
 end)

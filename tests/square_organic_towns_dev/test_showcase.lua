@@ -957,6 +957,9 @@ local function deferred(E, o)
 		-- (the main driver's hang guard reads the clock every PLAN_HOOK_COUNT instructions: with this clock a plan would
 		-- pass PLAN_HANG_US in fake time; the guard is off for this fake, test_driver.lua tests it)
 		D.PLAN_GUARD = false
+		-- (... and the job watchdog: every pause point of a plan reads the clock, so a plan here runs one pause per
+		-- tick and passes JOB_STALL_TICKS in fake time while it progresses; 2026-10-22, after the motif pause points)
+		D.JOB_STALL_S = math.huge
 		local calls = 0
 		function E.nowUs() calls = calls + 1; return E.t + calls * 3000 end
 	end
@@ -1045,6 +1048,7 @@ test("concurrent builds: a pre-check refusal and a build-time failure mid-batch 
 	r:command({ action = "showcase", sn = 1 }, E.t, S)
 	local fin = runPumped(r, E)
 	D.PLAN_GUARD = true
+	D.JOB_STALL_S = 120
 	if not fin then dump(E) end
 	ok(fin)
 	local eu, na = r.show.towns.EU_ORGANIC, r.show.towns.NA_SUBURB
@@ -1247,3 +1251,74 @@ test("§65 / §69 lock A/B: the lock-all twin (mod) and old-lock twins (shape) b
 	v7rows()
 	assert(okRun, err)
 end)
+
+-- Game-like conditions (2026-10-22, session 2026-10-22_1811_lht-sqot: in game log.message throws inside a coroutine;
+-- docs/findings/scripting.md "Coroutines"): a clock that runs (each read 40 us), a log.message that throws inside a
+-- coroutine and a coroutine.yield that refuses to cross a pcall.
+local function gameLike(E)
+	local lines, bad = {}, { log = 0, yield = 0 }
+	local oldMsg, oldYield = log.message, coroutine.yield
+	log.message = function(m)
+		local _, isMain = coroutine.running()
+		if isMain ~= true then
+			bad.log = bad.log + 1
+			error("Value is not a string, but a thread (value = <unkown>)", 2)
+		end
+		lines[#lines + 1] = tostring(m)
+	end
+	coroutine.yield = function(...)
+		for level = 2, 200 do
+			local i = debug.getinfo(level, "Sf")
+			if i == nil then break end
+			if i.func == pcall or i.func == xpcall then
+				bad.yield = bad.yield + 1
+				error("yield across a pcall", 2)
+			end
+		end
+		return oldYield(...)
+	end
+	local elog = E.log
+	E.log = function(l) log.message(l); elog(l) end
+	local calls = 0
+	function E.nowUs() calls = calls + 1; return E.t + calls * 40 end
+	return lines, bad, function()
+		log.message, coroutine.yield = oldMsg, oldYield
+	end
+end
+
+--- The showcase's pool rounds (the dev runner: buildBatch / poolStep -> driver:advance) in the game's conditions.
+--- Returns the per-town results.
+local function gameLikeShowcase()
+	local r, E = fakes()
+	deferred(E)
+	local lines, bad, restore = gameLike(E)
+	local xlog = r.X.log   -- (the dev tools' log in game: log.message, otd_engine X.log)
+	r.X.log = function(l) log.message(l); xlog(l) end
+	r:command({ action = "showcase", sn = 1 }, E.t, S)
+	local okRun, fin = pcall(runPumped, r, E, 40000)
+	restore()
+	ok(okRun, tostring(fin))
+	ok(fin, "the showcase finished")
+	eq(bad.log, 0, "no log.message inside a coroutine")
+	eq(bad.yield, 0, "no yield across a pcall")
+	eq(count(E, "SHOWCASE ROUND round="), 10, "every round")
+	local built = count(E, "[SQOT_DEV] BUILT")
+	ok(built > 50, "builds: " .. built)
+	local check, plan = 0, 0
+	for _, l in ipairs(lines) do
+		ok(not l:find("ERROR", 1, true), l)
+		if l:find(" CHECK ", 1, true) then check = check + 1 end
+		if l:find(" PLAN ", 1, true) then plan = plan + 1 end
+	end
+	ok(check > 0 and plan > 0, string.format("CHECK %d PLAN %d through the real log", check, plan))
+	local res = { built = built }
+	for key, tw in pairs(r.show.towns) do
+		if tw.kind == "style" and tw.town then res[key] = string.format("built=%d", tw.built) end
+	end
+	return res
+end
+
+test("game-like: the pool's rounds run every job to its outcome, no log inside a coroutine", function()
+	gameLikeShowcase()
+end)
+

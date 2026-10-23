@@ -52,6 +52,7 @@ M.REANCHOR_EDGES = 12 -- a plan whose motif line has no anchor yet is rebuilt af
 function M.masterPlan(g, style, opts, snapR)
 	local grower = M.grower(style)
 	local need = grower.extentFor(g, style)
+	if opts.yield then opts.yield() end
 	-- (hang guard 2026-10-13: a far stray node (a country road, the town network) or a NaN never makes an endless plan)
 	if not (need > 0) then need = 600 end
 	need = math.min(need, M.MAX_EXTENT)
@@ -71,7 +72,7 @@ function M.masterPlan(g, style, opts, snapR)
 		if (c.mp.bridgeKey or "") ~= (style.bridgeKey or "") then stillFits = false end
 		-- (... and when the skeleton's arms changed, §63 ot_skeleton: the deep arms' spokes follow them)
 		if (c.mp.skelKey or "") ~= (style.skelKey or "") then stillFits = false end
-		if grower == GRID and #g.nodes > 0 and not c.mp.anchored then stillFits = GRID.matchShare(g, c.mp, snapR) >= 0.5 end
+		if grower == GRID and #g.nodes > 0 and not c.mp.anchored then stillFits = GRID.matchShare(g, c.mp, snapR, opts.yield) >= 0.5 end
 		if stillFits then return c.mp end
 	end
 	local extent = math.min(need + math.max(M.PLAN_MARGIN, need * 0.5), M.MAX_EXTENT + M.PLAN_MARGIN)
@@ -608,11 +609,15 @@ M.LOOK_CHECK = true   -- post-plan look check (zig-zags / lassos the increment w
 --- Look problems the increment `inc` would add to graph g (ot_select look rules, measured on the built result:
 --- the planner may drop a piece the selector counted on): { zigzags = n, lassos = n, keys = { piece keys to
 --- leave out: the newest new edge of each problem } }. Lassos only once the town has a loop (core); a loop with a
---- node within hugR m of an existing street hugs the town (ot_select.HUG) and is not one.
-function M.lookIssues(g, inc, hugR)
+--- node within hugR m of an existing street hugs the town (ot_select.HUG) and is not one. yield: nil or the plan
+--- slice's yield, called between the parts (2026-10-21); before: nil or OG.structure(g) already made (ot_select's
+--- cache.structure: the same graph, the same structure).
+function M.lookIssues(g, inc, hugR, yield, before)
 	local out = { zigzags = 0, lassos = 0, keys = {} }
 	if #inc.edges == 0 then return out end
+	yield = yield or function() end
 	local c = OG.overlay(g, inc)
+	yield()
 	local seen = {}
 	local function blame(ids)
 		local best = nil
@@ -629,15 +634,19 @@ function M.lookIssues(g, inc, hugR)
 	for _, z in ipairs(MT.zigzagList(c)) do
 		if blame(z) then out.zigzags = out.zigzags + 1 end
 	end
+	yield()
 	if #g.edges > 0 then
-		local before = OG.structure(g)
+		before = before or OG.structure(g)
+		yield()
 		local function notBridge(e) return not before.bridges[e.id] end
 		if before.core then
 			local st = OG.structure(c)
+			yield()
 			local ids = {}
 			for id in pairs(st.parts) do ids[#ids + 1] = id end
 			table.sort(ids)
-			for _, id in ipairs(ids) do
+			for ip, id in ipairs(ids) do
+				if ip % 8 == 0 then yield() end
 				local part = st.parts[id]
 				if part.cycle and id ~= st.core then
 					local hugs = false
@@ -716,6 +725,7 @@ function M.planIncrement(g, style, opts)
 			style = style.id }
 		local rep = { ownEmptyCap = 0, ownEmpty = ownEmpty, emptyCap = emptyCap }
 		-- (§74: a town held by its own empty budget still closes its near misses: joins add no frontage ahead of the houses)
+		if opts.yield and opts.nearMiss then opts.yield(tonumber(opts.nearMiss.budgetUs) or 0) end
 		M.nearMissPass(g, style, empty, rep, opts, M.MAX_SEG_FLAT)
 		return empty, rep, nil
 	end
@@ -728,6 +738,9 @@ function M.planIncrement(g, style, opts)
 	for k in pairs(style._motifGaveUp or {}) do exclude[k] = true end
 	local waitRefused = {}
 	local best, bestReport, bestIssues
+	-- (2026-10-22: TICKCOST atStep=plan.resume>ot_core:743, 84 ms: the empty budgets and the master plan's extent and
+	-- cache check ran before the first yield; a yield here and after the extent splits them, and names the long one)
+	if opts.yield then opts.yield() end
 	local mp = M.masterPlan(g, style, opts, snapR)
 	-- opts.yield (the driver's coroutine slice, ot_driver.PLAN_SLICE_US): may suspend between the steps
 	local yield = opts.yield or function() end
@@ -760,10 +773,12 @@ function M.planIncrement(g, style, opts)
 		yield()
 		M.hierarchy(g, inc, style)
 		inc.mix = M.mix(inc)
+		yield()   -- (2026-10-21, TICKCOST round: the checks below in slices of their own)
 		local hugR = SEL.HUG * math.max(style.block.len, style.block.depth)
-		local look = (opts.lookCheck ~= false and M.LOOK_CHECK) and M.lookIssues(g, inc, hugR)
+		local look = (opts.lookCheck ~= false and M.LOOK_CHECK) and M.lookIssues(g, inc, hugR, opts.yield, cache.structure)
 			or { zigzags = 0, lassos = 0, keys = {} }
 		inc.look = look
+		yield()
 		-- joint kinks at existing dead ends: the piece is left out like a look problem
 		local jr = opts.jointRule
 		if jr == nil then jr = SEL.JOINT_RULE end
@@ -877,6 +892,8 @@ function M.planIncrement(g, style, opts)
 	if bestReport then bestReport.emptyCap, bestReport.ownEmptyCap, bestReport.ownEmpty = emptyCap, ownEmptyCap, ownEmpty end
 	-- (§74 close the gap: near-miss dead ends joined to the street ahead, appended to the increment; opts.nearMiss)
 	if bestReport == nil then bestReport = {} end
+	-- (2026-10-21: the pass runs in one go, its budget at most: in a fresh slice of its own, yield's reserveUs)
+	if opts.nearMiss then yield(tonumber(opts.nearMiss.budgetUs) or 0) end
 	M.nearMissPass(g, style, best, bestReport, opts, maxSeg)
 	return best, bestReport, mp
 end
@@ -951,14 +968,19 @@ end
 --- maxTipR (the farthest tip kept), bodyOut (houses outside the main body) }.
 function M.frameIncrement(g, style, opts)
 	opts = opts or {}
+	-- (opts.yield: nil, or the driver's step note, called between the steps, 2026-10-21: FRAME took up to 41 ms)
+	local yield = opts.yield or function() end
 	local hidx = g.hasBuilt and SEL.housedIndexM(g, WG.LEAD_M) or nil
+	yield()
 	local streets, why, nCand, coreR, env, kind, tipCap, body
 	if WG.applies(style) then
 		kind = "wedge"
-		env = SEL.envelopeCap(g, style, opts.terrain)
+		env = SEL.envelopeCap(g, style, opts.terrain, opts.yield)
+		yield()
 		coreR = WG.coreR(style.shape, env)
 		if coreR == nil then return nil, "noEnv", {} end
 		tipCap, body = WG.tipCap(g, style.shape.centre[1], style.shape.centre[2])
+		yield()
 		streets, why, nCand = WG.frameStreets(g, style.shape, { coreR = coreR, housedIdx = hidx, housedDist = SEL.housedDist,
 			ringLead = SEL.RING_LEAD_M, maxTipR = tipCap })
 	elseif style.meadows and MD.applies(style) then
@@ -967,8 +989,10 @@ function M.frameIncrement(g, style, opts)
 		kind = "meadow"
 		local z = MD.zone(g, style, SEL.irregularity(style))
 		if z == nil then return nil, "noMeadow", { kind = kind } end
+		yield()
 		coreR, env = z.coreR, nil
 		tipCap, body = WG.tipCap(g, z.centre[1], z.centre[2])
+		yield()
 		streets, why, nCand = WG.frameStreets(g, { centre = z.centre, arms = z.lobes, axis = z.lobes[1] }, { coreR = coreR,
 			housedIdx = hidx, housedDist = SEL.housedDist, noTails = true, ringLead = SEL.RING_LEAD_M, maxTipR = tipCap,
 			accept = function(x, y) return MD.inSector(z, x, y) end })
@@ -989,9 +1013,10 @@ function M.frameIncrement(g, style, opts)
 		bodyOut = body and body.out or nil,
 		tipCut = WG.lastTipCut or 0, maxTipR = WG.lastMaxTipR or 0, cutMaxR = WG.lastCutMaxR or 0 }
 	if why then return nil, why, info end
+	yield()
 	local inc = P.plan(g, streets, { terrain = opts.terrain, maxSeg = M.MAX_SEG_FLAT, snapR = 8, minLen = 10, minAngle = 25,
 		maxGrade = style.maxSlope, waterSetback = style.waterSetback, maxEdges = WG.MAX_EDGES, join = "deadEnd",
-		templatePaths = style.templatePaths })
+		templatePaths = style.templatePaths, yield = opts.yield })
 	inc.mix = M.mix and M.mix(inc) or nil
 	if #inc.edges == 0 then return nil, "planEmpty", info end
 	return inc, nil, info

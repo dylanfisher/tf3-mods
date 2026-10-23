@@ -16,6 +16,10 @@
 --                                           "stops" events; at most STOP_CAP
 --           frames = { ["<townId>"] = { a = axis rad, x, y, s = shape index (ot_shape.IDS) or nil,
 --                      sa = shape axis rad or nil, st = style index (ot_style.IDS) or nil,
+--                      ps = the street style the player picked for the town's new streets in its town window card
+--                           (2026-10-21, M.STYLE_IDS index; EV_STYLE, M.applyStyle) or nil (none: the town's own, `st`,
+--                           or the setting's); it wins over the "Town style" setting's forced grid, never over the dev
+--                           tools' styles (ot_style.resolve),
 --                      ic = the town's initial land use capacity sum at that build or nil (the fill's brake:
 --                      makeTownDevelopAtCmd raises it, ot_driver FILL_CAP),
 --                      f = town form index (ot_form.IDS) or nil (frames from before forms: no form),
@@ -121,7 +125,9 @@
 --                                           sparse integer keys don't survive the save's table conversion) }
 --
 -- Writes happen only in the game script's handleEvent (engine side) on events the driver sends from
--- guiUpdate (and on the game's onPostBuildProposal for new player Road Stops: addStops) (makeScriptingSendEventCmd, the square_problem_radar / square_supply_gaps pattern). Every apply
+-- guiUpdate (and on the game's onPostBuildProposal for new player Road Stops: addStops; and on the player's street style
+-- pick, EV_STYLE, which the town window card sends from its GUI handler) (makeScriptingSendEventCmd, the
+-- square_problem_radar / square_supply_gaps pattern). Every apply
 -- is idempotent: handleEvent may run in more than one simulation Lua state (docs/findings.md).
 
 local SH = ug_require "square_organic_towns::/organic_towns/ot_shape.lua"
@@ -156,6 +162,7 @@ M.EV_RCI = "square_organic_towns.rci"
 M.EV_GLOCK = "square_organic_towns.glock"
 M.EV_UI = "square_organic_towns.ui"
 M.EV_PROV = "square_organic_towns.prov"
+M.EV_STYLE = "square_organic_towns.style"   -- the player's street style pick (town window card, GUI thread; 2026-10-21)
 M.GX_TOWN_CAP = 800
 M.GX_TOWNS = 4000
 M.CHARS_CAP = 16
@@ -300,7 +307,7 @@ function M.normalize(raw)
 					fd = tonumber(f.fd), b0 = tonumber(f.b0), ck = tonumber(f.ck), dz = tonumber(f.dz),
 					og = tonumber(f.og), px = tonumber(f.px), py = tonumber(f.py), ph = tonumber(f.ph), pr = tonumber(f.pr),
 					pn = tonumber(f.pn), pk = tonumber(f.pk), lm = tonumber(f.lm), e0 = tonumber(f.e0),
-					gk = tonumber(f.gk), dv = tonumber(f.dv), fy = finiteNum(f.fy),
+					gk = tonumber(f.gk), dv = tonumber(f.dv), fy = finiteNum(f.fy), ps = M.styleIndex(f.ps),
 					sk = (type(f.sk) == "string" and #f.sk <= M.SKEL_MAX) and f.sk or nil }
 			end
 		end
@@ -358,6 +365,37 @@ function M.applyFrame(raw, param)
 		fy = finiteNum(param.fy),
 		sk = (type(param.sk) == "string" and #param.sk <= M.SKEL_MAX) and param.sk or nil }
 	return s, true
+end
+
+--- A valid player style index (1..#STYLE_IDS, a whole number), or nil.
+function M.styleIndex(v)
+	v = finiteNum(v)
+	if v == nil or v < 1 or v > #M.STYLE_IDS or v ~= math.floor(v) then return nil end
+	return v
+end
+
+--- handleEvent "style" { town, ps }: the street style the player picked for the town's new streets (town window card,
+--- 2026-10-21). ps = a STYLE_IDS index, or 0 for Automatic (the pick cleared: the town's own style again). Only on a town
+--- the mod manages (a frame; none: ignored); an unknown index is ignored; the same value again changes nothing. Returns
+--- the new state, whether it changed, and the old and new pick (indices or nil) for the log.
+function M.applyStyle(raw, param)
+	local s = M.normalize(raw)
+	if type(param) ~= "table" then return s, false end
+	local town = finiteNum(param.town)
+	if town == nil or town ~= math.floor(town) then return s, false end
+	local f = s.frames[tostring(town)]
+	if f == nil then return s, false end
+	local ps
+	if finiteNum(param.ps) == 0 then
+		ps = nil
+	else
+		ps = M.styleIndex(param.ps)
+		if ps == nil then return s, false end
+	end
+	local was = f.ps
+	if was == ps then return s, false end
+	f.ps = ps
+	return s, true, was, ps
 end
 
 --- A clean copy of a saved / sent strong-character record (`cm`), or nil.
@@ -1088,6 +1126,9 @@ function M.frame(raw, town)
 	end
 	local sti = tonumber(f.st)
 	if sti and M.STYLE_IDS[sti] then out.style = M.STYLE_IDS[sti] end
+	-- (the player's pick for the new streets, 2026-10-21: ot_style.resolve puts it before `style` and the setting's grid)
+	local psi = M.styleIndex(f.ps)
+	if psi then out.playerStyle = M.STYLE_IDS[psi] end
 	out.initial = tonumber(f.ic)
 	local fi = tonumber(f.f)
 	if fi and FM.IDS[fi] then out.form = FM.IDS[fi] end

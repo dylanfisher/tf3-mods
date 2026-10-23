@@ -278,6 +278,7 @@ function M.pickSite(o)
 	for k = 0, M.DIRS - 1 do
 		local a = rot + k * 2 * math.pi / M.DIRS
 		for _, d in ipairs(M.RING_D) do
+			if o.yield then o.yield() end   -- (2026-10-21: the driver's step note between the candidates, TICKCOST atStep)
 			local x, y = o.cx + math.cos(a) * d, o.cy + math.sin(a) * d
 			local ok, sl, de, link, fs, edge = siteOk(o, x, y, d)
 			if ok then
@@ -347,6 +348,7 @@ function M.industrySite(o)
 		local keep = math.max(M.IND_KEEP, zr + M.CORE_R * 0.5)
 		local best = nil
 		for _, f in ipairs(M.IND_FRACS) do
+			if o.yield then o.yield() end
 			for _, nudge in ipairs(M.IND_NUDGE) do
 				local x = o.cx + ux * it.d * f - uy * nudge
 				local y = o.cy + uy * it.d * f + ux * nudge

@@ -173,7 +173,7 @@ scheduler (GUI Main Thread) ─► assess town ─► snapshot graph ─► plan
 | `ot_knot.lua` | yes | Knot look rules (§70, 2026-10-15; 6.2 "Steering lock policy (§69)", "§70"): on the curves, a new piece crossing a street off a shared node, running beside one for long, or closing a loop under half a block (ot_select M.KNOT, steer towns); §71 hooks: a dead-end street curling over 120 deg or back by its own street (`hook`, ot_select M.HOOK); §75 (6.2 "Side streets and parallel streets (§75)"): the parallel run over the whole street through a piece (`chainBehind`, `streetLine`, `graphAt`, `parallelRun` options), `text` with `side`; one empty row at a time (§75 follow-up, 2026-10-19: `ROW`, `rowM`, `rowNeed`, `emptyOurs`, knot reason `row`); the empty-row measure (2026-10-20: `emptyRows`, `rowsText`, SNAPSHOT `emptyRows=`) |
 | `ot_prov.lua` | yes (console part: engine reads) | Street provenance (§75 follow-up, 2026-10-19; 6.2 "Side streets and parallel streets (§75)" "Follow-ups built"): the source of each built edge (`source`), the saved record (`entry` / `parse` / `append` / `add`, ot_saved `pv`), lookups (`find`, `nearest`, `describe`) and the console helper `who()` |
 | `ot_nearmiss.lua` | yes | Close the gap (§74, 2026-10-17; 6.2 "Close the gap (§74)"): near-miss dead ends (a street within 80 m ahead) joined to a node ahead (a bend to another dead end, a T / crossroads at a street node the driver allows), shapes (line, arcs, Hermite; §75 a pair's `corner`), place / planner / curve checks (§75 `parallelKnot` over the whole street), the seeded chance by gap, woods kept (§75 `woodRun`: only through a big wood), the cap, `merge`, the near-miss share (tests) |
-| `ot_rci.lua` | yes | Supply-driven district weighting (§66, 2026-10-15; 6.2 "Supply-driven district weighting"): the base game's usage weights (`usage`), smoothing, the aim with floors, the step (initial sum kept, built floor, ceiling, total cap, no overshoot), the lean and its draw multipliers, the RCI texts |
+| `ot_rci.lua` | yes | Supply-driven district weighting (§66, 2026-10-15; 6.2 "Supply-driven district weighting"): the base game's usage weights (`usage`), smoothing, the aim with floors, the "Delivery weighting" blend toward the neutral mix (`weightedAim`, `neutral`; 2026-10-21), the step (initial sum kept, built floor, ceiling, total cap, no overshoot), the lean and its draw multipliers, the RCI texts |
 | `ot_lane.lua` | yes | (deep forest towns, 2026-10-14: DEEP_P 0.67, DEEP_MAX_PER_TOWN 8, `maxFor`) Forest lanes (R2, 2026-10-13): stretches of an increment wooded on both sides to lot depth go out as locked `country_{old,new}_small` (no houses), seeded ~1 in 3 (hug more, clear fewer, later eras fewer), MAX_PER_TOWN; FORESTLANE lines. Round after the names run: one stretch of ONE plan line (no block-interior lines `bk` / `sr` / `q` / `conn`, no side streets inside, town streets at both ends, 2+ edges, 60-400 m), hug towns' held crossings freed as a bundle (`free`, ot_select laneBundle) |
 | `ot_lead.lua` | yes | Country lanes laid ahead (round after the names run): who (seeded 30 % of towns of 60-1500 buildings, map quota 25 %), where (toward a neighbour / the satellite / the shape axis / the frame axis, 250-600 m beyond a dead end at the edge (400-1000 m and straight until 2026-10-14; now curved, none for a town with a district), short of the gap line, dry, gentle, not along a road), the streets (the locked country lane + a town-street T or ribbon at the far end), the marking; LEADLANE lines |
 | `ot_works.lua` | yes | Industrial satellite towns "Works" (round after the names run; 2026-10-14: 2/3 of the way to an industry within 3 km when there is one, named by its kind, the link through ot_link): who (new maps only, >= 300 buildings, seeded 35 % (`rng.draw` since §64), quota one per 8 towns, max 3, with the districts at most 4 per 16 towns (ot_driver OFF_PER16), never a character or Works town), where (0.8-1.5 km, harbour / rail / across water best, dry, gentle, gap / character / neighbour rules, room, a reachable link line; §64 `landScore`: wooded surroundings / link worse, the §62 lean's heading better), the name per list language (through ot_offname since NEXT_PHASE_BRIEF 47), the link road (country middle between two joined town-street ends); WORKS lines |
@@ -212,7 +212,8 @@ functions: plane, slope, ridge, river trench, coastline).
 | Existing streets | dominant axis + its strength | grid axis = existing axis (never rotate an existing town); organic styles keep existing radials |
 
 Region detection falls back to climate only, then to "EU central" (the base default name set is europe).
-A mod param can force a style for all towns. Later: per-town override from the town window.
+A mod param can force a style for all towns. Per town, the player can change the street style of the new streets in the
+town window card (2026-10-21, 6.2 "Street style pick in the town window card"); the pick wins over that setting.
 
 **"Town style" setting** (mod param `style`, was "Street style"; 13 languages; values appended, saved indices keep
 their meaning; `ot_params.STYLE_REGION`):
@@ -515,7 +516,8 @@ all locks" button, an Act on value "Paused", "no other saved state") described i
   `tonumber` / type and length checks and drops the rest, so a missing field is nil and old saves load as "none yet":
   `known`, `fresh`, `nm` / `nd` / `rv` (names done, list folder, river and lake names), `sq` / `sb` (stop queue and
   street sections), `frames[town]` (axis, shape, style, form, motifs, `b0`, `ck`, `dz`, `og`, `lw` / `ls`, the pair
-  `px py ph pr pn pk`, ...), `cm` (strong characters), `sp` (satellite pacing), `lb` / `lbs` (level baseline), `wk` /
+  `px py ph pr pn pk`, the player's street style pick `ps` (2026-10-21: only written when the player picks one in the
+  town window card; the event edits an existing frame only), ...), `cm` (strong characters), `sp` (satellite pacing), `lb` / `lbs` (level baseline), `wk` /
   `wm` / `dk` (Works and district towns), `rev` (the change number handleEvent bumps with every set, 2026-10-20: the
   per-frame read copies the state only when it moved, 6.2 §75 "The saved state off the frame path"). All additive: an older save without `sp` counts from the towns' starting
   sizes, without `b0` from the frame's initial capacity, without `cm` gets no strong characters (`why=oldMap`), a frame
@@ -523,6 +525,10 @@ all locks" button, an Act on value "Paused", "no other saved state") described i
   and capped (MAX_FRAMES 4000, MAX_KNOWN 20000, LEVELBASE_MAX 4000, WORKS_CAP 64, STOP_CAP 64, STOPBASE_CAP 300,
   WATER_CAP 32, CHARS_CAP 16, PACE_HIST 64). A mod `revision` bump doesn't touch it; only a change of `ot_saved.VERSION`
   would reset it (never do that: add fields instead).
+- **Delivery weighting** (2026-10-21, 6.2 "Delivery weighting"): a new param, default Medium, so a save from before
+  it gets Medium too: its weighted towns turn toward the milder aim through the normal step (with their growth, at
+  most `STEP_MAX` 2 points a month, never below what is built: nothing torn down). Nothing saved. The slower pace
+  constants of the same day apply to every save (saved smoothed usage kept, it just follows new deliveries more slowly).
 - **Opt-in scope:** param "Act on": *New towns only* (default: towns that weren't there when the mod first saw this
   save; on a fresh map every town) / *All towns* / *Off* (the mod changes nothing, preRunFn included). Names,
   strong characters, Works / districts, the head start and level weights only on a new map (`newMap`).
@@ -662,8 +668,10 @@ Decisions:
 
 - **Driver context: game-script `guiUpdate`** (Main Thread). Only there do both proven facts hold: runFn's
   region global is visible (not in GUI plugin states) and commands get callbacks (not in engine `update`). **No
-  stylesheet**; since rev 4 one read-only GUI plugin, the town window's card (6.2 "Town window card and new-town
-  notification (rev 4)"), which reads the saved state and never drives anything. One stage per tick (assess, terrain once per town, snapshot, plan, send, wait), one
+  stylesheet**; since rev 4 one GUI plugin, the town window's card (6.2 "Town window card and new-town
+  notification (rev 4)"), which reads the saved state and never drives anything; since 2026-10-21 it sends one event,
+  the player's street style pick (6.2 "Street style pick in the town window card"), which the game script saves and the
+  driver reads like any frame field. One stage per tick (assess, terrain once per town, snapshot, plan, send, wait), one
   town check every 3 s, 6 s pause after a build, one command in flight, 30 s callback timeout. guiUpdate also runs
   while the game is paused: since rev 2 every one of these times is running time (real time with the paused stretches
   left out, `Driver:gameClock`) and a paused tick starts nothing (6.2 "Pause and refunds (rev 2)").
@@ -969,16 +977,17 @@ findings towns.md "District split" -> "Measured spread"): 15 towns at residentia
 industrial 13-41 %, none above 50 %. The base game splits each growth increase by usage (line use, cargo supply /
 demand) and then evens it out (rebalance2: a minimum weight per district, the maximum shrinking toward 0.5 past 40 % of
 the town), so towns vary but never turn lopsided. The setting (mod.json `town_growth`, ot_params `townGrowth`): By
-deliveries (default) / Game default.
+deliveries (default) / Game default; how strongly: the separate setting "Delivery weighting" (2026-10-21, "Delivery
+weighting" below: the aim used is `RCI.weightedAim`).
 - **Inputs (ot_engine.townSupply).** The base helpers, not a recomputation: `town_util.getCargoSupplyDemands(town)`
   (sums of supply / demand per land use; it wraps `townBuildingSystem.getCargoSupplyAndLimit`) and
   `api.engine.util.town.getTownLineUsage`, `town_util.LineUsageRatingMultiplier` (2). `RCI.usage` is the base
   game's own usage formula (town_growth.script.tl:377-412): residential = clamp(line use x 2) averaged with residential
   cargo supply / demand when there is any demand; commercial / industrial = clamp(supply / demand) (0 without
   demand). Reachability is not an input (the base growth doesn't use it).
-- **Formula (ot_rci, pure).** Smoothed usage e += (u - e) x (1 - exp(-dt / `TAU_YEARS` 0.5)) (dt in game years, first
+- **Formula (ot_rci, pure).** Smoothed usage e += (u - e) x (1 - exp(-dt / `TAU_YEARS` 1.0; 0.5 until 2026-10-21)) (dt in game years, first
   sight e = u). Aim w = `FLOORS` (residential 0.25, commercial / industrial 0.12; §75, 2026-10-18: was 0.12 each) + 0.51 x e / Σe, so residential aims at 0.25-0.76, commercial / industrial at 0.12-0.63 (none when Σe = 0: a town without deliveries is left alone, as the
-  game grows nothing there). Target shares s = init x sf / Σ. Budget b = min(`STEP_MAX` 0.03, `MOVE_K` 1 x the total
+  game grows nothing there). Target shares s = init x sf / Σ. Budget b = min(`STEP_MAX` 0.02, `MOVE_K` 0.67 x the total (0.03 / 1 until 2026-10-21)
   target's growth since the last step / the target). Goal q = s + (w - s) x min(1, b / Σ max(w - s, 0)): never past
   w. New initial capacities λ q / sf with λ = Σ init / Σ(q / sf): **the initial sum is kept**, so the game's next total
   target (Σ init x its growth factor) is the base game's; the mix changes, not the speed. Floors: a losing district's
@@ -1021,13 +1030,63 @@ deliveries (default) / Game default.
   the setting off or no main driver) and the inspector's "R/C/I by deliveries" line. The dev Simulate makes no
   deliveries (no supply: the weighting leaves its towns alone), so the check is real play (TESTING.md step 15).
 - Tests: test_rci (usage, smoothing, aim, the step's guards / budget / floors / ceiling / total cap, a 20-year
-  lopsided town vs the base split: industrial >= 60 % without overshoot, the total within CEIL; a passenger town >= 60 %
+  lopsided town vs the base split: industrial >= 55 % without overshoot (at Full), the total within CEIL; a passenger town >= 60 %
   residential; a town that never grows unchanged; the full-mode sweep; the lean draws; the driver: writes, Act on Off /
   Game default / New towns only / offshoots, the per-tick cap, the exact restore, the level weights put back, the
   saved state).
 - Open: whether a lowered initial capacity (target still >= built) ever demolishes buildings; whether the changed-
   value write rewrites level weights (the put-back handles it either way); the constants (STEP_MAX, TAU, FLOOR) are
   offline guesses; the starting-size evening (above).
+
+**Delivery weighting (2026-10-21; player request; offline, in game: TESTING.md "Delivery weighting").** The player:
+"Allow us to modify the weighting of town development from deliveries ... somewhere in the middle ground would be
+best." The user: the default more gradual than before (Medium), and every level slower.
+- **Setting** (mod.json `delivery_weighting`, ot_params `deliveryWeight`, 13 languages): Full / Strong / **Medium
+  (default)** / Light = f 1 / 0.75 / 0.5 / 0.25. Only with Town growth By deliveries (Game default writes nothing). A
+  separate key, never new values in `town_growth` (its saved indices keep their meaning). The `town_growth` tooltip
+  points to it ("How strongly: the Delivery weighting setting.").
+- **Formula** (`RCI.weightedAim(e, f)`): aim_f = n + f x (aim - n) with the neutral mix n = `RCI.neutral()` = FLOORS +
+  a third of the rest each = 42/29/29, the aim of a town whose deliveries are even. A blend of two vectors that keep
+  FLOORS and sum to 1, so aim_f does too; f nil / NaN: the full aim, clamped to 0..1; no deliveries: nil as before.
+  (`M.aim` now counts a negative or broken usage value as 0: before, a negative value could put a share below its
+  floor; smoothed values are clamped, so the game never fed one.)
+- **Neutral mix, why stateless:** the town's own starting mix is not saved (`rc` has e, s, y, n0, k; n0 is a sum), and
+  the current target is already the weighting's own result for a weighted town, so neither is a clean "what the game
+  would do". 42/29/29 needs no saved field, sits inside the base game's measured spread (residential 25-47 %,
+  commercial 20-50 %, industrial 13-41 %, findings towns.md "District split") and below every LEAN threshold.
+- **The factors:** an industry-only town aims at 63 / 54.5 / 46 / 37.5 % industrial, a passenger-only one at 76 /
+  67.5 / 59 / 50.5 % residential, a commercial-only one at 63 / 54.5 / 46 / 37.5 % commercial. Full is the old aim
+  (mill towns); Strong still clearly lopsided; Medium just past the base game's measured maxima (industrial 46 vs 41,
+  residential 59 vs 47), the middle ground; Light within the base spread (towns stay near an even mix but still follow
+  their deliveries a little). Quarter steps keep the four levels evenly spaced.
+- **The lean and the draw multipliers stay as they are** (LEAN 55 / 52 / 45 %, CHANCE_MUL): they follow the milder
+  targets by themselves. Medium: a passenger town still leans residential (59 % aim), an industry town only at almost
+  pure industrial deliveries (46 % aim vs 45 %, approached slowly), commercial never (46 vs 52). Light: no lean at all.
+  So the Works / district / lane tilts are a Full / Strong feature; scaling the thresholds would give a Light town a
+  lean with a nearly even mix.
+- **Slower at every level** (the user, same day): `TAU_YEARS` 0.5 -> 1.0 (a two-month delivery swing moves the
+  smoothed usage about 15 %, was 28 %), `MOVE_K` 1 -> 0.67 and `STEP_MAX` 0.03 -> 0.02. A town growing 0.6 % a month
+  turns 0.40 share points a month (was 0.60): a 20-point turn in about 4.1 game years (was 2.8); a fast town at most 2
+  points a month, 10 months for 20 points (was 7). MOVE_K is the lever that matters for most towns (their growth
+  budget is below STEP_MAX); STEP_MAX alone would slow only fast growers. MIN_MOVE 0.002 still lets a town growing
+  0.3 % a month move every month (slower ones add their growth up, "noGrowth", until a step fits); TOTAL_DEV 4 % is
+  only looser relative to the smaller moves (it bounds a re-split's change of the total target; untouched).
+- **Mid-game change / old saves** (the param is read once per load, so a "change" is a save loaded with another
+  value; a save from before this setting has no key and gets **Medium**): the saved smoothed usage `e` stays, only
+  the aim moves, and the town's shares follow through the normal step: by its growth only, at most STEP_MAX a month,
+  never past the aim, the built floor (a losing district's target never below what is built, so nothing is torn
+  down; the gainers grow into the room). A Full mill town loaded at Medium turns back slowly: offline (test_rci
+  "a setting change"), 25/18/57 after 20 years at Full, 29/20/50 five years after the switch, 32/20/47 after fifteen,
+  moves of 0.2 points a month at most (the built floor holds the industry, the other districts grow into the room).
+  Nothing saved, nothing to migrate.
+- Tests: test_rci (weightedAim: Full = the old aim exactly, the proportional blend, clamping and bad inputs, the sweep:
+  sums, floors, finite; the params and the Medium default; the driver's aim, RCI line and readout at the default; Light
+  never leans; a Full -> Medium switch: no jump, never below the new aim, the built floor, turning toward it; Light ->
+  Full; the pace constants), test_card (the card's marks are the weighted aim at every level, the nil default is the
+  driver's), test_assess (mod.json keys / defaults match ot_params).
+- Logs: INIT `deliveryWeight=`, `params=... delivery_weighting=`; RCI lines' `aim=` is the weighted aim; ALLTOWN
+  `rci=` (D.rciReadout) weights by the main driver's setting.
+- Open: in game, whether Medium is the middle ground players want (TESTING.md "Delivery weighting").
 
 **Game-street locking and valves (2026-10-15, §67; NEXT_PHASE_BRIEF 67; in game: TESTING.md "Combined test
 iteration" step 16). (§69: in steer towns only rim streets facing something unwanted are locked, and the valves are
@@ -1662,8 +1721,8 @@ game's feed when the mod founds a Works or district town.
      district whose aim is at least 3 points above its target share), the lean (`ot_rci.lean`); a plain line when the
      setting is Game default / Act on Off, or nothing is delivered (an info hint).
   2. *Character*: strong kind (`ck`), deep forest (`fd`), secluded (`ch`), coastal hugger (`cs`), form (`f`), street
-     style (`st`, only when saved: a style from the setting isn't), motifs (`mo`): key / value rows (Town type, Form,
-     Streets, Features), each description under its row and as its tooltip; no Form row when the header shows the
+     style (since 2026-10-21 a dropdown, "Street style pick in the town window card" below; read-only when Act on is
+     Off: the pick `ps`, else `st`), motifs (`mo`): key / value rows (Town type, Form, Streets, Features), each description under its row and as its tooltip; no Form row when the header shows the
      form (a town without a kind): its description opens the section.
   3. *Growth phase*: from the new `ui` summary (below): the phase's description (its name is in the header) and,
      toward the next phase (young -> blend / densify / early, blend -> mature), a row "Next: <phase>" / "x%" with a
@@ -1698,6 +1757,80 @@ game's feed when the mod founds a Works or district town.
   origins, the five sections from plain inputs incl. garbage and old saves, family buttons and readiness, the
   notification's dedupe and texts, `no` / `ui` normalised, capped and idempotent, the driver's batches and reload),
   test_demand (created towns: one notification per claimed town, never twice).
+
+**Street style pick in the town window card (2026-10-21; user request; offline, in game: TESTING.md "Street style
+pick").** The card's "Streets" row (Character section) is a dropdown on towns the mod manages: the player changes the
+town's street style and its new streets grow in it. Existing streets, the frame's axis and origin, shape, form,
+skeleton, rings, motifs, lock mode and character stay as saved.
+- **Saved:** frame field `ps` (an `ot_saved.STYLE_IDS` index; nil = no pick) beside `st` (the town's own style, kept, so
+  Automatic can go back to it). Event `EV_STYLE` `{ town, ps }`, `ot_saved.applyStyle`: only on a town with a frame (no
+  frame: ignored, none made), ps 0 clears the pick (Automatic), anything but 1..9 / 0 is ignored, the same value again
+  changes nothing (handleEvent may run in more than one state); bumps `rev` as every apply. `normalize` keeps a valid
+  `ps` and drops a broken one. An older save has no `ps`: nothing changes until the player picks.
+- **Precedence** (`ot_style.resolve`): a dev style (the dev tools' style modes / showcase: `forceStyle` without
+  `forceFrom`) > **the player's pick** (`styleSource=player`) > the "Town style" setting's North American grid
+  (`forceFrom = "setting"`, `styleSource=forced`) > the saved own style (`st`, `saved`) > a strong character's style >
+  the site pick > the region. The pick wins over the setting because the player chose it for this town after choosing
+  the setting; a dev style wins because the showcase forces a profile per job. Without a pick everything resolves as
+  before (the setting's grid still wins over a saved `st`). A picked style gets its era's outer zone as any town of that
+  style (a forced one has none). A character town keeps its kind's knobs (CHARACTER `applied=partial:style:player`).
+- **Taking effect:** `Driver:styleFor`'s cache key gains `:p<style>`, so the first growth step after the event lands
+  resolves the new style, and ot_core's master plan cache (keyed by the style table) plans it afresh from the saved frame.
+  The saved state reaches the driver through the `rev` reader (handleEvent bumps it). Nothing to invalidate; switching
+  back to an earlier pick reuses its cached style. Derived at resolve time from the new style, not saved: block sizes,
+  green reserves (beyond the current extent), waterfront premium, `late` hierarchy and templates, outer zone, `mech`
+  (the grid styles' lock-all and maxEdges for new increments); the saved grid look `gl` applies to organic growers only
+  (an organic pick of a town framed organic keeps its look). Neighbour diversity reads the pick as the town's style.
+- **GUI** (`gui/ot_card.script.tl`): the base `builtin.ComboBox` (items `ComboBoxItem` with TextView + tooltip, string
+  values, as the base mod settings `script_param_util.tl:484-512`), right of the "Streets" key; options "Automatic
+  (<own style>)" (plain "Automatic" when the own style is unknown: an older frame without `st`) then the nine styles
+  (`ot_card.styleText` names, descriptions as tooltips); the own style is the setting's grid when it forces one, else
+  `st`. The description note under the row follows the style in effect. Row / box tooltip: "The street style for this
+  town's new streets. / Streets already built stay as they are." The handler (GUI thread) sends
+  `api.cmd.makeScriptingSendEventCmd("", "square_organic_towns", EV_STYLE, { town, ps })` (no callback), as Problem
+  Radar's settings (radar_hud.script.tl sendEvent) and Supply Gaps' switch (sg_saved.sendOn) do from GUI handlers; no
+  driver relay. The pick shows at once (pending, until the 2 s poll reads it back, at most 10 s). Read-only row when Act
+  on is Off; no card in the map editor; no dropdown without a frame. No base helper at render time (PS5); **0
+  stylesheet rules** (`make css-rules`: 0 before and after). Why an Automatic entry: the only way back to the town's own
+  style (a pick of the same style would pin it against a later change of the setting).
+- **Logs:** `[SQOT] STYLE event=pick town= name= from=<style in effect> to=<style | auto> sent=` (GUI, once per change)
+  and `[SQOT] STYLE event=apply town= name= style= source=player mode= saved=` (driver, the first growth step that uses
+  the pick, once per town, style and session).
+- Tests: test_stylepick (applier, read-back, precedence, card model, GUI send), test_demand ("street style pick in the
+  driver": the key, setting vs pick, dev style, the apply line).
+
+**Frame cost (2026-10-21; TICKCOST round; in game: TESTING.md "Frame cost"; open).** Session
+`2026-10-22_0518_sqot-sqrl`: TICKCOST means fine (25-237 us) but 194 ticks over 16 ms and 25 over 50 ms in 69 min
+(earlier sessions alike), the slowest at job:plan (111 ms), job:snapshot (108), job:assess (72), FRAME `us=41468`.
+Culprits: the check's reads in one tick (CHECK `parts=`), the snapshot's steps (site searches, stations, frame plan,
+style, roads) and the planner's unyielded stretches (the grid lattice ~60 ms, the dead-end connector scan, select's
+set-up, the junction index, the look check).
+- **Stage slices: tried and removed (2026-10-22).** Every job stage ran in its own coroutine and yielded at slice points
+  (`Driver:runStage`, `slicePoint`, `pcallSliced`, the main-thread call layer `ot_main.lua`, the load-time SLICETEST
+  probe, a kill switch). In game the towns stalled (sessions `2026-10-22_1842_lht-sqot`, `_1920_lht-sqot-crash`: every
+  round job stopped after its first main-thread request; `_1939_lht-compatibility`: `coroutine.resume` passed in only
+  the first value; findings scripting.md "Coroutines"), and the frame spikes moved rather than shrank. Removed the same
+  day; the design and its test steps are in HISTORY.md (2026-10-22). Jobs run one stage per tick as before (the CHECK
+  split over two ticks, CHECK_SPLIT_US, as before).
+- **Kept: planner pause points (same plans).** The plan coroutine (`job.planCo`, `D.SLICE_PLAN`, PLAN_SLICE_US) pauses
+  more often: select every round and every 4 open pieces, between its set-up parts, per dead end in the connector loop;
+  the grid lattice per row / column (and every 16 pieces), its match share; the organic plan's ring arcs, lanes and
+  emits; the junction index, adjacency, the envelope area, the look check's parts (its structure of the old graph
+  reused from select's cache), before the near-miss pass; ot_core before `masterPlan` in planIncrement and after the
+  extent; ot_motif before each derived kind's plan; ot_motif_land every OVERLAY_YIELD (16) overlay calls.
+- **Kept: speedups (identical results, test_tickcost):** the connector scan uses a 100 m cell index of the plan's
+  junctions (`ot_select.CONN_GRID`; candidates in key order, the full scan's box test); `ot_assess.body` numeric cell
+  keys and unit-weight quantiles on plain numbers.
+- **Kept: instrumentation.** TICKCOST appends `atStep=<from>><to>` (the slowest tick's longest stretch between two step
+  notes: `Driver:stepNote` between the job stages' steps (`chk.*`, `terrain.*`, `snap.*`, `style.*`, `plan.*`), inside
+  the long engine reads and site searches (`Driver:stepEvery`: ot_engine's `step`, the site searches' `o.yield`), the
+  planner's pauses as `file:line` chains, the tick's own parts) and `atStepUs`.
+- **Kept: job watchdog (2026-10-22).** A stage unchanged for `JOB_STALL_S` 120 s and `JOB_STALL_TICKS` 600 advances (not
+  wait / glockWait) ends with `ERROR stage=<s> err=stalled:<s>s/<n>ticks`, the job released (plan coroutine dropped, a
+  fill's command slot freed, town finished "fail").
+- Open: the stages' own long steps still run in one tick; `atStep` names them for a targeted fix.
+- Tests: test_tickcost (body and connector equivalence, step tracker), test_driver ("TICKCOST atStep", the tick path
+  with a log that throws inside a coroutine, the job watchdog).
 
 **Name lists from other mods (§72) (2026-10-17; player question; NEXT_PHASE_BRIEF 72; in game: TESTING.md "Name
 lists from other mods").** A German list from another mod ("Deutsche Städte und Gemeinden") was not recognized and its
@@ -5648,9 +5781,9 @@ name could potentially take into account what type of industry they are". `ot_pl
 | Item | Budget |
 |---|---|
 | Main Thread per frame (driver) | ≤ 0.5 ms average, ≤ 2 ms worst (sliced) |
-| Assessment of one town | ≤ 3 ms total, sliced; once per town per ~60 s at 100 towns |
-| Snapshot (octree + components) | ≤ 5 ms for 500 edges, sliced |
-| Planning one increment | ≤ 5 ms per tick: sliced over ticks since 2026-10-12 (`PLAN_SLICE_US` 4 ms + one round) |
+| Assessment of one town | The reads in one tick, the rest in the next when they took CHECK_SPLIT_US (12 ms); CHECK `sliceUs` up to 72 ms on big towns (2026-10-22_0518; stage slices tried and removed 2026-10-22, 6.2 "Frame cost"); once per town per ~60 s at 100 towns |
+| Snapshot (octree + components) | One tick, up to 108 ms with the decides on big towns (2026-10-22_0518; 6.2 "Frame cost") |
+| Planning one increment | ≤ 5 ms per tick: sliced over ticks since 2026-10-12 (`PLAN_SLICE_US` 4 ms + one step; since 2026-10-21 from the tick's start, with many more yields: the longest offline stretch ~3 ms, was 64) |
 | `makeProposalData` precheck | measure in probe H; ≤ 20 ms or move to fewer prechecks |
 | Commands | 1 in flight; ≥ 2 s between increments map-wide; ≤ 36 edges per demand / metropolis increment, 48 per frame, 60 per satellite seed (2026-10-13 doc fix: was "≤ 24 edges each") |
 | Upward dose (later ideas) | 3 DevelopAt + 1 restore per upward town, at most every 180-300 s per town; points from the snapshot graph (no extra reads) |
@@ -5664,7 +5797,7 @@ name could potentially take into account what type of industry they are". `ot_pl
 | Strong characters pick (2026-10-14) | once per new map: `CHARS_SLICE_US` 6 ms per tick (at least one town), `CHARS_MAX_S` 90 s, then the towns read so far are scored |
 | Map survey (names, 2026-10-14) | once per new map: `NAMES_SLICE_US` 2 ms per tick, `NAMES_SHAPE_MAX_S` 45 s (`capped=timeout`), every phase capped at `cells x PHASE_K` units |
 | Satellite pacing (2026-10-14) | the map's size re-read at most every 2 s, only when a founding is asked (one `townCaps` per town, `PACE_MAX_TOWNS` 4000) |
-| Frame cost line (2026-10-14) | `TICKCOST` every 300 s (always on): ticks, `avgUs`, `maxUs` and its stage (`at=` chars / names:<phase> / job:<stage> / idle), `getMaxUs` / `getAvgUs` (the GUI `state:get()` copy of the saved table, every frame; avg from 2026-10-20), ticks over 4 / 16 / 50 ms, `pvB` / `pvN` (the provenance record's chars / entries, 2026-10-20, cap 32768) |
+| Frame cost line (2026-10-14) | `TICKCOST` every 300 s (always on): ticks, `avgUs`, `maxUs` and its stage (`at=` chars / names:<phase> / job:<stage> / idle), `getMaxUs` / `getAvgUs` (the GUI read of the saved table; avg from 2026-10-20), ticks over 4 / 16 / 50 ms, `pvB` / `pvN` (the provenance record's chars / entries, 2026-10-20, cap 32768), `getN` / `stateMode` / `revMiss` (the change-number reader, 2026-10-20), `atStep` / `atStepUs` (the slowest tick's longest stretch between two step notes and its length, 2026-10-21, 6.2 "Frame cost: stage slices") |
 | Master plan rebuild | sliced since the final-test round (yields between grower, motif hooks, promenade; the final test had up to ~144 ms in one tick) |
 
 Heavy work could move to the GS `update` (no frame cost, findings.md:585-589) only if probe I shows a safe pattern for
@@ -5681,7 +5814,7 @@ sending (no callback; duplicate sends across sim states must be ruled out by an 
 | Town no longer lines our streets with houses (wrong owner/template) | Probe B; plain town templates, no `playerOwned`; the one exception: the `town_*_trees` entry streets (not simBuildable, players build them in towns; preventParcels false; ENTRY lines; off after 2 refusals) |
 | An upward dose (DevelopAt) raises a big town's target (v5 runaway) | Exact restore (UP.EXTRA 0) right after, CAP_K 1.6 x base, 240 s gap (the surge rule dropped for upward 2026-10-14 late: the exact restore is the brake); UPWARD effect logs initial / target |
 | Player pays for/maintains town streets | Probe B; every mod build refunded (rev 2, 2026-10-17) |
-| Frame hitches on big maps | Budget + slicing + the stage hang guard; one town per tick; TICKCOST lines (the mod has no SQPERF) |
+| Frame hitches on big maps | Budget + the planner's slices + the stage hang guard; one town per tick; TICKCOST lines with `atStep` (the mod has no SQPERF) |
 | Proposal reroutes lines/stops (proposal "updates lines, stops", type.d.tl:2826) | Never remove existing edges except in the chosen join variant; never edges with objects |
 | Other mods (Town Street Names, Roundabouts, Bulk Bulldozer) | Read-only interplay; skip edges/nodes owned by constructions |
 | GS `update` fires in several states | Driver on the GUI thread; GS state writes idempotent |
