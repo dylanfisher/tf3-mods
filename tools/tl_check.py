@@ -334,6 +334,23 @@ def lint_lua53(
     return out
 
 
+# The game transpiles .tl itself (resolveutil.loadfile) and its main chunk holds more locals than
+# our emulation: minimap_hud.script.tl compiled here with 5 to spare and failed in game with "too
+# many local variables" (2026-10-22). So the main chunk must keep this many locals free.
+MAIN_LOCAL_HEADROOM = 16
+
+
+def local_headroom(teal: Teal, code: str, name: str) -> list[Diag]:
+    """Error if the main chunk has fewer than MAIN_LOCAL_HEADROOM locals to spare."""
+    pad = "local " + ", ".join(f"_sq_pad{i}" for i in range(MAIN_LOCAL_HEADROOM)) + "; "
+    return [
+        Diag(d.file, d.line, d.col,
+             f"generated Lua: fewer than {MAIN_LOCAL_HEADROOM} locals to spare under the 200 limit "
+             "(the game's transpile adds some): move top-level locals into tables or do-blocks", d.kind)
+        for d in teal.lua_syntax(pad + code, name)
+    ]
+
+
 def check_group(
     mod_root: Path | None, files: list[Path], warnings: bool, lint53: bool = True
 ) -> tuple[list[Diag], int]:
@@ -371,10 +388,13 @@ def check_group(
                 if code is not None:
                     # Compile the generated Lua too: Teal's checker misses Lua compiler limits the
                     # game then fails on at load ("too many local variables (limit is 200)").
+                    syntax = teal.lua_syntax(code, name)
                     diags += [
                         Diag(d.file, d.line, d.col, f"generated Lua: {d.msg}", d.kind)
-                        for d in teal.lua_syntax(code, name)
+                        for d in syntax
                     ]
+                    if not syntax:
+                        diags += local_headroom(teal, code, name)
                     # math.maxinteger/mininteger in game-target output only appear in
                     # Teal's compat polyfill (`math.maxinteger or math.pow(2, 53)`).
                     diags += lint_lua53(name, code, src, skip=TEAL_POLYFILLED)

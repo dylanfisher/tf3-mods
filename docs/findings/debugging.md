@@ -118,3 +118,12 @@ local c = api.gui.camera.getCameraData(); api.cmd.sendCommand(api.cmd.makeAnimal
   `wildlife_deer`, `wolf`, `cougar`, `draft_horse`, `fish_salmon`, `cr_fish/cr_fish_01..04`.
 - Still open: whether a spawned animal persists in the save and despawns, and how to remove one (no despawn command in
   `api/tealdef/api/cmd.d.tl`).
+
+## Frame and simulation timings: `api.gui.benchMark` (2026-10-23, game log)
+
+Console, GUI thread. `getBeginFrameTimes`, `getEventTimes`, `getCoreStepTimes` (GUI update, where mod GUI code runs),
+`getRenderTimes`, `getSwapTimes` each return the last 200 frames as integers; `getReplicateTimes`, `getCommandTimes`,
+`getGameStepTimes` return the last 50 simulation steps as `{frameTime, gameTime}`. Units are microseconds (inferred:
+a fresh vanilla map at ~70 fps gave render ~8000, GUI ~3000, gamestep ~80000). The paste-ready `SQBENCH` line that
+prints count / mean / p50 / p95 / max per list: `docs/console.md`. Session `live` of 2026-10-23_0223 (fresh maps of one config,
+22 mods vs Sandbox Mode only: GUI p50 3.3 vs 3.0 ms, render 8.1 vs 8.0, gamestep 96 vs 80).

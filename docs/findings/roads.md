@@ -727,3 +727,41 @@ writes (RETIME_PLAN.md open question 5, square_smart_lanes).
   town's rings stayed off (`RB ... why=noRoundabouts:leftHand`), and all 190 builds with mirrored node configs were
   accepted (`BUILT ok=true`, none refused, no lane-index assert, no Lua error). The user checked the junctions visually.
   Not done: a node dump comparing a mirrored node entry by entry with a game-made left-hand junction.
+
+## A construction's edges as bridges or with `alignTerrain = false`: no terrain fill, placeable at grade (console 2026-10-22)
+
+Console `makeProposalData` check (nothing built), session live 2026-10-22 ~19:25Z, flat open ground, the DEV
+`square_roundabouts_probe` "Bridge probe" (Roundabout XS, 4 arms, Town small, Grass island, year 2020), the
+construction's transform z = `getHeightAt` + dz (how the builder's Height slider reaches a construction, inferred
+from `construction_react_util.tl:851-870, 3150-3172`). Every case `critical=false`, no messages:
+
+| structure | dz | terrain mods | volume (cutFill x) | cost |
+|---|---|---|---|---|
+| Embankment (plain edges) | 0 / 8 m | 7 / 8 | 261 / 78,546 | 63,249 / 576,995 |
+| Bridge (every edge list `edgeType = "BRIDGE"`, concrete) | 0 / 8 m | 0 / 0 | 0 / 0 | 145,096 / 192,928 |
+| `alignTerrain = false` on every edge list | 0 / 8 m | 0 / 0 | 0 / 0 | 61,536 / 61,536 |
+| Bridge + `alignTerrain = false` | 0 / 8 m | 0 / 0 | 0 / 0 | 145,096 / 192,928 |
+
+- **Verified (proposal):** the 8 m embankment is ~78,500 m³ of terrain and ~9x the cost; all-bridge edges drop the
+  terrain change entirely and are accepted even at grade (dz 0); bridge cost rises with height.
+- **Verified (proposal):** `alignTerrain = false` alone also removes every terrain mod, at the plain road's price
+  at any height: it is presumably a road floating in the air (look not checked).
+- `terrainPreviewHeightModCutFill`'s y stayed 0 in every case, so x carries the volume for raising too (which
+  component is cut and which fill is not settled).
+- Not checked yet: the built look (pillars at dz 0, floating deck), roads dragged onto the raised arm ends, the
+  Roundabout Interchange. `plans/square_roundabouts/PROBE.md` "Phase 8".
+- **Built look (user screenshot 2026-10-22):** a Roundabout XS built at about +8 m with Bridge (year 2024: base
+  concrete) is a flat deck with **no pillars**. Base bridge pillar spacing (`pillarMinDist` / `pillarTargetDist` /
+  `pillarMaxDist` in `base/content/infrastructure/bridge/*.bridge.lua`): concrete 60 / 72 / 84 m, steel 70 / 80 / 90,
+  trestle 20 / 24 / 28, stone 12 / 12 / 48. The construction's 15-30 m pieces get none (inferred: pillars are
+  spaced along the bridge pieces). A road the player dragged onto an arm end built a stone bridge with arches
+  every 12 m and joined the deck.
+- **Hiding a mod bridge from the bridge menu (read from game files 2026-10-22, not tested in game):** the road
+  tool's bridge list (`gui/construction/construction_react_util.tl:1947` makeFilterObjectsFn) comes from
+  `gui/main/menu_category_util.tl` getAvailableObjectsSorted, which keeps a type only with a non-empty
+  `menuCategory.categories` and `(yearFrom == 0 or yearFrom <= year) and (yearTo == 0 or year < yearTo)`, or when it
+  is the current type (`previousId`, the bridge entity window). Base `placeholder.bridge.lua` uses
+  `yearFrom = -1, yearTo = -1`, and no base script names it. No base construction names a hidden bridge by
+  `edgeTypeName` (only `concrete.bridge`, `street_constructions.script.lua`), so whether a construction may build a
+  never-available bridge is open: Roundabouts & Interchanges' short-span concrete is the first test
+  (`plans/square_roundabouts/TESTING.md` open check 5).

@@ -98,6 +98,11 @@ and patching base GUI modules from a GUI script (the dots are built by a local f
   (`generated Lua: too many local variables ...`).
 - Evidence: `square_better_minimap` `minimap_hud.script.tl` with 213 top-level locals crashed on load at 17:33:15Z
   (`MinimapHudPlugin`). Fix: group constants and helpers into tables.
+- **The game's transpile uses more main-chunk locals than `make check`'s emulation (2026-10-22):** the rev 14 work-in-progress
+  `minimap_hud.script.tl` compiled offline with 5 locals to spare at line 1956 (target 5.1, compat prologue of 8 locals),
+  yet failed in game with "too many local variables (limit is 200) in main function" at that line (crash log pasted by the
+  user, `MinimapHudPlugin`, the whole UI down). The game transpiles inside `resolveutil.loadfile` (C++) with settings we
+  can't see. `make check` now requires 16 spare main-chunk locals (`MAIN_LOCAL_HEADROOM` in `tools/tl_check.py`).
 
 ## Translations: `strings.json` and `_()` (research 2026-10-10, in-game checks pending)
 
@@ -224,6 +229,34 @@ settings when loading a game). Not investigated (platform, UI scale, hover delay
 param, its options, default and effect also go into `_metadata/description.html` "Settings" (done for
 square_stress_test and square_smart_lanes rev 4), which the in-game mod detail view shows.
 
+## Coroutines: `log.message` throws inside one, engine reads work across yields (verified in game 2026-10-22)
+
+Session `2026-10-22_1811_lht-sqot` (build 40425): an Organic Towns experiment (stage slices, removed the same day) ran
+each job stage in a coroutine (GUI state, guiUpdate). Every check failed with `[SQOT] ERROR stage=assess ...
+ot_engine.lua:1368` (its `log.message`): "Value is not a string, but a thread", raised in
+`framework/src/framework/lua/State.cpp:612` `ToString`, stack `=[C] resume <- ot_driver runStage`. This Lua yields
+across a pcall (`coroutine.yield` inside `pcall` inside a coroutine suspends it).
+- Console test 1 (live log 18:17Z): inside `coroutine.create(...)`, `print` works; `log.message("SQCO log ok")` throws
+  the same error. The framework binding apparently reads its string argument from the main state's stack and finds
+  the coroutine object.
+- Console test 2 (18:18Z): inside a coroutine `api.engine.entityExists(1)` returns true and
+  `api.engine.system.townBuildingSystem.getTown2BuildingMap()` works, both again after a yield and resume. Number
+  arguments and component field reads (the check's whole read path ran before its first log line) are fine.
+- Untested inside a coroutine, so treated as unsafe: every other call that hands a string to the game (`ug_require`,
+  `_()` and the gettext functions, `api.res.*.find(path)`, `api.cmd.make*Cmd` with strings,
+  `makeScriptingSendEventCmd`, `sendCommand`).
+- `coroutine.resume(co, a, b)` delivered only the first value (session `2026-10-22_1939_lht-compatibility`, the load-time
+  probe `[SQOT] SLICETEST`: Lua 5.2, no JIT; a request served on the main thread and resumed with `true, <table>` came
+  back as `call=true:boolean`, also nested and after a yield). Values passed through `coroutine.yield` across a pcall did
+  round-trip (`yieldPcall=values`). The same probe showed `top=thread:true`: the game script's own thread is the main
+  thread, not a coroutine. Sessions `2026-10-22_1842_lht-sqot` and `2026-10-22_1920_lht-sqot-crash`: with requests
+  handed to the main thread that way, every job stalled after its first one (FAC `read=-1 ok=true`), consistent with
+  the lost values.
+
+What a mod does: no log call inside a coroutine (write the lines after the resume returns), keep string-taking and
+command-sending calls out of coroutines, and don't rely on values passed in through `coroutine.resume`. Organic Towns'
+only coroutine is its planner (pure Lua, `opts.yield` pauses between ticks; the driver logs after each resume).
+
 ## `rawget` is nil in GUI script states (2026-10-11)
 
 `square_organic_towns_probe` crashed at load (Lua error "attempt to call global 'rawget' (a nil value)", context
@@ -256,6 +289,25 @@ show up", grep stdout.txt for "Failed to parse mod.json" first.
 square_industry_production_label's `loadConstruction` modifier silently stop applying on later loads: the game
 rebuilds its modifier table per load but the script stays cached. Base `base_mod.lua` and the official mods never
 guard; make the modifier itself idempotent instead.
+
+## A resource path starting with `/` in a mod file means the mod's own folder; a missing bridge model crashes on build (2026-10-22)
+
+A copy of base `concrete.bridge.lua` in `square_roundabouts_probe` kept the base file's `"/infrastructure/bridge/concrete/..."`
+model paths and `pillarGroundTexture = "/terrain/materials/dirt/dirt.gtex"`. In a mod those resolve inside the mod:
+at load `Resource error: referenced ground texture not found: 'square_roundabouts_probe::/terrain/materials/dirt/dirt.gtex'`
+(a warning, plus the game's "an asset didn't load" note at start), and building a construction whose edges use that
+bridge crashed with a fatal Assertion `id >= 0` in `ModelRep.cpp:195 GetModelId` (session
+`2026-10-22_1939_lht-compatibility`, 19:53:01Z). The bridge itself loaded without a model error: the models are only
+looked up when a bridge is built. When copying a base resource into a mod, prefix every base path with `::/`.
+
+## `makeProposalData` with an unknown construction `fileName` crashes the game (2026-10-22)
+
+A console line built a `SimpleProposal.ConstructionEntity` whose `fileName` named a construction of a mod that was not
+active in that game (`square_roundabouts_probe`, staged but not enabled) and passed it to
+`api.engine.util.proposal.makeProposalData`. The game died at once with a fatal Assertion `(iindex)>(-1)` in
+`framework/src/framework/res/ResTypeRep.h:233` (`Get`), no Lua error (session `2026-10-22_1920_lht-sqot-crash`,
+19:23:58Z). Resolve the name first: `api.res.constructionRep.find(name)` returns -1 for a missing resource
+(`square_roundabouts_probe` `probe_engine.lua` does this under pcall) and only build the proposal for an id >= 0.
 
 ## Removing a staging mod while a save is loaded crashes (2026-10-09)
 

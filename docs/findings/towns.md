@@ -68,6 +68,11 @@ build them yourself (Stress Test "Wide grid").
   `88e6bc07-…_1006.dmp`; no `[SQOT_PROBE] J` line was logged (they come after the call). No base or official mod code
   calls `parcelSystem` at all. `pcall` can't catch it. Don't call `getParcelData`; the probe now reads
   `getSegment2ParcelData()` (no argument) and looks edges up in Lua (untested yet).
+  **Update 2026-10-22 (console, live session of 2026-10-23 00:32Z, Subarctic save):** `getParcelData(e)` for the
+  first 300 keys of `getSegment2ParcelData()` returned the same parcel counts as the map entries (`diff=0`), and the game
+  kept running (`SQPD whole=0.8ms n=300 diff=0 per300=7.8ms`). So the 10-11 crash was not the call itself, or not with
+  a key the map holds. Still no reason to use it: the whole-map read took 0.8 ms and one street ~26 µs, so a
+  100-edge town costs ~3 ms per street vs 0.8 ms for the whole map.
 - **Joining a script street to a town dead end (D, 2026-10-11, script readings; visual check pending):**
   D1 plain join → the node's `BASE_NODE_CONFIG` kept 0 lane connections (deg 1→2), i.e. blocked as before.
   D2 replace the node with a new one → the new node had **no** config component (engine default, effect unknown).

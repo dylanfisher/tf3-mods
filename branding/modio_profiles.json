@@ -1,7 +1,13 @@
 {
   "source": "https://mod.io/g/transportfever3/u/square17",
-  "refreshed": "2026-10-20",
+  "refreshed": "2026-10-21",
   "mods": [
+    {
+      "slug": "better-minimap",
+      "modioId": 6433435,
+      "logo": "0.17.png",
+      "modId": "square_better_minimap"
+    },
     {
       "slug": "smart-lanes",
       "modioId": 6436842,
@@ -9,34 +15,10 @@
       "modId": "square_smart_lanes"
     },
     {
-      "slug": "better-minimap",
-      "modioId": 6433435,
-      "logo": "0.16.png",
-      "modId": "square_better_minimap"
-    },
-    {
       "slug": "organic-towns-cities-that-grow",
       "modioId": 6456748,
       "logo": "0.8.png",
       "modId": "square_organic_towns"
-    },
-    {
-      "slug": "better-roundabouts",
-      "modioId": 6436837,
-      "logo": "0.8.png",
-      "modId": "square_roundabouts"
-    },
-    {
-      "slug": "industry-production-label",
-      "modioId": 6433429,
-      "logo": "0.11.png",
-      "modId": "square_industry_production_label"
-    },
-    {
-      "slug": "better-bus-overlay",
-      "modioId": 6438695,
-      "logo": "0.10.png",
-      "modId": "square_better_bus_overlay"
     },
     {
       "slug": "problem-radar",
@@ -51,10 +33,28 @@
       "modId": "square_passenger_destinations"
     },
     {
+      "slug": "better-bus-overlay",
+      "modioId": 6438695,
+      "logo": "0.11.png",
+      "modId": "square_better_bus_overlay"
+    },
+    {
       "slug": "line-manager-plus",
       "modioId": 6444865,
-      "logo": "0.10.png",
+      "logo": "0.12.png",
       "modId": "square_line_manager_plus"
+    },
+    {
+      "slug": "better-roundabouts",
+      "modioId": 6436837,
+      "logo": "0.8.png",
+      "modId": "square_roundabouts"
+    },
+    {
+      "slug": "industry-production-label",
+      "modioId": 6433429,
+      "logo": "0.11.png",
+      "modId": "square_industry_production_label"
     },
     {
       "slug": "industry-flows",
@@ -81,16 +81,16 @@
       "modId": "square_better_auto_vehicle_renamer"
     },
     {
-      "slug": "no-factory-passengers",
-      "modioId": 6433427,
-      "logo": "0.6.png",
-      "modId": "square_no_factory_passengers"
-    },
-    {
       "slug": "photo-mode-aerials-camera",
       "modioId": 6452024,
       "logo": "0.3.png",
       "modId": "square_photo_mode"
+    },
+    {
+      "slug": "no-factory-passengers",
+      "modioId": 6433427,
+      "logo": "0.6.png",
+      "modId": "square_no_factory_passengers"
     },
     {
       "slug": "bigger-line-dots",
@@ -111,40 +111,16 @@
       "modId": "square_full_refund"
     },
     {
-      "slug": "line-editor-undo",
-      "modioId": 6436003,
-      "logo": "0.6.png",
-      "modId": "square_line_revert"
-    },
-    {
-      "slug": "new-york-towns-streets",
-      "modioId": 6436851,
-      "logo": "0.2.png",
-      "modId": "square_names_us_new_york"
-    },
-    {
       "slug": "blank-slate-empty-flat-test-map",
       "modioId": 6439422,
       "logo": "0.3.png",
       "modId": "square_blank_slate"
     },
     {
-      "slug": "stress-test-debug-tool",
-      "modioId": 6439728,
-      "logo": "0.2.png",
-      "modId": "square_stress_test"
-    },
-    {
-      "slug": "oregon-towns-streets",
-      "modioId": 6436850,
-      "logo": "0.2.png",
-      "modId": "square_names_us_oregon"
-    },
-    {
-      "slug": "california-towns-streets",
-      "modioId": 6436862,
-      "logo": "0.2.png",
-      "modId": "square_names_us_california"
+      "slug": "line-editor-undo",
+      "modioId": 6436003,
+      "logo": "0.6.png",
+      "modId": "square_line_revert"
     },
     {
       "slug": "texas-towns-streets",
@@ -153,22 +129,10 @@
       "modId": "square_names_us_texas"
     },
     {
-      "slug": "pennsylvania-towns-streets",
-      "modioId": 6436849,
-      "logo": "0.2.png",
-      "modId": "square_names_us_pennsylvania"
-    },
-    {
       "slug": "alaska-towns-streets",
       "modioId": 6436865,
       "logo": "0.2.png",
       "modId": "square_names_us_alaska"
-    },
-    {
-      "slug": "washington-towns-streets",
-      "modioId": 6436366,
-      "logo": "0.4.png",
-      "modId": "square_names_us_washington"
     },
     {
       "slug": "arizona-towns-streets",
@@ -177,10 +141,10 @@
       "modId": "square_names_us_arizona"
     },
     {
-      "slug": "minnesota-towns-streets",
-      "modioId": 6436856,
+      "slug": "stress-test-debug-tool",
+      "modioId": 6439728,
       "logo": "0.2.png",
-      "modId": "square_names_us_minnesota"
+      "modId": "square_stress_test"
     },
     {
       "slug": "florida-towns-streets",
@@ -195,16 +159,52 @@
       "modId": "square_names_us_colorado"
     },
     {
-      "slug": "hawaii-towns-streets",
-      "modioId": 6436858,
-      "logo": "0.4.png",
-      "modId": "square_names_us_hawaii"
+      "slug": "oregon-towns-streets",
+      "modioId": 6436850,
+      "logo": "0.2.png",
+      "modId": "square_names_us_oregon"
     },
     {
       "slug": "new-mexico-towns-streets",
       "modioId": 6436852,
       "logo": "0.2.png",
       "modId": "square_names_us_new_mexico"
+    },
+    {
+      "slug": "california-towns-streets",
+      "modioId": 6436862,
+      "logo": "0.2.png",
+      "modId": "square_names_us_california"
+    },
+    {
+      "slug": "pennsylvania-towns-streets",
+      "modioId": 6436849,
+      "logo": "0.2.png",
+      "modId": "square_names_us_pennsylvania"
+    },
+    {
+      "slug": "new-york-towns-streets",
+      "modioId": 6436851,
+      "logo": "0.2.png",
+      "modId": "square_names_us_new_york"
+    },
+    {
+      "slug": "washington-towns-streets",
+      "modioId": 6436366,
+      "logo": "0.4.png",
+      "modId": "square_names_us_washington"
+    },
+    {
+      "slug": "minnesota-towns-streets",
+      "modioId": 6436856,
+      "logo": "0.2.png",
+      "modId": "square_names_us_minnesota"
+    },
+    {
+      "slug": "hawaii-towns-streets",
+      "modioId": 6436858,
+      "logo": "0.4.png",
+      "modId": "square_names_us_hawaii"
     }
   ]
 }

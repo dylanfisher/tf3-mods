@@ -397,7 +397,17 @@ Utilization cell is a live snapshot (sum of `used` / sum of `capacity` over carg
   passenger one false / true, a mixed one true / true; `stations/water/harbor_modular.con` true / true; **industry
   stations report true / true** (passenger true although they take no passengers): filter them by path, not by the
   flags. No airport on the map (stations/air unverified).
-- Used by: Organic Towns `ot_engine.facilities` / `ot_industry.classifyFacility` (away from player facilities).
+- **Airports and the station type (console 2026-10-22, live session, `[MMST2]` lines):** a second map's 645 STATION
+  entities split by construction path: 394 without a construction (curbside stops), 70 `stations/street/...`, 34
+  `stations/rail/modular_station/modular_station.con`, 12 `stations/water/harbor_modular.con`, 6
+  `stations/air/airfield.con`, 4 `stations/air/airport.con`, the rest `industries/...` plus one
+  `landmarks/lighthouse/lighthouse.con`. One construction holds several STATION entities, so dedupe by construction.
+  `api.res.constructionRep.find(<path without "::/">)` resolves (index 571-584 for the stations), but the returned
+  `ConstructionDesc` has **no readable `type`** (`d.type` is nil for every station and industry), so the
+  `ConstructionType` (AIRPORT, RAIL_STATION, ...) is not available this way: classify by the `stations/rail/`,
+  `stations/air/`, `stations/water/` path prefix.
+- Used by: Organic Towns `ot_engine.facilities` / `ot_industry.classifyFacility` (away from player facilities); Better
+  Minimap station icons (`minimap_stations.tl`, PLAN.md phase 8).
 
 ## Default vehicle names and the NAME component (console 2026-10-20, live session of 2026-10-20 02:1xZ)
 

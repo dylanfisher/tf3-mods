@@ -104,6 +104,20 @@ in `react::recipeFn SmartLanesWelcome`, stack `=[C] (-1): makeInfoHint` / `sl_bg
   classes are styled there. Tests: `tests/square_smart_lanes/test_tool.lua` "all lights (welcome)" (R6: no
   `makeInfoHint`, gamepad).
 
+## Follow and cockpit cameras hide every Window by stylesheet (game files + player report 2026-10-21)
+
+- **`game.css.lua:66-69` sets `!action-follow Window, !action-camera Window { visibility = "none" }`** (and
+  `!action-follow R::GameUIRoot`). While the follow camera, the cockpit (`enterFollowCameraCockpit`) or the free camera
+  is active, a mod window can't be shown: Better Minimap rev 12's guard called `api.gui.byId.setVisible(id, true)`
+  every 0.25 s while `isVisible` stayed false, and logged a line each time (player report: thousands of lines in a cab
+  view; our sessions `2026-10-11_0259_sqperf-rmprobe-crash` 03:16:39-40 and `2026-10-13_0856_sqot-dev` 09:02:51-53, 4
+  lines per second). Inferred: `isVisible` reports the style-hidden window as hidden and `setVisible(true)` has no
+  effect there; the window comes back by itself when the action ends.
+- **Don't re-show a mod window something else hid**: it can't win against these actions, and the window comes back by
+  itself when they end. Better Minimap's re-show (meant for Esc) never caught an Esc in any archived session and was
+  removed (2026-10-21); whether Esc out of the cockpit closes a pinned window for real is an open check
+  (`plans/square_better_minimap/TESTING.md` R13).
+
 ## Timers and threads in GUI contexts (2026-10-10)
 
 Probe `square_sqperf_probe` (log lines `[SQPERF-PROBE]`, game stdout.txt), "New Game - desert", build 40420.
@@ -292,6 +306,22 @@ None of these is caught by `make check`; each one crashes the whole game, not ju
 - `builtin.ScrollArea{ content = builtin.BoxLayout{...} }` throws "ScrollArea does not accept a Layout as
   content". Wrap it: `content = builtin.Component{ layout = vbox(...) }` (base entity_window_util.tl:715-721;
   hit in square_industry_flows' type list, only shown with more than 8 types).
+
+## A builtin recipe is known by its function value: wrap it only for one call (game files + player report 2026-10-21)
+
+`builtin.X = react.DeclareBuiltinWithUserdata("X", fn)` (`gui/main/builtin.lua:176`) returns a plain Lua
+function that react registers in `recipeFnToRecipeId` / `recipeFnToRecipeName` (`gui/main/react.lua:388-391`).
+Assigning your own function to `builtin.X` for the session makes `react.GetRecipeId(builtin.X)` and
+`react.GetRecipeName(builtin.X)` return nil for every mod. Base code keys tool actions with
+`GetRecipeName(recipe) .. "/" .. key` (`mission_framework_react.tl:1358`, `make_entity_window.tl:108`), and
+`replacementApi.ReplaceRecipe(builtin.X, ...)` indexes `recipeReplace[nil]`. A player report (2026-10-21): a
+camera-bookmark mod crashed with square_better_bus_overlay's session-long `builtin.ActionDescriptor` wrapper; its
+author traced it to BBO "not preserving ActionDescriptor" (their crash log not seen). Swap the builtin in
+just before the call you need and put the saved value back on its first call (BBO 2026-10-21, ui_overhaul
+`catchment.lua` `with_overlay`); only put it back while `builtin.X` is still your function, so a wrapper swapped
+in over yours stays. Module-table functions (`construction_react_util.getActionParams`) are not recipes and can
+stay wrapped. `builtin.UseDefaultHudIcon` is still wrapped for the session by BBO (HUD worker threads, so a
+scoped swap is not safe there).
 
 ## ImageView: rotation, icon masks, no mouseTransparent (2026-10-07)
 
@@ -1022,3 +1052,13 @@ Industry window plugin (`::IndustryEowExtensionPoint`) `params.entityId` is not 
 2026-10-20 ~04:32Z: `window entity 193532 -> construction 142962`);
 `streetConnectorSystem.getConstructionEntityForSubconstruction` maps it, and the HUD label's STOCK_LIST entity
 maps to the same construction (the selected industry's pills showed).
+
+## HUD station icon names in base code don't exist (in game 2026-10-22)
+
+- `::/gui/hud/icons/station_{train,aircraft,ship,bus,truck,tram_and_bus}[_cargo].tga`, returned by base
+  `gui/line_vehicle_mgmt/line_util.tl`, are not in `base/content/gui.zip`: an ImageView with them draws a purple
+  missing-texture box and logs `Texture error: Could not find texture '::/gui/hud/icons/station_train.tga'` (live session
+  2026-10-22, Better Minimap rev 14 work in progress). Check a base icon path with `unzip -l gui.zip` before using it.
+- Existing transport-mode glyphs (white on transparent): `gui/hud/icons/vehicle_{train,airplane,ship,bus,tram,truck,helicopter}_front_32@2x.tga`
+  (64 px), `gui/hud/icons/vehicle_*@2x.tga` (48 px side views), `gui/layers/icons/filter/vehicle_*@2x.tga`, and
+  `gui/hud/icons/symbol_cargo_32@2x.tga`. No per-mode cargo station icon exists.
