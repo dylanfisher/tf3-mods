@@ -17,7 +17,10 @@
 --   tool = "construction-menu-<category>". When the last getActionParams was for a street stop, the bus lane
 --   tool or the crosswalk tool, a non-selectable
 --   LineViewer with all bus and tram lines is appended to its children (same builtin the station window uses,
---   station_group.tl:958-967). Precedent for wrapping ActionDescriptor: square_supply_gaps sg_patch.lua.
+--   station_group.tl:958-967). Only swapped in by getActionParams for that one call and put back by its first
+--   call: a builtin recipe is known by its function value (react.lua:388-391, GetRecipeId / GetRecipeName), so
+--   a wrapper left in place for the session made those return nil for every other mod (a camera mod's crash,
+--   player report 2026-10-21). Same scoped swap as ui_overhaul's catchment.lua with_overlay.
 --   ACTION_CUSTOM tools (Smart Lanes, Bulk Bulldozer, base custom tools) get no toggle: they render their own
 --   descriptor from their recipe (construction.tl:401-424), so the lines could not be drawn there.
 -- * construction_react_util.forEachDefinition: adds the overlay toggles (CheckBoxes above Underground) to those
@@ -635,6 +638,9 @@ end
 
 -- Wrappers -------------------------------------------------------------------------------------------------------
 local origGetActionParams, origActionDescriptor
+-- the builtin.ActionDescriptor our wrapper stands in for while it is swapped in (nil otherwise)
+local swappedActionDescriptor = nil
+local actionDescriptor -- the wrapper, below
 -- set by every getActionParams call, consumed by the next construction-menu ActionDescriptor (construction.tl
 -- always calls the two in that order in one render); linesAll: train lines too, not just bus and tram
 local linesPending, linesAll = false, false
@@ -828,9 +834,17 @@ local function addOptions(definition)
 	if params ~= nil then definition.params = params end
 end
 
+-- puts back the builtin our wrapper stood in for; a mod that swapped in its own over ours keeps it
+local function restoreActionDescriptor()
+	if swappedActionDescriptor == nil then return end
+	if builtin.ActionDescriptor == actionDescriptor then builtin.ActionDescriptor = swappedActionDescriptor end
+	swappedActionDescriptor = nil
+end
+
 -- getActionParams(definition, params, repository, isGamepadMode, refParams, entity, accessNotificationCacheFn, ...)
 -- (construction_react_util.tl:3604-3606)
 local function getActionParams(definition, params, repository, isGamepadMode, refParams, entity, accessNotificationCacheFn, ...)
+	restoreActionDescriptor() -- left by a render that returned before its descriptor (construction.tl:4448-4452)
 	local res = origGetActionParams(definition, params, repository, isGamepadMode, refParams, entity, accessNotificationCacheFn, ...)
 	local t = perf:start() -- SQPERF section "action_params": our part only (GUI thread)
 	linesPending, linesAll = false, false
@@ -854,12 +868,18 @@ local function getActionParams(definition, params, repository, isGamepadMode, re
 	elseif res ~= nil and definition ~= nil and otherLinesOn(params) then
 		linesPending, linesAll = true, true
 	end
+	if linesPending then
+		swappedActionDescriptor = builtin.ActionDescriptor
+		builtin.ActionDescriptor = actionDescriptor
+	end
 	perf:stop("action_params", t)
 	return res
 end
 
--- builtins are called as (params) or (ref, params); only the plain form is touched
-local function actionDescriptor(p, ...)
+-- builtins are called as (params) or (ref, params); only the plain form is touched, and as a copy
+function actionDescriptor(p, ...)
+	local base = swappedActionDescriptor or origActionDescriptor
+	restoreActionDescriptor()
 	if linesPending and select("#", ...) == 0 and type(p) == "table" then
 		linesPending = false
 		local t = perf:start() -- SQPERF section "line_viewer" (GUI thread)
@@ -869,15 +889,19 @@ local function actionDescriptor(p, ...)
 			if not ok then
 				warnOnce("lines", viewer)
 			elseif viewer ~= nil then
+				local copy = {}
+				for k, v in pairs(p) do copy[k] = v end
 				local children = {}
 				for i, child in ipairs(p.children or {}) do children[i] = child end
 				children[#children + 1] = viewer
-				p.children = children
+				copy.children = children
+				p = copy
 			end
 		end
 		perf:stop("line_viewer", t)
 	end
-	return origActionDescriptor(p, ...)
+	linesPending = false
+	return base(p, ...)
 end
 
 local origForEachDefinition
@@ -909,7 +933,6 @@ local function doReplace(_replacementApi)
 	end
 	origGetActionParams, origActionDescriptor = gap, ad
 	construction_react_util.getActionParams = getActionParams
-	builtin.ActionDescriptor = actionDescriptor
 	if builtin.UseDefaultHudIcon ~= nil then
 		origUseDefaultHudIcon = builtin.UseDefaultHudIcon
 		builtin.UseDefaultHudIcon = perfHud:wrap("default_icon", useDefaultHudIcon) -- SQPERF section (HUD renders)

@@ -233,3 +233,49 @@ test("each toggle Off leaves out only its part", function()
 	ok(not lines, "bus lane lines off")
 end)
 
+
+-- A builtin recipe is known by its function value (react.lua GetRecipeId / GetRecipeName): our wrapper stands in
+-- for builtin.ActionDescriptor only between getActionParams and the menu's descriptor call, then the base one is
+-- back (a session-long wrapper crashed a camera mod, player report 2026-10-21).
+test("ActionDescriptor is the base builtin except during one menu render, and the caller's params stay as they were", function()
+	load({})
+	local base = F.builtin.ActionDescriptor
+	ok(F.builtin.ActionDescriptor == base, "untouched at install")
+	F.cru.getActionParams(STOP, {}, {}, false, nil, -1, nil)
+	ok(F.builtin.ActionDescriptor ~= base, "swapped in for the render")
+	local children = {}
+	local params = { tool = "construction-menu-roads", children = children }
+	local desc = F.builtin.ActionDescriptor(params)
+	ok(F.builtin.ActionDescriptor == base, "base back after the call")
+	eq(#desc.p.children, 1, "line viewer in the descriptor")
+	ok(params.children == children and #children == 0, "caller's table not changed")
+	-- lines Off: nothing swapped
+	F.cru.getActionParams(STOP, { sqbbo_lines = 1 }, {}, false, nil, -1, nil)
+	ok(F.builtin.ActionDescriptor == base, "no swap with lines Off")
+end)
+
+test("a render that returns before its descriptor leaves no wrapper for the next getActionParams", function()
+	load({})
+	local base = F.builtin.ActionDescriptor
+	F.cru.getActionParams(STOP, {}, {}, false, nil, -1, nil) -- disabled item: no descriptor this render
+	F.cru.getActionParams(ROAD, {}, {}, false, nil, -1, nil) -- lines Off for other tools
+	ok(F.builtin.ActionDescriptor == base, "restored")
+	-- a descriptor from elsewhere while swapped passes through untouched and restores
+	F.cru.getActionParams(STOP, {}, {}, false, nil, -1, nil)
+	local desc = F.builtin.ActionDescriptor({ tool = "camera", children = {} })
+	eq(#desc.p.children, 0, "other tools' descriptors untouched")
+	ok(F.builtin.ActionDescriptor == base, "restored by the other call")
+end)
+
+test("a wrapper another mod swaps in over ours (ui_overhaul with_overlay) stays in the chain", function()
+	load({})
+	local base = F.builtin.ActionDescriptor
+	local theirs = function(p) local r = base(p); r.theirs = true; return r end
+	F.builtin.ActionDescriptor = theirs
+	F.cru.getActionParams(STOP, {}, {}, false, nil, -1, nil)
+	local desc = F.builtin.ActionDescriptor({ tool = "construction-menu-roads", children = {} })
+	ok(desc.theirs, "their wrapper ran")
+	eq(#desc.p.children, 1, "our line viewer too")
+	ok(F.builtin.ActionDescriptor == theirs, "theirs back in place")
+	F.builtin.ActionDescriptor = base
+end)
