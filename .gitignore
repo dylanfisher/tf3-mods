@@ -31,3 +31,8 @@ plans/*/*.log
 # uv run plans/square_organic_towns/names/export_names.py (data.json: the site's name lab; data.js: the old page)
 plans/square_organic_towns/names/data.json
 plans/square_organic_towns/names/data.js
+
+# Gallery slides: build output of make shots (plans/<id>/shots/ captures + branding/shots.js). Content-hashed names,
+# so every re-render added a new set to history. They stay on disk for the Hub upload and make modio.
+mods/*/_metadata/[0-9]-*.png
+mods/*/_metadata/[0-9][0-9]-*.png
