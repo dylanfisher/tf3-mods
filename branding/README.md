@@ -138,7 +138,7 @@ A mod we no longer maintain (usually because another mod took over its features)
 
 Same family as the cover: the teal panel on the left carries the mod name, a 2–4 word headline and one short line; the right side shows a crop of a real game capture on the dark field. `slide.js` draws them, `shots.js` holds the per-mod list, and `make shots MOD=mods/<id>` renders them as `N-<hash>.png` (first 8 hex digits of the file's sha256; older copies and stale higher-numbered slides are removed; `0.png` is never touched).
 
-- **Not in git**: the slides are build output, gitignored since 2026-10-22 (each re-render added a new hashed set to history, 225 MB by then). They stay on disk for the Hub upload and `make modio`; on a fresh clone, `make shots` rebuilds them from the tracked captures and `shots.js`.
+- **Not in git**: the slides are build output, gitignored since 2026-10-22 (each re-render added a new hashed set to history, 225 MB by then). They stay on disk for the Hub upload and `make modio`; `make shots` rebuilds them from the captures and `shots.js`. The captures (and every other image under `plans/`) are not in git either since 2026-10-22: they exist only on this disk, so back them up separately.
 
 - **Captures**: full-screen, Retina 5120×2880, saved to `plans/<id>/shots/NN-slug.jpg` (never shipped). English UI, same UI scale, no other mods in frame.
 - **Crop to the point**: `crop: [x, y, w, h]` in capture pixels. Show the window, label or area the slide is about, never the whole screen. The quickest way to find coordinates is a 1280-wide preview (multiply by 4). A source that is not a 5120-wide capture (a cropped or edited panel image) needs its width as `srcW` next to `crop`, or it is scaled as if it were 5120 wide.
