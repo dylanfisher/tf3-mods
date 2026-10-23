@@ -1,5 +1,5 @@
 -- production_label_pickup: the pure aggregation (stockList -> {cargo -> summed line rate}) against a
--- stub adapter (dedupe per line, load filtering, passenger-only stops, terminal cargoLoad, unload-only
+-- stub adapter (pickup visits per line, load filtering, passenger-only stops, terminal cargoLoad, unload-only
 -- stops, stopIndex fallback, memoisation), the stale/paused logic, refresh's error handling and
 -- ratesFor against a small fake api. Shapes: api/tealdef/api/engine/system.d.tl:44-45 (line stops map),
 -- api/tealdef/api/engine.d.tl:492-552 (Line.Stop).
@@ -87,12 +87,43 @@ test("an industry with only unloading lines (or none) gets no entry", function()
 	eq(rates[999], nil)
 end)
 
-test("a line stopping twice at the group (or at two terminals of it) counts once", function()
+test("visits: stops in the set whose previous stop (cyclic) is not in it, at least 1", function()
+	eq(pickup.visits({ [1] = true }, 1), 1) -- one-stop line
+	eq(pickup.visits({ [1] = true }, 3), 1)
+	eq(pickup.visits({ [1] = true, [3] = true }, 4), 2) -- ABAC at A
+	eq(pickup.visits({ [1] = true, [2] = true }, 3), 1) -- A1 A2 B
+	eq(pickup.visits({ [1] = true, [3] = true }, 3), 1) -- A B A: last and first in a row
+	eq(pickup.visits({ [1] = true, [2] = true, [3] = true }, 3), 1) -- every stop
+	eq(pickup.visits({ [2] = true, [4] = true, [6] = true }, 6), 3)
+end)
+
+test("a line loading twice per round trip with a stop elsewhere between (ABAC) counts twice", function()
 	local w = baseWorld()
 	w.map[1] = { { 10, 0 }, { 10, 2 } }
-	w.lines[10] = { stop(1, loads(FISH)), stop(3, loads()), stop(1, loads(FISH), { terminal = 1 }) }
+	w.lines[10] = { stop(1, loads(FISH)), stop(3, loads()), stop(1, loads(FISH)), stop(3, loads()) }
 	local rates = pickup.aggregate((adapter(w)))
-	eq(rates[100], { [FISH] = 112 })
+	eq(rates[100], { [FISH] = 224 })
+end)
+
+test("back-to-back stops at the group (two terminals, or last and first stop) count once", function()
+	local w = baseWorld()
+	w.map[1] = { { 10, 0 }, { 10, 1 } }
+	w.lines[10] = { stop(1, loads(FISH)), stop(1, loads(FISH), { terminal = 1 }), stop(3, loads()) }
+	eq(pickup.aggregate((adapter(w)))[100], { [FISH] = 112 })
+	w.map[1] = { { 10, 0 }, { 10, 2 } }
+	w.lines[10] = { stop(1, loads(FISH)), stop(3, loads()), stop(1, loads(FISH), { terminal = 1 }) }
+	eq(pickup.aggregate((adapter(w)))[100], { [FISH] = 112 })
+	-- a stop listed twice in the map (or met again by the fallback) is one stop
+	w.map[1] = { { 10, 0 }, { 10, 0 } }
+	w.lines[10] = { stop(1, loads(FISH)), stop(3, loads()) }
+	eq(pickup.aggregate((adapter(w)))[100], { [FISH] = 112 })
+end)
+
+test("a second visit that does not load the cargo adds nothing", function()
+	local w = baseWorld()
+	w.map[1] = { { 10, 0 }, { 10, 2 } }
+	w.lines[10] = { stop(1, loads(FISH)), stop(3, loads()), stop(1, loads()), stop(3, loads()) }
+	eq(pickup.aggregate((adapter(w)))[100], { [FISH] = 112 })
 end)
 
 test("each line's stops and rate are read once; rates only for lines that serve something", function()
@@ -191,6 +222,20 @@ test("an industry reached from two groups sums distinct lines once each", functi
 	w.outputs[100] = { FISH, GRAIN }
 	local rates = pickup.aggregate((adapter(w)))
 	eq(rates[100], { [FISH] = 112, [GRAIN] = 65 })
+end)
+
+test("a line loading at two groups that reach the industry: twice with a stop between, once in a row", function()
+	local w = baseWorld()
+	w.reach[2] = { 200, 300, 100 }
+	w.map[1] = { { 10, 0 } }
+	w.map[2] = { { 10, 2 } }
+	w.map[3] = { { 10, 1 }, { 10, 3 } }
+	w.lines[10] = { stop(1, loads(FISH)), stop(3, loads()), stop(2, loads(FISH)), stop(3, loads()) }
+	eq(pickup.aggregate((adapter(w)))[100], { [FISH] = 224 })
+	w.map[2] = { { 10, 1 } }
+	w.map[3] = { { 10, 2 } }
+	w.lines[10] = { stop(1, loads(FISH)), stop(2, loads(FISH)), stop(3, loads()) }
+	eq(pickup.aggregate((adapter(w)))[100], { [FISH] = 112 })
 end)
 
 test("malformed adapter data never errors: nil map / stops / reach / outputs / load, bad rates", function()

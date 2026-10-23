@@ -65,7 +65,7 @@ Both states have white text; only the background colour differs (PLAN "Format").
 Checks:
 
 - [ ] A line that only **unloads** at a station near the industry (cargo config without the output cargo, or a station only delivering inputs) adds nothing.
-- [ ] A line stopping **twice** at the same station group (or at two terminals of it) counts once.
+- [ ] A line stopping **twice** at the same station group with a stop elsewhere between (ABAC) counts twice; at two terminals of it in a row, once.
 - [ ] **Mixed cargo:** a line loading two cargos at the group adds its full rate to each (known over-count, PLAN). Just note it.
 - [ ] **No lines:** an unserved industry shows no pickup pill and no empty box.
 - [ ] Zoom out (`hud-lod-far`): the pickup pill disappears with the production pill.

@@ -195,7 +195,8 @@ global record SquareProductionLabelPickupBuild
 	stopsOf : {integer : {SquareProductionLabelPickupStop}}
 	outputsOf : {integer : {integer}}
 	producersOf : {integer : {{integer, integer}}}
-	served : {integer : {integer : {integer : boolean}}}
+	--- stockList -> cargo -> line -> set of the line's 1-based stop indices that load it in reach.
+	served : {integer : {integer : {integer : {integer : boolean}}}}
 	servedKeys : {integer}
 	si : integer
 	rateOf : {integer : number}
@@ -241,9 +242,11 @@ global record SquareProductionLabelPickup
 	perf : any
 	--- A fresh, never-built cache.
 	newCache : function() : SquareProductionLabelPickupCache
-	--- Pure: stockList -> {cargo -> rate} from the adapter's reads, each line counted once per
-	--- (stockList, cargo), plus counts.
+	--- Pure: stockList -> {cargo -> rate} from the adapter's reads, each line's rate times its
+	--- pickup visits per (stockList, cargo), plus counts.
 	aggregate : function(adapter : SquareProductionLabelPickupAdapter) : {integer : {integer : integer}}, SquareProductionLabelPickupStats
+	--- Pickup visits per round trip: stops in the set whose previous stop (cyclic) is not in it; at least 1.
+	visits : function(stopSet : {integer : boolean}, stopCount : integer) : integer
 	--- A resumable rebuild: reads the line-stops map now; the rest happens in step.
 	newBuild : function(adapter : SquareProductionLabelPickupAdapter) : SquareProductionLabelPickupBuild
 	--- Continue a rebuild until done (true) or until overBudget() returns true after a unit of work

@@ -1,7 +1,8 @@
 -- Industry Production Label: shared pickup-rate cache (PLAN "Pickup rate pill").
 --
 -- stockList entity -> {cargoTypeId -> summed line rate} for every line that loads that output cargo
--- at a station group whose cargo catchment reaches the industry. There is no industry -> lines API,
+-- at a station group whose cargo catchment reaches the industry, times its pickup visits per round
+-- trip (`visits`). There is no industry -> lines API,
 -- so the inverse is built in one pass from api.engine.system.lineSystem.getStationGroup2LineStopsMap()
 -- (.cache/game/api/tealdef/api/engine/system.d.tl:44-45).
 --
@@ -125,9 +126,9 @@ local function producers(b : SquareProductionLabelPickupBuild, stationGroup : in
 	return pairsList
 end
 
--- served[stockList][cargo][line] = true: a set, so each line counts once per (stockList, cargo)
--- however often it stops at the group (or at several terminals of it).
-local function consider(b : SquareProductionLabelPickupBuild, line : integer, stationGroup : integer, stop : SquareProductionLabelPickupStop)
+-- served[stockList][cargo][line][stopIndex] = true: the line's stops (1-based) that load this cargo in
+-- reach of this StockList, a set so a stop listed twice (or met again by the fallback) counts once.
+local function consider(b : SquareProductionLabelPickupBuild, line : integer, index : integer, stationGroup : integer, stop : SquareProductionLabelPickupStop)
 	if stop.loadMode == pickup.LEGACY_UNLOAD_ONLY then return end
 	local load = stop.load
 	if load == nil or not loadsCargo(load, b.passenger) then return end
@@ -147,7 +148,12 @@ local function consider(b : SquareProductionLabelPickupBuild, line : integer, st
 				lines = {}
 				byCargo[cargo] = lines
 			end
-			lines[line] = true
+			local stopSet = lines[line]
+			if stopSet == nil then
+				stopSet = {}
+				lines[line] = stopSet
+			end
+			stopSet[index] = true
 		end
 	end
 end
@@ -169,26 +175,39 @@ local function scanGroup(b : SquareProductionLabelPickupBuild, stationGroup : in
 		-- (station_group.tl:695-702). On a mismatch, every stop of the line at this group is used.
 		local stop = stopIndex0 ~= nil and stops[stopIndex0 + 1] or nil
 		if stop ~= nil and stop.stationGroup == stationGroup then
-			consider(b, line, stationGroup, stop)
+			consider(b, line, stopIndex0 + 1, stationGroup, stop)
 		else
 			stats.stopIndexMismatches = stats.stopIndexMismatches + 1
-			for __, s in ipairs(stops) do
+			for i, s in ipairs(stops) do
 				if s.stationGroup == stationGroup then
-					consider(b, line, stationGroup, s)
+					consider(b, line, i, stationGroup, s)
 				end
 			end
 		end
 	end
 end
 
+--- Pickup visits per round trip: the line's stops in `stopSet` whose previous stop (wrapping from the
+--- first to the last) is not in it. A vehicle arrives with free space only after stopping elsewhere,
+--- so ABAC at A counts 2, while two terminals of A in a row, or a last and first stop both at A,
+--- count 1. At least 1 (every stop in the set).
+function pickup.visits(stopSet : {integer : boolean}, stopCount : integer) : integer
+	local n = 0
+	for i, __ in pairs(stopSet) do
+		local prev = i > 1 and i - 1 or stopCount
+		if not stopSet[prev] then n = n + 1 end
+	end
+	return n > 0 and n or 1
+end
+
 -- Sum for one StockList: calcLineStationThroughput at most once per line per rebuild, and only for
--- lines that serve something.
+-- lines that serve something; each line's rate times its pickup visits.
 local function sumStockList(b : SquareProductionLabelPickupBuild, stockList : integer)
 	local out : {integer : integer} = {}
 	local any = false
 	for cargo, lines in pairs(b.served[stockList]) do
 		local sum = 0.0
-		for line, __ in pairs(lines) do
+		for line, stopSet in pairs(lines) do
 			local rate = b.rateOf[line]
 			if rate == nil then
 				local r = b.adapter.lineRate(line)
@@ -196,7 +215,7 @@ local function sumStockList(b : SquareProductionLabelPickupBuild, stockList : in
 				rate = (type(r) == "number" and r == r and r > 0 and r < math.huge) and r or 0
 				b.rateOf[line] = rate
 			end
-			sum = sum + rate
+			sum = sum + rate * pickup.visits(stopSet, #b.stopsOf[line])
 		end
 		local rounded = math.floor(sum + 0.5)
 		if rounded > 0 then
